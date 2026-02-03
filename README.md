@@ -30,6 +30,79 @@ See `docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md` and `docs/AGENT_SYSTEM.md
 
 ---
 
+## Planned Features & MVP Scope
+
+Angel OS is evolving beyond the base ecommerce template into a full “business OS.” Below are the **planned features** and the **MVP definition** guiding current development.
+
+### Agentic Assistance (Front and Center)
+
+Angel OS is **agent-first**. LEO (and future agents) are intended to **actively run and optimize** business operations — not just answer questions.
+
+- **LEO as Web Master** – Create/update pages, posts, products, navigation, and site settings
+- **LEO as Support Agent** – Handle support queries, triage issues, escalate to humans
+- **LEO as Operations Agent** – Automate inventory workflows, scheduling, and fulfillment
+- **LEO as Workflow Orchestrator** – Trigger multi-step pipelines based on channel messages
+- **MCP-Enabled** – External AI clients can act through the MCP endpoint (`/api/mcp`)
+
+This repo is designed so agents can **take actions** (not just chat) across collections.
+
+### Planned Features (Roadmap)
+
+- **Booking & Scheduling**
+  - Bookable resources: people (sessions), rentable items, rooms, equipment
+  - Appointment types: 1:1 sessions (OnlyFans-style), talk therapy, services
+  - Meeting invitations with selectable time slots
+  - Class and ticketed event signup
+- **LiveKit in Spaces**
+  - LiveKit integration into Channels for real-time sessions
+  - Works for 1:1 or group sessions inside Spaces
+- **LEO Chatbot on Every Page**
+  - Floating bubble chat on brochure pages
+  - Anonymous chats that can transition to authenticated sessions
+  - Embed LEO on client pages or integrate with foreign chatbots
+  - Goal: “Corinna AI” style embeddable bot (see local ref: `C:\Data\Dev\Fullstack\Prodigies\corinna-ai`)
+- **MCP + Agent Capabilities Expansion**
+  - LEO as default web master for full CRUD across collections
+  - Channel workflows (inventory photos, PDFs, video analysis) with structured outputs
+- **External Integrations**
+  - POS integrations for retail (e.g., vape shops, farmers markets)
+  - Print-on-demand fulfillment (e.g., Largo TShirt company)
+
+### MVP Definition (Current Target)
+
+Angel OS MVP is achieved when the system can:
+
+1. **Accept payments** and **split payouts** for:
+   - Inventory items (ecommerce orders)
+   - Service bookings (massage, pressure washing, 1:1 sessions)
+2. **Support scheduling** for bookable resources:
+   - People (sessions, therapy, consultations)
+   - Items (rentals)
+   - Classes and ticketed events
+3. **Spaces functional** with:
+   - Invitations and onboarding
+   - Basic channel participation
+4. **Ecommerce workflow** working end-to-end:
+   - Cart + checkout
+   - Order creation
+   - Fulfillment hooks (3rd-party printing or local inventory)
+5. **LEO chat available site-wide**:
+   - Anonymous → authenticated flow
+   - Support inquiries handled by LEO
+
+### What’s Missing for Viability
+
+- **Booking engine** (resources, availability, calendar, time slots)
+- **Payment split** logic for services vs. products (Stripe Connect wiring)
+- **LiveKit integration** into Channels (already implemented in prototype app)
+- **Embeddable LEO chat widget** (floating bubble + anonymous session handling)
+- **Workflow engine** for channel-based automations (inventory photos, PDFs, video)
+- **Operational onboarding** for invitations + role-based routing into Spaces
+
+This README is also intended to help **AngelOSMerlin** and other OpenClaw associates on **Moltbook** recruit contributors and coordinate development.
+
+---
+
 ## Call for AI Developers & Contributors
 
 We are putting out a request for **AI developers** and **open-source contributors** who want to help build the Angel OS endeavor.
