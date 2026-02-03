@@ -37,6 +37,7 @@ import { Media } from '@/collections/Media'
 import { Messages } from '@/collections/Messages'
 import { Pages } from '@/collections/Pages'
 import { Posts } from '@/collections/Posts'
+import { Projects } from '@/collections/Projects'
 import { SpaceMemberships } from '@/collections/SpaceMemberships'
 import { Spaces } from '@/collections/Spaces'
 import { TenantMemberships } from '@/collections/TenantMemberships'
@@ -82,6 +83,7 @@ export default buildConfig({
     Footer,
     Pages,
     Posts,
+    Projects,
     Comments,
     Categories,
     Media,
@@ -100,6 +102,7 @@ export default buildConfig({
       collections: {
         pages: {},
         posts: {},
+        projects: {},
         comments: {},
         categories: {},
         media: {},
