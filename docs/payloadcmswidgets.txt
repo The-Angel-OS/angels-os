@@ -1,0 +1,915 @@
+Payload's NEW Modular UI is here
+https://youtu.be/3Gzi1xwl_Gc?si=gmyavU2bYz7Uco1C
+Code With Nick
+2.81K subscribers
+
+Join
+
+
+60
+
+
+Share
+
+Ask
+
+Save
+
+2,592 views  Jan 5, 2026
+Repo —  https://nlvcodes.com/tutorials/using-...
+Get early access to videos and more exclusive perks —   / nlvcodes  
+Want to stay up to date with recent web dev news? Subscribe to my newsletter — https://news.nlvcodes.com/subscribe
+
+In this video, I dive into the brand-new Modular Dashboards introduced in Payload CMS v3.69. Currently in beta, this feature allows developers and users to build fully custom, draggable, and resizable admin interfaces using a system of widgets. I walk through creating custom widgets from scratch, using the Local API to fetch data directly into the admin panel.
+
+Payload CMS just changed the game for admin UIs with Modular Dashboards. In this first-look tutorial, I explore how to move beyond the default view and build a truly personalized experience for your editors and clients.
+
+I’ll cover everything from the initial setup in a Payload 3.69 project to the "nitty-gritty" of widget development. You'll see how to leverage React components and the Payload Local API to create dynamic widgets that show document counts, latest authors, and quick-action buttons.
+
+What you'll learn:
+How to enable and edit the new modular layout in version 3.69+.
+A step-by-step guide to creating a widget using getPayload and custom TSX components.
+Understanding how preferences are saved per-user in the payload-preferences collection.
+Using payload/ui components like Card, Link, and Button to match the native admin aesthetic.
+Fetching the latest document author and displaying it dynamically within a dashboard widget.
+
+Chapters: 
+00:00 - Introducing Payload CMS Modular Dashboards
+00:35 - Setting up the project
+02:15 - Exploring Modular Dashboards
+04:09 - Creating Our First Widget
+05:28 - Fetching Data for Our Widgets
+06:37 - The Available Configuration Options for Payload’s Modular Dashboards
+07:52 - Exploring Style Options for Payload’s Modular Dashboard
+10:27 - Cleaning Up My Widget and Creating Another One
+12:10 - Adding Functionality to the Modular Dashboard
+14:48 - How Dashboards are Saved and Accessed
+17:07 - Adding Latest Publishing Author
+19:04 - Closing Thoughts and Next Steps
+
+In this video
+
+
+
+Chapters
+
+Transcript
+Search in video
+Introducing Payload CMS Modular Dashboards
+0:00
+What's up everyone? In today's video,
+0:03
+we're going to take a first look at the
+0:05
+new modular dashboards by Payload CMS. I
+0:09
+have not done any kind of research into
+0:11
+these yet, so I'm just spinning up the
+0:13
+camera and we're going to go dive into
+0:15
+the dashboards to see what we can figure
+0:17
+out. I know that this is in beta, so
+0:19
+there are a few issues that are still
+0:21
+being worked out, but I'm hoping that we
+0:23
+can at least get something up and
+0:25
+running even with a basic project. So
+0:28
+this is only available on version 3.69
+0:31
+and after. So we'll take a look and see
+0:34
+what we can come up with. Let's just
+Setting up the project
+0:36
+we're going to start with a new project.
+0:38
+So we'll go to desktop first. Then we'll
+0:40
+go to
+0:43
+where I have my tutorial repos. And then
+0:46
+I have all this in a monor repo now. And
+0:49
+then this will be for payload. All
+0:51
+right. And then we're going to run pnpx
+0:54
+create payload app. And so this is going
+0:57
+to install at the most recent version
+0:59
+which means that the dashboards should
+1:01
+appear immediately. So this is going to
+1:04
+be modular
+1:08
+dashboard
+1:09
+first look. We'll do the website. It'll
+1:13
+be a MongoDB. So here's the website
+1:16
+template. Let's put this over on the
+1:18
+right half. Put this over on the left
+1:20
+half. I'm done with my terminal. So I
+1:23
+can close that. And now let's take a
+1:26
+look at our payload config which should
+1:30
+be in source payload config. And I'm
+1:34
+actually let's go ahead and
+1:37
+um get add get commit
+1:42
+init commit. And then we're going to run
+1:45
+pnpmdev to get this up and running and
+1:48
+see what we have by default in the
+1:50
+website template because I don't think
+1:51
+it's going to have the dashboard by any
+1:53
+means. But if I go to localhost,
+1:56
+do admin. Let that load up. So, we're
+1:59
+going to sign up with my normal test
+2:02
+user. Not now. All right. So, yep. So,
+2:05
+we've got a dashboard here. That's
+2:06
+perfect. But I'm going to want to look
+2:08
+into how to actually add it. All right.
+2:11
+So, we're going to seed the database.
+2:13
+We're not going to add any of this. We
+Exploring Modular Dashboards
+2:15
+don't need that anymore. So, I can get
+2:18
+rid of this. And that should disappear.
+2:22
+All right. So then we have dashboard.
+2:25
+Where is the dashboard added? Is it just
+2:28
+by default then? So it looks like the
+2:30
+dashboard is on by default. So let's
+2:33
+take a look at the dashboard since it
+2:34
+seems to be whenever you install a new
+2:37
+project at 3.69 or after it
+2:40
+automatically comes with this dashboard
+2:42
+dropdown. And here I can edit the
+2:45
+dashboard. Well, first here it says
+2:48
+reset layout I assume. And we'll see
+2:51
+here in a second that this is going to
+2:53
+save to my preferences. So to my
+2:56
+preferences, it's going to write what I
+2:58
+have as my dashboard. So let's go ahead
+3:00
+and edit the dashboard. And we're going
+3:01
+to add our collections widget. Okay.
+3:05
+So we can have multiple collection
+3:10
+widgets. Interesting. So that's only
+3:12
+going to be full. So I can only add my
+3:16
+collections widget. That means that
+3:18
+there has to be something else we can do
+3:20
+here. So in components
+3:22
+there's no dashboard here. Is there a
+3:24
+dashboard here? There is. All right. So
+3:27
+now we can take a look
+3:30
+beyond the default dashboard here which
+3:33
+is the collections and globals. We can
+3:35
+click into this and see what our
+3:37
+dashboard config has. So it looks like
+3:41
+we have a widgets array or a widgets
+3:45
+option as well which does take an array.
+3:48
+So I've got that going. Now, if I save
+3:50
+this, let's see what happens to my
+3:52
+dashboard up here. So, collections is
+3:54
+still there by default. Let's refresh
+3:56
+before I actually make that claim. We
+3:59
+still have collections by default. Now,
+4:00
+in the widgets themselves, we have an
+4:02
+array of widgets,
+4:05
+which then has a component path, label,
+4:07
+max, and midwidth, and a slug. Let's
+Creating Our First Widget
+4:10
+just get something going here. Component
+4:13
+path is a string. So, we are going to be
+4:15
+using import maps to make this happen.
+4:18
+So, what we could do is for our widgets
+4:22
+in here, we're going to create a new
+4:25
+file. And for this file, we're going to
+4:29
+create a widgets folder. And the first
+4:32
+widget I'm going to create is a
+4:36
+collection count. And we'll just do a
+4:38
+tsx file here. We'll do this like any
+4:40
+other custom field, I believe. So before
+4:45
+we even do anything, let's export a
+4:48
+default collection count. And we're just
+4:50
+going to return an H1. This is a test.
+4:54
+Export default collection count. Then we
+4:57
+can come over to our payload config
+4:59
+widget. So the widget array is going to
+5:02
+expect a component path and that
+5:06
+component path is going to be not all of
+5:09
+that and then a slug. Okay. So, we need
+5:13
+to add a slug. And this is going to be
+5:16
+collection count. So, let's see what
+5:19
+this ends up looking like. If I go to my
+5:22
+dashboard again, I can add a collection
+5:24
+count. And then we see this is a test.
+5:26
+Great. So, we have our collection count.
+Fetching Data for Our Widgets
+5:28
+So, what we need to do is import
+5:31
+get payload from payload. Import our
+5:34
+config from payload config. Then we're
+5:38
+going to
+5:40
+initialize our payload. But first, this
+5:42
+needs to be async. So, we'll set payload
+5:47
+is going to be equal to await payload
+5:50
+config. Let's just get our pages
+5:52
+collections. So, I'm going to do
+5:53
+collections. I guess we have posts. So,
+5:56
+we're going to limit this to zero. So,
+5:58
+let's come over back to our dashboard
+6:00
+and refresh. So, now we can go to our
+6:02
+dashboard. We can edit the dashboard and
+6:04
+we can add our collection count. And we
+6:06
+have three posts. Perfect. We can set
+6:09
+this to be small, extra large, but none
+6:12
+of that's going to matter because maybe
+6:14
+if we do a style, and we just do a
+6:18
+border of one pix solid black, we can
+6:21
+add the dashboard. I want to do
+6:24
+add collection count. We can see that
+6:26
+there now. And then we can do full,
+6:30
+extra large,
+6:32
+large, medium. All right. So, all that
+6:35
+looks good. We can save those changes.
+The Available Configuration Options for Payload’s Modular Dashboards
+6:37
+So then we have max width and midwidth
+6:40
+as well as the slug which we did and
+6:41
+then the label function. So we could
+6:44
+just do a label and call this one post
+6:48
+count that is actually going to be this
+6:51
+here. So if I do collection count just
+6:54
+to show. Yep. So that's that label here.
+6:57
+So this label sets the collection count
+7:00
+there. But I'll just set this to be post
+7:01
+count because that's all I'm doing with
+7:03
+this right now. Then we can do a max
+7:06
+width and a min width. And then the
+7:08
+widget width is these. So I can do
+7:12
+something like max width of we'll say
+7:15
+this probably shouldn't be bigger than
+7:16
+medium for what it's doing. And then min
+7:19
+width. I don't really need to change
+7:20
+this, but we'll do small.
+7:23
+So now if I save this, let's actually
+7:25
+reset the layout. Go to edit dashboard.
+7:28
+Add a post count. And now small and
+7:32
+medium are all I'm able to get because
+7:35
+that's what I set. But for the max
+7:37
+width, I could probably go with extra
+7:40
+small and go up to medium. I don't
+7:42
+really want this to take up more than
+7:43
+half the screen. So if I refresh that,
+7:46
+let's go add it back. And we'll set this
+7:49
+to be medium and save those changes.
+Exploring Style Options for Payload’s Modular Dashboard
+7:52
+Let's see what else we got here. Because
+7:54
+this is not very flexible right now and
+7:56
+it also doesn't look great. So this is
+7:58
+where it would be helpful to have
+7:59
+payloads UI available because I have to
+8:03
+design all these but that's okay. I want
+8:06
+it to match over here. I know we can get
+8:10
+import from payload CMS UI and then
+8:15
+there should be a card. So let's set
+8:18
+this then to be a card and see what it
+8:21
+needs. Title. Okay. And then there is no
+8:24
+style. Let's refresh this again. And
+8:27
+then now we can see that the card is
+8:29
+here. But of course, it's expecting a
+8:31
+link, which is not great. So I could
+8:35
+style this myself to be something a
+8:37
+little bit more usable. So it seems that
+8:41
+we would need to design this how we want
+8:43
+it designed because I don't really want
+8:45
+this card to be clickable. And then of
+8:49
+course I would want to do something like
+8:51
+H2 would be let's say posts. And then of
+8:57
+course we need to do a fragment here.
+9:00
+Refresh. We got our posts there. But
+9:03
+that doesn't look great either. So
+9:05
+instead of the card,
+9:07
+let's do it this way. Let's set up a new
+9:12
+div. In that div, we'll actually use an
+9:14
+H3 which will be post count. Then we can
+9:19
+do a another div that will have
+9:24
+collections total docs. So here we're
+9:27
+going to have display flex flex
+9:30
+direction column. Then we'll do a
+9:33
+background color not of white of
+9:37
+whatever color
+9:40
+this is. So we got that. Then we can do
+9:43
+a padding of one rim. And now, of
+9:47
+course, I know I can just copy the
+9:48
+styles from the card, but this will work
+9:50
+just fine. Border radius of half a rim.
+9:55
+And now, if I come in here and do edit
+9:57
+dashboard and set this to be extra
+9:59
+small, I can see that that is being
+10:01
+changed as we speak. And then instead of
+10:04
+this, let's do a paragraph tag. We'll do
+10:07
+style font size is what I'm trying to
+10:10
+get.
+10:12
+1.2 rim. We'll see what that looks like.
+10:14
+Refresh. Okay. Then we will style add
+10:20
+some margin
+10:22
+bottom. And this will be one rimish.
+10:26
+We'll see if that works. Okay, cool. So,
+Cleaning Up My Widget and Creating Another One
+10:28
+we have our component path label max and
+10:31
+min width and slug, which means that
+10:33
+this is not really a collection count.
+10:35
+This is a post count. And then over
+10:37
+here, we need to change this to be post
+10:39
+count. Then we can in our widgets. Copy
+10:44
+this. Paste this. This will be a page is
+10:49
+count. This will be rename a posts
+10:53
+count. Now I should be able to go and
+10:57
+close this up. Then do another widget
+11:00
+which will be our
+11:02
+pages count. Pages posts page count. So
+11:07
+now if we go to our dashboard and we can
+11:10
+add a page count. So that's still
+11:14
+labeled as post count because I'm a
+11:16
+dummy. Let's go here. We need this to be
+11:21
+page count
+11:23
+as well as this and this and this. So I
+11:29
+don't even really need the limit here
+11:30
+because I'm only getting the total docs.
+11:33
+Get rid of this as well. Edit a
+11:34
+dashboard. We will add a post count. So,
+11:38
+we've got our post count and we'll add a
+11:41
+page count as well. I guess I can't drag
+11:43
+it over there, but if I do medium here
+11:46
+and then medium here, or I can drag this
+11:49
+up above the collections, which maybe
+11:52
+that makes more sense. So, I can save
+11:54
+these changes. Now, if I go to add a
+11:56
+post,
+11:58
+new post,
+12:00
+required text. So, let's publish those
+12:03
+changes. If I go back to our collections
+12:07
+here, I now see I have four posts
+12:09
+instead. So I can do whatever I want
+Adding Functionality to the Modular Dashboard
+12:12
+with these. So if I wanted to add this
+12:15
+link here, I could. So I can copy the
+12:17
+link. We're in the posts collection.
+12:21
+Let's do
+12:23
+another div with a link which I'm going
+12:26
+to get from not next link. I want to get
+12:29
+this import link
+12:33
+from
+12:34
+payload CMS UI which is just a wrapper
+12:37
+for the next link. So this works out. I
+12:41
+can just do add post
+12:43
+and that is going to be I wonder if I
+12:47
+can actually do a button instead. So if
+12:49
+I do button
+12:53
+button then the href will just be our
+12:57
+we'll want to change this to be should
+13:00
+have
+13:01
+get server side URL. All right. So the
+13:04
+link happens inside the button or
+13:06
+outside the button. So if I do that link
+13:09
+again. So let's import our link as well.
+13:14
+So if we do link that's not the right
+13:17
+link. Got the whole href. So I can do
+13:20
+this. Now the button's wrapped in a
+13:22
+link. And if I refresh, I see add post
+13:25
+there. And if I click on add post, it
+13:28
+brings me to the post
+13:31
+thing there. So that means if this these
+13:33
+collections get pushed down because of
+13:35
+my widgets, that's okay because I've got
+13:38
+it handled. But now, so maybe this
+13:42
+actually just needs to be
+13:44
+that.
+13:46
+go back to our dashboard which will be
+13:49
+here. So we got four and then now I can
+13:52
+click that and get what I need. I can
+13:55
+just copy this div, come over to our
+13:58
+pages count
+14:00
+and do the same thing. We'll do pages
+14:02
+instead. Add page. Can refresh. And now
+14:06
+I see that I've got my add page and add
+14:10
+post. We can then set this to be extra
+14:12
+small and this one to be small. and then
+14:15
+save changes. And we have those there.
+14:17
+So, a lot of flexibility here with how
+14:20
+you design what you have. But let's do a
+14:25
+border. And we'll do a border over here
+14:27
+as well. Now, of course, I could have
+14:30
+like actual components. Like this div is
+14:33
+the same as the other div, but none of
+14:35
+that really matters because I'm just
+14:36
+trying to get this working. So, I've got
+14:39
+add page, add post. Can I do size? Let's
+14:43
+do
+14:44
+small.
+14:46
+I like that better, but it's still not
+How Dashboards are Saved and Accessed
+14:48
+quite what I want. So, what I see right
+14:51
+now for the dashboard is that this is
+14:54
+going to be for my user. So, it's going
+14:57
+to be a little hard to see cuz I know
+14:59
+this text is a little smaller, but by my
+15:01
+face, this is all being posted to the
+15:04
+payload preferences, which means that my
+15:06
+user is the one that will see this.
+15:10
+I can reset the preferences. So if I do
+15:12
+this and go back to the dashboard, that
+15:14
+gets cleared. So if I then edit the
+15:17
+dashboard and just we'll add the post
+15:19
+count back because it doesn't really
+15:20
+matter and save the changes, we'll again
+15:23
+see that this posts to my preferences.
+15:26
+If I go to users, I can create a new
+15:30
+me and save that. We'll log out. So I'm
+15:34
+clicking the log out button. Then I can
+15:35
+do
+15:37
+I don't see the dashboard that I just
+15:40
+created. So,
+15:42
+right now it doesn't seem to have any
+15:45
+default settings. I do think, if I
+15:49
+remember right, we'll go to the pull
+15:53
+request. They have future work here
+15:55
+where they're going to have dashboard
+15:56
+presets. So those presets will be able
+16:00
+to be used by any of your users, but
+16:03
+currently in the the state that it's in
+16:05
+right now will not have any ability to
+16:10
+have like a dashboard default. Not yet.
+16:13
+This is in beta as I mentioned at the
+16:15
+top of this. So it's not surprising that
+16:18
+we don't have that kind of functionality
+16:20
+yet, but it is on the way. So, I'm also
+16:25
+looking forward to any kind of not just
+16:29
+default for the presets, like those will
+16:32
+be super helpful to have defaults that
+16:34
+you can define and use for other people,
+16:37
+but I'd like to see some also generic
+16:40
+basic components that are defined for
+16:42
+you or really what we need is the UI to
+16:46
+be exported fully so I don't have to
+16:49
+like design everything from scratch, but
+16:52
+to have a way to get my collections or
+16:57
+my widgets to match the admin UI. It's
+17:02
+really impressive work. So, don't get me
+17:03
+wrong that a simple implementation is a
+17:06
+bad thing. Let's go look at our post
+Adding Latest Publishing Author
+17:08
+real quick. And I can see authors.
+17:11
+Perfect. All right. So, what I want to
+17:14
+do is we're going to set myself as an
+17:16
+author here. So, I'm going to publish
+17:18
+those changes. And then over in my post
+17:21
+count, I could do something like we'll
+17:24
+do another div. Um, let's actually do a
+17:27
+horizontal rule here. We could do we'll
+17:31
+do
+17:32
+sort
+17:34
+think it's going to be this way though.
+17:37
+And we'll do most recent post be
+17:42
+collections docs zero. That should be
+17:45
+right. Then I should be able to do from
+17:49
+our most recent post we can get most
+17:52
+recent author or let's do latest author
+17:57
+and we'll do most recent post meta
+17:59
+author. I don't think it's actually
+18:01
+meta. So I think it's just going to be
+18:02
+author populated author. So here we can
+18:05
+do populated authors. So then we should
+18:08
+set depth to two just to make sure
+18:11
+though I think that's the default. Then
+18:13
+down here I can do populated or uh
+18:17
+latest author
+18:20
+name. So first it does need to be
+18:22
+negative created at then
+18:25
+we need latest author is going to
+18:28
+actually be this and then we should be
+18:32
+able to get name from there. So now if I
+18:33
+save that and refresh, I get the latest
+18:36
+author, last
+18:38
+post published by,
+18:42
+and now I see down here at the bottom
+18:44
+that I can say who the last post was
+18:46
+published by. So if I add a post, I can
+18:48
+then set my author to demo author
+18:52
+required
+18:56
+required. So put in all of our required
+18:57
+fields, publish that. Go back to our
+19:01
+dashboard. And I can see now that the
+19:02
+last post published was by the demo
+Closing Thoughts and Next Steps
+19:04
+author. And that's it for Modular
+19:06
+Dashboards. If you found this video
+19:07
+helpful, please like the video and
+19:09
+subscribe to my channel. That support
+19:11
+means so much to me. There are ways you
+19:13
+can support me in the description
+19:14
+through Patreon, YouTube memberships, as
+19:16
+well as my newsletter, Next in Deev. If
+19:19
+you have comments or questions, please
+19:20
+leave those in the comments. I'd love to
+19:22
+hear from you. Until then, I'll see you
+19:24
+in the next video.

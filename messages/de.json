@@ -1,0 +1,9 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Etwas ist schief gelaufen"
+  },
+  "HomePage": {
+    "title": "Willkommen"
+  }
+}

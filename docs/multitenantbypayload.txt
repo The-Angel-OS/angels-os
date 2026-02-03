@@ -1,0 +1,1584 @@
+One Payload instance—endless possibilities: Payload Multi-Tenant Plugin
+https://youtu.be/oX7ZHWuin-I?si=NILb-0GzvOLPScPI
+Payload
+13.5K subscribers
+
+
+62
+
+
+Share
+
+Ask
+
+Save
+
+1,105 views  Jan 27, 2026
+Leverage the power of Payload's Multi-tenant plugin to reduce your engineering, deployment and content management workflow by managing multiple tenants (brands, clients, etc.) within one instance of Payload. The demo used in this video includes:
+
+Domain-based tenant routing - Serve different brands on different domains
+Per-tenant branding - Custom colors, typography, logos, and styling for each brand
+Tenant-scoped content - Pages, posts, and media isolated per tenant
+Shared amenities block - Reusable content across tenants, deploy a feature once and all tenants have access
+Role-based access control - Super admins can manage all tenants, regular users see only their assigned tenants
+
+Demo:
+https://github.com/zubricks/multi-ten...
+
+Multi-Tenant Plugin:
+https://payloadcms.com/docs/plugins/m...
+
+What is Payload?
+Payload is the open-source Next.js backend. It closes the gap between headless CMS and application framework, powering everything from enterprise websites to internal applications.
+
+Website: https://payloadcms.com
+Give us a star: https://github.com/payloadcms/payload
+
+Write a Payload Config and instantly get:
+— A full Admin Panel using React server / client components, matching the shape of your data and completely extensible with your own React components
+— Automatic database schema, including direct DB access and ownership, with migrations, transactions, proper indexing, and more
+— Instant REST, GraphQL, and straight-to-DB Node.js APIs
+— Authentication which can be used in your own apps
+— A deeply customizable access control pattern
+— File storage and image management tools like cropping / focal point selection
+— Live preview - see your frontend render content changes in realtime as you update
+
+
+What's up everybody? Today I'm going to
+0:01
+do an overview of the payload
+0:03
+multi-tenant plugin. So if you haven't
+0:06
+used it yet and you're a digital agency,
+0:10
+you're a corporation, you work for a
+0:12
+corporation that handles multiple
+0:15
+properties, multi-tenant could be a good
+0:19
+approach for you. So what is cool about
+0:22
+it? Well, say you are a
+0:26
+hospitality group. um that's what I used
+0:29
+in my example. You have multiple
+0:32
+locations that you want to manage, but
+0:34
+they all share a similar framework. Now,
+0:37
+in the days of past, you had to manage
+0:42
+each specific website and its own
+0:44
+instance
+0:45
+and you make a new feature for that
+0:48
+site. You've got to deploy it to all of
+0:50
+them. You have to update their content
+0:52
+and their own admins. It's a mess,
+0:54
+right? So with payload with multi-tenant
+0:58
+plugin you can manage anywhere from 10
+1:01
+to 150 websites all within one instance
+1:04
+of payload which is awesome. It
+1:07
+simplifies your content management. It
+1:09
+simplifies your development workflow. It
+1:12
+simplifies your deployment workflow.
+1:14
+Really it just makes everyone's lives
+1:16
+easier. So let's just jump in and I'll
+1:18
+cover the high points of the plugin and
+1:21
+why you might want to use it.
+1:23
+So, first off, domain based routing. You
+1:27
+can serve multiple brands on different
+1:30
+domains. So, you've got your one parent
+1:33
+company, right? And that links out to
+1:35
+all the other properties. Well, with
+1:39
+domainbased routing using only the next
+1:42
+config, you can do that very easily. So,
+1:46
+I'll share this, but the next config is
+1:50
+maybe 60s something lines.
+1:53
+very very simple. Um
+1:56
+just uses rewrites to handle everything.
+2:00
+And what that does is you make a request
+2:03
+to your domain and it gets rewritten and
+2:07
+then next matches against the tenant
+2:11
+which is just a dynamic route that we
+2:13
+put in source app front end and then the
+2:17
+tenant domain gets passed as a route
+2:19
+program and then the pages get queried
+2:22
+by the tenant domain to filter the
+2:25
+content. So when people request whatever
+2:29
+specific domain you're trying to go to,
+2:31
+it'll automatically
+2:34
+it'll handle
+2:35
+pulling the right content for that
+2:37
+specific ten tenant from payload and
+2:41
+displaying that on the front end. Very
+2:43
+very easy and very succinct. So you
+2:46
+don't need to use extra middleware. You
+2:48
+don't need to use custom headers. All of
+2:50
+that is done.
+2:52
+Now the other cool thing in here is
+2:56
+rolebased access control. Now you're
+2:59
+probably very familiar with that but in
+3:01
+the case of multi-tenant
+3:03
+what we did with this example was we
+3:05
+have two users
+3:08
+two user roles more specifically you've
+3:10
+got a regular user and you've got a
+3:12
+super admin right so regular users will
+3:16
+only be able to see whatever tenant
+3:18
+their content they're assigned to. So
+3:22
+you can have a regular user assigned to
+3:24
+multiple tenants or one. And when they
+3:27
+log in, they're only going to be able to
+3:29
+see the documents that belong to that
+3:32
+specific tenant. And I'll show you what
+3:34
+I mean by that. So right now we're
+3:37
+logged in as a super admin. So when I go
+3:40
+here, I can see all the clients. Let me
+3:44
+just remove this. All the clients. I can
+3:47
+see all the pages from every client.
+3:51
+And by clients, I mean tenants. I
+3:53
+renamed mine in my plug-in config. So I
+3:57
+can see everything, right?
+4:00
+But if I log in as a regular user
+4:09
+now, so I logged in as a user from Lux.
+4:13
+So I am Lux hotels. And now I only see
+4:17
+the pages, the posts,
+4:21
+all of that only for Lux Hotels. I can't
+4:24
+see anything else. So it keeps all of
+4:26
+that nice and separate, right? Pretty
+4:29
+cool.
+4:33
+Now, the other thing we have here is per
+4:35
+tenant branding. So, you know, you've
+4:39
+got your main corporation and then every
+4:41
+subsidiary under that is going to have
+4:43
+its own brand colors. It's going to have
+4:45
+its own typography. It's going to have
+4:47
+its own SEO, its own contact info. So,
+4:51
+we use that to style the front end
+4:55
+differently per each tenant. So, pretty
+4:59
+cool stuff.
+5:06
+Now, the other thing is the
+5:09
+So, we use obviously the layout builder.
+5:12
+Um, and I'm going to show you this
+5:16
+real quick. We'll just go to the
+5:17
+homepage. So, I built a block
+5:20
+that shows the amenities for each
+5:23
+location.
+5:25
+Now,
+5:27
+this has all amenities ever. This is Lux
+5:30
+Hotels. It's like the premium premium
+5:33
+location, right? So, this has all of
+5:36
+them. Whereas budget in, it only has
+5:41
+four. And then comfort stays. It only
+5:43
+has these specific four. So
+5:47
+why is that cool? So what happens when
+5:49
+you build one feature or one block in
+5:52
+this case? All of your tenants have
+5:54
+access to that now. You don't need to
+5:56
+build the same thing 10 times, 20 times,
+5:59
+100 times. You build that once, they can
+6:02
+all use it,
+6:04
+which is very cool. So you make updates
+6:06
+even to your codebase, you deploy that
+6:08
+one time and they're all updated. you
+6:11
+don't have to worry about updating
+6:14
+150 sites separately. So, like I
+6:17
+mentioned before, it just it streamlines
+6:19
+the workflow across everything.
+6:23
+So, like I said, the branding, so it's
+6:26
+blue for this one,
+6:29
+green here, and this is gold. And
+6:32
+different type faces for each one. So,
+6:36
+pretty cool stuff. Um, I outlined all of
+6:39
+this in detail in the readme. Um, feel
+6:42
+free to go through that and check and
+6:46
+see if this would be, you know, usable
+6:49
+in your case. So, I'll upload this and
+6:52
+then I will attach the link to the repo.
+6:56
+You can go ahead play around with it,
+6:58
+see what we did, and go from there. So,
+7:01
+hope that was helpful and thanks for
+7:03
+using Payload.
+
+Intro – Multi Tenancy in Payload CMS
+0:00
+Hey, I hope you're doing great today. Today we're going to show you how to create a multi-tenency CMS with uh
+0:08
+Nex.js and payload CMS. Uh payload CMS offers a very good multi-tenency plug-in
+0:16
+and they also have a website template that you can use and it will give you a
+0:22
+full front end. So, we're going to show you how to use
+0:27
+the multi-tenency plugin. So you can have as many sites as you want in a
+0:34
+single CMS. So you could have multiple users that have access to one single
+0:39
+site and then have other users that have access to other sites and they can all
+0:46
+be different you know and they can log in in different URLs. So different domains
+0:53
+um they will have their own login and uh and this is just the base. So you'll
+1:00
+have to you know update a lot of more files than what I show you here and what
+1:05
+you'll see on the repo that I will share and in this video but this will give you
+1:12
+the base for multi-tenency pretty much. So you'll be able to have multiple domains like you can see here we have
+1:18
+one domain coolcars.next Next and then we have flyingcat.next
+1:24
+and all that is running on a single project on next.js.
+1:31
+All right, let's get started. Okay, the first thing we have to do is type pseudo
+Creating the PostgreSQL Database
+1:39
+dashu postgress psql
+1:45
+and that will get started with the uh creation of the database.
+1:53
+So now to create the database we type create uppercase
+1:59
+create database and then we type the name of the
+2:04
+database which in this case let's name it uh multi- tenant
+2:11
+uh CMS and then the owner and in uppercase all this is going to be in the
+2:17
+description so you can you know just copy paste the commands tech. I think
+2:23
+that's it. Do the semicolon. Okay, now the database is created. And just to confirm that database is created, you
+2:29
+type a slash L and you see the databases. Now to escape, just press Q.
+2:36
+We see the database multi-tenant CMS. So press Q. Oh no, no, it's forward uh
+2:43
+slash Q. Backward slash Q. Then we go on the next step which is going to be to
+Installing Payload CMS
+2:50
+create our app. So now we're gonna go to the directory where we want to create
+2:55
+it. So ls we're going to go to cd
+3:00
+programming cd YouTube and then we're going to create an uh no
+3:07
+let's just create the app and then when we create the app the folder will be created automatically. So let's do npx
+3:16
+create payload app and then enter. The
+3:21
+project name will be multi-tenant CMS. Okay. So well uh was spelled. So
+3:29
+let's choose the website template very important so we can implement the front end and uh you know move quickly. And
+3:36
+we're going to choose Postgress. Okay. Now we got it. We wait for the
+3:43
+install. It'll take a while, so I'll cut the video. So, now that the app has been installed, then we can cd into it. CD
+3:51
+multi- tenant CMS. And then we can do um since the
+3:56
+installation has already been done. So all the packages are there. We can do
+4:02
+pmppm dev and then we can open our browser
+4:10
+and uh load the page.
+4:20
+Okay. Now we have to create our first user. That's what we're going to do now. We're going to just uh make up an email.
+4:28
+This is going to be admin atoutlook.com
+4:37
+a fast password and this is going to be just admin.
+4:44
+So we create the the first user and this is what we get. we get the CMS and now
+4:50
+that what we have to do is install the
+Adding Multi-Tenant Plugin
+4:55
+uh multi-tenency plugin. So we're going to close our terminal here and we're
+5:03
+going to start uh our VS code instance. So code dot and then it'll open a new
+5:10
+window. Of course it it opened on my other monitor. So let's drag that into
+5:16
+here. Let me close this first. We don't need it anymore. We're going to use the VS Code terminal.
+5:22
+Let's put it on the side. Maybe this side is good. Okay. So, now that we got this, we can open
+5:30
+the the terminal. And I got the command ready. So, just
+5:36
+just to copy paste it uh to install the multi-tenency plugin. That's the next
+5:41
+step we have to do. So, let's do that. It's all installing. Well, once you get
+5:48
+it installed, the the first thing you have to do is I'd say let's create the
+Creating Tenants Collection
+5:55
+tenants collection. So, what we what we do, we go to source, we go to
+6:01
+collections, and then we create tenants. So, we create a new file tenants
+6:07
+slashindex.ts. And
+6:13
+we're going to create our new file. And to accelerate the guide, I'm going to be
+6:18
+copy pasting a lot of things. Of course, I'll have the repo available available for you guys too. So
+6:26
+this is the uh tenants collection. It'll have the name, domain, slug, and the
+6:33
+logo. Once we save, we have to go and add it to the payload config. So we
+6:39
+import it down here. Let's put it uh down here where all the collections are.
+6:45
+import uh tenants from collections tenants. Okay, that's that's a good out
+6:51
+of completion. And now we go and add tenants. So now that we have tenants pmppdev, we can
+6:58
+restart our application and reload our CMS. Once we reload the page and we see
+7:04
+that CMS is loading, we'll see the tenants collection. So now we're going to go and edit the users collection so
+Setting up Users Collection for Multi-Tenancy
+7:12
+we can add uh some details about the multi-tenency
+7:18
+plugin. So we go to users index and we're going to add a small
+7:25
+piece of code. We're going to import import
+7:31
+tenants array field from add
+7:37
+payload CMS is going to be slashplugin
+7:43
+uh dash multi- tenant fields. Okay, now that we got that,
+7:50
+we're going to add this piece of code that I'm going to copy paste. We got to make this fast.
+7:59
+So, we copy this. This is a new field that you're going to add or fields that
+8:04
+you're going to need, but the main field is the ROS field that is going to have the options of uh tenant admin and
+8:13
+tenant viewer. So to do that, you also have to add some uh helper functions. So
+8:20
+we're just going to import them. Even though they don't exist, we're going to make them right now. So we're going to
+8:26
+make this one first. So we're going to go to access. We're going to create a new file is super admin.ts.
+8:38
+And then we're going to copy paste this code. And again, you'll have uh you'll
+8:45
+have all this code in the description. So you you'll be able to see the reference to the code and you can see it
+8:51
+here to you know pause the video if you want to type it. Um now we we're going to do this. This is
+8:57
+so when you log in the tenant is automatically selected when when you log in from the tenants domain.
+9:09
+So slash set again. Just copy paste this code.
+9:17
+All right, you can see it all. Let me Okay, you can pause the video right there or copy paste it from the repo
+9:24
+that I'm going to leave in the description. Okay, now we go back to users and we're going to add the field down
+9:31
+here. So, okay, we're going to add the hook to after login. The plugins is not
+9:38
+right. This autocomplete is wrong. What we have to do is add it in the fields.
+9:44
+Okay, in the fields we're going to add dot dot dot default tenant array field and then admin. We're going to do this
+9:52
+default tenant array field. That's correct. And then we're going to put uh a position as a sidebar. Well, that's
+10:00
+that's uh optional, but you know, if you want to have it on sidebar, that's good. Otherwise, you can skip it. And also
+10:06
+we're going to add one more field. This is going to be a
+10:13
+row selector. So let's do admin. Just to find the position I'll admin L that's
+10:21
+why position sidebar and then we do
+10:26
+names name ro type
+10:31
+select default value
+10:37
+it's going to be user or you can do you know whatever you decide
+10:44
+has many true super admin. Okay, we're going to take the autocomp
+10:50
+completion, but we're going to delete this because this is not true. And
+10:55
+required. We don't need this to be required. And then access,
+11:04
+we're going to do uh update. Just set it to true. Then uh on a more advanced
+11:11
+settings, you can have your own rule.
+11:17
+Okay, then autocomplete the bracket and we're good to go. Now we we just need a
+11:23
+comma here. Oh, position is not declared sidebar.
+11:29
+Good. Set cookie based on domain. That's why the name is wrong.
+11:48
+So is is this okay? It's good to go. Now we have our
+11:57
+users. Now we're going to move on to actually setting up the uh tenants plugin,
+Setting up Multi-Tenancy Plugin
+12:04
+multi-tenency plugin. So we're going to go to the plugins area. We go here.
+12:10
+and into index. And we're going to go all the way down. Well, let's first import it. We're going to import this
+12:18
+multi-tenant plugin. And we go all the way down and we open our
+12:26
+multi-tenant plugin setup. Okay, this is right somewhat. We're going to type
+12:32
+config. Now we type collections
+12:38
+and we're going to define the collections that we want to be available for every tenant. So for this we are
+12:46
+going to do pages because that's what we have on the website template. We're not
+12:51
+going to do any more settings. We're going to leave it like that. Post
+12:56
+if I can type. Okay. Then we're going to add um we want to add header and footer,
+13:03
+but right now header and footer are globals. So they're gonna it's going to fail immediately when I do that. You
+13:09
+know what? Let's just add them and we're going to deal with it. Header and we're
+13:14
+going to add some settings for this because this is something that you want to be a global in the tenant. So is
+13:23
+global is a an option that you have to to make a uh collection global within a
+13:33
+tenant footer is global. Well the the the auto
+13:39
+completion is good but this this bad. Okay. And we're also going to do media
+13:46
+just to have separate media, you know. But if you're if you don't want to separate the media between tenants, you
+13:52
+don't have to do this. But we're going to do it for the sake of just showing it media. So now we're going to declare who
+14:00
+has access to what. So as as you can see, this is failing. Maybe we can we can comment this out for
+14:08
+now. So you can see the rest of the settings without seeing that failing. So
+14:15
+we're going to close the bracket and um we're going to see why config is failing. I have to import config from uh
+14:23
+payload types. So let's import that import type config. The import is kind
+14:30
+of right, but it's not. Pay
+14:36
+slashp payload types. That's about right. Okay.
+14:43
+So now remember that we we added the is super admin uh function. So we're going
+14:50
+to import it too. import is super
+14:57
+admin from add slash
+15:03
+access is super admin that autocomp completion is right so let's just leave
+15:09
+it we go all the way down again we do this so after we close collections okay
+15:18
+I see why media is outside of collections So we leave that there and then we type
+15:26
+users not user has access to all tenants and the auto completion is wrong. We're
+15:33
+going to open some brackets and we type users super admin user that
+15:40
+auto completion is right. Okay, good. And then to finish this since in the
+15:46
+users collection we added our own field for the tenant selection we don't want
+15:52
+the default uh tenant field to be there. So we're going to do this tenant array
+15:59
+field and then we're going to open curly brackets and then we're going to do
+16:04
+include default field equal false. Okay, spelling Y. Let's see. Tenant array
+16:13
+field tenant. Okay, it's tenants and that's why it's it was failing. Okay, so
+16:19
+now we're good. If we save, this is this is good to go. So, we're going to fix the header and the in the footer. But
+16:26
+for now, let's just reload it and see that nothing is failing. It seems like
+16:31
+it's it's good. So, now let's go to users and see what the user looks like. Let's expand this. You see that we have
+16:39
+roles. So now we have the role of super admin. Let's just set it like that because we have we want the permissions
+16:46
+of super admin
+16:53
+and you can select tenants but right now there is no tenants. So no options of course.
+16:59
+All right let's go. Let's go back. Yeah let's leave anyway. Let's go back to this.
+17:05
+So now that we have our multi-tenency setup mostly done, now we can add uh
+17:15
+tenants to the CMS. So actually let's go back to the CMS. Let's just make it a
+Creating Test Tenants
+17:22
+little bit larger. So we're going to go to tenants and create the first uh we're going to create two tenants in this case
+17:28
+just for uh you know showing how this works. So, I'm just going to make up uh
+17:34
+blind cat flying cat domain blind catnextline
+17:41
+cat just like that. We allow public read and we save. And then we create another
+17:49
+tenant. We go back to tenants, create a new one. And you can create any any
+17:55
+tenant, you know, any name, any site that you want to test on your local environment. You can do that. I'm just
+18:01
+showing an example here, but you can, of course, you can do uh your own custom
+18:08
+domains here. You don't have to follow this guide exactly. So, now we're going to go with uh cool cars
+18:17
+domain. Cool cars.next. Cool
+18:23
+cars. We allow public read and we save. Now we
+18:28
+have two tenants. So what's going to happen now? If you go to
+18:35
+the homepage, well, you don't have to go to the homepage, but you're going to see this menu that wasn't here before.
+18:43
+And now you can choose a tenant. So now you already have multi-tenency, but
+18:48
+there is more things to do. So in order for us to allow
+Local Multi-Domain Setup (Next.js Rewrites + Hosts File)
+18:56
+our local environment to uh load the different domains that we create,
+19:03
+we have to change some settings for next.js and we
+19:09
+have to go to next config. So this is a file that you you have to
+19:15
+add some uh rewrites. Um, so next config
+19:22
+and we're going to just uh we're going to copy paste this. It's a simple
+19:28
+change, but also I want to recommend that
+19:34
+you do this instead of what uh the payload website shows because
+19:42
+I I tried to make it work as they had it, but it wouldn't work at all. So
+19:50
+instead of uh copy pasting the example they have and they have a a rule here
+19:59
+with uh brackets like that and you have a some rules to skip admin and API.
+20:08
+We're going to do it like this because uh it was messing up with how the domain
+20:15
+was being passed down in the parameters. with the uh wild card uh folders, you
+20:24
+know. So, I'm gonna I'm gonna explain why this happened at the end of the video, but
+20:31
+for now, we're just going to continue. So, just add the rewrites and save.
+20:39
+And this is going to allow you to load the uh custom domains that we add to the
+20:49
+CMS. But before that,
+20:57
+so just add this once you see the error.
+21:05
+we we have to edit uh one more file which is the hosts file for your local
+21:10
+environment. So we can for this let's uh close the browser.
+21:19
+Let's open the terminal on the side. I could have opened the terminal here but let's just do this. So
+21:27
+for this you have two options. I'm going to have uh some instructions in the description.
+21:34
+After opening your terminal, you're going to do pseudo vim
+21:40
+slash just a slash etc slashhost
+21:47
+and then you type your password
+21:53
+and then you can edit the files. In this case, I already have the domains, but
+21:59
+you can add all the all the domains that you want to allow.
+22:04
+And then just to to save, you press escape uh qw,
+22:12
+sorry. And we're good. So now that you
+22:17
+changed your host file which you can also change with uh nano but now we are
+22:27
+able to load our admin panel from a
+22:33
+different domain. So, now we're going to load uh Flying Cat 3000,
+22:43
+and it's going to load exactly the same way as this did before. Obviously, we're
+22:50
+not going to we're not opening the admin panel yet. We're going to do that. As you can see, we have we already have
+22:56
+some front end because of the website template, but we're going to change this so you can have your own logo and you
+23:03
+can load the tenant exclusive data. So, let's do that. So, let's open
+23:11
+uh admin and you see that you can you can uh load
+23:17
+the routes which is pretty cool. It'll take a little bit.
+23:23
+Okay. admin outlook.com.
+23:34
+Now you see that we can log in from our own custom domain and all is because of
+23:41
+the edits that we did on our uh next config and our hosts uh our hosts file.
+23:50
+Uh sorry that that's a mistake. Uh what what I meant to say is that the front end is going to allow you to set some uh
+23:58
+a wildcard folder. That's what I call it. Um
+24:03
+in app front end, we're going to have something like this but with tenant.
+24:09
+And that's what the next config file does. But what makes it so you can open
+24:15
+your dashboard in a custom domain is the hosts file.
+24:29
+So, the next thing we want to do is we're going to we're going to open uh
+24:35
+this domain again, but we're going to open just a flying cat domain and we're going to edit the
+Dynamic Frontend Setup for Tenant Domains (Header, Footer, Logo)
+24:42
+front end. We're going to edit the headers and the footer. So, let's do that. First of all, let's go and um go
+24:51
+to the plugins plugins and let's uncomment this. This is going
+24:58
+to fail, but it's okay. We're going to fix all the all the errors. So, we're
+25:03
+going to go to the header collection. In this case, right now, it's not a collection. Uh the header is uh a global
+25:12
+right now. So what we're going to do is go to config. Instead of having global
+25:18
+config, we're going to have collection. So we're going to edit this
+25:27
+collection config and we're going to save. And now the
+25:34
+this revalidation is failing too, which is okay. We're going to edit that too.
+25:41
+And instead of global, we're going to change this for collection. So we select global and then we type
+25:49
+collection. Collection.
+25:56
+Okay. So now the config is good to go.
+26:03
+Uh the front end components are going to be uh failing too, but that's okay.
+26:10
+We're going to fix that. So now let's go to footer
+26:16
+and let's do the same.
+26:27
+Okay. Now we're going to edit. We're going to finish editing um our header. So we're going to go to
+26:35
+the component and never mind. We're going to go to the
+26:40
+layout first of all. Layout
+26:47
+uh front end. And we're going to do some changes here.
+26:52
+Import uh headers from uh next headers. So let's do that.
+26:58
+We're already importing from that. So let's let's do that here.
+27:04
+Okay. So we're going to import the headers. Now, after importing headers,
+27:11
+we're going to want to do this here. So, con header. Oh, that's
+27:19
+a good that's a good autocomplete. Okay. Then going to we're going to do const
+27:26
+host equal. But we're not going to do do it like that. We're going to do it like
+27:31
+this. And this we're going to await this.
+27:40
+Okay. Now we're going to do tenant con tenant.
+27:47
+And since we want to fetch the domain,
+27:53
+we're going to add a small helper function. Let's just comment this out just so it's not uh failing.
+28:01
+So, we're going to add a small helper helper function in um utilities. And
+28:07
+we're going to call this file. We're going to call it fetch
+28:13
+tenant by domain.ts. And we're just going to copy paste what
+28:19
+I already wrote for this so we can go faster. So, as you can see, we're just
+28:25
+importing the uh tenant types. We're just passing the the types here
+28:32
+and all we're doing is getting the domain string
+28:39
+taking out the uh port, you know, clean out the port. This is also going to work
+28:45
+live too if you deploy it. And uh and then we query the tenant and we return
+28:52
+it. So that's what we're going to do. const tenant equal well we're we're
+28:58
+going to import the helper function first right so let's uh
+29:03
+import fetch tenant by domain from at utilities
+29:14
+utilities fetch fetch tenant by domain okay so now we await fetch tenant by
+29:20
+domain we pass the host and then we provide add such tenant to the header.
+29:27
+Tenant equal tenant and we do the same for the footer. Tenant equal tenant.
+29:34
+Okay, this is failing because it's not ready to receive the uh the tenant. But
+29:41
+that's okay. We're going to comment one out just so when we fix the header, it's ready to go. So now now we're going to
+29:48
+receive the data here. So the first thing we want to do is we're going to
+29:54
+add a another uh helper function which is going to help us to
+30:02
+instead of having this uh get cached global we're going to have our own get
+30:07
+uh tenant cached global. So let's let's create that file.
+30:14
+Uh let's go again to utilities new file and we're going to copy paste the file
+30:21
+too so we can do this faster tenant globals
+30:31
+and all all this is is just a a copy of the uh get globals function
+30:40
+this one but it's just changing the the query So it adds the tenant and we can query
+30:47
+the tenant. So we can we can query the header according to the tenant. You know what? Because there is going to be more
+30:54
+than one header according to how many tenants you have. But you want to query
+31:01
+the header for that specific tenant you're loading. So now that we we have
+31:06
+that, we can go back to the header component and we're going to change
+31:13
+how we how we do this a little bit. So instead of importing this, we're going
+31:20
+to import get tenant cacheed
+31:26
+global. And we're going to edit this to get
+31:32
+tenant globals. And uh we we copy this here. And the
+31:38
+only change that we're going to have um is going to be that we're going to pass
+31:43
+the tenant tenant ID. That's good. But you know,
+31:48
+let's let's let's uh Oh, yeah. We have to add the we're going to change this.
+31:54
+We have to add the tenant tenant header props. Uh we're going to add the header
+32:01
+props here. Let's close the bracket. Let's do uh interface header props. That's a good
+32:09
+out of completion. Then we do tenant tenant
+32:14
+or null. And we're going to import the types of tenant too. And now we're good.
+32:22
+Okay. Oh yeah. Yeah. I I forgot to add this. Uh okay. So now we're going to add the
+32:29
+tenant to the uh client. So let's just pass that here. Tenant equal tenant.
+32:38
+This is this is going to fail because we haven't prepped the header client which we're
+32:46
+going to prep now. So for that we're going to add tenant here
+32:52
+and we're going to add a tenant to to this. But before we do that, let's
+32:57
+import the tenant types. Tenant tenant.
+33:03
+That's okay. Okay. Now, now we're uh we have to use the tenants. So, uh we're
+33:11
+going to use it for the logo.
+33:16
+But for in order to do this, we're going to just just pass the tenant, the entire
+33:22
+tenant. So, let's do this. tenant equal tenant.
+33:30
+Okay, so I took a small break just uh from recording and uh I catched that I
+33:35
+made a mistake here. So I had a typo here in uh the header component
+33:42
+and I already fixed it. And also I forgot about a step that we had to do.
+33:48
+We're going to go to the payload config and we have to change the globals header
+33:55
+and footer to uh to collections. So this we erase this and we add them to
+34:02
+collections. So the types change because otherwise it's going to keep showing
+34:07
+errors for no reason. And then we can generate
+34:13
+the types. So to generate types manually you you run pmppm payload generate
+34:22
+types. You can see the command right here
+34:28
+and just do that and a bunch of errors will go away because uh the types are
+34:33
+correct now. And now let's go to uh the config. Okay.
+34:40
+Now to to finish the uh header, we're going to allow null. This is going to
+34:46
+give give us some more errors here, but we're going to fix this by having a if
+34:52
+tenant. Oh, okay. Exactly what I thought. Uh then we declare const
+34:59
+tenant ID equal tenant ID. We can even have the
+35:05
+conditional here like this. And uh we're
+35:10
+going to change this a little bit. So what we're going to do is take this
+35:17
+away. Say equal. Oh, the equal was already there. Okay. So we're going to do a some
+35:24
+brackets like this. And then we wrap it. And then as header
+35:32
+and the tenant ID, we pass it here. Tenant. if I can type ID.
+35:40
+And then we fix our type errors. And that's that's how the header is
+35:46
+going to look. Also, uh let me know if the uh uh font size is looking good or if you
+35:54
+prefer that I do something like this. It's going to be more uncomfortable for
+35:59
+me to, you know, do it this way. But if it's if it looks better on the video, then I
+36:06
+I'll do it this way. But anyways, let's uh let's make it smaller again
+36:13
+just to keep it the same. And this this terminal we're not going to use it. So
+36:18
+let's just return it to you know show the errors. Okay. So the next thing is
+36:25
+we're passing the tenant to the header client. Now we got all the way to
+36:31
+passing it to the logo and now we have to make the logo accept it. So for that
+36:37
+we're going to add a we're going to add it to the props. We're going to add tenant and but before that let's import
+36:46
+uh we're going to need two types. So we're going to import type
+36:52
+uh tenant and media because we're going to use media here for the images from
+36:59
+payload payload types. Okay. So now we type
+37:05
+tenant. This is going to be optional because if you load the uh
+37:13
+if you load the site from your local host without the uh custom domain, then
+37:20
+the tenant won't exist. So that that has to be optional. And now we can add
+37:28
+tenant over here. Well, it seems like the auto completion already did, which is sometimes is good. You know, autocomp
+37:34
+completion is good sometimes. Uh so we're going to type uh con we're going
+37:40
+to create a new variable and we're going to call it default logo and then it'll
+37:48
+be equal to the URL here. So I'm just going to do
+37:56
+this just like that. And um that's the
+38:01
+default logo which is good. Okay. So now we're gonna
+38:07
+type a con logo and
+38:12
+we're gonna have this. So you open brackets, you type tenant
+38:18
+uh interrogation mark logo just in case you know tenant doesn't exist as media.
+38:26
+So you add the types for media and then you do as uh URL
+38:34
+interrogation mark and then uh colon string or or null
+38:43
+and then at the end you type uh interrogation mark
+38:49
+URL and default logo. So if there is no logo the uh default
+38:57
+logo will show up and now we can just uh add the logo in the source. So we can
+39:05
+erase this. You erase it and then you type logo just like that.
+39:12
+And uh I think we are done here. Let me just double check. It looks good. It
+39:21
+looks good. Let's save it. Um, in this case, you know, you could use the image uh component from from
+39:29
+Nex.js. In this case, it's not being used and we're going to leave it like that
+39:35
+because this is not the subject of the matter. Okay.
+39:40
+So, it's failing to load layout front
+39:50
+tenant. Okay. So it seems like it's failing because the fetch tenant by domain is
+39:56
+not a function and I think I know why because we never saved it. So because it
+40:01
+it was never saved. Uh this was failing completely. So now we got the the header
+40:08
+completely up. So the only thing that we should do now to see the custom logo is
+40:14
+to go to the dashboard. Go to tenants.
+40:23
+Go to uh the flying cat tenant. Create new.
+40:28
+So we add a new logo and we select file. We're going to go to downloads
+40:34
+multi-tenant. And I have a a logo already set up for this. So I select the
+40:40
+logo and then flying cat logo. Uh
+40:46
+the tenant is not selected for some reason, but we're going to select it now. Save.
+40:52
+And now if we reload the page, it should show the logo. Well, it should.
+40:58
+It's not showing it. Did we save? Okay, it seems like it's saved. No.
+41:07
+Okay, so it was a f user error. you know, I didn't save I saved the image,
+41:13
+but I didn't save the the change to the tenant. And now we see that we have our
+41:18
+flying cat uh logo. And now we can show more uh of you know more of the branding
+41:25
+of the website when you change domains. And we're going to do the same for the
+41:31
+for the footer. So we uncomment the footer. And now it's going to fail again, which is okay. we
+41:39
+go to the footer and uh we're going to change this. We're going to import it
+41:46
+from our new function. So this going to be get tenant cached
+41:54
+global. Okay, get tenant globals. And now it's failing
+42:02
+because it's it's uh it needs the tenant ID
+42:08
+which we need to uh we need to get here. But before that let's uh let's import
+42:15
+some types. So we're going to import import uh type
+42:23
+uh tenant and then uh footer.
+42:28
+and we're going to import them from add slash
+42:35
+uh payload types.
+42:42
+Once we have our types, we can create a new interface. And uh well, it seems
+42:50
+like it's calling it footer props, which is good. And we need to add the tenant
+42:57
+or null which is correct. Okay, I like the auto completion but we're going to
+43:04
+do some small changes. That's why auto completions can be good.
+43:10
+Return null. Let's just going to let's just return just like that. And then we do const
+43:19
+tenant ID equal tenant ID which you know
+43:25
+you could you could leave it like this and you know change this
+43:30
+but uh let's just do it this way. Well, you can do it however you you'd like,
+43:36
+you know, but uh as footer and then
+43:43
+uh tenant ID. Okay. So now we got our
+43:49
+footer receiving the data and now I think uh we have to pass the tenant
+43:58
+to the logo. Now uh the the logo component will handle all all the uh
+44:03
+logics for the logo, right? So tenant equal tenant
+44:11
+and then yep, that's it. So now we we now we have
+44:17
+on our front end we have the the logos in the footer and the header.
+44:24
+And if we load the the other side, uh, cool cars.
+44:30
+Uh, let's let's load this, but it's going to load the admin panel.
+44:35
+Let's do it like this.
+44:41
+It's not loading the logo, but if we go to uh tenants and we add it,
+44:48
+let's make this a little bit larger so you can see this. Well, if we select our
+44:54
+new uh cool cars tenant and go to the
+45:00
+tenant settings, we add the new image. We select the file cool cars logo.
+45:07
+Okay, cool cars logo. We save. And now
+45:14
+we save the tenant. Let's not forget that because otherwise the uh
+45:22
+this is not gonna this this wouldn't work. Now we got the cool cars logo. So
+45:29
+now we have to change the routes for the front end. And that's uh
+Multi-Tenant Routing Setup (Pages & Posts)
+45:35
+that's more work that we have to do in order to have like the pages. you know, if you if you make a homepage for one
+45:42
+tenant, you don't want it to be the same homepage for the other tenant. So, let's do that.
+45:49
+So, we're going to go to uh the front end folder and we're going to
+45:56
+create a new folder. Uh, and it's going to be called tenant.
+46:06
+Just like that. And this this has to be called the same
+46:12
+way as you declare it in the next config file. So if you have tenant
+46:20
+here then you have to name it tenant. You can have whatever you want. You can even
+46:26
+have this in a different path as long as you define the path here. a source, you
+46:32
+know, where where the uh where the folder is,
+46:39
+then you'll be fine. So, uh we close this. We don't need it.
+46:46
+And we go to tenant and then we just drag and drop slug
+46:53
+move. You say yes. So, the imports change.
+47:00
+It's gonna some things are going to fail because we need to change a few things. You you drag page
+47:09
+and you move it. Say yes. Now we got page. Uh what else? Let's
+47:18
+drag a post. So now that we have this, the first
+47:24
+thing that we have to change is obviously we are inside tenant. So, we
+47:30
+changed the routing a little bit here. And we're going to be pointing to
+47:36
+SLOG, which is going to fix the error that we had.
+47:42
+Um, and SLOG is handling pages if I'm not
+47:48
+wrong. Okay. So this is this has to change because now we have to receive
+47:56
+tenant and slug. So as you can see here we we received
+48:03
+the parameters but the only parameter that we're getting is slug. So we're
+48:09
+going to change that. Also, this is one of the reasons why I told you to use the
+48:14
+website template because when you get all this, you know, you get all the the the layout for uh a website. So, if you
+48:22
+want to move quickly, you want to do this. You want to use the uh website
+48:29
+template. Otherwise, if you're going to start a project from the ground up and you know
+48:35
+develop everything and have your uh all your code, then you do it with the blank
+48:41
+template. So, it doesn't have anything. And you can still follow this guide, but obviously
+48:47
+you you'll do this until you get to your own front end and you create it. But in this case, we already have something.
+48:53
+So, let's do let's do this. const tenants
+48:59
+equal await payload find.
+49:05
+That's good. And we're going to call collection tenant limit 1000. That's good.
+49:12
+We're going to do pagionation false. And just we're just going to
+49:18
+close the brackets. So we do this
+49:23
+just like that. And now we want to do
+49:32
+con params equal await
+49:39
+and then we we do a promise. Okay. So it's the auto completion is
+49:46
+coming in clutch here. So that's good. Uh tenants do dogs do dogs do dogs do dogs do dogs do dogs do dogs do dogs do dogs do dogs do dogs map. Let's just uh
+49:54
+name it pages equal await
+50:01
+payload.bind Find collection
+50:07
+pages
+50:15
+limit 1,00 pagionation false.
+50:24
+And then we uh do where
+50:33
+and then type tenant tenant
+50:39
+id then we do this we open brackets then equals okay this
+50:48
+is right okay tenant ID oh I see why I made a mistake here I
+50:56
+didn't open the brackets so it'll be like And uh
+51:03
+we'll do something else. Let's add a select. So it's selecting less data. We're going
+51:11
+to just do select slugg equal true. So we only select the slug. And this is
+51:18
+this is just so the creation of the uh static pages is done. Uh we don't need
+51:24
+this. So let's erase all this. Just erase it. Get rid of it.
+51:32
+We're going to do a return. Okay, this this return looks
+51:38
+okay except that we want to do this uh
+51:46
+slugg and then we do tenant
+51:51
+tenant domain and then log
+51:58
+You don't need to type anything else. All that doesn't do anything.
+52:04
+Okay. You close the brackets. Yeah, that's right. Then you just uh return
+52:10
+params flat without all that. Uh
+52:19
+but you don't you don't have to have this. like you could just erase it if
+52:25
+you want to. And just to accelerate the process on the next steps, we want to um we're
+52:33
+going to copy paste code because uh this is taking too long. I want to make this
+52:38
+video as short as possible. We're going to change a few things here. So,
+52:46
+we're going to erase this. We're going to leave it just as params.
+52:52
+home. Um, yeah. Well, we'll change it. Let's do uh
+52:59
+tenant then slugg
+53:04
+and uh let's close the bracket await params. That's good. And then we can do
+53:12
+const page slug equal slog.
+53:19
+So now let's uh Let's do a few things.
+53:24
+Let's erase. Okay, let's erase it. Let's just erase it and we'll start fresh so
+53:30
+we don't have to worry about changing things. Just like that.
+53:37
+Okay. So, let's do let page require data
+53:44
+from collection and we select pages which is correct.
+53:50
+um equal await
+53:55
+query page by slug. This this autocomplete is correct. And then we do
+54:01
+a tenant domain equal tenant.
+54:08
+And this is a a helper function that we have at the bottom of the page that we're going to modify right now to
+54:16
+uh allow the tenant to be a parameter. page log.
+54:22
+Okay, I know I know this is this is um failing right now, but it's because the
+54:29
+function is not ready to receive the parameter. So, we go all the way down and this is the function. So, we're
+54:36
+going to add the auto completion is coming in. Well, we're going to add
+54:41
+tenant domain comma space and then we have to
+54:47
+add the tenant domain as a string here too which the auto completion is getting right
+54:54
+and we also have to modify the uh the query.
+55:00
+So where has to change uh slug you erase this just erase it so
+55:07
+you you can start fresh. So, you're going to have and
+55:12
+and then uh square brackets and then you can type uh
+55:18
+uh curly brackets and then slug colon and then open curly brackets again
+55:25
+equals space slug and then you're going to add a comma at the end and open
+55:32
+another curly brackets. So then you type uh tenant dot domain which this is one
+55:40
+of the POS that you have in the tenants collection and then you open uh curly brackets again equal
+55:48
+equals uh tenants tenant domain. This looks good.
+55:57
+Okay. Um of course it's going to fail. So we're going to do this uh page slug
+56:07
+just like that. Okay. So now we have our uh tenant is failing.
+56:12
+Is it the types tenant does not exist? Oh yes. I haven't add I haven't added
+56:18
+the uh the types here. So we add tenant as a string. And that's it. And now we
+56:25
+we generate the metadata because uh otherwise it's going to fail too. So let's uh let's do that. Params promise.
+56:36
+Let's change this. Let's erase this.
+56:43
+Await params. Okay, this is looking this is looking good. Well, let's let's do it
+56:49
+the same way we did it before just to keep it consistent since we already did it like that. Con page slug
+56:58
+equals log or home and then page. We have to add
+57:04
+tenant domain equal tenant and log.
+57:10
+That's good. So now we have everything but there is a a few missing things that are going to fix the error that is
+57:16
+showing up right now. Since we don't have a homepage then it's not loading the default homepage that it was loading
+57:23
+before. So I'm going to copy paste two uh
+57:29
+if statements. Uh but the if statement the important one
+57:35
+is this one. This is the the important uh if statement that we want to have and
+57:42
+this in order to make this work we have to convert this into a let not a const.
+57:50
+So that way you can change the value and not give you an error.
+57:55
+And now we have the homepage back.
+58:00
+But now we can add an actual homepage. So I'm going to I'm going to go to the CMS
+58:07
+and uh we are on cool cars. So if you add a page,
+58:16
+let's just make it larger. Okay. Pages. add a new page
+58:22
+home. Okay.
+58:29
+And now uh we type some content. This is this is the
+58:35
+the home page for cool cars.
+58:40
+This is this to make this uh uppercase. And then on content,
+58:47
+we add a call to action. And let's just uh type hello world. Hello world. Okay, we got
+58:56
+hero, we got content. And now we just uh
+59:02
+publish the changes. Once we go to the cool cars homepage and
+59:10
+we refresh, we should be able to see our new content. And there it is. So, if we
+59:16
+do the same for the other site, we're going to reload the page, and you're going to see that it's loading the
+59:22
+default uh homepage, but if you go to
+59:28
+if you go to flying cat the domain, and go to pages and create a new page for
+59:35
+that site, home. So, now we got that. We publish
+59:41
+the changes. And if we go to the flying cat homepage and refresh,
+59:46
+we get the data that uh is for that site. So we have to do the same for uh
+59:55
+posts and uh and that would complete this uh section here. But you if you
+1:00:04
+want to like do it complete you know do a complete uh job you would have to also
+1:00:11
+do it for sitemaps you know sitemaps would be inside tenant so that way you have the context of the tenant and that
+1:00:19
+way you can uh you can always know what tenant you're loading based on the URL
+1:00:25
+and I'm going to do that but I'm going to do it off screen. I'm not going to change site maps. I'm just going to
+1:00:31
+change what I have in tenant right now. I'm going to change posts that way uh we
+1:00:36
+can make this video faster because it's taking uh somewhat long. So, let's do
+1:00:44
+that. So, now I've edited all the files I
+Wrap-Up & Next Steps
+1:00:50
+wanted to edit for this video. And now I have
+1:00:56
+um the site with some links and you can go to posts and you can see the posts.
+1:01:03
+So in this in this case the the flying cat website will have some
+1:01:09
+cat posts. You know you can make it about whatever you want. And let's go to cool cars. So you go to
+1:01:17
+the homepage. You see this is the homepage for cool cars. And then hello world. You can have any content on the
+1:01:23
+homepage. This is just a quick example of what you can do. And then you can
+1:01:29
+click on home which we are already on or you can click on posts. And then you can
+1:01:34
+open a post. Let's open the RX7 one.
+1:01:39
+And then you can see that you know we have some uh Lauram text
+1:01:46
+and then uh the image and this is what the the site looks like by default you
+1:01:52
+know the styles that come with the website template and that's what you can achieve. But um something else that I
+1:02:00
+noticed uh that where where I made a mistake before and I didn't show you is that you
+1:02:09
+have to also edit um
+1:02:16
+the next config file and you have to add this in order to see images.
+1:02:24
+So just add this once you see the error and um
+1:02:31
+and the error will go away. I'll probably edit this in a way that
+1:02:36
+I'll let you know in in the um
+1:02:42
+in the right moment where when we edit this because this is too late already.
+1:02:50
+Okay, but that's it. That's that's what uh multi-tenency is you know so you
+1:02:55
+would be editing way way more files because you have to adapt the whole uh
+1:03:02
+the whole website template you know all the functions like the uh one of one of
+1:03:07
+the functions that I edited was uh generate autogenerating
+1:03:13
+uh the metadata. So things like that is what you have to edit in order to accommodate for the
+1:03:22
+multi-tenency. So you'll be editing a lot of uh checks, a lot of uh processes,
+1:03:28
+uh helper functions and just making them so they work with multi-tenency.
+1:03:35
+And to make this easier um or to make it better for you guys, I
+1:03:42
+will uh publish a repo with all the code
+1:03:47
+that we just edited. So I will publish this repo. I will uh what I will do is
+1:03:55
+um create the project and push the the uh payload project with the website
+1:04:01
+template as is you know and then I'll push another change which will have all
+1:04:08
+the updates that you have to do for multi-tenency. Of course there is a lot of more things
+1:04:15
+that you have to to do to fully adapt it but now you have the base. So you you
+1:04:22
+pretty much have something that is working and you can go on from here. In
+1:04:27
+the future I will make another video where I will go like full in in depth
+1:04:35
+into everything every single file you have to change. I'll make a like a
+1:04:40
+product um like a real life product where we can actually you know show
+1:04:47
+everything and all the small details that you can go into.
+1:04:52
+Uh I don't know exactly what we're going to do yet but you know you can expect that in the
+1:04:59
+future but for now this is it. Uh I think this will give you a good base of
+1:05:06
+how to get started with multi-tenency. And also
+1:05:12
+uh in in in a few seconds you'll see that I will show you the error that I
+1:05:17
+told you about uh in the beginning that um I got when I was using the the the
+1:05:26
+script that payload shows you on their website. So I will do that and then you
+1:05:33
+see what what I meant and that way you know if you don't want to watch uh the video anymore you can just stop it here
+1:05:40
+and and not watch what the error was. But if you are curious you can continue to watch the video. Anyways
+1:05:48
+I'll see you guys later. All right. So I'm going to show you guys the error I
+Next.config Rewrite Bug
+1:05:54
+told you about uh with the rewrites. So, if you go to the payload
+1:06:01
+uh CMS multi-tenency plug-in page, which I'm going to have in the description,
+1:06:08
+they recommend that you uh copy a piece of code like this for
+1:06:15
+the rewrites. And uh they they will have some uh something different here that says uh
+1:06:22
+tenant domain. So the only difference is that my folder is called tenant instead
+1:06:29
+of tenant domain. So that's why I have tenant here. But
+1:06:34
+now we're going to see the error in action. So we're going to go all the way down to the logs and uh we're going to
+1:06:41
+just reload the page and I have some console logs. So okay.
+1:06:48
+Okay. So, now that you know what the code looks like, we're going to go to uh post
+1:06:54
+slug and the page. And
+1:07:00
+as you can see, this is loading in the uh this is not loading here in this
+1:07:07
+route here. It's loading in the slug and it's loading posts which is part of
+1:07:16
+the route and then post dash one.
+1:07:22
+So okay so this would be tenant
+1:07:28
+tenant and slug. So tenant and slug. But then if you load the page like this.
+1:07:38
+So if you load uh cool cars uh next port 3000 and then cool
+1:07:44
+cars.next and then post post one
+1:07:49
+then it will show the page and if you reload this page
+1:07:56
+the the logs will show everything correctly.
+1:08:02
+So we we can go down here and we'll see that the domain is cool cars and the
+1:08:10
+post is post one. The the slug is post one which is correct. If we go here,
+1:08:21
+this is this is it. So
+1:08:27
+that's the error uh I told you guys about. Um, I'm not 100% sure why it
+1:08:33
+happens. If you're an expert in uh, you know, Nex.js, you might know why this
+1:08:41
+happens. But, um, the solution is just to not use this.
+1:08:48
+And, uh, use this instead. So, we uncomment this.
+1:08:55
+And this will obviously now fail once this loads. But then the the correct
+1:09:02
+route will work. Okay, I think we can reload now and it
+1:09:10
+should work.
+1:09:15
+Unless we have to restart the app, but we'll see.
+1:09:24
+Okay, there it goes. And it loads. So now we're back to normal and that's
+1:09:31
+good. Uh well that's the error. Uh that's why I told you guys to to use the code that
+1:09:39
+I gave you instead of the code that it it's on the official uh payload CMS site
+1:09:45
+for the multi-tenency plugin. And that's about it. All right.
+Outro
+1:09:52
+So that's it for this video. I hope you liked it and uh let me know what you think about it because you know this is
+1:09:58
+the first time I ever do a guide uh like this, you know, uh talking to the camera
+1:10:04
+and explaining what I'm doing while typing. So, um I'm not used to it. And
+1:10:10
+uh I'm sure there will be a bunch of mistakes throughout the video, but that's fine. It's the first time, so um
+1:10:17
+just let me know what you think about it. And uh I'll see you guys next time.
+1:10:23
+Bye.
