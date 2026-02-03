@@ -1,0 +1,23 @@
+/* Using plain CSS to avoid Payload UI SCSS import resolution issues */
+.dashboard .before-dashboard {
+  margin-bottom: 30px;
+
+  &__banner {
+    & h4 {
+      margin: 0;
+    }
+  }
+
+  &__instructions {
+    list-style: decimal;
+    margin-bottom: 10px;
+
+    & li {
+      width: 100%;
+    }
+  }
+
+  & a:hover {
+    opacity: 0.85;
+  }
+}

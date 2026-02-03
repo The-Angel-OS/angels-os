@@ -1,0 +1,9 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong"
+  },
+  "HomePage": {
+    "title": "Welcome"
+  }
+}
