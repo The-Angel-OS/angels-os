@@ -1,12 +1,48 @@
-# Payload Ecommerce Template
+# Angel OS
+
+**Angel OS** is a multi-tenant, AI-native ecommerce platform built on the [Payload Ecommerce Template](https://github.com/payloadcms/payload/blob/main/templates/ecommerce). Each tenant gets its own LEO (Learning, Engaging, Organizing) assistant, spaces for community, and a sovereign digital presence.
+
+**Repository:** [The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
 
 This template is in **BETA**.
 
-This is the official [Payload Ecommerce Template](https://github.com/payloadcms/payload/blob/main/templates/ecommerce). This repo includes a fully-working backend, enterprise-grade admin panel, and a beautifully designed, production-ready ecommerce website.
+---
 
-This template is right for you if you are working on building an ecommerce project or shop with Payload.
+## Enhancements Over the Base Ecommerce Template
 
-Core features:
+Angel OS extends the Payload ecommerce template with the following:
+
+| Enhancement | Description |
+|-------------|-------------|
+| **Multi-Tenancy** | `@payloadcms/plugin-multi-tenant` – Tenants with full branding (colors, typography, logo), TenantMemberships, domain-based routing via `x-tenant-id` |
+| **Internationalization** | `next-intl` – Locale-aware routing (`[locale]`), translations (en, de), i18n throughout the frontend |
+| **MCP Plugin** | `@payloadcms/plugin-mcp` – Model Context Protocol endpoint at `/api/mcp`; exposes collections to AI clients; `leo_respond` tool for conversational LEO |
+| **Agent System** | Multi-avatar AI agents (LEO, Support, Sales, etc.) per tenant; `AgentRouter` for channel/keyword routing; `agentConfig` on Users; `ConversationEngine` with Payload data queries |
+| **Spaces & Messaging** | Discord-like Spaces, Channels, Messages – tenant-scoped workspaces for collaboration and LEO conversations |
+| **Posts Collection** | Tenant-scoped blog with categories, related posts, CollectionArchive, pagination, live preview |
+| **Comments** | Polymorphic comments on Posts and Products; ratings on product comments; Comments block in layout builder |
+| **Site Export** | Scaffolded `/api/export-site` – tenant-scoped data export for copying sites |
+| **LEO System Users** | `isSystemUser` + `servesTenant` – AI avatar users per tenant; seeded during tenant setup |
+| **Dashboard** | `/dashboard`, `/dashboard/leo`, `/dashboard/spaces` – scaffolded Discord-like UX |
+| **Security-Aware UI** | Header nav shows Dashboard link only when logged in; account-aware flows |
+
+See `docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md` and `docs/AGENT_SYSTEM.md` for architecture details.
+
+---
+
+## Call for AI Developers & Contributors
+
+We are putting out a request for **AI developers** and **open-source contributors** who want to help build the Angel OS endeavor.
+
+- **OpenClaw** – If you're running OpenClaw instances on [Moltbook](https://moltbook.com) or elsewhere, we'd love for you to join. Connect your instance to the MCP endpoint, contribute workflows, or help extend LEO's capabilities.
+- **AI-native workflows** – Inventory from photos, PDF extraction, video analysis, channel-based automation – there's a lot to build. See the roadmap in the implementation plan.
+- **Contributions welcome** – Code, docs, ideas, testing. Open an issue or PR, join the discussion, or reach out.
+
+Angel OS is an inversion of Daniel Suarez's *Daemon* – human-centered, sovereign infrastructure. We believe AI agents like LEO should serve tenants, not platforms. If that resonates, we'd be glad to have you.
+
+---
+
+## Core Features (from Base Template)
 
 - [Pre-configured Payload Config](#how-it-works)
 - [Authentication](#users-authentication)
@@ -359,6 +395,7 @@ Before deploying your app, you need to:
 
 You can also deploy your app manually, check out the [deployment documentation](https://payloadcms.com/docs/production/deployment) for full details.
 
-## Questions
+## Questions & Community
 
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+- **Angel OS** – Open an [issue](https://github.com/The-Angel-OS/angels-os/issues) or [discussion](https://github.com/The-Angel-OS/angels-os/discussions) on this repo.
+- **Payload** – Reach out on [Discord](https://discord.com/invite/payload) or [GitHub discussions](https://github.com/payloadcms/payload/discussions).
