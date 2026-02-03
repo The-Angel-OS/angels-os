@@ -26,6 +26,8 @@ import {
 import { buildConfig } from 'payload'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
+import { Availability } from '@/collections/Availability'
+import { Bookings } from '@/collections/Bookings'
 import { Categories } from '@/collections/Categories'
 import { Comments } from '@/collections/Comments'
 import { Channels } from '@/collections/Channels'
@@ -74,6 +76,8 @@ export default buildConfig({
     SpaceMemberships,
     Channels,
     Messages,
+    Bookings,
+    Availability,
     Header,
     Footer,
     Pages,
@@ -101,6 +105,8 @@ export default buildConfig({
         media: {},
         products: {},
         orders: {},
+        bookings: {},
+        availability: {},
         header: { isGlobal: true },
         footer: { isGlobal: true },
       },
