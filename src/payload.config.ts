@@ -40,6 +40,7 @@ import { Posts } from '@/collections/Posts'
 import { Projects } from '@/collections/Projects'
 import { SpaceMemberships } from '@/collections/SpaceMemberships'
 import { Spaces } from '@/collections/Spaces'
+import { Workflows } from '@/collections/Workflows'
 import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
 import { Users } from '@/collections/Users'
@@ -77,6 +78,7 @@ export default buildConfig({
     SpaceMemberships,
     Channels,
     Messages,
+    Workflows,
     Bookings,
     Availability,
     Header,
@@ -110,6 +112,7 @@ export default buildConfig({
         orders: {},
         bookings: {},
         availability: {},
+        workflows: {},
         header: { isGlobal: true },
         footer: { isGlobal: true },
       },

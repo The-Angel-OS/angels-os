@@ -80,10 +80,14 @@ export interface Config {
     'space-memberships': SpaceMembership;
     channels: Channel;
     messages: Message;
+    workflows: Workflow;
+    bookings: Booking;
+    availability: Availability;
     header: Header;
     footer: Footer;
     pages: Page;
     posts: Post;
+    projects: Project;
     comments: Comment;
     categories: Category;
     media: Media;
@@ -124,10 +128,14 @@ export interface Config {
     'space-memberships': SpaceMembershipsSelect<false> | SpaceMembershipsSelect<true>;
     channels: ChannelsSelect<false> | ChannelsSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
+    workflows: WorkflowsSelect<false> | WorkflowsSelect<true>;
+    bookings: BookingsSelect<false> | BookingsSelect<true>;
+    availability: AvailabilitySelect<false> | AvailabilitySelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -337,7 +345,17 @@ export interface User {
     capabilities?:
       | (
           | 'query_posts'
+          | 'create_posts'
+          | 'update_posts'
           | 'query_products'
+          | 'create_products'
+          | 'update_products'
+          | 'query_pages'
+          | 'create_pages'
+          | 'update_pages'
+          | 'manage_categories'
+          | 'manage_media'
+          | 'manage_navigation'
           | 'create_orders'
           | 'manage_spaces'
           | 'send_emails'
@@ -1325,8 +1343,74 @@ export interface Channel {
   slug: string;
   description?: string | null;
   space: number | Space;
-  type?: ('general' | 'announcements' | 'support' | 'sales' | 'team' | 'social') | null;
+  type?: ('general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social') | null;
+  /**
+   * Workflows that run on messages in this channel (e.g. inventory_from_image)
+   */
+  workflows?: (number | Workflow)[] | null;
   isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflows".
+ */
+export interface Workflow {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Display name (e.g., "Inventory from Photos")
+   */
+  name: string;
+  /**
+   * Unique identifier (e.g., inventory_from_image)
+   */
+  slug: string;
+  /**
+   * What this workflow does
+   */
+  description?: string | null;
+  /**
+   * When this workflow runs
+   */
+  triggerType: 'message_attachments' | 'message_pattern' | 'channel_type' | 'manual';
+  /**
+   * Channel types this workflow applies to
+   */
+  channelTypes?: ('general' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video')[] | null;
+  /**
+   * Attachment types that trigger this workflow
+   */
+  attachmentTypes?: ('image' | 'pdf' | 'video_url')[] | null;
+  /**
+   * Expected JSON output schema for the workflow (for structured outputs)
+   */
+  outputSchema?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Configuration for the workflow handler (model prompt, options, etc.)
+   */
+  handlerConfig?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Whether this workflow is active
+   */
+  isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1343,11 +1427,328 @@ export interface Message {
    */
   channel: string;
   content: string;
-  messageType?: ('user' | 'system' | 'announcement' | 'ai_agent') | null;
+  /**
+   * Message type – workflow runners use inventory/pdf/video for structured processing
+   */
+  messageType?: ('user' | 'system' | 'announcement' | 'ai_agent' | 'inventory' | 'pdf' | 'video') | null;
+  /**
+   * Attached media (images, PDFs) – workflows can process these
+   */
+  attachments?:
+    | {
+        media: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Tenant for scoping (derived from space)
    */
   tenant?: (number | null) | Tenant;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookings".
+ */
+export interface Booking {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Display name for this booking (e.g., "Massage with Sarah")
+   */
+  title: string;
+  bookingType: 'service' | 'consultation' | 'rental' | 'class' | 'event' | 'custom';
+  /**
+   * Detailed description of what this booking includes
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * The person or resource providing this service
+   */
+  provider: number | User;
+  /**
+   * The person booking this service
+   */
+  client: number | User;
+  /**
+   * When this booking starts
+   */
+  startDateTime: string;
+  /**
+   * When this booking ends
+   */
+  endDateTime: string;
+  /**
+   * Duration in minutes
+   */
+  duration: number;
+  pricing: {
+    /**
+     * Base price for this booking
+     */
+    amount: number;
+    currency: 'usd' | 'eur';
+    /**
+     * Ultimate Fair payment distribution
+     */
+    splitConfiguration: {
+      /**
+       * Provider percentage (default: 60%)
+       */
+      providerShare: number;
+      /**
+       * Platform percentage (default: 20%)
+       */
+      platformShare: number;
+      /**
+       * Operations percentage (default: 15%)
+       */
+      operationsShare: number;
+      /**
+       * Justice Fund percentage (default: 5%)
+       */
+      justiceShare: number;
+    };
+  };
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+  location: {
+    type: 'provider' | 'client' | 'remote' | 'custom';
+    /**
+     * Physical address for the booking
+     */
+    address?: string | null;
+    remoteDetails?: {
+      platform?: ('zoom' | 'google-meet' | 'angelos-live' | 'custom') | null;
+      meetingLink?: string | null;
+      accessCode?: string | null;
+    };
+  };
+  requirements?: {
+    /**
+     * What the client should do to prepare
+     */
+    clientPreparation?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Cancellation terms and timing requirements
+     */
+    cancellationPolicy?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Any special requirements or instructions
+     */
+    specialInstructions?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+  };
+  notifications?: {
+    confirmationSent?: boolean | null;
+    reminderSent?: boolean | null;
+    followUpSent?: boolean | null;
+  };
+  /**
+   * External system integration data
+   */
+  integration?: {
+    /**
+     * Stripe payment intent ID
+     */
+    stripePaymentIntent?: string | null;
+    /**
+     * Calendar system event ID
+     */
+    calendarEventId?: string | null;
+    /**
+     * LEO conversation thread for this booking
+     */
+    leoConversationId?: string | null;
+  };
+  /**
+   * Additional booking-specific data
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "availability".
+ */
+export interface Availability {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Name for this availability slot (e.g., "Monday Morning Appointments")
+   */
+  title: string;
+  /**
+   * The person or resource this availability applies to
+   */
+  provider: number | User;
+  availabilityType: 'weekly' | 'date-range' | 'one-time';
+  /**
+   * Recurring weekly availability
+   */
+  weeklySchedule?: {
+    dayOfWeek: '0' | '1' | '2' | '3' | '4' | '5' | '6';
+    /**
+     * Start time (24-hour format, e.g., "09:00")
+     */
+    startTime: string;
+    /**
+     * End time (24-hour format, e.g., "17:00")
+     */
+    endTime: string;
+  };
+  /**
+   * Specific date range availability
+   */
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+    /**
+     * Daily start time (24-hour format)
+     */
+    startTime: string;
+    /**
+     * Daily end time (24-hour format)
+     */
+    endTime: string;
+  };
+  /**
+   * One-time availability block
+   */
+  oneTimeBlock?: {
+    startDateTime: string;
+    endDateTime: string;
+  };
+  /**
+   * Duration of each bookable slot in minutes
+   */
+  slotDuration: number;
+  /**
+   * Buffer time between slots in minutes
+   */
+  bufferTime?: number | null;
+  /**
+   * Maximum days in advance bookings can be made
+   */
+  maxAdvanceBooking?: number | null;
+  /**
+   * Minimum hours in advance bookings must be made
+   */
+  minAdvanceBooking?: number | null;
+  /**
+   * Whether this availability is currently active
+   */
+  isActive: boolean;
+  /**
+   * Specific dates when this availability does not apply
+   */
+  exceptions?:
+    | {
+        date: string;
+        /**
+         * Optional reason for the exception
+         */
+        reason?: string | null;
+        /**
+         * Alternative availability for this date (optional)
+         */
+        alternativeAvailability?: {
+          startTime?: string | null;
+          endTime?: string | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Types of services available during these times
+   */
+  serviceTypes?:
+    | {
+        serviceType?: ('service' | 'consultation' | 'rental' | 'class' | 'event' | 'custom') | null;
+        /**
+         * Maximum concurrent bookings of this type
+         */
+        maxConcurrent?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Additional availability configuration
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1479,6 +1880,251 @@ export interface Post {
    */
   generateSlug?: boolean | null;
   slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects".
+ */
+export interface Project {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Project name (e.g., "Kitchen Remodel - Smith Family")
+   */
+  title: string;
+  /**
+   * URL-friendly version of title
+   */
+  slug?: string | null;
+  projectType:
+    | 'kitchen'
+    | 'bathroom'
+    | 'cabinets'
+    | 'millwork'
+    | 'commercial'
+    | 'furniture'
+    | 'service'
+    | 'consultation'
+    | 'other';
+  /**
+   * Detailed project description, scope, and objectives
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  client: {
+    /**
+     * Client name (can be anonymized for public display)
+     */
+    name: string;
+    /**
+     * Public display name (e.g., "Residential Client - Largo, FL")
+     */
+    displayName?: string | null;
+    contact?: {
+      email?: string | null;
+      phone?: string | null;
+      address?: string | null;
+    };
+  };
+  timeline?: {
+    startDate?: string | null;
+    /**
+     * Project completion date
+     */
+    completedAt?: string | null;
+    /**
+     * Human-readable duration (e.g., "3 weeks", "2 days")
+     */
+    estimatedDuration?: string | null;
+  };
+  budget?: {
+    /**
+     * Initial project estimate
+     */
+    estimatedCost?: number | null;
+    /**
+     * Actual project cost
+     */
+    finalCost?: number | null;
+    currency?: ('usd' | 'eur') | null;
+    /**
+     * Public budget range for portfolio display
+     */
+    budgetRange?: ('under-1k' | '1k-5k' | '5k-15k' | '15k-50k' | '50k-plus' | 'contact') | null;
+  };
+  status: 'planning' | 'in-progress' | 'completed' | 'on-hold' | 'cancelled';
+  /**
+   * Before, during, and after photos
+   */
+  gallery?:
+    | {
+        image: number | Media;
+        /**
+         * Optional caption for the image
+         */
+        caption?: string | null;
+        stage: 'before' | 'progress' | 'after' | 'detail' | 'material';
+        /**
+         * Use as the main project image
+         */
+        isHeroImage?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Materials, products, and vendors used
+   */
+  materials?:
+    | {
+        /**
+         * Material or product name
+         */
+        item: string;
+        /**
+         * Supplier or manufacturer
+         */
+        vendor?: string | null;
+        /**
+         * Size, color, model, etc.
+         */
+        specifications?: string | null;
+        category?:
+          | (
+              | 'cabinets'
+              | 'countertops'
+              | 'hardware'
+              | 'appliances'
+              | 'flooring'
+              | 'lighting'
+              | 'plumbing'
+              | 'finish'
+              | 'other'
+            )
+          | null;
+        /**
+         * Link to product or vendor (optional)
+         */
+        link?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Client feedback and testimonial
+   */
+  testimonial?: {
+    /**
+     * Client testimonial quote
+     */
+    quote?: string | null;
+    /**
+     * Star rating (1-5)
+     */
+    rating?: number | null;
+    /**
+     * Show testimonial publicly
+     */
+    isPublic?: boolean | null;
+  };
+  /**
+   * Team members who worked on this project
+   */
+  team?:
+    | {
+        member: number | User;
+        /**
+         * Role in this project (e.g., "Lead Designer", "Installer")
+         */
+        role: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Challenges faced and how they were solved
+   */
+  challenges?:
+    | {
+        /**
+         * Brief description of the challenge
+         */
+        challenge: string;
+        /**
+         * How the challenge was resolved
+         */
+        solution?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Similar projects or related work
+   */
+  relatedProjects?: (number | Project)[] | null;
+  /**
+   * Show in public portfolio
+   */
+  isPublic: boolean;
+  /**
+   * Feature prominently in portfolio
+   */
+  isFeatured?: boolean | null;
+  /**
+   * SEO-optimized title for public pages
+   */
+  seoTitle?: string | null;
+  /**
+   * Meta description for search engines
+   */
+  seoDescription?: string | null;
+  /**
+   * Tags for categorization and search
+   */
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Additional project-specific data
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -1672,6 +2318,60 @@ export interface PayloadMcpApiKey {
      */
     delete?: boolean | null;
   };
+  bookings?: {
+    /**
+     * Allow clients to find bookings.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create bookings.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update bookings.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete bookings.
+     */
+    delete?: boolean | null;
+  };
+  availability?: {
+    /**
+     * Allow clients to find availability.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create availability.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update availability.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete availability.
+     */
+    delete?: boolean | null;
+  };
+  workflows?: {
+    /**
+     * Allow clients to find workflows.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create workflows.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update workflows.
+     */
+    update?: boolean | null;
+    /**
+     * Allow clients to delete workflows.
+     */
+    delete?: boolean | null;
+  };
   'payload-mcp-tool'?: {
     /**
      * Send a message to LEO (Angel OS conversational AI). Use for chat, navigation, content queries, or assistance. LEO can list posts, products, and help with tenant operations.
@@ -1737,6 +2437,18 @@ export interface PayloadLockedDocument {
         value: number | Message;
       } | null)
     | ({
+        relationTo: 'workflows';
+        value: number | Workflow;
+      } | null)
+    | ({
+        relationTo: 'bookings';
+        value: number | Booking;
+      } | null)
+    | ({
+        relationTo: 'availability';
+        value: number | Availability;
+      } | null)
+    | ({
         relationTo: 'header';
         value: number | Header;
       } | null)
@@ -1751,6 +2463,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'projects';
+        value: number | Project;
       } | null)
     | ({
         relationTo: 'comments';
@@ -2024,6 +2740,7 @@ export interface ChannelsSelect<T extends boolean = true> {
   description?: T;
   space?: T;
   type?: T;
+  workflows?: T;
   isDefault?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2038,7 +2755,158 @@ export interface MessagesSelect<T extends boolean = true> {
   channel?: T;
   content?: T;
   messageType?: T;
+  attachments?:
+    | T
+    | {
+        media?: T;
+        caption?: T;
+        id?: T;
+      };
   tenant?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflows_select".
+ */
+export interface WorkflowsSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  slug?: T;
+  description?: T;
+  triggerType?: T;
+  channelTypes?: T;
+  attachmentTypes?: T;
+  outputSchema?: T;
+  handlerConfig?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookings_select".
+ */
+export interface BookingsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  bookingType?: T;
+  description?: T;
+  provider?: T;
+  client?: T;
+  startDateTime?: T;
+  endDateTime?: T;
+  duration?: T;
+  pricing?:
+    | T
+    | {
+        amount?: T;
+        currency?: T;
+        splitConfiguration?:
+          | T
+          | {
+              providerShare?: T;
+              platformShare?: T;
+              operationsShare?: T;
+              justiceShare?: T;
+            };
+      };
+  status?: T;
+  location?:
+    | T
+    | {
+        type?: T;
+        address?: T;
+        remoteDetails?:
+          | T
+          | {
+              platform?: T;
+              meetingLink?: T;
+              accessCode?: T;
+            };
+      };
+  requirements?:
+    | T
+    | {
+        clientPreparation?: T;
+        cancellationPolicy?: T;
+        specialInstructions?: T;
+      };
+  notifications?:
+    | T
+    | {
+        confirmationSent?: T;
+        reminderSent?: T;
+        followUpSent?: T;
+      };
+  integration?:
+    | T
+    | {
+        stripePaymentIntent?: T;
+        calendarEventId?: T;
+        leoConversationId?: T;
+      };
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "availability_select".
+ */
+export interface AvailabilitySelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  provider?: T;
+  availabilityType?: T;
+  weeklySchedule?:
+    | T
+    | {
+        dayOfWeek?: T;
+        startTime?: T;
+        endTime?: T;
+      };
+  dateRange?:
+    | T
+    | {
+        startDate?: T;
+        endDate?: T;
+        startTime?: T;
+        endTime?: T;
+      };
+  oneTimeBlock?:
+    | T
+    | {
+        startDateTime?: T;
+        endDateTime?: T;
+      };
+  slotDuration?: T;
+  bufferTime?: T;
+  maxAdvanceBooking?: T;
+  minAdvanceBooking?: T;
+  isActive?: T;
+  exceptions?:
+    | T
+    | {
+        date?: T;
+        reason?: T;
+        alternativeAvailability?:
+          | T
+          | {
+              startTime?: T;
+              endTime?: T;
+            };
+        id?: T;
+      };
+  serviceTypes?:
+    | T
+    | {
+        serviceType?: T;
+        maxConcurrent?: T;
+        id?: T;
+      };
+  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2327,6 +3195,101 @@ export interface CommentsBlockSelect<T extends boolean = true> {
   blockName?: T;
   heading?: T;
   id?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  slug?: T;
+  projectType?: T;
+  description?: T;
+  client?:
+    | T
+    | {
+        name?: T;
+        displayName?: T;
+        contact?:
+          | T
+          | {
+              email?: T;
+              phone?: T;
+              address?: T;
+            };
+      };
+  timeline?:
+    | T
+    | {
+        startDate?: T;
+        completedAt?: T;
+        estimatedDuration?: T;
+      };
+  budget?:
+    | T
+    | {
+        estimatedCost?: T;
+        finalCost?: T;
+        currency?: T;
+        budgetRange?: T;
+      };
+  status?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        stage?: T;
+        isHeroImage?: T;
+        id?: T;
+      };
+  materials?:
+    | T
+    | {
+        item?: T;
+        vendor?: T;
+        specifications?: T;
+        category?: T;
+        link?: T;
+        id?: T;
+      };
+  testimonial?:
+    | T
+    | {
+        quote?: T;
+        rating?: T;
+        isPublic?: T;
+      };
+  team?:
+    | T
+    | {
+        member?: T;
+        role?: T;
+        id?: T;
+      };
+  challenges?:
+    | T
+    | {
+        challenge?: T;
+        solution?: T;
+        id?: T;
+      };
+  relatedProjects?: T;
+  isPublic?: T;
+  isFeatured?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2784,6 +3747,30 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         delete?: T;
       };
   media?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  bookings?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  availability?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+        delete?: T;
+      };
+  workflows?:
     | T
     | {
         find?: T;

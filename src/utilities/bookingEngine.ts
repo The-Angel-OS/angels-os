@@ -366,7 +366,7 @@ export class BookingEngine {
 
     existingBookings.docs.forEach(booking => {
       conflicts.push({
-        conflictId: booking.id,
+        conflictId: String(booking.id),
         conflictType: 'booking',
         conflictStart: new Date(booking.startDateTime),
         conflictEnd: new Date(booking.endDateTime),
@@ -398,12 +398,18 @@ export class BookingEngine {
       justiceShare: 5
     }
 
+    const tenantIdNum = typeof request.tenantId === 'number' ? request.tenantId : parseInt(String(request.tenantId), 10)
+    if (Number.isNaN(tenantIdNum)) throw new Error('Invalid tenantId')
     const booking = await this.payload.create({
       collection: 'bookings',
       data: {
-        tenant: request.tenantId,
+        tenant: tenantIdNum,
         title: request.title,
-        description: request.description,
+        ...(request.description && {
+          description: typeof request.description === 'object'
+            ? request.description
+            : { root: { type: 'root', children: [{ type: 'paragraph', children: [{ type: 'text', text: String(request.description) }] }], direction: null, format: '', indent: 0, version: 1 } }
+        }),
         bookingType: request.bookingType,
         provider: request.providerId,
         client: request.clientId,
@@ -422,7 +428,8 @@ export class BookingEngine {
           reminderSent: false,
           followUpSent: false
         }
-      }
+      } as any,
+      overrideAccess: true,
     })
 
     // TODO: Send notifications
@@ -442,8 +449,8 @@ export class BookingEngine {
   ): Promise<{ solution: string; alternatives: any[] }> {
     // This is where Answer 53 comes into play
     // Instead of just rejecting conflicted bookings, we find harmonic alternatives
-    
-    const alternatives = []
+
+    const alternatives: Array<{ startTime: Date; endTime: Date; harmonicScore: number; suggestion: string }> = []
     
     // Find nearby available slots
     const nearbySlots = await this.getAvailableSlots({

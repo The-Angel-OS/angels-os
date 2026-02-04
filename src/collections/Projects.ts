@@ -1,7 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
 import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
-import { tenantField } from '@/fields/tenantField'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -17,7 +16,6 @@ export const Projects: CollectionConfig = {
     delete: authenticated,
   },
   fields: [
-    tenantField,
     {
       name: 'title',
       type: 'text',

@@ -35,6 +35,18 @@ export const mcpPluginConfig = mcpPlugin({
       enabled: { find: true, create: true, update: true, delete: true },
       description: 'Media uploads',
     },
+    bookings: {
+      enabled: { find: true, create: true, update: true, delete: true },
+      description: 'Booking appointments and sessions',
+    },
+    availability: {
+      enabled: { find: true, create: true, update: true, delete: true },
+      description: 'Provider availability slots',
+    },
+    workflows: {
+      enabled: { find: true, create: true, update: true, delete: true },
+      description: 'Channel workflows (inventory, PDF, video processing)',
+    },
   },
   mcp: {
     tools: [

@@ -251,14 +251,15 @@ export class BookingsModule {
       duration?: number
     } = {}
   ) {
-    const params = new URLSearchParams({
+    const params: Record<string, string> = {
       providerId,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      ...options
-    })
+    }
+    if (options.serviceType) params.serviceType = options.serviceType
+    if (options.duration != null) params.duration = String(options.duration)
 
-    return this.client.request(`/api/availability?${params}`)
+    return this.client.request(`/api/availability?${new URLSearchParams(params)}`)
   }
 
   /**
@@ -616,4 +617,3 @@ export class Answer53 {
  * Export the main client class and utilities
  */
 export default AngelOSClient
-export { AngelOSUtils, Answer53 }

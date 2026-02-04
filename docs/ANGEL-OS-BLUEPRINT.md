@@ -2,7 +2,7 @@
 
 ## Overview
 
-Angel OS is a multi-tenant e-commerce platform with sovereign AI intelligence, built on Payload 3.0 and the "Ultimate Fair" economic model.
+Angel OS is a multi-tenant e-commerce platform with sovereign AI intelligence, built on Payload 3.0 and the "Ultimate Fair" economic model. This doc is the technical blueprint for the MVP — use it alongside the [Constitution](Angel_OS_Constitution.md) and [implementation plan](ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md).
 
 ## Core Infrastructure ✅
 
