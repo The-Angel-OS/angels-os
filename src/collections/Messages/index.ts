@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { runWorkflows } from './hooks/runWorkflows'
+
 /**
  * Message within a Space.
  * channel is the channel name (string) for template compatibility;
@@ -51,7 +53,30 @@ export const Messages: CollectionConfig = {
         { label: 'System', value: 'system' },
         { label: 'Announcement', value: 'announcement' },
         { label: 'AI Agent', value: 'ai_agent' },
+        { label: 'Inventory', value: 'inventory' },
+        { label: 'PDF', value: 'pdf' },
+        { label: 'Video', value: 'video' },
       ],
+      admin: { description: 'Message type – workflow runners use inventory/pdf/video for structured processing' },
+    },
+    {
+      name: 'attachments',
+      type: 'array',
+      fields: [
+        {
+          name: 'media',
+          type: 'relationship',
+          relationTo: 'media',
+          required: true,
+        },
+        {
+          name: 'caption',
+          type: 'text',
+        },
+      ],
+      admin: {
+        description: 'Attached media (images, PDFs) – workflows can process these',
+      },
     },
     {
       name: 'tenant',
@@ -60,4 +85,7 @@ export const Messages: CollectionConfig = {
       admin: { description: 'Tenant for scoping (derived from space)' },
     },
   ],
+  hooks: {
+    afterChange: [runWorkflows],
+  },
 }

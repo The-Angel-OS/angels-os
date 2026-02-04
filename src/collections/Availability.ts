@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
-import { tenantField } from '@/fields/tenantField'
 
 export const Availability: CollectionConfig = {
   slug: 'availability',
@@ -16,7 +15,6 @@ export const Availability: CollectionConfig = {
     delete: authenticated,
   },
   fields: [
-    tenantField,
     {
       name: 'title',
       type: 'text',
@@ -67,13 +65,13 @@ export const Availability: CollectionConfig = {
           type: 'select',
           required: true,
           options: [
-            { label: 'Sunday', value: 0 },
-            { label: 'Monday', value: 1 },
-            { label: 'Tuesday', value: 2 },
-            { label: 'Wednesday', value: 3 },
-            { label: 'Thursday', value: 4 },
-            { label: 'Friday', value: 5 },
-            { label: 'Saturday', value: 6 },
+            { label: 'Sunday', value: '0' },
+            { label: 'Monday', value: '1' },
+            { label: 'Tuesday', value: '2' },
+            { label: 'Wednesday', value: '3' },
+            { label: 'Thursday', value: '4' },
+            { label: 'Friday', value: '5' },
+            { label: 'Saturday', value: '6' },
           ],
         },
         {
@@ -83,9 +81,10 @@ export const Availability: CollectionConfig = {
           admin: {
             description: 'Start time (24-hour format, e.g., "09:00")',
           },
-          validate: (value) => {
+          validate: (val: unknown) => {
+            const value = typeof val === 'string' ? val : ''
             const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
-            if (!timeRegex.test(value)) {
+            if (!value || !timeRegex.test(value)) {
               return 'Please enter time in HH:MM format (e.g., 09:00)'
             }
             return true
@@ -98,9 +97,10 @@ export const Availability: CollectionConfig = {
           admin: {
             description: 'End time (24-hour format, e.g., "17:00")',
           },
-          validate: (value) => {
+          validate: (val: unknown) => {
+            const value = typeof val === 'string' ? val : ''
             const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
-            if (!timeRegex.test(value)) {
+            if (!value || !timeRegex.test(value)) {
               return 'Please enter time in HH:MM format (e.g., 17:00)'
             }
             return true
@@ -312,12 +312,14 @@ export const Availability: CollectionConfig = {
   hooks: {
     beforeValidate: [
       async ({ data }) => {
+        if (!data) return
         // Auto-generate title if not provided
         if (!data.title && data.provider) {
           const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
           
           if (data.availabilityType === 'weekly' && data.weeklySchedule) {
-            const dayName = dayNames[data.weeklySchedule.dayOfWeek]
+            const dayIdx = parseInt(String(data.weeklySchedule.dayOfWeek), 10)
+            const dayName = Number.isNaN(dayIdx) ? 'Unknown' : dayNames[dayIdx]
             data.title = `${dayName} ${data.weeklySchedule.startTime}-${data.weeklySchedule.endTime}`
           } else if (data.availabilityType === 'date-range' && data.dateRange) {
             data.title = `${data.dateRange.startDate} to ${data.dateRange.endDate}`
@@ -331,6 +333,7 @@ export const Availability: CollectionConfig = {
     ],
     beforeChange: [
       async ({ data }) => {
+        if (!data) return
         // Validate time ranges
         if (data.weeklySchedule) {
           const { startTime, endTime } = data.weeklySchedule

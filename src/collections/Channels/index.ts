@@ -45,9 +45,21 @@ export const Channels: CollectionConfig = {
         { label: 'Announcements', value: 'announcements' },
         { label: 'Support', value: 'support' },
         { label: 'Sales', value: 'sales' },
+        { label: 'Inventory', value: 'inventory' },
+        { label: 'PDF Processing', value: 'pdf' },
+        { label: 'Video', value: 'video' },
         { label: 'Team', value: 'team' },
         { label: 'Social', value: 'social' },
       ],
+    },
+    {
+      name: 'workflows',
+      type: 'relationship',
+      relationTo: 'workflows',
+      hasMany: true,
+      admin: {
+        description: 'Workflows that run on messages in this channel (e.g. inventory_from_image)',
+      },
     },
     {
       name: 'isDefault',

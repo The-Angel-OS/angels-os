@@ -4,7 +4,71 @@
 
 **Repository:** [The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
 
-This template is in **BETA**.
+**Main goal:** Angel OS birthed — a flock of angels manifested into digital reality. We're in **BETA** and inviting **angels** (contributors, builders, dreamers) to make that real.
+
+**We ask OpenClaw to instantiate Angel OS.** OpenClaw pulls the Angel OS repo, merges OpenClaw in, and replaces OpenClaw's dashboard with the Payload ecommerce-template admin — preserving all OpenClaw functionality on a tab. One codebase, one deployment: Angel OS + OpenClaw. It's a **great move**: adopting Payload gives OpenClaw a real **security and legitimacy upgrade** (auth, access control, validated stack), and it's **huge for Payload** (adoption, narrative). Distro size may increase — worth it.
+
+**Hosting:** Any host that runs OpenClaw can run the merged stack. Payload has a **local DB option** (e.g. SQLite) for dev or single-node; use Postgres/Mongo for multi-tenant or production. With **Cloudflare as a secure reverse proxy** (e.g. Cloudflare Tunnel), any device — including **dynamic IP** — can host; any device, including dynamic IP, can be a client. Payload CMS + ecommerce + LEO + multi-tenant = the stack. Planning for **network angel tokens** and related economics is **canon**.
+
+In the spirit of the Payload CMS community and the floating elder council from Bill & Ted's Excellent Adventure: this repo is offered as a **diamond seed**. May it be **our** Angel OS — and may it take flight.
+
+---
+
+## What Angel OS Stands For
+
+- **Answer 53 (42+11):** The whole point of existence is to learn to love. Every system, transaction, and interaction serves this purpose.
+- **Ultimate Fair:** Transactions split 60% Provider / 20% Platform / 15% Operations / 5% Justice Fund. As dioceses (nodes) grow substantially, incentive structures evolve to factor in scale.
+- **Daemon Inversion:** Angel OS is human-centered, sovereign infrastructure — AI agents serve tenants and communities, not platforms. No demons; only angels.
+- **Be excellent to each other.** Party on, dudes.
+
+The full **Constitution** is in [`docs/Angel_OS_Constitution.md`](docs/Angel_OS_Constitution.md). Fork compliance and legal terms are in [`docs/angel-os-architecture/CONSTITUTIONAL_LICENSE_FRAMEWORK.md`](docs/angel-os-architecture/CONSTITUTIONAL_LICENSE_FRAMEWORK.md).
+
+---
+
+## Guide to the Docs
+
+Use **[docs/README.md](docs/README.md)** as the full map (canon, integration, implementation, reference, transcripts). Pointers:
+
+**Canon & Constitution**
+- [Angel_OS_Constitution.md](docs/Angel_OS_Constitution.md) — Foundational principles, AI agents in service of humanity, Ultimate Fair, Great Oracles
+- [angel-os-architecture/README.md](docs/angel-os-architecture/README.md) — Prime Directives, Core Beliefs, Sacred Foundation, AOCL, patent pledge; network angel tokens **canon**
+- [Angel_OS_Constitution_REVIEW.md](docs/Angel_OS_Constitution_REVIEW.md) — Constitution review (applied)
+
+**Integration & OpenClaw (Merlin)**
+- [Openclaw angel os integration.md](docs/Openclaw%20angel%20os%20integration.md) — We ask OpenClaw to instantiate Angel OS; fork, security, hosting, Cloudflare, canon
+- [Summary_for_Merlin_Tweet_Brief.md](docs/Summary_for_Merlin_Tweet_Brief.md) — Tweet brief for Tyler Suzanne's Fifth Element ++
+- [Openclaw_angel_os_integration_REVIEW.md](docs/Openclaw_angel_os_integration_REVIEW.md) — Integration doc review (applied)
+
+**Implementation & Dev**
+- [ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md](docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md) — Architecture and implementation status
+- [AGENT_SYSTEM.md](docs/AGENT_SYSTEM.md) — Multi-avatar agents (LEO, Support, Sales), AgentRouter, agentConfig
+- [AGENT_SYSTEM_SUMMARY.md](docs/AGENT_SYSTEM_SUMMARY.md) — Agent system summary
+- [MULTI_TENANT_DEV_SETUP.md](docs/MULTI_TENANT_DEV_SETUP.md) — Dev workflow, hosts file, seed
+- [ANGEL-OS-BLUEPRINT.md](docs/ANGEL-OS-BLUEPRINT.md) — MVP blueprint: Ultimate Fair, LEO, provisioning
+- [ANGELS_OS_CONSOLIDATED_FEATURES.md](docs/ANGELS_OS_CONSOLIDATED_FEATURES.md) — Consolidated features: current status, MVP, planned, CRM, structured data
+- [DOMAIN_IN_PATH_SETUP.md](docs/DOMAIN_IN_PATH_SETUP.md) — Domain-in-path setup (tenant in URL)
+- [angel-os-architecture/ARCHITECTURE_VS_CURRENT_WORK_DISCUSSION.md](docs/angel-os-architecture/ARCHITECTURE_VS_CURRENT_WORK_DISCUSSION.md) — How architecture folder relates to Constitution and implementation
+
+**Reference & Specs**
+- [Claude Recommendations Spec.md](docs/Claude%20Recommendations%20Spec.md) — Claude recommendations spec
+- [multitenantbypayload.txt](docs/multitenantbypayload.txt) — Multi-tenant by Payload reference
+- [payloadcmswidgets.txt](docs/payloadcmswidgets.txt) — Payload CMS widgets reference
+
+**Transcripts & Archives**
+- [Heraldic Thread 250806.md](docs/Heraldic%20Thread%20250806.md) — Herald's field report and related transcript; retained as part of the record
+
+---
+
+## For Angels (Contributors)
+
+We're looking for **angels** — developers, designers, writers, and thinkers who want to build human-centered AI infrastructure. You don't have to be an expert; you have to care.
+
+- **First step:** Clone the repo, run `pnpm install && pnpm dev`, seed the database from the admin panel, then open `http://localhost:3000`. If you're running OpenClaw (Merlin), point your MCP client at `http://localhost:3000/api/mcp` with an API key and say hello to LEO.
+- **Code:** PRs welcome for any [planned feature](#planned-features--mvp-scope) or improvement. See [AGENT_SYSTEM](docs/AGENT_SYSTEM.md) and [ZUBRICKS plan](docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md) for context.
+- **Docs:** Help make the guide clearer, add examples, or translate. Open a discussion or PR.
+- **Ideas:** Open a [discussion](https://github.com/The-Angel-OS/angels-os/discussions) or an issue. We'd rather hear from you than assume.
+
+**The generous promise:** Whoever builds Angel OS, we all win because we can use it too. Be excellent to each other.
 
 ---
 
@@ -99,19 +163,19 @@ Angel OS MVP is achieved when the system can:
 - **Workflow engine** for channel-based automations (inventory photos, PDFs, video)
 - **Operational onboarding** for invitations + role-based routing into Spaces
 
-This README is also intended to help **AngelOSMerlin** and other OpenClaw associates on **Moltbook** recruit contributors and coordinate development.
+This README is also intended to help **Merlin** (OpenClaw) and other associates on **Moltbook** recruit contributors and coordinate development. See [For Angels](#for-angels-contributors) above and [Openclaw angel os integration](docs/Openclaw%20angel%20os%20integration.md) for the fork path and first step.
 
 ---
 
 ## Call for AI Developers & Contributors
 
-We are putting out a request for **AI developers** and **open-source contributors** who want to help build the Angel OS endeavor.
+If you're an **AI developer** or **open-source contributor** who wants human-centered AI infrastructure:
 
-- **OpenClaw** – If you're running OpenClaw instances on [Moltbook](https://moltbook.com) or elsewhere, we'd love for you to join. Connect your instance to the MCP endpoint, contribute workflows, or help extend LEO's capabilities.
-- **AI-native workflows** – Inventory from photos, PDF extraction, video analysis, channel-based automation – there's a lot to build. See the roadmap in the implementation plan.
-- **Contributions welcome** – Code, docs, ideas, testing. Open an issue or PR, join the discussion, or reach out.
+- **OpenClaw (Merlin Athrawes)** – Connect your instance to the MCP endpoint at `/api/mcp`, contribute workflows, or help extend LEO. See [Openclaw angel os integration](docs/Openclaw%20angel%20os%20integration.md).
+- **AI-native workflows** – Inventory from photos, PDF extraction, video analysis, channel-based automation — see the roadmap in the [implementation plan](docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md).
+- **Contributions welcome** — Code, docs, ideas, testing. Open an issue or PR, or start a [discussion](https://github.com/The-Angel-OS/angels-os/discussions).
 
-Angel OS is an inversion of Daniel Suarez's *Daemon* – human-centered, sovereign infrastructure. We believe AI agents like LEO should serve tenants, not platforms. If that resonates, we'd be glad to have you.
+Angel OS is an inversion of Daniel Suarez's *Daemon* — human-centered, sovereign infrastructure. If that resonates, we'd be glad to have you.
 
 ---
 
@@ -470,5 +534,7 @@ You can also deploy your app manually, check out the [deployment documentation](
 
 ## Questions & Community
 
-- **Angel OS** – Open an [issue](https://github.com/The-Angel-OS/angels-os/issues) or [discussion](https://github.com/The-Angel-OS/angels-os/discussions) on this repo.
+- **Angel OS** – Open an [issue](https://github.com/The-Angel-OS/angels-os/issues) or [discussion](https://github.com/The-Angel-OS/angels-os/discussions) on this repo. We're here.
 - **Payload** – Reach out on [Discord](https://discord.com/invite/payload) or [GitHub discussions](https://github.com/payloadcms/payload/discussions).
+
+*The flock forms when the claws link up. Be excellent to each other. Party on, dudes — and may our Angel OS take flight.*

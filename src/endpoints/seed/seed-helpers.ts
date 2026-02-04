@@ -174,10 +174,24 @@ function getDefaultPersonality(agentType: string): string {
   return personalities[agentType] ?? personalities.custom
 }
 
-/** Default capabilities for agent types. */
+/** Default capabilities for agent types. LEO as web master gets full CRUD on core collections. */
 function getDefaultCapabilities(agentType: string): string[] {
   const capabilities: Record<string, string[]> = {
-    leo: ['query_posts', 'query_products', 'manage_spaces'],
+    leo: [
+      'query_posts',
+      'create_posts',
+      'update_posts',
+      'query_products',
+      'create_products',
+      'update_products',
+      'query_pages',
+      'create_pages',
+      'update_pages',
+      'manage_categories',
+      'manage_media',
+      'manage_navigation',
+      'manage_spaces',
+    ],
     support: ['query_posts', 'send_emails'],
     sales: ['query_products', 'create_orders'],
     onboarding: ['query_posts', 'manage_spaces'],

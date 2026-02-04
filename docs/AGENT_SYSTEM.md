@@ -2,6 +2,8 @@
 
 Multi-avatar AI agent system for Angel OS. Each tenant can have multiple system users (agents) with distinct personalities, capabilities, and routing rules.
 
+Read this if you're building or extending LEO, Support, Sales, or other agents — or if you want to understand how the AgentRouter and ConversationEngine work.
+
 ---
 
 ## Overview
