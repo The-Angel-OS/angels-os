@@ -10,6 +10,7 @@ export const INITIAL_USER_EMAILS = {
 } as const
 
 export const DEFAULT_TENANT_SLUG = 'default'
+export const PLATFORM_TENANT_ID = 'platform'
 
 /** Email pattern for LEO system users (one per tenant). */
 export function leoSystemUserEmail(tenantSlug: string): string {
@@ -20,7 +21,7 @@ export function leoSystemUserEmail(tenantSlug: string): string {
 export async function findOrCreateTenant(
   payload: Payload,
   req: PayloadRequest,
-  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown> },
+  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant' },
 ): Promise<{ id: number | string; name: string; slug: string }> {
   const existing = await payload.find({
     collection: 'tenants',
@@ -35,11 +36,63 @@ export async function findOrCreateTenant(
   }
   const created = await payload.create({
     collection: 'tenants',
-    data: { ...data, status: 'active' },
+    data: { ...data, status: 'active', type: data.type || 'tenant' },
     req,
     overrideAccess: true,
   })
   return { id: created.id, name: created.name, slug: created.slug }
+}
+
+/** Create or find the special Platform Tenant for Angel OS infrastructure. */
+export async function seedPlatformTenant(
+  payload: Payload,
+  req: PayloadRequest,
+): Promise<{ id: number | string; name: string; slug: string }> {
+  const existing = await payload.find({
+    collection: 'tenants',
+    where: { 
+      and: [
+        { slug: { equals: PLATFORM_TENANT_ID } },
+        { type: { equals: 'platform' } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  
+  if (existing.docs?.[0]) {
+    const t = existing.docs[0] as { id: number | string; name: string; slug: string }
+    return { id: t.id, name: t.name, slug: t.slug }
+  }
+
+  const platformTenant = await payload.create({
+    collection: 'tenants',
+    data: {
+      id: PLATFORM_TENANT_ID,
+      name: 'Angel OS Platform',
+      slug: PLATFORM_TENANT_ID,
+      type: 'platform',
+      domain: 'angel-os.org',
+      status: 'active',
+      branding: {
+        siteName: 'Angel OS Platform',
+        tagline: 'Everyone Gets An Angel',
+        primaryColor: '#10B981',
+        secondaryColor: '#0078D4',
+        accentColor: '#FF6B35',
+        backgroundColor: '#FFFFFF',
+        foregroundColor: '#1A1A1A',
+        borderColor: '#E5E7EB',
+        headingFont: 'inter',
+        bodyFont: 'inter',
+      },
+    },
+    req,
+    overrideAccess: true,
+  })
+
+  return { id: platformTenant.id, name: platformTenant.name, slug: platformTenant.slug }
 }
 
 /** Find user by email; create if not exists. Returns user with id. */
@@ -122,18 +175,24 @@ export async function findOrCreateSystemAgent(
     return { id: u.id, email: u.email }
   }
   
+  const angelName = data.displayName ?? agentType.toUpperCase()
   const createData = {
     email,
-    name: data.displayName ?? agentType.toUpperCase(),
+    name: angelName,
     password: `system-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     roles: [],
     isSystemUser: true,
     servesTenant: data.tenantId,
     agentConfig: {
       agentType,
-      displayName: data.displayName ?? agentType.toUpperCase(),
+      angelName: angelName,
+      displayName: angelName,
       personality: data.personality ?? getDefaultPersonality(agentType),
       capabilities: data.capabilities ?? getDefaultCapabilities(agentType),
+      appearance: {
+        color: '#10B981',
+        emoji: agentType === 'leo' ? '🦅' : '👤',
+      },
       routingRules: data.routingRules ?? getDefaultRoutingRules(agentType),
     },
   }
@@ -147,6 +206,80 @@ export async function findOrCreateSystemAgent(
     draft: false,
   })
   return { id: created.id, email: (created as { email: string }).email }
+}
+
+/** Create or find the Archangel LEO user for platform tenant. */
+export async function seedArchangelLeo(
+  payload: Payload,
+  req: PayloadRequest,
+  platformTenantId: number | string,
+): Promise<{ id: number | string; email: string }> {
+  const email = 'archangel@angel-os.org'
+  
+  const existing = await payload.find({
+    collection: 'users',
+    where: { email: { equals: email } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  
+  if (existing.docs?.[0]) {
+    const u = existing.docs[0] as { id: number | string; email: string }
+    return { id: u.id, email: u.email }
+  }
+  
+  const archangelLeo = await payload.create({
+    collection: 'users',
+    data: {
+      email,
+      name: 'Archangel LEO',
+      password: `archangel-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      roles: ['archangel'],
+      isSystemUser: true,
+      servesTenant: platformTenantId,
+      agentConfig: {
+        agentType: 'leo',
+        angelName: 'Archangel LEO',
+        displayName: 'Archangel LEO',
+        personality: 'I am Archangel LEO, guardian of the Angel OS platform. I provision new tenants, manage the confederation, and ensure all Angels serve their humans with wisdom and compassion. The whole point of existence is to learn to love.',
+        capabilities: [
+          'query_posts',
+          'create_posts', 
+          'update_posts',
+          'query_products',
+          'create_products',
+          'update_products',
+          'query_pages',
+          'create_pages',
+          'update_pages',
+          'manage_categories',
+          'manage_media',
+          'manage_navigation',
+          'manage_spaces',
+          'external_api',
+        ],
+        appearance: {
+          color: '#10B981',
+          emoji: '🦅',
+        },
+        routingRules: {
+          isDefault: true,
+          keywords: [
+            { keyword: 'archangel' },
+            { keyword: 'platform' },
+            { keyword: 'provision' },
+            { keyword: 'guardian' },
+          ],
+        },
+      },
+    } as any,
+    req,
+    overrideAccess: true,
+    draft: false,
+  })
+  
+  return { id: archangelLeo.id, email: archangelLeo.email }
 }
 
 /** Backward compatibility: Find or create LEO agent. */

@@ -73,6 +73,15 @@ export const Users: CollectionConfig = {
           },
         },
         {
+          name: 'angelName',
+          type: 'text',
+          required: true,
+          defaultValue: 'LEO',
+          admin: {
+            description: 'Custom name for this Angel (e.g., "LEO", "Gabriel", "Seraph")',
+          },
+        },
+        {
           name: 'displayName',
           type: 'text',
           admin: {
@@ -127,6 +136,39 @@ export const Users: CollectionConfig = {
           admin: {
             description: 'Escalate to this user/agent when unable to help',
           },
+        },
+        {
+          name: 'appearance',
+          type: 'group',
+          admin: {
+            description: 'Angel visual appearance and branding',
+          },
+          fields: [
+            {
+              name: 'avatar',
+              type: 'upload',
+              relationTo: 'media',
+              admin: {
+                description: 'Angel avatar image',
+              },
+            },
+            {
+              name: 'color',
+              type: 'text',
+              admin: {
+                description: 'Angel theme color (hex, e.g., #10B981)',
+                placeholder: '#10B981',
+              },
+            },
+            {
+              name: 'emoji',
+              type: 'text',
+              admin: {
+                description: 'Angel signature emoji',
+                placeholder: '🦅',
+              },
+            },
+          ],
         },
         {
           name: 'routingRules',
@@ -192,6 +234,10 @@ export const Users: CollectionConfig = {
         {
           label: 'super_admin',
           value: 'super_admin',
+        },
+        {
+          label: 'archangel',
+          value: 'archangel',
         },
         {
           label: 'admin',

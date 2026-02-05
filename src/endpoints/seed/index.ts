@@ -21,6 +21,8 @@ import {
   findOrCreateUser,
   findOrCreateLeoUser,
   findOrCreateSpaceMembership,
+  seedPlatformTenant,
+  seedArchangelLeo,
   INITIAL_USER_EMAILS,
 } from './seed-helpers'
 
@@ -116,11 +118,22 @@ export const seed = async ({
 }): Promise<void> => {
   payload.logger.info('Seeding database...')
 
-  // 1. Tenant: find or create (tenants not cleared)
+  // 1. Platform Tenant: Create the special platform tenant first
+  const platformTenant = await seedPlatformTenant(payload, req)
+  const platformTenantId = platformTenant.id
+  payload.logger.info(`— Platform Tenant: ${platformTenant.name} (${platformTenant.slug}) id=${platformTenantId}`)
+
+  // 2. Archangel LEO: Create the platform-level Archangel
+  const archangelLeo = await seedArchangelLeo(payload, req, platformTenantId)
+  const archangelLeoId = archangelLeo.id
+  payload.logger.info(`— Archangel LEO: ${archangelLeo.email} id=${archangelLeoId}`)
+
+  // 3. Default Tenant: find or create (tenants not cleared)
   const defaultTenant = await findOrCreateTenant(payload, req, {
     name: 'Angel OS',
     slug: DEFAULT_TENANT_SLUG,
     domain: 'localhost',
+    type: 'tenant',
     branding: {
       siteName: 'Angel OS',
       tagline: 'Ready Player Everyone',
@@ -135,7 +148,7 @@ export const seed = async ({
     },
   })
   const defaultTenantId = defaultTenant.id as number
-  payload.logger.info(`— Tenant: ${defaultTenant.name} (${defaultTenant.slug}) id=${defaultTenantId}`)
+  payload.logger.info(`— Default Tenant: ${defaultTenant.name} (${defaultTenant.slug}) id=${defaultTenantId}`)
 
   // 2. Clear collections (excluding tenants, users)
   payload.logger.info(`— Clearing collections (excluding tenants, users)...`)
