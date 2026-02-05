@@ -181,18 +181,25 @@ If Death from Discworld would find your error message "INAPPROPRIATELY COLD," re
 
 ### For Contributors
 
-See [`docs/GITHUB_ISSUES_MVP.md`](docs/GITHUB_ISSUES_MVP.md) for the complete MVP roadmap (20 issues across 9 epics).
+**Start here:**
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
+2. Review [ROADMAP.md](ROADMAP.md) - Complete vision and phased plan
+3. Check [docs/GITHUB_ISSUES_MVP.md](docs/GITHUB_ISSUES_MVP.md) - 22 MVP issues
+4. Pick an issue and open a PR!
+
+**AI-assisted PRs welcome!** Just mark them and note testing level.
 
 **Key epics:**
 1. Core Infrastructure (Platform Tenant, Archangels, Angels)
-2. Channel Widgets (Widget architecture, tab UI)
-3. OpenClaw Integration (Skills sync, conversation engine)
-4. Tenant Provisioning (<30s provisioning, Genesis Breath)
-5. AI Bus & Communication (Guardian Council, wisdom sharing)
-6. Federation (Diocese registry, security)
-7. Economics (Attribution tracking, Ultimate Fair)
-8. Anti-Daemon Protocol (Warm UX)
-9. Deployment (Docker, Cloudflare Tunnel)
+2. Dashboard & UX Migration (OpenClaw dashboard transliteration)
+3. Channel Widgets (Widget architecture, tab UI)
+4. OpenClaw Integration (Skills sync, conversation engine, chat formatting)
+5. Tenant Provisioning (<30s provisioning, Genesis Breath)
+6. AI Bus & Communication (Guardian Council, wisdom sharing)
+7. Federation (Diocese registry, 5-layer security)
+8. Economics (Attribution tracking, Ultimate Fair)
+9. Anti-Daemon Protocol (Warm UX)
+10. Deployment (Docker, Cloudflare Tunnel)
 
 ### For Users
 
@@ -202,12 +209,17 @@ Documentation coming soon. For now, see [`docs/260204 ANGEL_OS_CURSOR_INSTRUCTIO
 
 ## Documentation
 
+**Essential Reading:**
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute (start here!)
+- [ROADMAP.md](ROADMAP.md) - Complete vision and phased plan
+- [Angel OS Constitution](docs/Angel_OS_Constitution.md) - Foundational principles
+
 **Main docs:** [`docs/README.md`](docs/README.md) - Complete documentation index
 
 **Key documents:**
-- [Angel OS Constitution](docs/Angel_OS_Constitution.md) - Foundational principles
 - [Architecture Instructions](docs/260204%20ANGEL_OS_CURSOR_INSTRUCTIONS.md) - Complete system design
-- [MVP Issues](docs/GITHUB_ISSUES_MVP.md) - Development roadmap
+- [MVP Issues](docs/GITHUB_ISSUES_MVP.md) - Development roadmap (22 issues)
+- [Session Summary](docs/SESSION_SUMMARY_260204.md) - Latest architecture session
 - [Archive Reviews](docs/ARCHIVE_REVIEWS_SUMMARY.md) - Design discussions
 
 ---
