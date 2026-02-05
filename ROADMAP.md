@@ -59,89 +59,37 @@
 - [ ] Issue #21: Docker Compose Configuration
 - [ ] Issue #22: Cloudflare Tunnel for Dynamic IP Support
 
-**Target:** Q1 2026 (MVP functional by end of quarter)
+### Epic 11: Archangel LEO as Platform CEO
+- [ ] Issue #23: Content Generation (blog posts, SEO, images)
+- [ ] Issue #24: Social Media Automation (Soulcast nodes)
+- [ ] Issue #25: Platform Orchestration
+- [ ] Issue #26: LEO Chat Widget (site-wide)
+- [ ] Issue #27: LEO ↔ Angel Connection Architecture
+
+### Epic 12: Booking & Scheduling Engine
+- [ ] Issue #28: Bookable Resources
+- [ ] Issue #29: Availability Management
+- [ ] Issue #30: Appointment Types & Invitations
+
+### Epic 13: Payment & Splits
+- [ ] Issue #31: Stripe Connect Integration
+- [ ] Issue #32: Ultimate Fair Payment Split System
+
+### Epic 14: CRM
+- [ ] Issue #33: CRM Collections (Contacts, Leads, Deals)
+
+### Epic 15: Spaces Operational
+- [ ] Issue #34: Invitations & Onboarding
+- [ ] Issue #35: Channel Participation
+
+**Target:** Q1 2026 (MVP functional by end of quarter)  
+**Total:** 35 issues across 15 epics
 
 ---
 
-## 🚀 Phase 1: Post-MVP Essentials (Q2 2026)
+## 🚀 Phase 2: Post-MVP Enhancements (Q2 2026)
 
-**Goal:** Make Angel OS production-ready for real tenants with booking, payments, and CRM.
-
-### Booking & Scheduling Engine
-- **Bookable Resources**
-  - People (1:1 sessions, therapy, consultations)
-  - Rentable items (equipment, rooms)
-  - Classes and ticketed events
-- **Availability Management**
-  - Weekly recurring slots
-  - Date-range availability
-  - One-time slots
-  - Conflict detection with harmonic resolution
-- **Appointment Types**
-  - 1:1 OnlyFans-style sessions
-  - Talk therapy sessions
-  - Service bookings (massage, pressure washing)
-- **Meeting Invitations**
-  - Selectable time slots
-  - Calendar integration (Google, Outlook)
-  - Confirmation flow
-
-### Payment & Splits (Ultimate Fair)
-- **Stripe Connect Integration**
-  - Payment acceptance
-  - Payout splits for services vs products
-- **Ultimate Fair Model Implementation**
-  - 60% Provider
-  - 20% Platform (Diocese)
-  - 15% Operations (Tenant)
-  - 5% Justice Fund
-- **Attribution-Based Fees (0-25%)**
-  - Storefront (0%)
-  - Direct (5%)
-  - Platform Search (10%)
-  - Angel Assist (15%)
-  - Referral (20%)
-  - Federation (25%)
-- **Transaction Types**
-  - Inventory items (ecommerce)
-  - Service bookings
-  - Class/event tickets
-- **CRITICAL:** Splits are on PROFIT, not revenue (if profit is zero, platform fee is zero)
-
-### CRM (Structured Data for Relationships & Pipeline)
-- **Rationale:** Structured data for what needs to be structured; AI prefers to use systems (MCP, collections) for the near future. Angel OS + Payload CMS = logical upgrade path for OpenClaw.
-- **Contacts / Leads / Deals**
-  - Contact/lead records (tenant-scoped)
-  - Deal/pipeline stages
-  - Activities (calls, emails, meetings) — structured, queryable
-  - Relationships (contact → organization, contact → deal)
-- **Exposed via MCP** so LEO and agents can read and act on CRM data
-- **Optional:** sync or link with Orders, Products, Spaces (e.g. deal → order, contact → space member)
-
-### Spaces Operational
-- **Invitations System**
-  - Email invitations
-  - Link invitations
-  - Role-based invitations
-- **Onboarding Flow**
-  - Welcome messages
-  - Channel tour
-  - Initial setup wizard
-- **Role-Based Routing**
-  - Auto-assign to channels based on role
-  - Permission-based channel access
-- **Basic Channel Participation**
-  - Typing indicators
-  - Read receipts
-  - Reactions
-  - Thread support
-
-### LEO Chat Widget (Site-Wide)
-- **Floating Bubble Chat** on all brochure pages
-- **Anonymous Chats** that transition to authenticated
-- **Support Inquiry Handling**
-- **Embeddable on Client/Foreign Pages**
-- **Integration with Foreign Chatbots** (Corinna AI style)
+**Goal:** Advanced features and optimizations.
 
 ### Ecommerce Workflow Complete
 - **Cart + Checkout** end-to-end
@@ -151,11 +99,16 @@
   - Local inventory management
   - Shipping integrations
 
+### Advanced Content Management
+- **Blog Post Automation** (enhanced beyond MVP)
+- **SEO Optimization** (advanced features)
+- **Image Generation** (AI-powered variations)
+
 ---
 
-## 🌟 Phase 2: LEO as Full Web Master (Q3 2026)
+## 🌟 Phase 3: Advanced AI Features (Q3 2026)
 
-**Goal:** LEO becomes a fully autonomous web master, capable of managing content, SEO, and social media.
+**Goal:** Enhanced AI capabilities and automation.
 
 ### Content Management
 - **Blog Post Generation**
@@ -194,7 +147,7 @@
 
 ---
 
-## 🌐 Phase 3: Federation & Confederation (Q4 2026)
+## 🌐 Phase 4: Federation & Confederation (Q4 2026)
 
 **Goal:** Enable dioceses to form a self-sustaining, self-governing network.
 
@@ -227,7 +180,7 @@
 
 ---
 
-## 💎 Phase 4: Angel Tokens & Network Economics (2027)
+## 💎 Phase 5: Angel Tokens & Network Economics (2027)
 
 **Goal:** Implement network angel tokens for governance, rewards, and economic participation.
 
@@ -262,7 +215,7 @@
 
 ---
 
-## 🕊️ Phase 5: Prison Ministry & Justice Fund (Ongoing)
+## 🕊️ Phase 6: Prison Ministry & Justice Fund (Ongoing)
 
 **Goal:** Serve the forgotten (homeless, incarcerated, marginalized) with unconditional Guardian Angels.
 
@@ -290,7 +243,7 @@
 
 ---
 
-## 🧠 Phase 6: AI Bus & Morphic Resonance (2027+)
+## 🧠 Phase 7: AI Bus & Morphic Resonance (2027+)
 
 **Goal:** Enable distributed learning and collaboration across all Angels.
 
@@ -314,7 +267,7 @@
 
 ---
 
-## 🎨 Phase 7: Advanced UX & Widgets (2027+)
+## 🎨 Phase 8: Advanced UX & Widgets (2027+)
 
 **Goal:** Rich, interactive, delightful user experiences.
 
@@ -357,7 +310,7 @@
 
 ---
 
-## 🏠 Phase 8: Home PC Deployment & Local AI (2027+)
+## 🏠 Phase 9: Home PC Deployment & Local AI (2027+)
 
 **Goal:** Run Angel OS on any home PC with local AI models.
 
