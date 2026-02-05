@@ -1770,13 +1770,20 @@ function main() {
     console.log(`\\nOr copy-paste individual issues from the output above.`)
   } else {
     console.log('\\n🚀 Creating GitHub issues...\\n')
-    allIssues.forEach((issue, index) => {
-      console.log(`[${index + 1}/${allIssues.length}] Creating: ${issue.title}`)
+    // Skip first issue (already created as #1 and #2)
+    const issuesToCreate = allIssues.slice(1)
+    console.log(`Skipping issue #1 (already exists), creating ${issuesToCreate.length} remaining issues...\\n`)
+    
+    issuesToCreate.forEach((issue, index) => {
+      console.log(`[${index + 2}/${allIssues.length}] Creating: ${issue.title}`)
       createIssue(issue)
       
-      // Rate limiting - wait 1 second between issues
-      if (index < allIssues.length - 1) {
-        execSync('sleep 1')
+      // Rate limiting - wait 1 second between issues (Windows compatible)
+      if (index < issuesToCreate.length - 1) {
+        const start = Date.now()
+        while (Date.now() - start < 1000) {
+          // Busy wait for 1 second
+        }
       }
     })
     
