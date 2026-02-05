@@ -1,4 +1,4 @@
-# Unified Chat Control Architecture
+# Chat Control Architecture
 
 **Date:** February 5, 2026  
 **Key Insight:** One control to rule them all - configurable for every context
@@ -8,7 +8,7 @@
 ## 🎯 **The Principle: One Control, Infinite Configurations**
 
 **NOT:** Multiple chat components for different contexts  
-**YES:** One unified chat control with feature flags
+**YES:** One chat control with feature flags
 
 **Philosophy:**
 - More complicated internally (handles everything)
@@ -16,17 +16,19 @@
 - Configurable for every use case
 - Chat interface itself is a widget
 
+**Naming:** It's just `ChatControl`, not "UnifiedChatControl" - simpler is better.
+
 ---
 
-## 🏗️ **Unified Chat Control Architecture**
+## 🏗️ **Chat Control Architecture**
 
 ### The Component
 
 ```tsx
-// src/components/chat/UnifiedChatControl.tsx
+// src/components/chat/ChatControl.tsx
 'use client'
 
-interface UnifiedChatControlProps {
+interface ChatControlProps {
   // Core
   tenant: Tenant
   angel: User
@@ -68,7 +70,7 @@ interface UnifiedChatControlProps {
   onWidgetSwitch?: (widget: string) => void
 }
 
-export function UnifiedChatControl({
+export function ChatControl({
   tenant,
   angel,
   currentUser,
@@ -83,7 +85,7 @@ export function UnifiedChatControl({
   onUICallback,
   onChannelSwitch,
   onWidgetSwitch
-}: UnifiedChatControlProps) {
+}: ChatControlProps) {
   // One control handles everything
   // Complexity is internal, simplicity is external
 }
@@ -96,7 +98,7 @@ export function UnifiedChatControl({
 ### 1. **Brochure Site (Anonymous, Locked Channel)**
 
 ```tsx
-<UnifiedChatControl
+<ChatControl
   tenant={tenant}
   angel={angel}
   currentUser={null}
@@ -132,7 +134,7 @@ export function UnifiedChatControl({
 ### 2. **Dashboard (Authenticated, Full Features)**
 
 ```tsx
-<UnifiedChatControl
+<ChatControl
   tenant={tenant}
   angel={angel}
   currentUser={user}
@@ -173,7 +175,7 @@ export function UnifiedChatControl({
 ### 3. **Embedded on Client Site (Limited Features)**
 
 ```tsx
-<UnifiedChatControl
+<ChatControl
   tenant={tenant}
   angel={angel}
   currentUser={null}
@@ -209,7 +211,7 @@ export function UnifiedChatControl({
 ### 4. **Spaces (Multi-Channel, Multi-Widget)**
 
 ```tsx
-<UnifiedChatControl
+<ChatControl
   tenant={tenant}
   angel={angel}
   currentUser={user}
@@ -247,7 +249,7 @@ export function UnifiedChatControl({
 ### 5. **Mobile (Simplified)**
 
 ```tsx
-<UnifiedChatControl
+<ChatControl
   tenant={tenant}
   angel={angel}
   currentUser={user}
@@ -339,14 +341,14 @@ const WIDGETS = {
   }
 }
 
-// UnifiedChatControl loads widgets
-function UnifiedChatControl({ widgets, ... }: Props) {
+// ChatControl loads widgets
+function ChatControl({ widgets, ... }: Props) {
   const [activeWidget, setActiveWidget] = useState(widgets.defaultWidget || 'chat')
   
   const enabledWidgets = widgets.enabled.map(id => WIDGETS[id])
   
   return (
-    <div className="unified-chat-control">
+    <div className="chat-control">
       {/* Widget tabs */}
       {widgets.allowWidgetSwitch && (
         <WidgetTabs
@@ -452,7 +454,7 @@ export function ChatWidget({
 **After (Unified Control):**
 ```tsx
 // One component, configured for context
-<UnifiedChatControl features={{ ... }} />  // Everything
+<ChatControl features={{ ... }} />  // Everything
 ```
 
 **Benefits:**
@@ -634,7 +636,7 @@ const CHAT_PRESETS = {
 }
 
 // Usage
-<UnifiedChatControl
+<ChatControl
   features={CHAT_PRESETS.minimal}
   // Override specific features
   features={{
