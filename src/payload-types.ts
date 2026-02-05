@@ -1993,7 +1993,7 @@ export interface Project {
      */
     budgetRange?: ('under-1k' | '1k-5k' | '5k-15k' | '15k-50k' | '50k-plus' | 'contact') | null;
   };
-  status: 'new' | 'in-progress' | 'completed' | 'on-hold' | 'cancelled';
+  projectStatus: 'planning' | 'in-progress' | 'completed' | 'on-hold' | 'cancelled';
   /**
    * Before, during, and after photos
    */
@@ -2152,7 +2152,6 @@ export interface Project {
     | null;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * Comments and reviews on Posts and Products. Product comments include star ratings.
@@ -3268,7 +3267,7 @@ export interface ProjectsSelect<T extends boolean = true> {
         currency?: T;
         budgetRange?: T;
       };
-  status?: T;
+  projectStatus?: T;
   gallery?:
     | T
     | {
@@ -3323,7 +3322,6 @@ export interface ProjectsSelect<T extends boolean = true> {
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
