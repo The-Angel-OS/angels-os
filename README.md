@@ -189,7 +189,7 @@ If Death from Discworld would find your error message "INAPPROPRIATELY COLD," re
 
 **AI-assisted PRs welcome!** Just mark them and note testing level.
 
-**Key epics:**
+**MVP Epics (35 issues across 15 epics):**
 1. Core Infrastructure (Platform Tenant, Archangels, Angels)
 2. Dashboard & UX Migration (OpenClaw dashboard transliteration)
 3. Channel Widgets (Widget architecture, tab UI)
@@ -200,6 +200,11 @@ If Death from Discworld would find your error message "INAPPROPRIATELY COLD," re
 8. Economics (Attribution tracking, Ultimate Fair)
 9. Anti-Daemon Protocol (Warm UX)
 10. Deployment (Docker, Cloudflare Tunnel)
+11. **Archangel LEO (Platform CEO)** - Content generation, social media, orchestration
+12. **Booking & Scheduling** - Resources, availability, appointments
+13. **Payment & Splits** - Stripe Connect, Ultimate Fair splits
+14. **CRM** - Contacts, Leads, Deals, Activities
+15. **Spaces Operational** - Invitations, onboarding, participation
 
 ### For Users
 
@@ -211,16 +216,18 @@ Documentation coming soon. For now, see [`docs/260204 ANGEL_OS_CURSOR_INSTRUCTIO
 
 **Essential Reading:**
 - [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute (start here!)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community standards
 - [ROADMAP.md](ROADMAP.md) - Complete vision and phased plan
 - [Angel OS Constitution](docs/Angel_OS_Constitution.md) - Foundational principles
 
-**Main docs:** [`docs/README.md`](docs/README.md) - Complete documentation index
+**📚 Complete Documentation Index:** [`docs/README.md`](docs/README.md) ⭐
 
-**Key documents:**
-- [Architecture Instructions](docs/260204%20ANGEL_OS_CURSOR_INSTRUCTIONS.md) - Complete system design
-- [MVP Issues](docs/GITHUB_ISSUES_MVP.md) - Development roadmap (22 issues)
-- [Session Summary](docs/SESSION_SUMMARY_260204.md) - Latest architecture session
-- [Archive Reviews](docs/ARCHIVE_REVIEWS_SUMMARY.md) - Design discussions
+**Quick Links:**
+- [Architecture Overview](docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md)
+- [MVP Issues (35)](docs/GITHUB_ISSUES_MVP.md) - Development roadmap
+- [Archangel LEO (Platform CEO)](docs/MVP_CORRECTION_ARCHANGEL_LEO.md)
+- [Conversational-First UX](docs/CONVERSATIONAL_FIRST_UX.md)
+- [OpenClaw Integration](docs/Openclaw%20angel%20os%20integration.md)
 
 ---
 
