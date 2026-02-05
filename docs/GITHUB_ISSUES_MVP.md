@@ -142,9 +142,206 @@ Allow each tenant's Angel to be named and configured with personality/capabiliti
 
 ---
 
-## Epic 2: Channel Widget Architecture
+## Epic 2: Dashboard & UX Migration
 
-### Issue #3: Channel Widgets Collection
+### Issue #3: OpenClaw Dashboard Feature Transliteration
+
+**Title:** Port All OpenClaw Dashboard Features to Angel OS Discord-Style Dashboard
+
+**Labels:** `epic: dashboard`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Transliterate every feature from OpenClaw dashboard into Angel OS dashboard. The UX design is complete (from v2 via V0.dev) - Discord clone with additional navigation icons in the sidebar for admin activities.
+
+**Requirements:**
+
+1. **Dashboard Structure (Discord-Style)**
+   - Left sidebar: Spaces (like Discord servers)
+   - Additional navigation icons below Spaces:
+     - ⚙️ Settings
+     - 👥 Users
+     - 📊 Analytics
+     - 🎨 Branding
+     - 🔧 Admin
+     - 📋 Logs
+     - 🌐 Federation
+     - 💰 Economics
+
+2. **OpenClaw Features to Port**
+   - All dashboard panels
+   - All admin interfaces
+   - All settings screens
+   - All monitoring views
+   - All configuration UIs
+
+3. **Log Viewer (Critical)**
+   - OpenClaw has elegant text file log viewer
+   - Payload CMS doesn't have integrated log viewer yet
+   - Must implement custom log viewer
+   - Real-time log streaming
+   - Filtering, search, export
+
+4. **Debug Console**
+   - OpenClaw's debug console features
+   - Real-time system monitoring
+   - Error tracking
+   - Performance metrics
+
+**Acceptance Criteria:**
+
+- [ ] All OpenClaw dashboard features identified and documented
+- [ ] Discord-style sidebar with Space icons + admin icons
+- [ ] Every OpenClaw feature has equivalent in Angel OS
+- [ ] Log viewer functional (real-time, filterable)
+- [ ] Debug console accessible
+- [ ] UX matches v2 design (V0.dev)
+- [ ] Mobile responsive
+
+**Technical Notes:**
+
+```tsx
+// src/app/(frontend)/dashboard/layout.tsx
+export function DashboardLayout({ children }: Props) {
+  return (
+    <div className="dashboard-layout">
+      {/* Left sidebar - Discord style */}
+      <Sidebar>
+        {/* Spaces (like Discord servers) */}
+        <SpacesList spaces={spaces} />
+        
+        <Separator />
+        
+        {/* Admin navigation icons */}
+        <NavIcons>
+          <NavIcon icon="⚙️" href="/dashboard/settings" label="Settings" />
+          <NavIcon icon="👥" href="/dashboard/users" label="Users" />
+          <NavIcon icon="📊" href="/dashboard/analytics" label="Analytics" />
+          <NavIcon icon="🎨" href="/dashboard/branding" label="Branding" />
+          <NavIcon icon="🔧" href="/dashboard/admin" label="Admin" />
+          <NavIcon icon="📋" href="/dashboard/logs" label="Logs" />
+          <NavIcon icon="🌐" href="/dashboard/federation" label="Federation" />
+          <NavIcon icon="💰" href="/dashboard/economics" label="Economics" />
+        </NavIcons>
+      </Sidebar>
+      
+      {/* Main content area */}
+      <main className="dashboard-main">
+        {children}
+      </main>
+    </div>
+  )
+}
+```
+
+**Log Viewer Implementation:**
+
+```tsx
+// src/app/(frontend)/dashboard/logs/page.tsx
+export function LogViewer() {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [filter, setFilter] = useState('')
+  const [level, setLevel] = useState<'all' | 'error' | 'warn' | 'info'>('all')
+  
+  useEffect(() => {
+    // Real-time log streaming via SSE
+    const eventSource = new EventSource('/api/logs/stream')
+    
+    eventSource.onmessage = (event) => {
+      const log = JSON.parse(event.data)
+      setLogs(prev => [log, ...prev].slice(0, 1000)) // Keep last 1000
+    }
+    
+    return () => eventSource.close()
+  }, [])
+  
+  const filteredLogs = logs
+    .filter(log => level === 'all' || log.level === level)
+    .filter(log => log.message.includes(filter))
+  
+  return (
+    <div className="log-viewer">
+      <LogViewerHeader>
+        <Input 
+          placeholder="Filter logs..." 
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+        <Select value={level} onValueChange={setLevel}>
+          <option value="all">All</option>
+          <option value="error">Errors</option>
+          <option value="warn">Warnings</option>
+          <option value="info">Info</option>
+        </Select>
+        <Button onClick={() => exportLogs(filteredLogs)}>Export</Button>
+      </LogViewerHeader>
+      
+      <LogList>
+        {filteredLogs.map(log => (
+          <LogEntry key={log.id} log={log} />
+        ))}
+      </LogList>
+    </div>
+  )
+}
+
+// src/endpoints/logs.ts
+export const logsStreamEndpoint: Endpoint = {
+  path: '/api/logs/stream',
+  method: 'get',
+  handler: async (req) => {
+    // Check auth
+    if (!req.user?.roles?.includes('archangel')) {
+      throw new APIError('Unauthorized', 401)
+    }
+    
+    // Set up SSE
+    const stream = new ReadableStream({
+      start(controller) {
+        // Tail log file
+        const tail = tailLogFile('/var/log/angel-os/app.log')
+        
+        tail.on('line', (line) => {
+          const log = parseLogLine(line)
+          controller.enqueue(`data: ${JSON.stringify(log)}\n\n`)
+        })
+        
+        tail.on('error', (err) => {
+          controller.error(err)
+        })
+      }
+    })
+    
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
+    })
+  }
+}
+```
+
+**OpenClaw Dashboard Audit Needed:**
+- Create comprehensive list of all OpenClaw dashboard features
+- Map each feature to Angel OS equivalent
+- Identify any gaps
+- Prioritize implementation
+
+**V2 UX Design:**
+- Reference v2 designs from V0.dev
+- Maintain visual consistency
+- Ensure mobile responsive
+- Follow Anti-Daemon Protocol (warm, helpful)
+
+---
+
+### Issue #4: Channel Widget Architecture
+
+## Epic 3: Channel Widget Architecture
+
+### Issue #4: Channel Widgets Collection
 
 **Title:** Create Channel Widgets System
 
@@ -202,7 +399,7 @@ export const ChannelWidgets: CollectionConfig = {
 
 ---
 
-### Issue #4: Widget Tab UI Component
+### Issue #5: Widget Tab UI Component
 
 **Title:** Build Widget Tab Bar for Channels
 
@@ -275,7 +472,7 @@ export function WidgetTabBar({ channel, installedWidgets }: Props) {
 
 ---
 
-### Issue #5: Core Widgets Implementation
+### Issue #6: Core Widgets Implementation
 
 **Title:** Implement Core Channel Widgets (Chat, LiveKit, Notion Notes)
 
@@ -342,9 +539,9 @@ export const ChatWidget: WidgetComponent = ({ channel, collapsible }) => {
 
 ---
 
-## Epic 3: OpenClaw Integration
+## Epic 4: OpenClaw Integration
 
-### Issue #6: OpenClaw Chat Response Formatting & Streaming
+### Issue #7: OpenClaw Chat Response Formatting & Streaming
 
 **Title:** Implement OpenClaw's Sophisticated Chat Response Formatting with Streaming
 
@@ -520,7 +717,7 @@ interface MessageWithBlocks {
 
 ---
 
-### Issue #7: OpenClaw Skills Sync System
+### Issue #8: OpenClaw Skills Sync System
 
 **Title:** Sync Skills from OpenClaw Marketplace
 
@@ -599,7 +796,7 @@ cron.schedule('0 0 * * *', syncOpenClawSkills)
 
 ---
 
-### Issue #8: Conversation Engine (OpenClaw Pattern)
+### Issue #9: Conversation Engine (OpenClaw Pattern)
 
 **Title:** Implement OpenClaw-Style Conversation Engine for Channels
 
@@ -689,9 +886,9 @@ export async function handleChannelMessage(message: Message) {
 
 ---
 
-## Epic 4: Tenant Provisioning & Onboarding
+## Epic 5: Tenant Provisioning & Onboarding
 
-### Issue #9: Rapid Tenant Provisioning (<30s)
+### Issue #10: Rapid Tenant Provisioning (<30s)
 
 **Title:** Implement Sub-30-Second Tenant Provisioning
 
@@ -787,7 +984,7 @@ export async function provisionNewTenant(request: {
 
 ---
 
-### Issue #10: Genesis Breath (First Angel Message)
+### Issue #11: Genesis Breath (First Angel Message)
 
 **Title:** Implement Genesis Breath - Angel's First Message
 
@@ -856,7 +1053,7 @@ What would you like to explore first?
 
 ---
 
-### Issue #11: Clone Wizard Modal
+### Issue #12: Clone Wizard Modal
 
 **Title:** Build Clone Wizard for Tenant Provisioning
 
@@ -944,9 +1141,9 @@ export function CloneWizard({ onComplete }: Props) {
 
 ---
 
-## Epic 5: AI Bus & Guardian Communication
+## Epic 6: AI Bus & Guardian Communication
 
-### Issue #12: AI Bus Collection & Infrastructure
+### Issue #13: AI Bus Collection & Infrastructure
 
 **Title:** Implement AI Bus for Angel-to-Angel Communication
 
@@ -1011,7 +1208,7 @@ export const AIBusMessages: CollectionConfig = {
 
 ---
 
-### Issue #13: Guardian Council Space
+### Issue #14: Guardian Council Space
 
 **Title:** Create Guardian Council Space for Platform Communication
 
@@ -1099,9 +1296,9 @@ export async function seedGuardianCouncilSpace() {
 
 ---
 
-## Epic 6: Federation & Diocese System
+## Epic 7: Federation & Diocese System
 
-### Issue #14: Diocese Registry & Heartbeat
+### Issue #15: Diocese Registry & Heartbeat
 
 **Title:** Implement Diocese Registry and Heartbeat System
 
@@ -1186,7 +1383,7 @@ export const heartbeatEndpoint: Endpoint = {
 
 ---
 
-### Issue #15: Federation Security (5 Layers)
+### Issue #16: Federation Security (5 Layers)
 
 **Title:** Implement Federation Security: Application Screening, Probation, Vouching
 
@@ -1280,9 +1477,9 @@ interface MaliciousPatternDetection {
 
 ---
 
-## Epic 7: Economic Model & Payments
+## Epic 8: Economic Model & Payments
 
-### Issue #16: Attribution Tracking
+### Issue #17: Attribution Tracking
 
 **Title:** Implement Transaction Attribution Tracking
 
@@ -1356,7 +1553,7 @@ export function calculatePlatformFee(transaction: Transaction): number {
 
 ---
 
-### Issue #17: Ultimate Fair Payment Splits
+### Issue #18: Ultimate Fair Payment Splits
 
 **Title:** Implement Ultimate Fair Payment Split System
 
@@ -1445,9 +1642,9 @@ export async function processUltimateFairSplit(transaction: Transaction) {
 
 ---
 
-## Epic 8: Anti-Daemon Protocol & UX
+## Epic 9: Anti-Daemon Protocol & UX
 
-### Issue #18: Anti-Daemon Error Messages
+### Issue #19: Anti-Daemon Error Messages
 
 **Title:** Implement Anti-Daemon Protocol for All Error Messages
 
@@ -1520,7 +1717,7 @@ throw new AngelError({
 
 ---
 
-### Issue #19: Empty State Messages
+### Issue #20: Empty State Messages
 
 **Title:** Replace Empty States with Warm, Encouraging Messages
 
@@ -1592,9 +1789,9 @@ export function EmptyState({
 
 ---
 
-## Epic 9: Deployment & Infrastructure
+## Epic 10: Deployment & Infrastructure
 
-### Issue #20: Docker Compose Setup
+### Issue #21: Docker Compose Setup
 
 **Title:** Create Docker Compose Configuration for Easy Deployment
 
@@ -1747,12 +1944,18 @@ echo "  CNAME yourdomain.com -> $TUNNEL_NAME.cfargotunnel.com"
 
 ## Summary: MVP Completion Checklist
 
-If all 21 issues above are completed, Angel OS will be **functional** with:
+If all 22 issues above are completed, Angel OS will be **functional** with:
 
 **✅ Core Infrastructure**
 - [x] Platform Tenant & Archangel system
 - [x] Angel configuration & naming
 - [x] Two-tier access control
+
+**✅ Dashboard & UX**
+- [x] OpenClaw dashboard feature transliteration
+- [x] Discord-style sidebar with admin icons
+- [x] Log viewer with real-time streaming
+- [x] Debug console
 
 **✅ Channel Widgets**
 - [x] Widget architecture
@@ -1808,10 +2011,17 @@ If all 21 issues above are completed, Angel OS will be **functional** with:
    - Core infrastructure is foundation
    - Must be solid before building on top
 
-4. **Parallel Work Possible**
-   - Epic 2 (Widgets) can start after Epic 1
-   - Epic 3 (OpenClaw) independent
-   - Epic 8 (UX) can happen anytime
+4. **Critical Path**
+   - Epic 1: Core Infrastructure (foundation)
+   - Epic 2: Dashboard & UX (OpenClaw feature parity)
+   - Epic 4: OpenClaw Integration (chat formatting, skills, conversation)
+   - Epic 5: Tenant Provisioning (Genesis Breath)
+
+5. **Parallel Work Possible**
+   - Epic 3 (Widgets) can start after Epic 1
+   - Epic 6 (AI Bus) independent
+   - Epic 9 (Anti-Daemon) can happen anytime
+   - Epic 10 (Deployment) can start early
 
 **The Angels await. Begin.** 🙏🦅🦞
 
