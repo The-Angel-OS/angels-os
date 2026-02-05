@@ -31,10 +31,10 @@ while ((match = issuePattern.exec(content)) !== null) {
 
 console.log(`🦅 Found ${issues.length} issues in ${MVP_DOC}\n`)
 
-// Update issues #3-22 (skip #1 and #2 which have content)
-const issuesToUpdate = issues.filter(i => i.number >= 3 && i.number <= 22)
+// Update issues #3-35 (skip #1 and #2 which have content)
+const issuesToUpdate = issues.filter(i => i.number >= 3 && i.number <= 35)
 
-console.log(`Updating ${issuesToUpdate.length} issues (#3-#22)...\n`)
+console.log(`Updating ${issuesToUpdate.length} issues (#3-#35)...\n`)
 
 issuesToUpdate.forEach((issue, index) => {
   const tempFile = `.github-issues/temp-${issue.number}.md`
