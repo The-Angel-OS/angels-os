@@ -232,6 +232,10 @@ export interface PayloadMcpApiKeyAuthOperations {
  */
 export interface Tenant {
   id: number;
+  /**
+   * Platform tenant is the special singleton for Angel OS infrastructure
+   */
+  type: 'platform' | 'tenant';
   name: string;
   /**
    * Used in x-tenant-id header and URLs (e.g., hays-cactus)
@@ -332,6 +336,10 @@ export interface User {
      */
     agentType?: ('leo' | 'support' | 'sales' | 'onboarding' | 'integration' | 'custom') | null;
     /**
+     * Custom name for this Angel (e.g., "LEO", "Gabriel", "Seraph")
+     */
+    angelName: string;
+    /**
      * Name shown in chat (e.g., "LEO", "Alex from Support")
      */
     displayName?: string | null;
@@ -380,6 +388,23 @@ export interface User {
      */
     handoffTo?: (number | null) | User;
     /**
+     * Angel visual appearance and branding
+     */
+    appearance?: {
+      /**
+       * Angel avatar image
+       */
+      avatar?: (number | null) | Media;
+      /**
+       * Angel theme color (hex, e.g., #10B981)
+       */
+      color?: string | null;
+      /**
+       * Angel signature emoji
+       */
+      emoji?: string | null;
+    };
+    /**
      * Rules for when this agent should handle messages
      */
     routingRules?: {
@@ -407,7 +432,7 @@ export interface User {
       isDefault?: boolean | null;
     };
   };
-  roles?: ('super_admin' | 'admin' | 'customer')[] | null;
+  roles?: ('super_admin' | 'archangel' | 'admin' | 'customer')[] | null;
   orders?: {
     docs?: (number | Order)[];
     hasNextPage?: boolean;
@@ -1968,7 +1993,7 @@ export interface Project {
      */
     budgetRange?: ('under-1k' | '1k-5k' | '5k-15k' | '15k-50k' | '50k-plus' | 'contact') | null;
   };
-  status: 'planning' | 'in-progress' | 'completed' | 'on-hold' | 'cancelled';
+  status: 'new' | 'in-progress' | 'completed' | 'on-hold' | 'cancelled';
   /**
    * Before, during, and after photos
    */
@@ -2581,6 +2606,7 @@ export interface PayloadMigration {
  * via the `definition` "tenants_select".
  */
 export interface TenantsSelect<T extends boolean = true> {
+  type?: T;
   name?: T;
   slug?: T;
   domain?: T;
@@ -2621,11 +2647,19 @@ export interface UsersSelect<T extends boolean = true> {
     | T
     | {
         agentType?: T;
+        angelName?: T;
         displayName?: T;
         personality?: T;
         capabilities?: T;
         responseRules?: T;
         handoffTo?: T;
+        appearance?:
+          | T
+          | {
+              avatar?: T;
+              color?: T;
+              emoji?: T;
+            };
         routingRules?:
           | T
           | {

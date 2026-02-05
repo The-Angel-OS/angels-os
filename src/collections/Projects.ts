@@ -225,8 +225,8 @@ export const Projects: CollectionConfig = {
       required: true,
       options: [
         {
-          label: 'Planning',
-          value: 'planning',
+          label: 'New',
+          value: 'new',
         },
         {
           label: 'In Progress',
@@ -245,7 +245,7 @@ export const Projects: CollectionConfig = {
           value: 'cancelled',
         },
       ],
-      defaultValue: 'planning',
+      defaultValue: 'new',
       admin: {
         position: 'sidebar',
       },

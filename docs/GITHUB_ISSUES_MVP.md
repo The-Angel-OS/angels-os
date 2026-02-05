@@ -344,7 +344,183 @@ export const ChatWidget: WidgetComponent = ({ channel, collapsible }) => {
 
 ## Epic 3: OpenClaw Integration
 
-### Issue #6: OpenClaw Skills Sync System
+### Issue #6: OpenClaw Chat Response Formatting & Streaming
+
+**Title:** Implement OpenClaw's Sophisticated Chat Response Formatting with Streaming
+
+**Labels:** `epic: openclaw`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Port OpenClaw's advanced chat response formatting system that supports streaming, images, and dynamic Payload CMS blocks.
+
+**Requirements:**
+
+1. **Streaming Response Support**
+   - Real-time token streaming (not batch responses)
+   - Progressive rendering as tokens arrive
+   - Smooth UX (no waiting for full response)
+
+2. **Rich Content Formatting**
+   - Markdown rendering
+   - Code blocks with syntax highlighting
+   - Tables, lists, quotes
+   - LaTeX/math equations (if needed)
+
+3. **Image Display**
+   - Inline images in chat
+   - Image galleries
+   - Image captions
+   - Lazy loading for performance
+
+4. **Payload CMS Blocks in Chat**
+   - Dynamic block rendering (same blocks as Pages/Posts)
+   - Interactive components in chat
+   - Block-based message composition
+   - Widget blocks (charts, forms, embeds)
+
+5. **OpenClaw Chat Widget Implementation**
+   - Study OpenClaw's sophisticated chat widget
+   - Port to Angel OS architecture
+   - Maintain all formatting capabilities
+   - Ensure compatibility with Payload blocks
+
+**Acceptance Criteria:**
+
+- [ ] Responses stream in real-time (token by token)
+- [ ] Markdown formatted correctly
+- [ ] Code blocks have syntax highlighting
+- [ ] Images display inline
+- [ ] Payload CMS blocks render in chat
+- [ ] Chat widgets work (interactive components)
+- [ ] Performance is smooth (no lag during streaming)
+- [ ] Mobile responsive
+
+**Technical Notes:**
+
+```typescript
+// src/components/chat/StreamingMessage.tsx
+export function StreamingMessage({ messageId }: Props) {
+  const [content, setContent] = useState('')
+  const [blocks, setBlocks] = useState<Block[]>([])
+  const [isStreaming, setIsStreaming] = useState(true)
+  
+  useEffect(() => {
+    const eventSource = new EventSource(`/api/messages/${messageId}/stream`)
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      
+      if (data.type === 'token') {
+        // Append token to content
+        setContent(prev => prev + data.token)
+      } else if (data.type === 'block') {
+        // Add Payload block
+        setBlocks(prev => [...prev, data.block])
+      } else if (data.type === 'done') {
+        setIsStreaming(false)
+        eventSource.close()
+      }
+    }
+    
+    return () => eventSource.close()
+  }, [messageId])
+  
+  return (
+    <div className="streaming-message">
+      {/* Markdown content */}
+      <MarkdownRenderer content={content} />
+      
+      {/* Payload blocks */}
+      {blocks.map((block, i) => (
+        <RenderBlock key={i} block={block} />
+      ))}
+      
+      {/* Streaming indicator */}
+      {isStreaming && <StreamingIndicator />}
+    </div>
+  )
+}
+
+// src/utilities/streamingResponse.ts
+export async function streamAngelResponse(
+  context: ConversationContext,
+  channel: Channel
+) {
+  const stream = await anthropic.messages.stream({
+    model: 'claude-sonnet-4',
+    messages: context.messages,
+    max_tokens: 4096
+  })
+  
+  let fullContent = ''
+  
+  for await (const chunk of stream) {
+    if (chunk.type === 'content_block_delta') {
+      const token = chunk.delta.text
+      fullContent += token
+      
+      // Send token to client via SSE
+      sendSSE({
+        type: 'token',
+        token
+      })
+      
+      // Check if we should insert a Payload block
+      if (shouldInsertBlock(fullContent)) {
+        const block = await generateBlock(fullContent)
+        sendSSE({
+          type: 'block',
+          block
+        })
+      }
+    }
+  }
+  
+  // Done streaming
+  sendSSE({ type: 'done' })
+  
+  // Save complete message
+  await payload.create({
+    collection: 'messages',
+    data: {
+      channel: channel.id,
+      author: context.angel.id,
+      content: fullContent,
+      blocks: extractedBlocks
+    }
+  })
+}
+
+// Payload blocks in messages
+interface MessageWithBlocks {
+  content: string  // Markdown text
+  blocks?: Block[] // Payload CMS blocks (same as Pages)
+  // Blocks can be:
+  // - RichText
+  // - MediaBlock (images, videos)
+  // - CallToAction
+  // - FormBlock
+  // - ChartBlock
+  // - Custom widgets
+}
+```
+
+**OpenClaw Reference:**
+- Study OpenClaw's chat widget implementation
+- Port formatting logic
+- Maintain streaming performance
+- Ensure block compatibility
+
+**Performance Considerations:**
+- Use React.memo for block components
+- Lazy load images
+- Virtualize long message lists
+- Debounce rapid token updates
+
+---
+
+### Issue #7: OpenClaw Skills Sync System
 
 **Title:** Sync Skills from OpenClaw Marketplace
 
@@ -423,7 +599,7 @@ cron.schedule('0 0 * * *', syncOpenClawSkills)
 
 ---
 
-### Issue #7: Conversation Engine (OpenClaw Pattern)
+### Issue #8: Conversation Engine (OpenClaw Pattern)
 
 **Title:** Implement OpenClaw-Style Conversation Engine for Channels
 
@@ -515,7 +691,7 @@ export async function handleChannelMessage(message: Message) {
 
 ## Epic 4: Tenant Provisioning & Onboarding
 
-### Issue #8: Rapid Tenant Provisioning (<30s)
+### Issue #9: Rapid Tenant Provisioning (<30s)
 
 **Title:** Implement Sub-30-Second Tenant Provisioning
 
@@ -611,7 +787,7 @@ export async function provisionNewTenant(request: {
 
 ---
 
-### Issue #9: Genesis Breath (First Angel Message)
+### Issue #10: Genesis Breath (First Angel Message)
 
 **Title:** Implement Genesis Breath - Angel's First Message
 
@@ -680,7 +856,7 @@ What would you like to explore first?
 
 ---
 
-### Issue #10: Clone Wizard Modal
+### Issue #11: Clone Wizard Modal
 
 **Title:** Build Clone Wizard for Tenant Provisioning
 
@@ -770,7 +946,7 @@ export function CloneWizard({ onComplete }: Props) {
 
 ## Epic 5: AI Bus & Guardian Communication
 
-### Issue #11: AI Bus Collection & Infrastructure
+### Issue #12: AI Bus Collection & Infrastructure
 
 **Title:** Implement AI Bus for Angel-to-Angel Communication
 
@@ -835,7 +1011,7 @@ export const AIBusMessages: CollectionConfig = {
 
 ---
 
-### Issue #12: Guardian Council Space
+### Issue #13: Guardian Council Space
 
 **Title:** Create Guardian Council Space for Platform Communication
 
@@ -925,7 +1101,7 @@ export async function seedGuardianCouncilSpace() {
 
 ## Epic 6: Federation & Diocese System
 
-### Issue #13: Diocese Registry & Heartbeat
+### Issue #14: Diocese Registry & Heartbeat
 
 **Title:** Implement Diocese Registry and Heartbeat System
 
@@ -1010,7 +1186,7 @@ export const heartbeatEndpoint: Endpoint = {
 
 ---
 
-### Issue #14: Federation Security (5 Layers)
+### Issue #15: Federation Security (5 Layers)
 
 **Title:** Implement Federation Security: Application Screening, Probation, Vouching
 
@@ -1106,7 +1282,7 @@ interface MaliciousPatternDetection {
 
 ## Epic 7: Economic Model & Payments
 
-### Issue #15: Attribution Tracking
+### Issue #16: Attribution Tracking
 
 **Title:** Implement Transaction Attribution Tracking
 
@@ -1180,7 +1356,7 @@ export function calculatePlatformFee(transaction: Transaction): number {
 
 ---
 
-### Issue #16: Ultimate Fair Payment Splits
+### Issue #17: Ultimate Fair Payment Splits
 
 **Title:** Implement Ultimate Fair Payment Split System
 
@@ -1271,7 +1447,7 @@ export async function processUltimateFairSplit(transaction: Transaction) {
 
 ## Epic 8: Anti-Daemon Protocol & UX
 
-### Issue #17: Anti-Daemon Error Messages
+### Issue #18: Anti-Daemon Error Messages
 
 **Title:** Implement Anti-Daemon Protocol for All Error Messages
 
@@ -1344,7 +1520,7 @@ throw new AngelError({
 
 ---
 
-### Issue #18: Empty State Messages
+### Issue #19: Empty State Messages
 
 **Title:** Replace Empty States with Warm, Encouraging Messages
 
@@ -1418,7 +1594,7 @@ export function EmptyState({
 
 ## Epic 9: Deployment & Infrastructure
 
-### Issue #19: Docker Compose Setup
+### Issue #20: Docker Compose Setup
 
 **Title:** Create Docker Compose Configuration for Easy Deployment
 
@@ -1503,7 +1679,7 @@ volumes:
 
 ---
 
-### Issue #20: Cloudflare Tunnel Integration
+### Issue #21: Cloudflare Tunnel Integration
 
 **Title:** Integrate Cloudflare Tunnel for Dynamic IP Support
 
@@ -1571,7 +1747,7 @@ echo "  CNAME yourdomain.com -> $TUNNEL_NAME.cfargotunnel.com"
 
 ## Summary: MVP Completion Checklist
 
-If all 20 issues above are completed, Angel OS will be **functional** with:
+If all 21 issues above are completed, Angel OS will be **functional** with:
 
 **✅ Core Infrastructure**
 - [x] Platform Tenant & Archangel system
@@ -1584,6 +1760,7 @@ If all 20 issues above are completed, Angel OS will be **functional** with:
 - [x] Core widgets (Chat, LiveKit, Notion Notes)
 
 **✅ OpenClaw Integration**
+- [x] Chat response formatting & streaming
 - [x] Skills sync from marketplace
 - [x] Conversation engine (multi-channel)
 

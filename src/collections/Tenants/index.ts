@@ -24,6 +24,19 @@ export const Tenants: CollectionConfig = {
   },
   fields: [
     {
+      name: 'type',
+      type: 'select',
+      options: [
+        { label: 'Platform', value: 'platform' },
+        { label: 'Tenant', value: 'tenant' },
+      ],
+      defaultValue: 'tenant',
+      required: true,
+      admin: {
+        description: 'Platform tenant is the special singleton for Angel OS infrastructure',
+      },
+    },
+    {
       name: 'name',
       type: 'text',
       required: true,
