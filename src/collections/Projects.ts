@@ -493,9 +493,6 @@ export const Projects: CollectionConfig = {
     },
   ],
   timestamps: true,
-  versions: {
-    drafts: true,
-  },
   hooks: {
     beforeChange: [
       async ({ data, operation }) => {
