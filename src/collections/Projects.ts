@@ -220,13 +220,13 @@ export const Projects: CollectionConfig = {
       ],
     },
     {
-      name: 'status',
+      name: 'projectStatus',
       type: 'select',
       required: true,
       options: [
         {
-          label: 'New',
-          value: 'new',
+          label: 'Planning',
+          value: 'planning',
         },
         {
           label: 'In Progress',
@@ -245,7 +245,7 @@ export const Projects: CollectionConfig = {
           value: 'cancelled',
         },
       ],
-      defaultValue: 'new',
+      defaultValue: 'planning',
       admin: {
         position: 'sidebar',
       },
@@ -507,7 +507,7 @@ export const Projects: CollectionConfig = {
         }
 
         // Set completion date when status changes to completed
-        if (data.status === 'completed' && !data.timeline?.completedAt) {
+        if (data.projectStatus === 'completed' && !data.timeline?.completedAt) {
           data.timeline = {
             ...data.timeline,
             completedAt: new Date().toISOString()
@@ -527,7 +527,7 @@ export const Projects: CollectionConfig = {
           console.log(`New project created: ${doc.title}`)
         }
 
-        if (operation === 'update' && doc.status === 'completed') {
+        if (operation === 'update' && doc.projectStatus === 'completed') {
           console.log(`Project completed: ${doc.title}`)
           // TODO: Trigger completion workflows
           // TODO: Request client testimonial
