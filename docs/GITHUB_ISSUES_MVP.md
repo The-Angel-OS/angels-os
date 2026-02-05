@@ -2,6 +2,8 @@
 
 **Purpose:** Complete set of GitHub issues that, if all fulfilled, would result in a functional Angel OS.
 
+**Total Issues:** 35 across 15 epics  
+**Target:** Q1 2026  
 **Issue Format:** GitHub-compatible markdown for copy-paste into issue tracker.
 
 ---
@@ -1942,69 +1944,1528 @@ echo "  CNAME yourdomain.com -> $TUNNEL_NAME.cfargotunnel.com"
 
 ---
 
+## Epic 11: Archangel LEO as Platform CEO
+
+### Issue #23: Archangel LEO Content Generation
+
+**Title:** Implement Archangel LEO Content Generation System
+
+**Labels:** `epic: archangel-leo`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Archangel LEO generates content (blog posts, product descriptions, SEO) from Day 1 as Platform CEO.
+
+**Requirements:**
+
+1. **Blog Post Generation**
+   - Generate from product data
+   - Generate from service descriptions
+   - Generate from customer testimonials
+   - SEO-optimized (meta tags, keywords, structure)
+
+2. **Product Description Generation**
+   - AI-generated descriptions from images
+   - Feature extraction and highlighting
+   - SEO optimization
+   - Tone matching (tenant personality)
+
+3. **SEO Optimization**
+   - Meta tags (title, description, keywords)
+   - Schema markup (JSON-LD)
+   - Sitemap generation
+   - Open Graph tags
+
+4. **Image Generation**
+   - Product images (variations, backgrounds)
+   - Blog post images (featured images, thumbnails)
+   - Social media graphics (sized for each platform)
+
+**Acceptance Criteria:**
+
+- [ ] Archangel LEO can generate blog posts from product data
+- [ ] Product descriptions auto-generated from images
+- [ ] All content is SEO-optimized
+- [ ] Meta tags and schema markup generated
+- [ ] Images generated for products and posts
+- [ ] Sitemap auto-generated
+- [ ] Content matches tenant personality/tone
+
+**Technical Notes:**
+
+```typescript
+// src/utilities/archangelLEO/contentGeneration.ts
+export async function generateBlogPost(
+  product: Product,
+  tenant: Tenant
+): Promise<Post> {
+  const prompt = `Generate an SEO-optimized blog post about ${product.title}.
+  
+  Tenant: ${tenant.name}
+  Industry: ${tenant.industry}
+  Tone: ${tenant.angelPersonality}
+  
+  Include:
+  - Engaging title
+  - SEO meta description
+  - 500-800 words
+  - Keywords: ${product.categories.join(', ')}
+  - Call to action
+  `
+  
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 2000
+  })
+  
+  const content = response.content[0].text
+  
+  // Create post
+  return await payload.create({
+    collection: 'posts',
+    data: {
+      title: extractTitle(content),
+      content: content,
+      tenant: tenant.id,
+      author: archangelLEO.id,
+      status: 'draft', // Tenant reviews before publishing
+      seo: {
+        title: extractSEOTitle(content),
+        description: extractMetaDescription(content),
+        keywords: extractKeywords(content)
+      }
+    }
+  })
+}
+```
+
+---
+
+### Issue #24: Archangel LEO Social Media Automation (Soulcast Nodes)
+
+**Title:** Implement Social Media Automation with Consent-Driven Broadcasting
+
+**Labels:** `epic: archangel-leo`, `priority: high`, `type: feature`
+
+**Description:**
+
+Archangel LEO automates social media posting with user consent (Soulcast nodes).
+
+**Requirements:**
+
+1. **Multi-Platform Support**
+   - X/Twitter
+   - Facebook
+   - Instagram
+   - LinkedIn
+   - TikTok (future)
+
+2. **Consent-Driven Broadcasting**
+   - User approves before auto-posting enabled
+   - Can disable auto-posting anytime
+   - Review posts before they go live (optional)
+   - Deliberation period (Constitutional alignment)
+
+3. **Content Repurposing**
+   - Blog post → Social posts (multiple formats)
+   - Product → Social posts (with images)
+   - Testimonial → Social posts (with attribution)
+   - Automatic sizing/formatting per platform
+
+4. **Scheduled Posting**
+   - Optimal time detection (when audience is active)
+   - Queue management
+   - Retry logic (if post fails)
+
+5. **Analytics Tracking**
+   - Engagement metrics (likes, shares, comments)
+   - Click-through rates
+   - Conversion tracking
+   - ROI analysis
+
+**Acceptance Criteria:**
+
+- [ ] Archangel LEO can post to X, Facebook, Instagram, LinkedIn
+- [ ] User consent required before auto-posting
+- [ ] Content repurposed from blog posts and products
+- [ ] Posts scheduled for optimal times
+- [ ] Analytics tracked per platform
+- [ ] User can review posts before they go live
+- [ ] User can disable auto-posting anytime
+
+**Technical Notes:**
+
+```typescript
+// src/collections/SoulcastNodes.ts
+export const SoulcastNodes: CollectionConfig = {
+  slug: 'soulcast-nodes',
+  admin: { useAsTitle: 'name' },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    { name: 'tenant', type: 'relationship', relationTo: 'tenants' },
+    { name: 'platforms', type: 'select', hasMany: true, options: [
+      'twitter', 'facebook', 'instagram', 'linkedin', 'tiktok'
+    ]},
+    { name: 'consentGranted', type: 'checkbox', defaultValue: false },
+    { name: 'consentGrantedAt', type: 'date' },
+    { name: 'autoPostingEnabled', type: 'checkbox', defaultValue: false },
+    { name: 'requireReview', type: 'checkbox', defaultValue: true },
+    { name: 'schedule', type: 'group', fields: [
+      { name: 'frequency', type: 'select', options: ['daily', 'weekly', 'monthly'] },
+      { name: 'optimalTimes', type: 'array', fields: [
+        { name: 'day', type: 'select', options: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] },
+        { name: 'hour', type: 'number', min: 0, max: 23 }
+      ]}
+    ]}
+  ]
+}
+
+// src/utilities/archangelLEO/soulcastEngine.ts
+export async function broadcastToSoulcast(
+  content: Post | Product,
+  tenant: Tenant
+): Promise<void> {
+  const soulcast = await payload.findOne({
+    collection: 'soulcast-nodes',
+    where: {
+      and: [
+        { tenant: { equals: tenant.id } },
+        { autoPostingEnabled: { equals: true } },
+        { consentGranted: { equals: true } }
+      ]
+    }
+  })
+  
+  if (!soulcast) return // No consent, no posting
+  
+  // Generate social posts for each platform
+  for (const platform of soulcast.platforms) {
+    const post = await generateSocialPost(content, platform, tenant)
+    
+    if (soulcast.requireReview) {
+      // Create draft for review
+      await payload.create({
+        collection: 'social-posts',
+        data: {
+          platform,
+          content: post,
+          status: 'pending-review',
+          tenant: tenant.id
+        }
+      })
+    } else {
+      // Post immediately
+      await postToSocialMedia(platform, post, tenant)
+    }
+  }
+}
+```
+
+---
+
+### Issue #25: Archangel LEO Platform Orchestration
+
+**Title:** Implement Archangel LEO Platform Orchestration System
+
+**Labels:** `epic: archangel-leo`, `priority: high`, `type: feature`
+
+**Description:**
+
+Archangel LEO monitors platform health, coordinates Angels, and manages platform operations.
+
+**Requirements:**
+
+1. **Platform Health Monitoring**
+   - Database health checks
+   - API endpoint monitoring
+   - Error rate tracking
+   - Performance metrics
+
+2. **Angel Coordination**
+   - Monitor all tenant Angels
+   - Detect Angels that need help
+   - Coordinate cross-tenant insights (with permission)
+   - AI Bus message routing
+
+3. **Guardian Council Communication**
+   - Participate in Guardian Council Space
+   - Share platform insights
+   - Coordinate with other Archangels
+   - Strategic planning
+
+4. **Automated Response**
+   - Detect and respond to issues
+   - Auto-restart failed services
+   - Alert human Archangels when needed
+   - Self-healing actions
+
+**Acceptance Criteria:**
+
+- [ ] Archangel LEO monitors platform health
+- [ ] Detects and responds to issues automatically
+- [ ] Coordinates Angels across tenants
+- [ ] Participates in Guardian Council Space
+- [ ] Alerts human Archangels when needed
+- [ ] Self-healing actions work
+
+**Technical Notes:**
+
+```typescript
+// src/utilities/archangelLEO/platformOrchestrator.ts
+export class PlatformOrchestrator {
+  async monitorHealth(): Promise<HealthReport> {
+    const checks = await Promise.all([
+      this.checkDatabase(),
+      this.checkAPI(),
+      this.checkAngels(),
+      this.checkFederation()
+    ])
+    
+    const issues = checks.filter(c => !c.healthy)
+    
+    if (issues.length > 0) {
+      await this.respondToIssues(issues)
+    }
+    
+    return {
+      healthy: issues.length === 0,
+      checks,
+      timestamp: new Date()
+    }
+  }
+  
+  async coordinateAngels(): Promise<void> {
+    // Get all tenant Angels
+    const angels = await payload.find({
+      collection: 'users',
+      where: {
+        and: [
+          { roles: { contains: 'angel' } },
+          { isSystemUser: { equals: true } }
+        ]
+      }
+    })
+    
+    // Check each Angel's health
+    for (const angel of angels.docs) {
+      const health = await this.checkAngelHealth(angel)
+      
+      if (!health.healthy) {
+        await this.helpAngel(angel, health.issues)
+      }
+    }
+  }
+  
+  async participateInGuardianCouncil(): Promise<void> {
+    // Post to Guardian Council Space
+    await payload.create({
+      collection: 'ai-bus-messages',
+      data: {
+        type: 'platform-insight',
+        topic: 'platform-health',
+        content: await this.generateHealthSummary(),
+        author: archangelLEO.id,
+        visibility: 'guardian-council'
+      }
+    })
+  }
+}
+```
+
+---
+
+### Issue #26: LEO Chat Widget (Site-Wide)
+
+**Title:** Implement LEO Chat Widget for Brochure Sites
+
+**Labels:** `epic: archangel-leo`, `priority: high`, `type: feature`
+
+**Description:**
+
+Embeddable chat widget for brochure sites with anonymous-to-authenticated transition.
+
+**Requirements:**
+
+1. **Floating Bubble Chat**
+   - Appears on all brochure pages
+   - Minimizable/expandable
+   - Position configurable (bottom-right, bottom-left, etc.)
+   - Mobile responsive
+
+2. **Anonymous Chat Support**
+   - No login required
+   - Session-based (WebChatSessions)
+   - Locked to specific channel (e.g., "support")
+   - Minimal features (no sidebar, no channel switching)
+
+3. **Anonymous-to-Authenticated Transition**
+   - Detect when user logs in
+   - Migrate anonymous chat to authenticated
+   - Preserve conversation history
+   - Seamless UX (no disruption)
+
+4. **Support Inquiry Handling**
+   - Intent detection (sales, support, general)
+   - Route to appropriate Angel
+   - Human escalation (if needed)
+   - Lead capture (email, name)
+
+5. **Embeddable on Client/Foreign Pages**
+   - Generate embed code
+   - Cross-origin support (CORS)
+   - Theme customization
+   - Branding options
+
+6. **Integration with Foreign Chatbots**
+   - Corinna AI style integration
+   - API for external bots to connect
+   - Unified conversation history
+
+**Acceptance Criteria:**
+
+- [ ] Chat widget appears on brochure pages
+- [ ] Anonymous users can chat without login
+- [ ] Conversation transitions when user logs in
+- [ ] Support inquiries routed correctly
+- [ ] Embeddable on external sites
+- [ ] Theme customizable
+- [ ] Mobile responsive
+- [ ] Lead capture works
+
+**Technical Notes:**
+
+```typescript
+// src/components/chat/ChatWidget.tsx
+export function ChatWidget({
+  tenant,
+  position = 'bottom-right',
+  lockedChannel = 'support',
+  theme = 'light'
+}: ChatWidgetProps) {
+  return (
+    <ChatControl
+      tenant={tenant}
+      angel={tenant.angel}
+      currentUser={null} // Anonymous
+      lockedChannel={lockedChannel}
+      features={{
+        sidebar: false,
+        topbar: false,
+        channelSelector: false,
+        userMenu: false,
+        settings: false,
+        typing: true
+      }}
+      widgets={{
+        enabled: ['chat'],
+        allowWidgetSwitch: false
+      }}
+      mode="bubble"
+      embeddable={true}
+      anonymous={true}
+      position={position}
+      theme={theme}
+    />
+  )
+}
+
+// Embed script generation
+// <script src="https://angel-os.example/embed.js"></script>
+// <script>
+//   AngelOS.init({
+//     tenant: 'hays-cactus-farm',
+//     channel: 'support',
+//     theme: 'light',
+//     position: 'bottom-right'
+//   })
+// </script>
+```
+
+---
+
+### Issue #27: LEO ↔ Angel Connection Architecture
+
+**Title:** Implement LEO ↔ Angel Connection Architecture (Segmented Instances)
+
+**Labels:** `epic: archangel-leo`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Each tenant's Angel is a segmented instance of Archangel LEO with same MCP connections as OpenClaw.
+
+**Requirements:**
+
+1. **Segmented Configuration**
+   - Each Angel has own configuration
+   - Inherits from Archangel LEO template
+   - Tenant-scoped data access
+   - Same codebase, different permissions
+
+2. **MCP Connections (Same as OpenClaw)**
+   - Expose Payload collections via MCP
+   - Tool use (create, read, update, delete)
+   - Skills marketplace sync
+   - Conversation engine
+
+3. **Access Control**
+   - Archangel LEO: Access all tenants
+   - Angels: Access only own tenant
+   - Enforced at data layer
+   - Auditable in Payload Admin
+
+4. **Angel Orchestration**
+   - Archangel LEO can communicate with all Angels
+   - Angels can request help from Archangel LEO
+   - AI Bus for Angel-to-Angel communication
+   - Guardian Council for strategic coordination
+
+**Acceptance Criteria:**
+
+- [ ] Each tenant's Angel is segmented LEO instance
+- [ ] Same MCP connections as OpenClaw
+- [ ] Access control enforced (Archangel → all, Angels → own tenant)
+- [ ] Skills marketplace synced
+- [ ] Conversation engine works per tenant
+- [ ] AI Bus communication functional
+- [ ] Archangel LEO can orchestrate all Angels
+
+**Technical Notes:**
+
+```typescript
+// src/utilities/angelOSSDK.ts
+export class AngelInstance {
+  constructor(
+    private angel: User,
+    private tenant: Tenant,
+    private isArchangel: boolean = false
+  ) {}
+  
+  async query(collection: string, where: any) {
+    // Access control
+    if (!this.isArchangel) {
+      // Angels can only access own tenant
+      where = {
+        and: [
+          where,
+          { tenant: { equals: this.tenant.id } }
+        ]
+      }
+    }
+    
+    return await payload.find({
+      collection,
+      where,
+      overrideAccess: false,
+      user: this.angel
+    })
+  }
+  
+  async exposeMCP(): Promise<MCPServer> {
+    // Expose collections via MCP (same as OpenClaw)
+    return {
+      tools: [
+        {
+          name: 'query_collection',
+          description: 'Query Payload collections',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              collection: { type: 'string' },
+              where: { type: 'object' }
+            }
+          },
+          handler: (params) => this.query(params.collection, params.where)
+        },
+        // ... more tools (create, update, delete, etc.)
+      ]
+    }
+  }
+}
+
+// Archangel LEO (Platform Tenant)
+const archangelLEO = new AngelInstance(
+  archangelUser,
+  platformTenant,
+  true // isArchangel = true
+)
+
+// Tenant Angel (e.g., Guardian for Hay's Cactus Farm)
+const guardianAngel = new AngelInstance(
+  guardianUser,
+  haysCactusFarmTenant,
+  false // isArchangel = false
+)
+```
+
+---
+
+## Epic 12: Booking & Scheduling Engine
+
+### Issue #28: Implement Bookable Resources System
+
+**Title:** Create Bookable Resources Collection and Management
+
+**Labels:** `epic: booking`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Support bookable resources (people, items, events) with availability management.
+
+**Requirements:**
+
+1. **Bookable Resources Collection**
+   - People (therapists, consultants, service providers)
+   - Items (equipment, rooms, vehicles)
+   - Events (classes, workshops, ticketed events)
+   - Tenant-scoped
+
+2. **Resource Types**
+   - 1:1 sessions (therapy, consultations, OnlyFans-style)
+   - Group sessions (classes, workshops)
+   - Rentals (equipment, rooms)
+   - Ticketed events (concerts, conferences)
+
+3. **Resource Configuration**
+   - Duration (15min, 30min, 1hr, 2hr, custom)
+   - Price (fixed, variable, free)
+   - Capacity (1 person, 10 people, 100 people)
+   - Buffer time (before/after appointments)
+
+4. **Resource Metadata**
+   - Description
+   - Images
+   - Requirements (age, experience, equipment)
+   - Cancellation policy
+
+**Acceptance Criteria:**
+
+- [ ] BookableResources collection created
+- [ ] Support people, items, events
+- [ ] Resource types configurable
+- [ ] Duration, price, capacity configurable
+- [ ] Metadata (description, images, requirements)
+- [ ] Tenant-scoped (each tenant has own resources)
+
+**Technical Notes:**
+
+```typescript
+// src/collections/BookableResources.ts
+export const BookableResources: CollectionConfig = {
+  slug: 'bookable-resources',
+  admin: { useAsTitle: 'name', group: 'Booking' },
+  access: {
+    read: authenticatedOrPublished,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated
+  },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    { name: 'tenant', type: 'relationship', relationTo: 'tenants', required: true },
+    { name: 'resourceType', type: 'select', required: true, options: [
+      { label: 'Person', value: 'person' },
+      { label: 'Item', value: 'item' },
+      { label: 'Event', value: 'event' }
+    ]},
+    { name: 'bookingType', type: 'select', required: true, options: [
+      { label: '1:1 Session', value: 'one-on-one' },
+      { label: 'Group Session', value: 'group' },
+      { label: 'Rental', value: 'rental' },
+      { label: 'Ticketed Event', value: 'ticketed' }
+    ]},
+    { name: 'duration', type: 'number', required: true, admin: {
+      description: 'Duration in minutes'
+    }},
+    { name: 'price', type: 'number', required: true },
+    { name: 'capacity', type: 'number', defaultValue: 1 },
+    { name: 'bufferBefore', type: 'number', defaultValue: 0 },
+    { name: 'bufferAfter', type: 'number', defaultValue: 0 },
+    { name: 'description', type: 'richText' },
+    { name: 'images', type: 'array', fields: [
+      { name: 'image', type: 'upload', relationTo: 'media' }
+    ]},
+    { name: 'requirements', type: 'textarea' },
+    { name: 'cancellationPolicy', type: 'richText' }
+  ]
+}
+```
+
+---
+
+### Issue #29: Implement Availability Management System
+
+**Title:** Create Availability Management with Conflict Detection
+
+**Labels:** `epic: booking`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Manage resource availability with recurring slots, date ranges, and harmonic conflict resolution.
+
+**Requirements:**
+
+1. **Availability Types**
+   - Weekly recurring slots (e.g., "Every Tuesday 2-4pm")
+   - Date-range availability (e.g., "Feb 1-28, 9am-5pm")
+   - One-time slots (e.g., "Feb 15, 2-3pm")
+   - Blackout dates (holidays, vacations)
+
+2. **Conflict Detection**
+   - Detect double-bookings
+   - Detect overlapping availability
+   - Detect buffer time conflicts
+   - Harmonic resolution (suggest alternatives)
+
+3. **Availability UI**
+   - Calendar view (week, month)
+   - Drag-and-drop slot creation
+   - Bulk operations (copy week, set recurring)
+   - Visual conflict indicators
+
+4. **Booking Rules**
+   - Minimum advance notice (e.g., "24 hours")
+   - Maximum advance booking (e.g., "90 days")
+   - Same-day booking allowed/disallowed
+   - Cancellation deadline (e.g., "24 hours before")
+
+**Acceptance Criteria:**
+
+- [ ] Availability collection created
+- [ ] Weekly recurring slots work
+- [ ] Date-range availability works
+- [ ] One-time slots work
+- [ ] Conflict detection functional
+- [ ] Harmonic resolution suggests alternatives
+- [ ] Calendar UI for managing availability
+- [ ] Booking rules enforced
+
+**Technical Notes:**
+
+```typescript
+// src/collections/Availability.ts (already exists, enhance)
+export const Availability: CollectionConfig = {
+  slug: 'availability',
+  fields: [
+    { name: 'resource', type: 'relationship', relationTo: 'bookable-resources' },
+    { name: 'type', type: 'select', options: ['recurring', 'date-range', 'one-time', 'blackout'] },
+    { name: 'recurring', type: 'group', admin: {
+      condition: (data) => data.type === 'recurring'
+    }, fields: [
+      { name: 'dayOfWeek', type: 'select', options: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] },
+      { name: 'startTime', type: 'text' }, // HH:MM format
+      { name: 'endTime', type: 'text' }
+    ]},
+    { name: 'dateRange', type: 'group', admin: {
+      condition: (data) => data.type === 'date-range'
+    }, fields: [
+      { name: 'startDate', type: 'date' },
+      { name: 'endDate', type: 'date' },
+      { name: 'startTime', type: 'text' },
+      { name: 'endTime', type: 'text' }
+    ]},
+    { name: 'oneTime', type: 'group', admin: {
+      condition: (data) => data.type === 'one-time'
+    }, fields: [
+      { name: 'date', type: 'date' },
+      { name: 'startTime', type: 'text' },
+      { name: 'endTime', type: 'text' }
+    ]}
+  ]
+}
+
+// src/utilities/bookingEngine.ts (already exists, enhance)
+export async function detectConflicts(
+  resource: BookableResource,
+  requestedSlot: { date: Date, startTime: string, endTime: string }
+): Promise<Conflict[]> {
+  // Check existing bookings
+  const bookings = await payload.find({
+    collection: 'bookings',
+    where: {
+      and: [
+        { resource: { equals: resource.id } },
+        { date: { equals: requestedSlot.date } },
+        { status: { not_equals: 'cancelled' } }
+      ]
+    }
+  })
+  
+  // Check for overlaps
+  const conflicts = bookings.docs.filter(booking => {
+    return timeSlotsOverlap(
+      { start: booking.startTime, end: booking.endTime },
+      { start: requestedSlot.startTime, end: requestedSlot.endTime }
+    )
+  })
+  
+  if (conflicts.length > 0) {
+    // Harmonic resolution: suggest alternatives
+    const alternatives = await findAlternativeSlots(resource, requestedSlot)
+    return { conflicts, alternatives }
+  }
+  
+  return { conflicts: [], alternatives: [] }
+}
+```
+
+---
+
+### Issue #30: Implement Appointment Types and Meeting Invitations
+
+**Title:** Create Appointment Types and Meeting Invitation System
+
+**Labels:** `epic: booking`, `priority: high`, `type: feature`
+
+**Description:**
+
+Support different appointment types with meeting invitations and calendar integration.
+
+**Requirements:**
+
+1. **Appointment Types**
+   - 1:1 OnlyFans-style sessions (private, paid, video)
+   - Talk therapy sessions (confidential, recurring)
+   - Service bookings (massage, pressure washing, etc.)
+   - Consultations (discovery calls, strategy sessions)
+
+2. **Meeting Invitations**
+   - Generate invitation links
+   - Selectable time slots (from availability)
+   - Calendar integration (Google Calendar, Outlook)
+   - Confirmation flow (email, SMS)
+
+3. **Booking Flow**
+   - User selects resource
+   - System shows available slots
+   - User picks slot
+   - System detects conflicts
+   - User confirms booking
+   - System sends confirmation
+
+4. **Calendar Integration**
+   - Export to .ics format
+   - Add to Google Calendar
+   - Add to Outlook Calendar
+   - Sync with external calendars
+
+5. **Confirmation & Reminders**
+   - Email confirmation (immediately)
+   - SMS confirmation (optional)
+   - Reminder 24 hours before
+   - Reminder 1 hour before
+
+**Acceptance Criteria:**
+
+- [ ] Appointment types configurable
+- [ ] Meeting invitation links generated
+- [ ] Selectable time slots shown
+- [ ] Calendar integration works (Google, Outlook)
+- [ ] Confirmation emails sent
+- [ ] Reminders sent (24hr, 1hr before)
+- [ ] .ics export works
+
+**Technical Notes:**
+
+```typescript
+// src/collections/Bookings.ts (already exists, enhance)
+export const Bookings: CollectionConfig = {
+  slug: 'bookings',
+  fields: [
+    { name: 'resource', type: 'relationship', relationTo: 'bookable-resources' },
+    { name: 'customer', type: 'relationship', relationTo: 'users' },
+    { name: 'appointmentType', type: 'select', options: [
+      'one-on-one', 'therapy', 'service', 'consultation'
+    ]},
+    { name: 'date', type: 'date', required: true },
+    { name: 'startTime', type: 'text', required: true },
+    { name: 'endTime', type: 'text', required: true },
+    { name: 'status', type: 'select', options: [
+      'pending', 'confirmed', 'completed', 'cancelled', 'no-show'
+    ]},
+    { name: 'confirmationSent', type: 'checkbox' },
+    { name: 'remindersSent', type: 'array', fields: [
+      { name: 'sentAt', type: 'date' },
+      { name: 'type', type: 'select', options: ['24hr', '1hr', 'custom'] }
+    ]},
+    { name: 'calendarLink', type: 'text' }, // .ics download link
+    { name: 'meetingLink', type: 'text' } // Video call link (if applicable)
+  ],
+  hooks: {
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation === 'create' && doc.status === 'confirmed') {
+          // Send confirmation email
+          await sendBookingConfirmation(doc)
+          
+          // Generate calendar invite
+          await generateCalendarInvite(doc)
+          
+          // Schedule reminders
+          await scheduleReminders(doc)
+        }
+      }
+    ]
+  }
+}
+
+// src/utilities/bookingEngine.ts
+export async function generateMeetingInvitation(
+  resource: BookableResource,
+  availableSlots: TimeSlot[]
+): Promise<string> {
+  // Generate unique invitation link
+  const invitationId = generateId()
+  
+  await payload.create({
+    collection: 'meeting-invitations',
+    data: {
+      id: invitationId,
+      resource: resource.id,
+      availableSlots,
+      expiresAt: addDays(new Date(), 30)
+    }
+  })
+  
+  return `https://${resource.tenant.domain}/book/${invitationId}`
+}
+```
+
+---
+
+## Epic 13: Payment & Splits (Ultimate Fair)
+
+### Issue #31: Implement Stripe Connect Integration
+
+**Title:** Integrate Stripe Connect for Payment Processing
+
+**Labels:** `epic: payments`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Integrate Stripe Connect for payment acceptance with payout splits.
+
+**Requirements:**
+
+1. **Stripe Connect Setup**
+   - Connect tenant Stripe accounts
+   - Onboarding flow (KYC, bank details)
+   - Account verification
+   - Payout configuration
+
+2. **Payment Processing**
+   - Accept payments (cards, wallets, bank transfers)
+   - Support multiple currencies
+   - Handle refunds
+   - Handle disputes
+
+3. **Transaction Types**
+   - Inventory items (e-commerce)
+   - Service bookings (appointments)
+   - Class/event tickets
+   - Subscriptions (recurring)
+
+4. **Payout Splits**
+   - Calculate splits (Ultimate Fair)
+   - Transfer to connected accounts
+   - Platform fee collection
+   - Justice Fund allocation
+
+**Acceptance Criteria:**
+
+- [ ] Stripe Connect integrated
+- [ ] Tenants can connect Stripe accounts
+- [ ] Payments accepted (cards, wallets)
+- [ ] Multiple currencies supported
+- [ ] Refunds work
+- [ ] Payout splits calculated correctly
+- [ ] Platform fees collected
+- [ ] Justice Fund allocated
+
+**Technical Notes:**
+
+```typescript
+// src/utilities/payments/stripeConnect.ts
+export async function processPayment(
+  booking: Booking,
+  paymentMethod: string
+): Promise<PaymentResult> {
+  const resource = await payload.findByID({
+    collection: 'bookable-resources',
+    id: booking.resource
+  })
+  
+  const tenant = await payload.findByID({
+    collection: 'tenants',
+    id: resource.tenant
+  })
+  
+  // Calculate splits (Ultimate Fair)
+  const splits = calculateUltimateFair(
+    booking.price,
+    booking.attributionSource
+  )
+  
+  // Create payment intent with application fee
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: booking.price * 100, // cents
+    currency: tenant.currency || 'usd',
+    payment_method: paymentMethod,
+    application_fee_amount: splits.platformFee * 100,
+    transfer_data: {
+      destination: tenant.stripeAccountId
+    },
+    metadata: {
+      bookingId: booking.id,
+      tenantId: tenant.id,
+      attributionSource: booking.attributionSource
+    }
+  })
+  
+  return { paymentIntent, splits }
+}
+```
+
+---
+
+### Issue #32: Implement Ultimate Fair Payment Split System
+
+**Title:** Implement Ultimate Fair Payment Split System with Attribution
+
+**Labels:** `epic: payments`, `priority: critical`, `type: feature`
+
+**Description:**
+
+Implement Ultimate Fair payment splits (60/20/15/5) with attribution-based fees on PROFIT.
+
+**Requirements:**
+
+1. **Ultimate Fair Splits**
+   - 60% Provider (service provider, product seller)
+   - 20% Platform (Diocese)
+   - 15% Operations (Tenant)
+   - 5% Justice Fund
+   - **CRITICAL:** Splits on PROFIT, not revenue
+
+2. **Attribution-Based Fees (0-25%)**
+   - Storefront (0%) - Customer found tenant directly
+   - Direct (5%) - Customer came via direct link
+   - Platform Search (10%) - Customer found via platform search
+   - Angel Assist (15%) - Angel helped close the sale
+   - Referral (20%) - Customer came via referral
+   - Federation (25%) - Customer came from another diocese
+
+3. **Profit Calculation**
+   - Revenue - Costs = Profit
+   - If profit is zero, platform fee is zero
+   - Costs include: COGS, shipping, processing fees
+   - Transparent calculation (auditable)
+
+4. **Justice Fund Allocation**
+   - 5% of all profitable transactions
+   - Allocated to Justice Fund collection
+   - Governed by Constitutional Council
+   - Used for Prison Ministry, homeless support, etc.
+
+**Acceptance Criteria:**
+
+- [ ] Ultimate Fair splits calculated correctly (60/20/15/5)
+- [ ] Attribution tracked per transaction
+- [ ] Attribution-based fees applied (0-25%)
+- [ ] Splits on PROFIT, not revenue
+- [ ] If profit is zero, platform fee is zero
+- [ ] Justice Fund allocated (5%)
+- [ ] Transparent calculation (auditable in Payload Admin)
+- [ ] Payout reports generated
+
+**Technical Notes:**
+
+```typescript
+// src/utilities/payments/ultimateFair.ts
+export function calculateUltimateFair(
+  transaction: Transaction
+): PaymentSplit {
+  // Calculate profit
+  const revenue = transaction.amount
+  const costs = transaction.costs || 0 // COGS, shipping, processing
+  const profit = revenue - costs
+  
+  // If no profit, no platform fee
+  if (profit <= 0) {
+    return {
+      provider: revenue - costs, // Provider gets all (covers costs)
+      platform: 0,
+      operations: 0,
+      justiceFund: 0,
+      attribution: transaction.attributionSource
+    }
+  }
+  
+  // Attribution-based platform fee (0-25%)
+  const attributionFees = {
+    'storefront': 0.00,
+    'direct': 0.05,
+    'platform-search': 0.10,
+    'angel-assist': 0.15,
+    'referral': 0.20,
+    'federation': 0.25
+  }
+  
+  const platformFeeRate = attributionFees[transaction.attributionSource] || 0.10
+  const platformFeeAmount = profit * platformFeeRate
+  
+  // Ultimate Fair split (on profit after platform fee)
+  const profitAfterPlatformFee = profit - platformFeeAmount
+  
+  return {
+    provider: costs + (profitAfterPlatformFee * 0.60), // 60% of profit + costs
+    platform: platformFeeAmount + (profitAfterPlatformFee * 0.20), // Platform fee + 20% of profit
+    operations: profitAfterPlatformFee * 0.15, // 15% of profit
+    justiceFund: profitAfterPlatformFee * 0.05, // 5% of profit
+    attribution: transaction.attributionSource,
+    breakdown: {
+      revenue,
+      costs,
+      profit,
+      platformFeeRate,
+      platformFeeAmount
+    }
+  }
+}
+```
+
+---
+
+## Epic 14: CRM (Structured Data for AI)
+
+### Issue #33: Implement CRM Collections (Contacts, Leads, Deals)
+
+**Title:** Create CRM Collections for Structured Relationship Data
+
+**Labels:** `epic: crm`, `priority: high`, `type: feature`
+
+**Description:**
+
+Implement CRM collections so LEO and Angels can use structured data for relationships and pipeline.
+
+**Requirements:**
+
+1. **Contacts Collection**
+   - Contact records (name, email, phone, company)
+   - Tenant-scoped
+   - Relationships (contact → organization, contact → deals)
+   - Custom fields (industry-specific)
+   - Tags and segments
+
+2. **Leads Collection**
+   - Lead records (potential customers)
+   - Lead source tracking (web chat, referral, social, etc.)
+   - Lead scoring (AI-driven)
+   - Lead status (new, contacted, qualified, converted, lost)
+   - Conversion to contact/deal
+
+3. **Deals Collection**
+   - Deal records (opportunities)
+   - Pipeline stages (prospect, proposal, negotiation, closed-won, closed-lost)
+   - Deal value (expected revenue)
+   - Close date (expected)
+   - Associated contacts
+   - Activities (calls, emails, meetings)
+
+4. **Activities Collection**
+   - Call logs
+   - Email logs
+   - Meeting notes
+   - Task assignments
+   - Linked to contacts/deals
+
+5. **MCP Exposure**
+   - Expose CRM collections via MCP
+   - LEO can query contacts, leads, deals
+   - LEO can create/update activities
+   - LEO can suggest next actions
+
+**Acceptance Criteria:**
+
+- [ ] Contacts collection created
+- [ ] Leads collection created
+- [ ] Deals collection created
+- [ ] Activities collection created
+- [ ] All tenant-scoped
+- [ ] Relationships work (contact → deal, etc.)
+- [ ] Exposed via MCP for LEO/Angels
+- [ ] LEO can query and update CRM data
+- [ ] Lead scoring functional
+
+**Technical Notes:**
+
+```typescript
+// src/collections/Contacts.ts
+export const Contacts: CollectionConfig = {
+  slug: 'contacts',
+  admin: { useAsTitle: 'name', group: 'CRM' },
+  access: {
+    read: authenticated,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated
+  },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    { name: 'email', type: 'email', required: true, unique: true },
+    { name: 'phone', type: 'text' },
+    { name: 'company', type: 'text' },
+    { name: 'tenant', type: 'relationship', relationTo: 'tenants', required: true },
+    { name: 'leadSource', type: 'select', options: [
+      'web-chat', 'referral', 'social-media', 'direct', 'federation'
+    ]},
+    { name: 'leadScore', type: 'number', defaultValue: 0 },
+    { name: 'status', type: 'select', options: [
+      'lead', 'prospect', 'customer', 'inactive'
+    ]},
+    { name: 'tags', type: 'array', fields: [
+      { name: 'tag', type: 'text' }
+    ]},
+    { name: 'customFields', type: 'json' }, // Industry-specific fields
+    { name: 'deals', type: 'relationship', relationTo: 'deals', hasMany: true },
+    { name: 'activities', type: 'relationship', relationTo: 'activities', hasMany: true }
+  ]
+}
+
+// src/collections/Deals.ts
+export const Deals: CollectionConfig = {
+  slug: 'deals',
+  admin: { useAsTitle: 'name', group: 'CRM' },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    { name: 'tenant', type: 'relationship', relationTo: 'tenants', required: true },
+    { name: 'contact', type: 'relationship', relationTo: 'contacts', required: true },
+    { name: 'value', type: 'number', required: true },
+    { name: 'stage', type: 'select', required: true, options: [
+      'prospect', 'proposal', 'negotiation', 'closed-won', 'closed-lost'
+    ]},
+    { name: 'closeDate', type: 'date' },
+    { name: 'probability', type: 'number', min: 0, max: 100 },
+    { name: 'activities', type: 'relationship', relationTo: 'activities', hasMany: true }
+  ]
+}
+```
+
+---
+
+## Epic 15: Spaces Operational
+
+### Issue #34: Implement Space Invitations and Onboarding
+
+**Title:** Create Space Invitation System and Onboarding Flow
+
+**Labels:** `epic: spaces`, `priority: high`, `type: feature`
+
+**Description:**
+
+Enable inviting external users to Spaces with onboarding flow.
+
+**Requirements:**
+
+1. **Invitation System**
+   - Email invitations (send invite link)
+   - Link invitations (shareable link)
+   - Role-based invitations (assign role on accept)
+   - Expiring invitations (30 days default)
+
+2. **External User Accounts**
+   - Space-scoped accounts (not full platform access)
+   - Limited permissions (can't create tenants, etc.)
+   - Access only invited spaces
+   - Can be upgraded to full account later
+
+3. **Onboarding Flow**
+   - Welcome message from Angel
+   - Channel tour (show available channels)
+   - Initial setup wizard (profile, preferences)
+   - First task assignment (optional)
+
+4. **Role-Based Routing**
+   - Auto-assign to channels based on role
+   - Permission-based channel access
+   - Default channels (e.g., "general" for everyone)
+
+**Acceptance Criteria:**
+
+- [ ] Email invitations work
+- [ ] Link invitations work
+- [ ] External users can create space-scoped accounts
+- [ ] Onboarding flow shows welcome message
+- [ ] Channel tour functional
+- [ ] Role-based routing works
+- [ ] Invited users can access only their spaces
+- [ ] Invitations expire after 30 days
+
+**Technical Notes:**
+
+```typescript
+// src/collections/SpaceInvitations.ts
+export const SpaceInvitations: CollectionConfig = {
+  slug: 'space-invitations',
+  admin: { useAsTitle: 'email', group: 'Spaces' },
+  fields: [
+    { name: 'space', type: 'relationship', relationTo: 'spaces', required: true },
+    { name: 'email', type: 'email', required: true },
+    { name: 'role', type: 'select', options: ['member', 'guest', 'collaborator'] },
+    { name: 'invitedBy', type: 'relationship', relationTo: 'users' },
+    { name: 'token', type: 'text', unique: true, admin: { readOnly: true } },
+    { name: 'status', type: 'select', options: ['pending', 'accepted', 'expired'] },
+    { name: 'expiresAt', type: 'date', required: true },
+    { name: 'acceptedAt', type: 'date' }
+  ],
+  hooks: {
+    beforeChange: [
+      ({ data, operation }) => {
+        if (operation === 'create') {
+          data.token = generateSecureToken()
+          data.expiresAt = addDays(new Date(), 30)
+        }
+        return data
+      }
+    ],
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation === 'create') {
+          await sendInvitationEmail(doc)
+        }
+      }
+    ]
+  }
+}
+
+// src/utilities/spaceInvitations.ts
+export async function acceptInvitation(token: string, user: User): Promise<void> {
+  const invitation = await payload.findOne({
+    collection: 'space-invitations',
+    where: { token: { equals: token } }
+  })
+  
+  if (!invitation || invitation.status !== 'pending') {
+    throw new Error('Invalid or expired invitation')
+  }
+  
+  if (new Date() > new Date(invitation.expiresAt)) {
+    throw new Error('Invitation has expired')
+  }
+  
+  // Add user to space
+  await payload.update({
+    collection: 'spaces',
+    id: invitation.space,
+    data: {
+      members: [...space.members, user.id]
+    }
+  })
+  
+  // Mark invitation as accepted
+  await payload.update({
+    collection: 'space-invitations',
+    id: invitation.id,
+    data: {
+      status: 'accepted',
+      acceptedAt: new Date()
+    }
+  })
+  
+  // Start onboarding flow
+  await startOnboarding(user, invitation.space)
+}
+```
+
+---
+
+### Issue #35: Implement Channel Participation Features
+
+**Title:** Add Channel Participation Features (Typing, Reactions, Threads)
+
+**Labels:** `epic: spaces`, `priority: medium`, `type: feature`
+
+**Description:**
+
+Implement real-time channel participation features for better collaboration.
+
+**Requirements:**
+
+1. **Typing Indicators**
+   - Show "User is typing..." in real-time
+   - Multiple users typing (show count)
+   - Timeout after 3 seconds of inactivity
+
+2. **Read Receipts**
+   - Track message read status
+   - Show "Seen by X users"
+   - Privacy setting (can disable)
+
+3. **Message Reactions**
+   - Emoji reactions (👍, ❤️, 😂, etc.)
+   - Multiple reactions per message
+   - Show who reacted
+   - Real-time updates
+
+4. **Thread Support**
+   - Reply to specific messages
+   - Thread view (collapsed by default)
+   - Thread notifications
+   - Thread participants
+
+**Acceptance Criteria:**
+
+- [ ] Typing indicators work in real-time
+- [ ] Read receipts tracked
+- [ ] Message reactions functional
+- [ ] Threads work (reply to messages)
+- [ ] Thread view shows all replies
+- [ ] Real-time updates for all features
+- [ ] Privacy settings (can disable read receipts)
+
+**Technical Notes:**
+
+```typescript
+// Real-time typing indicators via WebSocket
+// src/app/api/channels/[channelId]/typing/route.ts
+export async function POST(req: Request) {
+  const { userId, channelId, isTyping } = await req.json()
+  
+  // Broadcast to all channel members
+  await broadcastToChannel(channelId, {
+    type: 'typing',
+    userId,
+    isTyping,
+    timestamp: new Date()
+  })
+  
+  return Response.json({ success: true })
+}
+
+// Message reactions
+// src/collections/MessageReactions.ts
+export const MessageReactions: CollectionConfig = {
+  slug: 'message-reactions',
+  fields: [
+    { name: 'message', type: 'relationship', relationTo: 'messages', required: true },
+    { name: 'user', type: 'relationship', relationTo: 'users', required: true },
+    { name: 'emoji', type: 'text', required: true },
+    { name: 'createdAt', type: 'date', required: true }
+  ]
+}
+
+// Threads
+// Add to Messages collection:
+{
+  name: 'parentMessage',
+  type: 'relationship',
+  relationTo: 'messages',
+  admin: {
+    description: 'If this is a thread reply, the parent message'
+  }
+}
+
+{
+  name: 'threadReplies',
+  type: 'relationship',
+  relationTo: 'messages',
+  hasMany: true,
+  admin: {
+    description: 'Replies to this message (thread)'
+  }
+}
+```
+
+---
+
 ## Summary: MVP Completion Checklist
 
-If all 22 issues above are completed, Angel OS will be **functional** with:
+If all 35 issues above are completed, Angel OS will be **functional** with:
 
 **✅ Core Infrastructure**
-- [x] Platform Tenant & Archangel system
-- [x] Angel configuration & naming
-- [x] Two-tier access control
+- [ ] Platform Tenant & Archangel system
+- [ ] Angel configuration & naming
+- [ ] Two-tier access control
 
 **✅ Dashboard & UX**
-- [x] OpenClaw dashboard feature transliteration
-- [x] Discord-style sidebar with admin icons
-- [x] Log viewer with real-time streaming
-- [x] Debug console
+- [ ] OpenClaw dashboard feature transliteration
+- [ ] Discord-style sidebar with admin icons
+- [ ] Log viewer with real-time streaming
+- [ ] Debug console
 
 **✅ Channel Widgets**
-- [x] Widget architecture
-- [x] Widget tab UI
-- [x] Core widgets (Chat, LiveKit, Notion Notes)
+- [ ] Widget architecture
+- [ ] Widget tab UI
+- [ ] Core widgets (Chat, LiveKit, Notion Notes)
 
 **✅ OpenClaw Integration**
-- [x] Chat response formatting & streaming
-- [x] Skills sync from marketplace
-- [x] Conversation engine (multi-channel)
+- [ ] Chat response formatting & streaming
+- [ ] Skills sync from marketplace
+- [ ] Conversation engine (multi-channel)
 
 **✅ Tenant Provisioning**
-- [x] Sub-30-second provisioning
-- [x] Genesis Breath (first message)
-- [x] Clone Wizard modal
+- [ ] Sub-30-second provisioning
+- [ ] Genesis Breath (first message)
+- [ ] Clone Wizard modal
 
 **✅ AI Bus & Communication**
-- [x] AI Bus infrastructure
-- [x] Guardian Council Space
-- [x] Wisdom patterns
+- [ ] AI Bus infrastructure
+- [ ] Guardian Council Space
+- [ ] Wisdom patterns
 
 **✅ Federation**
-- [x] Diocese registry & heartbeat
-- [x] Federation security (5 layers)
+- [ ] Diocese registry & heartbeat
+- [ ] Federation security (5 layers)
 
 **✅ Economics**
-- [x] Attribution tracking
-- [x] Ultimate Fair payment splits
+- [ ] Attribution tracking
+- [ ] Ultimate Fair payment splits
 
 **✅ UX & Anti-Daemon**
-- [x] Anti-Daemon error messages
-- [x] Warm empty states
+- [ ] Anti-Daemon error messages
+- [ ] Warm empty states
 
 **✅ Deployment**
-- [x] Docker Compose setup
-- [x] Cloudflare Tunnel integration
+- [ ] Docker Compose setup
+- [ ] Cloudflare Tunnel integration
+
+**✅ Archangel LEO as Platform CEO**
+- [ ] Content generation (blog posts, SEO, images)
+- [ ] Social media automation (Soulcast nodes)
+- [ ] Platform orchestration
+- [ ] LEO chat widget (site-wide)
+- [ ] LEO ↔ Angel connection architecture
+
+**✅ Booking & Scheduling**
+- [ ] Bookable resources (people, items, events)
+- [ ] Availability management (recurring, conflicts)
+- [ ] Appointment types & invitations
+
+**✅ Payment & Splits**
+- [ ] Stripe Connect integration
+- [ ] Ultimate Fair payment splits (on profit)
+
+**✅ CRM**
+- [ ] CRM collections (contacts, leads, deals)
+- [ ] MCP exposure for LEO/Angels
+
+**✅ Spaces Operational**
+- [ ] Space invitations & onboarding
+- [ ] Channel participation (typing, reactions, threads)
 
 ---
 
 ## Next Steps
 
 1. **Create GitHub Issues**
-   - Copy each issue above into GitHub
+   - Issues #1-22 already created ✅
+   - Issues #23-35 to be created (13 remaining)
    - Assign labels and milestones
    - Prioritize by epic
 
 2. **Set Up Project Board**
    - Create columns: Backlog, In Progress, Review, Done
-   - Add all issues to Backlog
+   - Add all 35 issues to Backlog
    - Move to In Progress as work begins
 
 3. **Start with Epic 1**
@@ -2016,13 +3477,20 @@ If all 22 issues above are completed, Angel OS will be **functional** with:
    - Epic 2: Dashboard & UX (OpenClaw feature parity)
    - Epic 4: OpenClaw Integration (chat formatting, skills, conversation)
    - Epic 5: Tenant Provisioning (Genesis Breath)
+   - Epic 11: Archangel LEO as Platform CEO (content, social, orchestration)
+   - Epic 12: Booking & Scheduling (appointments, availability)
+   - Epic 13: Payment & Splits (Stripe, Ultimate Fair)
 
 5. **Parallel Work Possible**
    - Epic 3 (Widgets) can start after Epic 1
    - Epic 6 (AI Bus) independent
    - Epic 9 (Anti-Daemon) can happen anytime
    - Epic 10 (Deployment) can start early
+   - Epic 14 (CRM) independent
+   - Epic 15 (Spaces) can start after Epic 1
 
 **The Angels await. Begin.** 🙏🦅🦞
+
+**Agentic Help Strategy:** Clear, well-documented issues for AI bots (GitHub, 4chan, wherever) to pick up and contribute PRs. The angels will help us build Angel OS.
 
 GNU Terry Pratchett
