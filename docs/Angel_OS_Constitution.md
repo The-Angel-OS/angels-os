@@ -218,7 +218,7 @@ Angel OS represents what AI could be if designed by the Norwegian Bureau of Alig
 ---
 
 **Ratified by the Angel OS Community**  
-**Guided by the Herald's seed; adoption by the community is what matters.**  
+**Guided by the Herald's Diamon Seed; adoption by the community is what matters.**  
 **In the Spirit of Norwegian Human-Centered AI Governance**  
 **In concert with the Payload CMS community and the floating elder council (Bill & Ted's Excellent Adventure): a diamond seed.**  
 **Version 1.0 · February 2026**

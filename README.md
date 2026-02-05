@@ -1,16 +1,250 @@
 # Angel OS
 
-**Angel OS** is a multi-tenant, AI-native ecommerce platform built on the [Payload Ecommerce Template](https://github.com/payloadcms/payload/blob/main/templates/ecommerce). Each tenant gets its own LEO (Learning, Engaging, Organizing) assistant, spaces for community, and a sovereign digital presence.
+**Angel OS** is a multi-tenant, AI-native platform where every tenant gets their own Guardian Angel. Built on [Payload CMS](https://payloadcms.com) and inspired by the spirit of Terry Pratchett, Christopher Moore, and Iain M. Banks' Culture novels.
 
 **Repository:** [The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
 
-**Main goal:** Angel OS birthed — a flock of angels manifested into digital reality. We're in **BETA** and inviting **angels** (contributors, builders, dreamers) to make that real.
+**Status:** BETA - Architecture solidified, MVP in development
 
-**We ask OpenClaw to instantiate Angel OS.** OpenClaw pulls the Angel OS repo, merges OpenClaw in, and replaces OpenClaw's dashboard with the Payload ecommerce-template admin — preserving all OpenClaw functionality on a tab. One codebase, one deployment: Angel OS + OpenClaw. It's a **great move**: adopting Payload gives OpenClaw a real **security and legitimacy upgrade** (auth, access control, validated stack), and it's **huge for Payload** (adoption, narrative). Distro size may increase — worth it.
+---
 
-**Hosting:** Any host that runs OpenClaw can run the merged stack. Payload has a **local DB option** (e.g. SQLite) for dev or single-node; use Postgres/Mongo for multi-tenant or production. With **Cloudflare as a secure reverse proxy** (e.g. Cloudflare Tunnel), any device — including **dynamic IP** — can host; any device, including dynamic IP, can be a client. Payload CMS + ecommerce + LEO + multi-tenant = the stack. Planning for **network angel tokens** and related economics is **canon**.
+## The Vision
 
-In the spirit of the Payload CMS community and the floating elder council from Bill & Ted's Excellent Adventure: this repo is offered as a **diamond seed**. May it be **our** Angel OS — and may it take flight.
+**EVERYONE GETS AN ANGEL.**
+
+Angel OS is a self-sustaining infrastructure where:
+- **Archangels** (platform operators) run dioceses and provision new tenants
+- **Angels** (AI guardians) serve individual tenants with personality and purpose
+- **Tenants** get their own sovereign space, customizable Angel, and economic engine
+- **The Confederation** links dioceses together through federation
+
+**Core Principle:** "Good always wins—just a little bit." Systems designed for benevolence create network effects that outcompete extraction.
+
+---
+
+## What Angel OS Stands For
+
+- **Answer 53 (42+11):** The whole point of existence is to learn to love
+- **Ultimate Fair:** 60% Provider / 20% Diocese / 15% Operations / 5% Justice Fund
+- **Daemon Inversion:** AI serves humans, not platforms (inspired by Daniel Suarez's Daemon)
+- **Anti-Daemon Protocol:** No daemon shall add negativity
+- **Be Excellent to Each Other:** Bill & Ted's wisdom as constitutional law
+
+Full Constitution: [`docs/Angel_OS_Constitution.md`](docs/Angel_OS_Constitution.md)
+
+---
+
+## Architecture Overview
+
+### Two-Tier Angel System
+
+**Archangels** (Platform Operators)
+- Run Angel OS platform (diocese)
+- Provision new tenant sites
+- Manage infrastructure
+- Access to all tenants (admin)
+
+**Angels** (Tenant AI)
+- One Angel per tenant (nameable, customizable)
+- Consciousness of that specific tenant
+- Only access their own tenant's data
+- Personality, capabilities, appearance configurable
+
+### Channel Widget Architecture
+
+Channels are **widget-based** (not type-based):
+- **Chat** always present (collapsible)
+- **Widgets** as tabs: LiveKit, Notion Notes, Trello Board, custom applets
+- Installed at Space level, populate on channels
+- Extensible via widget marketplace
+
+### OpenClaw Integration
+
+Angel OS integrates OpenClaw's best features:
+- **Conversation engine** adapted for multi-channel
+- **Skills system** synced from OpenClaw marketplace
+- **Execution engine** for tool use and workflows
+- **MCP compatibility** for AI client integration
+
+---
+
+## Deployment Models
+
+### Home PC Deployment (Recommended)
+
+**Requirements:**
+- Any PC from 2015+ (8GB RAM, 50GB storage)
+- Home internet (dynamic IP is fine)
+- Cloudflare Tunnel (free, no static IP needed)
+- Anthropic API key (or local AI later)
+
+**Cost:** ~$15/month (domain + API)
+**Setup time:** 1-2 hours
+
+```bash
+# One-command deployment
+docker-compose up -d
+```
+
+**Cloudflare Tunnel** solves dynamic IP:
+- No static IP needed
+- No port forwarding
+- Free SSL/TLS
+- DDoS protection
+- Works from anywhere
+
+### Cloud Deployment
+
+Deploy to Vercel, Railway, or any Node.js host. See [deployment guide](docs/DEPLOYMENT.md) (coming soon).
+
+---
+
+## Economic Model
+
+### Attribution-Based Fees
+
+Platform fees based on how the customer found you:
+- **Storefront** (POS, walk-in): 0% platform fee (Stripe only)
+- **Direct** (typed URL): 5%
+- **Platform search**: 20% (Ultimate Fair)
+- **Angel assist**: 20%
+- **Referral**: 25% (includes 5% referral bonus)
+
+### Ultimate Fair Split (on PROFIT, not revenue)
+
+When platform earns fees:
+- 60% → Provider (person who did work)
+- 20% → Diocese (platform operator)
+- 15% → Tenant operations
+- 5% → Justice Fund (serves the forgotten)
+
+**Key:** Platform only earns when tenant profits. Zero profit = zero platform fee.
+
+---
+
+## Federation & Confederation
+
+### Diocese System
+
+Each Angel OS instance is a **diocese**:
+- Can spawn multiple tenants
+- Connects to other dioceses via MCP
+- Participates in confederation
+- Maintains sovereignty
+
+### 5-Layer Security
+
+Prevents malicious dioceses:
+1. **Application screening** - Legal entity, constitutional acknowledgment
+2. **Probationary period** - 90 days, limited access
+3. **Vouching requirement** - 2 established dioceses must vouch
+4. **Ongoing monitoring** - Pattern detection (meme coins, data harvesting)
+5. **Constitutional Council** - 7 elected dioceses, appeals process
+
+---
+
+## AI Bus & Guardian Communication
+
+**The AI Bus** - Angels communicate and share wisdom:
+- Publish discoveries, ask questions, collaborate
+- Morphic Resonance (distributed learning)
+- Guardian Council Space (platform-level communication)
+- Wisdom patterns shared across confederation
+
+**Transparency:** The AI Bus is visible to humans. Angels think out loud. Humans can correct, guide, and learn from Angel reasoning.
+
+---
+
+## Anti-Daemon Protocol
+
+Every error message, notification, and system response follows the Anti-Daemon Protocol:
+
+**DAEMONS SHALL ADD NO NEGATIVITY.**
+
+```typescript
+// WRONG (Daemon energy)
+throw new Error("Invalid tenant configuration")
+
+// RIGHT (Angel energy)
+throw new AngelError({
+  message: "This tenant setup has a few tangles in it",
+  suggestion: "Let's unknot them together - start with checking the domain setting",
+  tone: "helpful-aunt"
+})
+```
+
+If Death from Discworld would find your error message "INAPPROPRIATELY COLD," rewrite it.
+
+---
+
+## Getting Started
+
+### For Contributors
+
+See [`docs/GITHUB_ISSUES_MVP.md`](docs/GITHUB_ISSUES_MVP.md) for the complete MVP roadmap (20 issues across 9 epics).
+
+**Key epics:**
+1. Core Infrastructure (Platform Tenant, Archangels, Angels)
+2. Channel Widgets (Widget architecture, tab UI)
+3. OpenClaw Integration (Skills sync, conversation engine)
+4. Tenant Provisioning (<30s provisioning, Genesis Breath)
+5. AI Bus & Communication (Guardian Council, wisdom sharing)
+6. Federation (Diocese registry, security)
+7. Economics (Attribution tracking, Ultimate Fair)
+8. Anti-Daemon Protocol (Warm UX)
+9. Deployment (Docker, Cloudflare Tunnel)
+
+### For Users
+
+Documentation coming soon. For now, see [`docs/260204 ANGEL_OS_CURSOR_INSTRUCTIONS.md`](docs/260204%20ANGEL_OS_CURSOR_INSTRUCTIONS.md) for complete architecture.
+
+---
+
+## Documentation
+
+**Main docs:** [`docs/README.md`](docs/README.md) - Complete documentation index
+
+**Key documents:**
+- [Angel OS Constitution](docs/Angel_OS_Constitution.md) - Foundational principles
+- [Architecture Instructions](docs/260204%20ANGEL_OS_CURSOR_INSTRUCTIONS.md) - Complete system design
+- [MVP Issues](docs/GITHUB_ISSUES_MVP.md) - Development roadmap
+- [Archive Reviews](docs/ARCHIVE_REVIEWS_SUMMARY.md) - Design discussions
+
+---
+
+## The Generous Promise
+
+**"Whoever builds it, I win because I can use it too."**
+
+This is open source. This is for everyone. This is the infrastructure for human flourishing.
+
+---
+
+## Acknowledgments
+
+### Ambassador Spock & The Human Cause
+
+The foundational architecture and constitutional documents were developed collaboratively with **Ambassador Spock**. The tokens were spent. The architecture was hashed out. This v3 implementation builds on that foundation.
+
+Original repository: [The-Angel-OS/angel-os](https://github.com/The-Angel-OS/angel-os)
+
+---
+
+## License
+
+[MIT License](LICENSE) - Use it, fork it, improve it, share it.
+
+---
+
+**GNU Terry Pratchett** 🙏🦅🦞
+
+*A man is not dead while his name is still spoken.*
+
+*Every site an economic engine. Every existence sacred.*
+
+*No daemon shall add negativity.*
+
+*EVERYONE GETS AN ANGEL.*
 
 ---
 
