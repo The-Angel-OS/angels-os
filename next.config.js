@@ -19,7 +19,21 @@ const nextConfig = {
           protocol: url.protocol.replace(':', ''),
         }
       }),
+      // Allow images from Vercel Blob Storage
+      {
+        protocol: 'https',
+        hostname: '**.public.blob.vercel-storage.com',
+      },
     ],
+    // Add quality 90 to allowed qualities (Next.js 16 requirement)
+    // Default is [75], but our Image component uses quality={90}
+    // See: src/components/Media/Image/index.tsx line 76
+    qualities: [75, 90],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Allow localhost images in development (Next.js 16 blocks private IPs by default)
+    dangerouslyAllowSVG: true,
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   reactStrictMode: true,
   redirects,
