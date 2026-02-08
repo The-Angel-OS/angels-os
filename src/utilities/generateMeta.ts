@@ -1,26 +1,39 @@
 import type { Metadata } from 'next'
 
-import type { Page, Post, Product } from '../payload-types'
+import type { Media, Page, Post, Config } from '../payload-types'
 
 import { mergeOpenGraph } from './mergeOpenGraph'
+import { getServerSideURL } from './getURL'
 
-export const generateMeta = async (args: { doc: Page | Post | Product }): Promise<Metadata> => {
-  const { doc } = args || {}
+const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
+  const serverUrl = getServerSideURL()
 
-  const ogImage =
-    typeof doc?.meta?.image === 'object' &&
-    doc.meta.image !== null &&
-    'url' in doc.meta.image &&
-    `${process.env.NEXT_PUBLIC_SERVER_URL}${doc.meta.image.url}`
+  let url = serverUrl + '/website-template-OG.webp'
+
+  if (image && typeof image === 'object' && 'url' in image) {
+    const ogUrl = image.sizes?.og?.url
+
+    url = ogUrl ? serverUrl + ogUrl : serverUrl + image.url
+  }
+
+  return url
+}
+
+export const generateMeta = async (args: {
+  doc: Partial<Page> | Partial<Post> | null
+}): Promise<Metadata> => {
+  const { doc } = args
+
+  const ogImage = getImageURL(doc?.meta?.image)
+
+  const title = doc?.meta?.title
+    ? doc?.meta?.title + ' | Payload Website Template'
+    : 'Payload Website Template'
 
   return {
     description: doc?.meta?.description,
     openGraph: mergeOpenGraph({
-      ...(doc?.meta?.description
-        ? {
-            description: doc?.meta?.description,
-          }
-        : {}),
+      description: doc?.meta?.description || '',
       images: ogImage
         ? [
             {
@@ -28,9 +41,9 @@ export const generateMeta = async (args: { doc: Page | Post | Product }): Promis
             },
           ]
         : undefined,
-      title: doc?.meta?.title || doc?.title || 'Payload Ecommerce Template',
+      title,
       url: Array.isArray(doc?.slug) ? doc?.slug.join('/') : '/',
     }),
-    title: doc?.meta?.title || doc?.title || 'Payload Ecommerce Template',
+    title,
   }
 }

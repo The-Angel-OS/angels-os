@@ -1,166 +1,130 @@
-/**
- * Conversation Engine – manages flow and state of LEO conversations.
- * Uses context and intents to guide interactions and decision-making.
- *
- * @see https://github.com/The-Angel-OS/angel-os/blob/main/src/utilities/ConversationEngine.ts
- *
- * TODOs:
- * - Explicit intent handling (NLU integration)
- * - State transitions (state machine)
- * - Integration with NLU/NLG services
- * - Managing conversation history and memory more effectively
- */
-import type { ConversationContext, DetectedIntent, MessageContent } from '@/types/conversation'
+// Task 004: Conversation Engine
+// Manages the flow and state of conversations, utilizing context and intents
+// to guide interactions and decision-making.
+
+import { MessageContent } from '../types/messages';
+import { ConversationContext, DetectedIntent } from '../types/conversation';
+// import { BusinessIntelligenceData } from '../types/business-intelligence'; // If needed for state decisions
 
 interface ConversationTurn {
-  turnId: string
-  userInput?: MessageContent
-  agentResponse?: MessageContent
-  timestamp: Date
-  intentsDetected?: DetectedIntent[]
+  turnId: string;
+  userInput?: MessageContent;
+  agentResponse?: MessageContent;
+  timestamp: Date;
+  intentsDetected?: DetectedIntent[];
+  // other relevant data for a turn
 }
 
 export class ConversationEngine {
-  private context: ConversationContext
+  private context: ConversationContext;
 
-  constructor(initialContext?: Partial<ConversationContext>) {
-    this.context = {
-      conversationId: initialContext?.conversationId ?? `conv_${Date.now()}`,
-      phase: initialContext?.phase ?? 'greeting',
-      intentHistory: initialContext?.intentHistory ?? [],
-      activeBusinessGoals: initialContext?.activeBusinessGoals ?? [],
-      userPreferences: initialContext?.userPreferences ?? {},
-      sessionMemory: initialContext?.sessionMemory ?? {},
-      ...initialContext,
-    }
+  constructor(initialContext?: ConversationContext) {
+    this.context = initialContext || {
+      conversationId: `conv_eng_${Date.now()}`,
+      phase: 'greeting',
+      intentHistory: [],
+      activeBusinessGoals: [],
+      userPreferences: {},
+      sessionMemory: {},
+      // Initialize other fields as necessary
+    };
+    console.log(`[ConversationEngine] Initialized with context for conversation: ${this.context.conversationId}`);
   }
 
   /**
-   * Process incoming message and update conversation state.
-   * @returns Response message content (from LEO) or null.
+   * Processes an incoming message and updates the conversation state.
+   * @param message The incoming message content.
+   * @returns A response message content (e.g., from Leo AI) or null.
    */
-  public async handleIncomingMessage(message: MessageContent): Promise<MessageContent | null> {
+  public handleIncomingMessage(message: MessageContent): MessageContent | null {
+    console.log(`[ConversationEngine] Handling incoming message type: ${message.type} for conversation: ${this.context.conversationId}`);
+    // 1. Update context using MessageProcessor (or parts of its logic)
+    //    - This might involve calling MessageProcessor.generateConversationContext or similar logic here.
+    //    - For now, a simplified update:
     if (message.metadata?.intent) {
-      this.context.intentHistory.push(message.metadata.intent)
-      this.context.currentPrimaryIntent = message.metadata.intent.name
+      this.context.intentHistory.push(message.metadata.intent);
+      this.context.currentPrimaryIntent = message.metadata.intent.name;
     }
-    this.context.lastUserMessageTimestamp = new Date()
+    this.context.lastUserMessageTimestamp = new Date();
 
-    const nextAction = this.determineNextAction(message)
+    // 2. Determine next action based on current context and message
+    //    (e.g., route to NLU, generate AI response, trigger an action)
+    const nextAction = this.determineNextAction(message);
 
+    // 3. If AI response is needed, generate it (placeholder)
     if (nextAction === 'generate_ai_response') {
-      const aiResponse = await this.generatePlaceholderResponse(message)
+      const aiResponse = this.generatePlaceholderAiResponse(message);
       if (aiResponse.metadata?.intent) {
-        this.context.intentHistory.push(aiResponse.metadata.intent)
+         this.context.intentHistory.push(aiResponse.metadata.intent);
       }
-      this.context.lastAgentMessageTimestamp = new Date()
-      return aiResponse
+      this.context.lastAgentMessageTimestamp = new Date();
+      return aiResponse;
     }
 
-    return null
+    // TODO: Implement more sophisticated conversation flow logic.
+    // This could involve state machines, rule engines, or NLU/NLG services.
+
+    console.log(`[ConversationEngine] Incoming message processed. Current phase: ${this.context.phase}`);
+    return null; // No direct response generated in this basic stub
   }
 
+  /**
+   * Determines the next action based on the current message and conversation context.
+   * (Placeholder for more complex routing logic)
+   */
   private determineNextAction(message: MessageContent): string {
-    const text = (message.text ?? '').toLowerCase()
-    if (
-      text.includes('help') ||
-      message.metadata?.intent?.name === 'request_assistance'
-    ) {
-      this.context.phase = 'problem_solving'
-      return 'generate_ai_response'
+    // Simple logic: if user asks for help, respond. Otherwise, just log.
+    if (message.text?.toLowerCase().includes('help') || message.metadata?.intent?.name === 'request_assistance') {
+      this.context.phase = 'problem_solving';
+      return 'generate_ai_response';
     }
-    if (text.includes('go to') || text.includes('navigate') || text.includes('take me')) {
-      this.context.phase = 'navigation'
-      return 'generate_ai_response'
-    }
-    if (
-      text.includes('post') ||
-      text.includes('product') ||
-      text.includes('show me') ||
-      text.includes('list') ||
-      text.includes('find')
-    ) {
-      this.context.phase = 'data_entry'
-      return 'generate_ai_response'
-    }
-    return 'generate_ai_response'
+    // Could check context.phase, context.currentIntent etc.
+    return 'log_message';
   }
 
-  private async generatePlaceholderResponse(original: MessageContent): Promise<MessageContent> {
-    const payload = this.context.sessionMemory?.payload as import('payload').Payload | undefined
-    const agent = this.context.agent
-    const agentName = agent?.displayName ?? 'LEO'
-    const text = (original.text ?? '').toLowerCase()
-    let responseText: string
-
-    // Check agent capabilities before performing actions
-    const capabilities = agent?.capabilities ?? ['query_posts', 'query_products', 'manage_spaces']
-
-    if (payload) {
-      if ((text.includes('post') || text.includes('posts')) && capabilities.includes('query_posts')) {
-        const result = await payload.find({
-          collection: 'posts',
-          limit: 5,
-          depth: 0,
-          overrideAccess: true,
-          where: { _status: { equals: 'published' } },
-          sort: '-publishedOn',
-          select: { title: true, slug: true },
-        })
-        const posts = result.docs ?? []
-        responseText =
-          posts.length > 0
-            ? `${agentName}: Here are recent posts:\n${posts.map((p) => `- ${p.title} (/posts/${p.slug})`).join('\n')}`
-            : `${agentName}: No published posts yet. Check back soon!`
-      } else if ((text.includes('product') || text.includes('products')) && capabilities.includes('query_products')) {
-        const result = await payload.find({
-          collection: 'products',
-          limit: 5,
-          depth: 0,
-          overrideAccess: true,
-          where: { _status: { equals: 'published' } },
-          sort: '-updatedAt',
-          select: { title: true, slug: true },
-        })
-        const products = result.docs ?? []
-        responseText =
-          products.length > 0
-            ? `${agentName}: Here are products:\n${products.map((p) => `- ${p.title} (/products/${p.slug})`).join('\n')}`
-            : `${agentName}: No products yet.`
-      } else if (!capabilities.includes('query_posts') && !capabilities.includes('query_products')) {
-        // Agent doesn't have capability for this request
-        responseText = `${agentName}: I'm not able to help with that. ${agent?.personality ? agent.personality : 'Let me know if there\'s something else I can assist with.'}`
-      } else {
-        // Apply personality if available
-        const personalityHint = agent?.personality ? `\n\n(${agent.personality})` : ''
-        responseText = `${agentName}: I received "${original.text ?? 'your message'}". I can help with posts, products, navigation, or general assistance. What would you like?${personalityHint}`
-      }
-    } else {
-      responseText = `${agentName}: I received "${original.text ?? 'your message'}". How can I assist you?`
-    }
+  /**
+   * Generates a placeholder AI response.
+   */
+  private generatePlaceholderAiResponse(originalMessage: MessageContent): MessageContent {
+    const responseText = `Leo AI: I received your message "${originalMessage.text || 'with non-text content'}". How can I assist you further?`;
     return {
       type: 'text',
       text: responseText,
       metadata: {
         conversationId: this.context.conversationId,
-        intent: {
-          intentId: `intent_${Date.now()}`,
-          name: 'provide_assistance_offer',
-          confidence: 0.9,
-          entities: [],
-          timestamp: new Date(),
-          sourceType: 'agent_suggestion',
-          isPrimary: true,
-        },
+        intent: { // Placeholder intent for the AI response
+            intentId: `intent_${Date.now()}`,
+            name: 'provide_assistance_offer',
+            confidence: 0.9,
+            entities: [],
+            timestamp: new Date(),
+            sourceType: 'agent_suggestion',
+            isPrimary: true,
+        }
+        // other metadata
       },
-    }
+    };
   }
 
+  /**
+   * Retrieves the current conversation context.
+   */
   public getCurrentContext(): ConversationContext {
-    return { ...this.context }
+    return { ...this.context };
   }
 
+  /**
+   * Updates specific parts of the conversation context.
+   * @param updates Partial ConversationContext object with fields to update.
+   */
   public updateContext(updates: Partial<ConversationContext>): void {
-    this.context = { ...this.context, ...updates }
+    this.context = { ...this.context, ...updates };
+    console.log(`[ConversationEngine] Context updated for conversation: ${this.context.conversationId}`, updates);
   }
+
+  // TODO: Add methods for:
+  // - Explicit intent handling
+  // - State transitions
+  // - Integration with NLU/NLG services
+  // - Managing conversation history and memory more effectively
 }
