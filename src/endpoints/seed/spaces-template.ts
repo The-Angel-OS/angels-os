@@ -116,13 +116,12 @@ export async function applySpaceTemplate(
   for (const ch of template.channels) {
     channelNames.push(ch.name)
 
-    // Create Channel document for structure (slug must be globally unique; prefix with space)
-    const channelSlug = `${template.slug}-${ch.name.replace(/\s+/g, '-').toLowerCase()}`
+    // Create Channel document — slugs are NOT globally unique in multi-tenant
     await payload.create({
       collection: 'channels',
       data: {
         name: ch.name,
-        slug: channelSlug,
+        slug: ch.name,
         description: ch.description,
         space: space.id,
         type: ch.type,

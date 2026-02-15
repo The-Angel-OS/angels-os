@@ -597,7 +597,7 @@ export const seed = async ({
   payload.logger.info(`  Angel OS seed complete!`)
   payload.logger.info(`  Platform tenant + ${totalTenants} endeavor tenants`)
   payload.logger.info(`  ${totalPosts} posts across all tenants`)
-  payload.logger.info(`  5 endeavor types exercised through provisioning engine`)
+  payload.logger.info(`  ${USE_CASE_TENANTS.length} endeavor types exercised through provisioning engine`)
   payload.logger.info(`  Archangel LEO + ${totalTenants} tenant LEO agents`)
   payload.logger.info(`${'═'.repeat(60)}\n`)
 }

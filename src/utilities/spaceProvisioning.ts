@@ -148,15 +148,14 @@ export async function createSpaceFromTemplate(
   })
 
   // 2. Create Channel documents linked to this Space
-  //    Slug must be globally unique — prefix with space slug to avoid collisions
+  //    Slugs are NOT globally unique — multi-tenant allows duplicate slugs across tenants
   const channelIds: (number | string)[] = []
   for (const ch of template.channels) {
-    const channelSlug = `${slug}-${ch.name.replace(/\s+/g, '-').toLowerCase()}`
     const channel = await payload.create({
       collection: 'channels',
       data: {
         name: ch.name,
-        slug: channelSlug,
+        slug: ch.name,
         description: ch.description,
         space: space.id,
         type: ch.type as 'general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social',
@@ -187,15 +186,12 @@ export async function addChannelToSpace(
   spaceId: number | string,
   channel: ChannelTemplate,
   req?: PayloadRequest,
-  spaceSlug?: string,
 ): Promise<number | string> {
-  const slugPrefix = spaceSlug || String(spaceId)
-  const channelSlug = `${slugPrefix}-${channel.name.replace(/\s+/g, '-').toLowerCase()}`
   const created = await payload.create({
     collection: 'channels',
     data: {
       name: channel.name,
-      slug: channelSlug,
+      slug: channel.name,
       description: channel.description,
       space: spaceId as number,
       type: channel.type as 'general',
