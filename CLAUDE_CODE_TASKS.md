@@ -1,507 +1,232 @@
-# Claude Code GUI - Angel OS Dashboard Migration Tasks
+# Angel OS — UI Refinement & Image Fix Session
 
-**Goal:** Port polished dashboard from Rev 2 to Rev 3, rename UnifiedChatControl → ChatControl
-
----
-
-## Task 1: Survey Rev 2 Dashboard
-
-**Project:** `C:\Dev\Angel-OS`
-
-**Prompt for Claude Code:**
-```
-Survey the dashboard implementation in this project:
-
-1. FIND the main dashboard component
-   - Search for files containing "dashboard" or "Dashboard"
-   - Look in src/ or app/ directories
-   - Identify the root layout component
-
-2. LOCATE UnifiedChatControl
-   - Search for "UnifiedChatControl" in codebase
-   - Find all related subcomponents
-   - Identify dependencies and imports
-
-3. ANALYZE styling approach
-   - Find CSS/SCSS/module files for dashboard
-   - Look for transparent background solutions
-   - Note any glassmorphism effects (backdrop-filter)
-   - Check dark mode implementations
-
-4. DOCUMENT structure
-   Create a markdown file listing:
-   - All dashboard-related components (with file paths)
-   - Props/configuration used
-   - Dependencies (npm packages, local utilities)
-   - Styling files and approach
-   - Any API/data fetching patterns
-
-5. CREATE migration bundle
-   Copy all identified files to:
-   C:\Dev\Angel-OS\MIGRATION_BUNDLE\
-   
-   Organize as:
-   /components/
-   /hooks/
-   /styles/
-   /utils/
-   MANIFEST.md (list of all files + notes)
-
-OUTPUT: Complete migration bundle with documentation
-```
+**Date**: February 15, 2026
+**Context**: Seed completes successfully, Vercel deploys READY, but frontend has display issues.
 
 ---
 
-## Task 2: Port to Rev 3
+## Priority 1: Fix Images Not Displaying on Frontend
 
-**Project:** `C:\Dev\angels-os`
+### Symptoms
+- Images load in `/admin` (Payload CMS dashboard) but show as broken on `/posts`, home page hero, etc.
+- Post cards show alt text "Straight metallic shapes with a blue gradient" instead of images
+- Console: `image:1 Failed to load resource: the server responded with a status of 400 ()`
+- Console: `/undefined/api/users/me` (404) — `NEXT_PUBLIC_SERVER_URL` is undefined client-side
 
-**Prerequisites:**
-- Task 1 complete (migration bundle created)
-- Rev 3 codebase ready at C:\Dev\angels-os
+### Root Causes
 
-**Prompt for Claude Code:**
+**1. Tenant resolution fails on `angels-os.vercel.app`**
+- Default tenant domain is `localhost` (seeded at `src/endpoints/seed/index.ts` line ~159)
+- `fetchTenantByDomain('angels-os.vercel.app')` returns `null`
+- This cascades: Header returns no nav items, Footer returns nothing, tenant-scoped queries fail
+
+**2. `NEXT_PUBLIC_SERVER_URL` may be missing/empty in Vercel env vars**
+- Console shows `/undefined/api/users/me` — meaning the client bundle has `undefined` for this var
+- `NEXT_PUBLIC_*` vars are embedded at build time; if not set in Vercel, the client gets nothing
+- Check Vercel Dashboard → angels-os → Settings → Environment Variables
+
+**3. Image URL construction breaks with undefined server URL**
+- `src/components/Media/Image/index.tsx` line 54: `src = url?.startsWith('http') ? url : \`${process.env.NEXT_PUBLIC_SERVER_URL}${url}\``
+- When `NEXT_PUBLIC_SERVER_URL` is undefined, non-blob URLs become `undefined/media/image.jpg`
+
+### Files to Fix
+
+#### `src/utilities/fetchTenantByDomain.ts`
+Add fallback to the "default" tenant when no domain match found:
+```typescript
+export async function fetchTenantByDomain(host: string): Promise<Tenant | null> {
+  const domain = host?.split(':')[0]?.toLowerCase() || 'localhost'
+  const payload = await getPayload({ config: configPromise })
+
+  const tenants = await payload.find({
+    collection: 'tenants',
+    where: { domain: { equals: domain } },
+    limit: 1, depth: 1,
+  })
+  if (tenants.docs?.[0]) return tenants.docs[0]
+
+  // Fallback: return "default" tenant so site always works
+  const defaults = await payload.find({
+    collection: 'tenants',
+    where: { slug: { equals: 'default' } },
+    limit: 1, depth: 1,
+  })
+  return defaults.docs?.[0] ?? null
+}
 ```
-Port the dashboard from C:\Dev\Angel-OS\MIGRATION_BUNDLE\ to this project:
 
-1. CREATE component structure
-   src/components/ChatControl/
-   ├── ChatControl.tsx (main entry - rename from UnifiedChatControl)
-   ├── MinimalistChat.tsx (floating bubble mode)
-   ├── SingleChannelChat.tsx (embedded mode)
-   ├── MultiChannelChat.tsx (full dashboard mode)
-   ├── components/
-   │   ├── MessageList.tsx
-   │   ├── MessageInput.tsx
-   │   ├── Sidebar.tsx
-   │   ├── ChannelList.tsx
-   │   ├── MemberList.tsx
-   │   ├── Header.tsx
-   │   └── FloatingButton.tsx
-   ├── hooks/
-   │   ├── useMessages.ts
-   │   ├── useChannel.ts
-   │   └── useAIBus.ts
-   └── styles/
-       ├── minimalist.module.css
-       ├── single-channel.module.css
-       └── multi-channel.module.css
+#### `src/components/Media/Image/index.tsx` (line 54)
+Harden URL construction:
+```typescript
+if (url?.startsWith('http')) {
+  src = url
+} else if (url) {
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || ''
+  src = serverUrl ? `${serverUrl}${url}` : url
+}
+```
 
-2. COPY and ADAPT files from migration bundle:
-   - Copy all components to new structure
-   - Rename UnifiedChatControl → ChatControl
-   - Update all imports for Rev 3 paths
-   - Fix relative path references
+#### Vercel Environment Variable
+Set `NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app` in Vercel project settings (Settings → Environment Variables → Production). Then redeploy.
 
-3. INTEGRATE with Payload CMS:
-   - Import Messages collection from src/collections/Messages
-   - Import Channels collection from src/collections/Channels
-   - Use Rev 3 authentication context
-   - Connect to AI Bus system (if implemented)
+---
 
-4. IMPLEMENT ChatControlConfig type:
-   ```typescript
-   interface ChatControlConfig {
-     mode: 'minimalist' | 'single-channel' | 'multi-channel'
-     minimalist?: { ... }
-     singleChannel?: { ... }
-     multiChannel?: { ... }
-     theme?: 'light' | 'dark' | 'auto'
-     aiBus?: { enabled: boolean, visibility?: string }
-   }
-   ```
+## Priority 2: Fix Navigation Links Not Showing
 
-5. APPLY styling fixes for transparent backgrounds:
-   - Use rgba() with 0.95+ opacity
-   - Add backdrop-filter: blur(12px-20px)
-   - Ensure strong borders for definition
-   - Add proper shadows for depth
-   - Test light and dark modes
+### Symptom
+No navigation links visible at top of page when signed in. Only the logo and cart icon appear.
 
-6. CREATE three mode implementations:
-   - MinimalistChat: Floating button that expands to chat
-   - SingleChannelChat: Embedded single channel view
-   - MultiChannelChat: Full dashboard with sidebar
+### Root Cause
+`src/components/Header/index.tsx` requires a `tenantId` to fetch header nav items. When tenant is `null` (domain resolution fails), `header` is `null`, so `navItems` is empty.
 
-7. TEST each mode:
-   - Minimalist: Floats bottom-right, expands smoothly
-   - Single: Embedded in page, shows one channel
-   - Multi: Full dashboard with channel list + sidebar
+### Fix
+Once Priority 1's `fetchTenantByDomain` fallback is in place, this resolves automatically. The default tenant HAS nav items seeded: Home, Shop, Posts, Account (see `src/endpoints/seed/index.ts` lines 567-572).
 
-EXPECTED OUTPUT:
-- Working ChatControl component in src/components/ChatControl/
-- All three modes functional
-- Styled with fixed transparency
-- Integrated with Payload CMS
-- No console errors
-- Responsive design
+### Enhancement
+Add Login/Logout to header. Currently shows Dashboard link when authenticated but no auth controls:
+
+In `src/components/Header/index.client.tsx`, add to the right side:
+```tsx
+{user ? (
+  <>
+    <span className="text-sm text-muted-foreground hidden md:inline">{user.email}</span>
+    <Link href="/logout" className="text-sm hover:text-foreground transition">Logout</Link>
+  </>
+) : (
+  <Link href="/login" className="text-sm hover:text-foreground transition">Login</Link>
+)}
 ```
 
 ---
 
-## Task 3: Styling Refinement
+## Priority 3: Add Chat Interface Icon on Brochure Site
 
-**Project:** `C:\Dev\angels-os`
+### Current State
+`FloatingBubble` (`src/components/ChatControl/FloatingBubble.tsx`) only renders when `status === 'loggedIn'` — correct to prevent 403 polling errors.
 
-**Prerequisites:**
-- Task 2 complete (components ported)
-
-**Prompt for Claude Code:**
-```
-Refine the ChatControl styling:
-
-PROBLEM TO SOLVE:
-Transparent backgrounds made text hard to read in Rev 2.
-Solution was found but needs verification in Rev 3.
-
-1. REVIEW FloatingButton styling:
-   File: src/components/ChatControl/components/FloatingButton.tsx
-   
-   Ensure these CSS properties are applied:
-   - background: rgba(31, 41, 55, 0.95) /* near-opaque */
-   - backdrop-filter: blur(12px)
-   - -webkit-backdrop-filter: blur(12px)
-   - box-shadow: strong shadows for depth
-   - border: 1px solid rgba(255, 255, 255, 0.1)
-
-2. REVIEW chat window styling:
-   File: src/components/ChatControl/styles/minimalist.module.css
-   
-   Ensure:
-   - Light mode: rgba(255, 255, 255, 0.98)
-   - Dark mode: rgba(31, 41, 55, 0.98)
-   - backdrop-filter: blur(20px)
-   - Proper borders and shadows
-
-3. TEST on various backgrounds:
-   - White background
-   - Dark background
-   - Image background
-   - Gradient background
-   
-   Verify text is always readable.
-
-4. CHECK responsive behavior:
-   - Mobile (320px)
-   - Tablet (768px)
-   - Desktop (1024px+)
-   
-   Ensure floating button and chat window resize properly.
-
-5. VERIFY dark mode:
-   - Toggle theme
-   - Check all text is readable
-   - Verify background opacity is correct
-   - Test transitions are smooth
-
-6. OPTIMIZE performance:
-   - Minimize repaints
-   - Use CSS transforms for animations
-   - Lazy load heavy components
-   - Debounce scroll/resize handlers
-
-OUTPUT:
-- Styling issues resolved
-- Transparent backgrounds readable on all backgrounds
-- Smooth animations
-- Responsive across devices
-- Dark mode fully functional
+### Enhancement
+Show a teaser chat icon for unauthenticated users linking to login:
+```tsx
+export function FloatingBubble() {
+  const { status } = useAuth()
+  if (status === 'loggedIn') {
+    return <ChatControl mode="minimalist" spaceId="1" channelSlug="general" position="bottom-right" />
+  }
+  // Teaser for unauthenticated users
+  return (
+    <Link href="/login" className="fixed bottom-6 right-6 bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:scale-110 transition-transform z-50" title="Chat with LEO">
+      <MessageCircle className="w-6 h-6" />
+    </Link>
+  )
+}
 ```
 
 ---
 
-## Task 4: Configuration System
+## Priority 4: UI Color Palette Refinement
 
-**Project:** `C:\Dev\angels-os`
+### Design Direction
+Reference: The second screenshot (localhost:3000/dashboard/chat) shows the target aesthetic:
+- Dark sidebar with clean section headers (COLLABORATION, COMMUNICATION, SYSTEM)
+- Chat interface with distinct message bubbles
+- Channel list with type badges (chat, project, files, notes)
+- Professional, polished feel with muted neutral colors
 
-**Prerequisites:**
-- Task 2 & 3 complete
+### Target Color Palette
+Move from the current bright-on-black to **muted neutral dark**:
 
-**Prompt for Claude Code:**
-```
-Implement flexible configuration system for ChatControl:
+| Element | Current | Target |
+|---------|---------|--------|
+| Background | Pure black/very dark | Deep charcoal `#1a1d23` |
+| Cards/Surfaces | Dark | Slightly lighter `#22262e` with subtle borders |
+| Primary accent | Bright green | Muted teal/sage `#6b9080` |
+| Text primary | White | Off-white `#e8e8e8` |
+| Text secondary | Gray | Muted gray `#9ca3af` |
+| Interactive hover | Bold color shift | Subtle lightening |
+| Danger/Warning | Bright red | Muted coral `#e07a6e` |
+| Borders | None or harsh | Subtle `rgba(255,255,255,0.08)` |
 
-1. CREATE configuration type:
-   File: src/components/ChatControl/types.ts
-   
-   Define ChatControlConfig with all options for three modes.
-   (See DASHBOARD_MIGRATION.md Phase 2 for full interface)
+### Files to Update
+- `src/app/[locale]/(app)/globals.css` — CSS custom properties
+- `tailwind.config.mjs` — Tailwind theme colors
+- `src/components/Header/index.client.tsx` — Header styling
+- `src/components/Footer/index.tsx` — Footer styling
+- `src/components/CollectionArchive/PostCard.tsx` — Post card design
+- Dashboard components in `src/app/[locale]/(app)/dashboard/`
 
-2. IMPLEMENT mode switcher:
-   In ChatControl.tsx, add logic to render correct component based on mode:
-   - 'minimalist' → MinimalistChat
-   - 'single-channel' → SingleChannelChat
-   - 'multi-channel' → MultiChannelChat
+### Post Cards (`/posts` page)
+- Need proper image display with aspect-ratio containers
+- Hover effects (subtle scale + shadow)
+- Better typography hierarchy (title, date, excerpt)
+- Consistent card sizing with grid layout
 
-3. CREATE example configurations:
-   File: src/components/ChatControl/examples.ts
-   
-   Export example configs for:
-   - minimalistConfig (floating bubble)
-   - singleChannelConfig (embedded)
-   - multiChannelConfig (full dashboard)
-
-4. BUILD configuration UI (optional):
-   File: src/components/ChatControl/ConfigEditor.tsx
-   
-   Admin interface to:
-   - Select mode
-   - Configure options visually
-   - Preview changes live
-   - Export config JSON
-
-5. DOCUMENT configuration options:
-   File: src/components/ChatControl/README.md
-   
-   Explain:
-   - Each configuration option
-   - When to use each mode
-   - How to customize
-   - Example use cases
-
-6. TEST all configurations:
-   - Create test page with all three modes
-   - Verify each config applies correctly
-   - Test switching between modes
-   - Check edge cases (missing options, invalid values)
-
-OUTPUT:
-- Flexible configuration system
-- Three working modes
-- Example configs
-- Documentation
-- (Optional) Config UI for admins
-```
+### Hero Section
+- Should display hero image with text overlay
+- Gradient overlay for text readability
+- CTA buttons with muted accent colors
 
 ---
 
-## Task 5: Payload Integration
+## Priority 5: Console Error Fixes
 
-**Project:** `C:\Dev\angels-os`
+### `/undefined/api/users/me` (404)
+**Cause**: `NEXT_PUBLIC_SERVER_URL` undefined in client bundle
+**Fix**: Set env var in Vercel, redeploy
 
-**Prerequisites:**
-- Tasks 2, 3, 4 complete
+### `postMessage` origin mismatch
+**Cause**: `http://localhost:3000` vs `https://angels-os.vercel.app`
+**File**: Check `src/components/LivePreviewListener/index.tsx` — may have hardcoded localhost
+**Fix**: Ensure it reads server URL from env
 
-**Prompt for Claude Code:**
-```
-Integrate ChatControl with Payload CMS:
-
-1. CONNECT to Messages collection:
-   File: src/collections/Messages.ts
-   
-   ChatControl should:
-   - Fetch messages from Payload API
-   - Send new messages to Payload
-   - Subscribe to real-time updates (if available)
-   - Handle pagination (load more)
-
-2. CONNECT to Channels collection:
-   File: src/collections/Channels.ts
-   
-   ChatControl should:
-   - Fetch channel list
-   - Subscribe to channel updates
-   - Handle channel switching
-   - Show channel metadata (name, description, members)
-
-3. USE authentication context:
-   Import auth from Payload context
-   - Get current user
-   - Show user avatar/name
-   - Apply permissions (who can see what)
-   - Handle unauthorized states
-
-4. IMPLEMENT AI Bus integration:
-   If AI Bus is implemented in Rev 3:
-   - Send messages with visibility metadata
-   - Filter messages by visibility level
-   - Show Angel presence indicators
-   - Handle network-wide messages
-
-5. APPLY Constitutional prompts:
-   File: constitutional-prompt.ts (if exists)
-   
-   When sending messages:
-   - Include constitutional prompt as system context
-   - Validate responses for anti-demonic content
-   - Show warning if response violates constitution
-
-6. HANDLE errors gracefully:
-   - Network failures
-   - Permission errors
-   - Invalid data
-   - Rate limiting
-   
-   Show user-friendly error messages.
-
-7. TEST integration:
-   - Send message → appears in Payload admin
-   - Create channel → appears in ChatControl
-   - Switch users → permissions apply
-   - Test AI Bus visibility levels
-
-OUTPUT:
-- Full Payload CMS integration
-- Real-time messaging working
-- Permissions enforced
-- AI Bus connected (if available)
-- Constitutional alignment applied
-- Error handling complete
-```
+### Lazy-loaded images replaced with placeholders
+**Cause**: Browser intervention for images that never became visible
+**Fix**: Set `priority` prop on above-the-fold images (hero, first row of post cards)
 
 ---
 
-## Task 6: Final Testing & Polish
+## Technical Reference
 
-**Project:** `C:\Dev\angels-os`
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/app/[locale]/(app)/layout.tsx` | Root layout — tenant resolution, Header/Footer |
+| `src/components/Header/index.tsx` | Server component — fetches header by tenantId |
+| `src/components/Header/index.client.tsx` | Client component — renders nav items |
+| `src/components/Media/Image/index.tsx` | Image component — URL construction (line 54) |
+| `src/utilities/fetchTenantByDomain.ts` | Tenant resolution by domain |
+| `src/utilities/getURL.ts` | URL helpers (getServerSideURL, etc.) |
+| `src/endpoints/seed/index.ts` | 9-phase seed script |
+| `src/fields/simpleSlugField.ts` | Slug field override (unique: false) |
+| `src/payload.config.ts` | Payload config with Vercel Blob Storage |
+| `next.config.js` | Next.js config with image remotePatterns |
+| `scripts/drop-unique-slugs.cjs` | Direct SQL to fix slug uniqueness |
+| `src/components/ChatControl/FloatingBubble.tsx` | Floating chat bubble |
 
-**Prerequisites:**
-- All previous tasks complete
-
-**Prompt for Claude Code:**
+### Environment Variables (Vercel)
 ```
-Final testing and polish:
-
-1. VISUAL TESTING:
-   Test on:
-   - Chrome (latest)
-   - Firefox (latest)
-   - Safari (latest, if available)
-   - Edge (latest)
-   
-   Verify:
-   - No visual glitches
-   - Animations smooth
-   - Transparent backgrounds perfect
-   - Responsive layout works
-
-2. FUNCTIONAL TESTING:
-   Test:
-   - Send message → arrives immediately
-   - Receive message → shows in real-time
-   - Switch channels → loads correctly
-   - Toggle modes → switches smoothly
-   - Dark/light theme → applies correctly
-
-3. ACCESSIBILITY TESTING:
-   Check:
-   - Keyboard navigation works
-   - Screen reader compatible
-   - Focus indicators visible
-   - Color contrast meets WCAG AA
-   - ARIA labels present
-
-4. PERFORMANCE TESTING:
-   Measure:
-   - Initial load time
-   - Message send latency
-   - Channel switch speed
-   - Memory usage
-   - Network requests
-   
-   Target:
-   - < 2s initial load
-   - < 100ms interactions
-   - < 50MB memory
-   - Minimal network requests
-
-5. EDGE CASES:
-   Test:
-   - No internet connection
-   - Slow network
-   - Very long messages
-   - Many channels (100+)
-   - Empty channels
-   - No permissions
-
-6. POLISH:
-   - Fix any discovered bugs
-   - Improve animations
-   - Optimize bundle size
-   - Add loading states
-   - Improve error messages
-
-7. DOCUMENT:
-   Update:
-   - README.md (usage guide)
-   - DEVELOPMENT.md (dev guide)
-   - CHANGELOG.md (what changed)
-   - Migration notes (for future reference)
-
-OUTPUT:
-- Production-ready ChatControl
-- All tests passing
-- Documentation complete
-- No known bugs
-- Performance optimized
+NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app   ← MUST BE SET
+DATABASE_URI=postgresql://postgres:K3nD3v!host@74.208.87.243:5432/angels
+PAYLOAD_SECRET=(existing value)
+BLOB_READ_WRITE_TOKEN=(existing value)
 ```
 
----
+### Slug Uniqueness Note
+Slug indexes are now non-unique (dropped via `scripts/drop-unique-slugs.cjs`). If `payload migrate:fresh` is ever run, indexes get recreated as UNIQUE. Run the script again: `node scripts/drop-unique-slugs.cjs`
 
-## Quick Reference
+### Seed Data Summary
+- 4 tenants: Angel OS (default), Angel OS Platform, Serenity Massage & Wellness, Hays Cactus Farm
+- Header + Footer nav items for default and use-case tenants
+- 15 channels across 2 use-case tenant spaces
+- 13 posts, 4 media items, products, categories, orders
 
-**Task Order:**
-1. Survey (Rev 2) → Extract components
-2. Port (Rev 3) → Copy and adapt
-3. Style → Fix transparency issues
-4. Configure → Build flexible system
-5. Integrate → Connect Payload CMS
-6. Test → Final polish
+### Chrome MCP Testing
+Available tabs in Chrome browser (Claude MCP tab group):
+- Vercel Deployments dashboard
+- Payload Admin at angels-os.vercel.app/admin
 
-**Estimated Time:**
-- Task 1: 30-60 min (survey + extract)
-- Task 2: 60-90 min (port + adapt)
-- Task 3: 30-45 min (styling)
-- Task 4: 45-60 min (configuration)
-- Task 5: 60-90 min (integration)
-- Task 6: 45-60 min (testing)
-
-**Total:** 4-6 hours (Claude Code does heavy lifting)
-
----
-
-## Success Indicators
-
-**Know it's working when:**
-- ✅ Three modes all render correctly
-- ✅ Transparent backgrounds look professional
-- ✅ Messages send/receive in Payload
-- ✅ No console errors
-- ✅ Responsive on all devices
-- ✅ Dark mode works perfectly
-- ✅ Configuration system is intuitive
-
-**Ready for production when:**
-- ✅ All tests pass
-- ✅ Documentation complete
-- ✅ Performance acceptable
-- ✅ Accessible (WCAG AA)
-- ✅ No known bugs
-- ✅ Code reviewed
-
----
-
-## Stripe Integration (Later)
-
-**When ready for Ultimate Fair splits:**
-
-Claude Code already understands Stripe context, so integration will be straightforward:
-
-```
-Add Stripe to ChatControl:
-
-1. Install @stripe/stripe-js
-2. Add payment UI for paid features
-3. Implement 60/20/15/5 splits
-4. Track transactions in AI Bus
-5. Show Justice Fund contributions
-6. Enable tipping in chat
-
-Claude Code will handle Stripe setup naturally.
-```
-
-**For now:** Focus on dashboard migration. Payments come later.
-
----
-
-**Start with Task 1 in Claude Code GUI!** 🚀
+After fixes, verify:
+1. Navigation links appear in header (Home, Shop, Posts, Account + Dashboard when logged in)
+2. Images display on `/posts` page and home page hero
+3. Chat bubble appears (teaser for guests, full chat for authenticated)
+4. No console errors related to `undefined` URLs
+5. Muted color palette applied consistently
