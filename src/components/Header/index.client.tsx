@@ -81,7 +81,16 @@ export function HeaderClient({ header, tenant }: Props) {
             ) : null}
           </div>
 
-          <div className="flex justify-end md:w-1/3 gap-4">
+          <div className="flex justify-end md:w-1/3 gap-4 items-center">
+            {user ? (
+              <Link href="/logout" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                Logout
+              </Link>
+            ) : (
+              <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                Login
+              </Link>
+            )}
             <Suspense fallback={<OpenCartButton />}>
               <Cart />
             </Suspense>
