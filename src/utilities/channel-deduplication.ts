@@ -98,7 +98,7 @@ export async function cleanupDuplicateChannels(
     const channelGroups: Record<string, any[]> = {}
     
     for (const channel of channels.docs) {
-      const key = `${channel.name}-${channel.channelType}`
+      const key = `${channel.name}-${channel.type ?? 'general'}`
       if (!channelGroups[key]) {
         channelGroups[key] = []
       }

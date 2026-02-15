@@ -57,18 +57,18 @@ export class CalendarMessageService {
       return null
     }
 
-    const details = content.systemData?.details
+    const details = content.systemData?.details as Record<string, unknown> | undefined
     if (!details) return null
     return {
       id: messageId,
-      title: details.title || 'Untitled Event',
-      description: details.description || '',
-      startDate: details.startDate || '',
-      endDate: details.endDate || details.startDate || '',
-      startTime: details.startTime || '09:00',
-      endTime: details.endTime || '10:00',
-      color: details.color || 'bg-blue-500',
-      category: details.category || 'meeting'
+      title: (details.title as string) || 'Untitled Event',
+      description: (details.description as string) || '',
+      startDate: (details.startDate as string) || '',
+      endDate: (details.endDate as string) || (details.startDate as string) || '',
+      startTime: (details.startTime as string) || '09:00',
+      endTime: (details.endTime as string) || '10:00',
+      color: (details.color as string) || 'bg-blue-500',
+      category: (details.category as string) || 'meeting'
     }
   }
 

@@ -4,6 +4,8 @@
 
 Angel OS is a multi-tenant e-commerce platform with sovereign AI intelligence, built on Payload 3.0 and the "Ultimate Fair" economic model. This doc is the technical blueprint for the MVP — use it alongside the [Constitution](Angel_OS_Constitution.md) and [implementation plan](ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md).
 
+**Architecture (Feb 2026):** Angel OS = OpenClaw + Angel OS Constitution; this repo is **Angel OS Core** (Payload CMS–powered CMS with widgets/blocks). Each Angel is the configuration storage; OpenClaw UI is not imported here. Future: VAPI.AI-style bots and Twilio (or equivalent) 800 numbers per Angel (e.g. 1-800-Angels with Nimue routing). See [ANGEL_OS_ARCHITECTURE_OVERVIEW.md](ANGEL_OS_ARCHITECTURE_OVERVIEW.md).
+
 ## Core Infrastructure ✅
 
 - **Payload 3.0** with official E-commerce template

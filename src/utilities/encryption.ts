@@ -24,17 +24,16 @@ export function encrypt(text: string): string {
   try {
     const key = getEncryptionKey()
     const iv = crypto.randomBytes(IV_LENGTH)
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+    const cipher = crypto.createCipheriv(ALGORITHM, key as crypto.CipherKey, iv as crypto.BinaryLike)
     
-    const encrypted = Buffer.concat([
-      cipher.update(text, 'utf8'),
-      cipher.final()
-    ])
+    const updateBuf = cipher.update(text, 'utf8')
+    const finalBuf = cipher.final()
+    const encrypted = Buffer.concat([updateBuf, finalBuf] as Uint8Array[])
     
     const tag = cipher.getAuthTag()
     
-    // Combine IV + tag + encrypted data
-    return Buffer.concat([iv, tag, encrypted]).toString('hex')
+    // Combine IV + tag + encrypted data (Buffer extends Uint8Array; cast for strict TS)
+    return Buffer.concat([iv, tag, encrypted] as Uint8Array[]).toString('hex')
   } catch (error) {
     console.error('Encryption error:', error)
     throw new Error('Failed to encrypt data')
@@ -58,13 +57,13 @@ export function decrypt(encryptedText: string): string {
     const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH)
     const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH)
     
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
-    decipher.setAuthTag(tag)
+    const decipher = crypto.createDecipheriv(ALGORITHM, key as crypto.CipherKey, iv as crypto.BinaryLike)
+    decipher.setAuthTag(tag as NodeJS.ArrayBufferView)
     
     const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final()
-    ])
+      decipher.update(encrypted as NodeJS.ArrayBufferView),
+      decipher.final(),
+    ] as Uint8Array[])
     
     return decrypted.toString('utf8')
   } catch (error) {

@@ -13,6 +13,7 @@ import { GeistMono } from 'geist/font/mono'
 import React from 'react'
 import { TenantFonts } from '@/components/TenantFonts'
 import { TenantStyles } from '@/components/TenantStyles'
+import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import './globals.css'
@@ -75,6 +76,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Header tenant={tenant} />
           <main>{children}</main>
           <Footer tenant={tenant} />
+          <FloatingBubble />
         </Providers>
       </body>
     </html>

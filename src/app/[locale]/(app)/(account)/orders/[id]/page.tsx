@@ -132,7 +132,7 @@ export default async function Order({ params, searchParams }: PageProps) {
             <p className="font-mono uppercase text-primary/50 mb-1 text-sm">Order Date</p>
             <p className="text-lg">
               <time dateTime={order.createdAt}>
-                {formatDateTime({ date: order.createdAt, format: 'MMMM dd, yyyy' })}
+                {formatDateTime(order.createdAt)}
               </time>
             </p>
           </div>

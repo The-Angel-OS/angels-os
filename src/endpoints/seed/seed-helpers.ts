@@ -69,7 +69,6 @@ export async function seedPlatformTenant(
   const platformTenant = await payload.create({
     collection: 'tenants',
     data: {
-      id: PLATFORM_TENANT_ID,
       name: 'Angel OS Platform',
       slug: PLATFORM_TENANT_ID,
       type: 'platform',

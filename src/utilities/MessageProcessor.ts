@@ -105,7 +105,7 @@ export class MessageProcessor {
     let newContext: ConversationContext = {
       ...(previousContext || {
         conversationId: conversationId,
-        phase: 'discovery', // Default phase
+        phase: 'general', // Default phase
         intentHistory: [],
         activeBusinessGoals: [],
         userPreferences: {},

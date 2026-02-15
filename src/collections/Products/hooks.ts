@@ -48,37 +48,18 @@ export const afterProductChange: CollectionAfterChangeHook = async ({
   
   try {
     // Create AI Bus message (Constitutional visibility: tenant)
+    const contentText = `Product inventory ${change > 0 ? 'increased' : 'decreased'}: ${doc.title} (prev: ${previousInventory}, now: ${currentInventory}, sku: ${doc.sku || 'n/a'})`
     const message = await req.payload.create({
       collection: 'messages',
       data: {
-        content: {
-          type: 'system',
-          text: `Product inventory ${change > 0 ? 'increased' : 'decreased'}: ${doc.title}`,
-          metadata: {
-            event: 'product_inventory_change',
-            productId: doc.id,
-            productTitle: doc.title,
-            previousInventory,
-            currentInventory,
-            change,
-            sku: doc.sku,
-            lowStockThreshold: doc.lowStockThreshold || 10,
-            isLowStock: currentInventory <= (doc.lowStockThreshold || 10),
-            timestamp: new Date().toISOString()
-          }
-        },
-        messageType: 'system',
-        visibility: 'tenant', // Constitutional default (Article IV.2)
-        priority: currentInventory === 0 ? 'urgent' : 
-                  currentInventory <= (doc.lowStockThreshold || 10) ? 'high' : 'normal',
-        space: doc.space, // Associate with product's space
+        content: contentText,
+        messageType: 'inventory',
+        space: doc.space,
+        channel: 'inventory',
         tenant: tenantId,
-        sender: req.user?.id || '1', // System user
-        // Constitutional basis for this message
-        constitutionalNote: operation === 'create' 
-          ? 'New product added to inventory - observable via AI Bus per Article IV.4'
-          : 'Inventory change detected - Angels may monitor and respond per distributed intelligence pattern'
-      }
+        author: (req.user?.id as number) ?? 1,
+      },
+      req,
     })
     
     console.log(`[Constitutional Hook] Product inventory change message created: ${message.id}`)
@@ -89,26 +70,14 @@ export const afterProductChange: CollectionAfterChangeHook = async ({
       await req.payload.create({
         collection: 'messages',
         data: {
-          content: {
-            type: 'system',
-            text: `⚠️ CRITICAL: ${doc.title} is ${currentInventory === 0 ? 'out of stock' : 'critically low'}`,
-            metadata: {
-              event: 'critical_low_stock',
-              productId: doc.id,
-              productTitle: doc.title,
-              currentInventory,
-              lowStockThreshold: doc.lowStockThreshold,
-              needsReorder: true
-            }
-          },
-          messageType: 'system',
-          visibility: 'tenant',
-          priority: 'urgent',
+          content: `⚠️ CRITICAL: ${doc.title} is ${currentInventory === 0 ? 'out of stock' : 'critically low'} (current: ${currentInventory}, threshold: ${doc.lowStockThreshold ?? 10})`,
+          messageType: 'inventory',
           space: doc.space,
+          channel: 'inventory',
           tenant: tenantId,
-          sender: req.user?.id || '1',
-          constitutionalNote: 'Critical inventory alert - Angels should prioritize response'
-        }
+          author: (req.user?.id as number) ?? 1,
+        },
+        req,
       })
     }
     

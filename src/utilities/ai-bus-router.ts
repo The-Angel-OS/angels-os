@@ -57,13 +57,17 @@ export class AIBusRouter {
    * Constitutional default: tenant visibility (Article IV.2)
    */
   route(message: Message): MessageRoute {
-    const visibility = (message.visibility as Visibility) || 'tenant' // Constitutional default
+    // Visibility may be added to Messages collection; until then default to tenant (Constitutional default)
+    const visibility: Visibility = (message as Message & { visibility?: Visibility }).visibility || 'tenant'
     const recipients: AIBusSubscription[] = []
     
-    // Get message tenant (for filtering)
-    const messageTenantId = typeof message.tenant === 'string' 
-      ? message.tenant 
-      : message.tenant?.id
+    // Get message tenant (for filtering) - tenant can be number (id) or populated Tenant
+    const messageTenantId =
+      typeof message.tenant === 'number'
+        ? String(message.tenant)
+        : typeof message.tenant === 'object' && message.tenant !== null
+          ? String((message.tenant as Tenant).id)
+          : undefined
     
     // Route based on visibility level
     switch (visibility) {
@@ -98,10 +102,10 @@ export class AIBusRouter {
    */
   private getPrivateRecipients(message: Message, tenantId: string | undefined): AIBusSubscription[] {
     const recipients: AIBusSubscription[] = []
-    const senderId = typeof message.sender === 'string' ? message.sender : message.sender?.id
+    const authorId = typeof message.author === 'number' ? String(message.author) : (message.author as User)?.id != null ? String((message.author as User).id) : undefined
     
-    // Always include sender
-    const senderSub = this.subscriptions.get(senderId)
+    // Always include author (sender)
+    const senderSub = authorId ? this.subscriptions.get(authorId) : undefined
     if (senderSub) recipients.push(senderSub)
     
     // TODO: Parse message content for @mentions and add those users
@@ -160,17 +164,22 @@ export class AIBusRouter {
    * Check if message matches subscription filters
    */
   private matchesFilters(message: Message, subscription: AIBusSubscription): boolean {
-    // Channel filter
+    // Channel filter (Message.channel is string - channel name)
     if (subscription.channelFilters && subscription.channelFilters.length > 0) {
-      const channelId = typeof message.channel === 'string' ? message.channel : message.channel?.id
-      if (!channelId || !subscription.channelFilters.includes(channelId)) {
+      const channelKey = message.channel
+      if (!channelKey || !subscription.channelFilters.includes(channelKey)) {
         return false
       }
     }
     
-    // Space filter
+    // Space filter (Message.space is number | Space)
     if (subscription.spaceFilters && subscription.spaceFilters.length > 0) {
-      const spaceId = typeof message.space === 'string' ? message.space : message.space?.id
+      const spaceId =
+        typeof message.space === 'number'
+          ? String(message.space)
+          : typeof message.space === 'object' && message.space !== null
+            ? String((message.space as { id: number }).id)
+            : undefined
       if (!spaceId || !subscription.spaceFilters.includes(spaceId)) {
         return false
       }

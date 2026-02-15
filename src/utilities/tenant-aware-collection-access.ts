@@ -1,7 +1,14 @@
 import type { Access } from 'payload'
+import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { authenticated } from '../access/authenticated'
 import { authenticatedOrPublished } from '../access/authenticatedOrPublished'
 import { getCurrentTenantId } from './invisible-tenant-system'
+
+function isPlatformAdmin(user: unknown): boolean {
+  if (!user || typeof user !== 'object' || !('roles' in user)) return false
+  const roles = (user as { roles?: string[] }).roles
+  return Array.isArray(roles) && (roles.includes('super_admin') || roles.includes('archangel') || roles.includes('admin'))
+}
 
 /**
  * Creates tenant-aware access control for collections
@@ -11,21 +18,21 @@ import { getCurrentTenantId } from './invisible-tenant-system'
 export function createTenantAwareCollectionAccess() {
   const create: Access = ({ req }) => {
     if (!req.user) return false
-    if (req.user?.globalRole === 'super_admin') return true
-    if (req.user?.globalRole === 'platform_admin') return true
+    if (isSuperAdmin(req.user as import('@/payload-types').User)) return true
+    if (isPlatformAdmin(req.user)) return true
     return authenticated({ req })
   }
 
   const delete_: Access = ({ req }) => {
     if (!req.user) return false
-    if (req.user?.globalRole === 'super_admin') return true
-    if (req.user?.globalRole === 'platform_admin') return true
+    if (isSuperAdmin(req.user as import('@/payload-types').User)) return true
+    if (isPlatformAdmin(req.user)) return true
     return authenticated({ req })
   }
 
   const read: Access = ({ req }): any => {
     // Super_admin and platform_admin users can see content from selected tenant via chooser
-    if (req.user?.globalRole === 'super_admin' || req.user?.globalRole === 'platform_admin') {
+    if (isSuperAdmin(req.user as import('@/payload-types').User) || isPlatformAdmin(req.user)) {
       const currentTenantId = getCurrentTenantId(req) // Respects cookie selection for super_admin
       if (currentTenantId) {
         return {
@@ -38,12 +45,12 @@ export function createTenantAwareCollectionAccess() {
       return true
     }
 
-    // Regular users: ALWAYS filter by their assigned tenant (no chooser)
-    if (req.user?.tenant) {
-      const tenantId = typeof req.user.tenant === 'object' ? req.user.tenant.id : req.user.tenant
+    // Regular users: filter by tenant from membership / context
+    const userTenantId = getCurrentTenantId(req)
+    if (userTenantId) {
       return {
         tenant: {
-          equals: tenantId,
+          equals: userTenantId,
         },
       }
     }
@@ -54,9 +61,9 @@ export function createTenantAwareCollectionAccess() {
 
   const update: Access = ({ req }): any => {
     if (!req.user) return false
-    
+
     // Super_admin and platform_admin users can update content from selected tenant
-    if (req.user?.globalRole === 'super_admin' || req.user?.globalRole === 'platform_admin') {
+    if (isSuperAdmin(req.user as import('@/payload-types').User) || isPlatformAdmin(req.user)) {
       const currentTenantId = getCurrentTenantId(req) // Respects cookie selection for super_admin
       if (currentTenantId) {
         return {
@@ -69,12 +76,12 @@ export function createTenantAwareCollectionAccess() {
       return true
     }
 
-    // Regular users: ALWAYS filter by their assigned tenant (no chooser)
-    if (req.user?.tenant) {
-      const tenantId = typeof req.user.tenant === 'object' ? req.user.tenant.id : req.user.tenant
+    // Regular users: filter by tenant from membership / context
+    const updateTenantId = getCurrentTenantId(req)
+    if (updateTenantId) {
       return {
         tenant: {
-          equals: tenantId,
+          equals: updateTenantId,
         },
       }
     }

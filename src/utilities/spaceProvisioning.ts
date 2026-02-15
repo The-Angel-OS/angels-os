@@ -1,393 +1,203 @@
-﻿// @ts-nocheck
-import type { Payload } from 'payload'
-import type { Space, User as PayloadUser } from '@/payload-types'
+/**
+ * Space provisioning - creates Spaces + Channels from endeavor-type templates.
+ *
+ * Endeavor types determine what channels get created:
+ * - service-provider: booking, client management, portfolio
+ * - retail-commerce: products, orders, support
+ * - creator-content: community, premium content, live streams
+ * - booking-based: scheduling, consultations, availability
+ * - custom: just general + announcements
+ */
+import type { Payload, PayloadRequest } from 'payload'
 
 export interface ChannelTemplate {
   name: string
-  type: 'text' | 'voice' | 'video' | 'announcement'
+  type: string
   description: string
-  isPublic: boolean
-  permissions?: {
-    canPost?: string[]
-    canRead?: string[]
-    canManage?: string[]
-  }
-  businessMetadata?: {
-    department: string
-    priority: 'low' | 'normal' | 'high' | 'urgent'
-    workflow?: string
-  }
+  isDefault?: boolean
 }
+
+export type EndeavorType =
+  | 'service-provider'
+  | 'retail-commerce'
+  | 'creator-content'
+  | 'booking-based'
+  | 'custom'
 
 export interface SpaceTemplate {
   name: string
   description: string
-  spaceType: 'business' | 'creator' | 'community' | 'project'
-  industry: string
+  endeavorType: EndeavorType
   channels: ChannelTemplate[]
-  defaultRoles?: string[]
-  businessContext?: {
-    industry: string
-    department: string
-    workflowStage: string
-  }
+  examples: string
 }
 
-// Default Channel Templates by Category
-export const DEFAULT_CHANNELS = {
-  // Basic Business Channels
-  business: [
-    {
-      name: 'general',
-      type: 'text' as const,
-      description: 'General discussion and team updates',
-      isPublic: true,
-      businessMetadata: {
-        department: 'all',
-        priority: 'normal' as const,
-        workflow: 'collaboration'
-      }
-    },
-    {
-      name: 'announcements',
-      type: 'announcement' as const,
-      description: 'Important company announcements',
-      isPublic: true,
-      permissions: {
-        canPost: ['admin', 'manager'],
-        canRead: ['everyone'],
-        canManage: ['admin']
-      },
-      businessMetadata: {
-        department: 'leadership',
-        priority: 'high' as const,
-        workflow: 'communication'
-      }
-    },
-    {
-      name: 'projects',
-      type: 'text' as const,
-      description: 'Project coordination and updates',
-      isPublic: true,
-      businessMetadata: {
-        department: 'operations',
-        priority: 'normal' as const,
-        workflow: 'project-management'
-      }
-    },
-    {
-      name: 'voice-meeting',
-      type: 'voice' as const,
-      description: 'Voice channel for team meetings',
-      isPublic: true,
-      businessMetadata: {
-        department: 'all',
-        priority: 'normal' as const,
-        workflow: 'meetings'
-      }
-    }
-  ],
+// ─── Channel sets by endeavor type ───────────────────────────────
 
-  // Creator/Content Channels
-  creator: [
-    {
-      name: 'content-planning',
-      type: 'text' as const,
-      description: 'Content ideas and planning',
-      isPublic: false,
-      businessMetadata: {
-        department: 'content',
-        priority: 'high' as const,
-        workflow: 'content-creation'
-      }
-    },
-    {
-      name: 'community',
-      type: 'text' as const,
-      description: 'Community discussion and fan interaction',
-      isPublic: true,
-      businessMetadata: {
-        department: 'community',
-        priority: 'normal' as const,
-        workflow: 'engagement'
-      }
-    },
-    {
-      name: 'premium-content',
-      type: 'text' as const,
-      description: 'Exclusive content for paying subscribers',
-      isPublic: false,
-      permissions: {
-        canRead: ['subscriber', 'premium'],
-        canPost: ['creator', 'admin'],
-        canManage: ['admin']
-      },
-      businessMetadata: {
-        department: 'monetization',
-        priority: 'high' as const,
-        workflow: 'premium-content'
-      }
-    },
-    {
-      name: 'live-streams',
-      type: 'video' as const,
-      description: 'Live streaming and video content',
-      isPublic: true,
-      businessMetadata: {
-        department: 'content',
-        priority: 'high' as const,
-        workflow: 'live-content'
-      }
-    }
-  ],
+const COMMON_CHANNELS: ChannelTemplate[] = [
+  { name: 'general', type: 'general', description: 'General discussion', isDefault: true },
+  { name: 'announcements', type: 'announcements', description: 'Important updates and news' },
+]
 
-  // Service Provider Channels
-  service: [
-    {
-      name: 'client-requests',
-      type: 'text' as const,
-      description: 'Client service requests and inquiries',
-      isPublic: false,
-      businessMetadata: {
-        department: 'customer-service',
-        priority: 'high' as const,
-        workflow: 'client-management'
-      }
-    },
-    {
-      name: 'consultations',
-      type: 'voice' as const,
-      description: 'Voice channel for client consultations',
-      isPublic: false,
-      businessMetadata: {
-        department: 'consulting',
-        priority: 'high' as const,
-        workflow: 'client-meetings'
-      }
-    },
-    {
-      name: 'portfolio',
-      type: 'text' as const,
-      description: 'Showcase work and portfolio items',
-      isPublic: true,
-      businessMetadata: {
-        department: 'marketing',
-        priority: 'normal' as const,
-        workflow: 'portfolio-management'
-      }
-    }
-  ]
-}
+const SERVICE_CHANNELS: ChannelTemplate[] = [
+  ...COMMON_CHANNELS,
+  { name: 'bookings', type: 'support', description: 'Service bookings and appointments' },
+  { name: 'client-requests', type: 'support', description: 'Client service requests' },
+  { name: 'portfolio', type: 'general', description: 'Showcase work and services' },
+  { name: 'reviews', type: 'general', description: 'Client reviews and testimonials' },
+]
 
-// Space Templates by Business Type
-export const SPACE_TEMPLATES: Record<string, SpaceTemplate> = {
-  'business-general': {
-    name: 'General Business',
-    description: 'A comprehensive business workspace for team collaboration',
-    spaceType: 'business',
-    industry: 'general',
-    channels: DEFAULT_CHANNELS.business,
-    businessContext: {
-      industry: 'general',
-      department: 'all',
-      workflowStage: 'active'
-    }
-  },
+const COMMERCE_CHANNELS: ChannelTemplate[] = [
+  ...COMMON_CHANNELS,
+  { name: 'products', type: 'sales', description: 'Product catalog and updates' },
+  { name: 'orders', type: 'support', description: 'Order tracking and support' },
+  { name: 'support', type: 'support', description: 'Customer support' },
+]
 
-  'creator-content': {
-    name: 'Content Creator Hub',
-    description: 'A creator space for content planning, community, and monetization',
-    spaceType: 'creator',
-    industry: 'content-creation',
-    channels: DEFAULT_CHANNELS.creator,
-    businessContext: {
-      industry: 'content-creation',
-      department: 'content',
-      workflowStage: 'active'
-    }
-  },
+const CREATOR_CHANNELS: ChannelTemplate[] = [
+  ...COMMON_CHANNELS,
+  { name: 'community', type: 'social', description: 'Community discussion' },
+  { name: 'content-updates', type: 'general', description: 'New content announcements' },
+  { name: 'premium', type: 'general', description: 'Exclusive content for subscribers' },
+]
 
+const BOOKING_CHANNELS: ChannelTemplate[] = [
+  ...COMMON_CHANNELS,
+  { name: 'scheduling', type: 'support', description: 'Appointment scheduling' },
+  { name: 'consultations', type: 'support', description: 'Consultation requests' },
+  { name: 'availability', type: 'general', description: 'Available time slots and updates' },
+]
+
+// ─── Space Templates ─────────────────────────────────────────────
+
+export const SPACE_TEMPLATES: Record<EndeavorType, SpaceTemplate> = {
   'service-provider': {
-    name: 'Service Provider Workspace',
-    description: 'Professional service provider space for client management',
-    spaceType: 'business',
-    industry: 'professional-services',
-    channels: DEFAULT_CHANNELS.service,
-    businessContext: {
-      industry: 'professional-services',
-      department: 'client-services',
-      workflowStage: 'active'
-    }
+    name: 'Service Provider',
+    description: 'For businesses that provide services - massage, pressure washing, cleaning, consulting',
+    endeavorType: 'service-provider',
+    channels: SERVICE_CHANNELS,
+    examples: 'Massage parlor, pressure washing, singing telegrams, nail salon',
   },
-
-  'kendev-co': {
-    name: 'KenDev.Co - Full Stack Development',
-    description: 'Professional software development and consulting services',
-    spaceType: 'business',
-    industry: 'technology',
-    channels: [
-      ...DEFAULT_CHANNELS.business,
-      {
-        name: 'client-projects',
-        type: 'text' as const,
-        description: 'Active client project discussions',
-        isPublic: false,
-        businessMetadata: {
-          department: 'development',
-          priority: 'high' as const,
-          workflow: 'project-delivery'
-        }
-      },
-      {
-        name: 'code-reviews',
-        type: 'text' as const,
-        description: 'Code review discussions and technical feedback',
-        isPublic: false,
-        businessMetadata: {
-          department: 'development',
-          priority: 'high' as const,
-          workflow: 'quality-assurance'
-        }
-      },
-      {
-        name: 'portfolio-showcase',
-        type: 'text' as const,
-        description: 'Showcase completed projects and technical achievements',
-        isPublic: true,
-        businessMetadata: {
-          department: 'marketing',
-          priority: 'normal' as const,
-          workflow: 'portfolio-management'
-        }
-      }
-    ],
-    businessContext: {
-      industry: 'technology',
-      department: 'development',
-      workflowStage: 'active'
-    }
-  }
+  'retail-commerce': {
+    name: 'Retail & Commerce',
+    description: 'For businesses that sell products - farms, shops, equipment rental',
+    endeavorType: 'retail-commerce',
+    channels: COMMERCE_CHANNELS,
+    examples: 'Cactus farm, exotic birds, dumpster rental, equipment shop',
+  },
+  'creator-content': {
+    name: 'Creator & Content',
+    description: 'For creators, educators, and content-driven businesses',
+    endeavorType: 'creator-content',
+    channels: CREATOR_CHANNELS,
+    examples: 'Tours, rent-a-friend, coaching, online courses',
+  },
+  'booking-based': {
+    name: 'Booking & Scheduling',
+    description: 'For businesses centered around scheduling and appointments',
+    endeavorType: 'booking-based',
+    channels: BOOKING_CHANNELS,
+    examples: 'Interview scheduling, booth rentals, consulting, salon chairs',
+  },
+  custom: {
+    name: 'Custom',
+    description: 'Start with basics and add channels as needed',
+    endeavorType: 'custom',
+    channels: COMMON_CHANNELS,
+    examples: 'Anything else - build it your way',
+  },
 }
 
-// Provisioning Functions
+// ─── Provisioning functions ──────────────────────────────────────
+
+/**
+ * Create a Space + Channels from an endeavor template.
+ * Creates the Space document, then creates separate Channel documents
+ * linked to it via the `space` relationship.
+ */
 export async function createSpaceFromTemplate(
   payload: Payload,
-  templateKey: string,
-  tenantId: string,
-  ownerId: string,
-  customizations?: Partial<SpaceTemplate>
-): Promise<Space> {
-  const template = SPACE_TEMPLATES[templateKey]
+  endeavorType: EndeavorType,
+  tenantId: number | string,
+  customName?: string,
+  req?: PayloadRequest,
+): Promise<{ spaceId: number | string; channelIds: (number | string)[] }> {
+  const template = SPACE_TEMPLATES[endeavorType]
   if (!template) {
-    throw new Error(`Template "${templateKey}" not found`)
+    throw new Error(`Unknown endeavor type: ${endeavorType}`)
   }
 
-  // Merge template with customizations
-  const finalTemplate = { ...template, ...customizations }
+  const spaceName = customName || template.name
+  const slug = spaceName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 
-  const spaceData = {
-    name: finalTemplate.name,
-    slug: finalTemplate.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    description: finalTemplate.description,
-    tenant: tenantId,
-    spaceType: finalTemplate.spaceType,
-    isPublic: true,
-    members: [ownerId],
-    businessContext: finalTemplate.businessContext || {
-      industry: 'general',
-      department: 'all',
-      workflowStage: 'active'
-    },
-    alerts: [],
-    channels: finalTemplate.channels.map(channelTemplate => ({
-      name: channelTemplate.name,
-      type: channelTemplate.type,
-      description: channelTemplate.description,
-      isPublic: channelTemplate.isPublic,
-      businessMetadata: channelTemplate.businessMetadata || {
-        department: 'general',
-        priority: 'normal'
-      }
-    }))
-  }
-
+  // 1. Create the Space
   const space = await payload.create({
     collection: 'spaces',
-    data: spaceData,
+    data: {
+      name: spaceName,
+      slug,
+      description: template.description,
+      tenant: tenantId as number,
+      visibility: 'invite_only',
+    },
+    ...(req ? { req } : {}),
+    overrideAccess: true,
   })
 
-  return space as Space
+  // 2. Create Channel documents linked to this Space
+  const channelIds: (number | string)[] = []
+  for (const ch of template.channels) {
+    const channel = await payload.create({
+      collection: 'channels',
+      data: {
+        name: ch.name,
+        slug: ch.name,
+        description: ch.description,
+        space: space.id,
+        type: ch.type as 'general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social',
+        isDefault: ch.isDefault ?? false,
+      },
+      ...(req ? { req } : {}),
+      overrideAccess: true,
+    })
+    channelIds.push(channel.id)
+  }
+
+  return { spaceId: space.id, channelIds }
 }
 
+/** Get all available endeavor templates for the wizard. */
+export function getAvailableTemplates(): {
+  key: EndeavorType
+  template: SpaceTemplate
+}[] {
+  return (Object.entries(SPACE_TEMPLATES) as [EndeavorType, SpaceTemplate][]).map(
+    ([key, template]) => ({ key, template }),
+  )
+}
+
+/** Add a channel to an existing space. */
 export async function addChannelToSpace(
   payload: Payload,
-  spaceId: string,
-  channelTemplate: ChannelTemplate
-): Promise<Space> {
-  // Get the current space
-  const space = await payload.findByID({
-    collection: 'spaces',
-    id: spaceId,
-  }) as Space
-
-  // Add the new channel
-  const updatedChannels = [
-    ...(space.channels || []),
-    {
-      name: channelTemplate.name,
-      type: channelTemplate.type,
-      description: channelTemplate.description,
-      isPublic: channelTemplate.isPublic,
-      businessMetadata: channelTemplate.businessMetadata || {
-        department: 'general',
-        priority: 'normal'
-      }
-    }
-  ]
-
-  // Update the space with the new channel
-  const updatedSpace = await payload.update({
-    collection: 'spaces',
-    id: spaceId,
+  spaceId: number | string,
+  channel: ChannelTemplate,
+  req?: PayloadRequest,
+): Promise<number | string> {
+  const created = await payload.create({
+    collection: 'channels',
     data: {
-      channels: updatedChannels,
+      name: channel.name,
+      slug: channel.name,
+      description: channel.description,
+      space: spaceId as number,
+      type: channel.type as 'general',
+      isDefault: channel.isDefault ?? false,
     },
+    ...(req ? { req } : {}),
+    overrideAccess: true,
   })
-
-  return updatedSpace as Space
-}
-
-export async function provisionKenDevCoSpace(
-  payload: Payload,
-  tenantId: string,
-  ownerId: string
-): Promise<Space> {
-  return createSpaceFromTemplate(payload, 'kendev-co', tenantId, ownerId)
-}
-
-// Helper to get available templates
-export function getAvailableTemplates(): { key: string; template: SpaceTemplate }[] {
-  return Object.entries(SPACE_TEMPLATES).map(([key, template]) => ({
-    key,
-    template
-  }))
-}
-
-// Helper to create channels dynamically via API
-export function createChannelTemplate(
-  name: string,
-  type: 'text' | 'voice' | 'video' | 'announcement',
-  options: Partial<ChannelTemplate> = {}
-): ChannelTemplate {
-  return {
-    name,
-    type,
-    description: options.description || `${type} channel for ${name}`,
-    isPublic: options.isPublic ?? true,
-    permissions: options.permissions,
-    businessMetadata: options.businessMetadata || {
-      department: 'general',
-      priority: 'normal'
-    }
-  }
+  return created.id
 }
