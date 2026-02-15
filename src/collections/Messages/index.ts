@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { runWorkflows } from './hooks/runWorkflows'
+import { setAuthor } from './hooks/setAuthor'
 
 /**
  * Message within a Space.
@@ -86,6 +87,7 @@ export const Messages: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeChange: [setAuthor],
     afterChange: [runWorkflows],
   },
 }

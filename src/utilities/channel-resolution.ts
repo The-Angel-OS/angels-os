@@ -6,6 +6,7 @@ export interface ChannelResolutionOptions {
   channelType: 'photo_analysis' | 'document_processing' | 'data_collection' | 'monitoring' | 'intelligence_gathering' | 'economic_analysis' | 'chat' | 'communication'
   reportType: 'mileage_log' | 'collection_inventory' | 'business_inventory' | 'equipment_status' | 'asset_tracking' | 'quality_control' | 'maintenance_log' | 'customer_interaction' | 'general'
   tenantId: string | number
+  spaceId: number
   guardianAngelId?: string | number
   members?: string[]
   isPrivate?: boolean
@@ -25,23 +26,36 @@ export async function findOrCreateChannel(options: ChannelResolutionOptions) {
       channelType,
       reportType,
       tenantId,
+      spaceId,
       guardianAngelId = '1',
       members = [],
       isPrivate = false,
       metadata = {}
     } = options
 
-    // First, try to find existing channel
+    // Map channelType to Channel.type (general | support | sales | inventory | pdf | video | etc.)
+    const channelTypeToPayloadType: Record<string, 'general' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'announcements' | 'team' | 'social'> = {
+      chat: 'general',
+      communication: 'general',
+      photo_analysis: 'inventory',
+      document_processing: 'pdf',
+      data_collection: 'general',
+      monitoring: 'general',
+      intelligence_gathering: 'general',
+      economic_analysis: 'general',
+    }
+    const type = channelTypeToPayloadType[channelType] ?? 'general'
+
+    // First, try to find existing channel by name and space
     const existingChannels = await payload.find({
       collection: 'channels',
       where: {
         and: [
           { name: { equals: name } },
-          { tenantId: { equals: tenantId.toString() } },
-          { channelType: { equals: channelType } }
-        ]
+          { space: { equals: spaceId } },
+        ],
       },
-      limit: 1
+      limit: 1,
     })
 
     if (existingChannels.docs.length > 0) {
@@ -50,67 +64,19 @@ export async function findOrCreateChannel(options: ChannelResolutionOptions) {
       return channel
     }
 
-    // Create new channel if not found
+    // Create new channel if not found (only fields that exist on Channels collection)
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'channel'
     console.log(`🔧 Creating new channel: ${name}`)
     const newChannel = await payload.create({
       collection: 'channels',
       data: {
         name,
+        slug,
         description: `AI chat channel for ${name}`,
-        channelType,
-        reportType,
-        tenantId: tenantId.toString(), // Keep as string - field is type 'text'
-        guardianAngelId: guardianAngelId.toString(), // Keep as string - field is type 'text'
-        members: members.map(memberId => ({
-          user: parseInt(memberId), // Convert string ID to number
-          role: 'member' as const,
-          joinedAt: new Date().toISOString(),
-          permissions: {
-            canRead: true,
-            canWrite: true,
-            canManage: false
-          }
-        })),
-        isPrivate,
-        metadata,
-        feedConfiguration: {
-          feedSource: 'api_webhook',
-          feedSettings: { source: 'leo_chat' },
-          pollingInterval: 60,
-          filters: {
-            fileTypes: [],
-            keywords: [],
-            dateRange: {}
-          }
-        },
-        economics: {
-          phyleAffiliation: 'independent_agent',
-          model: {
-            processingFee: 0,
-            accuracyBonus: 0,
-            speedBonus: 0,
-            volumeDiscounts: [],
-            sharing: 'fixed_fee'
-          },
-          stats: {
-            totalEarned: 0,
-            itemsProcessed: 0,
-            accuracyScore: 0,
-            phyleRank: 0,
-            reputation: 0
-          }
-        },
-        processingRules: {
-          autoProcessing: true,
-          requiresHumanReview: false,
-          confidenceThreshold: 0.8,
-          customPrompts: [],
-          outputFormat: 'json'
-        },
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        space: spaceId,
+        type,
+      },
+      draft: false,
     })
 
     console.log(`✅ Created new channel: ${name} (ID: ${newChannel.id})`)
@@ -126,12 +92,13 @@ export async function findOrCreateChannel(options: ChannelResolutionOptions) {
  * Get the standard system channel for LEO AI conversations
  * This ensures all LEO implementations use the same channel
  */
-export async function getSystemChannel(tenantId: string | number = '1') {
+export async function getSystemChannel(tenantId: string | number = '1', spaceId: number = 1) {
   return findOrCreateChannel({
     name: 'system',
     channelType: 'chat',
     reportType: 'general',
     tenantId,
-    guardianAngelId: '1'
+    spaceId,
+    guardianAngelId: '1',
   })
 }

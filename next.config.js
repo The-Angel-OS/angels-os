@@ -31,9 +31,11 @@ const nextConfig = {
     qualities: [75, 90],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Allow localhost images in development (Next.js 16 blocks private IPs by default)
     dangerouslyAllowSVG: true,
-    unoptimized: process.env.NODE_ENV === 'development',
+    // Next.js 16 blocks private IPs (localhost) in production image optimization.
+    // On Vercel: images come from Blob Storage (public URL) — optimization works fine.
+    // Locally via `pnpm start`: images come from localhost — must skip optimization.
+    unoptimized: !process.env.VERCEL,
   },
   reactStrictMode: true,
   redirects,

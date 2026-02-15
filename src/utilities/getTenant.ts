@@ -71,7 +71,7 @@ export async function getCurrentTenant(): Promise<TenantWithTypedRefs | null> {
       return null
     }
 
-    return result.docs[0] as TenantWithTypedRefs
+    return result.docs[0] as unknown as TenantWithTypedRefs
   } catch (error) {
     console.error('Error getting current tenant:', error)
     return null
@@ -102,7 +102,7 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantWit
       return null
     }
 
-    return result.docs[0] as TenantWithTypedRefs
+    return result.docs[0] as unknown as TenantWithTypedRefs
   } catch (error) {
     console.error('Error getting tenant by subdomain:', error)
     return null
@@ -133,7 +133,7 @@ export async function getTenantBySlug(slug: string): Promise<TenantWithTypedRefs
       return null
     }
 
-    return result.docs[0] as TenantWithTypedRefs
+    return result.docs[0] as unknown as TenantWithTypedRefs
   } catch (error) {
     console.error('Error getting tenant by slug:', error)
     return null

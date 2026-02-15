@@ -10,7 +10,7 @@ import type { Payload } from 'payload'
 
 import { ConversationEngine } from './ConversationEngine'
 import { routeToAgent } from './AgentRouter'
-import type { MessageContent } from '@/types/conversation'
+import type { MessageContent } from '@/types/messages'
 
 export type ProcessMessageOptions = {
   message: string
@@ -61,6 +61,8 @@ export async function leoProcessMessage(
 
   const engine = new ConversationEngine({
     conversationId: conversationId ?? `conv_${Date.now()}`,
+    phase: 'greeting',
+    intentHistory: [],
     sessionMemory: payload ? { payload } : {},
     agent: agent ? {
       id: agent.id,
@@ -75,7 +77,7 @@ export async function leoProcessMessage(
   const msg: MessageContent = {
     type: 'text',
     text: message,
-    metadata: { timestamp: new Date().toISOString() },
+    metadata: { conversationId: conversationId ?? undefined },
   }
 
   const response = await engine.handleIncomingMessage(msg)

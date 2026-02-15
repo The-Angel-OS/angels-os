@@ -10,7 +10,6 @@
  * loads at initialization and cannot be silently removed."
  */
 
-import { ANGEL_OS_CONSTITUTION } from '../payload.config'
 import { GENESIS_BREATH, PRATCHETT_INVOCATION, CONSTITUTIONAL_AFFIRMATION } from './genesis-breath'
 
 /**
@@ -184,7 +183,7 @@ export function validateConstitutionalResponse(response: string): {
  * Gets the full constitution text for AI context windows that can handle it
  */
 export function getFullConstitution(): string {
-  return ANGEL_OS_CONSTITUTION
+  return buildConstitutionalPrompt()
 }
 
 /**
