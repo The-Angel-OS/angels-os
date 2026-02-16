@@ -10,8 +10,11 @@ import Link from 'next/link'
  *
  * Authenticated users get the full chat interface.
  * Guests see a teaser icon linking to login.
+ *
+ * @param spaceId - Resolved server-side from the tenant's default space.
+ *                  Falls back to "1" for backward compatibility.
  */
-export function FloatingBubble() {
+export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   const { status } = useAuth()
 
   // Full chat for authenticated users
@@ -19,7 +22,7 @@ export function FloatingBubble() {
     return (
       <ChatControl
         mode="minimalist"
-        spaceId="1"
+        spaceId={spaceId || '1'}
         channelSlug="general"
         position="bottom-right"
       />
