@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 16, 2026 (Session 5d — Core Perfection: Bookings, Home Page, Access Control)
+**Last Updated**: February 16, 2026 (Session 5e — Dashboard Separation, LEO Sidebar, Shopping Cart)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -200,8 +200,35 @@ Added 2 new action tools to LEO's tool_use capabilities:
 ### Commits (Session 5c)
 - `1a771c5` — feat: Session 5c — The Herald's Gospel: cosmological deepening of LEO's soul
 
+### Commits (Session 5e)
+- TBD — feat: Session 5e — Dashboard separation, LEO sidebar, shopping cart tools
+
+### Key Changes (Session 5e)
+- **Dashboard Route Group**: Moved dashboard to `(dashboard)` route group with its own HTML shell layout — no more Header/Footer/FloatingBubble on dashboard pages
+- **Collapsible Sidebar**: New `DashboardSidebar` client component with collapse/expand, role-gated navigation, active state tracking
+- **LEO Chat Sidebar**: New `sidebar` mode for ChatControl — right-side collapsible panel replaces floating bubble on dashboard
+- **Navigation**: "Messages" → "Spaces" in COMMUNICATION section
+- **Shopping Cart Tools**: New `add_to_cart` and `view_cart` LEO tools for conversational shopping
+- **GitHub Issues**: Created #48-#57 for all Session 5e features (dashboard layout, chat sidebar, spaces, channels, invitations, widgets, booking blocks, comments fix, LEO cart)
+
+### Key Files Modified (Session 5e)
+| File | Change |
+|------|--------|
+| `src/app/[locale]/(dashboard)/layout.tsx` | NEW — Dashboard HTML shell (no brochure chrome) |
+| `src/app/[locale]/(dashboard)/dashboard/layout.tsx` | NEW — Dashboard layout with sidebar + header + LEO sidebar |
+| `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx` | NEW — Collapsible nav sidebar with role-gated sections |
+| `src/app/[locale]/(dashboard)/dashboard/DashboardLEOSidebar.tsx` | NEW — Client wrapper for LEO sidebar chat |
+| `src/components/ChatControl/SidebarChat.tsx` | NEW — Sidebar mode for ChatControl |
+| `src/components/ChatControl/types.ts` | Added `sidebar` to ChatMode union |
+| `src/components/ChatControl/index.tsx` | Added sidebar case + export |
+| `src/utilities/leo-data-tools.ts` | Added `add_to_cart` + `view_cart` tools + handlers |
+| `src/utilities/ConversationEngine.ts` | Shopping Cart Tools section in system prompt |
+| `src/endpoints/leo-stream.ts` | Same cart tools section in streaming prompt |
+| `src/app/[locale]/(dashboard)/dashboard/spaces/page.tsx` | Full-bleed Spaces view (removed cramped height) |
+| `src/app/[locale]/(dashboard)/dashboard/leo/page.tsx` | Adjusted height calc for new dashboard header |
+
 ### Commits (Session 5d)
-- (pending) — feat: Session 5d — Core perfection: bookings, home page, access control, OpenClaw guide
+- `2121359` — feat: Session 5d — Core perfection: bookings, home page, access control, OpenClaw guide
 
 ### Key Files Modified (Session 5d)
 | File | Change |

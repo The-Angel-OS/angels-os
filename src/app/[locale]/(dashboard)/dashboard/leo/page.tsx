@@ -44,7 +44,7 @@ export default async function LEOPage({
   }
 
   return (
-    <div className="-m-6 flex h-[calc(100vh-0px)] flex-col">
+    <div className="-m-6 flex h-[calc(100vh-3.5rem)] flex-col">
       <LEOChat spaceId={defaultSpaceId} userName={userName} />
     </div>
   )

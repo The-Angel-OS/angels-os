@@ -201,6 +201,36 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['bookingId', 'status'],
     },
   },
+  // ─── Shopping Cart Tools ─────────────────────────────────────────
+  {
+    name: 'add_to_cart',
+    description:
+      'Add a product to the user\'s shopping cart. Use when a user says "add X to my cart", "I want to buy X", or similar purchase intent. Search for the product first using query_products if you don\'t know the product ID. Always confirm what you\'re adding.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productId: {
+          type: 'number',
+          description: 'The ID of the product to add',
+        },
+        quantity: {
+          type: 'number',
+          description: 'Number of items to add (default: 1)',
+        },
+      },
+      required: ['productId'],
+    },
+  },
+  {
+    name: 'view_cart',
+    description:
+      'View the current contents of the user\'s shopping cart. Use when a user asks "what\'s in my cart", "show my cart", or wants to review before checkout.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -242,6 +272,10 @@ export async function executeToolCall(
         return await createBooking(payload, toolInput, ctx)
       case 'update_booking_status':
         return await updateBookingStatus(payload, toolInput)
+      case 'add_to_cart':
+        return await addToCart(payload, toolInput, ctx)
+      case 'view_cart':
+        return await viewCart(payload, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -610,6 +644,161 @@ async function createBooking(
   } catch (err) {
     console.error('[LEO Tools] Error creating booking:', err)
     return `Error creating booking: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shopping Cart Handlers (LEO-powered e-commerce)
+// ---------------------------------------------------------------------------
+
+async function addToCart(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const productId = Number(input.productId)
+  const quantity = Math.max(1, Number(input.quantity) || 1)
+
+  if (!productId) {
+    return 'Error: productId is required. Search for products first using query_products.'
+  }
+
+  if (!ctx.userId) {
+    return 'Error: You must be logged in to add items to your cart. Please log in first.'
+  }
+
+  try {
+    // Fetch the product to get details + validate it exists
+    const product = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 1,
+      overrideAccess: true,
+    })
+
+    if (!product) {
+      return `Error: Product #${productId} not found. Try searching for products first.`
+    }
+
+    const title = str(product, 'title', 'Untitled')
+    const price = num(product, 'priceInUSD')
+    const priceStr = price != null ? `$${price}` : 'Price not set'
+    const slug = str(product, 'slug')
+
+    // Use Payload's ecommerce plugin cart API
+    // The cart is managed by @payloadcms/plugin-ecommerce
+    // We add items via the cart update endpoint
+    try {
+      // Fetch current cart for the user
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userDoc = await payload.findByID({
+        collection: 'users',
+        id: ctx.userId,
+        depth: 2,
+        overrideAccess: true,
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentCart = (userDoc as any)?.cart?.items || []
+
+      // Check if product already in cart
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existingItemIndex = currentCart.findIndex((item: any) => {
+        const itemProduct = typeof item.product === 'object' ? item.product?.id : item.product
+        return itemProduct === productId
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let updatedItems: any[]
+
+      if (existingItemIndex >= 0) {
+        // Update existing quantity
+        updatedItems = [...currentCart]
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: (updatedItems[existingItemIndex].quantity || 1) + quantity,
+        }
+      } else {
+        // Add new item
+        updatedItems = [
+          ...currentCart,
+          {
+            product: productId,
+            quantity,
+          },
+        ]
+      }
+
+      // Update the user's cart
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.update as any)({
+        collection: 'users',
+        id: ctx.userId,
+        data: {
+          cart: {
+            items: updatedItems,
+          },
+        },
+        overrideAccess: true,
+      })
+
+      const totalItems = updatedItems.reduce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (sum: number, item: any) => sum + (item.quantity || 1),
+        0,
+      )
+
+      return `Added to cart!\n- **${title}** × ${quantity} (${priceStr} each)\n- Cart now has ${totalItems} item(s)\n${slug ? `- View product: /products/${slug}` : ''}\n\nSay "show my cart" to see everything, or "checkout" when you're ready!`
+    } catch (cartErr) {
+      console.error('[LEO Tools] Error updating cart:', cartErr)
+      return `I found the product **${title}** (${priceStr}), but had trouble adding it to your cart. The cart system may need to be initialized. You can add it manually at /products/${slug}.`
+    }
+  } catch (err) {
+    console.error('[LEO Tools] Error in addToCart:', err)
+    return `Error finding product: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function viewCart(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.userId) {
+    return 'You need to be logged in to view your cart. Please log in first.'
+  }
+
+  try {
+    const userDoc = await payload.findByID({
+      collection: 'users',
+      id: ctx.userId,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cartItems = (userDoc as any)?.cart?.items || []
+
+    if (cartItems.length === 0) {
+      return 'Your cart is empty. Say "show me products" to browse, or tell me what you\'re looking for!'
+    }
+
+    let totalPrice = 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = cartItems.map((item: any) => {
+      const product = typeof item.product === 'object' ? item.product : null
+      const qty = item.quantity || 1
+      const title = product ? str(product, 'title', 'Unknown product') : `Product #${item.product}`
+      const price = product ? num(product, 'priceInUSD') : undefined
+      const subtotal = price != null ? price * qty : 0
+      totalPrice += subtotal
+      const priceStr = price != null ? `$${price}` : 'N/A'
+      return `- **${title}** × ${qty} — ${priceStr} each${subtotal ? ` ($${subtotal.toFixed(2)})` : ''}`
+    })
+
+    return `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):\n${items.join('\n')}\n\n**Subtotal: $${totalPrice.toFixed(2)}**\n\nReady to check out? Head to /checkout or say "remove [item]" to update your cart.`
+  } catch (err) {
+    console.error('[LEO Tools] Error viewing cart:', err)
+    return `Error loading cart: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 

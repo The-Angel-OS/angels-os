@@ -1,6 +1,7 @@
 /**
  * ChatControl - Core types for Angel OS chat system.
- * Three modes: minimalist (floating bubble), single-channel, multi-channel (dashboard).
+ * Four modes: minimalist (floating bubble), single-channel, multi-channel (dashboard),
+ * sidebar (dashboard right-panel LEO chat).
  */
 
 export interface ChatMessage {
@@ -39,7 +40,7 @@ export interface ChatSpace {
   description?: string
 }
 
-export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel'
+export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel' | 'sidebar'
 
 export interface ChatControlProps {
   mode: ChatMode

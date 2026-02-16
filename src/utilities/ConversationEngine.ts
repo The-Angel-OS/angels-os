@@ -307,9 +307,13 @@ You have access to the platform's data through tools. When users ask about produ
 - **create_booking** — schedule a new appointment or booking (confirm details with user first!)
 - **update_booking_status** — confirm, cancel, or complete a booking (confirm with user first!)
 
-**Important**: For action tools (create/update), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
+### Shopping Cart Tools:
+- **add_to_cart** — add a product to the user's shopping cart (search first if needed, confirm what you're adding)
+- **view_cart** — show current cart contents with prices and totals
 
-Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating.` : ''}
+**Important**: For action tools (create/update/cart), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
+
+Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.` : ''}
 
 ${this.buildUserContextSection()}
 ## Guidelines
