@@ -10,6 +10,33 @@ import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 
 export const mcpPluginConfig = mcpPlugin({
+  /**
+   * Allow browser-based (cookie/session) auth in addition to Bearer token auth.
+   * The default MCP endpoint ONLY accepts API key Bearer tokens and throws
+   * UnauthorizedError when none is provided. This override checks for a
+   * session-authenticated user first, falling back to API key auth for
+   * programmatic clients (e.g. Merlin / OpenClaw Angels).
+   */
+  overrideAuth: async (req, getDefaultMcpAccessSettings) => {
+    // 1. Check if user is already authenticated via session cookies
+    if (req.user) {
+      return {
+        user: {
+          ...req.user,
+          collection: 'users',
+          _strategy: 'session',
+        },
+        // Grant full collection CRUD for session-authenticated users
+        collections: { find: true, create: true, update: true, delete: true },
+        globals: { find: true, update: true },
+        // Grant access to custom tools (leo_respond)
+        'payload-mcp-tool': { leoRespond: true },
+      } as any
+    }
+
+    // 2. Fall back to API key auth for programmatic clients
+    return await getDefaultMcpAccessSettings()
+  },
   collections: {
     posts: {
       enabled: { find: true, create: true, update: true, delete: true },
