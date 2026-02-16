@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 15, 2026 (Session 4)
+**Last Updated**: February 16, 2026 (Session 4b — P2 Complete)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -40,13 +40,23 @@
 - [x] FloatingBubble, LEOChat, SpacesChat all accept server-resolved spaceId prop
 - [x] Written MERLIN_OPENCLAW_INTEGRATION.md (first OpenClaw Angel guide)
 
-### Session 4: LEO Chat Pipeline Complete
+### Session 4: LEO Chat Pipeline Complete + LEO's Brain (P1 + P2)
 - [x] **P1 RESOLVED**: Created dedicated `POST /api/leo` endpoint for browser chat (cookie auth)
 - [x] Added `overrideAuth` to MCP plugin for session-based auth fallback (programmatic clients)
 - [x] LEO responses persisted to Messages collection (`messageType: 'ai_agent'`)
 - [x] LEO system user resolved per-tenant as message author
 - [x] useChat.ts sends `spaceId` to `/api/leo` for correct DB persistence
 - [x] Full end-to-end verified: User sends → 201 → LEO processes → 200 → response saved → polling picks up → renders in chat
+- [x] **P2 RESOLVED**: ConversationEngine rewritten with real Anthropic Claude LLM integration
+- [x] `@anthropic-ai/sdk` v0.74.0 installed (lazy singleton, Vercel-safe)
+- [x] System prompt = constitutional base + agent personality + capabilities + guidelines
+- [x] Conversation history fetched from Messages collection (max 8 turns)
+- [x] Constitutional validation on every response (anti-demonic safeguards)
+- [x] Graceful fallback when ANTHROPIC_API_KEY not set
+- [x] `leoProcessMessage` passes `spaceId`/`channel` to `sessionMemory` for history scoping
+- [x] `leo-chat.ts` forwards `channelSlug` + `spaceId` through the pipeline
+- [x] ANTHROPIC_API_KEY added to Vercel env vars + redeploy triggered
+- [x] **VERIFIED LIVE**: LEO responds intelligently with personality, context awareness, and constitutional compliance
 
 ---
 
@@ -55,19 +65,27 @@
 ### ~~P1: MCP Endpoint Auth for External Angels~~ ✅ RESOLVED (Session 4)
 Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fallback.
 
-### P2: ConversationEngine Is a Stub
-**Status**: LEO says "I received your message. How can I assist you?" for everything
-**File**: `src/utilities/ConversationEngine.ts`
-**What's stubbed**:
-- Intent detection (only checks for "help" keyword)
-- Response generation (hardcoded placeholder)
-- Action execution (no path from intent to action)
-- State management (basic phase tracking only)
-**What works**:
-- Agent routing (full 4-level system via AgentRouter)
-- Message processing pipeline (leoProcessMessage orchestration)
-- Agent personality/capabilities defined in agentConfig
-**Fix**: Integrate with Anthropic API or other LLM. The ConversationEngine class has TODOs marking exactly where to plug in.
+### ~~P2: ConversationEngine Is a Stub~~ ✅ RESOLVED (Session 4)
+Replaced stub with real Anthropic Claude LLM integration. LEO now thinks, remembers context,
+and responds with constitutional personality. Model: `claude-sonnet-4-20250514`, 600 max tokens, 8 history turns.
+
+### P2.5: Give LEO Data Access (Payload Queries)
+**Status**: NEW — LEO can converse but cannot access business data
+**Issue**: User asked "Can you tell me what products are in the shop?" and LEO correctly replied he has no access to product databases. The `payload` instance IS available in `sessionMemory` but the ConversationEngine doesn't use it for data queries yet.
+**Impact**: LEO can't answer business questions, check inventory, look up orders, etc.
+**Fix**: Add tool-use or function-calling pattern to ConversationEngine so LEO can query Payload collections (Products, Orders, Spaces, etc.) and return structured data.
+
+### P2.6: Dashboard Sidebar Architecture (Chat-First UI)
+**Status**: NEW — architectural direction from Kenneth
+**Vision**: The dashboard sidebar becomes the universal interface:
+- Floating chat bubble = brochure site only (guests)
+- Dashboard LEO = sidebar-based, NOT a separate full-width page
+- Sidebar has 3 states: full width → narrow → hidden
+- Channels live INSIDE the sidebar — no separate Spaces interface needed
+- Channel widgets (inventory, calendar, tasks) render inline within chat
+- The sidebar IS the AI Bus terminal
+**Impact**: Eliminates need for separate `/dashboard/spaces` page. All interaction is conversational.
+**Files affected**: Dashboard layout, sidebar component, channel navigation, widget rendering
 
 ### P3: Transient PostgreSQL Connection Drops
 **Status**: Intermittent, self-healing on retry
@@ -112,6 +130,9 @@ Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fal
 ### Commits (Session 4)
 - `8329ee7` — fix: Create dedicated /api/leo endpoint for browser chat + MCP auth override
 - `6b73fd4` — fix: Persist LEO responses to Messages collection for polling durability
+- `fbff6f3` — docs: Update issue tracker — P1 resolved, Session 4 commits logged
+- `7c1ea44` — feat: P2 — Give LEO a brain (ConversationEngine LLM integration)
+- `fa7e712` — chore: Trigger redeploy with ANTHROPIC_API_KEY env var
 
 ### Key Files Modified (Session 3-4)
 | File | Change |
@@ -129,9 +150,12 @@ Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fal
 | `src/app/[locale]/(app)/dashboard/spaces/page.tsx` | Resolve spaceId server-side |
 | `src/app/[locale]/(app)/dashboard/spaces/SpacesChat.tsx` | Accept spaceId prop |
 | `MERLIN_OPENCLAW_INTEGRATION.md` | NEW — OpenClaw Angel integration guide |
-| `src/endpoints/leo-chat.ts` | NEW — POST /api/leo handler (Session 4) |
+| `src/endpoints/leo-chat.ts` | NEW — POST /api/leo handler; passes spaceId/channelSlug (Session 4) |
 | `src/plugins/mcp.ts` | Added overrideAuth for session cookie fallback |
 | `src/payload.config.ts` | Registered POST /api/leo endpoint |
+| `src/utilities/ConversationEngine.ts` | REWRITTEN — real Anthropic Claude LLM integration (P2) |
+| `src/utilities/leoProcessMessage.ts` | Added spaceId param, passes spaceId/channel to sessionMemory |
+| `package.json` | Added @anthropic-ai/sdk v0.74.0 |
 
 ### Environment Variables (Vercel)
 ```
@@ -139,6 +163,7 @@ NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app   (set session 2)
 DATABASE_URI=postgresql://postgres:K3nD3v!host@74.208.87.243:5432/angels
 PAYLOAD_SECRET=(existing)
 BLOB_READ_WRITE_TOKEN=(existing)
+ANTHROPIC_API_KEY=sk-ant-api03-...   (set session 4 — LEO's brain)
 ```
 
 ### Database Quick Reference
