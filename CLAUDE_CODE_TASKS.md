@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 16, 2026 (Session 4b — P2 Complete)
+**Last Updated**: February 16, 2026 (Session 5 — Identity + Data Access + Extensible Channels)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -69,14 +69,14 @@ Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fal
 Replaced stub with real Anthropic Claude LLM integration. LEO now thinks, remembers context,
 and responds with constitutional personality. Model: `claude-sonnet-4-20250514`, 600 max tokens, 8 history turns.
 
-### P2.5: Give LEO Data Access (Payload Queries)
-**Status**: NEW — LEO can converse but cannot access business data
+### P2.5: Give LEO Data Access (Payload Queries) — GitHub #43
+**Status**: IN PROGRESS (Session 5) — LEO can converse but cannot access business data
 **Issue**: User asked "Can you tell me what products are in the shop?" and LEO correctly replied he has no access to product databases. The `payload` instance IS available in `sessionMemory` but the ConversationEngine doesn't use it for data queries yet.
 **Impact**: LEO can't answer business questions, check inventory, look up orders, etc.
-**Fix**: Add tool-use or function-calling pattern to ConversationEngine so LEO can query Payload collections (Products, Orders, Spaces, etc.) and return structured data.
+**Fix**: Add tool-use (Claude `tool_use` feature) to ConversationEngine — define data tools for Products, Orders, Spaces, Posts, Bookings. Execute queries against Payload with access control.
 
-### P2.6: Dashboard Sidebar Architecture (Chat-First UI)
-**Status**: NEW — architectural direction from Kenneth
+### P2.6: Dashboard Sidebar Architecture (Chat-First UI) — GitHub #44
+**Status**: PLANNED — architectural direction from Kenneth
 **Vision**: The dashboard sidebar becomes the universal interface:
 - Floating chat bubble = brochure site only (guests)
 - Dashboard LEO = sidebar-based, NOT a separate full-width page
@@ -86,6 +86,18 @@ and responds with constitutional personality. Model: `claude-sonnet-4-20250514`,
 - The sidebar IS the AI Bus terminal
 **Impact**: Eliminates need for separate `/dashboard/spaces` page. All interaction is conversational.
 **Files affected**: Dashboard layout, sidebar component, channel navigation, widget rendering
+
+### ~~P2.7: LEO Identity — Nimue Alban / Merlin from Safehold~~ ✅ RESOLVED (Session 5) — GitHub #47
+Updated `ConversationEngine.buildSystemPrompt()` with Nimue/Merlin identity context.
+LEO now knows and can openly discuss being modeled on Nimue Alban from David Weber's Safehold.
+Sci-fi engagement (Safehold, Star Trek, Discworld, etc.) explicitly encouraged.
+
+### P2.8: Extensible Channel Storage — GitHub #45
+**Status**: RESOLVED (Session 5)
+Added `data` (json), `widgets` (json), `dataVersion` (number) fields to Channels collection.
+- `data` = widget state (task lists, timelines, note hierarchies)
+- `widgets` = UI config (which widgets active, layout, preferences)
+- `dataVersion` = optimistic locking for concurrent edits
 
 ### P3: Transient PostgreSQL Connection Drops
 **Status**: Intermittent, self-healing on retry
@@ -118,6 +130,17 @@ and responds with constitutional personality. Model: `claude-sonnet-4-20250514`,
 **Ref**: `MERLIN_OPENCLAW_INTEGRATION.md` Section 3.2
 **Fix**: Add Merlin to seed script or create via admin panel.
 
+### P8: Angel Tokens & Karma Coins — Economic Layer — GitHub #46
+**Status**: PLANNED — vision documented, no implementation yet
+**What Exists**:
+- `src/lib/ultimate-fair-split.ts` — constants (60/20/15/5)
+- `src/utilities/ultimateFairSplit.ts` — Stripe-ready calculation + transparency reporting
+- `src/collections/Bookings.ts` — splitConfiguration with 4 shares + validation
+- `docs/v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md` — vision document
+- `src/utilities/form-schemas.ts` — karmaInviteSchema
+- Constitution Articles V & VI
+**What's Needed**: Wallets collection, Ledger (immutable), KarmaEvents, token minting rules, Justice Fund distribution
+
 ---
 
 ## Architecture Notes
@@ -133,6 +156,10 @@ and responds with constitutional personality. Model: `claude-sonnet-4-20250514`,
 - `fbff6f3` — docs: Update issue tracker — P1 resolved, Session 4 commits logged
 - `7c1ea44` — feat: P2 — Give LEO a brain (ConversationEngine LLM integration)
 - `fa7e712` — chore: Trigger redeploy with ANTHROPIC_API_KEY env var
+- `c7018d0` — docs: P2 resolved — LEO has a brain! Add P2.5 + P2.6 new issues
+
+### Commits (Session 5)
+- *(pending)* — feat: LEO identity (Nimue/Merlin), extensible channels, data access tools
 
 ### Key Files Modified (Session 3-4)
 | File | Change |
