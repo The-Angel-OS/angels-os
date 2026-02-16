@@ -24,6 +24,7 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
     "@payloadcms/admin-bar": "^3.74.0",
     "@payloadcms/db-postgres": "^3.74.0",
     "@payloadcms/email-nodemailer": "^3.74.0",
