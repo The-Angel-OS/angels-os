@@ -63,6 +63,17 @@ export const leoChatHandler: PayloadHandler = async (req) => {
     const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
     const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
 
+    // Extract user context for LEO identity awareness
+    const user = req.user as unknown as Record<string, unknown> | undefined
+    const userContext = user
+      ? {
+          id: user.id as number | string,
+          name: (user.name as string) || undefined,
+          email: (user.email as string) || undefined,
+          roles: Array.isArray(user.roles) ? (user.roles as string[]) : undefined,
+        }
+      : undefined
+
     const result = await leoProcessMessage({
       message: message.trim(),
       conversationId: typeof conversationId === 'string' ? conversationId : undefined,
@@ -70,6 +81,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
       channelSlug: resolvedChannel,
       spaceId: resolvedSpaceId,
       payload: req.payload,
+      userContext,
     })
 
     // Persist LEO's response to the Messages collection so it survives polling

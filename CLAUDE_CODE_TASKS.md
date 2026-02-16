@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 16, 2026 (Session 5 — Identity + Data Access + Extensible Channels)
+**Last Updated**: February 16, 2026 (Session 5b — Immersive Chat + Streaming + User Identity)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -69,11 +69,19 @@ Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fal
 Replaced stub with real Anthropic Claude LLM integration. LEO now thinks, remembers context,
 and responds with constitutional personality. Model: `claude-sonnet-4-20250514`, 600 max tokens, 8 history turns.
 
-### P2.5: Give LEO Data Access (Payload Queries) — GitHub #43
-**Status**: IN PROGRESS (Session 5) — LEO can converse but cannot access business data
-**Issue**: User asked "Can you tell me what products are in the shop?" and LEO correctly replied he has no access to product databases. The `payload` instance IS available in `sessionMemory` but the ConversationEngine doesn't use it for data queries yet.
-**Impact**: LEO can't answer business questions, check inventory, look up orders, etc.
-**Fix**: Add tool-use (Claude `tool_use` feature) to ConversationEngine — define data tools for Products, Orders, Spaces, Posts, Bookings. Execute queries against Payload with access control.
+### ~~P2.5: Give LEO Data Access (Payload Queries)~~ ✅ RESOLVED (Session 5) — GitHub #43
+Added Claude `tool_use` to ConversationEngine with 6 data tools (products, posts, bookings, spaces, projects, availability).
+LEO now queries real Payload data when users ask business questions.
+
+### P2.9: Immersive Chat + Streaming Responses — Session 5b
+**Status**: RESOLVED (Session 5b)
+- **User Identity**: LEO now knows who it's talking to (name, email, roles, access level) via `userContext` in system prompt
+- **SSE Streaming**: New `POST /api/leo/stream` endpoint using Anthropic streaming API + ReadableStream SSE
+- **Full-Page Chat**: `/dashboard/leo` now fills the entire main area with centered `max-w-3xl` layout
+- **Streaming UI**: Blinking cursor during generation, "Looking up products…" tool call indicators
+- **Infinite Scroll**: Cursor-based pagination (scroll to top loads older messages)
+- **Message Grouping**: Consecutive same-author messages grouped, date separator pills (Today/Yesterday/date)
+- **Dual-Mode MessageList**: `fullPage` prop for immersive mode vs compact bubble mode (backward compatible)
 
 ### P2.6: Dashboard Sidebar Architecture (Chat-First UI) — GitHub #44
 **Status**: PLANNED — architectural direction from Kenneth
@@ -159,7 +167,25 @@ Added `data` (json), `widgets` (json), `dataVersion` (number) fields to Channels
 - `c7018d0` — docs: P2 resolved — LEO has a brain! Add P2.5 + P2.6 new issues
 
 ### Commits (Session 5)
-- *(pending)* — feat: LEO identity (Nimue/Merlin), extensible channels, data access tools
+- `d8862cc` — feat: Session 5 — LEO identity (Nimue/Merlin), data access tools, extensible channels
+
+### Commits (Session 5b)
+- *(pending)* — feat: Session 5b — Immersive chat, SSE streaming, user identity, infinite scroll
+
+### Key Files Modified (Session 5b)
+| File | Change |
+|------|--------|
+| `src/endpoints/leo-stream.ts` | NEW — SSE streaming endpoint with Anthropic streaming API |
+| `src/endpoints/leo-chat.ts` | Extract req.user → userContext for LEO identity |
+| `src/utilities/ConversationEngine.ts` | User context section in system prompt |
+| `src/utilities/leoProcessMessage.ts` | Added UserContext type + forward to sessionMemory |
+| `src/components/ChatControl/useChat.ts` | SSE consumer, batch fallback, cursor pagination |
+| `src/components/ChatControl/MessageList.tsx` | Dual-mode (compact/fullPage), grouping, date separators, streaming cursor |
+| `src/components/ChatControl/MessageInput.tsx` | fullPage mode with centered layout |
+| `src/components/ChatControl/types.ts` | isStreaming + activeToolCall fields |
+| `src/app/[locale]/(app)/dashboard/leo/page.tsx` | Full-bleed -m-6, user name resolution |
+| `src/app/[locale]/(app)/dashboard/leo/LEOChat.tsx` | Purpose-built full-page component |
+| `src/payload.config.ts` | Registered POST /api/leo/stream |
 
 ### Key Files Modified (Session 3-4)
 | File | Change |

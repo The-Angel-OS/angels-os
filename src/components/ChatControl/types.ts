@@ -9,6 +9,10 @@ export interface ChatMessage {
   content: string
   timestamp: Date
   authorName?: string
+  /** True while SSE is still streaming this message's content */
+  isStreaming?: boolean
+  /** Active tool call name (shown as status indicator during data lookups) */
+  activeToolCall?: string
   metadata?: {
     agentName?: string
     agentType?: string
