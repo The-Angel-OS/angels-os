@@ -1,232 +1,144 @@
-# Angel OS — UI Refinement & Image Fix Session
+# Angel OS — Open Issues & Session Tracker
 
-**Date**: February 15, 2026
-**Context**: Seed completes successfully, Vercel deploys READY, but frontend has display issues.
-
----
-
-## Priority 1: Fix Images Not Displaying on Frontend
-
-### Symptoms
-- Images load in `/admin` (Payload CMS dashboard) but show as broken on `/posts`, home page hero, etc.
-- Post cards show alt text "Straight metallic shapes with a blue gradient" instead of images
-- Console: `image:1 Failed to load resource: the server responded with a status of 400 ()`
-- Console: `/undefined/api/users/me` (404) — `NEXT_PUBLIC_SERVER_URL` is undefined client-side
-
-### Root Causes
-
-**1. Tenant resolution fails on `angels-os.vercel.app`**
-- Default tenant domain is `localhost` (seeded at `src/endpoints/seed/index.ts` line ~159)
-- `fetchTenantByDomain('angels-os.vercel.app')` returns `null`
-- This cascades: Header returns no nav items, Footer returns nothing, tenant-scoped queries fail
-
-**2. `NEXT_PUBLIC_SERVER_URL` may be missing/empty in Vercel env vars**
-- Console shows `/undefined/api/users/me` — meaning the client bundle has `undefined` for this var
-- `NEXT_PUBLIC_*` vars are embedded at build time; if not set in Vercel, the client gets nothing
-- Check Vercel Dashboard → angels-os → Settings → Environment Variables
-
-**3. Image URL construction breaks with undefined server URL**
-- `src/components/Media/Image/index.tsx` line 54: `src = url?.startsWith('http') ? url : \`${process.env.NEXT_PUBLIC_SERVER_URL}${url}\``
-- When `NEXT_PUBLIC_SERVER_URL` is undefined, non-blob URLs become `undefined/media/image.jpg`
-
-### Files to Fix
-
-#### `src/utilities/fetchTenantByDomain.ts`
-Add fallback to the "default" tenant when no domain match found:
-```typescript
-export async function fetchTenantByDomain(host: string): Promise<Tenant | null> {
-  const domain = host?.split(':')[0]?.toLowerCase() || 'localhost'
-  const payload = await getPayload({ config: configPromise })
-
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { domain: { equals: domain } },
-    limit: 1, depth: 1,
-  })
-  if (tenants.docs?.[0]) return tenants.docs[0]
-
-  // Fallback: return "default" tenant so site always works
-  const defaults = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: 'default' } },
-    limit: 1, depth: 1,
-  })
-  return defaults.docs?.[0] ?? null
-}
-```
-
-#### `src/components/Media/Image/index.tsx` (line 54)
-Harden URL construction:
-```typescript
-if (url?.startsWith('http')) {
-  src = url
-} else if (url) {
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || ''
-  src = serverUrl ? `${serverUrl}${url}` : url
-}
-```
-
-#### Vercel Environment Variable
-Set `NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app` in Vercel project settings (Settings → Environment Variables → Production). Then redeploy.
+**Last Updated**: February 15, 2026 (Session 3)
+**Production**: https://angels-os.vercel.app
+**Repo**: https://github.com/The-Angel-OS/angels-os.git
 
 ---
 
-## Priority 2: Fix Navigation Links Not Showing
+## Resolved Issues (Session 1-3)
 
-### Symptom
-No navigation links visible at top of page when signed in. Only the logo and cart icon appear.
+### Session 1: Seed & Deployment Foundation
+- [x] Seed script rewrites for multi-tenant data
+- [x] Vercel deployment pipeline (build + deploy)
+- [x] Slug uniqueness fix (direct SQL via `scripts/drop-unique-slugs.cjs`)
+- [x] Tenant domain resolution with "default" fallback
+- [x] `NEXT_PUBLIC_SERVER_URL` set in Vercel env vars
+- [x] Image display on `/posts` page (working)
+- [x] Navigation links visible (HOME, SHOP, POSTS, ACCOUNT, DASHBOARD)
+- [x] Login/Logout controls in header
+- [x] LivePreviewListener crash fix (empty server URL guard)
 
-### Root Cause
-`src/components/Header/index.tsx` requires a `tenantId` to fetch header nav items. When tenant is `null` (domain resolution fails), `header` is `null`, so `navItems` is empty.
+### Session 2: UI Polish & Chat Foundation
+- [x] Depth 1 -> 2 fix in `fetchTenantByDomain.ts` / `fetchTenantBySlug.ts`
+- [x] TenantStyles `--color-*` -> `--tenant-*` namespace (stopped clobbering Tailwind theme)
+- [x] Dark palette: muted neutral (deep charcoal + sage/teal accents) in `globals.css`
+- [x] AdminBar: `bg-black` -> `bg-sidebar text-sidebar-foreground`
+- [x] PostCard: enhanced hover shadow
+- [x] Header nav: uppercase tracking-wider
+- [x] Chat bubble teaser for guests (links to /login)
+- [x] `postMessage` console error resolved
 
-### Fix
-Once Priority 1's `fetchTenantByDomain` fallback is in place, this resolves automatically. The default tenant HAS nav items seeded: Home, Shop, Posts, Account (see `src/endpoints/seed/index.ts` lines 567-572).
-
-### Enhancement
-Add Login/Logout to header. Currently shows Dashboard link when authenticated but no auth controls:
-
-In `src/components/Header/index.client.tsx`, add to the right side:
-```tsx
-{user ? (
-  <>
-    <span className="text-sm text-muted-foreground hidden md:inline">{user.email}</span>
-    <Link href="/logout" className="text-sm hover:text-foreground transition">Logout</Link>
-  </>
-) : (
-  <Link href="/login" className="text-sm hover:text-foreground transition">Login</Link>
-)}
-```
-
----
-
-## Priority 3: Add Chat Interface Icon on Brochure Site
-
-### Current State
-`FloatingBubble` (`src/components/ChatControl/FloatingBubble.tsx`) only renders when `status === 'loggedIn'` — correct to prevent 403 polling errors.
-
-### Enhancement
-Show a teaser chat icon for unauthenticated users linking to login:
-```tsx
-export function FloatingBubble() {
-  const { status } = useAuth()
-  if (status === 'loggedIn') {
-    return <ChatControl mode="minimalist" spaceId="1" channelSlug="general" position="bottom-right" />
-  }
-  // Teaser for unauthenticated users
-  return (
-    <Link href="/login" className="fixed bottom-6 right-6 bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:scale-110 transition-transform z-50" title="Chat with LEO">
-      <MessageCircle className="w-6 h-6" />
-    </Link>
-  )
-}
-```
+### Session 3: Chat System & Merlin Foundation
+- [x] Chat 400 error: removed `required: true` from Messages.author (setAuthor hook auto-populates)
+- [x] Chat space type fix: coerce spaceId to Number in useChat POST body
+- [x] Hardcoded `spaceId="1"` replaced with `fetchDefaultSpaceId()` utility (resolves from tenant)
+- [x] MinimalistChat dark theme: replaced rgba/glassmorphism with `bg-card`, `bg-sidebar` tokens
+- [x] Chat components use `bg-primary`/`text-primary-foreground` instead of hardcoded blue-600
+- [x] Removed broken `[data-chat-window]` dark mode style override
+- [x] Chat end-to-end verified: POST /api/messages -> 201, message appears in UI
+- [x] FloatingBubble, LEOChat, SpacesChat all accept server-resolved spaceId prop
+- [x] Written MERLIN_OPENCLAW_INTEGRATION.md (first OpenClaw Angel guide)
 
 ---
 
-## Priority 4: UI Color Palette Refinement
+## Open Issues
 
-### Design Direction
-Reference: The second screenshot (localhost:3000/dashboard/chat) shows the target aesthetic:
-- Dark sidebar with clean section headers (COLLABORATION, COMMUNICATION, SYSTEM)
-- Chat interface with distinct message bubbles
-- Channel list with type badges (chat, project, files, notes)
-- Professional, polished feel with muted neutral colors
+### P1: MCP Endpoint Auth for External Angels
+**Status**: Blocking Merlin integration
+**Issue**: `POST /api/mcp` returns 401 when called from browser or external client. The MCP plugin inherits Payload's auth, but:
+- Browser uses cookie auth (which works for collection REST API but not MCP)
+- External Angels need API key or JWT auth
+**Impact**: LEO can't respond to chat messages (the `leo_respond` tool call fails)
+**Fix Options**:
+1. Add API key auth layer to `src/plugins/mcp.ts`
+2. Have useChat call `/api/messages` + a separate `/api/leo` endpoint instead of `/api/mcp`
+3. Forward user's JWT token in the MCP call headers
 
-### Target Color Palette
-Move from the current bright-on-black to **muted neutral dark**:
+### P2: ConversationEngine Is a Stub
+**Status**: LEO says "I received your message. How can I assist you?" for everything
+**File**: `src/utilities/ConversationEngine.ts`
+**What's stubbed**:
+- Intent detection (only checks for "help" keyword)
+- Response generation (hardcoded placeholder)
+- Action execution (no path from intent to action)
+- State management (basic phase tracking only)
+**What works**:
+- Agent routing (full 4-level system via AgentRouter)
+- Message processing pipeline (leoProcessMessage orchestration)
+- Agent personality/capabilities defined in agentConfig
+**Fix**: Integrate with Anthropic API or other LLM. The ConversationEngine class has TODOs marking exactly where to plug in.
 
-| Element | Current | Target |
-|---------|---------|--------|
-| Background | Pure black/very dark | Deep charcoal `#1a1d23` |
-| Cards/Surfaces | Dark | Slightly lighter `#22262e` with subtle borders |
-| Primary accent | Bright green | Muted teal/sage `#6b9080` |
-| Text primary | White | Off-white `#e8e8e8` |
-| Text secondary | Gray | Muted gray `#9ca3af` |
-| Interactive hover | Bold color shift | Subtle lightening |
-| Danger/Warning | Bright red | Muted coral `#e07a6e` |
-| Borders | None or harsh | Subtle `rgba(255,255,255,0.08)` |
+### P3: Transient PostgreSQL Connection Drops
+**Status**: Intermittent, self-healing on retry
+**Issue**: PostgreSQL at `74.208.87.243:5432/angels` occasionally drops connections, causing 500 errors on Vercel serverless cold starts.
+**Impact**: First page load after idle period sometimes shows "Application error" — works on refresh.
+**Fix Options**:
+1. Add PgBouncer connection pooler
+2. Migrate to managed DB (Neon, Supabase, Vercel Postgres)
+3. Add retry logic in Payload's DB adapter config
 
-### Files to Update
-- `src/app/[locale]/(app)/globals.css` — CSS custom properties
-- `tailwind.config.mjs` — Tailwind theme colors
-- `src/components/Header/index.client.tsx` — Header styling
-- `src/components/Footer/index.tsx` — Footer styling
-- `src/components/CollectionArchive/PostCard.tsx` — Post card design
-- Dashboard components in `src/app/[locale]/(app)/dashboard/`
+### P4: SpaceMemberships Not Enforced
+**Status**: Collection exists, not wired into access control
+**Issue**: Any authenticated user can read messages from any space. The `SpaceMemberships` collection tracks user-space-role relationships but isn't checked in Messages/Spaces read access.
+**Impact**: No privacy between tenant spaces (all messages visible to all users)
+**Fix**: Add access control to Messages.read that checks SpaceMemberships.
 
-### Post Cards (`/posts` page)
-- Need proper image display with aspect-ratio containers
-- Hover effects (subtle scale + shadow)
-- Better typography hierarchy (title, date, excerpt)
-- Consistent card sizing with grid layout
+### P5: Home Page Placeholder Content
+**Status**: Shows "Payload Ecommerce Template" text
+**Issue**: The home page still shows the default Payload template content instead of Angel OS branding.
+**Fix**: Create a proper home page in the Pages collection via seed script or admin panel.
 
-### Hero Section
-- Should display hero image with text overlay
-- Gradient overlay for text readability
-- CTA buttons with muted accent colors
+### P6: Default Space Resolution Order
+**Status**: Minor — fetches first space alphabetically instead of main community space
+**Issue**: `fetchDefaultSpaceId` queries `spaces` with `limit: 1` but no ordering. For the default tenant, this returns space 16 (Angel OS Support) instead of space 15 (Angel OS Community).
+**Fix**: Add `sort: 'createdAt'` or add an `isDefault` flag to Spaces.
+
+### P7: Merlin System Agent Not Registered
+**Status**: Pending — instructions written but agent not yet created
+**Issue**: Merlin needs to be registered as a system user in the Users collection to be routable by the AgentRouter.
+**Ref**: `MERLIN_OPENCLAW_INTEGRATION.md` Section 3.2
+**Fix**: Add Merlin to seed script or create via admin panel.
 
 ---
 
-## Priority 5: Console Error Fixes
+## Architecture Notes
 
-### `/undefined/api/users/me` (404)
-**Cause**: `NEXT_PUBLIC_SERVER_URL` undefined in client bundle
-**Fix**: Set env var in Vercel, redeploy
+### Commits This Session
+- `9690dd1` — fix: Chat message send 400 error + dark theme consistency
+- `110607f` — refactor: Resolve spaceId from tenant context instead of hardcoding
 
-### `postMessage` origin mismatch
-**Cause**: `http://localhost:3000` vs `https://angels-os.vercel.app`
-**File**: Check `src/components/LivePreviewListener/index.tsx` — may have hardcoded localhost
-**Fix**: Ensure it reads server URL from env
-
-### Lazy-loaded images replaced with placeholders
-**Cause**: Browser intervention for images that never became visible
-**Fix**: Set `priority` prop on above-the-fold images (hero, first row of post cards)
-
----
-
-## Technical Reference
-
-### Key Files
-| File | Purpose |
-|------|---------|
-| `src/app/[locale]/(app)/layout.tsx` | Root layout — tenant resolution, Header/Footer |
-| `src/components/Header/index.tsx` | Server component — fetches header by tenantId |
-| `src/components/Header/index.client.tsx` | Client component — renders nav items |
-| `src/components/Media/Image/index.tsx` | Image component — URL construction (line 54) |
-| `src/utilities/fetchTenantByDomain.ts` | Tenant resolution by domain |
-| `src/utilities/getURL.ts` | URL helpers (getServerSideURL, etc.) |
-| `src/endpoints/seed/index.ts` | 9-phase seed script |
-| `src/fields/simpleSlugField.ts` | Slug field override (unique: false) |
-| `src/payload.config.ts` | Payload config with Vercel Blob Storage |
-| `next.config.js` | Next.js config with image remotePatterns |
-| `scripts/drop-unique-slugs.cjs` | Direct SQL to fix slug uniqueness |
-| `src/components/ChatControl/FloatingBubble.tsx` | Floating chat bubble |
+### Key Files Modified (Session 3)
+| File | Change |
+|------|--------|
+| `src/collections/Messages/index.ts` | author: removed required:true |
+| `src/components/ChatControl/useChat.ts` | space: Number() coercion |
+| `src/components/ChatControl/MinimalistChat.tsx` | Dark theme tokens |
+| `src/components/ChatControl/MessageList.tsx` | bg-primary for user bubbles |
+| `src/components/ChatControl/MessageInput.tsx` | bg-primary send button |
+| `src/components/ChatControl/FloatingBubble.tsx` | Accept spaceId prop |
+| `src/utilities/fetchDefaultSpaceId.ts` | NEW — resolves tenant's default space |
+| `src/app/[locale]/(app)/layout.tsx` | Pass defaultSpaceId to FloatingBubble |
+| `src/app/[locale]/(app)/dashboard/leo/page.tsx` | Resolve spaceId server-side |
+| `src/app/[locale]/(app)/dashboard/leo/LEOChat.tsx` | Accept spaceId prop |
+| `src/app/[locale]/(app)/dashboard/spaces/page.tsx` | Resolve spaceId server-side |
+| `src/app/[locale]/(app)/dashboard/spaces/SpacesChat.tsx` | Accept spaceId prop |
+| `MERLIN_OPENCLAW_INTEGRATION.md` | NEW — OpenClaw Angel integration guide |
 
 ### Environment Variables (Vercel)
 ```
-NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app   ← MUST BE SET
+NEXT_PUBLIC_SERVER_URL=https://angels-os.vercel.app   (set session 2)
 DATABASE_URI=postgresql://postgres:K3nD3v!host@74.208.87.243:5432/angels
-PAYLOAD_SECRET=(existing value)
-BLOB_READ_WRITE_TOKEN=(existing value)
+PAYLOAD_SECRET=(existing)
+BLOB_READ_WRITE_TOKEN=(existing)
 ```
 
-### Slug Uniqueness Note
-Slug indexes are now non-unique (dropped via `scripts/drop-unique-slugs.cjs`). If `payload migrate:fresh` is ever run, indexes get recreated as UNIQUE. Run the script again: `node scripts/drop-unique-slugs.cjs`
+### Database Quick Reference
+| Collection | Notable IDs |
+|-----------|-------------|
+| Tenants | 1 (default), 2 (platform), 3 (serenity-massage), 4 (hays-cactus) |
+| Spaces | 15 (Angel OS Community), 16 (Angel OS Support), 17 (Serenity), 18 (Cactus) |
+| Users | Admin (kenneth.courtney@gmail.com), LEO agents per tenant |
 
-### Seed Data Summary
-- 4 tenants: Angel OS (default), Angel OS Platform, Serenity Massage & Wellness, Hays Cactus Farm
-- Header + Footer nav items for default and use-case tenants
-- 15 channels across 2 use-case tenant spaces
-- 13 posts, 4 media items, products, categories, orders
-
-### Chrome MCP Testing
-Available tabs in Chrome browser (Claude MCP tab group):
-- Vercel Deployments dashboard
-- Payload Admin at angels-os.vercel.app/admin
-
-After fixes, verify:
-1. Navigation links appear in header (Home, Shop, Posts, Account + Dashboard when logged in)
-2. Images display on `/posts` page and home page hero
-3. Chat bubble appears (teaser for guests, full chat for authenticated)
-4. No console errors related to `undefined` URLs
-5. Muted color palette applied consistently
+### Slug Uniqueness
+Slug indexes are non-unique (dropped via `scripts/drop-unique-slugs.cjs`). If `payload migrate:fresh` is ever run, re-run the script.
