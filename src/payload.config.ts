@@ -47,6 +47,7 @@ import { Users } from '@/collections/Users'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
+import { leoChatHandler } from '@/endpoints/leo-chat'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -179,6 +180,11 @@ export default buildConfig({
           capabilities: ['chat', 'content-query', 'inventory', 'scheduling'],
           tenantId: req.headers.get('x-tenant-id'),
         }),
+    },
+    {
+      path: '/leo',
+      method: 'post',
+      handler: leoChatHandler,
     },
     {
       path: '/comments/add',

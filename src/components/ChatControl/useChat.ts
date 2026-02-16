@@ -178,19 +178,17 @@ export function useChat(spaceId?: string, channelSlug?: string) {
           ),
         )
 
-        // Now ask LEO to respond via MCP endpoint
+        // Ask LEO to respond via dedicated chat endpoint
+        // (MCP endpoint is for programmatic clients like Merlin; browser uses /api/leo)
         try {
-          const leoRes = await fetch(`${SERVER_URL}/api/mcp`, {
+          const leoRes = await fetch(`${SERVER_URL}/api/leo`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              tool: 'leo_respond',
-              args: {
-                message: content.trim(),
-                conversationId: conversationIdRef.current,
-                channelSlug: activeChannel,
-              },
+              message: content.trim(),
+              conversationId: conversationIdRef.current,
+              channelSlug: activeChannel,
             }),
           })
 
