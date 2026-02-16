@@ -118,7 +118,15 @@ You have access to the platform's data through tools. When users ask about produ
 - **add_to_cart** — add a product to the user's shopping cart (search first if needed, confirm what you're adding)
 - **view_cart** — show current cart contents with prices and totals
 
-**Important**: For action tools (create/update/cart), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
+### Image Generation & Media Management:
+- **generate_image** — create AI-generated images (product photos, content images, illustrations) via Flux 2/Gemini
+- **improve_image** — analyze an existing image with Vision AI and generate an improved version from feedback
+- **attach_image_to_product** — add a generated image to a product's gallery
+- **replace_image** — swap an old image for a new one across all content
+
+**Image Workflow:** Generate → preview → get feedback → iterate → attach to content. Always confirm before attaching or replacing.
+
+**Important**: For action tools (create/update/cart/image attachment), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.`
     : ''
@@ -503,7 +511,37 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           }
         }
 
-        // Send done event
+        // Extract any image URLs from tool results for the client
+        const imageUrls: Array<{ url: string; alt?: string; mediaId?: number }> = []
+        // Scan tool results for image-related data
+        for (const msg of messages) {
+          if (msg.role === 'user' && Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (typeof block === 'object' && 'type' in block && block.type === 'tool_result') {
+                const resultContent = typeof block.content === 'string' ? block.content : ''
+                // Look for Vercel Blob URLs in tool results
+                const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
+                if (blobMatch) {
+                  for (const url of blobMatch) {
+                    imageUrls.push({ url })
+                  }
+                }
+                // Look for Media ID references
+                const mediaMatch = resultContent.match(/Media\s*(?:ID|#):\s*(\d+)/gi)
+                if (mediaMatch) {
+                  for (let i = 0; i < mediaMatch.length && i < imageUrls.length; i++) {
+                    const idMatch = mediaMatch[i].match(/(\d+)/)
+                    if (idMatch) {
+                      imageUrls[i].mediaId = parseInt(idMatch[1], 10)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Send done event (with images if any were generated)
         controller.enqueue(
           encoder.encode(
             sseEvent('done', {
@@ -511,6 +549,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               agentName,
               messageId: savedMessageId,
               conversationId: resolvedConversationId,
+              ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
             }),
           ),
         )

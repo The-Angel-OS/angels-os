@@ -1,13 +1,15 @@
 /**
- * LEO Data Tools — P2.5
+ * LEO Data Tools — P2.5 + P3 (Media Generation)
  *
- * Defines the tools LEO can use to query Payload collections.
- * Uses Claude's tool_use feature so LEO can decide when to fetch data.
+ * Defines the tools LEO can use to query Payload collections AND generate/manage media.
+ * Uses Claude's tool_use feature so LEO can decide when to fetch data or create content.
  *
  * Architecture:
  *   - Tool definitions → sent to Claude API as `tools` parameter
  *   - Tool executor   → runs the Payload query when Claude requests a tool call
  *   - All queries use overrideAccess: true for public data, false for private data
+ *   - Image generation uses OpenRouter API (Flux 2, Gemini, GPT Image)
+ *   - Image feedback uses Anthropic Vision to understand existing images
  *
  * Note: We use `any` casts for Payload Where clauses and doc mappings because
  * the tool handlers build queries dynamically from LLM-provided inputs. The
@@ -15,10 +17,19 @@
  * without explicit collection-specific generics.
  *
  * @see ConversationEngine.ts — integrates these tools into generateResponse()
+ * @see imageGeneration.ts — OpenRouter image generation + Anthropic vision feedback
  */
 
 import type { Payload, Where } from 'payload'
 import type Anthropic from '@anthropic-ai/sdk'
+import {
+  generateImage,
+  uploadGeneratedImage,
+  attachImageToProduct,
+  analyzeImageForFeedback,
+  replaceMediaOnContent,
+  isImageGenerationAvailable,
+} from './imageGeneration'
 
 // ---------------------------------------------------------------------------
 // Tool Definitions (sent to Claude API)
@@ -231,6 +242,124 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Image Generation & Media Management Tools ──────────────────────
+  {
+    name: 'generate_image',
+    description:
+      'Generate an AI image using Flux 2, Gemini, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. After generating, you can attach the image to a product or save it as media. Always describe what you\'re generating before calling this tool.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            'Detailed description of the image to generate. Be specific about subject, style, lighting, colors, composition. The more detail, the better the result.',
+        },
+        productName: {
+          type: 'string',
+          description:
+            'If generating for a specific product, its name (used to enhance the prompt and filename)',
+        },
+        category: {
+          type: 'string',
+          description:
+            'Product category for style optimization: candles, jewelry, clothing, food, electronics, art, wellness, massage, cactus',
+        },
+        brandStyle: {
+          type: 'string',
+          description: 'Brand aesthetic description (e.g., "minimalist bohemian", "luxury spa", "desert rustic")',
+        },
+        backgroundColor: {
+          type: 'string',
+          description: 'Desired background (e.g., "white", "gradient blue", "natural outdoor")',
+        },
+        autoSave: {
+          type: 'boolean',
+          description:
+            'If true, automatically upload the generated image to the media library. Default: true for product images.',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
+  {
+    name: 'improve_image',
+    description:
+      'Analyze an existing image and generate an improved version based on user feedback. Use when a user says "make it warmer", "I don\'t like the background", "can you change the lighting", or gives any feedback about an existing image. LEO will analyze the current image with Anthropic Vision, understand what needs to change, and generate a better version.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaId: {
+          type: 'number',
+          description: 'The Media ID of the existing image to improve',
+        },
+        imageUrl: {
+          type: 'string',
+          description: 'URL of the existing image (if mediaId not available)',
+        },
+        feedback: {
+          type: 'string',
+          description:
+            'User\'s feedback about what to change (e.g., "warmer tones", "remove the background", "more professional")',
+        },
+        context: {
+          type: 'string',
+          description: 'What the image is for (e.g., "product photo for lavender candle", "blog post header")',
+        },
+      },
+      required: ['feedback'],
+    },
+  },
+  {
+    name: 'attach_image_to_product',
+    description:
+      'Attach a generated or existing image to a product\'s gallery. Can add a new image or replace an existing one. Use after generating an image when the user confirms they want to use it for a product. Always confirm with the user before attaching.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productId: {
+          type: 'number',
+          description: 'The ID of the product to attach the image to',
+        },
+        mediaId: {
+          type: 'number',
+          description: 'The Media ID of the image to attach',
+        },
+        replaceIndex: {
+          type: 'number',
+          description: 'If replacing an existing gallery image, the 0-based index to replace. Omit to append.',
+        },
+      },
+      required: ['productId', 'mediaId'],
+    },
+  },
+  {
+    name: 'replace_image',
+    description:
+      'Replace an existing image across all content that references it (products, posts, etc). Use when the user wants to swap out an old image for a new one globally. Always confirm with the user before replacing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        oldMediaId: {
+          type: 'number',
+          description: 'The Media ID of the image to replace',
+        },
+        newMediaId: {
+          type: 'number',
+          description: 'The Media ID of the replacement image',
+        },
+        collection: {
+          type: 'string',
+          description: 'Limit replacement to a specific collection (e.g., "products", "posts"). Omit to replace everywhere.',
+        },
+        documentId: {
+          type: 'number',
+          description: 'Limit replacement to a specific document ID within the collection.',
+        },
+      },
+      required: ['oldMediaId', 'newMediaId'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -276,6 +405,15 @@ export async function executeToolCall(
         return await addToCart(payload, toolInput, ctx)
       case 'view_cart':
         return await viewCart(payload, ctx)
+      // Image generation & media management
+      case 'generate_image':
+        return await handleGenerateImage(payload, toolInput)
+      case 'improve_image':
+        return await handleImproveImage(payload, toolInput)
+      case 'attach_image_to_product':
+        return await handleAttachImageToProduct(payload, toolInput)
+      case 'replace_image':
+        return await handleReplaceImage(payload, toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -847,5 +985,231 @@ async function updateBookingStatus(
   } catch (err) {
     console.error('[LEO Tools] Error updating booking:', err)
     return `Error updating booking: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image Generation & Media Management Handlers
+// ---------------------------------------------------------------------------
+
+async function handleGenerateImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  if (!isImageGenerationAvailable()) {
+    return 'Image generation is not available — OPENROUTER_API_KEY is not configured. Please add it to your environment variables.'
+  }
+
+  const prompt = input.prompt as string
+  if (!prompt) {
+    return 'Error: A prompt describing the image is required.'
+  }
+
+  const autoSave = input.autoSave !== false // Default true
+
+  try {
+    const result = await generateImage(
+      {
+        prompt,
+        enhancementContext: {
+          productName: input.productName as string | undefined,
+          category: input.category as string | undefined,
+          brandStyle: input.brandStyle as string | undefined,
+          backgroundColor: input.backgroundColor as string | undefined,
+        },
+        autoUpload: autoSave,
+      },
+      autoSave ? payload : undefined,
+    )
+
+    if (!result.success) {
+      return `Image generation failed: ${result.error}`
+    }
+
+    const parts: string[] = ['Image generated successfully! 🎨']
+
+    if (result.modelUsed) {
+      parts.push(`Model: ${result.modelUsed}`)
+    }
+
+    if (result.mediaId) {
+      parts.push(`Saved to media library (Media ID: ${result.mediaId})`)
+    }
+
+    if (result.permanentUrl) {
+      parts.push(`URL: ${result.permanentUrl}`)
+    }
+
+    if (result.imageDataUrl && !result.permanentUrl) {
+      // Image was generated but not saved — provide data URL for preview
+      parts.push('Image available for preview (not yet saved to media library).')
+      parts.push(`[IMAGE_DATA_URL:${result.imageDataUrl.substring(0, 100)}...]`)
+    }
+
+    if (input.productName) {
+      parts.push(`\nWould you like me to attach this image to the "${input.productName}" product?`)
+    } else {
+      parts.push('\nYou can ask me to attach this to a specific product or save it for later.')
+    }
+
+    return parts.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error generating image:', err)
+    return `Error generating image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleImproveImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const feedback = input.feedback as string
+  if (!feedback) {
+    return 'Error: Please describe what you want to change about the image.'
+  }
+
+  let imageUrl: string | undefined
+
+  // If mediaId provided, fetch the image URL from Payload
+  if (input.mediaId) {
+    try {
+      const media = await payload.findByID({
+        collection: 'media',
+        id: Number(input.mediaId),
+        depth: 0,
+        overrideAccess: true,
+      })
+      imageUrl = (media as unknown as Record<string, unknown>).url as string
+    } catch {
+      return `Error: Could not find media with ID ${input.mediaId}.`
+    }
+  } else if (input.imageUrl) {
+    imageUrl = input.imageUrl as string
+  }
+
+  try {
+    // Step 1: Analyze the existing image and get an improved prompt
+    let improvedPrompt = feedback
+    let analysis = ''
+
+    if (imageUrl) {
+      const feedbackResult = await analyzeImageForFeedback({
+        imageUrl,
+        feedback,
+        context: input.context as string | undefined,
+      })
+      improvedPrompt = feedbackResult.improvedPrompt
+      analysis = feedbackResult.analysis
+    }
+
+    // Step 2: Generate improved image
+    const result = await generateImage(
+      { prompt: improvedPrompt, autoUpload: true },
+      payload,
+    )
+
+    if (!result.success) {
+      return `Image improvement failed: ${result.error}`
+    }
+
+    const parts: string[] = []
+    if (analysis) {
+      parts.push(`📋 Analysis: ${analysis}`)
+    }
+    parts.push('✨ Improved image generated!')
+
+    if (result.mediaId) {
+      parts.push(`New Media ID: ${result.mediaId}`)
+    }
+    if (result.permanentUrl) {
+      parts.push(`URL: ${result.permanentUrl}`)
+    }
+
+    // If we had an original mediaId, offer to replace
+    if (input.mediaId && result.mediaId) {
+      parts.push(`\nWould you like me to replace the original image (Media #${input.mediaId}) with this improved version across all content?`)
+    }
+
+    return parts.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error improving image:', err)
+    return `Error improving image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleAttachImageToProduct(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const productId = Number(input.productId)
+  const mediaId = Number(input.mediaId)
+
+  if (!productId || !mediaId) {
+    return 'Error: Both productId and mediaId are required.'
+  }
+
+  const replaceIndex = input.replaceIndex !== undefined ? Number(input.replaceIndex) : undefined
+
+  try {
+    // Fetch product title for confirmation
+    const product = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (!product) {
+      return `Error: Product #${productId} not found. Search for products first.`
+    }
+
+    const title = str(product, 'title', 'Untitled')
+
+    const result = await attachImageToProduct(payload, productId, mediaId, { replaceIndex })
+
+    if (!result.success) {
+      return `Error: ${result.error}`
+    }
+
+    if (replaceIndex !== undefined) {
+      return `Image replaced! Updated gallery image #${replaceIndex + 1} on **${title}** with Media #${mediaId}.`
+    }
+
+    return `Image attached! Added Media #${mediaId} to **${title}**'s gallery.`
+  } catch (err) {
+    console.error('[LEO Tools] Error attaching image:', err)
+    return `Error attaching image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleReplaceImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const oldMediaId = Number(input.oldMediaId)
+  const newMediaId = Number(input.newMediaId)
+
+  if (!oldMediaId || !newMediaId) {
+    return 'Error: Both oldMediaId and newMediaId are required.'
+  }
+
+  try {
+    const result = await replaceMediaOnContent(payload, oldMediaId, newMediaId, {
+      collection: input.collection as string | undefined,
+      documentId: input.documentId ? Number(input.documentId) : undefined,
+    })
+
+    if (!result.success) {
+      return `Error: ${result.error}`
+    }
+
+    if (result.updatedDocuments === 0) {
+      return `No documents found referencing Media #${oldMediaId}. The image may not be in use, or it may have already been replaced.`
+    }
+
+    return `Image replaced globally! Updated ${result.updatedDocuments} document(s) — swapped Media #${oldMediaId} → #${newMediaId}.`
+  } catch (err) {
+    console.error('[LEO Tools] Error replacing image:', err)
+    return `Error replacing image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
