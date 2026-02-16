@@ -26,7 +26,9 @@ export const Messages: CollectionConfig = {
       name: 'author',
       type: 'relationship',
       relationTo: 'users',
-      required: true,
+      // Not required at API level — setAuthor beforeChange hook auto-populates
+      // from req.user. Payload validates required fields before hooks run,
+      // so leaving this required would cause 400s on POST.
     },
     {
       name: 'space',
