@@ -18,6 +18,7 @@
 import type { PayloadHandler } from 'payload'
 
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
+import { wrapTextContent } from '@/utilities/messageContent'
 
 export const leoChatHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
@@ -110,7 +111,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
         const saved = await req.payload.create({
           collection: 'messages',
           data: {
-            content: result.text,
+            content: wrapTextContent(result.text),
             space: resolvedSpaceId,
             channel: resolvedChannel,
             messageType: 'ai_agent',
