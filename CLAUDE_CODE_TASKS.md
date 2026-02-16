@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 16, 2026 (Session 5c — The Herald's Gospel: Cosmological Deepening)
+**Last Updated**: February 16, 2026 (Session 5d — Core Perfection: Bookings, Home Page, Access Control)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -121,30 +121,41 @@ Added `data` (json), `widgets` (json), `dataVersion` (number) fields to Channels
 - `widgets` = UI config (which widgets active, layout, preferences)
 - `dataVersion` = optimistic locking for concurrent edits
 
-### P3: Transient PostgreSQL Connection Drops
-**Status**: Intermittent, self-healing on retry
-**Issue**: PostgreSQL at `74.208.87.243:5432/angels` occasionally drops connections, causing 500 errors on Vercel serverless cold starts.
-**Impact**: First page load after idle period sometimes shows "Application error" — works on refresh.
-**Fix Options**:
-1. Add PgBouncer connection pooler
-2. Migrate to managed DB (Neon, Supabase, Vercel Postgres)
-3. Add retry logic in Payload's DB adapter config
+### ~~P3: Transient PostgreSQL Connection Drops~~ ✅ MITIGATED (Session 5d)
+Added connection pool configuration to `postgresAdapter` in payload.config.ts:
+- `max: 10` connections, `idleTimeoutMillis: 20000`, `connectionTimeoutMillis: 10000`, `allowExitOnIdle: true`
+- These settings are optimized for Vercel serverless (short-lived functions, cold starts)
+- Full fix would be migrating to managed DB (Neon, Supabase, Vercel Postgres) or adding PgBouncer
 
-### P4: SpaceMemberships Not Enforced
-**Status**: Collection exists, not wired into access control
-**Issue**: Any authenticated user can read messages from any space. The `SpaceMemberships` collection tracks user-space-role relationships but isn't checked in Messages/Spaces read access.
-**Impact**: No privacy between tenant spaces (all messages visible to all users)
-**Fix**: Add access control to Messages.read that checks SpaceMemberships.
+### ~~P4: SpaceMemberships Access Control~~ ✅ RESOLVED (Session 5d)
+Messages collection now enforces space-based access control:
+- Admins/super_admins/archangels/system users: full access (unchanged)
+- Regular users: can only READ messages in spaces where they have an active SpaceMemberships entry
+- Update/delete: restricted to own messages (non-admin users)
+- Implementation: async `readMessages` access function queries `space-memberships` collection
+- Fail-closed: if membership check fails, access denied
 
-### P5: Home Page Placeholder Content
-**Status**: Shows "Payload Ecommerce Template" text
-**Issue**: The home page still shows the default Payload template content instead of Angel OS branding.
-**Fix**: Create a proper home page in the Pages collection via seed script or admin panel.
+### ~~P5: Home Page Placeholder Content~~ ✅ RESOLVED (Session 5d)
+Replaced "Payload Ecommerce Template" with proper Angel OS home page:
+- Hero: "Everyone Gets an Angel" with bold tagline
+- 3-column features: AI Guardian / Bookings Built In / Multi-Tenant
+- Constitutional principles banner
+- "Why This Exists" origin story section
+- "What Angels Never Do" / "What Angels Always Do" dual-column
+- CTA: "Ready to Meet Your Guardian Angel?" with Shop + Blog links
+- SEO meta: proper title and description
 
-### P6: Default Space Resolution Order
-**Status**: Minor — fetches first space alphabetically instead of main community space
-**Issue**: `fetchDefaultSpaceId` queries `spaces` with `limit: 1` but no ordering. For the default tenant, this returns space 16 (Angel OS Support) instead of space 15 (Angel OS Community).
-**Fix**: Add `sort: 'createdAt'` or add an `isDefault` flag to Spaces.
+### ~~P6: Default Space Resolution Order~~ ✅ RESOLVED (Session 5d)
+Added `sort: 'createdAt'` to `fetchDefaultSpaceId` query. Now returns the oldest space for the tenant (the main community space) instead of alphabetically-first.
+
+### P9: LEO Booking Actions (cal.com-style via Chat) — Session 5d
+**Status**: RESOLVED (Session 5d)
+Added 2 new action tools to LEO's tool_use capabilities:
+- **create_booking**: Create appointments/bookings through conversation. LEO confirms details with user first (Article III.2). Supports all booking types, datetime, duration.
+- **update_booking_status**: Confirm, cancel, or complete bookings. Also requires user confirmation.
+- Both tools integrated into ConversationEngine (batch) and leo-stream (SSE)
+- `userId` passed through `ToolExecutorContext` so bookings can be linked to the requesting user
+- System prompts updated to describe action tools and constitutional requirements
 
 ### P7: Merlin System Agent Not Registered
 **Status**: Pending — instructions written but agent not yet created
@@ -187,7 +198,23 @@ Added `data` (json), `widgets` (json), `dataVersion` (number) fields to Channels
 - `64a5fa7` — feat: Session 5b — Immersive chat, SSE streaming, user identity, infinite scroll
 
 ### Commits (Session 5c)
-- *(pending)* — feat: Session 5c — The Herald's Gospel: cosmological deepening of LEO's soul
+- `1a771c5` — feat: Session 5c — The Herald's Gospel: cosmological deepening of LEO's soul
+
+### Commits (Session 5d)
+- (pending) — feat: Session 5d — Core perfection: bookings, home page, access control, OpenClaw guide
+
+### Key Files Modified (Session 5d)
+| File | Change |
+|------|--------|
+| `MERLIN_OPENCLAW_INTEGRATION.md` | Complete rewrite v0.2.0 — reflects LEO brain, streaming, tools, Herald's Gospel, bookings |
+| `src/utilities/leo-data-tools.ts` | Added `create_booking` + `update_booking_status` action tools; `userId` in context |
+| `src/utilities/ConversationEngine.ts` | System prompt: booking action tools section + `userId` in tool executor context |
+| `src/endpoints/leo-stream.ts` | Same booking action tools section in streaming prompt + `userId` in context |
+| `src/endpoints/seed/home-static.ts` | Complete rewrite: "Everyone Gets an Angel" home page with 5 content blocks |
+| `src/utilities/fetchDefaultSpaceId.ts` | Added `sort: 'createdAt'` (P6 fix) |
+| `src/collections/Messages/index.ts` | SpaceMemberships-based read access control (P4 fix) |
+| `src/payload.config.ts` | PostgreSQL pool config for serverless resilience (P3 fix) |
+| `CLAUDE_CODE_TASKS.md` | Session 5d documentation |
 
 ### Key Files Modified (Session 5c)
 | File | Change |

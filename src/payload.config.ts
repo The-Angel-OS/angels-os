@@ -95,6 +95,11 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
+      // Vercel serverless connection resilience (P3 fix)
+      max: 10, // Max connections in pool (serverless functions are short-lived)
+      idleTimeoutMillis: 20000, // Close idle connections after 20s
+      connectionTimeoutMillis: 10000, // Wait up to 10s for a connection
+      allowExitOnIdle: true, // Allow pool to close when idle (important for serverless)
     },
   }),
   plugins: [

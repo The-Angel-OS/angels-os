@@ -169,6 +169,7 @@ export class ConversationEngine {
             payload,
             tenantId: this.context.sessionMemory?.tenantId as number | undefined,
             spaceId: this.context.sessionMemory?.spaceId as number | undefined,
+            userId: (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id,
           }
 
           for (const toolBlock of toolUseBlocks) {
@@ -292,7 +293,9 @@ ${capabilities.length > 0 ? capabilities.map((c) => `- ${c}`).join('\n') : '- Ge
 ${this.hasDataAccess() ? `
 ## Data Access
 
-You have access to the platform's data through tools. When users ask about products, posts, bookings, projects, spaces, or availability, USE the appropriate tool to look up real data instead of guessing or saying you don't have access. Available tools:
+You have access to the platform's data through tools. When users ask about products, posts, bookings, projects, spaces, or availability, USE the appropriate tool to look up real data instead of guessing or saying you don't have access.
+
+### Query Tools (read data):
 - **query_products** — search the product catalog (titles, prices, inventory)
 - **query_posts** — find blog posts and articles
 - **query_bookings** — look up appointments and scheduling
@@ -300,7 +303,13 @@ You have access to the platform's data through tools. When users ask about produ
 - **query_projects** — search the project portfolio
 - **query_availability** — check provider scheduling availability
 
-Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps.` : ''}
+### Action Tools (modify data):
+- **create_booking** — schedule a new appointment or booking (confirm details with user first!)
+- **update_booking_status** — confirm, cancel, or complete a booking (confirm with user first!)
+
+**Important**: For action tools (create/update), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
+
+Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating.` : ''}
 
 ${this.buildUserContextSection()}
 ## Guidelines
