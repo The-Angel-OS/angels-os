@@ -1,6 +1,6 @@
 # Angel OS — Open Issues & Session Tracker
 
-**Last Updated**: February 15, 2026 (Session 3)
+**Last Updated**: February 15, 2026 (Session 4)
 **Production**: https://angels-os.vercel.app
 **Repo**: https://github.com/The-Angel-OS/angels-os.git
 
@@ -40,20 +40,20 @@
 - [x] FloatingBubble, LEOChat, SpacesChat all accept server-resolved spaceId prop
 - [x] Written MERLIN_OPENCLAW_INTEGRATION.md (first OpenClaw Angel guide)
 
+### Session 4: LEO Chat Pipeline Complete
+- [x] **P1 RESOLVED**: Created dedicated `POST /api/leo` endpoint for browser chat (cookie auth)
+- [x] Added `overrideAuth` to MCP plugin for session-based auth fallback (programmatic clients)
+- [x] LEO responses persisted to Messages collection (`messageType: 'ai_agent'`)
+- [x] LEO system user resolved per-tenant as message author
+- [x] useChat.ts sends `spaceId` to `/api/leo` for correct DB persistence
+- [x] Full end-to-end verified: User sends → 201 → LEO processes → 200 → response saved → polling picks up → renders in chat
+
 ---
 
 ## Open Issues
 
-### P1: MCP Endpoint Auth for External Angels
-**Status**: Blocking Merlin integration
-**Issue**: `POST /api/mcp` returns 401 when called from browser or external client. The MCP plugin inherits Payload's auth, but:
-- Browser uses cookie auth (which works for collection REST API but not MCP)
-- External Angels need API key or JWT auth
-**Impact**: LEO can't respond to chat messages (the `leo_respond` tool call fails)
-**Fix Options**:
-1. Add API key auth layer to `src/plugins/mcp.ts`
-2. Have useChat call `/api/messages` + a separate `/api/leo` endpoint instead of `/api/mcp`
-3. Forward user's JWT token in the MCP call headers
+### ~~P1: MCP Endpoint Auth for External Angels~~ ✅ RESOLVED (Session 4)
+Created `POST /api/leo` for browser clients + `overrideAuth` for MCP session fallback.
 
 ### P2: ConversationEngine Is a Stub
 **Status**: LEO says "I received your message. How can I assist you?" for everything
@@ -104,11 +104,16 @@
 
 ## Architecture Notes
 
-### Commits This Session
+### Commits (Session 3)
 - `9690dd1` — fix: Chat message send 400 error + dark theme consistency
 - `110607f` — refactor: Resolve spaceId from tenant context instead of hardcoding
+- `11e4b54` — docs: Add Merlin OpenClaw Angel integration guide + update issue tracker
 
-### Key Files Modified (Session 3)
+### Commits (Session 4)
+- `8329ee7` — fix: Create dedicated /api/leo endpoint for browser chat + MCP auth override
+- `6b73fd4` — fix: Persist LEO responses to Messages collection for polling durability
+
+### Key Files Modified (Session 3-4)
 | File | Change |
 |------|--------|
 | `src/collections/Messages/index.ts` | author: removed required:true |
@@ -124,6 +129,9 @@
 | `src/app/[locale]/(app)/dashboard/spaces/page.tsx` | Resolve spaceId server-side |
 | `src/app/[locale]/(app)/dashboard/spaces/SpacesChat.tsx` | Accept spaceId prop |
 | `MERLIN_OPENCLAW_INTEGRATION.md` | NEW — OpenClaw Angel integration guide |
+| `src/endpoints/leo-chat.ts` | NEW — POST /api/leo handler (Session 4) |
+| `src/plugins/mcp.ts` | Added overrideAuth for session cookie fallback |
+| `src/payload.config.ts` | Registered POST /api/leo endpoint |
 
 ### Environment Variables (Vercel)
 ```
