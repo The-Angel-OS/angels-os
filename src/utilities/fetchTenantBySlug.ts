@@ -14,7 +14,7 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
     collection: 'tenants',
     where: { slug: { equals: slug } },
     limit: 1,
-    depth: 1,
+    depth: 2,
   })
 
   return tenants.docs?.[0] ?? null

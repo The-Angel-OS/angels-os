@@ -14,11 +14,12 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
   const payload = await getPayload({ config: configPromise })
 
   // First: try exact domain match
+  // depth: 2 ensures nested relations (e.g. branding.logo → Media object) are fully hydrated
   const tenants = await payload.find({
     collection: 'tenants',
     where: { domain: { equals: domain } },
     limit: 1,
-    depth: 1,
+    depth: 2,
   })
 
   if (tenants.docs?.[0]) return tenants.docs[0]
@@ -29,7 +30,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
     collection: 'tenants',
     where: { slug: { equals: 'default' } },
     limit: 1,
-    depth: 1,
+    depth: 2,
   })
 
   return defaults.docs?.[0] ?? null
