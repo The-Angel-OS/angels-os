@@ -3,15 +3,17 @@
 import React from 'react'
 import { MinimalistChat } from './MinimalistChat'
 import { MultiChannelChat, SingleChannelChat } from './MultiChannelChat'
+import { SidebarChat } from './SidebarChat'
 import type { ChatControlProps } from './types'
 
 /**
  * ChatControl - Angel OS unified chat component.
  *
- * Three modes:
+ * Four modes:
  * - minimalist: Floating bubble (bottom corner), expands to chat window
  * - single-channel: Embedded single channel view, no sidebar
  * - multi-channel: Full dashboard with channel list sidebar
+ * - sidebar: Dashboard right-panel collapsible LEO chat
  *
  * @example
  * // Floating bubble on any page
@@ -22,6 +24,9 @@ import type { ChatControlProps } from './types'
  *
  * // Full dashboard
  * <ChatControl mode="multi-channel" spaceId="1" />
+ *
+ * // Dashboard sidebar
+ * <ChatControl mode="sidebar" spaceId="1" channelSlug="general" />
  */
 export function ChatControl(props: ChatControlProps) {
   switch (props.mode) {
@@ -31,6 +36,8 @@ export function ChatControl(props: ChatControlProps) {
       return <SingleChannelChat {...props} />
     case 'multi-channel':
       return <MultiChannelChat {...props} />
+    case 'sidebar':
+      return <SidebarChat {...props} />
     default:
       return <MinimalistChat {...props} />
   }
@@ -38,5 +45,6 @@ export function ChatControl(props: ChatControlProps) {
 
 export { MinimalistChat } from './MinimalistChat'
 export { MultiChannelChat, SingleChannelChat } from './MultiChannelChat'
+export { SidebarChat } from './SidebarChat'
 export { useChat } from './useChat'
 export type { ChatControlProps, ChatMessage, ChatChannel, ChatMode } from './types'

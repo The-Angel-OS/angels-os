@@ -24,16 +24,8 @@ export default async function SpacesPage({
   const defaultSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] flex-col">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">Spaces</h1>
-        <p className="text-sm text-muted-foreground">
-          Channels, messages, and workspace apps. Discord-like collaboration.
-        </p>
-      </div>
-      <div className="flex-1">
-        <SpacesChat spaceId={defaultSpaceId} />
-      </div>
+    <div className="-m-6 flex h-[calc(100vh-3.5rem)] flex-col">
+      <SpacesChat spaceId={defaultSpaceId} />
     </div>
   )
 }
