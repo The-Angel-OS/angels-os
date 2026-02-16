@@ -9,10 +9,10 @@
  * with Bearer token auth via the MCP protocol.
  *
  * Request body:
- *   { message: string, conversationId?: string, channelSlug?: string }
+ *   { message: string, spaceId?: number|string, conversationId?: string, channelSlug?: string }
  *
  * Response:
- *   { text: string, agentName: string, agentType: string, conversationId?: string }
+ *   { text: string, agentName: string, agentType: string, conversationId?: string, messageId?: number }
  */
 
 import type { PayloadHandler } from 'payload'
@@ -33,7 +33,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { message, conversationId, channelSlug } = body
+  const { message, conversationId, channelSlug, spaceId } = body
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
@@ -67,13 +67,58 @@ export const leoChatHandler: PayloadHandler = async (req) => {
       payload: req.payload,
     })
 
+    const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
+    const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
+
+    // Persist LEO's response to the Messages collection so it survives polling
+    let savedMessageId: number | undefined
+    if (resolvedSpaceId && result.text) {
+      try {
+        // Find the LEO system user for this tenant to use as author
+        let leoUserId: number | undefined
+        if (tenantSlug) {
+          const leoEmail = `leo-${tenantSlug}@system.angelos.local`
+          const leoUsers = await req.payload.find({
+            collection: 'users',
+            where: {
+              and: [
+                { email: { equals: leoEmail } },
+                { isSystemUser: { equals: true } },
+              ],
+            },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
+          leoUserId = leoUsers.docs?.[0]?.id
+        }
+
+        const saved = await req.payload.create({
+          collection: 'messages',
+          data: {
+            content: result.text,
+            space: resolvedSpaceId,
+            channel: resolvedChannel,
+            messageType: 'ai_agent',
+            ...(leoUserId ? { author: leoUserId } : {}),
+          } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          overrideAccess: true,
+        })
+        savedMessageId = saved.id as number
+      } catch (saveErr) {
+        // Non-critical — response still returned to client even if DB save fails
+        console.warn('[LEO Chat] Failed to persist response:', saveErr)
+      }
+    }
+
     return Response.json({
       text: result.text,
       response: result.text,
       agentName: result.agentName,
       agentType: result.agentType || 'leo',
       conversationId: result.conversationId,
-      channelSlug: typeof channelSlug === 'string' ? channelSlug : undefined,
+      channelSlug: resolvedChannel,
+      messageId: savedMessageId,
     })
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error'

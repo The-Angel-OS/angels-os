@@ -189,6 +189,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
               message: content.trim(),
               conversationId: conversationIdRef.current,
               channelSlug: activeChannel,
+              spaceId,
             }),
           })
 
