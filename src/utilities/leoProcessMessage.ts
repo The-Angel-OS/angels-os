@@ -17,6 +17,7 @@ export type ProcessMessageOptions = {
   conversationId?: string
   tenantId?: number | string
   channelSlug?: string
+  spaceId?: number | string
   agentId?: number | string
   payload?: Payload
 }
@@ -42,7 +43,7 @@ export type ProcessMessageResult = {
 export async function leoProcessMessage(
   options: ProcessMessageOptions,
 ): Promise<ProcessMessageResult> {
-  const { message, conversationId, tenantId, channelSlug, agentId, payload } = options
+  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload } = options
 
   // Determine which agent should handle this message
   let agent = null
@@ -63,7 +64,9 @@ export async function leoProcessMessage(
     conversationId: conversationId ?? `conv_${Date.now()}`,
     phase: 'greeting',
     intentHistory: [],
-    sessionMemory: payload ? { payload } : {},
+    sessionMemory: payload
+      ? { payload, ...(spaceId ? { spaceId: Number(spaceId) } : {}), ...(channelSlug ? { channel: channelSlug } : {}) }
+      : {},
     agent: agent ? {
       id: agent.id,
       agentType: agent.agentType,

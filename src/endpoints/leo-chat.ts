@@ -60,15 +60,17 @@ export const leoChatHandler: PayloadHandler = async (req) => {
   }
 
   try {
+    const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
+    const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
+
     const result = await leoProcessMessage({
       message: message.trim(),
       conversationId: typeof conversationId === 'string' ? conversationId : undefined,
       tenantId,
+      channelSlug: resolvedChannel,
+      spaceId: resolvedSpaceId,
       payload: req.payload,
     })
-
-    const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
-    const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
 
     // Persist LEO's response to the Messages collection so it survives polling
     let savedMessageId: number | undefined
