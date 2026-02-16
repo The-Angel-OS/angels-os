@@ -145,6 +145,62 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'create_booking',
+    description:
+      'Create a new booking/appointment. Use when a user wants to schedule a service, consultation, or appointment. Always confirm details with the user before creating. This is an irreversible action — Article III.2 requires human confirmation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Booking title (e.g., "Massage Therapy Session", "Website Consultation")',
+        },
+        bookingType: {
+          type: 'string',
+          enum: ['service', 'consultation', 'rental', 'class', 'event', 'custom'],
+          description: 'Type of booking',
+        },
+        startDateTime: {
+          type: 'string',
+          description: 'ISO 8601 date-time string for when the booking starts (e.g., "2026-02-20T14:00:00Z")',
+        },
+        duration: {
+          type: 'number',
+          description: 'Duration in minutes (default: 60, step: 15)',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description or notes for the booking',
+        },
+        clientName: {
+          type: 'string',
+          description: 'Name of the person booking (defaults to current user)',
+        },
+      },
+      required: ['title', 'bookingType', 'startDateTime'],
+    },
+  },
+  {
+    name: 'update_booking_status',
+    description:
+      'Update the status of an existing booking. Use when a user wants to confirm, cancel, or mark a booking as complete. Always confirm the action with the user first — Article III.2.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        bookingId: {
+          type: 'number',
+          description: 'The ID of the booking to update',
+        },
+        status: {
+          type: 'string',
+          enum: ['confirmed', 'cancelled', 'completed', 'no-show'],
+          description: 'The new status for the booking',
+        },
+      },
+      required: ['bookingId', 'status'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -155,6 +211,7 @@ export type ToolExecutorContext = {
   payload: Payload
   tenantId?: number
   spaceId?: number
+  userId?: number
 }
 
 /**
@@ -181,6 +238,10 @@ export async function executeToolCall(
         return await queryProjects(payload, toolInput)
       case 'query_availability':
         return await queryAvailability(payload, toolInput)
+      case 'create_booking':
+        return await createBooking(payload, toolInput, ctx)
+      case 'update_booking_status':
+        return await updateBookingStatus(payload, toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -457,4 +518,145 @@ async function queryAvailability(
   })
 
   return `Found ${result.docs.length} availability record(s):\n${slots.join('\n')}`
+}
+
+// ---------------------------------------------------------------------------
+// Booking Action Handlers (cal.com-style scheduling via conversation)
+// ---------------------------------------------------------------------------
+
+async function createBooking(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = input.title as string
+  const bookingType = (input.bookingType as string) || 'service'
+  const startDateTime = input.startDateTime as string
+  const duration = Number(input.duration) || 60
+  const description = input.description as string | undefined
+
+  if (!title || !startDateTime) {
+    return 'Error: title and startDateTime are required to create a booking.'
+  }
+
+  // Validate the date
+  const startDate = new Date(startDateTime)
+  if (isNaN(startDate.getTime())) {
+    return 'Error: Invalid startDateTime format. Please use ISO 8601 format (e.g., "2026-02-20T14:00:00Z").'
+  }
+
+  if (startDate < new Date()) {
+    return 'Error: Cannot create a booking in the past. Please provide a future date and time.'
+  }
+
+  try {
+    // Build the booking data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bookingData: Record<string, any> = {
+      title,
+      bookingType,
+      startDateTime,
+      duration,
+      status: 'pending',
+    }
+
+    // If we know the current user, set them as the client
+    if (ctx.userId) {
+      bookingData.client = ctx.userId
+    }
+
+    // Add description as richText if provided
+    if (description) {
+      bookingData.description = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              children: [{ type: 'text', text: description, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }],
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (payload.create as any)({
+      collection: 'bookings',
+      data: bookingData,
+      overrideAccess: true,
+    })
+
+    const bookingId = result.id
+    const formattedDate = startDate.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    })
+
+    return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.`
+  } catch (err) {
+    console.error('[LEO Tools] Error creating booking:', err)
+    return `Error creating booking: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
+  }
+}
+
+async function updateBookingStatus(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const bookingId = Number(input.bookingId)
+  const status = input.status as string
+
+  if (!bookingId || !status) {
+    return 'Error: bookingId and status are required.'
+  }
+
+  const validStatuses = ['confirmed', 'cancelled', 'completed', 'no-show']
+  if (!validStatuses.includes(status)) {
+    return `Error: Invalid status "${status}". Valid options: ${validStatuses.join(', ')}`
+  }
+
+  try {
+    // First, fetch the booking to show what we're updating
+    const existing = await payload.findByID({
+      collection: 'bookings',
+      id: bookingId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (!existing) {
+      return `Error: Booking #${bookingId} not found.`
+    }
+
+    const oldStatus = str(existing, 'status', 'unknown')
+    const bookingTitle = str(existing, 'title', 'Untitled')
+
+    // Update the booking
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'bookings',
+      id: bookingId,
+      data: { status },
+      overrideAccess: true,
+    })
+
+    return `Booking updated:\n- **${bookingTitle}** (ID: ${bookingId})\n- Status: ${oldStatus} \u2192 ${status}`
+  } catch (err) {
+    console.error('[LEO Tools] Error updating booking:', err)
+    return `Error updating booking: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
 }
