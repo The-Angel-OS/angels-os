@@ -1,8 +1,10 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { runWorkflowsForMessage } from '@/utilities/workflowRunner'
+import { extractTextFromContent } from '@/utilities/messageContent'
 
 /**
  * After a message is created, run any matching channel workflows (e.g. inventory_from_image).
+ * Handles UMS JSON content via extractTextFromContent.
  */
 export const runWorkflows: CollectionAfterChangeHook = async ({
   doc,
@@ -20,7 +22,8 @@ export const runWorkflows: CollectionAfterChangeHook = async ({
   try {
     await runWorkflowsForMessage(req.payload, {
       id: doc.id,
-      content: (doc as { content?: string }).content ?? '',
+      // UMS: content is now JSON — extract text for workflow processing
+      content: extractTextFromContent((doc as { content?: unknown }).content),
       messageType: (doc as { messageType?: string }).messageType,
       attachments,
       channel: (doc as { channel?: string }).channel,

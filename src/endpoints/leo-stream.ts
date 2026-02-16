@@ -21,6 +21,7 @@ import { buildMinimalConstitutionalPrompt } from '@/utilities/constitutional-pro
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
 import { routeToAgent } from '@/utilities/AgentRouter'
+import { extractTextFromContent, wrapTextContent } from '@/utilities/messageContent'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -211,7 +212,8 @@ async function fetchConversationHistory(
         (author.isSystemUser === true ||
           (Array.isArray(author.roles) && author.roles.includes('system')))
       const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-      const content = String(msg.content || '')
+      // UMS: content is now JSON — extract displayable text for LLM context
+      const content = extractTextFromContent(msg.content)
 
       if (content.trim()) {
         const lastMsg = messages[messages.length - 1]
@@ -487,7 +489,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             const saved = await req.payload.create({
               collection: 'messages',
               data: {
-                content: fullText,
+                content: wrapTextContent(fullText),
                 space: resolvedSpaceId,
                 channel: resolvedChannel,
                 messageType: 'ai_agent',

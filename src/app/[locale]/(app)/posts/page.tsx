@@ -1,5 +1,6 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import { headers } from 'next/headers'
 import React from 'react'
 
 import { CollectionArchive, POSTS_PER_PAGE } from '@/components/CollectionArchive'
@@ -11,18 +12,60 @@ export const metadata = {
   title: 'Posts',
 }
 
+/**
+ * Posts listing page — tenant-aware.
+ *
+ * Reads the x-tenant-id header injected by middleware to resolve the current
+ * tenant, then filters posts to only show content belonging to that tenant.
+ * This fixes the issue where posts were invisible because the multi-tenant
+ * plugin's access control was filtering them out.
+ */
 export default async function PostsPage() {
   const payload = await getPayload({ config: configPromise })
+
+  // Resolve tenant from middleware-injected header
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  let tenantId: number | undefined
+
+  if (tenantSlug) {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: tenantSlug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = tenants.docs?.[0]?.id
+  }
+
+  // If no tenant found by slug, try the "default" tenant as fallback
+  if (!tenantId) {
+    const defaults = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: 'default' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = defaults.docs?.[0]?.id
+  }
 
   const posts = await payload.find({
     collection: 'posts',
     draft: false,
     depth: 1,
     limit: POSTS_PER_PAGE,
-    overrideAccess: false,
+    overrideAccess: true, // Bypass multi-tenant plugin access control — we filter explicitly
     pagination: true,
     page: 1,
-    where: { _status: { equals: 'published' } },
+    where: {
+      and: [
+        { _status: { equals: 'published' } },
+        // Tenant filter: show posts from the resolved tenant
+        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+      ],
+    },
     select: {
       title: true,
       slug: true,

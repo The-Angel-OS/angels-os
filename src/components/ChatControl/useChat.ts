@@ -13,6 +13,24 @@ const TOOL_LABELS: Record<string, string> = {
   query_spaces: 'Finding spaces',
   query_projects: 'Browsing projects',
   query_availability: 'Checking availability',
+  add_to_cart: 'Adding to cart',
+  view_cart: 'Checking cart',
+}
+
+/**
+ * Extract displayable text from UMS JSON content.
+ * Backward-compatible: handles plain strings, JSON objects with `text` field,
+ * and arbitrary JSON data.
+ */
+function extractText(content: unknown): string {
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  if (typeof content !== 'object') return String(content)
+  const obj = content as Record<string, unknown>
+  if (typeof obj.text === 'string') return obj.text
+  if (typeof obj.content === 'string') return obj.content
+  if (typeof obj.message === 'string') return obj.message
+  try { return JSON.stringify(content) } catch { return '[Message]' }
 }
 
 /**
@@ -80,6 +98,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
   }, [spaceId, channelSlug])
 
   // Map a raw Payload message doc to our ChatMessage type
+  // Handles UMS JSON content via extractText for backward compatibility
   const mapMessage = useCallback((msg: Record<string, unknown>): ChatMessage => {
     const author = msg.author as Record<string, unknown> | null
     const authorName = author
@@ -96,7 +115,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
         : msg.messageType === 'system' || msg.messageType === 'announcement'
           ? 'system'
           : 'user',
-      content: String(msg.content || ''),
+      content: extractText(msg.content),
       timestamp: new Date(String(msg.createdAt)),
       authorName,
       metadata: {
@@ -398,14 +417,15 @@ export function useChat(spaceId?: string, channelSlug?: string) {
       setIsLoading(true)
 
       try {
-        // Send user message to Payload
+        // Send user message to Payload — UMS JSON content format
         const spaceIdNum = Number(spaceId)
+        const umsContent = { type: 'text', text: content.trim() }
         const res = await fetch(`${SERVER_URL}/api/messages`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: content.trim(),
+            content: umsContent,
             space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
             channel: activeChannel,
             messageType: 'user',

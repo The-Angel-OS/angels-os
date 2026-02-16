@@ -131,14 +131,15 @@ export async function applySpaceTemplate(
       overrideAccess: true,
     })
 
-    for (const content of ch.initialMessages) {
+    for (const msgText of ch.initialMessages) {
       await payload.create({
         collection: 'messages',
         data: {
           author: authorUserId as number,
           space: space.id,
           channel: ch.name,
-          content,
+          // UMS JSON content format
+          content: { type: 'text', text: msgText } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
           messageType: 'system',
           tenant: tenantId as number,
         },

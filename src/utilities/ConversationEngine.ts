@@ -21,6 +21,7 @@ import { buildMinimalConstitutionalPrompt } from './constitutional-prompt'
 import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
+import { extractTextFromContent } from './messageContent'
 
 // ---------------------------------------------------------------------------
 // LLM Client (lazy singleton — avoids import-time side effects on Vercel)
@@ -419,7 +420,8 @@ Tailor your responses to their access level. Administrators can see all data and
           (author.isSystemUser === true ||
             (Array.isArray(author.roles) && author.roles.includes('system')))
         const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-        const content = String(msg.content || '')
+        // UMS: content is now JSON — extract displayable text
+        const content = extractTextFromContent(msg.content)
 
         if (content.trim()) {
           // Merge consecutive same-role messages (Claude API requires alternating roles)

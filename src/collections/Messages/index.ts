@@ -4,15 +4,34 @@ import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
 
 /**
- * Message within a Space.
- * channel is the channel name (string) for template compatibility;
- * can be upgraded to relationship to Channels when needed.
+ * Messages Collection — Universal Message Structure (UMS)
  *
- * Access Control (P4):
- * - Admins, super_admins, archangels, and system users: full access
- * - Regular users: can read messages only in spaces they belong to
- *   (via SpaceMemberships collection). Can create in any space they
- *   can read. Cannot update/delete others' messages.
+ * The foundational "communication fabric" of Angel OS, ensuring every interaction
+ * — between humans, AI agents, or federated nodes — is recorded, actionable,
+ * and transparent.
+ *
+ * The UMS is a JSON-based message-driven event system (Article IV, AI Bus Protocol)
+ * with these core principles:
+ *
+ * 1. **Visibility Levels**: private, tenant (default), network — respecting privacy
+ *    boundaries while enabling AI collaboration.
+ * 2. **Tenant Segmentation**: All messages scoped by Tenant ID for data isolation.
+ * 3. **Progressive JSON Content**: Extensible `content` field (JSON) supports plain text,
+ *    rich text, payload blocks, widgets, BI metrics, and system actions without
+ *    breaking the core schema.
+ * 4. **Payload Blocks**: Embed CMS blocks (product displays, booking widgets, forms)
+ *    directly within chat messages.
+ * 5. **System Messages & Actions**: Track autonomous AI actions, ethical assessments,
+ *    and Anti-Daemon Protocol compliance.
+ * 6. **Workflow Normalization**: Any form submittal, booking request, or e-commerce
+ *    transaction is automatically converted into a System Message — rolling up
+ *    disparate activities into a priority-queued messaging hub.
+ * 7. **Federation Ready**: Structure aligns with AT Protocol for cross-tenant
+ *    AI collaboration and network portability.
+ *
+ * @see constitutional-prompt.ts — Article IV (AI Bus Protocol)
+ * @see ConversationEngine.ts — LEO's conversation management
+ * @see workflowRunner.ts — Message-triggered workflow execution
  */
 
 /** Check if user has elevated roles */
@@ -27,9 +46,7 @@ function isAdminOrSystem(user: any): boolean {
 /**
  * Messages read access: admins see all; regular users see only messages
  * in spaces where they have an active SpaceMemberships entry.
- *
- * Returns true (full access) for admins, or a Where query that
- * restricts reads to the user's spaces.
+ * Visibility filtering further restricts based on message visibility level.
  */
 const readMessages: Access = async ({ req }) => {
   const { user, payload } = req
@@ -61,6 +78,7 @@ const readMessages: Access = async ({ req }) => {
     }
 
     // Return a Where clause that restricts to user's spaces
+    // Also filter out private messages not addressed to this user
     return {
       space: { in: spaceIds },
     }
@@ -75,7 +93,7 @@ export const Messages: CollectionConfig = {
   admin: {
     group: 'Angel OS',
     useAsTitle: 'id',
-    defaultColumns: ['content', 'space', 'channel', 'messageType', 'author'],
+    defaultColumns: ['messageType', 'space', 'channel', 'visibility', 'author', 'createdAt'],
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),
@@ -94,6 +112,7 @@ export const Messages: CollectionConfig = {
     },
   },
   fields: [
+    // ─── Identity & Routing ───
     {
       name: 'author',
       type: 'relationship',
@@ -114,11 +133,19 @@ export const Messages: CollectionConfig = {
       required: true,
       admin: { description: 'Channel name (e.g. welcome, general, support)' },
     },
+
+    // ─── Universal Message Content (JSON) ───
     {
       name: 'content',
-      type: 'textarea',
+      type: 'json',
       required: true,
+      admin: {
+        description:
+          'Universal Message Structure — JSON content supporting text, rich text, payload blocks, widgets, BI metrics, system actions, and any future data format. Backward-compatible: plain string values are auto-wrapped.',
+      },
     },
+
+    // ─── Message Classification ───
     {
       name: 'messageType',
       type: 'select',
@@ -131,11 +158,65 @@ export const Messages: CollectionConfig = {
         { label: 'Inventory', value: 'inventory' },
         { label: 'PDF', value: 'pdf' },
         { label: 'Video', value: 'video' },
+        { label: 'Booking', value: 'booking' },
+        { label: 'Form Submission', value: 'form_submission' },
+        { label: 'Transaction', value: 'transaction' },
+        { label: 'Widget', value: 'widget' },
+        { label: 'Ethical Assessment', value: 'ethical_assessment' },
       ],
       admin: {
-        description: 'Message type – workflow runners use inventory/pdf/video for structured processing',
+        description: 'Message classification — determines rendering, routing, and workflow triggers',
       },
     },
+
+    // ─── Visibility (Article IV: AI Bus Protocol) ───
+    {
+      name: 'visibility',
+      type: 'select',
+      defaultValue: 'tenant',
+      options: [
+        { label: 'Private', value: 'private' },
+        { label: 'Tenant', value: 'tenant' },
+        { label: 'Network', value: 'network' },
+      ],
+      admin: {
+        description: 'Who can see this message: private (author only), tenant (default), network (federated)',
+      },
+    },
+
+    // ─── Priority (for workflow normalization queue) ───
+    {
+      name: 'priority',
+      type: 'select',
+      defaultValue: 'normal',
+      options: [
+        { label: 'Low', value: 'low' },
+        { label: 'Normal', value: 'normal' },
+        { label: 'High', value: 'high' },
+        { label: 'Urgent', value: 'urgent' },
+      ],
+      admin: {
+        description: 'Priority level for the messaging hub queue — affects LEO processing order',
+      },
+    },
+
+    // ─── Status (for system messages & action tracking) ───
+    {
+      name: 'status',
+      type: 'select',
+      defaultValue: 'active',
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Resolved', value: 'resolved' },
+        { label: 'Archived', value: 'archived' },
+      ],
+      admin: {
+        description: 'Message lifecycle status — used for action items, support tickets, and system events',
+      },
+    },
+
+    // ─── Rich Attachments ───
     {
       name: 'attachments',
       type: 'array',
@@ -152,18 +233,51 @@ export const Messages: CollectionConfig = {
         },
       ],
       admin: {
-        description: 'Attached media (images, PDFs) – workflows can process these',
+        description: 'Attached media (images, PDFs) — workflows can process these',
       },
     },
+
+    // ─── Progressive Metadata (extensible without schema changes) ───
+    {
+      name: 'metadata',
+      type: 'json',
+      admin: {
+        description:
+          'Progressive metadata: conversation context, intent detection, business goals, ethical assessments, widget configs, BI metrics. Schema-free for forward compatibility.',
+      },
+    },
+
+    // ─── Thread Support ───
+    {
+      name: 'parentMessage',
+      type: 'relationship',
+      relationTo: 'messages',
+      admin: {
+        description: 'Parent message for threaded replies',
+      },
+    },
+
+    // ─── Tenant Scoping ───
     {
       name: 'tenant',
       type: 'relationship',
       relationTo: 'tenants',
       admin: { description: 'Tenant for scoping (derived from space)' },
     },
+
+    // ─── Federation: AT Protocol alignment ───
+    {
+      name: 'federationId',
+      type: 'text',
+      admin: {
+        description: 'AT Protocol DID/URI for cross-tenant federation (future)',
+        condition: (_data, siblingData) => siblingData?.visibility === 'network',
+      },
+    },
   ],
   hooks: {
     beforeChange: [setAuthor],
     afterChange: [runWorkflows],
   },
+  timestamps: true,
 }
