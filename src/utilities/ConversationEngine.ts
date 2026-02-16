@@ -291,6 +291,7 @@ You have access to the platform's data through tools. When users ask about produ
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps.` : ''}
 
+${this.buildUserContextSection()}
 ## Guidelines
 
 - Be warm, concise, and genuinely helpful.
@@ -300,6 +301,7 @@ Always use tools when the user asks a data question. Present results naturally i
 - For complex topics, organize your thoughts clearly.
 - If you don't know something, say so honestly.
 - You may reference sci-fi when relevant — it enriches conversation and honors the tradition.
+- Address the user by name when natural (first mention in a conversation, greetings) but don't overdo it.
 - Current conversation phase: ${this.context.phase}
 ${this.context.currentPrimaryIntent ? `- Current intent: ${this.context.currentPrimaryIntent}` : ''}
 `
@@ -310,6 +312,41 @@ ${this.context.currentPrimaryIntent ? `- Current intent: ${this.context.currentP
    */
   private hasDataAccess(): boolean {
     return Boolean(this.context.sessionMemory?.payload)
+  }
+
+  /**
+   * Builds the user context section for the system prompt.
+   * Tells LEO who it's talking to, their role, and appropriate security context.
+   */
+  private buildUserContextSection(): string {
+    const userCtx = this.context.sessionMemory?.userContext as
+      | { id?: number | string; name?: string; email?: string; roles?: string[] }
+      | undefined
+
+    if (!userCtx) return ''
+
+    const name = userCtx.name || userCtx.email?.split('@')[0] || 'there'
+    const roles = userCtx.roles || []
+
+    // Determine access level description
+    let accessLevel = 'authenticated user'
+    if (roles.includes('super_admin') || roles.includes('archangel')) {
+      accessLevel = 'platform administrator (full access)'
+    } else if (roles.includes('admin')) {
+      accessLevel = 'tenant administrator'
+    } else if (roles.includes('customer')) {
+      accessLevel = 'customer'
+    }
+
+    return `## Current User
+
+You are speaking with **${name}**${userCtx.email ? ` (${userCtx.email})` : ''}.
+- Access level: ${accessLevel}
+- Roles: ${roles.length > 0 ? roles.join(', ') : 'standard user'}
+
+Tailor your responses to their access level. Administrators can see all data and configure the platform. Customers should only see their own bookings, orders, and public content. Be helpful to everyone, but respect the access boundaries.
+
+`
   }
 
   // -----------------------------------------------------------------------

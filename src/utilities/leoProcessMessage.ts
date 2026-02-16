@@ -12,6 +12,13 @@ import { ConversationEngine } from './ConversationEngine'
 import { routeToAgent } from './AgentRouter'
 import type { MessageContent } from '@/types/messages'
 
+export type UserContext = {
+  id: number | string
+  name?: string
+  email?: string
+  roles?: string[]
+}
+
 export type ProcessMessageOptions = {
   message: string
   conversationId?: string
@@ -20,6 +27,7 @@ export type ProcessMessageOptions = {
   spaceId?: number | string
   agentId?: number | string
   payload?: Payload
+  userContext?: UserContext
 }
 
 export type ProcessMessageResult = {
@@ -43,7 +51,8 @@ export type ProcessMessageResult = {
 export async function leoProcessMessage(
   options: ProcessMessageOptions,
 ): Promise<ProcessMessageResult> {
-  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload } = options
+  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext } =
+    options
 
   // Determine which agent should handle this message
   let agent = null
@@ -70,6 +79,7 @@ export async function leoProcessMessage(
           ...(tenantId ? { tenantId: Number(tenantId) } : {}),
           ...(spaceId ? { spaceId: Number(spaceId) } : {}),
           ...(channelSlug ? { channel: channelSlug } : {}),
+          ...(userContext ? { userContext } : {}),
         }
       : {},
     agent: agent ? {

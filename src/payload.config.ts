@@ -48,6 +48,7 @@ import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
 import { leoChatHandler } from '@/endpoints/leo-chat'
+import { leoStreamHandler } from '@/endpoints/leo-stream'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -185,6 +186,11 @@ export default buildConfig({
       path: '/leo',
       method: 'post',
       handler: leoChatHandler,
+    },
+    {
+      path: '/leo/stream',
+      method: 'post',
+      handler: leoStreamHandler,
     },
     {
       path: '/comments/add',
