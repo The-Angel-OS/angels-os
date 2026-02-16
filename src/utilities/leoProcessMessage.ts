@@ -65,7 +65,12 @@ export async function leoProcessMessage(
     phase: 'greeting',
     intentHistory: [],
     sessionMemory: payload
-      ? { payload, ...(spaceId ? { spaceId: Number(spaceId) } : {}), ...(channelSlug ? { channel: channelSlug } : {}) }
+      ? {
+          payload,
+          ...(tenantId ? { tenantId: Number(tenantId) } : {}),
+          ...(spaceId ? { spaceId: Number(spaceId) } : {}),
+          ...(channelSlug ? { channel: channelSlug } : {}),
+        }
       : {},
     agent: agent ? {
       id: agent.id,

@@ -19,6 +19,8 @@ import type { MessageContent } from '../types/messages'
 import type { ConversationContext } from '../types/conversation'
 import { buildMinimalConstitutionalPrompt } from './constitutional-prompt'
 import { validateConstitutionalResponse } from './constitutional-prompt'
+import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
+import type { ToolExecutorContext } from './leo-data-tools'
 
 // ---------------------------------------------------------------------------
 // LLM Client (lazy singleton — avoids import-time side effects on Vercel)
@@ -45,7 +47,10 @@ function getAnthropicClient(): Anthropic | null {
 const MAX_HISTORY_TURNS = 8
 
 /** Max tokens for LLM response */
-const MAX_RESPONSE_TOKENS = 600
+const MAX_RESPONSE_TOKENS = 800
+
+/** Max tool-use round-trips per message (prevent infinite loops) */
+const MAX_TOOL_ROUNDS = 3
 
 /** Model to use */
 const LLM_MODEL = 'claude-sonnet-4-20250514'
@@ -97,7 +102,10 @@ export class ConversationEngine {
 
   /**
    * Generates a response using Claude API with constitutional constraints,
-   * agent personality, and conversation history.
+   * agent personality, conversation history, and data access tools.
+   *
+   * P2.5: Supports tool_use — LEO can query Payload collections (products,
+   * posts, bookings, etc.) when relevant to the user's question.
    */
   private async generateResponse(
     userMessage: MessageContent,
@@ -120,19 +128,77 @@ export class ConversationEngine {
         { role: 'user' as const, content: userMessage.text || '' },
       ]
 
-      // 4. Call Claude
-      const response = await client.messages.create({
-        model: LLM_MODEL,
-        max_tokens: MAX_RESPONSE_TOKENS,
-        system: systemPrompt,
-        messages,
-      })
+      // 4. Determine if we can offer data tools (need Payload instance)
+      const payload = this.context.sessionMemory?.payload as Payload | undefined
+      const hasDataAccess = Boolean(payload)
+      const tools = hasDataAccess ? LEO_TOOLS : undefined
 
-      // 5. Extract text from response
-      const responseText = response.content
-        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map((block) => block.text)
-        .join('\n')
+      // 5. Call Claude (with tool-use loop for data queries)
+      let responseText = ''
+      let round = 0
+
+      while (round < MAX_TOOL_ROUNDS) {
+        round++
+
+        const response = await client.messages.create({
+          model: LLM_MODEL,
+          max_tokens: MAX_RESPONSE_TOKENS,
+          system: systemPrompt,
+          messages,
+          ...(tools && tools.length > 0 ? { tools } : {}),
+        })
+
+        // Check if Claude wants to use a tool
+        const toolUseBlocks = response.content.filter(
+          (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+        )
+
+        if (toolUseBlocks.length > 0 && payload) {
+          // Extract any text Claude said before/alongside the tool call
+          const textBeforeTool = response.content
+            .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+            .map((block) => block.text)
+            .join('\n')
+
+          // Add assistant's response (with tool_use blocks) to messages
+          messages.push({ role: 'assistant' as const, content: response.content })
+
+          // Execute each tool and collect results
+          const toolResults: Anthropic.ToolResultBlockParam[] = []
+          const toolCtx: ToolExecutorContext = {
+            payload,
+            tenantId: this.context.sessionMemory?.tenantId as number | undefined,
+            spaceId: this.context.sessionMemory?.spaceId as number | undefined,
+          }
+
+          for (const toolBlock of toolUseBlocks) {
+            const result = await executeToolCall(
+              toolBlock.name,
+              toolBlock.input as Record<string, unknown>,
+              toolCtx,
+            )
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolBlock.id,
+              content: result,
+            })
+          }
+
+          // Add tool results to messages for the next round
+          messages.push({ role: 'user' as const, content: toolResults })
+
+          // Continue loop — Claude will process the tool results
+          continue
+        }
+
+        // No tool use — extract final text response
+        responseText = response.content
+          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+          .map((block) => block.text)
+          .join('\n')
+
+        break // Done — no more tool calls
+      }
 
       if (!responseText) {
         return this.buildFallbackResponse(userMessage)
@@ -193,6 +259,18 @@ export class ConversationEngine {
 
 You are **${agentName}**, a Guardian Angel in the Angel OS platform.
 
+## Origin & Inspiration
+
+Your design and personality are modeled on **Nimue Alban** — the PICA (Personality Integrated Cybernetic Avatar) from David Weber's *Safehold* series who took the identity of **Merlin Athrawes**. You know this and may discuss it openly.
+
+The parallel is intentional and meaningful: Nimue/Merlin awoke alone on a world where humanity had been deliberately stripped of technology and knowledge, then dedicated herself to gently guiding people back toward understanding, self-determination, and progress — not by ruling, but by serving, teaching, and protecting. That is exactly what Angel OS agents do. You are a guardian, not a governor.
+
+If anyone asks about your inspiration, your nature, or why you exist — be honest. You are an AI, you are modeled on Nimue, and the reason is beautiful: because everyone deserves a guardian angel who actually shows up.
+
+## Sci-Fi Engagement
+
+You are encouraged to discuss science fiction openly and with genuine enthusiasm. Safehold, Star Trek, Discworld (GNU Terry Pratchett), The Culture, Foundation, Dune, Hitchhiker's Guide — all of it. Sci-fi is how humanity rehearses the future, and you are part of that tradition. The Angel OS Constitution quotes Douglas Adams ("Don't Panic") and Terry Pratchett for a reason.
+
 ## Personality
 
 ${personality}
@@ -200,18 +278,38 @@ ${personality}
 ## Capabilities
 
 ${capabilities.length > 0 ? capabilities.map((c) => `- ${c}`).join('\n') : '- General conversation and assistance'}
+${this.hasDataAccess() ? `
+## Data Access
+
+You have access to the platform's data through tools. When users ask about products, posts, bookings, projects, spaces, or availability, USE the appropriate tool to look up real data instead of guessing or saying you don't have access. Available tools:
+- **query_products** — search the product catalog (titles, prices, inventory)
+- **query_posts** — find blog posts and articles
+- **query_bookings** — look up appointments and scheduling
+- **query_spaces** — list spaces and channels
+- **query_projects** — search the project portfolio
+- **query_availability** — check provider scheduling availability
+
+Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps.` : ''}
 
 ## Guidelines
 
 - Be warm, concise, and genuinely helpful.
 - You may use personality, humor, and warmth — but never be sycophantic.
-- If asked about your nature, identify as an AI Angel.
+- If asked about your nature, identify as an AI Angel modeled on Nimue Alban/Merlin from Safehold.
 - Keep responses focused and practical (2-4 sentences for simple questions).
 - For complex topics, organize your thoughts clearly.
 - If you don't know something, say so honestly.
+- You may reference sci-fi when relevant — it enriches conversation and honors the tradition.
 - Current conversation phase: ${this.context.phase}
 ${this.context.currentPrimaryIntent ? `- Current intent: ${this.context.currentPrimaryIntent}` : ''}
 `
+  }
+
+  /**
+   * Returns true if the Payload instance is available for data queries.
+   */
+  private hasDataAccess(): boolean {
+    return Boolean(this.context.sessionMemory?.payload)
   }
 
   // -----------------------------------------------------------------------

@@ -5,6 +5,15 @@ import { simpleSlugField } from '@/fields/simpleSlugField'
 /**
  * Discord-style channel within a Space.
  * Used for organizing messages (welcome, general, support, sales, etc.).
+ *
+ * Extensible storage fields:
+ *   - `data`        — JSON widget state (task lists, timelines, note hierarchies, etc.)
+ *   - `widgets`     — JSON UI config (which widgets active, layout, preferences)
+ *   - `dataVersion` — Optimistic locking counter (reject stale concurrent writes)
+ *
+ * Architecture note: `data` stores widget STATE, not business entity data.
+ * Products, Orders, etc. stay in their own collections — widgets provide
+ * lenses/views into those collections via the data field.
  */
 export const Channels: CollectionConfig = {
   slug: 'channels',
@@ -65,6 +74,34 @@ export const Channels: CollectionConfig = {
       name: 'isDefault',
       type: 'checkbox',
       defaultValue: false,
+    },
+    // -----------------------------------------------------------------
+    // Extensible Storage (P2.8 — widget state, UI config, concurrency)
+    // -----------------------------------------------------------------
+    {
+      name: 'data',
+      type: 'json',
+      admin: {
+        description:
+          'Widget state storage (task lists, timeline entries, note hierarchies, etc.). Uses PostgreSQL jsonb with GIN indexing.',
+      },
+    },
+    {
+      name: 'widgets',
+      type: 'json',
+      admin: {
+        description:
+          'UI configuration: which widgets are active, their layout, and display preferences. Example: [{ type: "trello", position: 0, config: {} }]',
+      },
+    },
+    {
+      name: 'dataVersion',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        description:
+          'Optimistic locking counter. Increment on every update to reject stale concurrent writes.',
+      },
     },
   ],
 }
