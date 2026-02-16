@@ -5,6 +5,7 @@ import * as migration_20260201_081109_add_tenant_memberships from './20260201_08
 import * as migration_20260201_081522_add_spaces_and_branding from './20260201_081522_add_spaces_and_branding';
 import * as migration_20260202_003913_add_channels_messages from './20260202_003913_add_channels_messages';
 import * as migration_20260202_022727_add_leo_system_user_fields from './20260202_022727_add_leo_system_user_fields';
+import * as migration_20260216_085909_add_ums_and_channel_extensions from './20260216_085909_add_ums_and_channel_extensions';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20260202_022727_add_leo_system_user_fields.up,
     down: migration_20260202_022727_add_leo_system_user_fields.down,
-    name: '20260202_022727_add_leo_system_user_fields'
+    name: '20260202_022727_add_leo_system_user_fields',
+  },
+  {
+    up: migration_20260216_085909_add_ums_and_channel_extensions.up,
+    down: migration_20260216_085909_add_ums_and_channel_extensions.down,
+    name: '20260216_085909_add_ums_and_channel_extensions'
   },
 ];
