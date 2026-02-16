@@ -28,7 +28,7 @@ export const PostCard: React.FC<{
   return (
     <article
       className={cn(
-        'border border-border rounded-lg overflow-hidden bg-card hover:border-primary/50 transition-colors',
+        'border border-border rounded-lg overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200',
         className,
       )}
     >

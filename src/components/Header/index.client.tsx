@@ -61,7 +61,7 @@ export function HeaderClient({ header, tenant }: Props) {
               )}
             </Link>
             {menu.length ? (
-              <ul className="hidden gap-4 text-sm md:flex md:items-center">
+              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center">
                 {menu.map((item) => (
                   <li key={item.id}>
                     <CMSLink

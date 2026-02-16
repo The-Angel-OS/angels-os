@@ -15,30 +15,36 @@ const FONT_MAP: Record<string, string> = {
 type Props = { tenant: Tenant | null }
 
 /**
- * Injects CSS custom properties from tenant branding.
- * Use var(--color-primary), var(--font-heading), etc. in components.
+ * Injects tenant-scoped CSS custom properties from branding.
+ *
+ * IMPORTANT: These use --tenant-* namespace to avoid clobbering
+ * the Tailwind/shadcn theme system (--color-primary, --color-background, etc.).
+ * Use var(--tenant-primary), var(--tenant-heading-font), etc. in
+ * tenant-branded components. The global theme stays intact for dark mode.
  */
 export function TenantStyles({ tenant }: Props) {
   const b = tenant?.branding
-  const primary = b?.primaryColor || '#10B981'
-  const secondary = b?.secondaryColor || '#0078D4'
-  const accent = b?.accentColor || '#FF6B35'
-  const bg = b?.backgroundColor || '#FFFFFF'
-  const fg = b?.foregroundColor || '#1A1A1A'
-  const border = b?.borderColor || '#E5E7EB'
-  const headingFont = FONT_MAP[b?.headingFont as string] || 'Inter, sans-serif'
-  const bodyFont = FONT_MAP[b?.bodyFont as string] || 'Inter, sans-serif'
+  if (!b) return null
+
+  const primary = b.primaryColor || '#10B981'
+  const secondary = b.secondaryColor || '#0078D4'
+  const accent = b.accentColor || '#FF6B35'
+  const bg = b.backgroundColor || '#FFFFFF'
+  const fg = b.foregroundColor || '#1A1A1A'
+  const border = b.borderColor || '#E5E7EB'
+  const headingFont = FONT_MAP[b.headingFont as string] || 'Inter, sans-serif'
+  const bodyFont = FONT_MAP[b.bodyFont as string] || 'Inter, sans-serif'
 
   const css = `
     :root {
-      --color-primary: ${primary};
-      --color-secondary: ${secondary};
-      --color-accent: ${accent};
-      --color-background: ${bg};
-      --color-foreground: ${fg};
-      --color-border: ${border};
-      --font-heading: ${headingFont};
-      --font-body: ${bodyFont};
+      --tenant-primary: ${primary};
+      --tenant-secondary: ${secondary};
+      --tenant-accent: ${accent};
+      --tenant-bg: ${bg};
+      --tenant-fg: ${fg};
+      --tenant-border: ${border};
+      --tenant-heading-font: ${headingFont};
+      --tenant-body-font: ${bodyFont};
     }
   `.trim()
 
