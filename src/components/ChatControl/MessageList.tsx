@@ -43,10 +43,61 @@ function isSameDay(a: Date, b: Date): boolean {
 // ---------------------------------------------------------------------------
 
 function ToolCallIndicator({ toolCall }: { toolCall: string }) {
+  const toolLabels: Record<string, string> = {
+    query_products: 'Searching products',
+    query_posts: 'Looking up posts',
+    query_bookings: 'Checking bookings',
+    query_spaces: 'Listing spaces',
+    query_projects: 'Searching projects',
+    query_availability: 'Checking availability',
+    create_booking: 'Creating booking',
+    update_booking_status: 'Updating booking',
+    add_to_cart: 'Adding to cart',
+    view_cart: 'Loading cart',
+    generate_image: '🎨 Generating image',
+    improve_image: '✨ Improving image',
+    attach_image_to_product: '📎 Attaching to product',
+    replace_image: '🔄 Replacing image',
+  }
+  const label = toolLabels[toolCall] || toolCall
   return (
     <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
       <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />
-      <span>{toolCall}&hellip;</span>
+      <span>{label}&hellip;</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Inline Image Display
+// ---------------------------------------------------------------------------
+
+function MessageImages({ images }: { images: NonNullable<ChatMessage['images']> }) {
+  if (images.length === 0) return null
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {images.map((img, i) => (
+        <a
+          key={i}
+          href={img.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group relative overflow-hidden rounded-lg border border-border/50 transition-shadow hover:shadow-lg"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={img.url}
+            alt={img.alt || 'Generated image'}
+            className="h-auto max-h-64 w-auto max-w-full rounded-lg object-cover"
+            loading="lazy"
+          />
+          {img.mediaId && (
+            <span className="absolute bottom-1 right-1 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Media #{img.mediaId}
+            </span>
+          )}
+        </a>
+      ))}
     </div>
   )
 }
@@ -130,6 +181,7 @@ function CompactMessageList({ messages, isLoading }: MessageListProps) {
               {msg.content}
               {msg.isStreaming && <StreamingCursor />}
             </div>
+            {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
             <div className="mt-1 text-[10px] opacity-50">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
@@ -376,6 +428,9 @@ function FullPageMessageList({
                           )}
                           {msg.isStreaming && msg.content && <StreamingCursor />}
                         </div>
+                        {msg.images && msg.images.length > 0 && (
+                          <MessageImages images={msg.images} />
+                        )}
                       </div>
 
                       {isLast && (

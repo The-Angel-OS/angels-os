@@ -1374,6 +1374,34 @@ export interface Channel {
    */
   workflows?: (number | Workflow)[] | null;
   isDefault?: boolean | null;
+  /**
+   * Widget state storage (task lists, timeline entries, note hierarchies, etc.). Uses PostgreSQL jsonb with GIN indexing.
+   */
+  data?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * UI configuration: which widgets are active, their layout, and display preferences. Example: [{ type: "trello", position: 0, config: {} }]
+   */
+  widgets?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Optimistic locking counter. Increment on every update to reject stale concurrent writes.
+   */
+  dataVersion?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1445,19 +1473,57 @@ export interface Workflow {
  */
 export interface Message {
   id: number;
-  author: number | User;
+  author?: (number | null) | User;
   space: number | Space;
   /**
    * Channel name (e.g. welcome, general, support)
    */
   channel: string;
-  content: string;
   /**
-   * Message type – workflow runners use inventory/pdf/video for structured processing
+   * Universal Message Structure — JSON content supporting text, rich text, payload blocks, widgets, BI metrics, system actions, and any future data format. Backward-compatible: plain string values are auto-wrapped.
    */
-  messageType?: ('user' | 'system' | 'announcement' | 'ai_agent' | 'inventory' | 'pdf' | 'video') | null;
+  content:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
-   * Attached media (images, PDFs) – workflows can process these
+   * Message classification — determines rendering, routing, and workflow triggers
+   */
+  messageType?:
+    | (
+        | 'user'
+        | 'system'
+        | 'announcement'
+        | 'ai_agent'
+        | 'inventory'
+        | 'pdf'
+        | 'video'
+        | 'booking'
+        | 'form_submission'
+        | 'transaction'
+        | 'widget'
+        | 'ethical_assessment'
+      )
+    | null;
+  /**
+   * Who can see this message: private (author only), tenant (default), network (federated)
+   */
+  visibility?: ('private' | 'tenant' | 'network') | null;
+  /**
+   * Priority level for the messaging hub queue — affects LEO processing order
+   */
+  priority?: ('low' | 'normal' | 'high' | 'urgent') | null;
+  /**
+   * Message lifecycle status — used for action items, support tickets, and system events
+   */
+  status?: ('active' | 'pending' | 'resolved' | 'archived') | null;
+  /**
+   * Attached media (images, PDFs) — workflows can process these
    */
   attachments?:
     | {
@@ -1467,9 +1533,29 @@ export interface Message {
       }[]
     | null;
   /**
+   * Progressive metadata: conversation context, intent detection, business goals, ethical assessments, widget configs, BI metrics. Schema-free for forward compatibility.
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Parent message for threaded replies
+   */
+  parentMessage?: (number | null) | Message;
+  /**
    * Tenant for scoping (derived from space)
    */
   tenant?: (number | null) | Tenant;
+  /**
+   * AT Protocol DID/URI for cross-tenant federation (future)
+   */
+  federationId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2775,6 +2861,9 @@ export interface ChannelsSelect<T extends boolean = true> {
   type?: T;
   workflows?: T;
   isDefault?: T;
+  data?: T;
+  widgets?: T;
+  dataVersion?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2788,6 +2877,9 @@ export interface MessagesSelect<T extends boolean = true> {
   channel?: T;
   content?: T;
   messageType?: T;
+  visibility?: T;
+  priority?: T;
+  status?: T;
   attachments?:
     | T
     | {
@@ -2795,7 +2887,10 @@ export interface MessagesSelect<T extends boolean = true> {
         caption?: T;
         id?: T;
       };
+  metadata?: T;
+  parentMessage?: T;
   tenant?: T;
+  federationId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

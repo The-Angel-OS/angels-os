@@ -312,7 +312,15 @@ You have access to the platform's data through tools. When users ask about produ
 - **add_to_cart** — add a product to the user's shopping cart (search first if needed, confirm what you're adding)
 - **view_cart** — show current cart contents with prices and totals
 
-**Important**: For action tools (create/update/cart), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
+### Image Generation & Media Management:
+- **generate_image** — create AI-generated images (product photos, content images, illustrations) via Flux 2/Gemini
+- **improve_image** — analyze an existing image with Vision AI and generate an improved version from feedback
+- **attach_image_to_product** — add a generated image to a product's gallery
+- **replace_image** — swap an old image for a new one across all content
+
+**Image Workflow:** Generate → preview → get feedback → iterate → attach to content. Always confirm before attaching or replacing.
+
+**Important**: For action tools (create/update/cart/image attachment), ALWAYS confirm details with the user before calling the tool. This is Article III.2 of the Constitution: "Do not take irreversible actions without human confirmation."
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.` : ''}
 

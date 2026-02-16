@@ -15,6 +15,66 @@ const TOOL_LABELS: Record<string, string> = {
   query_availability: 'Checking availability',
   add_to_cart: 'Adding to cart',
   view_cart: 'Checking cart',
+  generate_image: '🎨 Generating image',
+  improve_image: '✨ Improving image',
+  attach_image_to_product: '📎 Attaching to product',
+  replace_image: '🔄 Replacing image',
+  create_booking: 'Creating booking',
+  update_booking_status: 'Updating booking',
+}
+
+/**
+ * Extract image URLs and media IDs from LEO response text.
+ * LEO includes image URLs inline — patterns like:
+ *   URL: https://...  or  Media ID: 123  or  ![alt](url)
+ */
+function extractImagesFromText(text: string): Array<{ url: string; alt?: string; mediaId?: number }> {
+  const images: Array<{ url: string; alt?: string; mediaId?: number }> = []
+  const seen = new Set<string>()
+
+  // Match markdown images: ![alt](url)
+  const mdPattern = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g
+  let match: RegExpExecArray | null
+  while ((match = mdPattern.exec(text)) !== null) {
+    const url = match[2]
+    if (!seen.has(url)) {
+      seen.add(url)
+      images.push({ url, alt: match[1] || undefined })
+    }
+  }
+
+  // Match standalone image URLs (common patterns from LEO's image generation)
+  const urlPattern = /(?:URL|Image|Preview|Generated):\s*(https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?\S*)?)/gi
+  while ((match = urlPattern.exec(text)) !== null) {
+    const url = match[1]
+    if (!seen.has(url)) {
+      seen.add(url)
+      images.push({ url })
+    }
+  }
+
+  // Match Vercel Blob URLs (our storage)
+  const blobPattern = /(https?:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi
+  while ((match = blobPattern.exec(text)) !== null) {
+    const url = match[1]
+    if (!seen.has(url)) {
+      seen.add(url)
+      images.push({ url })
+    }
+  }
+
+  // Extract media IDs and associate with images
+  const mediaIdPattern = /Media\s*(?:ID|#):\s*(\d+)/gi
+  const mediaIds: number[] = []
+  while ((match = mediaIdPattern.exec(text)) !== null) {
+    mediaIds.push(parseInt(match[1], 10))
+  }
+  // Associate media IDs with images positionally
+  for (let i = 0; i < Math.min(mediaIds.length, images.length); i++) {
+    images[i].mediaId = mediaIds[i]
+  }
+
+  return images
 }
 
 /**
@@ -289,17 +349,30 @@ export function useChat(spaceId?: string, channelSlug?: string) {
                     )
                     break
 
-                  case 'done':
-                    // Finalize message
+                  case 'done': {
+                    // Finalize message — extract images from text + SSE data
+                    const finalText = String(data.text || '')
+                    const textImages = extractImagesFromText(finalText)
+                    const sseImages = Array.isArray(data.images)
+                      ? (data.images as Array<{ url: string; alt?: string; mediaId?: number }>)
+                      : []
+                    // Merge: SSE images first (authoritative), then text-extracted (deduplicated)
+                    const seenUrls = new Set(sseImages.map((img) => img.url))
+                    const allImages = [
+                      ...sseImages,
+                      ...textImages.filter((img) => !seenUrls.has(img.url)),
+                    ]
+
                     setMessages((prev) =>
                       prev.map((m) =>
                         m.id === leoMsgId
                           ? {
                               ...m,
-                              content: String(data.text || m.content),
+                              content: finalText || m.content,
                               isStreaming: false,
                               activeToolCall: undefined,
                               authorName: String(data.agentName || 'LEO'),
+                              ...(allImages.length > 0 ? { images: allImages } : {}),
                               metadata: {
                                 agentName: String(data.agentName || 'LEO'),
                                 conversationId: String(
@@ -314,6 +387,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
                       conversationIdRef.current = String(data.conversationId)
                     }
                     break
+                  }
 
                   case 'error':
                     // Mark as error
@@ -374,13 +448,16 @@ export function useChat(spaceId?: string, channelSlug?: string) {
 
         if (leoRes.ok) {
           const leoData = await leoRes.json()
+          const responseText =
+            leoData.response || leoData.text || "I'm here to help. Could you tell me more?"
+          const batchImages = extractImagesFromText(responseText)
           const leoMessage: ChatMessage = {
             id: leoMsgId,
             role: 'leo',
-            content:
-              leoData.response || leoData.text || "I'm here to help. Could you tell me more?",
+            content: responseText,
             timestamp: new Date(),
             authorName: leoData.agentName || 'LEO',
+            ...(batchImages.length > 0 ? { images: batchImages } : {}),
             metadata: {
               agentName: leoData.agentName || 'LEO',
               agentType: leoData.agentType || 'leo',
