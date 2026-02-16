@@ -33,7 +33,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
           <div
             className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
               msg.role === 'user'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-primary-foreground'
                 : msg.role === 'system'
                   ? 'border border-border bg-muted/50 text-muted-foreground italic'
                   : 'bg-muted text-foreground'

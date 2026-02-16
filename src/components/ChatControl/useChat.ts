@@ -146,13 +146,15 @@ export function useChat(spaceId?: string, channelSlug?: string) {
 
       try {
         // Send to Payload
+        // space is a relationship field — Payload expects a numeric ID
+        const spaceIdNum = Number(spaceId)
         const res = await fetch(`${SERVER_URL}/api/messages`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: content.trim(),
-            space: spaceId,
+            space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
             channel: activeChannel,
             messageType: 'user',
           }),

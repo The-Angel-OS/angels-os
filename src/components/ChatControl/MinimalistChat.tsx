@@ -30,17 +30,11 @@ export function MinimalistChat({
       <div className={`fixed z-50 ${positionClasses}`}>
         <button
           onClick={() => setIsOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 shadow-lg transition-all duration-300 hover:scale-105"
-          style={{
-            background: 'rgba(31, 41, 55, 0.95)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-          }}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-sidebar text-sidebar-foreground border border-sidebar-border shadow-lg transition-all duration-300 hover:scale-105"
           title="Chat with LEO"
           aria-label="Open chat"
         >
-          <MessageCircle size={24} className="text-white" />
+          <MessageCircle size={24} />
         </button>
       </div>
     )
@@ -50,31 +44,23 @@ export function MinimalistChat({
   return (
     <div className={`fixed z-50 ${positionClasses}`}>
       <div
-        className="flex flex-col overflow-hidden rounded-xl border border-white/10 shadow-2xl transition-all duration-300"
+        className="flex flex-col overflow-hidden rounded-xl border border-border/50 shadow-2xl transition-all duration-300 bg-card text-card-foreground"
         style={{
           width: isMinimized ? '300px' : '380px',
           height: isMinimized ? '56px' : '520px',
-          background: 'rgba(255, 255, 255, 0.98)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
         }}
       >
         {/* Header */}
         <div
-          className="flex min-h-[56px] items-center justify-between px-4"
-          style={{
-            background: 'rgba(31, 41, 55, 0.95)',
-            backdropFilter: 'blur(12px)',
-          }}
+          className="flex min-h-[56px] items-center justify-between px-4 bg-sidebar text-sidebar-foreground"
         >
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/80 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               L
             </div>
             <div>
-              <div className="text-sm font-semibold text-white">LEO</div>
-              <div className="text-[11px] text-white/60">
+              <div className="text-sm font-semibold">LEO</div>
+              <div className="text-[11px] opacity-60">
                 {activeChannel ? `#${activeChannel}` : 'Angel OS'}
               </div>
             </div>
@@ -83,14 +69,14 @@ export function MinimalistChat({
           <div className="flex gap-1">
             <button
               onClick={() => setIsMinimized(!isMinimized)}
-              className="rounded p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded p-1.5 opacity-70 transition-colors hover:bg-sidebar-accent hover:opacity-100"
               aria-label={isMinimized ? 'Expand' : 'Minimize'}
             >
               <Minus size={14} />
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className="rounded p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded p-1.5 opacity-70 transition-colors hover:bg-sidebar-accent hover:opacity-100"
               aria-label="Close chat"
             >
               <X size={14} />
@@ -111,12 +97,6 @@ export function MinimalistChat({
         )}
       </div>
 
-      {/* Dark mode override */}
-      <style>{`
-        .dark [data-chat-window] {
-          background: rgba(31, 41, 55, 0.98) !important;
-        }
-      `}</style>
     </div>
   )
 }
