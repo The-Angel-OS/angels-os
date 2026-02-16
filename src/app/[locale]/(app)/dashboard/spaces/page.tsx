@@ -1,4 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
+import { headers } from 'next/headers'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { SpacesChat } from './SpacesChat'
 
 export default async function SpacesPage({
@@ -9,6 +13,16 @@ export default async function SpacesPage({
   const { locale } = await params
   setRequestLocale(locale)
 
+  // Resolve default space for current tenant
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  const host = headersList.get('host') ?? ''
+  const tenant =
+    (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
+    (await fetchTenantByDomain(host))
+
+  const defaultSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
+
   return (
     <div className="flex h-[calc(100vh-12rem)] flex-col">
       <div className="mb-4">
@@ -18,7 +32,7 @@ export default async function SpacesPage({
         </p>
       </div>
       <div className="flex-1">
-        <SpacesChat />
+        <SpacesChat spaceId={defaultSpaceId} />
       </div>
     </div>
   )

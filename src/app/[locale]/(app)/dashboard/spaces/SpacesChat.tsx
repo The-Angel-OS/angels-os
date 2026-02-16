@@ -5,14 +5,14 @@ import { ChatControl } from '@/components/ChatControl'
 /**
  * Spaces dashboard page - multi-channel chat with sidebar.
  * Full Discord-like experience.
+ *
+ * @param spaceId - Resolved server-side from the tenant's default space.
  */
-export function SpacesChat() {
-  // TODO: Resolve space from URL params or user's tenant
-  // For now, use space ID "1" (seeded default)
+export function SpacesChat({ spaceId }: { spaceId?: string }) {
   return (
     <ChatControl
       mode="multi-channel"
-      spaceId="1"
+      spaceId={spaceId || '1'}
       className="h-full"
     />
   )

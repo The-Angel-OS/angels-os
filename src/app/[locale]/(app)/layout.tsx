@@ -16,6 +16,7 @@ import { TenantStyles } from '@/components/TenantStyles'
 import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import './globals.css'
 
 /* const { SITE_NAME, TWITTER_CREATOR, TWITTER_SITE } = process.env
@@ -55,6 +56,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
     (await fetchTenantByDomain(host))
 
+  // Resolve the default space for this tenant (for the floating chat bubble)
+  const defaultSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
+
   return (
     <html
       className={[GeistSans.variable, GeistMono.variable].filter(Boolean).join(' ')}
@@ -76,7 +80,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Header tenant={tenant} />
           <main>{children}</main>
           <Footer tenant={tenant} />
-          <FloatingBubble />
+          <FloatingBubble spaceId={defaultSpaceId} />
         </Providers>
       </body>
     </html>
