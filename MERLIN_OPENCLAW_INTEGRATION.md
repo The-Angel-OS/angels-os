@@ -60,8 +60,8 @@ Copy `src/openclaw/angel-os-connect/SKILL.md` into your OpenClaw workspace's `sk
 
 ```bash
 ANGEL_OS_URL=https://angel-os.kendev.co    # Your Angel OS instance
-ANGEL_OS_EMAIL=openclaw-platform@system.angelos.local
-ANGEL_OS_PASSWORD=<from-seed-or-admin>
+ANGEL_OS_EMAIL=merlin@openclaw.system
+ANGEL_OS_PASSWORD=<from-env-MERLIN_PASSWORD>
 ```
 
 ### What the Skill Teaches
@@ -138,12 +138,12 @@ x-tenant-id: default
 ### Merlin System Agent
 
 Merlin is automatically registered during seed as a system agent:
-- **Email**: `openclaw-platform@system.angelos.local`
+- **Email**: `merlin@openclaw.system`
 - **Agent Type**: `openclaw`
 - **Served Tenant**: Platform tenant
-- **Password**: Auto-generated random (use admin panel to reset, or set `MERLIN_PASSWORD` env var)
+- **Password**: Uses `MERLIN_PASSWORD` env var, or auto-generated if not set
 - **Capabilities**: external_api, query_posts, query_products, create_posts, create_products, manage_media
-- **Routing Keywords**: merlin, openclaw, external
+- **Routing Keywords**: merlin, openclaw, external, integration
 
 ---
 

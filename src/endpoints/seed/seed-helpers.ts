@@ -146,6 +146,8 @@ export async function findOrCreateSystemAgent(
     displayName?: string
     personality?: string
     capabilities?: string[]
+    password?: string
+    email?: string
     routingRules?: {
       channels?: Array<{ channelSlug: string }>
       keywords?: Array<{ keyword: string }>
@@ -154,7 +156,7 @@ export async function findOrCreateSystemAgent(
   },
 ): Promise<{ id: number | string; email: string }> {
   const agentType = data.agentType ?? 'leo'
-  const email = `${agentType}-${data.tenantSlug}@system.angelos.local`
+  const email = data.email ?? `${agentType}-${data.tenantSlug}@system.angelos.local`
   
   const existing = await payload.find({
     collection: 'users',
@@ -178,7 +180,7 @@ export async function findOrCreateSystemAgent(
   const createData = {
     email,
     name: angelName,
-    password: `system-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    password: data.password ?? `system-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     roles: [],
     isSystemUser: true,
     servesTenant: data.tenantId,

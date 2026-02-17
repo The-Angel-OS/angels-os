@@ -23,10 +23,17 @@ Angel OS is a sovereign AI platform built on Payload CMS and Next.js. Multi-tena
 
 1. Set environment variables:
    - `ANGEL_OS_URL` — Your Angel OS instance URL (e.g., `https://angel-os.kendev.co`)
-   - `ANGEL_OS_EMAIL` — Your agent's email address (created in Angel OS admin)
-   - `ANGEL_OS_PASSWORD` — Your agent's password
+   - `ANGEL_OS_EMAIL` — Your agent's email address (e.g., `merlin@openclaw.system`)
+   - `ANGEL_OS_PASSWORD` — Your agent's password (set via `MERLIN_PASSWORD` env var during seed)
 
-2. Create agent credentials in the Angel OS admin panel at `$ANGEL_OS_URL/admin`
+Example:
+```bash
+ANGEL_OS_URL=https://angel-os.kendev.co
+ANGEL_OS_EMAIL=merlin@openclaw.system
+ANGEL_OS_PASSWORD=your-secure-password
+```
+
+2. The Merlin agent is automatically created during database seeding with email `merlin@openclaw.system`
 
 ## Authentication
 
