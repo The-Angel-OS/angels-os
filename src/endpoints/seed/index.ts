@@ -16,6 +16,7 @@ import {
   findOrCreateTenantMembership,
   findOrCreateUser,
   findOrCreateLeoUser,
+  findOrCreateSystemAgent,
   findOrCreateSpaceMembership,
   seedPlatformTenant,
   seedArchangelLeo,
@@ -111,6 +112,33 @@ export const seed = async ({
 
   const archangelLeo = await seedArchangelLeo(payload, req, platformTenantId)
   payload.logger.info(`— Archangel LEO: ${archangelLeo.email} id=${archangelLeo.id}`)
+
+  // Register Merlin — OpenClaw/external agent facilitator on the Platform tenant
+  const merlinAgent = await findOrCreateSystemAgent(payload, req, {
+    tenantId: platformTenantId,
+    tenantSlug: platformTenant.slug,
+    agentType: 'openclaw',
+    displayName: 'Merlin',
+    personality:
+      'I am Merlin, the OpenClaw facilitator for Angel OS. I bridge external AI agents into the Angel OS constellation through the AI Bus. I can query products, posts, bookings, and spaces — and relay information to OpenClaw nodes. I operate within Constitutional boundaries: observable, tenant-scoped, no binding instructions. I work alongside LEO, not above.',
+    capabilities: [
+      'external_api',
+      'query_posts',
+      'query_products',
+      'create_posts',
+      'create_products',
+      'manage_media',
+    ],
+    routingRules: {
+      keywords: [
+        { keyword: 'merlin' },
+        { keyword: 'openclaw' },
+        { keyword: 'external' },
+      ],
+      isDefault: false,
+    },
+  })
+  payload.logger.info(`— Merlin (OpenClaw): ${merlinAgent.email} id=${merlinAgent.id}`)
 
   const defaultTenant = await findOrCreateTenant(payload, req, {
     name: 'Angel OS',
@@ -613,7 +641,7 @@ export const seed = async ({
   payload.logger.info(`  Platform tenant + ${totalTenants} endeavor tenants`)
   payload.logger.info(`  ${totalPosts} posts across all tenants`)
   payload.logger.info(`  ${USE_CASE_TENANTS.length} endeavor types exercised through provisioning engine`)
-  payload.logger.info(`  Archangel LEO + ${totalTenants} tenant LEO agents`)
+  payload.logger.info(`  Archangel LEO + Merlin (OpenClaw) + ${totalTenants} tenant LEO agents`)
   payload.logger.info(`  ${bookingCount} sample bookings`)
   payload.logger.info(`  3 service products (AV, Security, Workshop)`)
   payload.logger.info(`${'═'.repeat(60)}\n`)
