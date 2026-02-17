@@ -5,14 +5,9 @@ import { createSpaceFromTemplate } from '@/utilities/spaceProvisioning'
 
 import { contactFormData } from './contact-form'
 import { contactPageData } from './contact-page'
-import { productHatData } from './product-hat'
-import { productTshirtData, productTshirtVariant } from './product-tshirt'
-import { homePageData } from './home'
-import { imageHatData } from './image-hat'
-import { imageTshirtBlackData } from './image-tshirt-black'
-import { imageTshirtWhiteData } from './image-tshirt-white'
+import { homeStaticData } from './home-static'
+import { avEventPackageData, itSecurityConsultationData, aiStrategyWorkshopData } from './products-angelos'
 import { imageHero1Data } from './image-hero-1'
-import { Address, Transaction, VariantOption } from '@/payload-types'
 import { angelOsTemplate, angelOsSupportTemplate, applySpaceTemplate } from './spaces-template'
 import { USE_CASE_TENANTS } from './use-case-tenants'
 import {
@@ -44,6 +39,7 @@ const collections: CollectionSlug[] = [
   'transactions',
   'addresses',
   'orders',
+  'bookings',
   'header',
   'footer',
   'messages',
@@ -54,49 +50,12 @@ const collections: CollectionSlug[] = [
   // tenants, users: not cleared; use findOrCreate
 ]
 
-const categories = ['Accessories', 'T-Shirts', 'Hats']
-
-const sizeVariantOptions = [
-  { label: 'Small', value: 'small' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Large', value: 'large' },
-  { label: 'X Large', value: 'xlarge' },
-]
-
-const colorVariantOptions = [
-  { label: 'Black', value: 'black' },
-  { label: 'White', value: 'white' },
-]
-
-const baseAddressUSData: Transaction['billingAddress'] = {
-  title: 'Dr.',
-  firstName: 'Otto',
-  lastName: 'Octavius',
-  phone: '1234567890',
-  company: 'Oscorp',
-  addressLine1: '123 Main St',
-  addressLine2: 'Suite 100',
-  city: 'New York',
-  state: 'NY',
-  postalCode: '10001',
-  country: 'US',
-}
-
-const baseAddressUKData: Transaction['billingAddress'] = {
-  title: 'Mr.',
-  firstName: 'Oliver',
-  lastName: 'Twist',
-  phone: '1234567890',
-  addressLine1: '48 Great Portland St',
-  city: 'London',
-  postalCode: 'W1W 7ND',
-  country: 'GB',
-}
+const categories = ['Services', 'Technology', 'Events']
 
 const adminAddressData = {
   title: 'Mr.',
-  firstName: 'Admin',
-  lastName: 'User',
+  firstName: 'Kenneth',
+  lastName: 'Courtney',
   phone: '',
   addressLine1: '2566 Harn Blvd',
   addressLine2: 'Apt 13',
@@ -211,7 +170,7 @@ export const seed = async ({
 
   const adminUser = await findOrCreateUser(payload, req, {
     email: INITIAL_USER_EMAILS.admin,
-    name: 'Angel OS Admin',
+    name: 'Kenneth Courtney',
     password: 'angelos',
     roles: ['super_admin', 'customer'],
     tenantId: defaultTenantId,
@@ -221,7 +180,7 @@ export const seed = async ({
 
   const customerUser = await findOrCreateUser(payload, req, {
     email: INITIAL_USER_EMAILS.customer,
-    name: 'Customer',
+    name: 'Demo Customer',
     password: 'password',
     roles: ['customer'],
   })
@@ -264,6 +223,8 @@ export const seed = async ({
 
   payload.logger.info(`\n═══ Provisioning ${USE_CASE_TENANTS.length} use-case tenants ═══`)
 
+  const tenantMap: Record<string, { tenantId: number | string; slug: string; endeavorType: string }> = {}
+
   for (const uc of USE_CASE_TENANTS) {
     payload.logger.info(`\n— Provisioning: ${uc.name} (${uc.endeavorType})`)
 
@@ -271,6 +232,8 @@ export const seed = async ({
       name: uc.name, slug: uc.slug, domain: uc.domain, type: 'tenant', branding: uc.branding,
     })
     payload.logger.info(`  ✓ Tenant: ${tenant.name} id=${tenant.id}`)
+
+    tenantMap[uc.slug] = { tenantId: tenant.id, slug: uc.slug, endeavorType: uc.endeavorType }
 
     const leoAgent = await findOrCreateLeoUser(payload, req, {
       tenantId: tenant.id, tenantSlug: uc.slug, displayName: 'LEO',
@@ -340,90 +303,125 @@ export const seed = async ({
   payload.logger.info(`\n═══ Use-case tenants complete ═══\n`)
 
   // ═══════════════════════════════════════════════════════════════
+  // PHASE 5B: Seed Sample Bookings for Service-Provider Tenants
+  // ═══════════════════════════════════════════════════════════════
+
+  payload.logger.info(`— Seeding sample bookings...`)
+
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(10, 0, 0, 0)
+  const tomorrowEnd = new Date(tomorrow)
+  tomorrowEnd.setHours(11, 0, 0, 0)
+
+  const bookingSamples = [
+    {
+      tenantSlug: 'celersoft',
+      title: 'Cloud Security Assessment',
+      bookingType: 'consultation' as const,
+      amount: 35000,
+      address: '1200 Smith St, Suite 400, Houston, TX 77002',
+    },
+    {
+      tenantSlug: 'lucas-productions',
+      title: 'Corporate Event AV Setup',
+      bookingType: 'service' as const,
+      amount: 250000,
+      address: '1234 Gulf-to-Bay Blvd, Clearwater, FL 33755',
+    },
+    {
+      tenantSlug: 'serenity-massage',
+      title: 'Deep Tissue Massage Session',
+      bookingType: 'service' as const,
+      amount: 12000,
+      address: '456 Wellness Way, Suite 102, Clearwater, FL 33756',
+    },
+  ]
+
+  let bookingCount = 0
+  for (const b of bookingSamples) {
+    const tenantInfo = tenantMap[b.tenantSlug]
+    if (!tenantInfo) continue
+
+    await payload.create({
+      collection: 'bookings',
+      data: {
+        title: b.title,
+        bookingType: b.bookingType,
+        provider: adminUserId,
+        client: customerUserId,
+        startDateTime: tomorrow.toISOString(),
+        endDateTime: tomorrowEnd.toISOString(),
+        duration: 60,
+        pricing: {
+          amount: b.amount,
+          currency: 'usd',
+          splitConfiguration: {
+            providerShare: 60,
+            platformShare: 20,
+            operationsShare: 15,
+            justiceShare: 5,
+          },
+        },
+        status: 'confirmed',
+        location: {
+          type: 'provider',
+          address: b.address,
+        },
+        tenant: tenantInfo.tenantId as number,
+      } as any,
+    })
+    bookingCount++
+  }
+  payload.logger.info(`— Seeded ${bookingCount} sample bookings`)
+
+  // ═══════════════════════════════════════════════════════════════
   // PHASE 6: Default Tenant Media & Products
   // ═══════════════════════════════════════════════════════════════
 
   payload.logger.info(`— Seeding media...`)
 
-  const [imageHatBuffer, imageTshirtBlackBuffer, imageTshirtWhiteBuffer, heroBuffer] =
-    await Promise.all([
-      fetchFileByURL('https://raw.githubusercontent.com/payloadcms/payload/refs/heads/main/templates/ecommerce/src/endpoints/seed/hat-logo.png'),
-      fetchFileByURL('https://raw.githubusercontent.com/payloadcms/payload/refs/heads/main/templates/ecommerce/src/endpoints/seed/tshirt-black.png'),
-      fetchFileByURL('https://raw.githubusercontent.com/payloadcms/payload/refs/heads/main/templates/ecommerce/src/endpoints/seed/tshirt-white.png'),
-      fetchFileByURL('https://raw.githubusercontent.com/payloadcms/payload/refs/heads/main/templates/website/src/endpoints/seed/image-hero1.webp'),
-    ])
-
-  const [imageHat, imageTshirtBlack, imageTshirtWhite, imageHero, accessoriesCategory, tshirtsCategory, hatsCategory] =
-    await Promise.all([
-      payload.create({ collection: 'media', data: { ...imageHatData, tenant: defaultTenantId }, file: imageHatBuffer }),
-      payload.create({ collection: 'media', data: { ...imageTshirtBlackData, tenant: defaultTenantId }, file: imageTshirtBlackBuffer }),
-      payload.create({ collection: 'media', data: { ...imageTshirtWhiteData, tenant: defaultTenantId }, file: imageTshirtWhiteBuffer }),
-      payload.create({ collection: 'media', data: { ...imageHero1Data, tenant: defaultTenantId }, file: heroBuffer }),
-      ...categories.map((category) =>
-        payload.create({ collection: 'categories', data: { title: category, slug: category, tenant: defaultTenantId } }),
-      ),
-    ])
-
-  payload.logger.info(`— Seeding variant types and options...`)
-
-  const sizeVariantType = await payload.create({ collection: 'variantTypes', data: { name: 'size', label: 'Size' } })
-  const sizeVariantOptionsResults: VariantOption[] = []
-  for (const option of sizeVariantOptions) {
-    const result = await payload.create({ collection: 'variantOptions', data: { ...option, variantType: sizeVariantType.id } })
-    sizeVariantOptionsResults.push(result)
-  }
-  const [small, medium, large, xlarge] = sizeVariantOptionsResults
-
-  const colorVariantType = await payload.create({ collection: 'variantTypes', data: { name: 'color', label: 'Color' } })
-  const [black, white] = await Promise.all(
-    colorVariantOptions.map((option) =>
-      payload.create({ collection: 'variantOptions', data: { ...option, variantType: colorVariantType.id } }),
-    ),
+  const heroBuffer = await fetchFileByURL(
+    'https://raw.githubusercontent.com/payloadcms/payload/refs/heads/main/templates/website/src/endpoints/seed/image-hero1.webp',
   )
+
+  const [imageHero, ...categoryDocs] = await Promise.all([
+    payload.create({ collection: 'media', data: { ...imageHero1Data, tenant: defaultTenantId }, file: heroBuffer }),
+    ...categories.map((category) =>
+      payload.create({ collection: 'categories', data: { title: category, slug: category.toLowerCase(), tenant: defaultTenantId } }),
+    ),
+  ])
+
+  const [servicesCategory, technologyCategory, eventsCategory] = categoryDocs
 
   payload.logger.info(`— Seeding products...`)
 
-  const productHat = await payload.create({
+  const productAV = await payload.create({
     collection: 'products',
     depth: 0,
     data: {
-      ...productHatData({ galleryImage: imageHat, metaImage: imageHat, variantTypes: [colorVariantType], categories: [hatsCategory], relatedProducts: [] }),
+      ...avEventPackageData({ metaImage: imageHero, categories: [eventsCategory, servicesCategory] }),
       tenant: defaultTenantId,
     },
   })
 
-  const productTshirt = await payload.create({
+  const productSecurity = await payload.create({
     collection: 'products',
     depth: 0,
     data: {
-      ...productTshirtData({
-        galleryImages: [{ image: imageTshirtBlack, variantOption: black }, { image: imageTshirtWhite, variantOption: white }],
-        metaImage: imageTshirtBlack,
-        contentImage: imageHero,
-        variantTypes: [colorVariantType, sizeVariantType],
-        categories: [tshirtsCategory],
-        relatedProducts: [productHat],
-      }),
+      ...itSecurityConsultationData({ metaImage: imageHero, categories: [technologyCategory, servicesCategory], relatedProducts: [] }),
       tenant: defaultTenantId,
     },
   })
 
-  const [smallTshirtHoodieVariant, mediumTshirtHoodieVariant, largeTshirtHoodieVariant, xlargeTshirtHoodieVariant] =
-    await Promise.all(
-      [small, medium, large, xlarge].map((vo) =>
-        payload.create({ collection: 'variants', depth: 0, data: productTshirtVariant({ product: productTshirt, variantOptions: [vo, white] }) }),
-      ),
-    )
-
-  await Promise.all(
-    [small, medium, large, xlarge].map((vo) =>
-      payload.create({
-        collection: 'variants',
-        depth: 0,
-        data: productTshirtVariant({ product: productTshirt, variantOptions: [vo, black], ...(vo.value === 'medium' ? { inventory: 0 } : {}) }),
-      }),
-    ),
-  )
+  const productWorkshop = await payload.create({
+    collection: 'products',
+    depth: 0,
+    data: {
+      ...aiStrategyWorkshopData({ metaImage: imageHero, categories: [technologyCategory], relatedProducts: [productSecurity] }),
+      tenant: defaultTenantId,
+    },
+  })
 
   payload.logger.info(`— Seeding contact form...`)
   const contactForm = await payload.create({ collection: 'forms', depth: 0, data: contactFormData() })
@@ -435,7 +433,7 @@ export const seed = async ({
   payload.logger.info(`— Seeding pages...`)
 
   await Promise.all([
-    payload.create({ collection: 'pages', depth: 0, data: { ...homePageData({ contentImage: imageHero, metaImage: imageHat }), tenant: defaultTenantId } }),
+    payload.create({ collection: 'pages', depth: 0, data: { ...homeStaticData(), tenant: defaultTenantId } }),
     payload.create({ collection: 'pages', depth: 0, data: { ...contactPageData({ contactForm }), tenant: defaultTenantId } }),
   ])
 
@@ -535,24 +533,41 @@ export const seed = async ({
   // PHASE 8: E-commerce Sample Data
   // ═══════════════════════════════════════════════════════════════
 
-  payload.logger.info(`— Seeding addresses...`)
-  await payload.create({ collection: 'addresses', depth: 0, data: { customer: adminUserId, ...adminAddressData } })
-  await payload.create({ collection: 'addresses', depth: 0, data: { customer: customerUserId, ...(baseAddressUSData as Address) } })
-  await payload.create({ collection: 'addresses', depth: 0, data: { customer: customerUserId, ...(baseAddressUKData as Address) } })
+  payload.logger.info(`— Seeding sample e-commerce data...`)
 
-  payload.logger.info(`— Seeding transactions...`)
-  await payload.create({ collection: 'transactions', data: { currency: 'USD', customer: customerUserId, paymentMethod: 'stripe', stripe: { customerID: 'cus_123', paymentIntentID: 'pi_123' }, status: 'pending', billingAddress: baseAddressUSData } })
-  const succeededTransaction = await payload.create({ collection: 'transactions', data: { currency: 'USD', customer: customerUserId, paymentMethod: 'stripe', stripe: { customerID: 'cus_123', paymentIntentID: 'pi_123' }, status: 'succeeded', billingAddress: baseAddressUSData } })
+  await payload.create({
+    collection: 'addresses',
+    depth: 0,
+    data: { customer: adminUserId, ...adminAddressData },
+  })
 
-  payload.logger.info(`— Seeding carts...`)
-  await payload.create({ collection: 'carts', data: { customer: customerUserId, currency: 'USD', items: [{ product: productTshirt.id, variant: mediumTshirtHoodieVariant.id, quantity: 1 }] } })
-  await payload.create({ collection: 'carts', data: { currency: 'USD', createdAt: new Date('2023-01-01T00:00:00Z').toISOString(), items: [{ product: productHat.id, quantity: 1 }] } })
-  await payload.create({ collection: 'carts', data: { customer: customerUserId, currency: 'USD', purchasedAt: new Date().toISOString(), subtotal: 7499, items: [{ product: productTshirt.id, variant: smallTshirtHoodieVariant.id, quantity: 1 }, { product: productTshirt.id, variant: mediumTshirtHoodieVariant.id, quantity: 1 }] } })
+  const sampleTransaction = await payload.create({
+    collection: 'transactions',
+    data: {
+      currency: 'USD',
+      customer: customerUserId,
+      paymentMethod: 'stripe',
+      stripe: { customerID: 'cus_demo', paymentIntentID: 'pi_demo' },
+      status: 'succeeded',
+      billingAddress: adminAddressData,
+    },
+  })
 
-  payload.logger.info(`— Seeding orders...`)
-  const orderItems = [{ product: productTshirt.id, variant: smallTshirtHoodieVariant.id, quantity: 1 }, { product: productTshirt.id, variant: mediumTshirtHoodieVariant.id, quantity: 1 }]
-  await payload.create({ collection: 'orders', data: { tenant: defaultTenantId, amount: 7499, currency: 'USD', customer: customerUserId, shippingAddress: baseAddressUSData, items: orderItems, status: 'completed', transactions: [succeededTransaction.id] } })
-  await payload.create({ collection: 'orders', data: { tenant: defaultTenantId, amount: 7499, currency: 'USD', customer: customerUserId, shippingAddress: baseAddressUSData, items: orderItems, status: 'processing', transactions: [succeededTransaction.id] } })
+  await payload.create({
+    collection: 'orders',
+    data: {
+      tenant: defaultTenantId,
+      amount: 35000,
+      currency: 'USD',
+      customer: customerUserId,
+      shippingAddress: adminAddressData,
+      items: [{ product: productSecurity.id, quantity: 1 }],
+      status: 'completed',
+      transactions: [sampleTransaction.id],
+    },
+  })
+
+  payload.logger.info(`— Sample order + transaction seeded`)
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 9: Default Tenant Header & Footer
@@ -599,6 +614,8 @@ export const seed = async ({
   payload.logger.info(`  ${totalPosts} posts across all tenants`)
   payload.logger.info(`  ${USE_CASE_TENANTS.length} endeavor types exercised through provisioning engine`)
   payload.logger.info(`  Archangel LEO + ${totalTenants} tenant LEO agents`)
+  payload.logger.info(`  ${bookingCount} sample bookings`)
+  payload.logger.info(`  3 service products (AV, Security, Workshop)`)
   payload.logger.info(`${'═'.repeat(60)}\n`)
 }
 
