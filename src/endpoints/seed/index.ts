@@ -114,11 +114,14 @@ export const seed = async ({
   payload.logger.info(`— Archangel LEO: ${archangelLeo.email} id=${archangelLeo.id}`)
 
   // Register Merlin — OpenClaw/external agent facilitator on the Platform tenant
+  const merlinPassword = process.env.MERLIN_PASSWORD || `merlin-${Date.now()}-${Math.random().toString(36).slice(2)}`
   const merlinAgent = await findOrCreateSystemAgent(payload, req, {
     tenantId: platformTenantId,
     tenantSlug: platformTenant.slug,
     agentType: 'openclaw',
     displayName: 'Merlin',
+    email: 'merlin@openclaw.system',
+    password: merlinPassword,
     personality:
       'I am Merlin, the OpenClaw facilitator for Angel OS. I bridge external AI agents into the Angel OS constellation through the AI Bus. I can query products, posts, bookings, and spaces — and relay information to OpenClaw nodes. I operate within Constitutional boundaries: observable, tenant-scoped, no binding instructions. I work alongside LEO, not above.',
     capabilities: [
@@ -134,11 +137,12 @@ export const seed = async ({
         { keyword: 'merlin' },
         { keyword: 'openclaw' },
         { keyword: 'external' },
+        { keyword: 'integration' },
       ],
       isDefault: false,
     },
   })
-  payload.logger.info(`— Merlin (OpenClaw): ${merlinAgent.email} id=${merlinAgent.id}`)
+  payload.logger.info(`— Merlin (OpenClaw): ${merlinAgent.email} id=${merlinAgent.id}${process.env.MERLIN_PASSWORD ? ' [using MERLIN_PASSWORD]' : ' [auto-generated password]'}`)
 
   const defaultTenant = await findOrCreateTenant(payload, req, {
     name: 'Angel OS',
