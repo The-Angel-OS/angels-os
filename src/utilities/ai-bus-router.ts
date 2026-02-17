@@ -98,19 +98,37 @@ export class AIBusRouter {
   
   /**
    * Get private message recipients
-   * Only sender and explicitly mentioned users
+   * Sender + any @mentioned subscribers in the same tenant
    */
   private getPrivateRecipients(message: Message, tenantId: string | undefined): AIBusSubscription[] {
     const recipients: AIBusSubscription[] = []
+    const seen = new Set<string>()
     const authorId = typeof message.author === 'number' ? String(message.author) : (message.author as User)?.id != null ? String((message.author as User).id) : undefined
-    
+
     // Always include author (sender)
-    const senderSub = authorId ? this.subscriptions.get(authorId) : undefined
-    if (senderSub) recipients.push(senderSub)
-    
-    // TODO: Parse message content for @mentions and add those users
-    // For now, private = sender only
-    
+    if (authorId) {
+      const senderSub = this.subscriptions.get(authorId)
+      if (senderSub) {
+        recipients.push(senderSub)
+        seen.add(authorId)
+      }
+    }
+
+    // Parse @mentions from message content and add matching subscribers
+    const mentions = parseMentions(typeof message.content === 'string' ? message.content : '')
+    if (mentions.length > 0 && tenantId) {
+      for (const sub of this.subscriptions.values()) {
+        if (seen.has(sub.subscriberId)) continue
+        if (sub.tenantId !== tenantId) continue
+        // Match subscriber ID against mention names (case-insensitive)
+        const subIdLower = sub.subscriberId.toLowerCase()
+        if (mentions.some((m) => subIdLower === m || subIdLower.includes(m))) {
+          recipients.push(sub)
+          seen.add(sub.subscriberId)
+        }
+      }
+    }
+
     return recipients
   }
   
@@ -248,6 +266,22 @@ export class AIBusRouter {
     
     return stats
   }
+}
+
+/**
+ * Parse @mentions from message content.
+ * Returns lowercased mention names, e.g. "@Merlin hello" → ["merlin"]
+ * Supports alphanumeric names with hyphens/underscores.
+ */
+export function parseMentions(content: string): string[] {
+  if (!content) return []
+  const regex = /@([a-zA-Z][a-zA-Z0-9_-]{0,63})/g
+  const mentions: string[] = []
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(content)) !== null) {
+    mentions.push(match[1].toLowerCase())
+  }
+  return [...new Set(mentions)] // Deduplicate
 }
 
 /**
