@@ -104,8 +104,21 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/admin/collections/orders`} icon={<ClipboardIcon />} collapsed={isCollapsed} active={false}>
               Orders
             </NavLink>
-            <NavLink href={`${prefix}/admin/collections/bookings`} icon={<CalendarIcon />} collapsed={isCollapsed} active={false}>
-              Bookings
+            <NavLink
+              href={`${prefix}/dashboard/events`}
+              icon={<CalendarEventIcon />}
+              collapsed={isCollapsed}
+              active={pathname.includes('/dashboard/events')}
+            >
+              Events
+            </NavLink>
+            <NavLink
+              href={`${prefix}/dashboard/appointments`}
+              icon={<CalendarIcon />}
+              collapsed={isCollapsed}
+              active={pathname.includes('/dashboard/appointments')}
+            >
+              Appointments
             </NavLink>
           </NavSection>
         )}
@@ -310,6 +323,15 @@ function CalendarIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function CalendarEventIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11v4m0 0l-2-2m2 2l2-2" />
     </svg>
   )
 }

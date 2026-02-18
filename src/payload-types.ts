@@ -82,6 +82,8 @@ export interface Config {
     messages: Message;
     workflows: Workflow;
     bookings: Booking;
+    events: Event;
+    'event-registrations': EventRegistration;
     availability: Availability;
     header: Header;
     footer: Footer;
@@ -130,6 +132,8 @@ export interface Config {
     messages: MessagesSelect<false> | MessagesSelect<true>;
     workflows: WorkflowsSelect<false> | WorkflowsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    'event-registrations': EventRegistrationsSelect<false> | EventRegistrationsSelect<true>;
     availability: AvailabilitySelect<false> | AvailabilitySelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
@@ -1745,6 +1749,222 @@ export interface Booking {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Event name (e.g., "Dovydas Fan Meetup")
+   */
+  title: string;
+  /**
+   * URL slug — auto-generated from title if not set
+   */
+  slug?: string | null;
+  /**
+   * Full event description
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  eventType: 'meetup' | 'workshop' | 'livestream' | 'conference' | 'screening' | 'custom';
+  status: 'draft' | 'upcoming' | 'live' | 'completed' | 'cancelled';
+  /**
+   * Hero/cover image for the event
+   */
+  coverImage?: (number | null) | Media;
+  /**
+   * Event organizer
+   */
+  host: number | User;
+  /**
+   * When the event starts
+   */
+  startDateTime: string;
+  /**
+   * When the event ends (auto-calculated from start + duration if not set)
+   */
+  endDateTime?: string | null;
+  /**
+   * Duration in minutes
+   */
+  duration?: number | null;
+  /**
+   * Timezone (e.g., "America/New_York")
+   */
+  timezone?: string | null;
+  location: {
+    type: 'in-person' | 'virtual' | 'hybrid';
+    /**
+     * Venue name
+     */
+    venueName?: string | null;
+    /**
+     * Physical address
+     */
+    address?: string | null;
+    /**
+     * Virtual meeting link
+     */
+    remoteLink?: string | null;
+    remotePlatform?: ('zoom' | 'google-meet' | 'angelos-live' | 'youtube-live' | 'twitch' | 'custom') | null;
+  };
+  capacity?: {
+    /**
+     * Maximum attendees (0 = unlimited)
+     */
+    maxAttendees?: number | null;
+    /**
+     * Allow waitlist when capacity is reached
+     */
+    waitlistEnabled?: boolean | null;
+  };
+  registration?: {
+    /**
+     * Registration is currently open
+     */
+    isOpen?: boolean | null;
+    /**
+     * Registrations require host approval
+     */
+    requiresApproval?: boolean | null;
+    /**
+     * Registration closes at this time (optional)
+     */
+    registrationDeadline?: string | null;
+    /**
+     * Allow registration after event completes (for "stay in the loop" / future updates)
+     */
+    allowLateRegistration?: boolean | null;
+  };
+  pricing?: {
+    /**
+     * This is a free event
+     */
+    isFree?: boolean | null;
+    /**
+     * Ticket price
+     */
+    amount?: number | null;
+    currency?: ('usd' | 'eur') | null;
+    /**
+     * Ultimate Fair payment distribution
+     */
+    splitConfiguration?: {
+      /**
+       * Host percentage (default: 60%)
+       */
+      providerShare?: number | null;
+      /**
+       * Platform percentage (default: 20%)
+       */
+      platformShare?: number | null;
+      /**
+       * Operations percentage (default: 15%)
+       */
+      operationsShare?: number | null;
+      /**
+       * Justice Fund percentage (default: 5%)
+       */
+      justiceShare?: number | null;
+    };
+  };
+  /**
+   * Post announcements to AI Bus when event status changes (e.g., goes live). Disable for quiet/private events.
+   */
+  announceToAIBus?: boolean | null;
+  /**
+   * Tags for filtering and discovery
+   */
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Associated space for AI Bus announcements
+   */
+  space?: (number | null) | Space;
+  /**
+   * Additional event-specific data
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations".
+ */
+export interface EventRegistration {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Which event this registration is for
+   */
+  event: number | Event;
+  /**
+   * Registered user (optional — anonymous registrations use name/email)
+   */
+  attendee?: (number | null) | User;
+  /**
+   * Attendee name (required for anonymous registrations)
+   */
+  name?: string | null;
+  /**
+   * Attendee email (required for anonymous registrations)
+   */
+  email?: string | null;
+  status: 'registered' | 'waitlisted' | 'checked-in' | 'cancelled' | 'no-show';
+  registrationType: 'pre-event' | 'at-event' | 'post-event';
+  attendanceMode: 'in-person' | 'virtual' | 'replay';
+  /**
+   * When the attendee checked in
+   */
+  checkedInAt?: string | null;
+  /**
+   * Attendee notes or special requests
+   */
+  notes?: string | null;
+  /**
+   * Additional registration data
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "availability".
  */
 export interface Availability {
@@ -2555,6 +2775,14 @@ export interface PayloadLockedDocument {
         value: number | Booking;
       } | null)
     | ({
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'event-registrations';
+        value: number | EventRegistration;
+      } | null)
+    | ({
         relationTo: 'availability';
         value: number | Availability;
       } | null)
@@ -2975,6 +3203,92 @@ export interface BookingsSelect<T extends boolean = true> {
         calendarEventId?: T;
         leoConversationId?: T;
       };
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  slug?: T;
+  description?: T;
+  eventType?: T;
+  status?: T;
+  coverImage?: T;
+  host?: T;
+  startDateTime?: T;
+  endDateTime?: T;
+  duration?: T;
+  timezone?: T;
+  location?:
+    | T
+    | {
+        type?: T;
+        venueName?: T;
+        address?: T;
+        remoteLink?: T;
+        remotePlatform?: T;
+      };
+  capacity?:
+    | T
+    | {
+        maxAttendees?: T;
+        waitlistEnabled?: T;
+      };
+  registration?:
+    | T
+    | {
+        isOpen?: T;
+        requiresApproval?: T;
+        registrationDeadline?: T;
+        allowLateRegistration?: T;
+      };
+  pricing?:
+    | T
+    | {
+        isFree?: T;
+        amount?: T;
+        currency?: T;
+        splitConfiguration?:
+          | T
+          | {
+              providerShare?: T;
+              platformShare?: T;
+              operationsShare?: T;
+              justiceShare?: T;
+            };
+      };
+  announceToAIBus?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  space?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations_select".
+ */
+export interface EventRegistrationsSelect<T extends boolean = true> {
+  tenant?: T;
+  event?: T;
+  attendee?: T;
+  name?: T;
+  email?: T;
+  status?: T;
+  registrationType?: T;
+  attendanceMode?: T;
+  checkedInAt?: T;
+  notes?: T;
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;
