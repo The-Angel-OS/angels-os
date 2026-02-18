@@ -6,7 +6,11 @@ export const revalidatePost: CollectionAfterChangeHook = ({ doc, req: { payload,
   if (!context?.disableRevalidate && doc?._status === 'published') {
     const path = doc?.slug ? `/posts/${doc.slug}` : '/posts'
     payload.logger?.info?.(`Revalidating post at path: ${path}`)
-    revalidatePath(path)
+    try {
+      revalidatePath(path)
+    } catch {
+      // Expected when running outside Next.js server (e.g. CLI seed)
+    }
   }
   return doc
 }
@@ -14,7 +18,11 @@ export const revalidatePost: CollectionAfterChangeHook = ({ doc, req: { payload,
 export const revalidateDelete: CollectionAfterDeleteHook = ({ doc, req: { context } }) => {
   if (!context?.disableRevalidate) {
     const path = doc?.slug ? `/posts/${doc.slug}` : '/posts'
-    revalidatePath(path)
+    try {
+      revalidatePath(path)
+    } catch {
+      // Expected when running outside Next.js server (e.g. CLI seed)
+    }
   }
   return doc
 }

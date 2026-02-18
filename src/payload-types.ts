@@ -334,7 +334,7 @@ export interface User {
     /**
      * Type of agent - determines default behavior and routing
      */
-    agentType?: ('leo' | 'support' | 'sales' | 'onboarding' | 'integration' | 'custom') | null;
+    agentType?: ('leo' | 'support' | 'sales' | 'onboarding' | 'integration' | 'angelclaw' | 'custom') | null;
     /**
      * Custom name for this Angel (e.g., "LEO", "Gabriel", "Seraph")
      */
