@@ -41,6 +41,8 @@ const collections: CollectionSlug[] = [
   'addresses',
   'orders',
   'bookings',
+  'events',
+  'event-registrations',
   'header',
   'footer',
   'messages',
@@ -408,6 +410,212 @@ export const seed = async ({
   payload.logger.info(`— Seeded ${bookingCount} sample bookings`)
 
   // ═══════════════════════════════════════════════════════════════
+  // PHASE 5C: Seed Sample Events & Registrations
+  // ═══════════════════════════════════════════════════════════════
+
+  payload.logger.info(`— Seeding sample events...`)
+
+  const nextWeek = new Date()
+  nextWeek.setDate(nextWeek.getDate() + 7)
+  nextWeek.setHours(19, 0, 0, 0)
+
+  const nextMonth = new Date()
+  nextMonth.setDate(nextMonth.getDate() + 30)
+  nextMonth.setHours(14, 0, 0, 0)
+
+  const twoWeeks = new Date()
+  twoWeeks.setDate(twoWeeks.getDate() + 14)
+  twoWeeks.setHours(18, 0, 0, 0)
+
+  const lastWeek = new Date()
+  lastWeek.setDate(lastWeek.getDate() - 7)
+  lastWeek.setHours(20, 0, 0, 0)
+
+  // Get the Lucas Productions space for AI Bus announcements
+  const lucasInfo = tenantMap['lucas-productions']
+  const haysInfo = tenantMap['hays-cactus-farm']
+
+  const eventSamples: Array<{
+    title: string
+    slug: string
+    eventType: string
+    status: string
+    startDateTime: Date
+    duration: number
+    locationType: string
+    venueName?: string
+    address?: string
+    remotePlatform?: string
+    remoteLink?: string
+    tenantId: number | string
+    description: string
+    tags: string[]
+    announceToAIBus: boolean
+  }> = []
+
+  if (lucasInfo) {
+    eventSamples.push(
+      {
+        title: 'Dovydas Fan Meetup — Clearwater',
+        slug: 'dovydas-fan-meetup-clearwater',
+        eventType: 'meetup',
+        status: 'upcoming',
+        startDateTime: nextWeek,
+        duration: 120,
+        locationType: 'hybrid',
+        venueName: 'Clearwater Beach Pavilion',
+        address: '69 Gulfview Blvd, Clearwater Beach, FL 33767',
+        remotePlatform: 'youtube-live',
+        remoteLink: 'https://youtube.com/live/dovydas-meetup',
+        tenantId: lucasInfo.tenantId,
+        description: 'Meet Dovydas in person at Clearwater Beach! Free entry, bring your guitars. Virtual attendance available via YouTube Live.',
+        tags: ['dovydas', 'meetup', 'clearwater', 'music', 'free'],
+        announceToAIBus: true,
+      },
+      {
+        title: 'Behind the Scenes Livestream',
+        slug: 'behind-the-scenes-livestream',
+        eventType: 'livestream',
+        status: 'upcoming',
+        startDateTime: twoWeeks,
+        duration: 90,
+        locationType: 'virtual',
+        remotePlatform: 'youtube-live',
+        remoteLink: 'https://youtube.com/live/dovydas-bts',
+        tenantId: lucasInfo.tenantId,
+        description: 'Go behind the scenes with Dovydas. Watch the creative process, ask questions, and hang out.',
+        tags: ['dovydas', 'livestream', 'bts', 'free'],
+        announceToAIBus: true,
+      },
+      {
+        title: 'Tampa Bay Creator Night',
+        slug: 'tampa-bay-creator-night',
+        eventType: 'meetup',
+        status: 'completed',
+        startDateTime: lastWeek,
+        duration: 180,
+        locationType: 'in-person',
+        venueName: 'The Ritz Ybor',
+        address: '1503 E 7th Ave, Tampa, FL 33605',
+        tenantId: lucasInfo.tenantId,
+        description: 'A past event — Tampa Bay creators gathered for networking, music, and good vibes.',
+        tags: ['creators', 'tampa', 'networking'],
+        announceToAIBus: false,
+      },
+    )
+  }
+
+  if (haysInfo) {
+    eventSamples.push({
+      title: 'Cactus Care Workshop',
+      slug: 'cactus-care-workshop',
+      eventType: 'workshop',
+      status: 'upcoming',
+      startDateTime: nextMonth,
+      duration: 120,
+      locationType: 'hybrid',
+      venueName: 'Hays Cactus Farm',
+      address: '2200 S Old Missouri Rd, Springdale, AR 72764',
+      remotePlatform: 'zoom',
+      remoteLink: 'https://zoom.us/j/cactus-workshop',
+      tenantId: haysInfo.tenantId,
+      description: 'Learn how to care for your cacti and succulents. Hands-on demonstration with Q&A. Virtual attendance available.',
+      tags: ['cactus', 'workshop', 'gardening', 'free'],
+      announceToAIBus: true,
+    })
+  }
+
+  // Angel OS default tenant event
+  eventSamples.push({
+    title: 'Angel OS Launch Party',
+    slug: 'angel-os-launch-party',
+    eventType: 'conference',
+    status: 'upcoming',
+    startDateTime: nextMonth,
+    duration: 240,
+    locationType: 'hybrid',
+    venueName: 'The Innovation Hub',
+    address: '500 Cleveland St, Clearwater, FL 33755',
+    remotePlatform: 'angelos-live',
+    remoteLink: '/spaces',
+    tenantId: defaultTenantId,
+    description: 'The official Angel OS launch event. Demos, roadmap presentation, Q&A with the team. Join in-person or virtually through Angel OS Spaces.',
+    tags: ['angel-os', 'launch', 'conference', 'ai', 'free'],
+    announceToAIBus: true,
+  })
+
+  const createdEvents: Array<{ id: number; tenantId: number | string; title: string }> = []
+
+  for (const ev of eventSamples) {
+    const created = await payload.create({
+      collection: 'events',
+      data: {
+        title: ev.title,
+        slug: ev.slug,
+        eventType: ev.eventType,
+        status: ev.status,
+        startDateTime: ev.startDateTime.toISOString(),
+        duration: ev.duration,
+        timezone: 'America/New_York',
+        location: {
+          type: ev.locationType,
+          ...(ev.venueName ? { venueName: ev.venueName } : {}),
+          ...(ev.address ? { address: ev.address } : {}),
+          ...(ev.remotePlatform ? { remotePlatform: ev.remotePlatform } : {}),
+          ...(ev.remoteLink ? { remoteLink: ev.remoteLink } : {}),
+        },
+        host: adminUserId,
+        capacity: { maxAttendees: 0, waitlistEnabled: false },
+        registration: {
+          isOpen: true,
+          requiresApproval: false,
+          allowLateRegistration: true,
+        },
+        pricing: { isFree: true },
+        tags: ev.tags.map((tag) => ({ tag })),
+        announceToAIBus: ev.announceToAIBus,
+        tenant: ev.tenantId as number,
+      } as any,
+    })
+    createdEvents.push({ id: created.id as number, tenantId: ev.tenantId, title: ev.title })
+  }
+
+  payload.logger.info(`— Seeded ${createdEvents.length} sample events`)
+
+  // Seed registrations for created events
+  payload.logger.info(`— Seeding sample event registrations...`)
+  let regCount = 0
+
+  const sampleAttendees = [
+    { name: 'Alex Johnson', email: 'alex@example.com' },
+    { name: 'Maria Garcia', email: 'maria@example.com' },
+    { name: 'Sam Wilson', email: 'sam@example.com' },
+    { name: 'Taylor Kim', email: 'taylor@example.com' },
+  ]
+
+  for (const ev of createdEvents) {
+    // Register 2-4 attendees per event
+    const count = Math.min(sampleAttendees.length, 2 + (ev.id % 3))
+    for (let i = 0; i < count; i++) {
+      const attendee = sampleAttendees[i]!
+      await payload.create({
+        collection: 'event-registrations',
+        data: {
+          event: ev.id,
+          name: attendee.name,
+          email: attendee.email,
+          status: ev.title.includes('completed') || ev.title.includes('Tampa Bay') ? 'checked-in' : 'registered',
+          registrationType: ev.title.includes('Tampa Bay') ? 'post-event' : 'pre-event',
+          attendanceMode: 'in-person',
+          tenant: ev.tenantId as number,
+        } as any,
+      })
+      regCount++
+    }
+  }
+  payload.logger.info(`— Seeded ${regCount} sample event registrations`)
+
+  // ═══════════════════════════════════════════════════════════════
   // PHASE 6: Default Tenant Media & Products
   // ═══════════════════════════════════════════════════════════════
 
@@ -647,6 +855,7 @@ export const seed = async ({
   payload.logger.info(`  ${USE_CASE_TENANTS.length} endeavor types exercised through provisioning engine`)
   payload.logger.info(`  Archangel LEO + Merlin (AngelClaw) + ${totalTenants} tenant LEO agents`)
   payload.logger.info(`  ${bookingCount} sample bookings`)
+  payload.logger.info(`  ${createdEvents.length} events + ${regCount} registrations`)
   payload.logger.info(`  3 service products (AV, Security, Workshop)`)
   payload.logger.info(`${'═'.repeat(60)}\n`)
 }

@@ -142,6 +142,63 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'query_events',
+    description:
+      'Search events (meetups, workshops, livestreams, conferences). Returns event details including title, date, location, attendee count, and status. Use when users ask about events, what\'s coming up, or things happening.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['draft', 'upcoming', 'live', 'completed', 'cancelled'],
+          description: 'Filter by event status',
+        },
+        eventType: {
+          type: 'string',
+          enum: ['meetup', 'workshop', 'livestream', 'conference', 'screening', 'custom'],
+          description: 'Filter by event type',
+        },
+        search: {
+          type: 'string',
+          description: 'Optional text to search event titles',
+        },
+        upcoming: {
+          type: 'boolean',
+          description: 'If true, only return future events',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 5, max 10)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'query_event_registrations',
+    description:
+      'Get registrations for a specific event. Returns attendee list with name, status, and attendance mode. Use when users ask about who\'s attending an event or registration counts.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        eventId: {
+          type: 'number',
+          description: 'The ID of the event to get registrations for',
+        },
+        status: {
+          type: 'string',
+          enum: ['registered', 'waitlisted', 'checked-in', 'cancelled', 'no-show'],
+          description: 'Filter by registration status',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 10, max 50)',
+        },
+      },
+      required: ['eventId'],
+    },
+  },
+  {
     name: 'query_availability',
     description:
       'Check provider availability and open time slots. Use when users ask about scheduling, available times, or booking windows.',
@@ -391,6 +448,10 @@ export async function executeToolCall(
         return await queryPosts(payload, toolInput)
       case 'query_bookings':
         return await queryBookings(payload, toolInput)
+      case 'query_events':
+        return await queryEvents(payload, toolInput)
+      case 'query_event_registrations':
+        return await queryEventRegistrations(payload, toolInput)
       case 'query_spaces':
         return await querySpaces(payload, toolInput, tenantId)
       case 'query_projects':
@@ -561,6 +622,115 @@ async function queryBookings(
   })
 
   return `Found ${result.totalDocs} booking(s):\n${bookings.join('\n')}`
+}
+
+async function queryEvents(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const limit = Math.min(Number(input.limit) || 5, 10)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+
+  if (input.status && typeof input.status === 'string') {
+    conditions.push({ status: { equals: input.status } })
+  }
+  if (input.eventType && typeof input.eventType === 'string') {
+    conditions.push({ eventType: { equals: input.eventType } })
+  }
+  if (input.search && typeof input.search === 'string') {
+    conditions.push({ title: { contains: input.search } })
+  }
+  if (input.upcoming === true) {
+    conditions.push({ startDateTime: { greater_than: new Date().toISOString() } })
+  }
+
+  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+
+  const result = await payload.find({
+    collection: 'events',
+    where,
+    limit,
+    sort: 'startDateTime',
+    depth: 1,
+    overrideAccess: true, // Events are public
+  })
+
+  if (result.docs.length === 0) {
+    return 'No events found matching your criteria.'
+  }
+
+  const events = await Promise.all(
+    result.docs.map(async (e) => {
+      const title = str(e, 'title', 'Untitled')
+      const status = str(e, 'status', 'unknown')
+      const eventType = str(e, 'eventType', '')
+      const slug = str(e, 'slug')
+      const startDT = str(e, 'startDateTime')
+      const start = startDT ? new Date(startDT).toLocaleString() : 'TBD'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const location = (e as any)?.location
+      const locType = location?.type || 'in-person'
+      const venue = location?.venueName || ''
+
+      // Get attendee count
+      const regCount = await payload.count({
+        collection: 'event-registrations',
+        where: {
+          and: [
+            { event: { equals: e.id } },
+            { status: { not_equals: 'cancelled' } },
+          ],
+        } as Where,
+        overrideAccess: true,
+      })
+
+      return `- **${title}** [${status}] — ${eventType}, ${start}${venue ? `, ${venue}` : ''} (${locType}) — ${regCount.totalDocs} attendee(s)${slug ? ` — /events/${slug}` : ''}`
+    }),
+  )
+
+  return `Found ${result.totalDocs} event(s)${result.totalDocs > limit ? ` (showing first ${limit})` : ''}:\n${events.join('\n')}`
+}
+
+async function queryEventRegistrations(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const eventId = Number(input.eventId)
+  if (!eventId) {
+    return 'Error: eventId is required. Search for events first using query_events.'
+  }
+
+  const limit = Math.min(Number(input.limit) || 10, 50)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = [{ event: { equals: eventId } }]
+
+  if (input.status && typeof input.status === 'string') {
+    conditions.push({ status: { equals: input.status } })
+  }
+
+  const result = await payload.find({
+    collection: 'event-registrations',
+    where: { and: conditions } as Where,
+    limit,
+    depth: 1,
+    overrideAccess: true,
+  })
+
+  if (result.docs.length === 0) {
+    return 'No registrations found for this event.'
+  }
+
+  const regs = result.docs.map((r) => {
+    const name = str(r, 'name', 'Anonymous')
+    const email = str(r, 'email', '')
+    const status = str(r, 'status', 'unknown')
+    const mode = str(r, 'attendanceMode', 'in-person')
+    const regType = str(r, 'registrationType', 'pre-event')
+    return `- **${name}**${email ? ` (${email})` : ''} [${status}] — ${mode}, ${regType}`
+  })
+
+  return `${result.totalDocs} registration(s) for this event${result.totalDocs > limit ? ` (showing first ${limit})` : ''}:\n${regs.join('\n')}`
 }
 
 async function querySpaces(

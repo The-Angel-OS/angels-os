@@ -40,6 +40,8 @@ import { Posts } from '@/collections/Posts'
 import { Projects } from '@/collections/Projects'
 import { SpaceMemberships } from '@/collections/SpaceMemberships'
 import { Spaces } from '@/collections/Spaces'
+import { Events } from '@/collections/Events'
+import { EventRegistrations } from '@/collections/EventRegistrations'
 import { Workflows } from '@/collections/Workflows'
 import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
@@ -83,6 +85,8 @@ export default buildConfig({
     Messages,
     Workflows,
     Bookings,
+    Events,
+    EventRegistrations,
     Availability,
     Header,
     Footer,
@@ -119,6 +123,8 @@ export default buildConfig({
         products: {},
         orders: {},
         bookings: {},
+        events: {},
+        'event-registrations': {},
         availability: {},
         workflows: {},
         header: { isGlobal: true },
