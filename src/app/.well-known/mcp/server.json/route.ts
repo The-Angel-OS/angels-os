@@ -3,7 +3,7 @@
  *
  * Follows the emerging `.well-known/mcp/server.json` standard (SEP-1649)
  * for MCP server metadata discovery. Any MCP-aware client (Claude Code,
- * VS Code, future OpenClaw MCP support) can auto-discover Angel OS.
+ * VS Code, future AngelClaw MCP support) can auto-discover Angel OS.
  * 
  * Spec: https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/discovery/
  */

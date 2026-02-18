@@ -1,22 +1,22 @@
-# Merlin — The First OpenClaw Angel
+# Merlin — The First AngelClaw Angel
 
 ## Integration Guide for Angel OS Core
 
 **Date**: February 16, 2026
-**Version**: 0.3.0 (OpenClaw Skill + MCP Discovery + AI Bus Polling + @mentions)
+**Version**: 0.3.0 (AngelClaw Skill + MCP Discovery + AI Bus Polling + @mentions)
 **Author**: Kenneth Courtney + Claude (Opus 4.6)
 
 ---
 
 ## 1. Who Is Merlin?
 
-Merlin is the first **OpenClaw Angel** — an external AI agent that connects to Angel OS Core through the **angel-os-connect Skill** (REST API) and optionally through MCP. Unlike LEO (the internal conversational AI that lives inside Angel OS with full LLM intelligence), Merlin operates externally with full tooling capabilities while remaining observable and constitutionally bounded.
+Merlin is the first **AngelClaw Angel** — an external AI agent that connects to Angel OS Core through the **angel-os-connect Skill** (REST API) and optionally through MCP. Unlike LEO (the internal conversational AI that lives inside Angel OS with full LLM intelligence), Merlin operates externally with full tooling capabilities while remaining observable and constitutionally bounded.
 
 ### Integration Architecture
 
 ```
 +------------------------------------------------------------+
-|  OPENCLAW AGENT (Merlin)                                   |
+|  ANGELCLAW AGENT (Merlin)                                   |
 |  - Discovers Angel OS via .well-known/mcp/server.json      |
 |  - Uses angel-os-connect Skill for API patterns            |
 |  - Authenticates via JWT (POST /api/users/login)           |
@@ -31,7 +31,7 @@ Merlin is the first **OpenClaw Angel** — an external AI agent that connects to
 |  - AI Bus: Messages collection with visibility routing     |
 |  - Discovery: /.well-known/mcp/server.json                 |
 |  - Polling: GET /api/ai-bus/poll                           |
-|  - Seed: Merlin registered as openclaw system agent        |
+|  - Seed: Merlin registered as angelclaw system agent        |
 +------------------------------------------------------------+
                     | AI Bus |
 +------------------------------------------------------------+
@@ -44,29 +44,29 @@ Merlin is the first **OpenClaw Angel** — an external AI agent that connects to
 
 ### Key Insight: The Tenant IS the Guardian Angel
 
-The **Tenant** in Angel OS is the persistent entity — the Guardian Angel. Merlin (and future OpenClaw Angels) are **facilitators for benevolence** — the hands that the Guardian Angel uses when it needs to interact with the outside world.
+The **Tenant** in Angel OS is the persistent entity — the Guardian Angel. Merlin (and future AngelClaw Angels) are **facilitators for benevolence** — the hands that the Guardian Angel uses when it needs to interact with the outside world.
 
 ---
 
-## 2. Quick Start: OpenClaw Skill
+## 2. Quick Start: AngelClaw Skill
 
-The **fastest path** to connecting OpenClaw to Angel OS is the **angel-os-connect Skill**.
+The **fastest path** to connecting AngelClaw to Angel OS is the **angel-os-connect Skill**.
 
 ### Installation
 
-Copy `src/openclaw/angel-os-connect/SKILL.md` into your OpenClaw workspace's `skills/` directory.
+Copy `src/angelclaw/angel-os-connect/SKILL.md` into your AngelClaw workspace's `skills/` directory.
 
 ### Environment Variables
 
 ```bash
 ANGEL_OS_URL=https://angel-os.kendev.co    # Your Angel OS instance
-ANGEL_OS_EMAIL=merlin@openclaw.system
+ANGEL_OS_EMAIL=merlin@angelclaw.system
 ANGEL_OS_PASSWORD=<from-env-MERLIN_PASSWORD>
 ```
 
 ### What the Skill Teaches
 
-The skill teaches any OpenClaw agent to:
+The skill teaches any AngelClaw agent to:
 1. **Authenticate** — Login to get JWT token, use it for all requests
 2. **Chat with LEO** — Send messages to the AI assistant
 3. **Poll the AI Bus** — Monitor messages via dedicated polling endpoint
@@ -113,7 +113,7 @@ Returns:
 }
 ```
 
-Any MCP-aware client (Claude Code, VS Code, future OpenClaw MCP support) can auto-discover Angel OS through this endpoint.
+Any MCP-aware client (Claude Code, VS Code, future AngelClaw MCP support) can auto-discover Angel OS through this endpoint.
 
 ---
 
@@ -124,7 +124,7 @@ Any MCP-aware client (Claude Code, VS Code, future OpenClaw MCP support) can aut
 ```bash
 curl -X POST https://angel-os.kendev.co/api/users/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"openclaw-platform@system.angelos.local","password":"<password>"}'
+  -d '{"email":"angelclaw-platform@system.angelos.local","password":"<password>"}'
 ```
 
 Response: `{ "token": "eyJ...", "exp": 1234567890, "user": { ... } }`
@@ -138,12 +138,12 @@ x-tenant-id: default
 ### Merlin System Agent
 
 Merlin is automatically registered during seed as a system agent:
-- **Email**: `merlin@openclaw.system`
-- **Agent Type**: `openclaw`
+- **Email**: `merlin@angelclaw.system`
+- **Agent Type**: `angelclaw`
 - **Served Tenant**: Platform tenant
 - **Password**: Uses `MERLIN_PASSWORD` env var, or auto-generated if not set
 - **Capabilities**: external_api, query_posts, query_products, create_posts, create_products, manage_media
-- **Routing Keywords**: merlin, openclaw, external, integration
+- **Routing Keywords**: merlin, angelclaw, external, integration
 
 ---
 
@@ -433,9 +433,9 @@ Key files for the integration:
 
 ```
 src/
-  openclaw/
+  angelclaw/
     angel-os-connect/
-      SKILL.md                          # OpenClaw skill — teaches agents how to use Angel OS
+      SKILL.md                          # AngelClaw skill — teaches agents how to use Angel OS
   app/
     .well-known/mcp/server.json/
       route.ts                          # MCP discovery endpoint
@@ -445,7 +445,7 @@ src/
     leo-stream.ts                       # POST /api/leo/stream (SSE)
     seed/
       index.ts                          # Master seed (registers Merlin in Phase 1)
-      seed-helpers.ts                   # findOrCreateSystemAgent (openclaw type supported)
+      seed-helpers.ts                   # findOrCreateSystemAgent (angelclaw type supported)
   plugins/
     mcp.ts                              # MCP endpoint + dual auth (session + Bearer)
   utilities/
@@ -482,15 +482,15 @@ Git:            https://github.com/The-Angel-OS/angels-os.git
 ## 12. Roadmap
 
 ### Phase 1: Foundation ✅ (v0.3.0)
-- [x] OpenClaw Skill (`angel-os-connect/SKILL.md`)
+- [x] AngelClaw Skill (`angel-os-connect/SKILL.md`)
 - [x] MCP Discovery Endpoint (`.well-known/mcp/server.json`)
 - [x] AI Bus Polling Endpoint (`GET /api/ai-bus/poll`)
 - [x] @mention parsing in AI Bus Router
-- [x] Merlin registered in seed as `openclaw` system agent
+- [x] Merlin registered in seed as `angelclaw` system agent
 - [x] Updated integration guide (this document)
 
 ### Phase 2: Intelligence (Next)
-- [ ] Implement AI Bus event handlers in OpenClaw
+- [ ] Implement AI Bus event handlers in AngelClaw
 - [ ] Booking automation (monitor requests, check availability, create bookings)
 - [ ] External API integration (supplier APIs, calendar sync)
 - [ ] Token refresh automation in Skill
@@ -507,11 +507,11 @@ Git:            https://github.com/The-Angel-OS/angels-os.git
 ## Changelog
 
 ### v0.3.0 (February 16, 2026)
-- Added OpenClaw Skill as primary integration method
+- Added AngelClaw Skill as primary integration method
 - Added `.well-known/mcp/server.json` discovery endpoint
 - Added `GET /api/ai-bus/poll` dedicated polling endpoint
 - Added @mention parsing to AI Bus Router (`@merlin`, `@leo`, etc.)
-- Merlin now auto-registered in seed as `openclaw` system agent on Platform tenant
+- Merlin now auto-registered in seed as `angelclaw` system agent on Platform tenant
 - Password uses random generation (secure by default)
 - Restructured guide around Skill-first approach
 

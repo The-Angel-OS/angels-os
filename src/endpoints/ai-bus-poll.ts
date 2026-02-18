@@ -1,7 +1,7 @@
 /**
  * AI Bus Polling Endpoint
  *
- * Dedicated endpoint for external agents (OpenClaw/Merlin) to efficiently
+ * Dedicated endpoint for external agents (AngelClaw/Merlin) to efficiently
  * poll the AI Bus for new messages. Simpler than crafting complex Payload
  * REST queries — just pass `since` and optional filters.
  *
