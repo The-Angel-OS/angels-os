@@ -13,17 +13,22 @@ import { CollectionArchive } from '@/components/CollectionArchive'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
-  const posts = await payload.find({
-    collection: 'posts',
-    draft: false,
-    limit: 1000,
-    overrideAccess: false,
-    pagination: false,
-    where: { _status: { equals: 'published' } },
-    select: { slug: true },
-  })
+  try {
+    const posts = await payload.find({
+      collection: 'posts',
+      draft: false,
+      limit: 1000,
+      overrideAccess: true, // Build-time has no user context — override for static generation
+      pagination: false,
+      where: { _status: { equals: 'published' } },
+      select: { slug: true },
+    })
 
-  return (posts.docs ?? []).map(({ slug }) => ({ slug: slug! }))
+    return (posts.docs ?? []).map(({ slug }) => ({ slug: slug! }))
+  } catch (err) {
+    console.error('[Posts] generateStaticParams failed:', err)
+    return []
+  }
 }
 
 type Args = {

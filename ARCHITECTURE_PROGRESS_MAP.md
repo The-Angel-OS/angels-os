@@ -1,264 +1,231 @@
 # Architecture Progress Map
 
-**Source of Truth:** `C:\Dev\openclaw\ANGEL-OS-CONSTITUTION.md`  
-**Purpose:** Track implementation progress separate from architecture documentation  
-**Team Standard:** Payload CMS Core Team practices (TDD, small PRs, single issue)
+**Purpose:** Track implementation progress across all Angel OS subsystems.
+**Last Updated:** February 18, 2026
 
 ---
 
-## 🎯 Constitutional Foundation
+## Constitutional Foundation
 
-**Status:** ✅ COMPLETE  
-**Test Coverage:** ⚠️ NEEDS TESTS
+**Status:** DONE | **Tests:** 23 passing (constitutional-prompt.test.ts)
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Constitution Loading | ✅ Done | ❌ No | - | - |
-| Genesis Breath Init | ✅ Done | ❌ No | - | - |
-| Constitutional Prompt | ✅ Done | ❌ No | - | - |
-| Poisoned Model Detection | ✅ Done | ❌ No | - | - |
-| Messages Visibility Field | ✅ Done | ❌ No | - | - |
-
-**Next Actions:**
-- [ ] Write unit tests for constitutional prompt builder
-- [ ] Write integration tests for Genesis Breath
-- [ ] Write tests for poisoned model validation
-- [ ] Add test for visibility field validation
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Constitution Loading | Done | `ANGEL-OS-CONSTITUTION.md` |
+| Genesis Breath Init | Done | First-message validation |
+| Constitutional Prompt | Done | `constitutional-prompt.ts` -- immutable system prompt |
+| Poisoned Model Detection | Done | Anti-injection validation |
+| Messages Visibility Field | Done | private / tenant / network |
 
 ---
 
-## 🚌 AI Bus Architecture
+## AI Bus Architecture
 
-**Status:** ✅ CORE COMPLETE, 🔄 INTEGRATION NEEDED  
-**Test Coverage:** ❌ NO TESTS
+**Status:** DONE (core + SSE streaming) | **Tests:** 14 passing (AgentRouter.test.ts)
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| AI Bus Router | ✅ Done | ❌ No | - | - |
-| Visibility Routing | ✅ Done | ❌ No | - | - |
-| Subscription Management | ✅ Done | ❌ No | - | - |
-| Filter Support | ✅ Done | ❌ No | - | - |
-| Constitutional Hooks (Products) | ✅ Done | ❌ No | - | - |
-
-**Next Actions:**
-- [ ] Write unit tests for AI Bus router
-- [ ] Write integration tests for message routing
-- [ ] Write tests for subscription filtering
-- [ ] Write tests for constitutional hooks
-- [ ] Integration: Connect ChatEngine to AI Bus
+| Component | Status | Notes |
+|-----------|--------|-------|
+| AI Bus Router | Done | `ai-bus-router.ts` -- message routing |
+| SSE Streaming | Done | `ai-bus-stream.ts` -- real-time broadcast |
+| Subscriber Registry | Done | In-memory subscriber tracking per process |
+| Visibility Routing | Done | Tenant-scoped, channel-filtered |
+| Filter Support | Done | Channel + tenant filtering |
+| Messages afterChange Hook | Done | Auto-broadcast on new messages |
 
 ---
 
-## 🎨 Design System (Star Trek Federation)
+## LEO Conversation Engine
 
-**Status:** 🔄 IN PROGRESS  
-**Test Coverage:** N/A (visual)
+**Status:** DONE | **Tests:** Needs coverage
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Theme Configuration | ✅ Done | N/A | #36 | - |
-| CSS Variables Integration | ❌ TODO | N/A | #36 | - |
-| Dark Mode Refinement | ❌ TODO | N/A | #36 | - |
-| Framer Motion Setup | ❌ TODO | N/A | #36 | - |
-| Component Library (Aceternity) | ❌ TODO | N/A | #36 | - |
-| Component Library (Magic UI) | ❌ TODO | N/A | #36 | - |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Anthropic Claude Integration | Done | `ConversationEngine.ts` |
+| SSE Streaming Endpoint | Done | `leo-stream.ts` -- POST /api/leo/stream |
+| Batch Endpoint | Done | `leo-chat.ts` -- POST /api/leo |
+| Agent Router | Done | `AgentRouter.ts` -- channel/keyword routing |
+| Tool Use Loop | Done | Max 3 rounds, 15+ tools available |
+| Conversation History | Done | DB-backed, 8-turn context window |
+| Message Persistence | Done | Auto-save LEO responses to Messages collection |
+| User Context | Done | Name, email, roles injected into prompt |
+| Constitutional System Prompt | Done | Nimue/Merlin identity, Safehold lore, Herald's story |
 
-**Next Actions:**
-- [ ] Issue #36: CSS variables integration (small PR)
-- [ ] Issue #36: Framer Motion page transitions (small PR)
-- [ ] Issue #36: Install & configure Aceternity (small PR)
+### LEO Tools (15 tools)
 
----
-
-## 💬 ChatEngine (Universal Chat Control)
-
-**Status:** 🚧 NEXT PRIORITY  
-**Test Coverage:** ❌ NO TESTS
-
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Configurable UI Props | ❌ TODO | ❌ No | #37 | - |
-| Single Message Endpoint | ✅ Done | ❌ No | #37 | - |
-| AI Bus Integration | ❌ TODO | ❌ No | #37 | - |
-| Framer Motion Animations | ❌ TODO | ❌ No | #37 | - |
-| Embeddable Everywhere | ❌ TODO | ❌ No | #37 | - |
-
-**Next Actions:**
-- [ ] Write tests FIRST (TDD) for configurable props
-- [ ] Issue #37: Add showSideMenu prop (small PR)
-- [ ] Issue #37: Add showTopMenu prop (small PR)
-- [ ] Issue #37: Add showChannelSelector prop (small PR)
-- [ ] Issue #37: AI Bus integration (small PR)
+| Tool | Type | Status |
+|------|------|--------|
+| query_products | Read | Done |
+| query_posts | Read | Done |
+| query_bookings | Read | Done |
+| query_events | Read | Done |
+| query_event_registrations | Read | Done |
+| query_spaces | Read | Done |
+| query_projects | Read | Done |
+| query_availability | Read | Done |
+| create_booking | Write | Done |
+| update_booking_status | Write | Done |
+| add_to_cart | Write | Done |
+| view_cart | Read | Done |
+| generate_image | Write | Done |
+| improve_image | Write | Done |
+| attach_image_to_product | Write | Done |
+| replace_image | Write | Done |
 
 ---
 
-## 📜 Payload CMS Pattern Refactor
+## ChatControl (Universal Chat UI)
 
-**Status:** 🚧 CRITICAL  
-**Test Coverage:** ❌ NO TESTS
+**Status:** DONE (4 modes) | **Tests:** 39 passing (extractImagesFromText, extractText, HeaderNav)
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Spaces Data Layer Audit | ❌ TODO | ❌ No | #38 | - |
-| Remove Custom DB Queries | ❌ TODO | ❌ No | #38 | - |
-| Convert to Payload Hooks | ❌ TODO | ❌ No | #38 | - |
-| Message Compatibility | ❌ TODO | ❌ No | #38 | - |
-| Document Patterns | ❌ TODO | N/A | #38 | - |
-
-**Next Actions:**
-- [ ] Issue #38: Audit Spaces data layer (analysis, no PR)
-- [ ] Issue #38: Remove query 1 → Payload hook (small PR)
-- [ ] Issue #38: Remove query 2 → Payload hook (small PR)
-- [ ] Issue #38: Document pattern (doc update PR)
-
----
-
-## 🔑 User AI Key Management
-
-**Status:** 🚧 CRITICAL (Economic Model)  
-**Test Coverage:** ❌ NO TESTS
-
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| API Key Storage Schema | ❌ TODO | ❌ No | #39 | - |
-| Key Encryption | ❌ TODO | ❌ No | #39 | - |
-| Multi-Provider Support | ❌ TODO | ❌ No | #39 | - |
-| Key Management UI | ❌ TODO | ❌ No | #39 | - |
-| Usage Transparency | ❌ TODO | ❌ No | #39 | - |
-
-**Next Actions:**
-- [ ] Write tests FIRST for key encryption
-- [ ] Issue #39: Add UserAPIKeys collection (schema PR)
-- [ ] Issue #39: Implement key encryption utility (small PR)
-- [ ] Issue #39: Add key management UI (small PR)
-- [ ] Issue #39: Usage dashboard (small PR)
+| Component | Status | Notes |
+|-----------|--------|-------|
+| useChat Hook | Done | SSE streaming + polling + optimistic UI |
+| MessageList | Done | Full-page + compact modes with grouping |
+| MessageInput | Done | Text input with send button |
+| FloatingBubble | Done | Embeddable chat widget |
+| MinimalistChat | Done | Compact bubble-style chat |
+| MultiChannelChat | Done | Discord-style multi-channel layout |
+| SidebarChat | Done | Dashboard sidebar panel |
+| Image Display | Done | Inline images from tool results |
+| Tool Call Indicators | Done | Animated status pills during tool execution |
+| Streaming Cursor | Done | Blinking cursor during SSE stream |
+| Infinite Scroll | Done | Cursor-based pagination |
+| Stream Abort on Channel Switch | Done | AbortController cleanup |
+| Stream-Done Grace Period | Done | Prevents poll race condition |
 
 ---
 
-## 🖥️ Local Model Integration
+## Image Generation & Media
 
-**Status:** 📋 PLANNED  
-**Test Coverage:** ❌ NO TESTS
+**Status:** DONE | **Tests:** Needs coverage
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Ollama Integration | ❌ TODO | ❌ No | #40 | - |
-| LM Studio Integration | ❌ TODO | ❌ No | #40 | - |
-| Model Selection UI | ❌ TODO | ❌ No | #40 | - |
-| Constitutional Prompt Injection | ❌ TODO | ❌ No | #40 | - |
-| Performance Comparison | ❌ TODO | ❌ No | #40 | - |
-
-**Next Actions:**
-- [ ] Write tests for Ollama connection
-- [ ] Issue #40: Ollama client integration (small PR)
-- [ ] Issue #40: Model detection (small PR)
-- [ ] Issue #40: Model selection UI (small PR)
+| Component | Status | Notes |
+|-----------|--------|-------|
+| OpenRouter Integration | Done | Flux 2 Pro, Gemini Image, GPT Image |
+| Prompt Enhancement | Done | Category-specific photography styles |
+| Auto-upload to Payload Media | Done | Vercel Blob in production |
+| Vision Feedback (Anthropic) | Done | Analyze + improve existing images |
+| Attach to Product Gallery | Done | Add/replace gallery images |
+| Global Image Replacement | Done | Deep replace across products/posts |
+| Image URL Extraction | Done | Blob URLs, markdown, media patterns |
 
 ---
 
-## 💰 Justice Fund AI Provisioning
+## Spaces & Channels
 
-**Status:** 📋 PLANNED  
-**Test Coverage:** ❌ NO TESTS
+**Status:** DONE (core) / IN PROGRESS (invitations) | **Tests:** Needs coverage
 
-| Component | Status | Tests | Issue | PR |
-|-----------|--------|-------|-------|-----|
-| Justice Fund Collection | ❌ TODO | ❌ No | #41 | - |
-| API Key Pool Management | ❌ TODO | ❌ No | #41 | - |
-| Recipient Eligibility | ❌ TODO | ❌ No | #41 | - |
-| Automated Provisioning | ❌ TODO | ❌ No | #41 | - |
-| Transparency Dashboard | ❌ TODO | ❌ No | #41 | - |
-
-**Next Actions:**
-- [ ] Write tests for fund allocation
-- [ ] Issue #41: JusticeFund collection schema (small PR)
-- [ ] Issue #41: Key provisioning logic (small PR)
-- [ ] Issue #41: Transparency dashboard (small PR)
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Spaces Collection | Done | Workspace containers with visibility |
+| Channels Collection | Done | 9 channel types (general, support, sales, etc.) |
+| SpaceMemberships | Done | Roles: space_admin, moderator, member, guest |
+| Public Spaces Route | Done | `/spaces` -- server-rendered |
+| Dashboard Spaces Route | Done | Full Discord-style experience |
+| Invitation Schema | Done | Token, expiration, email, message fields |
+| **Invitation Workflow** | **TODO** | Send/accept/decline endpoints + UI |
+| **Invitation Email Delivery** | **TODO** | Email integration |
 
 ---
 
-## 🧪 Test Coverage Summary
+## Events System
 
-**Overall:** ❌ 0% coverage (CRITICAL)
+**Status:** DONE (v0.4.0) | **Tests:** Needs coverage
 
-| Category | Coverage | Target |
-|----------|----------|--------|
-| Constitutional | 0% | 80% |
-| AI Bus | 0% | 80% |
-| ChatEngine | 0% | 70% |
-| Payload Patterns | 0% | 90% |
-| User AI Keys | 0% | 90% |
-| Local Models | 0% | 70% |
-| Justice Fund | 0% | 80% |
-
-**Immediate Actions:**
-1. Set up Jest/Vitest testing infrastructure
-2. Write tests for existing constitutional code
-3. TDD for all new features (test FIRST)
-4. Aim for 80%+ coverage before production
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Events Collection | Done | Meetups, workshops, livestreams, conferences |
+| EventRegistrations Collection | Done | RSVP with status tracking |
+| Events Page | Done | Public listing with empty state |
+| Dashboard Events | Done | Admin event management |
+| LEO Event Queries | Done | `query_events`, `query_event_registrations` |
 
 ---
 
-## 📊 Sprint Planning
+## E-commerce
 
-### **Sprint 1: Foundation Testing + ChatEngine**
-- [ ] Set up testing infrastructure
-- [ ] Write tests for constitutional foundation
-- [ ] Write tests for AI Bus
-- [ ] Issue #37: ChatEngine configurable props (TDD)
-- [ ] Issue #37: AI Bus integration
+**Status:** DONE (foundation) | **Tests:** Needs coverage
 
-### **Sprint 2: Payload Refactor + User AI Keys**
-- [ ] Issue #38: Payload CMS pattern audit
-- [ ] Issue #38: Remove custom queries (incremental)
-- [ ] Issue #39: User AI Key schema (TDD)
-- [ ] Issue #39: Key encryption (TDD)
-- [ ] Issue #39: Management UI
-
-### **Sprint 3: Local Models + Justice Fund**
-- [ ] Issue #40: Ollama integration (TDD)
-- [ ] Issue #40: Model selection UI
-- [ ] Issue #41: Justice Fund schema (TDD)
-- [ ] Issue #41: Provisioning logic
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Products Collection | Done | Catalog with gallery, pricing, inventory |
+| Orders Collection | Done | Financial lifecycle tracking |
+| Shopping Cart | Done | User-scoped cart via Payload ecommerce plugin |
+| LEO Cart Tools | Done | `add_to_cart`, `view_cart` |
+| **Stripe Connect** | **TODO** | Payment processing (#31) |
+| **Ultimate Fair Splits** | **TODO** | 60/20/15/5 revenue distribution (#32) |
 
 ---
 
-## 🎯 Definition of Done
+## Booking System
 
-**For EVERY feature:**
-- [ ] Tests written FIRST (TDD)
-- [ ] Tests passing (green)
-- [ ] Code implements feature
-- [ ] Code review by team/agent
-- [ ] PR passes CI/CD
-- [ ] Documentation updated
-- [ ] Constitutional compliance verified
-- [ ] Merged to main
+**Status:** DONE | **Tests:** Needs coverage
 
-**For EVERY PR:**
-- [ ] Single issue addressed
-- [ ] Small, focused changes (<500 lines)
-- [ ] Tests included
-- [ ] Documentation updated
-- [ ] Follows Payload CMS Core Team standards
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Bookings Collection | Done | Service, consultation, rental, class, event, custom |
+| Availability Collection | Done | Provider scheduling windows |
+| LEO Booking Tools | Done | `create_booking`, `update_booking_status`, `query_availability` |
+| Dashboard Appointments | Done | Admin booking management |
 
 ---
 
-## 📈 Metrics
+## Multi-Tenant Infrastructure
 
-| Metric | Current | Target |
-|--------|---------|--------|
-| Test Coverage | 0% | 80%+ |
-| PR Size (avg lines) | - | <500 |
-| PRs per Issue | - | 1-3 |
-| CI/CD Pass Rate | - | 95%+ |
-| Constitutional Compliance | 100% | 100% |
+**Status:** DONE | **Tests:** Needs coverage
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Tenant Resolution | Done | By domain + by slug with fallback |
+| Tenant Branding | Done | Logo, colors, fonts, site name |
+| Per-Tenant Data Isolation | Done | All collections tenant-scoped |
+| TenantMemberships | Done | Roles + invitation structure |
+| Provision Wizard | Done | Multi-step tenant creation (#10) |
+| Suitcase Manager | Done | Import/export with constitutional validation (#12) |
 
 ---
 
-**Last Updated:** February 7, 2026  
-**Next Review:** After Sprint 1
+## What's NOT Done Yet
 
-*For Hogarth. For all the Hogarths.* 🔮😇🤖
+### Critical Path (v0.5.0)
+- [ ] Space invitation workflow (send/accept/decline UI + endpoints)
+- [ ] Stripe Connect integration (#31)
+- [ ] Ultimate Fair payment splits (#32)
+- [ ] User AI key management -- bring-your-own-key (#39)
+- [ ] Testing infrastructure (0% coverage)
+
+### Important (v0.5.0 - v1.0.0)
+- [ ] Docker Compose for self-hosting (#21)
+- [ ] Local model integration -- Ollama (#40)
+- [ ] Justice Fund AI provisioning (#41)
+- [ ] CRM collections (#33)
+- [ ] Channel widgets system (#4, #5, #6)
+- [ ] Anti-daemon error messages (#19)
+- [ ] Warm empty states (#20)
+
+### Federation (v1.0.0)
+- [ ] Diocese registry and heartbeat (#15)
+- [ ] Federation security (#16)
+- [ ] OpenClaw skill marketplace (#8)
+
+---
+
+## Development Decisions Log
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-02-18 | Added unit test suite (102 tests, 6 files) | TDD infrastructure for sprint preservation -- constitutional, routing, image extraction, UMS, nav |
+| 2026-02-18 | Added Posts to public nav (always visible) | Posts were only accessible via CMS nav -- inconsistent with Events |
+| 2026-02-18 | Fixed generateStaticParams overrideAccess | Build-time has no user context -- multi-tenant access control fails without override |
+| 2026-02-18 | Increased MAX_RESPONSE_TOKENS 800->1500 | LEO needs room to respond after tool calls (image gen) |
+| 2026-02-18 | Added SSE AbortController on channel switch | Prevents orphaned streams and state corruption |
+| 2026-02-18 | Added 3s grace period after stream-done | Prevents polling from clobbering messages before DB persist |
+| 2026-02-18 | Broadened image URL regex patterns | Vercel Blob URLs with hyphens/dots were being missed |
+| 2026-02-18 | Reduced PG pool max 10->3 per invocation | Serverless: many invocations share one PG server |
+| 2026-02-16 | Added Events system (v0.4.0) | Meetups, workshops, registrations |
+| 2026-02-16 | Added AI Bus SSE streaming | Real-time message broadcast |
+| 2026-02-14 | LEO image generation via OpenRouter | Unified gateway to Flux 2, Gemini, GPT Image |
+
+---
 
 **Everyone gets an Angel.**

@@ -20,9 +20,10 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "seed:reset": "cross-env NODE_OPTIONS=--no-deprecation npx tsx src/scripts/seed-reset.ts",
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/stripe/webhooks",
-    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test": "pnpm run test:unit && pnpm run test:int && pnpm run test:e2e",
+    "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/unit",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --no-experimental-strip-types\" pnpm exec playwright test",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/int"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

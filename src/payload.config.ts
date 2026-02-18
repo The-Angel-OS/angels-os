@@ -102,8 +102,10 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
       // Vercel serverless connection resilience (P3 fix)
-      max: 10, // Max connections in pool (serverless functions are short-lived)
-      idleTimeoutMillis: 20000, // Close idle connections after 20s
+      // Each serverless function invocation gets its own pool — keep low to avoid
+      // exhausting the remote PostgreSQL server's max_connections limit.
+      max: 3, // Low pool per serverless invocation (many invocations share the same PG server)
+      idleTimeoutMillis: 10000, // Close idle connections after 10s
       connectionTimeoutMillis: 10000, // Wait up to 10s for a connection
       allowExitOnIdle: true, // Allow pool to close when idle (important for serverless)
     },

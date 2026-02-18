@@ -28,7 +28,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 // ---------------------------------------------------------------------------
 
 const MAX_HISTORY_TURNS = 8
-const MAX_RESPONSE_TOKENS = 800
+const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 3
 const LLM_MODEL = 'claude-sonnet-4-20250514'
 
@@ -519,20 +519,36 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             for (const block of msg.content) {
               if (typeof block === 'object' && 'type' in block && block.type === 'tool_result') {
                 const resultContent = typeof block.content === 'string' ? block.content : ''
-                // Look for Vercel Blob URLs in tool results
-                const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
+                // Look for Vercel Blob URLs in tool results (broad pattern)
+                const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9._-]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
                 if (blobMatch) {
                   for (const url of blobMatch) {
                     imageUrls.push({ url })
                   }
                 }
-                // Look for Media ID references
+                // Also look for any URL following "URL:" pattern in tool results
+                const urlPrefixed = resultContent.match(/URL:\s*(https?:\/\/[^\s"')]+)/gi)
+                if (urlPrefixed) {
+                  for (const match of urlPrefixed) {
+                    const url = match.replace(/^URL:\s*/i, '')
+                    if (!imageUrls.some((img) => img.url === url)) {
+                      imageUrls.push({ url })
+                    }
+                  }
+                }
+                // Look for Media ID references and associate with images
                 const mediaMatch = resultContent.match(/Media\s*(?:ID|#):\s*(\d+)/gi)
                 if (mediaMatch) {
-                  for (let i = 0; i < mediaMatch.length && i < imageUrls.length; i++) {
+                  for (let i = 0; i < mediaMatch.length; i++) {
                     const idMatch = mediaMatch[i].match(/(\d+)/)
                     if (idMatch) {
-                      imageUrls[i].mediaId = parseInt(idMatch[1], 10)
+                      const mediaId = parseInt(idMatch[1], 10)
+                      if (i < imageUrls.length) {
+                        imageUrls[i].mediaId = mediaId
+                      } else {
+                        // Media ID without a URL — try to construct one from the response text
+                        imageUrls.push({ url: '', mediaId })
+                      }
                     }
                   }
                 }
@@ -540,6 +556,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             }
           }
         }
+        // Remove entries with empty URLs (Media ID only — client can't display these)
+        const validImageUrls = imageUrls.filter((img) => img.url)
 
         // Send done event (with images if any were generated)
         controller.enqueue(
@@ -549,7 +567,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               agentName,
               messageId: savedMessageId,
               conversationId: resolvedConversationId,
-              ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
+              ...(validImageUrls.length > 0 ? { images: validImageUrls } : {}),
             }),
           ),
         )

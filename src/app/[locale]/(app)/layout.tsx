@@ -52,12 +52,25 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const tenantSlug = headersList.get('x-tenant-id')
   const host = headersList.get('host') ?? ''
 
-  const tenant =
-    (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-    (await fetchTenantByDomain(host))
+  // Graceful tenant resolution — if the DB is temporarily unavailable the layout
+  // still renders (header/footer will simply be empty).
+  let tenant: Awaited<ReturnType<typeof fetchTenantByDomain>> = null
+  try {
+    tenant =
+      (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
+      (await fetchTenantByDomain(host))
+  } catch (err) {
+    console.error('[AppLayout] Tenant resolution failed — rendering without tenant:', err)
+  }
 
   // Resolve the default space for this tenant (for the floating chat bubble)
-  const defaultSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
+  let defaultSpaceId: string | undefined
+  try {
+    const rawSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
+    defaultSpaceId = rawSpaceId != null ? String(rawSpaceId) : undefined
+  } catch (err) {
+    console.error('[AppLayout] Default space resolution failed:', err)
+  }
 
   return (
     <html

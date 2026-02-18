@@ -5,6 +5,12 @@ import type { ChatMessage, ChatChannel } from './types'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
 
+/**
+ * Grace period (ms) after streaming finishes before allowing poll to overwrite.
+ * Prevents race condition where poll replaces messages before server persists.
+ */
+const STREAM_DONE_GRACE_MS = 3000
+
 /** Tool call display names */
 const TOOL_LABELS: Record<string, string> = {
   query_products: 'Looking up products',
@@ -44,7 +50,8 @@ function extractImagesFromText(text: string): Array<{ url: string; alt?: string;
   }
 
   // Match standalone image URLs (common patterns from LEO's image generation)
-  const urlPattern = /(?:URL|Image|Preview|Generated):\s*(https?:\/\/\S+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?\S*)?)/gi
+  // Also match URLs without explicit extension (Vercel Blob URLs may not have one)
+  const urlPattern = /(?:URL|Image|Preview|Generated):\s*(https?:\/\/[^\s"')]+)/gi
   while ((match = urlPattern.exec(text)) !== null) {
     const url = match[1]
     if (!seen.has(url)) {
@@ -53,10 +60,20 @@ function extractImagesFromText(text: string): Array<{ url: string; alt?: string;
     }
   }
 
-  // Match Vercel Blob URLs (our storage)
-  const blobPattern = /(https?:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi
+  // Match Vercel Blob URLs (our storage) — broad pattern to catch all variants
+  const blobPattern = /(https?:\/\/[a-z0-9._-]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi
   while ((match = blobPattern.exec(text)) !== null) {
     const url = match[1]
+    if (!seen.has(url)) {
+      seen.add(url)
+      images.push({ url })
+    }
+  }
+
+  // Match Payload media URLs (local dev or self-hosted)
+  const mediaUrlPattern = /(?:\/api\/media\/file\/|\/media\/)[^\s"')]+\.(?:png|jpg|jpeg|webp|gif|svg)/gi
+  while ((match = mediaUrlPattern.exec(text)) !== null) {
+    const url = match[0].startsWith('http') ? match[0] : `${typeof window !== 'undefined' ? window.location.origin : ''}${match[0]}`
     if (!seen.has(url)) {
       seen.add(url)
       images.push({ url })
@@ -112,6 +129,10 @@ export function useChat(spaceId?: string, channelSlug?: string) {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastMessageIdRef = useRef<string | null>(null)
   const authFailedRef = useRef(false)
+  /** Abort controller for in-flight SSE stream — cancel on channel switch */
+  const streamAbortRef = useRef<AbortController | null>(null)
+  /** Timestamp when last stream finished — prevents poll from clobbering during grace period */
+  const streamDoneAtRef = useRef<number>(0)
 
   // Fetch channels for a space
   const loadChannels = useCallback(async () => {
@@ -205,10 +226,14 @@ export function useChat(spaceId?: string, channelSlug?: string) {
       if (res.ok) {
         const data = await res.json()
         const mapped: ChatMessage[] = (data.docs || []).reverse().map(mapMessage)
-        // Only replace if not currently streaming (avoid clobbering in-progress stream)
+        // Only replace if not currently streaming AND outside grace period
+        // The grace period prevents poll from clobbering messages before server persists
         setMessages((prev) => {
           const streaming = prev.find((m) => m.isStreaming)
           if (streaming) return prev
+          // Within grace period after stream finished — keep client state
+          const msSinceDone = Date.now() - streamDoneAtRef.current
+          if (streamDoneAtRef.current > 0 && msSinceDone < STREAM_DONE_GRACE_MS) return prev
           return mapped
         })
         if (mapped.length > 0) {
@@ -268,6 +293,11 @@ export function useChat(spaceId?: string, channelSlug?: string) {
   const sendViaStream = useCallback(
     async (content: string, leoMsgId: string): Promise<boolean> => {
       try {
+        // Cancel any previous stream
+        streamAbortRef.current?.abort()
+        const controller = new AbortController()
+        streamAbortRef.current = controller
+
         const res = await fetch(`${SERVER_URL}/api/leo/stream`, {
           method: 'POST',
           credentials: 'include',
@@ -278,6 +308,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
             channelSlug: activeChannel,
             spaceId,
           }),
+          signal: controller.signal,
         })
 
         if (!res.ok || !res.body) return false
@@ -386,6 +417,8 @@ export function useChat(spaceId?: string, channelSlug?: string) {
                     if (data.conversationId) {
                       conversationIdRef.current = String(data.conversationId)
                     }
+                    // Record when stream finished — protects against poll race condition
+                    streamDoneAtRef.current = Date.now()
                     break
                   }
 
@@ -420,8 +453,12 @@ export function useChat(spaceId?: string, channelSlug?: string) {
           }
         }
 
+        streamAbortRef.current = null
         return true
-      } catch {
+      } catch (err) {
+        streamAbortRef.current = null
+        // AbortError is expected when switching channels — not a real failure
+        if (err instanceof DOMException && err.name === 'AbortError') return true
         return false
       }
     },
@@ -549,8 +586,11 @@ export function useChat(spaceId?: string, channelSlug?: string) {
     [spaceId, activeChannel, sendViaStream, sendViaBatch],
   )
 
-  // Switch channel
+  // Switch channel — abort in-flight streams and reset state
   const switchChannel = useCallback((slug: string) => {
+    streamAbortRef.current?.abort()
+    streamAbortRef.current = null
+    streamDoneAtRef.current = 0
     setActiveChannel(slug)
     setMessages([])
     setHasMore(true)
