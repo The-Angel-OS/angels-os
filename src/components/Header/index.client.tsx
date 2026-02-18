@@ -20,6 +20,26 @@ type Props = {
 
 const defaultLogoUrl = '/logo.svg'
 
+const EVENTS_NAV_ITEM = {
+  id: 'events',
+  link: {
+    type: 'custom' as const,
+    label: 'Events',
+    url: '/events',
+    newTab: false,
+  },
+}
+
+const SPACES_NAV_ITEM = {
+  id: 'spaces',
+  link: {
+    type: 'custom' as const,
+    label: 'Spaces',
+    url: '/spaces',
+    newTab: false,
+  },
+}
+
 const DASHBOARD_NAV_ITEM = {
   id: 'dashboard',
   link: {
@@ -34,10 +54,11 @@ export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
   const baseMenu = header?.navItems ?? []
   const menu = useMemo(() => {
+    const items = [...baseMenu, EVENTS_NAV_ITEM]
     if (user) {
-      return [...baseMenu, DASHBOARD_NAV_ITEM]
+      items.push(SPACES_NAV_ITEM, DASHBOARD_NAV_ITEM)
     }
-    return baseMenu
+    return items
   }, [baseMenu, user])
   const logoUrl =
     (tenant?.branding?.logo as Media | null)?.url ?? defaultLogoUrl

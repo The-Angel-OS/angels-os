@@ -2,6 +2,7 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
+import { broadcastToSubscribers } from '@/endpoints/ai-bus-stream'
 
 /**
  * Messages Collection — Universal Message Structure (UMS)
@@ -277,7 +278,20 @@ export const Messages: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [setAuthor],
-    afterChange: [runWorkflows],
+    afterChange: [
+      runWorkflows,
+      // Broadcast to SSE subscribers for real-time updates
+      ({ doc, operation }) => {
+        if (operation === 'create') {
+          try {
+            broadcastToSubscribers(doc)
+          } catch {
+            // Non-critical: don't fail message save if broadcast fails
+          }
+        }
+        return doc
+      },
+    ],
   },
   timestamps: true,
 }

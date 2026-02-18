@@ -52,6 +52,7 @@ import { exportSite } from '@/endpoints/export-site'
 import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
+import { aiBusStreamHandler } from '@/endpoints/ai-bus-stream'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -272,6 +273,11 @@ export default buildConfig({
       path: '/ai-bus/poll',
       method: 'get',
       handler: aiBusPollHandler,
+    },
+    {
+      path: '/ai-bus/stream',
+      method: 'get',
+      handler: aiBusStreamHandler,
     },
   ],
   globals: [],
