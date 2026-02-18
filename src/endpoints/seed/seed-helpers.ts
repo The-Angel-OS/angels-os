@@ -191,8 +191,8 @@ export async function findOrCreateSystemAgent(
       personality: data.personality ?? getDefaultPersonality(agentType),
       capabilities: data.capabilities ?? getDefaultCapabilities(agentType),
       appearance: {
-        color: agentType === 'openclaw' ? '#7C3AED' : '#10B981',
-        emoji: agentType === 'leo' ? '🦅' : agentType === 'openclaw' ? '🧙' : '👤',
+        color: agentType === 'angelclaw' ? '#7C3AED' : '#10B981',
+        emoji: agentType === 'leo' ? '🦅' : agentType === 'angelclaw' ? '🧙' : '👤',
       },
       routingRules: data.routingRules ?? getDefaultRoutingRules(agentType),
     },
@@ -303,7 +303,7 @@ function getDefaultPersonality(agentType: string): string {
     sales: 'Enthusiastic and consultative. I help customers find the right products and complete purchases with transparency and care.',
     onboarding: 'Patient and encouraging. I guide new users through setup and first steps. Everyone starts somewhere — I make that beginning feel welcoming.',
     integration: 'Technical and precise. I handle data synchronization and external system communication.',
-    openclaw: 'I am Merlin, the OpenClaw facilitator for Angel OS. I bridge external AI agents into the Angel OS constellation through the AI Bus. I operate within Constitutional boundaries: observable, tenant-scoped, no binding instructions.',
+    angelclaw: 'I am Merlin, the AngelClaw facilitator for Angel OS. I bridge external AI agents into the Angel OS constellation through the AI Bus. I operate within Constitutional boundaries: observable, tenant-scoped, no binding instructions.',
     custom: 'Configurable agent - personality set by admin.',
   }
   return personalities[agentType] ?? personalities.custom
@@ -331,7 +331,7 @@ function getDefaultCapabilities(agentType: string): string[] {
     sales: ['query_products', 'create_orders'],
     onboarding: ['query_posts', 'manage_spaces'],
     integration: ['external_api', 'query_posts', 'query_products'],
-    openclaw: ['external_api', 'query_posts', 'query_products', 'create_posts', 'create_products', 'manage_media'],
+    angelclaw: ['external_api', 'query_posts', 'query_products', 'create_posts', 'create_products', 'manage_media'],
     custom: [],
   }
   return capabilities[agentType] ?? []
@@ -363,8 +363,8 @@ function getDefaultRoutingRules(agentType: string): {
     integration: {
       keywords: [{ keyword: 'sync' }, { keyword: 'import' }, { keyword: 'export' }],
     },
-    openclaw: {
-      keywords: [{ keyword: 'merlin' }, { keyword: 'openclaw' }, { keyword: 'external' }],
+    angelclaw: {
+      keywords: [{ keyword: 'merlin' }, { keyword: 'angelclaw' }, { keyword: 'external' }],
       isDefault: false,
     },
   }

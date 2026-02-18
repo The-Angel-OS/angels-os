@@ -15,7 +15,7 @@ export const mcpPluginConfig = mcpPlugin({
    * The default MCP endpoint ONLY accepts API key Bearer tokens and throws
    * UnauthorizedError when none is provided. This override checks for a
    * session-authenticated user first, falling back to API key auth for
-   * programmatic clients (e.g. Merlin / OpenClaw Angels).
+   * programmatic clients (e.g. Merlin / AngelClaw agents).
    */
   overrideAuth: async (req, getDefaultMcpAccessSettings) => {
     // 1. Check if user is already authenticated via session cookies

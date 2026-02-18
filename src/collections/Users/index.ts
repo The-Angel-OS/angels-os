@@ -65,6 +65,7 @@ export const Users: CollectionConfig = {
             { label: 'Sales Agent', value: 'sales' },
             { label: 'Onboarding Guide', value: 'onboarding' },
             { label: 'Integration Agent', value: 'integration' },
+            { label: 'AngelClaw (External)', value: 'angelclaw' },
             { label: 'Custom', value: 'custom' },
           ],
           defaultValue: 'leo',

@@ -1,6 +1,6 @@
 /**
  * Angel OS SDK
- * Complete SDK for OpenClaw and other AI agents to interact with Angel OS tenants
+ * Complete SDK for AngelClaw and other AI agents to interact with Angel OS tenants
  * 
  * Features:
  * - MCP Protocol integration
@@ -494,7 +494,7 @@ export class PaymentsModule {
 }
 
 /**
- * Utility functions for OpenClaw integration
+ * Utility functions for AngelClaw integration
  */
 export class AngelOSUtils {
   /**
