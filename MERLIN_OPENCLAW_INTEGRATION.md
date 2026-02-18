@@ -54,7 +54,7 @@ The **fastest path** to connecting AngelClaw to Angel OS is the **angel-os-conne
 
 ### Installation
 
-Copy `src/angelclaw/angel-os-connect/SKILL.md` into your AngelClaw workspace's `skills/` directory.
+Copy `src/openclaw/angel-os-connect/SKILL.md` into your AngelClaw workspace's `skills/` directory.
 
 ### Environment Variables
 
@@ -433,7 +433,7 @@ Key files for the integration:
 
 ```
 src/
-  angelclaw/
+  openclaw/
     angel-os-connect/
       SKILL.md                          # AngelClaw skill — teaches agents how to use Angel OS
   app/
