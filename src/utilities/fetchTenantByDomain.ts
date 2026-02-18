@@ -11,27 +11,32 @@ import type { Tenant } from '@/payload-types'
 export async function fetchTenantByDomain(host: string): Promise<Tenant | null> {
   const domain = host?.split(':')[0]?.toLowerCase() || 'localhost'
 
-  const payload = await getPayload({ config: configPromise })
+  try {
+    const payload = await getPayload({ config: configPromise })
 
-  // First: try exact domain match
-  // depth: 2 ensures nested relations (e.g. branding.logo → Media object) are fully hydrated
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { domain: { equals: domain } },
-    limit: 1,
-    depth: 2,
-  })
+    // First: try exact domain match
+    // depth: 2 ensures nested relations (e.g. branding.logo → Media object) are fully hydrated
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { domain: { equals: domain } },
+      limit: 1,
+      depth: 2,
+    })
 
-  if (tenants.docs?.[0]) return tenants.docs[0]
+    if (tenants.docs?.[0]) return tenants.docs[0]
 
-  // Fallback: return the "default" tenant so the site always works
-  // (e.g. when accessed via angels-os.vercel.app but tenant domain is "localhost")
-  const defaults = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: 'default' } },
-    limit: 1,
-    depth: 2,
-  })
+    // Fallback: return the "default" tenant so the site always works
+    // (e.g. when accessed via angels-os.vercel.app but tenant domain is "localhost")
+    const defaults = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: 'default' } },
+      limit: 1,
+      depth: 2,
+    })
 
-  return defaults.docs?.[0] ?? null
+    return defaults.docs?.[0] ?? null
+  } catch (err) {
+    console.error('[fetchTenantByDomain] DB query failed for domain:', domain, err)
+    return null
+  }
 }

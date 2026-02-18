@@ -11,9 +11,14 @@ type Props = {
 
 export async function Header({ tenant }: Props) {
   const tenantId = tenant?.id ?? null
-  const header = tenantId
-    ? await getTenantCachedDoc('header', tenantId, 1)()
-    : null
+  let header = null
+  try {
+    header = tenantId
+      ? await getTenantCachedDoc('header', tenantId, 1)()
+      : null
+  } catch (err) {
+    console.error('[Header] Failed to fetch header doc:', err)
+  }
 
   return <HeaderClient header={header} tenant={tenant} />
 }

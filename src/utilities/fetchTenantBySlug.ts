@@ -8,14 +8,19 @@ import type { Tenant } from '@/payload-types'
 export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
   if (!slug) return null
 
-  const payload = await getPayload({ config: configPromise })
+  try {
+    const payload = await getPayload({ config: configPromise })
 
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: slug } },
-    limit: 1,
-    depth: 2,
-  })
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: slug } },
+      limit: 1,
+      depth: 2,
+    })
 
-  return tenants.docs?.[0] ?? null
+    return tenants.docs?.[0] ?? null
+  } catch (err) {
+    console.error('[fetchTenantBySlug] DB query failed for slug:', slug, err)
+    return null
+  }
 }

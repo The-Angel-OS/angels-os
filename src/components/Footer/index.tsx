@@ -15,9 +15,14 @@ type Props = {
 
 export async function Footer({ tenant }: Props) {
   const tenantId = tenant?.id ?? null
-  const footer: Footer | null = tenantId
-    ? await getTenantCachedDoc('footer', tenantId, 1)()
-    : null
+  let footer: Footer | null = null
+  try {
+    footer = tenantId
+      ? await getTenantCachedDoc('footer', tenantId, 1)()
+      : null
+  } catch (err) {
+    console.error('[Footer] Failed to fetch footer doc:', err)
+  }
   const menu = footer?.navItems ?? []
   const currentYear = new Date().getFullYear()
   const copyrightDate = 2023 + (currentYear > 2023 ? `-${currentYear}` : '')

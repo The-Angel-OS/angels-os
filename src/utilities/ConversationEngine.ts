@@ -47,8 +47,8 @@ function getAnthropicClient(): Anthropic | null {
 /** Max conversation turns to include for context (user + agent pairs) */
 const MAX_HISTORY_TURNS = 8
 
-/** Max tokens for LLM response */
-const MAX_RESPONSE_TOKENS = 800
+/** Max tokens for LLM response (1500 to accommodate tool call responses) */
+const MAX_RESPONSE_TOKENS = 1500
 
 /** Max tool-use round-trips per message (prevent infinite loops) */
 const MAX_TOOL_ROUNDS = 3

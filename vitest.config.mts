@@ -7,6 +7,22 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['tests/int/**/*.int.spec.ts'],
+    include: [
+      'tests/unit/**/*.test.ts',
+      'tests/unit/**/*.test.tsx',
+      'tests/int/**/*.int.spec.ts',
+    ],
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/utilities/**',
+        'src/components/ChatControl/**',
+        'src/components/Header/**',
+        'src/endpoints/**',
+      ],
+      exclude: ['**/*.d.ts', '**/types.ts', '**/payload-types.ts'],
+    },
+    // Timeout for integration tests that boot Payload
+    testTimeout: 30_000,
   },
 })
