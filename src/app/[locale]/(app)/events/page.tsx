@@ -39,19 +39,24 @@ export default async function EventsPage() {
     tenantId = defaults.docs?.[0]?.id
   }
 
-  const events = await payload.find({
-    collection: 'events',
-    depth: 1,
-    limit: 50,
-    overrideAccess: true,
-    where: {
-      and: [
-        { status: { in: ['upcoming', 'live', 'completed'] } },
-        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
-      ],
-    },
-    sort: 'startDateTime',
-  })
+  let events: { docs: any[]; totalDocs: number } = { docs: [], totalDocs: 0 }
+  try {
+    events = await payload.find({
+      collection: 'events',
+      depth: 1,
+      limit: 50,
+      overrideAccess: true,
+      where: {
+        and: [
+          { status: { in: ['upcoming', 'live', 'completed'] } },
+          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        ],
+      },
+      sort: 'startDateTime',
+    })
+  } catch (error) {
+    console.error('[EventsPage] Failed to fetch events:', error)
+  }
 
   // Group events by status
   const liveEvents = events.docs.filter((e: any) => e.status === 'live')
