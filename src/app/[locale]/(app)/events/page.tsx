@@ -65,12 +65,21 @@ export default async function EventsPage() {
 
   return (
     <div className="container py-12">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold">Events</h1>
+        <p className="mt-2 text-muted-foreground">
+          Meetups, workshops, livestreams, and more. Find your next experience.
+        </p>
       </div>
 
       {events.docs.length === 0 ? (
-        <p className="text-muted-foreground">No events yet. Check back soon!</p>
+        <div className="rounded-lg border border-dashed border-border bg-card/50 p-12 text-center">
+          <p className="text-4xl mb-4">📅</p>
+          <p className="text-lg font-medium text-foreground">No events yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Check back soon — we&apos;re planning something special.
+          </p>
+        </div>
       ) : (
         <div className="space-y-10">
           {liveEvents.length > 0 && (
