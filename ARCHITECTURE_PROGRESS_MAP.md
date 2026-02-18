@@ -1,7 +1,8 @@
 # Architecture Progress Map
 
 **Purpose:** Track implementation progress across all Angel OS subsystems.
-**Last Updated:** February 18, 2026
+**Last Updated:** February 18, 2026 (Session 2)
+**Test Coverage:** 275 unit tests across 13 test files
 
 ---
 
@@ -21,7 +22,7 @@
 
 ## AI Bus Architecture
 
-**Status:** DONE (core + SSE streaming) | **Tests:** 14 passing (AgentRouter.test.ts)
+**Status:** DONE (core + SSE streaming) | **Tests:** 44 passing (AgentRouter.test.ts, ai-bus-router.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -36,7 +37,7 @@
 
 ## LEO Conversation Engine
 
-**Status:** DONE | **Tests:** Needs coverage
+**Status:** DONE | **Tests:** 36 passing (ConversationEngine.test.ts, leo-stream-helpers.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -75,7 +76,7 @@
 
 ## ChatControl (Universal Chat UI)
 
-**Status:** DONE (4 modes) | **Tests:** 39 passing (extractImagesFromText, extractText, HeaderNav)
+**Status:** DONE (4 modes) | **Tests:** 54 passing (extractImagesFromText, extractText, HeaderNav)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -97,7 +98,7 @@
 
 ## Image Generation & Media
 
-**Status:** DONE | **Tests:** Needs coverage
+**Status:** DONE | **Tests:** 26 passing (imageGeneration.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -113,7 +114,7 @@
 
 ## Spaces & Channels
 
-**Status:** DONE (core) / IN PROGRESS (invitations) | **Tests:** Needs coverage
+**Status:** DONE (core) / IN PROGRESS (invitations) | **Tests:** 23 passing (spaceProvisioning.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -144,7 +145,7 @@
 
 ## E-commerce
 
-**Status:** DONE (foundation) | **Tests:** Needs coverage
+**Status:** DONE (foundation) | **Tests:** 24 passing (ultimateFairSplit.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -152,19 +153,20 @@
 | Orders Collection | Done | Financial lifecycle tracking |
 | Shopping Cart | Done | User-scoped cart via Payload ecommerce plugin |
 | LEO Cart Tools | Done | `add_to_cart`, `view_cart` |
+| Ultimate Fair Splits | Done | 60/20/15/5 revenue distribution -- calculateSplit, breakdown, transparency |
 | **Stripe Connect** | **TODO** | Payment processing (#31) |
-| **Ultimate Fair Splits** | **TODO** | 60/20/15/5 revenue distribution (#32) |
 
 ---
 
 ## Booking System
 
-**Status:** DONE | **Tests:** Needs coverage
+**Status:** DONE | **Tests:** 22 passing (bookingEngine.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Bookings Collection | Done | Service, consultation, rental, class, event, custom |
 | Availability Collection | Done | Provider scheduling windows |
+| Booking Engine | Done | Slot generation, conflict detection, harmonic scoring |
 | LEO Booking Tools | Done | `create_booking`, `update_booking_status`, `query_availability` |
 | Dashboard Appointments | Done | Admin booking management |
 
@@ -172,7 +174,7 @@
 
 ## Multi-Tenant Infrastructure
 
-**Status:** DONE | **Tests:** Needs coverage
+**Status:** DONE | **Tests:** 23 passing (tenantPackageValidation.test.ts)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -182,6 +184,7 @@
 | TenantMemberships | Done | Roles + invitation structure |
 | Provision Wizard | Done | Multi-step tenant creation (#10) |
 | Suitcase Manager | Done | Import/export with constitutional validation (#12) |
+| Package Validation | Done | Structure, slug, and ISO date validation |
 
 ---
 
@@ -192,7 +195,7 @@
 - [ ] Stripe Connect integration (#31)
 - [ ] Ultimate Fair payment splits (#32)
 - [ ] User AI key management -- bring-your-own-key (#39)
-- [ ] Testing infrastructure (0% coverage)
+- [x] ~~Testing infrastructure~~ — 275 unit tests across 13 files
 
 ### Important (v0.5.0 - v1.0.0)
 - [ ] Docker Compose for self-hosting (#21)
@@ -214,6 +217,7 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-02-18 | Expanded test suite to 275 tests, 13 files | Full coverage: UltimateFair splits, AI Bus routing, booking engine, image gen, space provisioning, tenant validation, SSE helpers |
 | 2026-02-18 | Added unit test suite (102 tests, 6 files) | TDD infrastructure for sprint preservation -- constitutional, routing, image extraction, UMS, nav |
 | 2026-02-18 | Added Posts to public nav (always visible) | Posts were only accessible via CMS nav -- inconsistent with Events |
 | 2026-02-18 | Fixed generateStaticParams overrideAccess | Build-time has no user context -- multi-tenant access control fails without override |
