@@ -25,8 +25,10 @@ async function main() {
   const { getPayload } = await import('payload')
   const { seed } = await import('../endpoints/seed/index.js')
 
-  // Import the config — need to resolve the path dynamically
-  const configModule = await import(path.resolve(__dirname, '../../payload.config.ts'))
+  // Import the config — resolve from src/ directory
+  const configPath = path.resolve(__dirname, '../payload.config.ts')
+  const configUrl = `file:///${configPath.replace(/\\/g, '/')}`
+  const configModule = await import(configUrl)
   const config = configModule.default
 
   const payload = await getPayload({ config })
