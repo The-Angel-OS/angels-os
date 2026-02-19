@@ -389,6 +389,44 @@ Phase 4 is where we make it possible for 500 developers to help build it, and wh
 
 ---
 
+## Phase 4.6: The AI-Actuated Flywheel
+
+**Context:** Once the Shared Component Library stabilizes (StatsCards, StatusBadge, DashboardTable — Issue #81), development velocity shifts from linear to exponential. The human Director provides Intent; the AI executes Implementation using a pre-approved component palette.
+
+### 4.6.1 — Declarative AI Instructions (Schema-First Assembly)
+
+Once the "Atomic Vocabulary" of standardized components is established, the CTO (via Claude Code) stops providing styling instructions and moves to schema-first assembly:
+
+- **Standardize component props** so the AI treats UI as a data-mapping exercise, not a creative one
+- **Add `data-component` attributes** to the DOM — this lets an AI agent instantly map the dashboard layout, reducing tokens spent on visual parsing
+- **Automated state changes** become trivial (e.g., flipping a Product from Draft to Published) because the AI can identify and interact with components by their semantic attributes
+
+### 4.6.2 — Bridging the Logic Gap for Revenue (`useAngelAction`)
+
+The flywheel achieves escape velocity when standardized UI connects to Stripe Connect logic:
+
+- **Wrap complex business logic** (payments, bookings, CRM updates) into high-level hooks (e.g., `useAngelAction`)
+- **The AI builds views by declaration** — a "Settlements" or "Lead Management" view is assembled by declaring the data source. The code builds itself faster than a human can draft technical requirements because the rules are baked into the library
+- **Existing pattern:** LEO's 15 tools (`create_booking`, `add_to_cart`, etc.) already model this at the AI layer. `useAngelAction` is the client-side equivalent — declarative triggers the AI can compose
+
+### 4.6.3 — Autonomous Maintenance & Self-Healing UI
+
+With the 297-test safety net protecting the core, the AI performs self-healing updates:
+
+- When a new field is added to CRM Collections, the AI **autonomously updates** DashboardTable columns and detail views across all tenants
+- **Constitutional integrity maintained** — changes must pass the full test suite before merge
+- No manual PR reviews for minor field additions — the constitution and tests are the review
+
+### 4.6.4 — Operational Goal
+
+The Director provides Intent (e.g., "We need a way to track Stripe disputes in the sidebar"), and the AI executes Implementation using the pre-approved component palette. The progression:
+
+1. **Phase 4.0–4.5:** Build the component vocabulary (StatsCards, DashboardTable, StatusBadge)
+2. **Phase 4.6:** AI assembles new views from vocabulary without human-written UI code
+3. **Phase 4.7+:** AI maintains and evolves views autonomously as schemas change
+
+---
+
 ## Open Questions
 
 1. **Clerk → Payload auth migration:** What's the smoothest path for 500 LMS users? Bulk import with password reset flow?

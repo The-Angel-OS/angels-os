@@ -586,6 +586,82 @@ export function useChat(spaceId?: string, channelSlug?: string) {
     [spaceId, activeChannel, sendViaStream, sendViaBatch],
   )
 
+  // Create a new channel in the current space
+  const createChannel = useCallback(
+    async (name: string, type: string = 'general', description?: string) => {
+      if (!spaceId) return null
+      try {
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        const spaceIdNum = Number(spaceId)
+        const res = await fetch(`${SERVER_URL}/api/channels`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            slug,
+            type,
+            description: description || undefined,
+            space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const newChannel: ChatChannel = {
+            id: String(data.doc?.id || data.id),
+            name,
+            slug,
+            description,
+            type,
+            spaceId: String(spaceId),
+            isDefault: false,
+          }
+          setChannels((prev) => [...prev, newChannel])
+          return newChannel
+        }
+        return null
+      } catch (err) {
+        console.error('Failed to create channel:', err)
+        return null
+      }
+    },
+    [spaceId],
+  )
+
+  // Delete a channel
+  const deleteChannel = useCallback(
+    async (channelId: string) => {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/channels/${channelId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        if (res.ok) {
+          setChannels((prev) => {
+            const remaining = prev.filter((c) => c.id !== channelId)
+            // If active channel was deleted, switch to first remaining
+            if (remaining.length > 0) {
+              const deleted = prev.find((c) => c.id === channelId)
+              if (deleted && deleted.slug === activeChannel) {
+                const fallback = remaining.find((c) => c.isDefault) || remaining[0]
+                setActiveChannel(fallback.slug)
+                setMessages([])
+                setHasMore(true)
+              }
+            }
+            return remaining
+          })
+          return true
+        }
+        return false
+      } catch (err) {
+        console.error('Failed to delete channel:', err)
+        return false
+      }
+    },
+    [activeChannel],
+  )
+
   // Switch channel — abort in-flight streams and reset state
   const switchChannel = useCallback((slug: string) => {
     streamAbortRef.current?.abort()
@@ -626,6 +702,8 @@ export function useChat(spaceId?: string, channelSlug?: string) {
     hasMore,
     sendMessage,
     switchChannel,
+    createChannel,
+    deleteChannel,
     loadMessages,
     loadMoreMessages,
   }

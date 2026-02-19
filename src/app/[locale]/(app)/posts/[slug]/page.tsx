@@ -77,7 +77,7 @@ async function queryPostBySlug({ slug }: { slug: string }) {
     draft,
     depth: 1,
     limit: 1,
-    overrideAccess: draft,
+    overrideAccess: true, // Public posts must be readable without auth — multi-tenant access control blocks otherwise
     pagination: false,
     where: {
       and: [

@@ -28,7 +28,7 @@ export default async function PostsPageNumber({ params }: Args) {
     draft: false,
     depth: 1,
     limit: POSTS_PER_PAGE,
-    overrideAccess: false,
+    overrideAccess: true, // Public posts must be readable without auth
     pagination: true,
     page,
     where: { _status: { equals: 'published' } },

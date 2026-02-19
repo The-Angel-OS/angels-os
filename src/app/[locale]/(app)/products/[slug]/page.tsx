@@ -196,7 +196,7 @@ const queryProductBySlug = async ({ slug }: { slug: string }) => {
     depth: 3,
     draft,
     limit: 1,
-    overrideAccess: draft,
+    overrideAccess: true, // Public products must be readable without auth
     pagination: false,
     where: {
       and: [

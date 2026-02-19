@@ -1,8 +1,8 @@
 # Architecture Progress Map
 
 **Purpose:** Track implementation progress across all Angel OS subsystems.
-**Last Updated:** February 18, 2026 (Session 2)
-**Test Coverage:** 275 unit tests across 13 test files
+**Last Updated:** February 18, 2026 (Session 3 — Phase 4 Sprint 1)
+**Test Coverage:** 297 unit tests across 15 test files
 
 ---
 
@@ -76,23 +76,26 @@
 
 ## ChatControl (Universal Chat UI)
 
-**Status:** DONE (4 modes) | **Tests:** 54 passing (extractImagesFromText, extractText, HeaderNav)
+**Status:** DONE (4 modes + mobile-responsive) | **Tests:** 76 passing (extractImagesFromText, extractText, HeaderNav, useMediaQuery)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | useChat Hook | Done | SSE streaming + polling + optimistic UI |
 | MessageList | Done | Full-page + compact modes with grouping |
-| MessageInput | Done | Text input with send button |
+| MessageInput | Done | Touch-friendly (16px font prevents iOS zoom, larger tap targets) |
 | FloatingBubble | Done | Embeddable chat widget |
-| MinimalistChat | Done | Compact bubble-style chat |
-| MultiChannelChat | Done | Discord-style multi-channel layout |
-| SidebarChat | Done | Dashboard sidebar panel |
+| MinimalistChat | Done | Mobile: bottom sheet (85vh, swipe-to-dismiss). Desktop: bubble popup |
+| MultiChannelChat | Done | Mobile: horizontal scrollable tabs. Desktop: sidebar channel list |
+| SidebarChat | Done | Mobile: full-width overlay + backdrop. Desktop: w-96 slide-in |
 | Image Display | Done | Inline images from tool results |
 | Tool Call Indicators | Done | Animated status pills during tool execution |
 | Streaming Cursor | Done | Blinking cursor during SSE stream |
 | Infinite Scroll | Done | Cursor-based pagination |
 | Stream Abort on Channel Switch | Done | AbortController cleanup |
 | Stream-Done Grace Period | Done | Prevents poll race condition |
+| useMediaQuery Hook | Done | SSR-safe, useIsMobile/useIsTablet/useIsDesktop |
+| Dashboard Sidebar (mobile) | Done | Hamburger overlay on mobile, collapsible on desktop |
+| Dashboard Layout (mobile) | Done | Responsive padding, mobile-friendly header |
 
 ---
 
@@ -195,7 +198,10 @@
 - [ ] Stripe Connect integration (#31)
 - [ ] Ultimate Fair payment splits (#32)
 - [ ] User AI key management -- bring-your-own-key (#39)
-- [x] ~~Testing infrastructure~~ — 275 unit tests across 13 files
+- [x] ~~Testing infrastructure~~ — 297 unit tests across 15 files
+- [x] ~~Mobile-first ChatControl~~ — responsive bottom sheet, horizontal tabs, overlays
+- [x] ~~Dashboard mobile layout~~ — hamburger sidebar, responsive padding
+- [x] ~~Posts/Pages/Products 500 fix~~ — overrideAccess: true for public queries
 
 ### Important (v0.5.0 - v1.0.0)
 - [ ] Docker Compose for self-hosting (#21)
@@ -217,6 +223,9 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-02-18 | Phase 4 Sprint 1: mobile-first ChatControl | Bottom sheet, horizontal tabs, full-width overlays, hamburger dashboard sidebar, 297 tests (15 files) |
+| 2026-02-18 | Fixed posts/pages/products 500 error | overrideAccess: draft → true for public content queries (multi-tenant access control blocks unauthenticated visitors) |
+| 2026-02-18 | Added Phase 4.6 AI-Actuated Flywheel plan | Schema-first assembly, useAngelAction hook, autonomous maintenance via test-gated AI |
 | 2026-02-18 | Expanded test suite to 275 tests, 13 files | Full coverage: UltimateFair splits, AI Bus routing, booking engine, image gen, space provisioning, tenant validation, SSE helpers |
 | 2026-02-18 | Added unit test suite (102 tests, 6 files) | TDD infrastructure for sprint preservation -- constitutional, routing, image extraction, UMS, nav |
 | 2026-02-18 | Added Posts to public nav (always visible) | Posts were only accessible via CMS nav -- inconsistent with Events |
