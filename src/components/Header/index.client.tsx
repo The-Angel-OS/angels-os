@@ -62,14 +62,17 @@ const DASHBOARD_NAV_ITEM = {
 
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
-  const baseMenu = header?.navItems ?? []
+  // Stable reference: use navItems directly from the server-provided header prop.
+  // The ?? [] was creating a new array ref every render when header was null,
+  // which could cause useMemo to recompute unexpectedly.
+  const navItems = header?.navItems
   const menu = useMemo(() => {
-    const items = [...baseMenu, POSTS_NAV_ITEM, EVENTS_NAV_ITEM]
+    const items = [...(navItems ?? []), POSTS_NAV_ITEM, EVENTS_NAV_ITEM]
     if (user) {
       items.push(SPACES_NAV_ITEM, DASHBOARD_NAV_ITEM)
     }
     return items
-  }, [baseMenu, user])
+  }, [navItems, user])
   const logoUrl =
     (tenant?.branding?.logo as Media | null)?.url ?? defaultLogoUrl
   const pathname = usePathname()
@@ -83,8 +86,8 @@ export function HeaderClient({ header, tenant }: Props) {
           </Suspense>
         </div>
         <div className="flex w-full items-end justify-between">
-          <div className="flex w-full items-end gap-6 md:w-1/3">
-            <Link className="flex w-full items-center justify-center pt-4 pb-4 md:w-auto" href="/">
+          <div className="flex w-full items-end gap-6 md:w-auto md:flex-1 min-w-0">
+            <Link className="flex items-center justify-center pt-4 pb-4 flex-shrink-0" href="/">
               {logoUrl ? (
                 <img src={logoUrl} alt="" className="h-6 w-auto object-contain" />
               ) : (
@@ -92,13 +95,13 @@ export function HeaderClient({ header, tenant }: Props) {
               )}
             </Link>
             {menu.length ? (
-              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center">
+              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center flex-wrap">
                 {menu.map((item) => (
                   <li key={item.id}>
                     <CMSLink
                       {...item.link}
                       size={'clear'}
-                      className={cn('relative navLink', {
+                      className={cn('relative navLink whitespace-nowrap', {
                         active:
                           item.link.url && item.link.url !== '/'
                             ? pathname.includes(item.link.url)
@@ -112,15 +115,20 @@ export function HeaderClient({ header, tenant }: Props) {
             ) : null}
           </div>
 
-          <div className="flex justify-end md:w-1/3 gap-4 items-center">
+          <div className="flex justify-end flex-shrink-0 gap-4 items-center">
             {user ? (
               <Link href="/logout" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
                 Logout
               </Link>
             ) : (
-              <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
-                Login
-              </Link>
+              <>
+                <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                  Login
+                </Link>
+                <Link href="/login?tab=create" className="hidden md:inline text-sm font-medium text-primary hover:text-primary/80 transition">
+                  Sign Up
+                </Link>
+              </>
             )}
             <Suspense fallback={<OpenCartButton />}>
               <Cart />
