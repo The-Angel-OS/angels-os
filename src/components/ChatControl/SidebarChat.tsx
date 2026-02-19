@@ -1,16 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
+import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps } from './types'
 
 /**
  * SidebarChat — Dashboard right-panel LEO chat.
  *
- * Collapsible panel that slides in from the right side of the dashboard.
- * Uses the same useChat hook as all other modes for consistent behavior.
+ * Desktop: collapsible panel (w-96) that slides in from the right.
+ * Mobile: full-screen overlay with backdrop.
+ *
  * Includes a toggle button that stays visible when collapsed.
  */
 export function SidebarChat({
@@ -19,14 +21,27 @@ export function SidebarChat({
   className = '',
 }: ChatControlProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const isMobile = useIsMobile()
   const { messages, isLoading, sendMessage } = useChat(spaceId, channelSlug)
+
+  // Lock body scroll when mobile overlay is open
+  useEffect(() => {
+    if (isMobile && isExpanded) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isMobile, isExpanded])
 
   return (
     <>
       {/* Toggle Button — always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="fixed right-0 top-1/2 z-40 -translate-y-1/2 flex h-12 w-8 items-center justify-center rounded-l-lg border border-r-0 border-border bg-background shadow-md transition-colors hover:bg-muted"
+        className={`fixed right-0 top-1/2 z-40 -translate-y-1/2 flex items-center justify-center rounded-l-lg border border-r-0 border-border bg-background shadow-md transition-colors hover:bg-muted active:bg-muted/80 ${
+          isMobile ? 'h-14 w-10' : 'h-12 w-8'
+        }`}
         title={isExpanded ? 'Close LEO' : 'Chat with LEO'}
         aria-label={isExpanded ? 'Close LEO panel' : 'Open LEO panel'}
       >
@@ -41,11 +56,20 @@ export function SidebarChat({
         )}
       </button>
 
-      {/* Chat Panel */}
+      {/* Mobile backdrop */}
+      {isMobile && isExpanded && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 transition-opacity"
+          onClick={() => setIsExpanded(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Chat Panel — full-width on mobile, w-96 on desktop */}
       <div
-        className={`fixed right-0 top-0 z-30 h-full w-96 transform border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
-          isExpanded ? 'translate-x-0' : 'translate-x-full'
-        } ${className}`}
+        className={`fixed right-0 top-0 z-30 h-full transform border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
+          isMobile ? 'w-full' : 'w-96'
+        } ${isExpanded ? 'translate-x-0' : 'translate-x-full'} ${className}`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
@@ -63,7 +87,9 @@ export function SidebarChat({
             </div>
             <button
               onClick={() => setIsExpanded(false)}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className={`flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
+                isMobile ? 'h-8 w-8' : 'h-6 w-6'
+              }`}
               title="Close"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

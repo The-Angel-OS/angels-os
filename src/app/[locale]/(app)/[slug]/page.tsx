@@ -102,7 +102,7 @@ const queryPageBySlug = async ({ slug }: { slug: string }) => {
     collection: 'pages',
     draft,
     limit: 1,
-    overrideAccess: draft,
+    overrideAccess: true, // Public pages must be readable without auth
     pagination: false,
     where: {
       and: [

@@ -45,7 +45,7 @@ const SPACES_NAV_ITEM = {
   link: {
     type: 'custom' as const,
     label: 'Spaces',
-    url: '/spaces',
+    url: '/dashboard/spaces',
     newTab: false,
   },
 }

@@ -89,16 +89,16 @@ export function MessageInput({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="flex-1 resize-none rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
-        style={{ maxHeight: '120px' }}
+        className="flex-1 resize-none rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 text-base md:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+        style={{ maxHeight: '120px', fontSize: '16px' }}
       />
       <button
         onClick={handleSubmit}
         disabled={disabled || !value.trim()}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="Send message"
       >
-        <Send size={16} />
+        <Send size={18} className="md:h-4 md:w-4" />
       </button>
     </div>
   )

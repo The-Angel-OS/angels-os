@@ -10,12 +10,12 @@ import { DashboardSidebar } from './DashboardSidebar'
 import { DashboardLEOSidebar } from './DashboardLEOSidebar'
 
 /**
- * Dashboard layout — Rev 3.
+ * Dashboard layout — Rev 4 (mobile-responsive).
  *
- * Full-screen dashboard with:
- * - Collapsible sidebar (left) with role-gated navigation
- * - Main content area (center)
- * - LEO chat sidebar (right, toggle)
+ * Desktop: full-screen dashboard with collapsible sidebar (left), main content (center),
+ *          LEO chat sidebar (right, toggle).
+ * Mobile: sidebar becomes hamburger overlay, header has left padding for hamburger button,
+ *         content uses reduced padding, LEO sidebar becomes full-screen overlay.
  *
  * NO brochure chrome (no Header, Footer, FloatingBubble).
  * This runs inside (dashboard) route group which provides its own HTML shell.
@@ -77,22 +77,22 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       {/* ─── Main Content (center) ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Dashboard Header Bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-6">
+        {/* Dashboard Header Bar — left padding on mobile for hamburger button */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background pl-14 pr-4 md:px-6">
           <div className="flex items-center gap-3">
             <h1 className="text-sm font-medium text-foreground">Angel OS Dashboard</h1>
           </div>
           <div className="flex items-center gap-3">
             {userName && (
-              <span className="text-xs text-muted-foreground">
+              <span className="hidden text-xs text-muted-foreground sm:inline">
                 {userName}
               </span>
             )}
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        {/* Page Content — reduced padding on mobile */}
+        <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
       </div>
 
       {/* ─── LEO Chat Sidebar (right, toggle) ─── */}

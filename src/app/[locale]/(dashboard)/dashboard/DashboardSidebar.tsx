@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useIsMobile } from '@/utilities/useMediaQuery'
 
 /**
- * DashboardSidebar — Rev 3 collapsible sidebar with categorized navigation.
+ * DashboardSidebar — Rev 4 responsive sidebar with categorized navigation.
  *
- * Inspired by v0.dev angel-os dashboard but adapted for angels-os (Payload CMS).
+ * Desktop: collapsible sidebar (w-60 / w-16) pinned to left.
+ * Mobile: hidden by default, opens as full-screen overlay via hamburger button.
+ *
  * Client component for interactivity (collapse toggle, active state tracking).
  */
 
@@ -29,8 +32,103 @@ export function DashboardSidebar({
   userInitials,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const isMobile = useIsMobile()
   const pathname = usePathname() || ''
 
+  // Close mobile nav on route change
+  useEffect(() => {
+    setIsMobileOpen(false)
+  }, [pathname])
+
+  // Lock body scroll when mobile overlay is open
+  useEffect(() => {
+    if (isMobile && isMobileOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isMobile, isMobileOpen])
+
+  // On mobile, render nothing in the flow — the overlay is position:fixed
+  // The hamburger button is rendered by the dashboard layout header
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile hamburger button — positioned in the header area */}
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="fixed left-3 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm active:bg-muted md:hidden"
+          aria-label="Open navigation"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Backdrop */}
+        {isMobileOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/40 transition-opacity"
+            onClick={() => setIsMobileOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Sidebar overlay */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
+            isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {/* Logo / Brand — with close button */}
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
+            <Link href={`${prefix}/dashboard`} className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+                A
+              </span>
+              <span className="text-sm font-semibold">Angel OS</span>
+            </Link>
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Close navigation"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Navigation — always expanded on mobile overlay */}
+          <MobileNavContent
+            prefix={prefix}
+            isAdmin={isAdmin}
+            isBusinessOwner={isBusinessOwner}
+            pathname={pathname}
+          />
+
+          {/* User footer */}
+          {userName && (
+            <div className="shrink-0 border-t border-border px-3 py-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                  {userInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{userName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
+      </>
+    )
+  }
+
+  // ─── Desktop sidebar ───
   return (
     <aside
       className={`flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ${
@@ -84,14 +182,12 @@ export function DashboardSidebar({
             </NavLink>
           )}
           <NavLink
-            href={`${prefix}/dashboard/leo`}
+            href={`${prefix}/dashboard/spaces`}
             icon={<BotIcon />}
             collapsed={isCollapsed}
-            active={pathname.includes('/dashboard/leo')}
-            badge="Active"
-            badgeColor="bg-blue-600"
+            active={pathname.includes('/dashboard/spaces')}
           >
-            LEO Assistant
+            LEO &amp; Spaces
           </NavLink>
         </NavSection>
 
@@ -123,17 +219,7 @@ export function DashboardSidebar({
           </NavSection>
         )}
 
-        {/* COMMUNICATION – visible to all */}
-        <NavSection label="COMMUNICATION" collapsed={isCollapsed}>
-          <NavLink
-            href={`${prefix}/dashboard/spaces`}
-            icon={<SpacesIcon />}
-            collapsed={isCollapsed}
-            active={pathname.includes('/dashboard/spaces')}
-          >
-            Spaces
-          </NavLink>
-        </NavSection>
+        {/* COMMUNICATION — consolidated into LEO & Spaces in OVERVIEW */}
 
         {/* PRODUCTIVITY */}
         {isBusinessOwner && (
@@ -273,6 +359,107 @@ function NavLink({
         </>
       )}
     </Link>
+  )
+}
+
+// ─── MobileNavContent — expanded nav items for mobile overlay ────
+
+function MobileNavContent({
+  prefix,
+  isAdmin,
+  isBusinessOwner,
+  pathname,
+}: {
+  prefix: string
+  isAdmin: boolean
+  isBusinessOwner: boolean
+  pathname: string
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto px-2 py-3">
+      <NavSection label="OVERVIEW" collapsed={false}>
+        <NavLink href={`${prefix}/dashboard`} icon={<GridIcon />} collapsed={false} active={pathname === `${prefix}/dashboard` || pathname === '/dashboard'}>
+          Dashboard
+        </NavLink>
+        {isAdmin && (
+          <NavLink href={`${prefix}/admin`} icon={<GearIcon />} collapsed={false} active={false}>
+            Payload Admin
+          </NavLink>
+        )}
+        <NavLink
+          href={`${prefix}/dashboard/spaces`}
+          icon={<BotIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/spaces')}
+        >
+          LEO &amp; Spaces
+        </NavLink>
+      </NavSection>
+
+      {isBusinessOwner && (
+        <NavSection label="BUSINESS OPS" collapsed={false}>
+          <NavLink href={`${prefix}/shop`} icon={<CubeIcon />} collapsed={false} active={false}>
+            Products
+          </NavLink>
+          <NavLink href={`${prefix}/admin/collections/orders`} icon={<ClipboardIcon />} collapsed={false} active={false}>
+            Orders
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/events`} icon={<CalendarEventIcon />} collapsed={false} active={pathname.includes('/dashboard/events')}>
+            Events
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/appointments`} icon={<CalendarIcon />} collapsed={false} active={pathname.includes('/dashboard/appointments')}>
+            Appointments
+          </NavLink>
+        </NavSection>
+      )}
+
+      {/* COMMUNICATION — consolidated into LEO & Spaces in OVERVIEW */}
+
+      {isBusinessOwner && (
+        <NavSection label="PRODUCTIVITY" collapsed={false}>
+          <NavLink href={`${prefix}/admin/collections/projects`} icon={<FolderIcon />} collapsed={false} active={false}>
+            Projects
+          </NavLink>
+          <NavLink href={`${prefix}/admin/collections/availability`} icon={<ClockIcon />} collapsed={false} active={false}>
+            Availability
+          </NavLink>
+        </NavSection>
+      )}
+
+      {isBusinessOwner && (
+        <NavSection label="CONTENT" collapsed={false}>
+          <NavLink href={`${prefix}/admin/collections/pages`} icon={<FileIcon />} collapsed={false} active={false}>
+            Pages
+          </NavLink>
+          <NavLink href={`${prefix}/posts`} icon={<ArticleIcon />} collapsed={false} active={false}>
+            Posts
+          </NavLink>
+          <NavLink href={`${prefix}/admin/collections/media`} icon={<ImageIcon />} collapsed={false} active={false}>
+            Media
+          </NavLink>
+        </NavSection>
+      )}
+
+      {isAdmin && (
+        <NavSection label="ADMIN" collapsed={false}>
+          <NavLink
+            href={`${prefix}/dashboard/admin`}
+            icon={<ShieldIcon />}
+            collapsed={false}
+            active={pathname.includes('/dashboard/admin')}
+            className="text-emerald-600 dark:text-emerald-400"
+          >
+            Tenant Admin
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/provision`} icon={<PlusIcon />} collapsed={false} active={false}>
+            Provision
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/suitcase`} icon={<PackageIcon />} collapsed={false} active={false}>
+            Suitcase
+          </NavLink>
+        </NavSection>
+      )}
+    </div>
   )
 }
 
