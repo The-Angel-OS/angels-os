@@ -20,5 +20,9 @@ export async function Header({ tenant }: Props) {
     console.error('[Header] Failed to fetch header doc:', err)
   }
 
+  if (!header) {
+    console.warn(`[Header] No header doc found for tenant ${tenantId ?? 'null'} (slug: ${tenant?.slug ?? 'none'})`)
+  }
+
   return <HeaderClient header={header} tenant={tenant} />
 }
