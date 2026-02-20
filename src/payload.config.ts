@@ -46,6 +46,7 @@ import { Workflows } from '@/collections/Workflows'
 import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
 import { Users } from '@/collections/Users'
+import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -53,6 +54,13 @@ import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
 import { aiBusStreamHandler } from '@/endpoints/ai-bus-stream'
+import { spaceInviteHandler } from '@/endpoints/space-invite'
+import { inviteAcceptHandler } from '@/endpoints/invite-accept'
+import { spaceMembersRemoveHandler } from '@/endpoints/space-members'
+import { orderRouteHandler } from '@/endpoints/order-route'
+import { orderAcceptHandler } from '@/endpoints/order-accept'
+import { orderFulfillHandler } from '@/endpoints/order-fulfill'
+import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -97,6 +105,7 @@ export default buildConfig({
     Comments,
     Categories,
     Media,
+    HolonCapabilities,
   ],
   db: postgresAdapter({
     pool: {
@@ -117,6 +126,7 @@ export default buildConfig({
       tenantsSlug: 'tenants',
       tenantSelectorLabel: 'Tenant',
       collections: {
+        // ─── Content & Commerce ──────────────────────────────
         pages: {},
         posts: {},
         projects: {},
@@ -125,11 +135,19 @@ export default buildConfig({
         media: {},
         products: {},
         orders: {},
+        // ─── Soul Data (atomic per-tenant) ───────────────────
+        spaces: {},
+        'space-memberships': {},
+        channels: {},
+        messages: {},
+        // ─── Scheduling & Events ─────────────────────────────
         bookings: {},
         events: {},
         'event-registrations': {},
         availability: {},
+        // ─── System ──────────────────────────────────────────
         workflows: {},
+        'holon-capabilities': {},
         header: { isGlobal: true },
         footer: { isGlobal: true },
       },
@@ -280,6 +298,43 @@ export default buildConfig({
       path: '/ai-bus/stream',
       method: 'get',
       handler: aiBusStreamHandler,
+    },
+    // ─── Invitation System Endpoints ────────────────────────────
+    {
+      path: '/spaces/invite',
+      method: 'post',
+      handler: spaceInviteHandler,
+    },
+    {
+      path: '/invite/accept',
+      method: 'post',
+      handler: inviteAcceptHandler,
+    },
+    {
+      path: '/spaces/members/remove',
+      method: 'post',
+      handler: spaceMembersRemoveHandler,
+    },
+    // ─── Order Routing & Fulfillment Endpoints ──────────────────
+    {
+      path: '/orders/route',
+      method: 'post',
+      handler: orderRouteHandler,
+    },
+    {
+      path: '/orders/accept',
+      method: 'post',
+      handler: orderAcceptHandler,
+    },
+    {
+      path: '/orders/fulfill',
+      method: 'post',
+      handler: orderFulfillHandler,
+    },
+    {
+      path: '/orders/vendor',
+      method: 'get',
+      handler: ordersVendorHandler,
     },
   ],
   globals: [],

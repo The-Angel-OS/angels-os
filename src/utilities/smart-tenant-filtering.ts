@@ -92,11 +92,10 @@ const TENANT_FILTERING_PATTERNS: Record<string, {
   'feedback': { field: 'tenant', type: 'direct' },
   'events': { field: 'tenant', type: 'direct' },
   
-  // Tenant through space relationship
-  'messages': { field: 'space.tenant', type: 'nested', path: 'space' },
-  
-  // Text-based tenant ID (legacy)
-  'channels': { field: 'tenantId', type: 'direct' },
+  // Soul data (now plugin-managed — Sprint 5 fix)
+  'messages': { field: 'tenant', type: 'direct' },
+  'channels': { field: 'tenant', type: 'direct' },
+  'space-memberships': { field: 'tenant', type: 'direct' },
   'photo-analysis': { field: 'tenantId', type: 'direct' },
   'mileage-logs': { field: 'tenantId', type: 'direct' },
   

@@ -27,6 +27,8 @@ export const Spaces: CollectionConfig = {
     delete: adminOnly,
   },
   fields: [
+    // Note: 'tenant' field is auto-added by the multi-tenant plugin.
+    // Do not define it here to avoid duplicate field errors.
     {
       name: 'name',
       type: 'text',
@@ -36,13 +38,6 @@ export const Spaces: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-    },
-    {
-      name: 'tenant',
-      type: 'relationship',
-      relationTo: 'tenants',
-      required: true,
-      admin: { description: 'Tenant this space belongs to' },
     },
     {
       name: 'visibility',

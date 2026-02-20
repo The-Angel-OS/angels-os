@@ -10,6 +10,7 @@ import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 import { ProductsCollection } from '@/collections/Products'
+import { OrdersCollection } from '@/collections/Orders'
 import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
 import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { customerOnlyFieldAccess } from '@/access/customerOnlyFieldAccess'
@@ -84,6 +85,9 @@ export const plugins: Plugin[] = [
           webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET!,
         }),
       ],
+    },
+    orders: {
+      ordersCollectionOverride: OrdersCollection,
     },
     products: {
       productsCollectionOverride: ProductsCollection,

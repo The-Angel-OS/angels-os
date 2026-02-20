@@ -93,6 +93,7 @@ export interface Config {
     comments: Comment;
     categories: Category;
     media: Media;
+    'holon-capabilities': HolonCapability;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -143,6 +144,7 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'holon-capabilities': HolonCapabilitiesSelect<false> | HolonCapabilitiesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -510,6 +512,62 @@ export interface Order {
   status?: OrderStatus;
   amount?: number | null;
   currency?: 'USD' | null;
+  /**
+   * Per-item fulfillment routing to Holon production nodes
+   */
+  fulfillment?:
+    | {
+        /**
+         * Index into the order items array
+         */
+        orderItemIndex: number;
+        /**
+         * The Holon node assigned to fulfill this item
+         */
+        assignedHolon?: (number | null) | HolonCapability;
+        /**
+         * The vendor tenant that owns the assigned Holon
+         */
+        sourceTenant?: (number | null) | Tenant;
+        fulfillmentStatus:
+          | 'pending_match'
+          | 'matched'
+          | 'accepted'
+          | 'in_production'
+          | 'shipped'
+          | 'delivered'
+          | 'rejected';
+        /**
+         * Routing engine match score (0-100)
+         */
+        matchScore?: number | null;
+        matchedAt?: string | null;
+        acceptedAt?: string | null;
+        shippedAt?: string | null;
+        trackingNumber?: string | null;
+        trackingUrl?: string | null;
+        estimatedCompletion?: string | null;
+        rejectionReason?: string | null;
+        /**
+         * Vendor share amount (60% of item price by default)
+         */
+        vendorShare?: number | null;
+        /**
+         * Design files for print-on-demand fulfillment
+         */
+        designAssets?:
+          | {
+              media: number | Media;
+              /**
+               * Placement, sizing, color notes for the printer
+               */
+              instructions?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -564,6 +622,38 @@ export interface Product {
     description?: string | null;
   };
   categories?: (number | Category)[] | null;
+  /**
+   * List this product on the Angel OS network for cross-tenant discovery
+   */
+  networkListing?: boolean | null;
+  /**
+   * How this product is fulfilled when ordered
+   */
+  fulfillmentMode?: ('self' | 'network') | null;
+  /**
+   * Skills needed to produce this product (for network matching)
+   */
+  requiredCapabilities?:
+    | {
+        /**
+         * e.g. "screen-printing", "embroidery"
+         */
+        skill: string;
+        /**
+         * Required materials, e.g. ["cotton", "polyester"]
+         */
+        materials?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -1197,6 +1287,82 @@ export interface Cart {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "holon-capabilities".
+ */
+export interface HolonCapability {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  nodeType: 'assembly' | 'print' | 'service' | 'product' | 'digital' | 'fulfillment';
+  capabilities: {
+    /**
+     * e.g. "3d-printing", "screen-printing", "web-development"
+     */
+    skill: string;
+    /**
+     * e.g. "Bambu Lab X1C", "Heat Press"
+     */
+    equipment?: string | null;
+    /**
+     * Array of materials, e.g. ["PLA", "PETG", "TPU"]
+     */
+    materials?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * e.g. "250x250x250mm"
+     */
+    maxVolume?: string | null;
+    /**
+     * Typical production time in hours
+     */
+    turnaroundHours?: number | null;
+    id?: string | null;
+  }[];
+  /**
+   * Service/delivery radius in miles. 0 for digital (no limit).
+   */
+  serviceRadius?: number | null;
+  location?: {
+    lat?: number | null;
+    lng?: number | null;
+    city?: string | null;
+    region?: string | null;
+  };
+  /**
+   * Business name (e.g., "HIT Promotional Products")
+   */
+  businessName?: string | null;
+  /**
+   * Primary business contact name
+   */
+  contactName?: string | null;
+  /**
+   * Community trust score (0-5)
+   */
+  rating?: number | null;
+  /**
+   * Current active orders (used for Answer 53 fairness scoring)
+   */
+  activeOrderCount?: number | null;
+  /**
+   * Currently accepting new orders from the network
+   */
+  acceptingOrders?: boolean | null;
+  /**
+   * I agree to operate under the Angel OS constitution: 60/20/15/5 Ultimate Fair Split, Answer 53 principles, and network governance.
+   */
+  constitutionalCompliance: boolean;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses".
  */
 export interface Address {
@@ -1313,6 +1479,7 @@ export interface TenantMembership {
  */
 export interface Space {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
@@ -1320,10 +1487,6 @@ export interface Space {
   generateSlug?: boolean | null;
   slug: string;
   description?: string | null;
-  /**
-   * Tenant this space belongs to
-   */
-  tenant: number | Tenant;
   visibility?: ('public' | 'invite_only' | 'private') | null;
   updatedAt: string;
   createdAt: string;
@@ -1334,6 +1497,7 @@ export interface Space {
  */
 export interface SpaceMembership {
   id: number;
+  tenant?: (number | null) | Tenant;
   user: number | User;
   space: number | Space;
   role: 'space_admin' | 'moderator' | 'member' | 'guest';
@@ -1364,6 +1528,7 @@ export interface SpaceMembership {
  */
 export interface Channel {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
@@ -1477,6 +1642,7 @@ export interface Workflow {
  */
 export interface Message {
   id: number;
+  tenant?: (number | null) | Tenant;
   author?: (number | null) | User;
   space: number | Space;
   /**
@@ -1552,10 +1718,6 @@ export interface Message {
    * Parent message for threaded replies
    */
   parentMessage?: (number | null) | Message;
-  /**
-   * Tenant for scoping (derived from space)
-   */
-  tenant?: (number | null) | Tenant;
   /**
    * AT Protocol DID/URI for cross-tenant federation (future)
    */
@@ -2819,6 +2981,10 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
+        relationTo: 'holon-capabilities';
+        value: number | HolonCapability;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3045,11 +3211,11 @@ export interface TenantMembershipsSelect<T extends boolean = true> {
  * via the `definition` "spaces_select".
  */
 export interface SpacesSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   generateSlug?: T;
   slug?: T;
   description?: T;
-  tenant?: T;
   visibility?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -3059,6 +3225,7 @@ export interface SpacesSelect<T extends boolean = true> {
  * via the `definition` "space-memberships_select".
  */
 export interface SpaceMembershipsSelect<T extends boolean = true> {
+  tenant?: T;
   user?: T;
   space?: T;
   role?: T;
@@ -3081,6 +3248,7 @@ export interface SpaceMembershipsSelect<T extends boolean = true> {
  * via the `definition` "channels_select".
  */
 export interface ChannelsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   generateSlug?: T;
   slug?: T;
@@ -3100,6 +3268,7 @@ export interface ChannelsSelect<T extends boolean = true> {
  * via the `definition` "messages_select".
  */
 export interface MessagesSelect<T extends boolean = true> {
+  tenant?: T;
   author?: T;
   space?: T;
   channel?: T;
@@ -3117,7 +3286,6 @@ export interface MessagesSelect<T extends boolean = true> {
       };
   metadata?: T;
   parentMessage?: T;
-  tenant?: T;
   federationId?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -3781,6 +3949,41 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "holon-capabilities_select".
+ */
+export interface HolonCapabilitiesSelect<T extends boolean = true> {
+  tenant?: T;
+  nodeType?: T;
+  capabilities?:
+    | T
+    | {
+        skill?: T;
+        equipment?: T;
+        materials?: T;
+        maxVolume?: T;
+        turnaroundHours?: T;
+        id?: T;
+      };
+  serviceRadius?: T;
+  location?:
+    | T
+    | {
+        lat?: T;
+        lng?: T;
+        city?: T;
+        region?: T;
+      };
+  businessName?: T;
+  contactName?: T;
+  rating?: T;
+  activeOrderCount?: T;
+  acceptingOrders?: T;
+  constitutionalCompliance?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -4027,6 +4230,15 @@ export interface ProductsSelect<T extends boolean = true> {
         description?: T;
       };
   categories?: T;
+  networkListing?: T;
+  fulfillmentMode?: T;
+  requiredCapabilities?:
+    | T
+    | {
+        skill?: T;
+        materials?: T;
+        id?: T;
+      };
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
@@ -4091,6 +4303,31 @@ export interface OrdersSelect<T extends boolean = true> {
   status?: T;
   amount?: T;
   currency?: T;
+  fulfillment?:
+    | T
+    | {
+        orderItemIndex?: T;
+        assignedHolon?: T;
+        sourceTenant?: T;
+        fulfillmentStatus?: T;
+        matchScore?: T;
+        matchedAt?: T;
+        acceptedAt?: T;
+        shippedAt?: T;
+        trackingNumber?: T;
+        trackingUrl?: T;
+        estimatedCompletion?: T;
+        rejectionReason?: T;
+        vendorShare?: T;
+        designAssets?:
+          | T
+          | {
+              media?: T;
+              instructions?: T;
+              id?: T;
+            };
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

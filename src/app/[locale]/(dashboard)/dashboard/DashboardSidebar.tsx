@@ -194,10 +194,10 @@ export function DashboardSidebar({
         {/* BUSINESS OPERATIONS */}
         {isBusinessOwner && (
           <NavSection label="BUSINESS OPS" collapsed={isCollapsed}>
-            <NavLink href={`${prefix}/shop`} icon={<CubeIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/products`} icon={<CubeIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/products')}>
               Products
             </NavLink>
-            <NavLink href={`${prefix}/admin/collections/orders`} icon={<ClipboardIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/orders`} icon={<ClipboardIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/orders')}>
               Orders
             </NavLink>
             <NavLink
@@ -216,6 +216,14 @@ export function DashboardSidebar({
             >
               Appointments
             </NavLink>
+            <NavLink
+              href={`${prefix}/dashboard/holon`}
+              icon={<HolonIcon />}
+              collapsed={isCollapsed}
+              active={pathname.includes('/dashboard/holon')}
+            >
+              Holon Node
+            </NavLink>
           </NavSection>
         )}
 
@@ -224,10 +232,10 @@ export function DashboardSidebar({
         {/* PRODUCTIVITY */}
         {isBusinessOwner && (
           <NavSection label="PRODUCTIVITY" collapsed={isCollapsed}>
-            <NavLink href={`${prefix}/admin/collections/projects`} icon={<FolderIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/projects`} icon={<FolderIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/projects')}>
               Projects
             </NavLink>
-            <NavLink href={`${prefix}/admin/collections/availability`} icon={<ClockIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/availability`} icon={<ClockIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/availability')}>
               Availability
             </NavLink>
           </NavSection>
@@ -236,13 +244,13 @@ export function DashboardSidebar({
         {/* CONTENT */}
         {isBusinessOwner && (
           <NavSection label="CONTENT" collapsed={isCollapsed}>
-            <NavLink href={`${prefix}/admin/collections/pages`} icon={<FileIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/pages`} icon={<FileIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/pages')}>
               Pages
             </NavLink>
-            <NavLink href={`${prefix}/posts`} icon={<ArticleIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/posts`} icon={<ArticleIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/posts')}>
               Posts
             </NavLink>
-            <NavLink href={`${prefix}/admin/collections/media`} icon={<ImageIcon />} collapsed={isCollapsed} active={false}>
+            <NavLink href={`${prefix}/dashboard/media`} icon={<ImageIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/media')}>
               Media
             </NavLink>
           </NavSection>
@@ -398,10 +406,10 @@ function MobileNavContent({
 
       {isBusinessOwner && (
         <NavSection label="BUSINESS OPS" collapsed={false}>
-          <NavLink href={`${prefix}/shop`} icon={<CubeIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/products`} icon={<CubeIcon />} collapsed={false} active={pathname.includes('/dashboard/products')}>
             Products
           </NavLink>
-          <NavLink href={`${prefix}/admin/collections/orders`} icon={<ClipboardIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/orders`} icon={<ClipboardIcon />} collapsed={false} active={pathname.includes('/dashboard/orders')}>
             Orders
           </NavLink>
           <NavLink href={`${prefix}/dashboard/events`} icon={<CalendarEventIcon />} collapsed={false} active={pathname.includes('/dashboard/events')}>
@@ -410,6 +418,9 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/appointments`} icon={<CalendarIcon />} collapsed={false} active={pathname.includes('/dashboard/appointments')}>
             Appointments
           </NavLink>
+          <NavLink href={`${prefix}/dashboard/holon`} icon={<HolonIcon />} collapsed={false} active={pathname.includes('/dashboard/holon')}>
+            Holon Node
+          </NavLink>
         </NavSection>
       )}
 
@@ -417,10 +428,10 @@ function MobileNavContent({
 
       {isBusinessOwner && (
         <NavSection label="PRODUCTIVITY" collapsed={false}>
-          <NavLink href={`${prefix}/admin/collections/projects`} icon={<FolderIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/projects`} icon={<FolderIcon />} collapsed={false} active={pathname.includes('/dashboard/projects')}>
             Projects
           </NavLink>
-          <NavLink href={`${prefix}/admin/collections/availability`} icon={<ClockIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/availability`} icon={<ClockIcon />} collapsed={false} active={pathname.includes('/dashboard/availability')}>
             Availability
           </NavLink>
         </NavSection>
@@ -428,13 +439,13 @@ function MobileNavContent({
 
       {isBusinessOwner && (
         <NavSection label="CONTENT" collapsed={false}>
-          <NavLink href={`${prefix}/admin/collections/pages`} icon={<FileIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/pages`} icon={<FileIcon />} collapsed={false} active={pathname.includes('/dashboard/pages')}>
             Pages
           </NavLink>
-          <NavLink href={`${prefix}/posts`} icon={<ArticleIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/posts`} icon={<ArticleIcon />} collapsed={false} active={pathname.includes('/dashboard/posts')}>
             Posts
           </NavLink>
-          <NavLink href={`${prefix}/admin/collections/media`} icon={<ImageIcon />} collapsed={false} active={false}>
+          <NavLink href={`${prefix}/dashboard/media`} icon={<ImageIcon />} collapsed={false} active={pathname.includes('/dashboard/media')}>
             Media
           </NavLink>
         </NavSection>
@@ -591,6 +602,16 @@ function PackageIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+    </svg>
+  )
+}
+
+function HolonIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="3" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="9" strokeWidth={1.5} strokeDasharray="4 2" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v3m0 12v3M3 12h3m12 0h3" />
     </svg>
   )
 }
