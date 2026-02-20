@@ -1704,7 +1704,7 @@ async function inviteMember(
 
   // Find the space — use provided spaceId or look up user's primary space
   let spaceId: number | string | undefined = input.spaceId
-    ? (Number(input.spaceId) || input.spaceId)
+    ? (Number(input.spaceId) || String(input.spaceId))
     : undefined
 
   if (!spaceId && ctx.tenantId) {

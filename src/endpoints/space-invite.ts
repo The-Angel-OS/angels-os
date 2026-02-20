@@ -60,7 +60,7 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
     const result = await createInvitation({
       payload,
       email: String(email),
-      spaceId: Number(spaceId) || spaceId,
+      spaceId: Number(spaceId) || String(spaceId),
       invitedByUserId: user.id,
       role: (role as 'member' | 'moderator' | 'guest') || 'member',
       message: message ? String(message) : undefined,
