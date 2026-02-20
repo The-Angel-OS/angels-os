@@ -30,6 +30,21 @@ import {
   replaceMediaOnContent,
   isImageGenerationAvailable,
 } from './imageGeneration'
+import {
+  createInvitation,
+  isValidEmail,
+  generateInviteUrl,
+} from './invitationSystem'
+import {
+  findMatchingHolons,
+  calculateVendorShare,
+  validateFulfillmentTransition,
+  validateFulfillmentUpdate,
+  serializeMatch,
+  type HolonNode,
+  type OrderRequirement,
+  type FulfillmentStatus,
+} from './orderRoutingEngine'
 
 // ---------------------------------------------------------------------------
 // Tool Definitions (sent to Claude API)
@@ -417,6 +432,219 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['oldMediaId', 'newMediaId'],
     },
   },
+  // ─── Invitation Tools ──────────────────────────────────────────
+  {
+    name: 'invite_member',
+    description:
+      'Invite someone to a collaboration space by email. Use when a user says "invite alice@example.com" or "add someone to my space". Always confirm with the user before sending — Article III.2 requires human confirmation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Email address of person to invite',
+        },
+        spaceId: {
+          type: 'string',
+          description: 'Space ID to invite them to. If not provided, uses the current space.',
+        },
+        message: {
+          type: 'string',
+          description: 'Optional personal message to include with the invitation',
+        },
+        role: {
+          type: 'string',
+          enum: ['member', 'moderator', 'guest'],
+          description: 'Role to assign (default: member)',
+        },
+      },
+      required: ['email'],
+    },
+  },
+  // ─── Product Creation & Management Tools ────────────────────────
+  {
+    name: 'create_product',
+    description:
+      'Create a new product listing. Use when a user wants to list a product for sale, add an item to their shop, or create a new offering. Always confirm product details with the user before creating — Article III.2 requires human confirmation for irreversible actions. After creating, offer to generate a product image.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Product title (e.g., "Lavender Massage Oil", "Custom Phone Case")',
+        },
+        price: {
+          type: 'number',
+          description: 'Price in USD (e.g., 35 for $35.00). Must be greater than 0.',
+        },
+        description: {
+          type: 'string',
+          description: 'Product description text. Will be converted to rich text.',
+        },
+        category: {
+          type: 'string',
+          description: 'Category name to assign (e.g., "Wellness", "Electronics"). Must match an existing category.',
+        },
+        inventory: {
+          type: 'number',
+          description: 'Initial inventory count. Omit for unlimited/digital products.',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'Product status. Default: "draft" — set to "published" to make immediately visible.',
+        },
+      },
+      required: ['title', 'price'],
+    },
+  },
+  {
+    name: 'update_product',
+    description:
+      'Update an existing product\'s details. Use when a user wants to change a product\'s price, description, inventory, or status. Search for the product first using query_products if you don\'t know the product ID. Always confirm changes with the user before updating.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productId: {
+          type: 'number',
+          description: 'The ID of the product to update',
+        },
+        title: {
+          type: 'string',
+          description: 'New product title',
+        },
+        price: {
+          type: 'number',
+          description: 'New price in USD (must be greater than 0)',
+        },
+        description: {
+          type: 'string',
+          description: 'New product description text',
+        },
+        inventory: {
+          type: 'number',
+          description: 'New inventory count',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'New product status',
+        },
+      },
+      required: ['productId'],
+    },
+  },
+  // ─── Order Routing & Fulfillment Tools ───────────────────────────
+  {
+    name: 'find_producers',
+    description:
+      'Search for capable production nodes (Holons) near a location. Returns nodes with capabilities, distance, rating. Use when a user asks "who can print t-shirts near me?" or "find a screen printer".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        skill: {
+          type: 'string',
+          description: 'Required skill (e.g., "screen-printing", "3d-printing", "embroidery")',
+        },
+        city: { type: 'string', description: 'City to search near' },
+        region: { type: 'string', description: 'State/region to search near' },
+        radius: { type: 'number', description: 'Search radius in miles (default: 100)' },
+        limit: { type: 'number', description: 'Max results (default: 10, max: 20)' },
+      },
+      required: ['skill'],
+    },
+  },
+  {
+    name: 'browse_network',
+    description:
+      'Browse products listed on the Angel OS network by other tenants. Returns cross-tenant products available for resale. Use when a user asks "what can the network make?" or "show me network products".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        search: { type: 'string', description: 'Search by product title' },
+        category: { type: 'string', description: 'Filter by category' },
+        radius: { type: 'number', description: 'Distance filter in miles (default: 100)' },
+        limit: { type: 'number', description: 'Max results (default: 20, max: 50)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'query_orders',
+    description:
+      'Look up orders. Customer view shows purchase history. Vendor view shows orders assigned to your Holon node. Use when a user asks "show my orders" or "what orders do I have".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        viewAs: {
+          type: 'string',
+          enum: ['customer', 'vendor'],
+          description: 'View as customer (purchase history) or vendor (assigned fulfillment orders)',
+        },
+        status: {
+          type: 'string',
+          enum: ['processing', 'completed', 'cancelled', 'refunded'],
+          description: 'Filter by order status',
+        },
+        fulfillmentStatus: {
+          type: 'string',
+          enum: ['pending_match', 'matched', 'accepted', 'in_production', 'shipped', 'delivered', 'rejected'],
+          description: 'Filter by fulfillment status (vendor view)',
+        },
+        limit: { type: 'number', description: 'Max results (default: 10)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'route_order',
+    description:
+      'Assign an order to a vendor Holon node for fulfillment. The routing engine finds the best match by capability, proximity, and fairness. Always confirm with the user before routing — Article III.2.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: { type: 'number', description: 'Order ID to route' },
+        itemIndex: { type: 'number', description: 'Specific item index to route (optional, routes all if omitted)' },
+        preferredHolonId: { type: 'number', description: 'Manually assign to a specific Holon node (optional)' },
+      },
+      required: ['orderId'],
+    },
+  },
+  {
+    name: 'accept_order',
+    description:
+      'Accept an order assignment as a vendor. Updates fulfillment status to "accepted". Use when a vendor says "accept order 42" or "I can fulfill this".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: { type: 'number', description: 'Order ID to accept' },
+        itemIndex: { type: 'number', description: 'Item index in the order' },
+        estimatedCompletionDate: { type: 'string', description: 'Expected completion (ISO 8601 date)' },
+      },
+      required: ['orderId', 'itemIndex'],
+    },
+  },
+  {
+    name: 'update_fulfillment',
+    description:
+      'Update production status or add shipping details for an order. Use when a vendor says "order 42 is shipped" or "mark it in production".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: { type: 'number', description: 'Order ID' },
+        itemIndex: { type: 'number', description: 'Item index in the order' },
+        status: {
+          type: 'string',
+          enum: ['in_production', 'shipped', 'delivered', 'rejected'],
+          description: 'New fulfillment status',
+        },
+        trackingNumber: { type: 'string', description: 'Shipping tracking number (required for "shipped")' },
+        trackingUrl: { type: 'string', description: 'Tracking URL (optional)' },
+        rejectionReason: { type: 'string', description: 'Reason for rejection (required for "rejected")' },
+      },
+      required: ['orderId', 'itemIndex', 'status'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -475,6 +703,27 @@ export async function executeToolCall(
         return await handleAttachImageToProduct(payload, toolInput)
       case 'replace_image':
         return await handleReplaceImage(payload, toolInput)
+      // Invitation
+      case 'invite_member':
+        return await inviteMember(payload, toolInput, ctx)
+      // Product creation & management
+      case 'create_product':
+        return await createProduct(payload, toolInput, ctx)
+      case 'update_product':
+        return await updateProduct(payload, toolInput)
+      // Order routing & fulfillment
+      case 'find_producers':
+        return await handleFindProducers(payload, toolInput, ctx)
+      case 'browse_network':
+        return await handleBrowseNetwork(payload, toolInput, ctx)
+      case 'query_orders':
+        return await handleQueryOrders(payload, toolInput, ctx)
+      case 'route_order':
+        return await handleRouteOrder(payload, toolInput, ctx)
+      case 'accept_order':
+        return await handleAcceptOrder(payload, toolInput, ctx)
+      case 'update_fulfillment':
+        return await handleUpdateFulfillment(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -1159,6 +1408,355 @@ async function updateBookingStatus(
 }
 
 // ---------------------------------------------------------------------------
+// Product Creation & Management Handlers
+// ---------------------------------------------------------------------------
+
+async function createProduct(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = input.title as string
+  const price = Number(input.price)
+  const description = input.description as string | undefined
+  const category = input.category as string | undefined
+  const inventory = input.inventory !== undefined ? Number(input.inventory) : undefined
+  const status = (input.status as string) || 'draft'
+
+  if (!title || !title.trim()) {
+    return 'Error: Product title is required.'
+  }
+
+  if (!price || price <= 0 || !isFinite(price)) {
+    return 'Error: Price must be a positive number (e.g., 35 for $35.00).'
+  }
+
+  if (status !== 'draft' && status !== 'published') {
+    return 'Error: Status must be "draft" or "published".'
+  }
+
+  if (inventory !== undefined && (inventory < 0 || !isFinite(inventory))) {
+    return 'Error: Inventory must be a non-negative number.'
+  }
+
+  try {
+    // Build the product data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const productData: Record<string, any> = {
+      title: title.trim(),
+      priceInUSD: Math.round(price * 100) / 100, // Round to 2 decimal places
+      priceInUSDEnabled: true,
+      _status: status,
+    }
+
+    // Add tenant if available
+    if (ctx.tenantId) {
+      productData.tenant = ctx.tenantId
+    }
+
+    // Add inventory if specified
+    if (inventory !== undefined) {
+      productData.inventory = Math.floor(inventory)
+    }
+
+    // Add description as richText if provided
+    if (description) {
+      productData.description = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              children: [
+                {
+                  type: 'text',
+                  text: description,
+                  detail: 0,
+                  format: 0,
+                  mode: 'normal',
+                  style: '',
+                  version: 1,
+                },
+              ],
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      }
+    }
+
+    // Look up category if specified
+    if (category) {
+      const categoryResult = await payload.find({
+        collection: 'categories',
+        where: {
+          title: { contains: category },
+        } as Where,
+        limit: 1,
+        overrideAccess: true,
+      })
+
+      if (categoryResult.docs.length > 0) {
+        productData.categories = [categoryResult.docs[0].id]
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (payload.create as any)({
+      collection: 'products',
+      data: productData,
+      overrideAccess: true,
+    })
+
+    const productId = result.id
+    const slug = str(result, 'slug')
+    const priceStr = `$${productData.priceInUSD.toFixed(2)}`
+
+    const parts: string[] = [
+      `Product created successfully!`,
+      `- **${title.trim()}** (${priceStr})`,
+      `- Status: ${status}`,
+      `- Product ID: ${productId}`,
+    ]
+
+    if (slug) {
+      parts.push(`- URL: /products/${slug}`)
+    }
+    if (inventory !== undefined) {
+      parts.push(`- Inventory: ${Math.floor(inventory)} units`)
+    }
+    if (category && productData.categories) {
+      parts.push(`- Category: ${category}`)
+    } else if (category) {
+      parts.push(`- Category "${category}" not found — you can add it in the admin panel`)
+    }
+
+    parts.push('')
+    parts.push('Would you like me to generate a product image for this listing?')
+
+    return parts.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error creating product:', err)
+    return `Error creating product: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
+  }
+}
+
+async function updateProduct(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const productId = Number(input.productId)
+
+  if (!productId) {
+    return 'Error: productId is required. Search for products first using query_products.'
+  }
+
+  // Validate price if provided
+  if (input.price !== undefined) {
+    const price = Number(input.price)
+    if (!price || price <= 0 || !isFinite(price)) {
+      return 'Error: Price must be a positive number.'
+    }
+  }
+
+  // Validate status if provided
+  if (input.status !== undefined) {
+    if (input.status !== 'draft' && input.status !== 'published') {
+      return 'Error: Status must be "draft" or "published".'
+    }
+  }
+
+  // Validate inventory if provided
+  if (input.inventory !== undefined) {
+    const inv = Number(input.inventory)
+    if (inv < 0 || !isFinite(inv)) {
+      return 'Error: Inventory must be a non-negative number.'
+    }
+  }
+
+  try {
+    // Fetch existing product
+    const existing = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (!existing) {
+      return `Error: Product #${productId} not found. Search for products first using query_products.`
+    }
+
+    const oldTitle = str(existing, 'title', 'Untitled')
+
+    // Build update data — only include changed fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {}
+    const changes: string[] = []
+
+    if (input.title && typeof input.title === 'string') {
+      updateData.title = (input.title as string).trim()
+      changes.push(`Title: "${oldTitle}" → "${updateData.title}"`)
+    }
+
+    if (input.price !== undefined) {
+      const newPrice = Math.round(Number(input.price) * 100) / 100
+      const oldPrice = num(existing, 'priceInUSD')
+      updateData.priceInUSD = newPrice
+      updateData.priceInUSDEnabled = true
+      changes.push(`Price: $${oldPrice?.toFixed(2) || 'N/A'} → $${newPrice.toFixed(2)}`)
+    }
+
+    if (input.inventory !== undefined) {
+      updateData.inventory = Math.floor(Number(input.inventory))
+      const oldInventory = num(existing, 'inventory')
+      changes.push(`Inventory: ${oldInventory ?? 'N/A'} → ${updateData.inventory}`)
+    }
+
+    if (input.status !== undefined) {
+      updateData._status = input.status
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const oldStatus = (existing as any)._status || 'draft'
+      changes.push(`Status: ${oldStatus} → ${input.status}`)
+    }
+
+    if (input.description && typeof input.description === 'string') {
+      updateData.description = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              children: [
+                {
+                  type: 'text',
+                  text: input.description,
+                  detail: 0,
+                  format: 0,
+                  mode: 'normal',
+                  style: '',
+                  version: 1,
+                },
+              ],
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      }
+      changes.push('Description: updated')
+    }
+
+    if (changes.length === 0) {
+      return `No changes specified for **${oldTitle}** (ID: ${productId}). Provide at least one field to update (title, price, description, inventory, status).`
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'products',
+      id: productId,
+      data: updateData,
+      overrideAccess: true,
+    })
+
+    const displayTitle = updateData.title || oldTitle
+
+    return `Product updated!\n- **${displayTitle}** (ID: ${productId})\n- Changes:\n${changes.map((c) => `  - ${c}`).join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] Error updating product:', err)
+    return `Error updating product: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Invitation Handler
+// ---------------------------------------------------------------------------
+
+async function inviteMember(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const email = input.email as string
+  const role = (input.role as string) || 'member'
+  const message = input.message as string | undefined
+
+  if (!email || !isValidEmail(email)) {
+    return 'Error: A valid email address is required.'
+  }
+
+  if (!ctx.userId) {
+    return 'Error: You must be logged in to invite members.'
+  }
+
+  // Find the space — use provided spaceId or look up user's primary space
+  let spaceId: number | string | undefined = input.spaceId
+    ? (Number(input.spaceId) || input.spaceId)
+    : undefined
+
+  if (!spaceId && ctx.tenantId) {
+    // Find user's first space in this tenant
+    const spaces = await payload.find({
+      collection: 'spaces',
+      where: { tenant: { equals: ctx.tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (spaces.docs.length > 0) {
+      spaceId = spaces.docs[0].id
+    }
+  }
+
+  if (!spaceId) {
+    return 'Error: No space found. Please specify a spaceId or ensure you belong to a space.'
+  }
+
+  try {
+    const result = await createInvitation({
+      payload,
+      email,
+      spaceId,
+      invitedByUserId: ctx.userId,
+      role: role as 'member' | 'moderator' | 'guest',
+      message,
+    })
+
+    const parts = [
+      `Invitation sent!`,
+      `- **Email:** ${email}`,
+      `- **Role:** ${role}`,
+      `- **Invite link:** ${result.inviteUrl}`,
+      `- **Expires:** ${new Date(result.expiresAt).toLocaleDateString()}`,
+    ]
+
+    if (message) {
+      parts.push(`- **Message:** "${message}"`)
+    }
+
+    parts.push('')
+    parts.push('They can accept the invitation by visiting the invite link.')
+
+    return parts.join('\n')
+  } catch (err) {
+    return `Error: ${err instanceof Error ? err.message : 'Failed to create invitation.'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Image Generation & Media Management Handlers
 // ---------------------------------------------------------------------------
 
@@ -1381,5 +1979,522 @@ async function handleReplaceImage(
   } catch (err) {
     console.error('[LEO Tools] Error replacing image:', err)
     return `Error replacing image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Order Routing & Fulfillment Handlers — Sprint 4
+// ---------------------------------------------------------------------------
+
+/**
+ * find_producers — Search for capable Holon nodes near a location.
+ */
+async function handleFindProducers(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const skill = input.skill as string
+  if (!skill || !skill.trim()) {
+    return 'Error: Skill is required (e.g., "screen-printing", "3d-printing").'
+  }
+
+  const radius = (input.radius as number) || 100
+  const limit = Math.min((input.limit as number) || 10, 20)
+
+  try {
+    // Query all holon nodes (cross-tenant for network discovery)
+    const holons = await payload.find({
+      collection: 'holon-capabilities' as any,
+      where: {
+        constitutionalCompliance: { equals: true },
+        acceptingOrders: { equals: true },
+      },
+      limit: 100,
+      overrideAccess: true,
+    })
+
+    if (holons.docs.length === 0) {
+      return 'No production nodes registered on the network yet. Partners can register at /dashboard/holon.'
+    }
+
+    // Convert to HolonNode format for routing engine
+    const holonNodes: HolonNode[] = holons.docs.map((doc: any) => ({
+      id: doc.id,
+      tenantId: typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant,
+      businessName: doc.businessName || undefined,
+      nodeType: doc.nodeType,
+      capabilities: (doc.capabilities || []).map((c: any) => ({
+        skill: c.skill,
+        equipment: c.equipment,
+        materials: c.materials,
+        maxVolume: c.maxVolume,
+        turnaroundHours: c.turnaroundHours,
+      })),
+      serviceRadius: doc.serviceRadius ?? 100,
+      location: {
+        lat: doc.location?.lat ?? 0,
+        lng: doc.location?.lng ?? 0,
+        city: doc.location?.city,
+        region: doc.location?.region,
+      },
+      rating: doc.rating ?? 0,
+      activeOrderCount: doc.activeOrderCount ?? 0,
+      acceptingOrders: doc.acceptingOrders !== false,
+      constitutionalCompliance: doc.constitutionalCompliance !== false,
+    }))
+
+    // Use buyer's location or fallback to city/region search
+    let buyerLat = (input.lat as number) || 0
+    let buyerLng = (input.lng as number) || 0
+
+    // If no coordinates, try to find from current tenant's holon
+    if (!buyerLat && !buyerLng && ctx.tenantId) {
+      const ownHolon = holonNodes.find((h) => h.tenantId === ctx.tenantId)
+      if (ownHolon) {
+        buyerLat = ownHolon.location.lat
+        buyerLng = ownHolon.location.lng
+      }
+    }
+
+    const requirement: OrderRequirement = {
+      skills: [skill],
+      buyerLocation: { lat: buyerLat, lng: buyerLng },
+      maxDistance: radius,
+    }
+
+    const matches = findMatchingHolons(requirement, holonNodes, { maxResults: limit })
+
+    if (matches.length === 0) {
+      return `No producers found for "${skill}" within ${radius} miles. Try expanding your search radius.`
+    }
+
+    const results = matches.map((m, i) => {
+      const location = m.holon.location.city
+        ? `${m.holon.location.city}, ${m.holon.location.region || ''}`
+        : 'Location not specified'
+      return `${i + 1}. ${serializeMatch(m)} | ${location}`
+    })
+
+    return `Found ${matches.length} producer(s) for "${skill}":\n\n${results.join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] Error finding producers:', err)
+    return `Error searching for producers: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * browse_network — Browse cross-tenant network products.
+ */
+async function handleBrowseNetwork(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const search = input.search as string | undefined
+  const category = input.category as string | undefined
+  const limit = Math.min((input.limit as number) || 20, 50)
+
+  try {
+    const where: any = {
+      networkListing: { equals: true },
+      _status: { equals: 'published' },
+    }
+
+    if (search) {
+      where.title = { contains: search }
+    }
+
+    const products = await payload.find({
+      collection: 'products',
+      where,
+      limit,
+      overrideAccess: true, // Cross-tenant read
+      depth: 1,
+    })
+
+    if (products.docs.length === 0) {
+      return search
+        ? `No network products found matching "${search}". Try broadening your search.`
+        : 'No products currently listed on the network. Vendors can list products by enabling "Network Listing" in their product settings.'
+    }
+
+    const results = products.docs.map((p: any, i: number) => {
+      const tenant = typeof p.tenant === 'object' ? p.tenant?.name || p.tenant?.slug : 'Unknown vendor'
+      const price = p.priceInUSD ? `$${p.priceInUSD.toFixed(2)}` : 'Price TBD'
+      const caps = (p.requiredCapabilities || []).map((c: any) => c.skill).join(', ')
+      return `${i + 1}. **${p.title}** — ${price} | By: ${tenant}${caps ? ` | Requires: ${caps}` : ''}`
+    })
+
+    return `Network products (${products.docs.length}):\n\n${results.join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] Error browsing network:', err)
+    return `Error browsing network: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * query_orders — Look up orders (customer or vendor view).
+ */
+async function handleQueryOrders(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const viewAs = (input.viewAs as string) || 'customer'
+  const statusFilter = input.status as string | undefined
+  const fulfillmentFilter = input.fulfillmentStatus as string | undefined
+  const limit = Math.min((input.limit as number) || 10, 50)
+
+  try {
+    const where: any = {}
+
+    if (viewAs === 'customer') {
+      if (ctx.userId) {
+        where.customer = { equals: ctx.userId }
+      }
+    }
+
+    if (statusFilter) {
+      where.status = { equals: statusFilter }
+    }
+
+    if (ctx.tenantId) {
+      where.tenant = { equals: ctx.tenantId }
+    }
+
+    const orders = await payload.find({
+      collection: 'orders',
+      where,
+      limit,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (orders.docs.length === 0) {
+      return viewAs === 'customer'
+        ? 'No orders found. Browse products to place your first order!'
+        : 'No orders assigned to your production node yet. Orders will appear here when customers need your capabilities.'
+    }
+
+    const results = orders.docs.map((o: any, i: number) => {
+      const items = (o.items || []).map((item: any) => {
+        const product = typeof item.product === 'object' ? item.product?.title : `Product #${item.product}`
+        return `${product} x${item.quantity}`
+      })
+      const status = o.status || 'processing'
+      const amount = o.amount ? `$${(o.amount / 100).toFixed(2)}` : 'N/A'
+
+      // Fulfillment info for vendor view
+      let fulfillmentInfo = ''
+      if (viewAs === 'vendor' && o.fulfillment?.length) {
+        const statuses = o.fulfillment.map((f: any) => f.fulfillmentStatus || 'pending_match')
+        fulfillmentInfo = ` | Fulfillment: ${statuses.join(', ')}`
+      }
+
+      return `${i + 1}. Order #${o.id} — ${status} | ${amount} | ${items.join(', ')}${fulfillmentInfo}`
+    })
+
+    const label = viewAs === 'customer' ? 'Your Orders' : 'Assigned Orders'
+    return `${label} (${orders.docs.length}):\n\n${results.join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] Error querying orders:', err)
+    return `Error looking up orders: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * route_order — Assign order items to a Holon node.
+ */
+async function handleRouteOrder(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = Number(input.orderId)
+  if (!orderId) return 'Error: orderId is required.'
+
+  const itemIndex = input.itemIndex !== undefined ? Number(input.itemIndex) : undefined
+  const preferredHolonId = input.preferredHolonId ? Number(input.preferredHolonId) : undefined
+
+  try {
+    // Fetch order
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (!order) return `Error: Order #${orderId} not found.`
+
+    const items = (order as any).items || []
+    if (items.length === 0) return `Error: Order #${orderId} has no items.`
+
+    // Determine which items to route
+    const indicesToRoute = itemIndex !== undefined ? [itemIndex] : items.map((_: any, i: number) => i)
+
+    const routingResults: string[] = []
+
+    for (const idx of indicesToRoute) {
+      if (idx >= items.length) {
+        routingResults.push(`Item ${idx}: Index out of range (order has ${items.length} items)`)
+        continue
+      }
+
+      const item = items[idx]
+      const product = typeof item.product === 'object' ? item.product : null
+
+      // Get required capabilities from product
+      const requiredSkills = (product?.requiredCapabilities || []).map((c: any) => c.skill).filter(Boolean)
+
+      if (requiredSkills.length === 0 && !preferredHolonId) {
+        routingResults.push(`Item ${idx} (${product?.title || 'Unknown'}): No required capabilities set — cannot auto-route. Set requiredCapabilities on the product or specify a preferredHolonId.`)
+        continue
+      }
+
+      if (preferredHolonId) {
+        // Manual assignment
+        const holon = await payload.findByID({
+          collection: 'holon-capabilities' as any,
+          id: preferredHolonId,
+          overrideAccess: true,
+        })
+
+        if (!holon) {
+          routingResults.push(`Item ${idx}: Holon #${preferredHolonId} not found.`)
+          continue
+        }
+
+        // Update fulfillment
+        const fulfillment = (order as any).fulfillment || []
+        fulfillment.push({
+          orderItemIndex: idx,
+          assignedHolon: preferredHolonId,
+          sourceTenant: typeof (holon as any).tenant === 'object' ? (holon as any).tenant?.id : (holon as any).tenant,
+          fulfillmentStatus: 'matched',
+          matchedAt: new Date().toISOString(),
+          vendorShare: calculateVendorShare(product?.priceInUSD || 0),
+        })
+
+        await payload.update({
+          collection: 'orders',
+          id: orderId,
+          data: { fulfillment } as any,
+          overrideAccess: true,
+        })
+
+        const holonName = (holon as any).businessName || `Holon #${preferredHolonId}`
+        routingResults.push(`Item ${idx} (${product?.title || 'Unknown'}): Assigned to ${holonName}`)
+      } else {
+        // Auto-route via matching engine
+        const holons = await payload.find({
+          collection: 'holon-capabilities' as any,
+          where: { constitutionalCompliance: { equals: true }, acceptingOrders: { equals: true } },
+          limit: 100,
+          overrideAccess: true,
+        })
+
+        const holonNodes: HolonNode[] = holons.docs.map((doc: any) => ({
+          id: doc.id,
+          tenantId: typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant,
+          businessName: doc.businessName,
+          nodeType: doc.nodeType,
+          capabilities: doc.capabilities || [],
+          serviceRadius: doc.serviceRadius ?? 100,
+          location: { lat: doc.location?.lat ?? 0, lng: doc.location?.lng ?? 0, city: doc.location?.city, region: doc.location?.region },
+          rating: doc.rating ?? 0,
+          activeOrderCount: doc.activeOrderCount ?? 0,
+          acceptingOrders: doc.acceptingOrders !== false,
+          constitutionalCompliance: true,
+        }))
+
+        // Use shipping address as buyer location
+        const shipping = (order as any).shippingAddress || {}
+        const requirement: OrderRequirement = {
+          skills: requiredSkills,
+          materials: (product?.requiredCapabilities || []).flatMap((c: any) => c.materials || []),
+          buyerLocation: { lat: shipping.lat || 0, lng: shipping.lng || 0 },
+        }
+
+        const matches = findMatchingHolons(requirement, holonNodes, { maxResults: 1 })
+
+        if (matches.length === 0) {
+          routingResults.push(`Item ${idx} (${product?.title || 'Unknown'}): No matching producers found. Try adding more Holon nodes to the network.`)
+          continue
+        }
+
+        const bestMatch = matches[0]
+        const fulfillment = (order as any).fulfillment || []
+        fulfillment.push({
+          orderItemIndex: idx,
+          assignedHolon: bestMatch.holon.id,
+          sourceTenant: bestMatch.holon.tenantId,
+          fulfillmentStatus: 'matched',
+          matchScore: Math.round(bestMatch.totalScore),
+          matchedAt: new Date().toISOString(),
+          vendorShare: calculateVendorShare(product?.priceInUSD || 0),
+        })
+
+        await payload.update({
+          collection: 'orders',
+          id: orderId,
+          data: { fulfillment } as any,
+          overrideAccess: true,
+        })
+
+        routingResults.push(
+          `Item ${idx} (${product?.title || 'Unknown'}): Matched to ${bestMatch.holon.businessName || `Holon #${bestMatch.holon.id}`} (Score: ${bestMatch.totalScore.toFixed(0)}, ${bestMatch.distance.toFixed(1)} mi)`,
+        )
+      }
+    }
+
+    return `Order #${orderId} routing:\n\n${routingResults.join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] Error routing order:', err)
+    return `Error routing order: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * accept_order — Vendor accepts an order assignment.
+ */
+async function handleAcceptOrder(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = Number(input.orderId)
+  const itemIndex = Number(input.itemIndex)
+  const estimatedDate = input.estimatedCompletionDate as string | undefined
+
+  if (!orderId) return 'Error: orderId is required.'
+  if (input.itemIndex === undefined) return 'Error: itemIndex is required.'
+
+  try {
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (!order) return `Error: Order #${orderId} not found.`
+
+    const fulfillment = ((order as any).fulfillment || []) as any[]
+    const entry = fulfillment.find((f: any) => f.orderItemIndex === itemIndex)
+
+    if (!entry) {
+      return `Error: No fulfillment record for item ${itemIndex} in order #${orderId}. Route the order first.`
+    }
+
+    if (entry.fulfillmentStatus !== 'matched') {
+      return `Error: Cannot accept — current status is "${entry.fulfillmentStatus}". Only "matched" orders can be accepted.`
+    }
+
+    // Update status
+    entry.fulfillmentStatus = 'accepted'
+    entry.acceptedAt = new Date().toISOString()
+    if (estimatedDate) {
+      entry.estimatedCompletion = estimatedDate
+    }
+
+    await payload.update({
+      collection: 'orders',
+      id: orderId,
+      data: { fulfillment } as any,
+      overrideAccess: true,
+    })
+
+    const item = ((order as any).items || [])[itemIndex]
+    const productTitle = typeof item?.product === 'object' ? item.product?.title : `Product #${item?.product}`
+    const vendorShare = entry.vendorShare ? `$${entry.vendorShare.toFixed(2)}` : 'TBD'
+
+    return `Order #${orderId}, item ${itemIndex} (${productTitle}) accepted! Your vendor share (60%): ${vendorShare}.${estimatedDate ? ` Estimated completion: ${estimatedDate}.` : ''} Update status to "in_production" when you start working on it.`
+  } catch (err) {
+    console.error('[LEO Tools] Error accepting order:', err)
+    return `Error accepting order: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * update_fulfillment — Update production status or add shipping.
+ */
+async function handleUpdateFulfillment(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = Number(input.orderId)
+  const itemIndex = Number(input.itemIndex)
+  const newStatus = input.status as FulfillmentStatus
+
+  if (!orderId) return 'Error: orderId is required.'
+  if (input.itemIndex === undefined) return 'Error: itemIndex is required.'
+  if (!newStatus) return 'Error: status is required.'
+
+  // Validate required fields for status
+  const updateValidation = validateFulfillmentUpdate({
+    status: newStatus,
+    trackingNumber: input.trackingNumber as string | undefined,
+    rejectionReason: input.rejectionReason as string | undefined,
+  })
+  if (updateValidation) return updateValidation
+
+  try {
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (!order) return `Error: Order #${orderId} not found.`
+
+    const fulfillment = ((order as any).fulfillment || []) as any[]
+    const entry = fulfillment.find((f: any) => f.orderItemIndex === itemIndex)
+
+    if (!entry) {
+      return `Error: No fulfillment record for item ${itemIndex} in order #${orderId}.`
+    }
+
+    // Validate state transition
+    const currentStatus = entry.fulfillmentStatus as FulfillmentStatus
+    if (!validateFulfillmentTransition(currentStatus, newStatus)) {
+      return `Error: Cannot transition from "${currentStatus}" to "${newStatus}". Check the fulfillment workflow.`
+    }
+
+    // Update entry
+    entry.fulfillmentStatus = newStatus
+    if (newStatus === 'shipped') {
+      entry.shippedAt = new Date().toISOString()
+      entry.trackingNumber = input.trackingNumber as string
+      if (input.trackingUrl) entry.trackingUrl = input.trackingUrl as string
+    }
+    if (newStatus === 'rejected') {
+      entry.rejectionReason = input.rejectionReason as string
+    }
+
+    await payload.update({
+      collection: 'orders',
+      id: orderId,
+      data: { fulfillment } as any,
+      overrideAccess: true,
+    })
+
+    const item = ((order as any).items || [])[itemIndex]
+    const productTitle = typeof item?.product === 'object' ? item.product?.title : `Product #${item?.product}`
+
+    const statusMessages: Record<string, string> = {
+      in_production: `Started production on "${productTitle}". Update to "shipped" when ready.`,
+      shipped: `"${productTitle}" shipped! Tracking: ${input.trackingNumber}.`,
+      delivered: `"${productTitle}" marked as delivered. Thank you!`,
+      rejected: `"${productTitle}" rejected: ${input.rejectionReason}. The order will be re-routed to another producer.`,
+    }
+
+    return `Order #${orderId}, item ${itemIndex}: ${statusMessages[newStatus] || `Status updated to "${newStatus}".`}`
+  } catch (err) {
+    console.error('[LEO Tools] Error updating fulfillment:', err)
+    return `Error updating fulfillment: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

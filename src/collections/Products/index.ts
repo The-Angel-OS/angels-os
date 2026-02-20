@@ -208,6 +208,50 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
       hasMany: true,
       relationTo: 'categories',
     },
+    // ─── Network Federation Fields ────────────────────────────
+    {
+      name: 'networkListing',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'List this product on the Angel OS network for cross-tenant discovery',
+      },
+    },
+    {
+      name: 'fulfillmentMode',
+      type: 'select',
+      defaultValue: 'self',
+      options: [
+        { label: 'Self-fulfilled', value: 'self' },
+        { label: 'Network-routed', value: 'network' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'How this product is fulfilled when ordered',
+      },
+    },
+    {
+      name: 'requiredCapabilities',
+      type: 'array',
+      admin: {
+        description: 'Skills needed to produce this product (for network matching)',
+        condition: (data) => data?.fulfillmentMode === 'network' || data?.networkListing === true,
+      },
+      fields: [
+        {
+          name: 'skill',
+          type: 'text',
+          required: true,
+          admin: { description: 'e.g. "screen-printing", "embroidery"' },
+        },
+        {
+          name: 'materials',
+          type: 'json',
+          admin: { description: 'Required materials, e.g. ["cotton", "polyester"]' },
+        },
+      ],
+    },
     simpleSlugField,
   ],
 })

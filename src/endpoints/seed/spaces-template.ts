@@ -126,6 +126,7 @@ export async function applySpaceTemplate(
         space: space.id,
         type: ch.type,
         isDefault: ch.isDefault,
+        tenant: tenantId as number,
       },
       req,
       overrideAccess: true,

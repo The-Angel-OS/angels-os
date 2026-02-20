@@ -27,6 +27,15 @@ const TOOL_LABELS: Record<string, string> = {
   replace_image: '🔄 Replacing image',
   create_booking: 'Creating booking',
   update_booking_status: 'Updating booking',
+  create_product: 'Creating product',
+  update_product: 'Updating product',
+  invite_member: 'Sending invitation',
+  find_producers: 'Finding capable producers',
+  browse_network: 'Browsing network catalog',
+  query_orders: 'Looking up orders',
+  route_order: 'Routing order to vendor',
+  accept_order: 'Accepting order',
+  update_fulfillment: 'Updating fulfillment',
 }
 
 /**

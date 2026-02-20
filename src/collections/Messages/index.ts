@@ -258,13 +258,8 @@ export const Messages: CollectionConfig = {
       },
     },
 
-    // ─── Tenant Scoping ───
-    {
-      name: 'tenant',
-      type: 'relationship',
-      relationTo: 'tenants',
-      admin: { description: 'Tenant for scoping (derived from space)' },
-    },
+    // Note: 'tenant' field is auto-added by the multi-tenant plugin.
+    // Do not define it here to avoid duplicate field errors.
 
     // ─── Federation: AT Protocol alignment ───
     {
