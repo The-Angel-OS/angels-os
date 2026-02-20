@@ -7,6 +7,7 @@ import * as migration_20260202_003913_add_channels_messages from './20260202_003
 import * as migration_20260202_022727_add_leo_system_user_fields from './20260202_022727_add_leo_system_user_fields';
 import * as migration_20260216_085909_add_ums_and_channel_extensions from './20260216_085909_add_ums_and_channel_extensions';
 import * as migration_20260218_061453_add_events_and_registrations from './20260218_061453_add_events_and_registrations';
+import * as migration_20260220_051631_add_tenant_to_soul_collections from './20260220_051631_add_tenant_to_soul_collections';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20260218_061453_add_events_and_registrations.up,
     down: migration_20260218_061453_add_events_and_registrations.down,
-    name: '20260218_061453_add_events_and_registrations'
+    name: '20260218_061453_add_events_and_registrations',
+  },
+  {
+    up: migration_20260220_051631_add_tenant_to_soul_collections.up,
+    down: migration_20260220_051631_add_tenant_to_soul_collections.down,
+    name: '20260220_051631_add_tenant_to_soul_collections'
   },
 ];
