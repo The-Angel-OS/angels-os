@@ -6,11 +6,16 @@ import config from '@payload-config'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
+import { fetchUserSpaces } from '@/utilities/fetchUserSpaces'
 import { DashboardSidebar } from './DashboardSidebar'
+import { DashboardHeader } from './DashboardHeader'
 import { DashboardLEOSidebar } from './DashboardLEOSidebar'
+import { DashboardProvider } from '@/providers/DashboardContext'
+import type { DashboardSpace } from '@/providers/DashboardContext'
+import type { Media } from '@/payload-types'
 
 /**
- * Dashboard layout — Rev 4 (mobile-responsive).
+ * Dashboard layout — Rev 5 (tenant branding + space context).
  *
  * Desktop: full-screen dashboard with collapsible sidebar (left), main content (center),
  *          LEO chat sidebar (right, toggle).
@@ -31,7 +36,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const tenant =
     (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
     (await fetchTenantByDomain(host))
-  const defaultSpaceId = tenant?.id ? await fetchDefaultSpaceId(tenant.id) : undefined
+
+  // Serialize tenant branding for sidebar
+  const tenantBranding = tenant
+    ? {
+        siteName: tenant.branding?.siteName || tenant.name || 'Angel OS',
+        logoUrl:
+          typeof tenant.branding?.logo === 'object' &&
+          tenant.branding?.logo !== null &&
+          'url' in (tenant.branding.logo as object)
+            ? ((tenant.branding.logo as Media).url ?? null)
+            : null,
+        primaryColor: tenant.branding?.primaryColor || null,
+      }
+    : null
 
   // Server-side auth: extract user roles for dynamic nav
   let isAdmin = false
@@ -39,11 +57,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let userName = ''
   let userInitials = ''
   let userEmail = ''
+  let userId: number | string | undefined
 
   try {
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: headersList })
     if (user) {
+      userId = user.id
       const roles = (user as any).roles as string[] | undefined
       isAdmin = Boolean(
         roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
@@ -63,40 +83,54 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     // Not authenticated
   }
 
+  // Fetch all spaces the user belongs to for dashboard context
+  let userSpaces: DashboardSpace[] = []
+  let defaultSpaceId: string | undefined
+  if (userId && tenant?.id) {
+    const serialized = await fetchUserSpaces(userId, tenant.id)
+    userSpaces = serialized.map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      description: s.description,
+      visibility: s.visibility as DashboardSpace['visibility'],
+      isSystem: s.isSystem,
+    }))
+    defaultSpaceId =
+      userSpaces.find((s) => !s.isSystem)?.id ??
+      (await fetchDefaultSpaceId(tenant.id)) ??
+      undefined
+  } else if (tenant?.id) {
+    const fallbackId = await fetchDefaultSpaceId(tenant.id)
+    defaultSpaceId = fallbackId ?? undefined
+  }
+
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* ─── Sidebar Navigation (left) ─── */}
-      <DashboardSidebar
-        prefix={prefix}
-        isAdmin={isAdmin}
-        isBusinessOwner={isBusinessOwner}
-        userName={userName}
-        userEmail={userEmail}
-        userInitials={userInitials}
-      />
+    <DashboardProvider initialSpaces={userSpaces} defaultSpaceId={defaultSpaceId}>
+      <div className="flex h-screen bg-background overflow-hidden">
+        {/* ─── Sidebar Navigation (left) ─── */}
+        <DashboardSidebar
+          prefix={prefix}
+          isAdmin={isAdmin}
+          isBusinessOwner={isBusinessOwner}
+          userName={userName}
+          userEmail={userEmail}
+          userInitials={userInitials}
+          tenantBranding={tenantBranding}
+        />
 
-      {/* ─── Main Content (center) ─── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Dashboard Header Bar — left padding on mobile for hamburger button */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background pl-14 pr-4 md:px-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm font-medium text-foreground">Angel OS Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {userName && (
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                {userName}
-              </span>
-            )}
-          </div>
-        </header>
+        {/* ─── Main Content (center) ─── */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Dashboard Header Bar — Space Selector + user info */}
+          <DashboardHeader prefix={prefix} userName={userName} />
 
-        {/* Page Content — reduced padding on mobile */}
-        <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
+          {/* Page Content — reduced padding on mobile */}
+          <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
+        </div>
+
+        {/* ─── LEO Chat Sidebar (right, toggle) ─── */}
+        <DashboardLEOSidebar spaceId={defaultSpaceId} />
       </div>
-
-      {/* ─── LEO Chat Sidebar (right, toggle) ─── */}
-      <DashboardLEOSidebar spaceId={defaultSpaceId} />
-    </div>
+    </DashboardProvider>
   )
 }

@@ -8,6 +8,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { createInvitation, isValidEmail } from '@/utilities/invitationSystem'
+import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
 
 export const spaceInviteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -66,8 +67,49 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
       message: message ? String(message) : undefined,
     })
 
+    // Send invitation email
+    // Resolve space name and inviter name for the email
+    let spaceName = 'a space'
+    let inviterName = 'Someone'
+    let tenantName: string | undefined
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const space = await payload.findByID({ collection: 'spaces', id: spaceId as any, depth: 0 }) as any
+      if (space?.name) spaceName = space.name
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inviter = await payload.findByID({ collection: 'users', id: user.id, depth: 0 }) as any
+      if (inviter?.name) inviterName = inviter.name
+      else if (inviter?.email) inviterName = inviter.email
+
+      // Try to get tenant name for branding
+      if (space?.tenant) {
+        const tId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+        if (tId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const t = await payload.findByID({ collection: 'tenants', id: tId, depth: 0 }) as any
+          if (t?.name) tenantName = t.name
+        }
+      }
+    } catch {
+      // Non-fatal — use defaults
+    }
+
+    const emailSent = await sendInvitationEmail({
+      payload,
+      recipientEmail: String(email),
+      inviterName,
+      spaceName,
+      inviteUrl: result.inviteUrl,
+      role: (role as string) || 'member',
+      message: message ? String(message) : undefined,
+      tenantName,
+    })
+
     return Response.json({
       success: true,
+      emailSent,
       invitation: {
         token: result.token,
         expiresAt: result.expiresAt,

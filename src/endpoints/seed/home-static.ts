@@ -170,7 +170,7 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
             link: {
               type: 'custom',
               label: 'Explore the Shop',
-              url: '/products',
+              url: '/shop',
               appearance: 'default',
             },
           },

@@ -160,5 +160,223 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
+    // ─── Storefront Configuration (Sprint 6) ────────────────────
+    {
+      name: 'businessType',
+      type: 'select',
+      admin: {
+        description: 'What kind of endeavor is this tenant?',
+      },
+      options: [
+        { label: 'Retail / E-Commerce', value: 'retail' },
+        { label: 'Service Business', value: 'service' },
+        { label: 'Content Creator', value: 'content_creator' },
+        { label: 'Nonprofit / Ministry', value: 'nonprofit' },
+        { label: 'Professional Services', value: 'professional_services' },
+        { label: 'Custom / Other', value: 'custom' },
+      ],
+    },
+    {
+      name: 'storefront',
+      type: 'group',
+      admin: {
+        description: 'Public-facing storefront configuration',
+      },
+      fields: [
+        {
+          name: 'description',
+          type: 'textarea',
+          admin: { description: 'A short description of the business (shown on storefront)' },
+        },
+        {
+          name: 'coverImage',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Hero/cover image for the storefront' },
+        },
+        {
+          name: 'contactEmail',
+          type: 'email',
+        },
+        {
+          name: 'contactPhone',
+          type: 'text',
+        },
+        {
+          name: 'socialLinks',
+          type: 'array',
+          admin: { description: 'Social media links' },
+          fields: [
+            {
+              name: 'platform',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Facebook', value: 'facebook' },
+                { label: 'Instagram', value: 'instagram' },
+                { label: 'Twitter / X', value: 'twitter' },
+                { label: 'YouTube', value: 'youtube' },
+                { label: 'TikTok', value: 'tiktok' },
+                { label: 'LinkedIn', value: 'linkedin' },
+                { label: 'Website', value: 'website' },
+              ],
+            },
+            {
+              name: 'url',
+              type: 'text',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'businessHours',
+          type: 'array',
+          admin: { description: 'Weekly business hours' },
+          fields: [
+            {
+              name: 'day',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Monday', value: 'monday' },
+                { label: 'Tuesday', value: 'tuesday' },
+                { label: 'Wednesday', value: 'wednesday' },
+                { label: 'Thursday', value: 'thursday' },
+                { label: 'Friday', value: 'friday' },
+                { label: 'Saturday', value: 'saturday' },
+                { label: 'Sunday', value: 'sunday' },
+              ],
+            },
+            {
+              name: 'open',
+              type: 'text',
+              required: true,
+              admin: { placeholder: '09:00', description: '24-hour format (e.g. 09:00)' },
+            },
+            {
+              name: 'close',
+              type: 'text',
+              required: true,
+              admin: { placeholder: '17:00', description: '24-hour format (e.g. 17:00)' },
+            },
+          ],
+        },
+      ],
+    },
+    // ─── Commerce Configuration (Sprint 6) ──────────────────────
+    {
+      name: 'commerce',
+      type: 'group',
+      admin: {
+        description: 'Commerce settings for this tenant',
+      },
+      fields: [
+        {
+          name: 'currency',
+          type: 'select',
+          defaultValue: 'usd',
+          options: [
+            { label: 'USD ($)', value: 'usd' },
+            { label: 'CAD (C$)', value: 'cad' },
+            { label: 'EUR (\u20AC)', value: 'eur' },
+            { label: 'GBP (\u00A3)', value: 'gbp' },
+            { label: 'AUD (A$)', value: 'aud' },
+          ],
+        },
+        {
+          name: 'taxRate',
+          type: 'number',
+          admin: { description: 'Tax rate as percentage (e.g. 8.25 for 8.25%)' },
+          min: 0,
+          max: 100,
+        },
+        {
+          name: 'shippingEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Enable physical product shipping' },
+        },
+        {
+          name: 'bookingsEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Enable appointment/service bookings' },
+        },
+        {
+          name: 'eventsEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Enable event management and registration' },
+        },
+        {
+          name: 'digitalProductsEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Enable digital product delivery' },
+        },
+      ],
+    },
+    // ─── Stripe Connect (Sprint 6) ──────────────────────────────
+    {
+      name: 'stripeConnect',
+      type: 'group',
+      admin: {
+        description: 'Stripe Connect account for receiving payments',
+      },
+      fields: [
+        {
+          name: 'stripeAccountId',
+          type: 'text',
+          admin: { description: 'Stripe Connected Account ID (acct_xxx)', readOnly: true },
+        },
+        {
+          name: 'stripeOnboardingComplete',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Whether Stripe onboarding is complete', readOnly: true },
+        },
+        {
+          name: 'stripePayoutsEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Whether Stripe payouts are enabled', readOnly: true },
+        },
+        {
+          name: 'stripeChargesEnabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Whether Stripe charges are enabled', readOnly: true },
+        },
+        {
+          name: 'connectedAt',
+          type: 'date',
+          admin: { readOnly: true },
+        },
+      ],
+    },
+    // ─── AI Configuration (Sprint 6) ────────────────────────────
+    {
+      name: 'aiConfig',
+      type: 'group',
+      admin: {
+        description: 'Bring-your-own AI keys for LEO and image generation',
+      },
+      fields: [
+        {
+          name: 'anthropicApiKey',
+          type: 'text',
+          admin: {
+            description: 'Anthropic API key (encrypted at rest). Leave blank to use platform key.',
+          },
+        },
+        {
+          name: 'openrouterApiKey',
+          type: 'text',
+          admin: {
+            description: 'OpenRouter API key (encrypted at rest). Leave blank to use platform key.',
+          },
+        },
+      ],
+    },
   ],
 }

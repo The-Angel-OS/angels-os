@@ -114,17 +114,29 @@ export default async function DashboardAppointmentsPage({
       </div>
 
       {bookings.totalDocs === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <p className="mb-2 text-lg font-medium">No appointments yet</p>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Set up your availability and start accepting bookings.
+        <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold">Your calendar is clear!</h3>
+          <p className="mb-6 text-sm text-muted-foreground max-w-md mx-auto">
+            Set your available hours and let clients book time with you. Appointments will show up here as they come in.
           </p>
-          <Link
-            href="/admin/collections/availability"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Set Availability
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/admin/collections/availability"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Set Your Availability
+            </Link>
+            <Link
+              href="/dashboard/spaces"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              Ask LEO: &quot;Help me set up my booking schedule&quot;
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">

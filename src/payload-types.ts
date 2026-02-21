@@ -94,6 +94,7 @@ export interface Config {
     categories: Category;
     media: Media;
     'holon-capabilities': HolonCapability;
+    'justice-fund-transactions': JusticeFundTransaction;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -145,6 +146,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'holon-capabilities': HolonCapabilitiesSelect<false> | HolonCapabilitiesSelect<true>;
+    'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -279,6 +281,113 @@ export interface Tenant {
     borderColor?: string | null;
     headingFont?: ('inter' | 'playfair-display' | 'montserrat' | 'raleway' | 'poppins') | null;
     bodyFont?: ('inter' | 'open-sans' | 'lato' | 'roboto' | 'source-sans-3') | null;
+  };
+  /**
+   * What kind of endeavor is this tenant?
+   */
+  businessType?: ('retail' | 'service' | 'content_creator' | 'nonprofit' | 'professional_services' | 'custom') | null;
+  /**
+   * Public-facing storefront configuration
+   */
+  storefront?: {
+    /**
+     * A short description of the business (shown on storefront)
+     */
+    description?: string | null;
+    /**
+     * Hero/cover image for the storefront
+     */
+    coverImage?: (number | null) | Media;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+    /**
+     * Social media links
+     */
+    socialLinks?:
+      | {
+          platform: 'facebook' | 'instagram' | 'twitter' | 'youtube' | 'tiktok' | 'linkedin' | 'website';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Weekly business hours
+     */
+    businessHours?:
+      | {
+          day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+          /**
+           * 24-hour format (e.g. 09:00)
+           */
+          open: string;
+          /**
+           * 24-hour format (e.g. 17:00)
+           */
+          close: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Commerce settings for this tenant
+   */
+  commerce?: {
+    currency?: ('usd' | 'cad' | 'eur' | 'gbp' | 'aud') | null;
+    /**
+     * Tax rate as percentage (e.g. 8.25 for 8.25%)
+     */
+    taxRate?: number | null;
+    /**
+     * Enable physical product shipping
+     */
+    shippingEnabled?: boolean | null;
+    /**
+     * Enable appointment/service bookings
+     */
+    bookingsEnabled?: boolean | null;
+    /**
+     * Enable event management and registration
+     */
+    eventsEnabled?: boolean | null;
+    /**
+     * Enable digital product delivery
+     */
+    digitalProductsEnabled?: boolean | null;
+  };
+  /**
+   * Stripe Connect account for receiving payments
+   */
+  stripeConnect?: {
+    /**
+     * Stripe Connected Account ID (acct_xxx)
+     */
+    stripeAccountId?: string | null;
+    /**
+     * Whether Stripe onboarding is complete
+     */
+    stripeOnboardingComplete?: boolean | null;
+    /**
+     * Whether Stripe payouts are enabled
+     */
+    stripePayoutsEnabled?: boolean | null;
+    /**
+     * Whether Stripe charges are enabled
+     */
+    stripeChargesEnabled?: boolean | null;
+    connectedAt?: string | null;
+  };
+  /**
+   * Bring-your-own AI keys for LEO and image generation
+   */
+  aiConfig?: {
+    /**
+     * Anthropic API key (encrypted at rest). Leave blank to use platform key.
+     */
+    anthropicApiKey?: string | null;
+    /**
+     * OpenRouter API key (encrypted at rest). Leave blank to use platform key.
+     */
+    openrouterApiKey?: string | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -2667,6 +2776,36 @@ export interface Comment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "justice-fund-transactions".
+ */
+export interface JusticeFundTransaction {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  type: 'allocation' | 'disbursement' | 'adjustment';
+  /**
+   * Amount in cents
+   */
+  amountCents: number;
+  /**
+   * Stripe PaymentIntent ID that generated this allocation
+   */
+  sourcePaymentIntentId?: string | null;
+  /**
+   * Total transaction amount before split (cents)
+   */
+  sourceTotalCents?: number | null;
+  /**
+   * Percentage applied (e.g. 5 for 5%)
+   */
+  percentage?: number | null;
+  description?: string | null;
+  status: 'completed' | 'pending' | 'failed';
+  processedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -2985,6 +3124,10 @@ export interface PayloadLockedDocument {
         value: number | HolonCapability;
       } | null)
     | ({
+        relationTo: 'justice-fund-transactions';
+        value: number | JusticeFundTransaction;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3110,6 +3253,55 @@ export interface TenantsSelect<T extends boolean = true> {
         borderColor?: T;
         headingFont?: T;
         bodyFont?: T;
+      };
+  businessType?: T;
+  storefront?:
+    | T
+    | {
+        description?: T;
+        coverImage?: T;
+        contactEmail?: T;
+        contactPhone?: T;
+        socialLinks?:
+          | T
+          | {
+              platform?: T;
+              url?: T;
+              id?: T;
+            };
+        businessHours?:
+          | T
+          | {
+              day?: T;
+              open?: T;
+              close?: T;
+              id?: T;
+            };
+      };
+  commerce?:
+    | T
+    | {
+        currency?: T;
+        taxRate?: T;
+        shippingEnabled?: T;
+        bookingsEnabled?: T;
+        eventsEnabled?: T;
+        digitalProductsEnabled?: T;
+      };
+  stripeConnect?:
+    | T
+    | {
+        stripeAccountId?: T;
+        stripeOnboardingComplete?: T;
+        stripePayoutsEnabled?: T;
+        stripeChargesEnabled?: T;
+        connectedAt?: T;
+      };
+  aiConfig?:
+    | T
+    | {
+        anthropicApiKey?: T;
+        openrouterApiKey?: T;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -3979,6 +4171,23 @@ export interface HolonCapabilitiesSelect<T extends boolean = true> {
   activeOrderCount?: T;
   acceptingOrders?: T;
   constitutionalCompliance?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "justice-fund-transactions_select".
+ */
+export interface JusticeFundTransactionsSelect<T extends boolean = true> {
+  tenant?: T;
+  type?: T;
+  amountCents?: T;
+  sourcePaymentIntentId?: T;
+  sourceTotalCents?: T;
+  percentage?: T;
+  description?: T;
+  status?: T;
+  processedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

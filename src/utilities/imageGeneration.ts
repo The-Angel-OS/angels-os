@@ -75,6 +75,8 @@ export type ImageGenerationResult = {
   permanentUrl?: string
   /** Error message if generation failed */
   error?: string
+  /** Warning if image was generated but upload to media library failed */
+  uploadWarning?: string
 }
 
 export type ImageFeedbackOptions = {
@@ -164,8 +166,10 @@ function enhancePromptForProduct(
 export async function generateImage(
   options: ImageGenerationOptions,
   payload?: Payload,
+  tenantOpenRouterKey?: string,
 ): Promise<ImageGenerationResult> {
-  const apiKey = process.env.OPENROUTER_API_KEY
+  // Sprint 6: Support tenant-specific OpenRouter key (BYOAI)
+  const apiKey = tenantOpenRouterKey || process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     return {
       success: false,
@@ -263,17 +267,27 @@ export async function generateImage(
 
     // Auto-upload to Payload Media if requested and payload available
     if (options.autoUpload && payload) {
-      const uploadResult = await uploadGeneratedImage(payload, imageDataUrl, {
-        alt:
-          options.enhancementContext?.productName
-            ? `AI-generated image for ${options.enhancementContext.productName}`
-            : 'AI-generated image',
-        productName: options.enhancementContext?.productName,
-      })
+      try {
+        const uploadResult = await uploadGeneratedImage(payload, imageDataUrl, {
+          alt:
+            options.enhancementContext?.productName
+              ? `AI-generated image for ${options.enhancementContext.productName}`
+              : 'AI-generated image',
+          productName: options.enhancementContext?.productName,
+        })
 
-      if ('mediaId' in uploadResult) {
-        result.mediaId = uploadResult.mediaId
-        result.permanentUrl = uploadResult.permanentUrl
+        if ('mediaId' in uploadResult) {
+          result.mediaId = uploadResult.mediaId
+          result.permanentUrl = uploadResult.permanentUrl
+        } else {
+          console.warn('[ImageGeneration] Upload succeeded but returned no mediaId')
+          result.uploadWarning = 'Image generated but could not be saved to media library.'
+        }
+      } catch (uploadErr) {
+        console.error('[ImageGeneration] Upload failed:', uploadErr)
+        // Image was generated successfully — don't fail the whole result,
+        // but surface the upload error so LEO can inform the user
+        result.uploadWarning = `Image generated but upload to media library failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`
       }
     }
 
@@ -680,8 +694,9 @@ function deepReplaceMediaId(
 // ---------------------------------------------------------------------------
 
 /**
- * Returns true if image generation is available (OPENROUTER_API_KEY is set).
+ * Returns true if image generation is available (OPENROUTER_API_KEY is set,
+ * or a tenant-specific key is provided).
  */
-export function isImageGenerationAvailable(): boolean {
-  return Boolean(process.env.OPENROUTER_API_KEY)
+export function isImageGenerationAvailable(tenantOpenRouterKey?: string): boolean {
+  return Boolean(tenantOpenRouterKey || process.env.OPENROUTER_API_KEY)
 }

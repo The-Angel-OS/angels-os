@@ -106,28 +106,31 @@ export function ProductManager({ products, totalProducts }: ProductManagerProps)
 
       {/* Empty state */}
       {totalProducts === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
-          <p className="mb-2 text-lg font-medium">No products yet</p>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Create your first product to start selling, or ask LEO to help you set up a listing.
+          <h3 className="mb-2 text-lg font-semibold">Your store is ready!</h3>
+          <p className="mb-6 text-sm text-muted-foreground max-w-md mx-auto">
+            Add your first product to start selling. LEO can help you create products with descriptions, pricing, and even generate product images.
           </p>
-          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+          <div className="flex flex-col items-center gap-3">
             <Link
               href="/admin/collections/products/create"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Create Product
+              Add Your First Product
             </Link>
             <Link
               href="/dashboard/spaces"
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
-              Ask LEO
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              Ask LEO: &ldquo;Help me create my first product&rdquo;
             </Link>
           </div>
         </div>

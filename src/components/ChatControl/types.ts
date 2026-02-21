@@ -37,6 +37,10 @@ export interface ChatChannel {
   spaceId: string
   isDefault?: boolean
   unreadCount?: number
+  /** Widget state storage (task lists, timelines, note hierarchies) */
+  data?: Record<string, unknown> | null
+  /** UI configuration (active widgets, layout, display preferences) */
+  widgets?: Array<{ type: string; position: number; config: Record<string, unknown> }> | null
 }
 
 export interface ChatSpace {
@@ -44,6 +48,10 @@ export interface ChatSpace {
   name: string
   slug: string
   description?: string
+  /** True for system-created spaces (e.g. AI Bus) */
+  isSystem?: boolean
+  /** Space visibility from Payload */
+  visibility?: 'public' | 'invite_only' | 'private'
 }
 
 export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel' | 'sidebar'
@@ -54,8 +62,14 @@ export interface ChatControlProps {
   tenantSlug?: string
   /** Space ID to scope channels/messages */
   spaceId?: string
+  /** Pre-loaded spaces list (avoids client-side fetch when server has the data) */
+  spaces?: ChatSpace[]
+  /** Callback when user switches to a different space */
+  onSpaceChange?: (spaceId: string) => void
   /** Channel slug for single-channel mode */
   channelSlug?: string
+  /** Enable LiveKit audio/video in channel headers */
+  liveKitEnabled?: boolean
   /** Position for minimalist floating bubble */
   position?: 'bottom-right' | 'bottom-left'
   /** Theme override */

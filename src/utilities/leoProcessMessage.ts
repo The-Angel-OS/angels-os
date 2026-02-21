@@ -69,6 +69,20 @@ export async function leoProcessMessage(
     }
   }
 
+  // Sprint 6: Resolve tenant AI config for BYOAI key support
+  let tenantAnthropicApiKey: string | undefined
+  if (payload && tenantId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tenant = await payload.findByID({ collection: 'tenants', id: Number(tenantId), depth: 0 }) as any
+      if (tenant?.aiConfig?.anthropicApiKey) {
+        tenantAnthropicApiKey = tenant.aiConfig.anthropicApiKey
+      }
+    } catch {
+      // Non-fatal — fall back to platform key
+    }
+  }
+
   const engine = new ConversationEngine({
     conversationId: conversationId ?? `conv_${Date.now()}`,
     phase: 'greeting',
@@ -80,6 +94,7 @@ export async function leoProcessMessage(
           ...(spaceId ? { spaceId: Number(spaceId) } : {}),
           ...(channelSlug ? { channel: channelSlug } : {}),
           ...(userContext ? { userContext } : {}),
+          ...(tenantAnthropicApiKey ? { tenantAnthropicApiKey } : {}),
         }
       : {},
     agent: agent ? {
