@@ -31,6 +31,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
     "@livekit/components-react": "^2.9.20",
+    "@livekit/components-styles": "^1.2.0",
     "@payloadcms/admin-bar": "^3.74.0",
     "@payloadcms/db-postgres": "^3.74.0",
     "@payloadcms/email-nodemailer": "^3.74.0",
