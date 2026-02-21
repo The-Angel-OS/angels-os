@@ -23,33 +23,37 @@ import {
   INITIAL_USER_EMAILS,
 } from './seed-helpers'
 
-// Order matters: tenant-scoped collections first. Exclude tenants and users—handled via findOrCreate.
+// Deletion order matters: delete children (FK dependants) before parents.
+// Exclude tenants and users — handled via findOrCreate.
 const collections: CollectionSlug[] = [
-  'categories',
-  'comments',
-  'media',
-  'pages',
-  'posts',
-  'products',
-  'forms',
+  // Leaf tables first (reference others but nothing references them)
   'form-submissions',
+  'comments',
+  'event-registrations',
+  'messages',
+  'space-memberships',
+  'tenant-memberships',
+  // Mid-level dependants
+  'bookings',
+  'orders',
+  'transactions',
+  'carts',
+  'addresses',
   'variants',
   'variantOptions',
   'variantTypes',
-  'carts',
-  'transactions',
-  'addresses',
-  'orders',
-  'bookings',
+  // Parent tables — channels before spaces, events after registrations
+  'channels',
+  'spaces',
   'events',
-  'event-registrations',
+  'products',
+  'posts',
+  'pages',
+  'categories',
+  'forms',
+  'media',
   'header',
   'footer',
-  'messages',
-  'channels',
-  'space-memberships',
-  'tenant-memberships',
-  'spaces',
   // tenants, users: not cleared; use findOrCreate
 ]
 
@@ -189,10 +193,30 @@ export const seed = async ({
     await payload.delete({ collection: 'media', id: mediaDoc.id, req, overrideAccess: true })
   }
 
+  // Two-pass deletion: first pass clears most tables, second pass retries any FK failures
+  const failedCollections: CollectionSlug[] = []
   for (const collection of collections) {
-    await payload.db.deleteMany({ collection, req, where: {} })
-    if (payload.collections[collection].config.versions) {
-      await payload.db.deleteVersions({ collection, req, where: {} })
+    try {
+      await payload.db.deleteMany({ collection, req, where: {} })
+      if (payload.collections[collection].config.versions) {
+        await payload.db.deleteVersions({ collection, req, where: {} })
+      }
+    } catch (err) {
+      payload.logger.warn(`  ⚠ First-pass delete failed for ${collection}, will retry: ${err instanceof Error ? err.message : err}`)
+      failedCollections.push(collection)
+    }
+  }
+
+  // Second pass: retry failures (FK dependants should be gone now)
+  for (const collection of failedCollections) {
+    try {
+      await payload.db.deleteMany({ collection, req, where: {} })
+      if (payload.collections[collection].config.versions) {
+        await payload.db.deleteVersions({ collection, req, where: {} })
+      }
+      payload.logger.info(`  ✓ Retry succeeded for ${collection}`)
+    } catch (err) {
+      payload.logger.warn(`  ⚠ Retry also failed for ${collection}: ${err instanceof Error ? err.message : err}`)
     }
   }
 
