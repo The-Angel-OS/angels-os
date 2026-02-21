@@ -121,13 +121,12 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
-      // Vercel serverless connection resilience (P3 fix)
-      // Each serverless function invocation gets its own pool — keep low to avoid
-      // exhausting the remote PostgreSQL server's max_connections limit.
-      max: 3, // Low pool per serverless invocation (many invocations share the same PG server)
-      idleTimeoutMillis: 10000, // Close idle connections after 10s
-      connectionTimeoutMillis: 10000, // Wait up to 10s for a connection
-      allowExitOnIdle: true, // Allow pool to close when idle (important for serverless)
+      // Drizzle schema introspection fires many concurrent queries at startup.
+      // Remote PostgreSQL needs more headroom than a local DB.
+      max: process.env.VERCEL ? 3 : 10, // Serverless: low to avoid exhausting PG max_connections; local: higher for Drizzle introspection
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 30_000, // 30s — remote DB needs more time during schema pull
+      allowExitOnIdle: true,
     },
   }),
   plugins: [
