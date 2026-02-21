@@ -1,8 +1,11 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import type { PaginatedDocs } from 'payload'
+import { headers } from 'next/headers'
 import React from 'react'
 import { notFound } from 'next/navigation'
 
+import type { Post } from '@/payload-types'
 import { CollectionArchive, POSTS_PER_PAGE } from '@/components/CollectionArchive'
 import { PageRange } from '@/components/PageRange'
 import { Pagination } from '@/components/Pagination'
@@ -21,44 +24,84 @@ export default async function PostsPageNumber({ params }: Args) {
   const page = parseInt(pageNumber, 10)
   if (isNaN(page) || page < 1) return notFound()
 
-  const payload = await getPayload({ config: configPromise })
+  let posts: PaginatedDocs<Post> | null = null
 
-  const posts = await payload.find({
-    collection: 'posts',
-    draft: false,
-    depth: 1,
-    limit: POSTS_PER_PAGE,
-    overrideAccess: true, // Public posts must be readable without auth
-    pagination: true,
-    page,
-    where: { _status: { equals: 'published' } },
-    select: {
-      title: true,
-      slug: true,
-      publishedOn: true,
-      meta: true,
-      hero: true,
-      categories: true,
-    },
-    sort: '-publishedOn',
-  })
+  try {
+    const payload = await getPayload({ config: configPromise })
 
-  if (posts.page && posts.page > posts.totalPages) return notFound()
+    // Resolve tenant from middleware-injected header
+    const headersList = await headers()
+    const tenantSlug = headersList.get('x-tenant-id')
+    let tenantId: number | undefined
+
+    if (tenantSlug) {
+      const tenants = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: tenantSlug } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      tenantId = tenants.docs?.[0]?.id
+    }
+
+    if (!tenantId) {
+      const defaults = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: 'default' } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      tenantId = defaults.docs?.[0]?.id
+    }
+
+    posts = (await payload.find({
+      collection: 'posts',
+      draft: false,
+      depth: 1,
+      limit: POSTS_PER_PAGE,
+      overrideAccess: true,
+      pagination: true,
+      page,
+      where: {
+        and: [
+          { _status: { equals: 'published' } },
+          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        ],
+      },
+      select: {
+        title: true,
+        slug: true,
+        publishedOn: true,
+        meta: true,
+        hero: true,
+        categories: true,
+      },
+      sort: '-publishedOn',
+    })) as unknown as PaginatedDocs<Post>
+  } catch (err) {
+    console.error('[PostsPageNumber] Query failed:', err)
+  }
+
+  if (posts?.page && posts.page > posts.totalPages) return notFound()
 
   return (
     <div className="container py-12">
       <h1 className="mb-8 text-3xl font-bold">Posts</h1>
 
       <div className="mb-6">
-        <PageRange
-          collection="posts"
-          currentPage={posts.page}
-          limit={POSTS_PER_PAGE}
-          totalDocs={posts.totalDocs}
-        />
+        {posts && (
+          <PageRange
+            collection="posts"
+            currentPage={posts.page}
+            limit={POSTS_PER_PAGE}
+            totalDocs={posts.totalDocs}
+          />
+        )}
       </div>
 
-      {posts.docs?.length === 0 ? (
+      {!posts || posts.docs?.length === 0 ? (
         <p className="text-muted-foreground">No posts yet. Check back soon!</p>
       ) : (
         <>
