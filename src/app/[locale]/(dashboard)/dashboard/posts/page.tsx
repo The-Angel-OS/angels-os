@@ -76,26 +76,35 @@ export default async function DashboardPostsPage({
       </div>
 
       {posts.totalDocs === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <p className="mb-2 text-lg font-medium">No posts yet</p>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Write your first post to share with your community.
+        <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold">Your blog awaits!</h3>
+          <p className="mb-6 text-sm text-muted-foreground max-w-md mx-auto">
+            Share your ideas, stories, and updates with the world. Your first post is just a click away.
           </p>
-          <Link
-            href="/admin/collections/posts/create"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Write Post
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/admin/collections/posts/create"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Write Your First Post
+            </Link>
+            <Link
+              href="/dashboard/spaces"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              Ask LEO: &quot;Help me write an engaging first blog post&quot;
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
           {posts.docs.map((post: any) => {
             const status = post._status || 'draft'
-            const authorName =
-              typeof post.populatedAuthors === 'object' && Array.isArray(post.populatedAuthors)
-                ? post.populatedAuthors.map((a: any) => a.name).filter(Boolean).join(', ')
-                : null
+            const authorName: string | null = null
             const categoryNames = Array.isArray(post.categories)
               ? post.categories
                   .map((c: any) => (typeof c === 'object' ? c.title : null))

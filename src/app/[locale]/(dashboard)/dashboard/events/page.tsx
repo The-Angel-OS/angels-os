@@ -93,17 +93,29 @@ export default async function DashboardEventsPage({
       </div>
 
       {events.totalDocs === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <p className="mb-2 text-lg font-medium">No events yet</p>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Create your first event to start engaging your community.
+        <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold">No events scheduled yet</h3>
+          <p className="mb-6 text-sm text-muted-foreground max-w-md mx-auto">
+            Events bring your community together. Create a meetup, workshop, or livestream and watch your audience grow.
           </p>
-          <Link
-            href="/admin/collections/events/create"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Create Event
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/admin/collections/events/create"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Create Your First Event
+            </Link>
+            <Link
+              href="/dashboard/spaces"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              Ask LEO: &quot;Help me plan my first community event&quot;
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
@@ -201,13 +213,25 @@ function EventGroup({
                   {hostName && ` · ${hostName}`}
                 </p>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="text-xs text-muted-foreground">
-                  {event.eventType}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {event.location?.type || 'in-person'}
-                </p>
+              <div className="flex shrink-0 items-center gap-2 text-right">
+                {event.videoEmbed?.videoUrl && (
+                  <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-600" title="Has video">
+                    &#x1F3AC;
+                  </span>
+                )}
+                {Array.isArray(event.gallery) && event.gallery.length > 0 && (
+                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600" title="Gallery">
+                    &#x1F5BC; {event.gallery.length}
+                  </span>
+                )}
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {event.eventType}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {event.location?.type || 'in-person'}
+                  </p>
+                </div>
               </div>
             </Link>
           )

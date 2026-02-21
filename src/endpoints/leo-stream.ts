@@ -453,7 +453,13 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               controller.enqueue(
                 encoder.encode(sseEvent('tool_call', { name: tool.name, status: 'executing' })),
               )
-              const result = await executeToolCall(tool.name, tool.input, toolCtx)
+              let result: string
+              try {
+                result = await executeToolCall(tool.name, tool.input, toolCtx)
+              } catch (toolErr) {
+                console.error(`[LEO Stream] Tool ${tool.name} failed:`, toolErr)
+                result = `Tool execution failed: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}. I'll try to help without this tool.`
+              }
               toolResults.push({
                 type: 'tool_result',
                 tool_use_id: tool.id,

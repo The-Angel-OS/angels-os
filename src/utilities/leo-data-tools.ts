@@ -645,6 +645,42 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['orderId', 'itemIndex', 'status'],
     },
   },
+  // ─── Sprint 6: Business Setup & Stripe Connect ─────────────────
+  {
+    name: 'configure_business',
+    description:
+      'Configure the tenant business profile. Use when a user describes their business type, wants to set up their storefront, or answers business setup questions. This is the core of the "5 minutes to running" wizard flow.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        businessType: {
+          type: 'string',
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'custom'],
+          description: 'What kind of business this is',
+        },
+        tagline: { type: 'string', description: 'Short tagline or motto' },
+        description: { type: 'string', description: 'Brief description of the business' },
+        contactEmail: { type: 'string', description: 'Business contact email' },
+        contactPhone: { type: 'string', description: 'Business phone number' },
+        currency: { type: 'string', enum: ['usd', 'cad', 'eur', 'gbp', 'aud'], description: 'Default currency' },
+        shippingEnabled: { type: 'boolean', description: 'Whether to enable shipping' },
+        bookingsEnabled: { type: 'boolean', description: 'Whether to enable bookings/appointments' },
+        eventsEnabled: { type: 'boolean', description: 'Whether to enable events' },
+        digitalProductsEnabled: { type: 'boolean', description: 'Whether to enable digital products' },
+      },
+      required: ['businessType'],
+    },
+  },
+  {
+    name: 'connect_stripe_account',
+    description:
+      'Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -724,6 +760,11 @@ export async function executeToolCall(
         return await handleAcceptOrder(payload, toolInput, ctx)
       case 'update_fulfillment':
         return await handleUpdateFulfillment(payload, toolInput, ctx)
+      // ─── Sprint 6: Business Setup & Stripe ────────────────────
+      case 'configure_business':
+        return await handleConfigureBusiness(payload, toolInput, ctx)
+      case 'connect_stripe_account':
+        return await handleConnectStripe(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -1814,6 +1855,10 @@ async function handleGenerateImage(
       parts.push(`[IMAGE_DATA_URL:${result.imageDataUrl.substring(0, 100)}...]`)
     }
 
+    if (result.uploadWarning) {
+      parts.push(`\n⚠️ ${result.uploadWarning}`)
+    }
+
     if (input.productName) {
       parts.push(`\nWould you like me to attach this image to the "${input.productName}" product?`)
     } else {
@@ -2496,5 +2541,142 @@ async function handleUpdateFulfillment(
   } catch (err) {
     console.error('[LEO Tools] Error updating fulfillment:', err)
     return `Error updating fulfillment: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 6: Business Setup & Stripe Connect Handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * configure_business — The "5 minutes to running" wizard.
+ * Updates tenant settings based on conversational input from the user.
+ */
+async function handleConfigureBusiness(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  if (!tenantId) {
+    return 'Error: No tenant context available. Please ensure you are operating within a tenant.'
+  }
+
+  const businessType = input.businessType as string
+  if (!businessType) {
+    return 'Error: businessType is required.'
+  }
+
+  try {
+    // Build update data from input
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {
+      businessType,
+    }
+
+    // Storefront fields
+    const storefrontUpdate: Record<string, unknown> = {}
+    if (input.tagline) storefrontUpdate.description = undefined // will set below
+    if (input.description) storefrontUpdate.description = input.description
+    if (input.contactEmail) storefrontUpdate.contactEmail = input.contactEmail
+    if (input.contactPhone) storefrontUpdate.contactPhone = input.contactPhone
+
+    if (Object.keys(storefrontUpdate).length > 0) {
+      updateData.storefront = storefrontUpdate
+    }
+
+    // Branding tagline
+    if (input.tagline) {
+      updateData.branding = { tagline: input.tagline }
+    }
+
+    // Commerce flags
+    const commerceUpdate: Record<string, unknown> = {}
+    if (input.currency) commerceUpdate.currency = input.currency
+    if (input.shippingEnabled !== undefined) commerceUpdate.shippingEnabled = input.shippingEnabled
+    if (input.bookingsEnabled !== undefined) commerceUpdate.bookingsEnabled = input.bookingsEnabled
+    if (input.eventsEnabled !== undefined) commerceUpdate.eventsEnabled = input.eventsEnabled
+    if (input.digitalProductsEnabled !== undefined) commerceUpdate.digitalProductsEnabled = input.digitalProductsEnabled
+
+    if (Object.keys(commerceUpdate).length > 0) {
+      updateData.commerce = commerceUpdate
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'tenants',
+      id: tenantId,
+      data: updateData,
+      overrideAccess: true,
+    })
+
+    // Build friendly response
+    const typeLabels: Record<string, string> = {
+      retail: 'Retail / E-Commerce',
+      service: 'Service Business',
+      content_creator: 'Content Creator',
+      nonprofit: 'Nonprofit / Ministry',
+      professional_services: 'Professional Services',
+      custom: 'Custom',
+    }
+
+    const enabledFeatures: string[] = []
+    if (input.shippingEnabled) enabledFeatures.push('shipping')
+    if (input.bookingsEnabled) enabledFeatures.push('bookings')
+    if (input.eventsEnabled) enabledFeatures.push('events')
+    if (input.digitalProductsEnabled) enabledFeatures.push('digital products')
+
+    let response = `Business configured as "${typeLabels[businessType] || businessType}".`
+    if (enabledFeatures.length > 0) {
+      response += ` Enabled: ${enabledFeatures.join(', ')}.`
+    }
+    if (input.tagline) {
+      response += ` Tagline: "${input.tagline}".`
+    }
+    response += ' Your storefront is taking shape! Next steps: add products, set up availability, or connect Stripe for payments.'
+
+    return response
+  } catch (err) {
+    console.error('[LEO Tools] Error configuring business:', err)
+    return `Error configuring business: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * connect_stripe_account — Guides tenant through Stripe Connect onboarding.
+ * Returns the onboarding URL for the user to visit.
+ */
+async function handleConnectStripe(
+  payload: Payload,
+  _input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  if (!tenantId) {
+    return 'Error: No tenant context available. Please ensure you are operating within a tenant.'
+  }
+
+  try {
+    // Check current Stripe status
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0 }) as any
+
+    if (tenant?.stripeConnect?.stripeAccountId && tenant?.stripeConnect?.stripeOnboardingComplete) {
+      return `Your Stripe account is already connected (${tenant.stripeConnect.stripeAccountId}). Charges: ${tenant.stripeConnect.stripeChargesEnabled ? 'enabled' : 'pending'}, Payouts: ${tenant.stripeConnect.stripePayoutsEnabled ? 'enabled' : 'pending'}. You can manage your account in the Payments dashboard.`
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const setupUrl = `${baseUrl}/dashboard/admin/payments`
+
+    if (tenant?.stripeConnect?.stripeAccountId) {
+      return `You started Stripe onboarding but haven't completed it yet. Please visit your Payments dashboard to continue: ${setupUrl}`
+    }
+
+    return `To start accepting payments with the Ultimate Fair split (you receive 60% of every transaction), visit your Payments dashboard to connect Stripe: ${setupUrl}\n\nThe setup takes about 5 minutes and requires basic business information and a bank account for payouts.`
+  } catch (err) {
+    console.error('[LEO Tools] Error checking Stripe status:', err)
+    return `Error checking Stripe status: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

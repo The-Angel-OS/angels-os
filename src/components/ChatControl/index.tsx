@@ -46,5 +46,7 @@ export function ChatControl(props: ChatControlProps) {
 export { MinimalistChat } from './MinimalistChat'
 export { MultiChannelChat, SingleChannelChat } from './MultiChannelChat'
 export { SidebarChat } from './SidebarChat'
+export { SpaceSelector } from './SpaceSelector'
 export { useChat } from './useChat'
-export type { ChatControlProps, ChatMessage, ChatChannel, ChatMode } from './types'
+export { useSpaces } from './useSpaces'
+export type { ChatControlProps, ChatMessage, ChatChannel, ChatSpace, ChatMode } from './types'

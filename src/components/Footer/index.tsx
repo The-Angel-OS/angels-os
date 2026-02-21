@@ -111,10 +111,30 @@ export async function Footer({ tenant }: Props) {
             {copyrightName.length && !copyrightName.endsWith('.') ? '.' : ''} All rights reserved.
           </p>
           <hr className="mx-4 hidden h-4 w-px border-l border-neutral-400 md:inline-block" />
-          <p>Designed in Michigan</p>
-          <p className="md:ml-auto">
-            <a className="text-black dark:text-white" href="https://payloadcms.com">
-              Crafted by Payload
+          <p className="flex items-center gap-1">
+            Designed in Clearwater, FL
+            <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
+            <a
+              href="https://github.com/kgangMI/angels-os"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-black dark:text-white hover:underline"
+            >
+              Open Source
+            </a>
+          </p>
+          <p className="md:ml-auto flex items-center gap-2">
+            <span>Powered by</span>
+            <a className="text-black dark:text-white hover:underline" href="https://payloadcms.com" target="_blank" rel="noopener noreferrer">
+              Payload
+            </a>
+            <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
+            <a className="text-black dark:text-white hover:underline" href="https://nextjs.org" target="_blank" rel="noopener noreferrer">
+              Next.js
+            </a>
+            <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
+            <a className="text-black dark:text-white hover:underline" href="https://livekit.io" target="_blank" rel="noopener noreferrer">
+              LiveKit
             </a>
           </p>
         </div>

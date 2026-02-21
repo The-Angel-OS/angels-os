@@ -1,10 +1,15 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Hash, MessageSquare, Plus, X } from 'lucide-react'
+import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
+import { useSpaces } from './useSpaces'
+import { SpaceSelector } from './SpaceSelector'
+import { LiveKitButton } from './LiveKitButton'
+import { MemberPanelTrigger, MemberPanel } from './MemberPanel'
+import { ChannelSettingsPanel } from './ChannelSettingsPanel'
 import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps } from './types'
 
@@ -19,18 +24,31 @@ const CHANNEL_TYPES = [
 ]
 
 /**
- * Multi-channel mode - full dashboard with sidebar.
+ * Multi-channel mode — full dashboard with collapsible channel sidebar.
  *
- * Desktop: channel list sidebar on left, messages on right.
- * Mobile: horizontal scrollable channel tabs at top, messages below.
+ * Desktop: Space selector + collapsible channel list on left, messages on right.
+ * Mobile: Space selector pill, horizontal channel tabs, messages below.
  *
- * Channel management: "+" button to create channels, delete non-default channels.
+ * Features:
+ * - Space selector dropdown (switch between user's spaces)
+ * - Collapsible channel sidebar (toggle with button)
+ * - Channel management (create/delete)
+ * - Member panel (slide-out)
+ * - LiveKit voice/video button placeholder (channel header)
  */
 export function MultiChannelChat({
-  spaceId,
+  spaceId: initialSpaceId,
+  spaces: initialSpaces,
   channelSlug,
+  onSpaceChange,
+  liveKitEnabled,
   className = '',
 }: ChatControlProps) {
+  // Space management
+  const [activeSpaceId, setActiveSpaceId] = useState(initialSpaceId || '1')
+  const { spaces, isLoading: isLoadingSpaces } = useSpaces(initialSpaces)
+
+  // Chat for active space
   const {
     messages,
     channels,
@@ -41,14 +59,24 @@ export function MultiChannelChat({
     switchChannel,
     createChannel,
     deleteChannel,
-  } = useChat(spaceId, channelSlug)
+  } = useChat(activeSpaceId, channelSlug)
+
   const isMobile = useIsMobile()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newChannelName, setNewChannelName] = useState('')
   const [newChannelType, setNewChannelType] = useState('general')
   const [isCreating, setIsCreating] = useState(false)
+  const [channelsPanelOpen, setChannelsPanelOpen] = useState(!isMobile)
+  const [memberPanelOpen, setMemberPanelOpen] = useState(false)
+  const [channelSettingsOpen, setChannelSettingsOpen] = useState(false)
 
   const activeChannelData = channels.find((c) => c.slug === activeChannel)
+  const activeSpace = spaces.find((s) => s.id === activeSpaceId)
+
+  const handleSpaceChange = (newSpaceId: string) => {
+    setActiveSpaceId(newSpaceId)
+    onSpaceChange?.(newSpaceId)
+  }
 
   const handleCreateChannel = async () => {
     if (!newChannelName.trim() || isCreating) return
@@ -63,11 +91,32 @@ export function MultiChannelChat({
     setIsCreating(false)
   }
 
+  // LiveKit URL from env (client-side check)
+  const liveKitUrl = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_LIVEKIT_URL || '')
+    : ''
+  const showLiveKit = liveKitEnabled && Boolean(liveKitUrl)
+
   return (
     <div className={`flex h-full min-h-[500px] flex-col md:flex-row overflow-hidden rounded-lg border border-border bg-background ${className}`}>
-      {/* Channel list — sidebar on desktop, horizontal tabs on mobile */}
+
+      {/* ─── LEFT PANEL: Space selector + Collapsible channels ─── */}
       {isMobile ? (
+        /* Mobile: compact top bar with space selector + channel tabs */
         <div className="shrink-0 border-b border-border bg-muted/30">
+          {/* Space selector row */}
+          {spaces.length > 1 && (
+            <div className="border-b border-border">
+              <SpaceSelector
+                spaces={spaces}
+                activeSpaceId={activeSpaceId}
+                onSelect={handleSpaceChange}
+                isLoading={isLoadingSpaces}
+              />
+            </div>
+          )}
+
+          {/* Channel tabs (horizontal scroll) */}
           <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none">
             {isLoadingChannels ? (
               <div className="flex gap-2 px-2">
@@ -93,7 +142,6 @@ export function MultiChannelChat({
                 </button>
               ))
             )}
-            {/* Add channel button (mobile) */}
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="flex shrink-0 items-center justify-center rounded-full bg-muted p-1.5 text-muted-foreground active:bg-muted/80"
@@ -142,20 +190,48 @@ export function MultiChannelChat({
           )}
         </div>
       ) : (
-        <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-muted/30">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h3 className="text-sm font-semibold text-foreground">Channels</h3>
+        /* Desktop: collapsible sidebar */
+        <aside
+          className={`flex shrink-0 flex-col border-r border-border bg-muted/30 transition-[width] duration-200 ${
+            channelsPanelOpen ? 'w-56' : 'w-12'
+          }`}
+        >
+          {/* Space selector */}
+          <div className="border-b border-border">
+            <SpaceSelector
+              spaces={spaces}
+              activeSpaceId={activeSpaceId}
+              onSelect={handleSpaceChange}
+              isLoading={isLoadingSpaces}
+              compact={!channelsPanelOpen}
+            />
+          </div>
+
+          {/* Channels header with toggle + add button */}
+          <div className="flex items-center justify-between border-b border-border px-2 py-2">
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title="Add channel"
+              onClick={() => setChannelsPanelOpen(!channelsPanelOpen)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title={channelsPanelOpen ? 'Collapse channels' : 'Expand channels'}
             >
-              <Plus size={14} />
+              {channelsPanelOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
             </button>
+            {channelsPanelOpen && (
+              <>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channels</span>
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  title="Add channel"
+                >
+                  <Plus size={14} />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Inline create form (desktop) */}
-          {showCreateForm && (
+          {showCreateForm && channelsPanelOpen && (
             <div className="border-b border-border p-2 space-y-2">
               <input
                 type="text"
@@ -193,7 +269,8 @@ export function MultiChannelChat({
             </div>
           )}
 
-          <nav className="flex-1 overflow-y-auto p-2">
+          {/* Channel list */}
+          <nav className="flex-1 overflow-y-auto p-1">
             {isLoadingChannels ? (
               <div className="space-y-2 p-2">
                 {[1, 2, 3].map((i) => (
@@ -201,26 +278,29 @@ export function MultiChannelChat({
                 ))}
               </div>
             ) : channels.length === 0 ? (
-              <div className="p-3 text-xs text-muted-foreground">No channels yet</div>
+              channelsPanelOpen ? (
+                <div className="p-3 text-xs text-muted-foreground">No channels yet</div>
+              ) : null
             ) : (
               channels.map((ch) => (
                 <div
                   key={ch.id}
-                  className={`group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                  className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
                     ch.slug === activeChannel
                       ? 'bg-muted font-medium text-foreground'
                       : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                   }`}
+                  title={!channelsPanelOpen ? `#${ch.name}` : undefined}
                 >
                   <button
                     onClick={() => switchChannel(ch.slug)}
-                    className="flex flex-1 items-center gap-2 text-left"
+                    className="flex flex-1 items-center gap-2 text-left min-w-0"
                   >
                     <Hash size={14} className="shrink-0 opacity-50" />
-                    <span className="truncate">{ch.name}</span>
+                    {channelsPanelOpen && <span className="truncate">{ch.name}</span>}
                   </button>
-                  {/* Delete button — only for non-default channels */}
-                  {!ch.isDefault && (
+                  {/* Delete button — only for non-default channels, only when expanded */}
+                  {!ch.isDefault && channelsPanelOpen && (
                     <button
                       onClick={() => deleteChannel(ch.id)}
                       className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive group-hover:flex"
@@ -236,21 +316,39 @@ export function MultiChannelChat({
         </aside>
       )}
 
-      {/* Main chat area */}
+      {/* ─── MAIN CHAT AREA ─── */}
       <div className="flex flex-1 flex-col min-h-0">
-        {/* Channel header — hidden on mobile (tabs already show active channel) */}
+        {/* Channel header */}
         {!isMobile && (
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             <Hash size={16} className="text-muted-foreground" />
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold text-foreground">
                 {activeChannelData?.name || activeChannel}
               </h2>
               {activeChannelData?.description && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {activeChannelData.description}
                 </p>
               )}
+            </div>
+
+            {/* Right side: LiveKit + Settings + Members */}
+            <div className="flex items-center gap-1">
+              {showLiveKit && (
+                <LiveKitButton
+                  spaceId={activeSpaceId}
+                  channelSlug={activeChannel}
+                />
+              )}
+              <button
+                onClick={() => setChannelSettingsOpen(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Channel settings"
+              >
+                <Settings size={14} />
+              </button>
+              <MemberPanelTrigger onClick={() => setMemberPanelOpen(true)} />
             </div>
           </div>
         )}
@@ -265,6 +363,20 @@ export function MultiChannelChat({
           placeholder={`Message #${activeChannelData?.name || activeChannel}...`}
         />
       </div>
+
+      {/* Member panel overlay */}
+      <MemberPanel
+        spaceId={Number(activeSpaceId)}
+        isOpen={memberPanelOpen}
+        onClose={() => setMemberPanelOpen(false)}
+      />
+
+      {/* Channel settings panel */}
+      <ChannelSettingsPanel
+        channel={activeChannelData || null}
+        isOpen={channelSettingsOpen}
+        onClose={() => setChannelSettingsOpen(false)}
+      />
     </div>
   )
 }

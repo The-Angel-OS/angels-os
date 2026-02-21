@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
 import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
+import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 
 export const Events: CollectionConfig = {
   slug: 'events',
@@ -73,6 +74,85 @@ export const Events: CollectionConfig = {
       admin: {
         description: 'Hero/cover image for the event',
       },
+    },
+    {
+      name: 'videoEmbed',
+      type: 'group',
+      admin: {
+        description: 'Embed a video recording or livestream',
+      },
+      fields: [
+        {
+          name: 'provider',
+          type: 'select',
+          options: [
+            { label: 'YouTube', value: 'youtube' },
+            { label: 'Vimeo', value: 'vimeo' },
+            { label: 'Twitch', value: 'twitch' },
+            { label: 'Custom', value: 'custom' },
+          ],
+          admin: {
+            description: 'Video platform (auto-detected from URL)',
+          },
+        },
+        {
+          name: 'videoUrl',
+          type: 'text',
+          admin: {
+            description: 'Paste the video URL (e.g., YouTube, Vimeo, Twitch)',
+          },
+        },
+        {
+          name: 'embedUrl',
+          type: 'text',
+          admin: {
+            readOnly: true,
+            description: 'Auto-computed embeddable URL — do not edit',
+          },
+        },
+      ],
+    },
+    {
+      name: 'gallery',
+      type: 'array',
+      admin: {
+        description: 'Event photos — venue, speakers, promos, recaps',
+      },
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+        },
+        {
+          name: 'caption',
+          type: 'text',
+          admin: {
+            description: 'Optional caption for the image',
+          },
+        },
+        {
+          name: 'category',
+          type: 'select',
+          options: [
+            { label: 'Venue', value: 'venue' },
+            { label: 'Speaker', value: 'speaker' },
+            { label: 'Promo', value: 'promo' },
+            { label: 'Recap', value: 'recap' },
+            { label: 'Sponsor', value: 'sponsor' },
+          ],
+          defaultValue: 'recap',
+        },
+        {
+          name: 'isFeatured',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Feature this image prominently',
+          },
+        },
+      ],
     },
     {
       name: 'host',
@@ -361,6 +441,16 @@ export const Events: CollectionConfig = {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '')
+        }
+
+        // Auto-compute video embed URL from videoUrl
+        if (data.videoEmbed?.videoUrl) {
+          const result = computeEmbedUrl(data.videoEmbed.videoUrl, data.videoEmbed?.provider)
+          data.videoEmbed = {
+            ...data.videoEmbed,
+            provider: result.provider,
+            embedUrl: result.embedUrl || '',
+          }
         }
 
         // Calculate endDateTime from start + duration

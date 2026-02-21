@@ -25,11 +25,18 @@ import { extractTextFromContent } from './messageContent'
 
 // ---------------------------------------------------------------------------
 // LLM Client (lazy singleton — avoids import-time side effects on Vercel)
+// Supports per-tenant BYOAI keys (Sprint 6) with fallback to platform key.
 // ---------------------------------------------------------------------------
 
 let _anthropic: Anthropic | null = null
 
-function getAnthropicClient(): Anthropic | null {
+function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
+  // If a tenant-specific key is provided, create a fresh client (not cached)
+  if (tenantApiKey) {
+    return new Anthropic({ apiKey: tenantApiKey })
+  }
+
+  // Otherwise use the platform singleton
   if (_anthropic) return _anthropic
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
@@ -111,7 +118,9 @@ export class ConversationEngine {
   private async generateResponse(
     userMessage: MessageContent,
   ): Promise<MessageContent | null> {
-    const client = getAnthropicClient()
+    // Sprint 6: Check for tenant-specific Anthropic API key (BYOAI)
+    const tenantAnthropicKey = this.context.sessionMemory?.tenantAnthropicApiKey as string | undefined
+    const client = getAnthropicClient(tenantAnthropicKey)
     if (!client) {
       return this.buildFallbackResponse(userMessage)
     }

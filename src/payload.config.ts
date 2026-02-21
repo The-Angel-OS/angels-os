@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 loadEnv(projectRoot)
 
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import sharp from 'sharp'
@@ -47,6 +48,8 @@ import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
 import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
+import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
+import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -55,12 +58,18 @@ import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
 import { aiBusStreamHandler } from '@/endpoints/ai-bus-stream'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
+import { inviteResendHandler } from '@/endpoints/invite-resend'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
 import { spaceMembersRemoveHandler } from '@/endpoints/space-members'
 import { orderRouteHandler } from '@/endpoints/order-route'
 import { orderAcceptHandler } from '@/endpoints/order-accept'
 import { orderFulfillHandler } from '@/endpoints/order-fulfill'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
+import { stripeConnectOnboardHandler } from '@/endpoints/stripe-connect-onboard'
+import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callback'
+import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
+import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
+import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -106,6 +115,8 @@ export default buildConfig({
     Categories,
     Media,
     HolonCapabilities,
+    JusticeFundTransactions,
+    ProcessedStripeEvents,
   ],
   db: postgresAdapter({
     pool: {
@@ -148,6 +159,7 @@ export default buildConfig({
         // ─── System ──────────────────────────────────────────
         workflows: {},
         'holon-capabilities': {},
+        'justice-fund-transactions': {},
         header: { isGlobal: true },
         footer: { isGlobal: true },
       },
@@ -201,7 +213,22 @@ export default buildConfig({
       ]
     },
   }),
-  //email: nodemailerAdapter(),
+  ...(process.env.SMTP_HOST
+    ? {
+        email: nodemailerAdapter({
+          defaultFromAddress: process.env.SMTP_FROM_ADDRESS || 'noreply@angelos.app',
+          defaultFromName: process.env.SMTP_FROM_NAME || 'Angel OS',
+          transportOptions: {
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          },
+        }),
+      }
+    : {}),
   endpoints: [
     {
       path: '/leo',
@@ -306,6 +333,11 @@ export default buildConfig({
       handler: spaceInviteHandler,
     },
     {
+      path: '/spaces/invite/resend',
+      method: 'post',
+      handler: inviteResendHandler,
+    },
+    {
       path: '/invite/accept',
       method: 'post',
       handler: inviteAcceptHandler,
@@ -335,6 +367,32 @@ export default buildConfig({
       path: '/orders/vendor',
       method: 'get',
       handler: ordersVendorHandler,
+    },
+    // ─── Stripe Connect Endpoints (Sprint 6) ─────────────────────
+    {
+      path: '/stripe/connect/onboard',
+      method: 'post',
+      handler: stripeConnectOnboardHandler,
+    },
+    {
+      path: '/stripe/connect/callback',
+      method: 'post',
+      handler: stripeConnectCallbackHandler,
+    },
+    {
+      path: '/stripe/connect/dashboard-link',
+      method: 'post',
+      handler: stripeConnectDashboardHandler,
+    },
+    {
+      path: '/stripe/webhooks',
+      method: 'post',
+      handler: stripeWebhooksHandler,
+    },
+    {
+      path: '/livekit/token',
+      method: 'post',
+      handler: liveKitTokenHandler,
     },
   ],
   globals: [],

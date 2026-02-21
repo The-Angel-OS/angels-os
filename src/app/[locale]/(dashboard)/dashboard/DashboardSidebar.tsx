@@ -14,6 +14,12 @@ import { useIsMobile } from '@/utilities/useMediaQuery'
  * Client component for interactivity (collapse toggle, active state tracking).
  */
 
+interface TenantBranding {
+  siteName: string
+  logoUrl: string | null
+  primaryColor: string | null
+}
+
 interface DashboardSidebarProps {
   prefix: string
   isAdmin: boolean
@@ -21,6 +27,7 @@ interface DashboardSidebarProps {
   userName: string
   userEmail: string
   userInitials: string
+  tenantBranding?: TenantBranding | null
 }
 
 export function DashboardSidebar({
@@ -30,6 +37,7 @@ export function DashboardSidebar({
   userName,
   userEmail,
   userInitials,
+  tenantBranding,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -85,10 +93,8 @@ export function DashboardSidebar({
           {/* Logo / Brand — with close button */}
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
             <Link href={`${prefix}/dashboard`} className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-                A
-              </span>
-              <span className="text-sm font-semibold">Angel OS</span>
+              <TenantLogo branding={tenantBranding} />
+              <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
             </Link>
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -135,21 +141,17 @@ export function DashboardSidebar({
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >
-      {/* Logo / Brand */}
+      {/* Logo / Brand — Tenant Branding */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
         {!isCollapsed && (
-          <Link href={`${prefix}/dashboard`} className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-              A
-            </span>
-            <span className="text-sm font-semibold">Angel OS</span>
+          <Link href={`${prefix}/dashboard`} className="flex items-center gap-2 min-w-0">
+            <TenantLogo branding={tenantBranding} />
+            <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
           </Link>
         )}
         {isCollapsed && (
           <Link href={`${prefix}/dashboard`} className="mx-auto">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-              A
-            </span>
+            <TenantLogo branding={tenantBranding} />
           </Link>
         )}
         <button
@@ -273,6 +275,15 @@ export function DashboardSidebar({
             </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/suitcase`} icon={<PackageIcon />} collapsed={isCollapsed} active={false}>
               Suitcase
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/payments`} icon={<CreditCardIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/payments')}>
+              Payments
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/invitations')}>
+              Invitations
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/ai-settings')}>
+              AI Settings
             </NavLink>
           </NavSection>
         )}
@@ -468,6 +479,15 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/admin/suitcase`} icon={<PackageIcon />} collapsed={false} active={false}>
             Suitcase
           </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/payments`} icon={<CreditCardIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/payments')}>
+            Payments
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/invitations')}>
+            Invitations
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/ai-settings')}>
+            AI Settings
+          </NavLink>
         </NavSection>
       )}
     </div>
@@ -613,5 +633,55 @@ function HolonIcon() {
       <circle cx="12" cy="12" r="9" strokeWidth={1.5} strokeDasharray="4 2" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v3m0 12v3M3 12h3m12 0h3" />
     </svg>
+  )
+}
+
+function CreditCardIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  )
+}
+
+function MailIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function SparkleIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  )
+}
+
+// ─── Tenant Logo ────────────────────────────────────────────────
+
+/** Renders the tenant logo or a branded initial letter */
+function TenantLogo({ branding }: { branding?: TenantBranding | null }) {
+  if (branding?.logoUrl) {
+    return (
+      <img
+        src={branding.logoUrl}
+        alt={branding.siteName}
+        className="h-7 w-7 shrink-0 rounded-md object-cover"
+      />
+    )
+  }
+
+  const initial = (branding?.siteName || 'A')[0].toUpperCase()
+
+  return (
+    <span
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground"
+      style={branding?.primaryColor ? { backgroundColor: branding.primaryColor } : undefined}
+    >
+      {initial}
+    </span>
   )
 }

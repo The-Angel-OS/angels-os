@@ -76,17 +76,29 @@ export default async function DashboardPagesPage({
       </div>
 
       {pages.totalDocs === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center">
-          <p className="mb-2 text-lg font-medium">No pages yet</p>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Create your first page to build your site.
+        <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold">Build your site, one page at a time</h3>
+          <p className="mb-6 text-sm text-muted-foreground max-w-md mx-auto">
+            Pages are the building blocks of your website. Start with a homepage and add more as your site grows.
           </p>
-          <Link
-            href="/admin/collections/pages/create"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Create Page
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/admin/collections/pages/create"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Create Your First Page
+            </Link>
+            <Link
+              href="/dashboard/spaces"
+              className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              Ask LEO: &quot;Help me design my site layout&quot;
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

@@ -10,6 +10,10 @@
 .playwright
 playwright-report/
 playwright-report/index.html
+tests/e2e/.auth/
+
+# storybook
+storybook-static/
 
 # next.js
 /.next/
@@ -40,4 +44,11 @@ yarn-error.log*
 next-env.d.ts
 
 public/media
+
+# Claude Code local settings
+.claude/
+
+# Temp/test output
+test-output.txt
+nul
 
