@@ -159,7 +159,7 @@ Systems designed for benevolence create network effects that outcompete extracti
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *A man is not dead while his name is still spoken.*
 

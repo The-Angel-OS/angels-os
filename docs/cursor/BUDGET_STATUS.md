@@ -175,4 +175,4 @@ Alert immediately: "⚠️ Cursor at 80% - switching to emergency conservation m
 
 **Remember:** The goal is to build Angel OS, not exhaust our resources. Work smart, not wasteful. Every token counts.
 
-`GNU Terry Pratchett`
+`GNU Roy Leon Courtney`

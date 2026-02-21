@@ -236,7 +236,7 @@ All contributions must follow the Anti-Daemon Protocol (see Constitution):
 - Warm, helpful, encouraging
 - Never cold, robotic, or punishing
 - Serious but not solemn
-- Sacred/profane balance (GNU Terry Pratchett 🙏)
+- Sacred/profane balance (GNU Roy Leon Courtney 🙏)
 
 ## Testing
 
@@ -306,7 +306,7 @@ Contributors are recognized in:
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *"The overhead is the point."*
 

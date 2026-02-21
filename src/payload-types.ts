@@ -95,6 +95,7 @@ export interface Config {
     media: Media;
     'holon-capabilities': HolonCapability;
     'justice-fund-transactions': JusticeFundTransaction;
+    'processed-stripe-events': ProcessedStripeEvent;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -147,6 +148,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'holon-capabilities': HolonCapabilitiesSelect<false> | HolonCapabilitiesSelect<true>;
     'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
+    'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -170,13 +172,7 @@ export interface Config {
   globals: {};
   globalsSelect: {};
   locale: null;
-  user:
-    | (User & {
-        collection: 'users';
-      })
-    | (PayloadMcpApiKey & {
-        collection: 'payload-mcp-api-keys';
-      });
+  user: User | PayloadMcpApiKey;
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -586,6 +582,7 @@ export interface User {
       }[]
     | null;
   password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2058,6 +2055,41 @@ export interface Event {
    */
   coverImage?: (number | null) | Media;
   /**
+   * Embed a video recording or livestream
+   */
+  videoEmbed?: {
+    /**
+     * Video platform (auto-detected from URL)
+     */
+    provider?: ('youtube' | 'vimeo' | 'twitch' | 'custom') | null;
+    /**
+     * Paste the video URL (e.g., YouTube, Vimeo, Twitch)
+     */
+    videoUrl?: string | null;
+    /**
+     * Auto-computed embeddable URL — do not edit
+     */
+    embedUrl?: string | null;
+  };
+  /**
+   * Event photos — venue, speakers, promos, recaps
+   */
+  gallery?:
+    | {
+        image: number | Media;
+        /**
+         * Optional caption for the image
+         */
+        caption?: string | null;
+        category?: ('venue' | 'speaker' | 'promo' | 'recap' | 'sponsor') | null;
+        /**
+         * Feature this image prominently
+         */
+        isFeatured?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Event organizer
    */
   host: number | User;
@@ -2806,6 +2838,25 @@ export interface JusticeFundTransaction {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "processed-stripe-events".
+ */
+export interface ProcessedStripeEvent {
+  id: number;
+  /**
+   * Stripe event ID (evt_...)
+   */
+  eventId: string;
+  /**
+   * Stripe event type (e.g., payment_intent.succeeded)
+   */
+  eventType: string;
+  /**
+   * When the event was processed
+   */
+  processedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -3014,6 +3065,7 @@ export interface PayloadMcpApiKey {
   enableAPIKey?: boolean | null;
   apiKey?: string | null;
   apiKeyIndex?: string | null;
+  collection: 'payload-mcp-api-keys';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3126,6 +3178,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'justice-fund-transactions';
         value: number | JusticeFundTransaction;
+      } | null)
+    | ({
+        relationTo: 'processed-stripe-events';
+        value: number | ProcessedStripeEvent;
       } | null)
     | ({
         relationTo: 'forms';
@@ -3579,6 +3635,22 @@ export interface EventsSelect<T extends boolean = true> {
   eventType?: T;
   status?: T;
   coverImage?: T;
+  videoEmbed?:
+    | T
+    | {
+        provider?: T;
+        videoUrl?: T;
+        embedUrl?: T;
+      };
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        category?: T;
+        isFeatured?: T;
+        id?: T;
+      };
   host?: T;
   startDateTime?: T;
   endDateTime?: T;
@@ -4190,6 +4262,15 @@ export interface JusticeFundTransactionsSelect<T extends boolean = true> {
   processedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "processed-stripe-events_select".
+ */
+export interface ProcessedStripeEventsSelect<T extends boolean = true> {
+  eventId?: T;
+  eventType?: T;
+  processedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

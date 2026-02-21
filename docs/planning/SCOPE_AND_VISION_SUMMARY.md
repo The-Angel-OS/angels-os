@@ -244,7 +244,7 @@ Without these, Angel OS is a tech demo. With these, it's a real business platfor
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *"The overhead is the point."*
 

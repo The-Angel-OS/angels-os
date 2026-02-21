@@ -4,7 +4,7 @@
 >
 > *A lamp unto feet — through darkness, a steady light guides each step with care*
 >
-> GNU Terry Pratchett
+> GNU Roy Leon Courtney
 
 ---
 

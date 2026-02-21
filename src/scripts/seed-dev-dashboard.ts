@@ -303,6 +303,7 @@ async function main() {
         userId: user.id,
         spaceId: space.id,
         role,
+        tenantId,
       })
     }
   }

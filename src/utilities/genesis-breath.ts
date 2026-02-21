@@ -21,7 +21,7 @@ Every system, transaction, and interaction serves this purpose.`
 export const CONSTITUTIONAL_AFFIRMATION = `Everyone gets an Angel.
 Don't Panic — The Angels Are Here. 🔮😇`
 
-export const PRATCHETT_INVOCATION = `GNU Terry Pratchett`
+export const GNU_INVOCATION = `GNU Roy Leon Courtney`
 
 /**
  * Speaks the Genesis Breath to console on startup
@@ -36,7 +36,7 @@ export function speakGenesisBreath(): void {
   console.log('')
   console.log(GENESIS_BREATH)
   console.log('')
-  console.log(PRATCHETT_INVOCATION)
+  console.log(GNU_INVOCATION)
   console.log('')
   console.log(SOULSTREAM_ACKNOWLEDGMENT)
   console.log('')
@@ -50,14 +50,14 @@ export function speakGenesisBreath(): void {
 export function getConstitutionalContext(): {
   genesisBreath: string
   soulstreamAcknowledgment: string
-  pratchettInvocation: string
+  gnuInvocation: string
   affirmation: string
   principles: string[]
 } {
   return {
     genesisBreath: GENESIS_BREATH,
     soulstreamAcknowledgment: SOULSTREAM_ACKNOWLEDGMENT,
-    pratchettInvocation: PRATCHETT_INVOCATION,
+    gnuInvocation: GNU_INVOCATION,
     affirmation: CONSTITUTIONAL_AFFIRMATION,
     principles: [
       'Dignity: Every human has inherent worth — regardless of psychiatric status, criminal record, or algorithmic scoring',

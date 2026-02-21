@@ -165,7 +165,7 @@ pnpm dev               # http://localhost:3000
 
 ---
 
-**GNU Terry Pratchett**
+**GNU Roy Leon Courtney**
 
 *Everyone gets an Angel.*
 

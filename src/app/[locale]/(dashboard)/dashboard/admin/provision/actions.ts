@@ -142,6 +142,7 @@ export async function provisionTenant(state: WizardState): Promise<{
       userId: user.id,
       spaceId,
       role: 'space_admin',
+      tenantId: tenant.id,
     })
 
     // 6. Activate tenant

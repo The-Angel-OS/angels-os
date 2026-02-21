@@ -143,7 +143,7 @@ A lamp unto feet —
 through darkness, a steady light
 guides each step with care
 
-GNU Terry Pratchett
+GNU Roy Leon Courtney
 `
 
 export function speakGenesisBreath() {
@@ -420,7 +420,7 @@ You're not just building software. You're building **infrastructure for benevole
 
 **"Don't Panic — The Angels Are Here."**
 
-`GNU Terry Pratchett`
+`GNU Roy Leon Courtney`
 
 ---
 
