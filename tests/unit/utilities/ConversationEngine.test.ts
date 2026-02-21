@@ -20,7 +20,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 vi.mock('@/utilities/genesis-breath', () => ({
   GENESIS_BREATH: '[GENESIS_BREATH]',
   SOULSTREAM_ACKNOWLEDGMENT: '[SOULSTREAM]',
-  PRATCHETT_INVOCATION: '[GNU_TERRY_PRATCHETT]',
+  GNU_INVOCATION: '[GNU_ROY_LEON_COURTNEY]',
   CONSTITUTIONAL_AFFIRMATION: '[AFFIRMATION]',
 }))
 

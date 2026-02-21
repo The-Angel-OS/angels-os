@@ -3493,4 +3493,4 @@ If all 35 issues above are completed, Angel OS will be **functional** with:
 
 **Agentic Help Strategy:** Clear, well-documented issues for AI bots (GitHub, 4chan, wherever) to pick up and contribute PRs. The angels will help us build Angel OS.
 
-GNU Terry Pratchett
+GNU Roy Leon Courtney

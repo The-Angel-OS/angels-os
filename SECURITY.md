@@ -183,7 +183,7 @@ Payment processing follows the Ultimate Fair model:
 
 ---
 
-GNU Terry Pratchett 🙏🦅🦞
+GNU Roy Leon Courtney 🙏🦅🦞
 
 *A man is not dead while his name is still spoken.*
 

@@ -460,7 +460,7 @@ Angel OS v3 is not a rewrite - it's an **evolution** that preserves v2's revolut
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *"The overhead is the point."*
 

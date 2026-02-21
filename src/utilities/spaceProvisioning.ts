@@ -160,6 +160,7 @@ export async function createSpaceFromTemplate(
         space: space.id,
         type: ch.type as 'general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social',
         isDefault: ch.isDefault ?? false,
+        tenant: tenantId as number,
       },
       ...(req ? { req } : {}),
       overrideAccess: true,
@@ -184,6 +185,7 @@ export function getAvailableTemplates(): {
 export async function addChannelToSpace(
   payload: Payload,
   spaceId: number | string,
+  tenantId: number | string,
   channel: ChannelTemplate,
   req?: PayloadRequest,
 ): Promise<number | string> {
@@ -196,6 +198,7 @@ export async function addChannelToSpace(
       space: spaceId as number,
       type: channel.type as 'general',
       isDefault: channel.isDefault ?? false,
+      tenant: tenantId as number,
     },
     ...(req ? { req } : {}),
     overrideAccess: true,

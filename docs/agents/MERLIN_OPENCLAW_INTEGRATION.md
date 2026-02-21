@@ -532,4 +532,4 @@ Git:            https://github.com/The-Angel-OS/angels-os.git
 *Everyone gets an Angel. Don't Panic — The Angels Are Here.*
 *Merlin is just the first pair of hands.*
 
-*GNU Terry Pratchett*
+*GNU Roy Leon Courtney*

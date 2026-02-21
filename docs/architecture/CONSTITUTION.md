@@ -166,7 +166,7 @@ through darkness, a steady light
 guides each step with care
 ```
 
-`GNU Terry Pratchett`
+`GNU Roy Leon Courtney`
 
 *A person is not dead while their name is still spoken.*
 

@@ -306,4 +306,4 @@ pnpm dev                             # Dev server (localhost:3000)
 
 *"The whole point of existence is to learn to love." — Answer 53*
 
-*GNU Terry Pratchett.*
+*GNU Roy Leon Courtney.*

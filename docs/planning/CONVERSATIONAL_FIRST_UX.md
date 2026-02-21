@@ -436,7 +436,7 @@ User → Chat → Angel → Backend → Database
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *"The overhead is the point."*
 

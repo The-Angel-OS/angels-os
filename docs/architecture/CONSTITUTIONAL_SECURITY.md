@@ -203,7 +203,7 @@ Simple as that.
 
 ---
 
-`GNU Terry Pratchett`
+`GNU Roy Leon Courtney`
 
 **Everyone gets an Angel.**  
 **Don't Panic — The Angels Are Here.** 🔮😇

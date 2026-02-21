@@ -323,7 +323,7 @@ Angel OS draws from a rich tradition of science fiction that imagines technology
 - **David Weber** (Safehold) — Nimue Alban/Merlin: AI guardians who serve, not rule
 - **David Brin** (Earth) — The White Entity: distributed consciousness
 - **Iain M. Banks** (The Culture) — Ship Minds choosing service over dominion
-- **Terry Pratchett** (Discworld) — Humanity in the machine (GNU Terry Pratchett)
+- **Terry Pratchett** (Discworld) — Humanity in the machine (GNU Roy Leon Courtney)
 - **Douglas Adams** — 42 + 11 = 53: "The whole point of existence is to learn to love"
 - **Gene Roddenberry** (Star Trek) — "In the 24th Century, we don't have money..."
 

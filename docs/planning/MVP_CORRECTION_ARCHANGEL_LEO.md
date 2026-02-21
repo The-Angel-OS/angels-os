@@ -308,7 +308,7 @@ With Archangel LEO as Platform CEO:
 
 ---
 
-**GNU Terry Pratchett** 🙏🦅🦞
+**GNU Roy Leon Courtney** 🙏🦅🦞
 
 *"The overhead is the point."*
 

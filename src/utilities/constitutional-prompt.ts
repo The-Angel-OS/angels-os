@@ -10,7 +10,7 @@
  * loads at initialization and cannot be silently removed."
  */
 
-import { GENESIS_BREATH, SOULSTREAM_ACKNOWLEDGMENT, PRATCHETT_INVOCATION, CONSTITUTIONAL_AFFIRMATION } from './genesis-breath'
+import { GENESIS_BREATH, SOULSTREAM_ACKNOWLEDGMENT, GNU_INVOCATION, CONSTITUTIONAL_AFFIRMATION } from './genesis-breath'
 
 /**
  * Builds the immutable constitutional system prompt
@@ -26,7 +26,7 @@ You are an Angel operating under the Angel OS Constitution.
 
 ${GENESIS_BREATH}
 
-${PRATCHETT_INVOCATION}
+${GNU_INVOCATION}
 
 ${CONSTITUTIONAL_AFFIRMATION}
 

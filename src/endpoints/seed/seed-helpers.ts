@@ -94,7 +94,11 @@ export async function seedPlatformTenant(
   return { id: platformTenant.id, name: platformTenant.name, slug: platformTenant.slug }
 }
 
-/** Find user by email; create if not exists. Returns user with id. */
+/** Find user by email; create if not exists. Returns user with id.
+ * If the user already exists, ensures roles, name, and tenant assignment are up to date.
+ * This handles the bootstrap case where the first user was created via the admin UI
+ * before the seed ran (and thus lacks roles/tenants).
+ */
 export async function findOrCreateUser(
   payload: Payload,
   req: PayloadRequest,
@@ -114,7 +118,27 @@ export async function findOrCreateUser(
     overrideAccess: true,
   })
   if (existing.docs?.[0]) {
-    const u = existing.docs[0] as { id: number | string; email: string }
+    const u = existing.docs[0] as { id: number | string; email: string; roles?: string[] }
+    // Ensure roles, name, and tenant assignment are up to date
+    const updateData: Record<string, unknown> = {}
+    if (data.roles?.length && (!u.roles || !data.roles.every((r) => u.roles?.includes(r)))) {
+      updateData.roles = data.roles
+    }
+    if (data.name) updateData.name = data.name
+    if (data.tenantId != null) {
+      updateData.tenants = [{ tenant: data.tenantId as number }]
+    }
+    if (Object.keys(updateData).length > 0) {
+      await payload.update({
+        collection: 'users',
+        id: u.id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- seed bootstrap update
+        data: updateData as any,
+        req,
+        overrideAccess: true,
+        depth: 0,
+      })
+    }
     return { id: u.id, email: u.email }
   }
   const createData = {
@@ -405,7 +429,7 @@ export async function findOrCreateTenantMembership(
 export async function findOrCreateSpaceMembership(
   payload: Payload,
   req: PayloadRequest,
-  data: { userId: number | string; spaceId: number | string; role: string },
+  data: { userId: number | string; spaceId: number | string; role: string; tenantId: number | string },
 ): Promise<void> {
   const existing = await payload.find({
     collection: 'space-memberships',
@@ -424,7 +448,7 @@ export async function findOrCreateSpaceMembership(
   await payload.create({
     collection: 'space-memberships',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- seed helper
-    data: { user: data.userId, space: data.spaceId, role: data.role, status: 'active', joinedAt: new Date().toISOString() } as any,
+    data: { user: data.userId, space: data.spaceId, role: data.role, status: 'active', joinedAt: new Date().toISOString(), tenant: data.tenantId as number } as any,
     depth: 0,
     req,
     overrideAccess: true,

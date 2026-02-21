@@ -248,8 +248,8 @@ export const seed = async ({
   )
   payload.logger.info(`— Angel OS Support space: ${supportSpaceId}`)
 
-  await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId, role: 'space_admin' })
-  await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: supportSpaceId, role: 'space_admin' })
+  await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId, role: 'space_admin', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: supportSpaceId, role: 'space_admin', tenantId: defaultTenantId })
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 5: Use-Case Tenants (exercises provisioning engine)
@@ -281,7 +281,7 @@ export const seed = async ({
     payload.logger.info(`  ✓ Space: "${uc.spaceName}" (${channelIds.length} channels)`)
 
     await findOrCreateTenantMembership(payload, req, { userId: adminUserId, tenantId: tenant.id, role: 'tenant_admin' })
-    await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: ucSpaceId, role: 'space_admin' })
+    await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: ucSpaceId, role: 'space_admin', tenantId: tenant.id })
 
     // Seed posts for this tenant
     for (const p of uc.posts) {

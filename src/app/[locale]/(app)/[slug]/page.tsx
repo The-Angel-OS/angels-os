@@ -13,27 +13,32 @@ import type { Page } from '@/payload-types'
 import { notFound } from 'next/navigation'
 
 export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  const pages = await payload.find({
-    collection: 'pages',
-    draft: false,
-    limit: 1000,
-    overrideAccess: false,
-    pagination: false,
-    select: {
-      slug: true,
-    },
-  })
-
-  const params = pages.docs
-    ?.filter((doc) => {
-      return doc.slug !== 'home'
-    })
-    .map(({ slug }) => {
-      return { slug }
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const pages = await payload.find({
+      collection: 'pages',
+      draft: false,
+      limit: 1000,
+      overrideAccess: false,
+      pagination: false,
+      select: {
+        slug: true,
+      },
     })
 
-  return params
+    const params = pages.docs
+      ?.filter((doc) => {
+        return doc.slug !== 'home'
+      })
+      .map(({ slug }) => {
+        return { slug }
+      })
+
+    return params
+  } catch {
+    // Database may be empty or unavailable during build — return empty params
+    return []
+  }
 }
 
 type Args = {
@@ -80,38 +85,43 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 }
 
 const queryPageBySlug = async ({ slug }: { slug: string }) => {
-  const { isEnabled: draft } = await draftMode()
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
+  try {
+    const { isEnabled: draft } = await draftMode()
+    const headersList = await headers()
+    const tenantSlug = headersList.get('x-tenant-id')
 
-  const payload = await getPayload({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant ID from slug for multi-tenant filtering
-  let tenantId: number | undefined
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
+    // Resolve tenant ID from slug for multi-tenant filtering
+    let tenantId: number | undefined
+    if (tenantSlug) {
+      const tenants = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: tenantSlug } },
+        limit: 1,
+        depth: 0,
+      })
+      tenantId = tenants.docs?.[0]?.id
+    }
+
+    const result = await payload.find({
+      collection: 'pages',
+      draft,
       limit: 1,
-      depth: 0,
+      overrideAccess: true, // Public pages must be readable without auth
+      pagination: false,
+      where: {
+        and: [
+          { slug: { equals: slug } },
+          ...(draft ? [] : [{ _status: { equals: 'published' } }]),
+          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        ],
+      },
     })
-    tenantId = tenants.docs?.[0]?.id
+
+    return result.docs?.[0] || null
+  } catch (err) {
+    console.error('[queryPageBySlug] Query failed — falling back to static data:', err)
+    return null
   }
-
-  const result = await payload.find({
-    collection: 'pages',
-    draft,
-    limit: 1,
-    overrideAccess: true, // Public pages must be readable without auth
-    pagination: false,
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
-      ],
-    },
-  })
-
-  return result.docs?.[0] || null
 }
