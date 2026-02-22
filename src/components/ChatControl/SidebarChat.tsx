@@ -6,6 +6,7 @@ import { Backdrop } from '@/components/Backdrop'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
+import { useChatContext } from './ChatProvider'
 import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps } from './types'
 
@@ -15,7 +16,8 @@ import type { ChatControlProps } from './types'
  * Desktop: collapsible panel (w-96) that slides in from the right.
  * Mobile: full-screen overlay with backdrop.
  *
- * Now channel-aware: dropdown to switch between channels in the active space.
+ * Sprint 12: Consumes ChatProvider when available for persistent LEO DMs.
+ * Falls back to direct useChat() when no provider (safety net).
  */
 export function SidebarChat({
   spaceId,
@@ -25,18 +27,36 @@ export function SidebarChat({
   const [isExpanded, setIsExpanded] = useState(false)
   const [showChannelMenu, setShowChannelMenu] = useState(false)
   const isMobile = useIsMobile()
-  const {
-    messages,
-    channels,
-    activeChannel,
-    isLoading,
-    isLoadingChannels,
-    isLoadingMore,
-    hasMore,
-    sendMessage,
-    switchChannel,
-    loadMoreMessages,
-  } = useChat(spaceId, channelSlug)
+
+  // Try ChatProvider context first (persistent LEO DM)
+  const chatCtx = useChatContext()
+
+  // Fallback: direct useChat for when no provider is available
+  const directChat = useChat(spaceId, channelSlug)
+
+  // Determine which state source to use
+  const hasProvider = chatCtx !== null
+  const leoDM = chatCtx?.leoDMChannel
+
+  // If provider is available and has LEO DM, navigate to it on mount
+  useEffect(() => {
+    if (hasProvider && leoDM && chatCtx) {
+      chatCtx.switchChannel(leoDM.slug)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasProvider, leoDM?.slug])
+
+  // Select the right state source
+  const messages = hasProvider ? chatCtx!.messages : directChat.messages
+  const channels = hasProvider ? chatCtx!.channels : directChat.channels
+  const activeChannel = hasProvider ? chatCtx!.activeChannelSlug : directChat.activeChannel
+  const isLoading = hasProvider ? chatCtx!.isLoading : directChat.isLoading
+  const isLoadingChannels = hasProvider ? chatCtx!.isLoadingChannels : directChat.isLoadingChannels
+  const isLoadingMore = hasProvider ? chatCtx!.isLoadingMore : directChat.isLoadingMore
+  const hasMore = hasProvider ? chatCtx!.hasMore : directChat.hasMore
+  const sendMessage = hasProvider ? chatCtx!.sendMessage : directChat.sendMessage
+  const switchChannel = hasProvider ? chatCtx!.switchChannel : directChat.switchChannel
+  const loadMoreMessages = hasProvider ? chatCtx!.loadMoreMessages : directChat.loadMoreMessages
 
   // Lock body scroll when mobile overlay is open
   useEffect(() => {
@@ -49,6 +69,7 @@ export function SidebarChat({
   }, [isMobile, isExpanded])
 
   const activeChannelData = channels.find((c) => c.slug === activeChannel)
+  const displayName = leoDM ? 'LEO DM' : activeChannelData?.name || activeChannel || 'general'
 
   return (
     <>
@@ -92,19 +113,23 @@ export function SidebarChat({
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-foreground">LEO Assistant</h3>
-                {/* Channel selector */}
+                {/* Channel selector — show DM badge or channel name */}
                 <div className="relative">
                   <button
                     onClick={() => setShowChannelMenu(!showChannelMenu)}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Hash size={10} />
-                    <span className="truncate max-w-[120px]">
-                      {activeChannelData?.name || activeChannel || 'general'}
-                    </span>
-                    <ChevronDown size={10} />
+                    {leoDM ? (
+                      <span className="truncate max-w-[120px]">Persistent DM</span>
+                    ) : (
+                      <>
+                        <Hash size={10} />
+                        <span className="truncate max-w-[120px]">{displayName}</span>
+                      </>
+                    )}
+                    {!leoDM && <ChevronDown size={10} />}
                   </button>
-                  {showChannelMenu && !isLoadingChannels && channels.length > 1 && (
+                  {showChannelMenu && !isLoadingChannels && channels.length > 1 && !leoDM && (
                     <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
                       {channels.map((ch) => (
                         <button

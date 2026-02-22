@@ -5,6 +5,10 @@ import configPromise from '@payload-config'
 export const AI_BUS_SPACE_SLUG = 'ai-bus'
 export const AI_BUS_SPACE_NAME = 'AI Bus'
 
+/** Slug for the system-created Direct Messages space */
+export const DM_SPACE_SLUG = 'direct-messages'
+export const DM_SPACE_NAME = 'Direct Messages'
+
 /** Default channels every AI Bus space should have */
 const AI_BUS_CHANNELS = [
   { name: 'general', slug: 'general', description: 'AI agent activity feed', type: 'general', isDefault: true },
@@ -131,5 +135,101 @@ async function ensureChannels(
         console.warn(`[ensureSystemSpace] Failed to create channel ${template.slug}`)
       }
     }
+  }
+}
+
+/**
+ * Ensures the Direct Messages system space exists for a given tenant.
+ *
+ * Same self-healing pattern as AI Bus. No default channels — DM channels
+ * are created on-demand via findOrCreateDM.
+ *
+ * @returns The space ID of the DMs space, or undefined on failure
+ */
+export async function ensureDMSpace(
+  tenantId: number | string,
+): Promise<string | undefined> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+
+    // Check if DMs space already exists for this tenant
+    const existing = await payload.find({
+      collection: 'spaces',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { slug: { equals: DM_SPACE_SLUG } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+    })
+
+    if (existing.docs?.[0]) {
+      return String(existing.docs[0].id)
+    }
+
+    // Create the DMs space
+    const space = await payload.create({
+      collection: 'spaces',
+      data: {
+        name: DM_SPACE_NAME,
+        slug: DM_SPACE_SLUG,
+        description: 'System space for direct messages between users and LEO.',
+        visibility: 'private',
+        tenant: tenantId as number,
+      },
+      overrideAccess: true,
+    })
+
+    return String(space.id)
+  } catch (err) {
+    console.warn('[ensureDMSpace] Failed to ensure DMs space:', err)
+    return undefined
+  }
+}
+
+/**
+ * Ensures a user has an active SpaceMembership in the DMs space.
+ * Creates one if missing. Idempotent.
+ */
+export async function ensureDMSpaceMembership(
+  userId: number | string,
+  dmSpaceId: number | string,
+  tenantId: number | string,
+): Promise<void> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+
+    // Check existing membership
+    const existing = await payload.find({
+      collection: 'space-memberships',
+      where: {
+        and: [
+          { user: { equals: userId } },
+          { space: { equals: dmSpaceId } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (existing.docs?.length > 0) return
+
+    // Create membership
+    await payload.create({
+      collection: 'space-memberships',
+      data: {
+        user: userId as number,
+        space: dmSpaceId as number,
+        role: 'member',
+        status: 'active',
+        tenant: tenantId as number,
+      } as any,
+      overrideAccess: true,
+    })
+  } catch (err) {
+    console.warn('[ensureDMSpaceMembership] Failed:', err)
   }
 }

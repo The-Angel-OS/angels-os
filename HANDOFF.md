@@ -1,10 +1,90 @@
-# Angel OS — Session Handoff: Sprint 11.5 Complete
+# Angel OS — Session Handoff: Sprint 12 Complete
 
 **Date:** February 22, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 29 LEO tools, v0.11.5-dev deployed
-**Sprint:** Sprint 11.5 complete (Chat UX, Docs, & Code Quality) — Sprint 12 next
+**Status:** TypeScript clean, build passing, 29 LEO tools, v0.12.0-dev
+**Sprint:** Sprint 12 complete (Unified Chat Architecture & DM Channels) — Sprint 13 next
 **Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
+
+---
+
+## What Was Done (Sprint 12)
+
+### Sprint 12: Unified Chat Architecture & DM Channels
+
+**Three Principles:**
+1. **One chat, many views** — Single `ChatProvider` at layout level, consumed by SidebarChat, MultiChannelChat, and FloatingBubble
+2. **DMs are tenant-scoped channels** — `type: 'dm'` with explicit `members` array, deterministic slug `dm-{sortedId1}-{sortedId2}`
+3. **SidebarChat = LEO DM** — Every sidebar interaction persists to a DM channel between user and LEO
+
+#### Phase 1: Tenant Detail Page
+- **Admin drill-down** — `/dashboard/admin/tenants/[id]` with full tenant view
+- Server actions: `getTenantDetail`, `updateTenantBranding`, `deactivateTenant` with `requireAdmin()` guard
+- Stats grid (members, messages, spaces, products, orders), branding editor, config display, members table, spaces & channels grid, danger zone
+- AdminPanel tenant cards now clickable `<Link>` elements
+
+#### Phase 2: Schema Changes
+- Channels collection: added `{ label: 'Direct Message', value: 'dm' }` to type options
+- New `members` field (relationship → users, hasMany) for DM participant tracking
+- New `source` field (select: native/whatsapp/email/google_chat/sms, default: native) for bridge origin
+- Extended `ChatChannel` type with `members` and `source` fields
+- Extended `ChatControlProps` with `tenantId`, `userId`, `dmSpaceId`
+
+#### Phase 3: System DM Space
+- `ensureDMSpace(tenantId)` — self-healing pattern (same as AI Bus), creates private "Direct Messages" space per tenant
+- `ensureDMSpaceMembership(userId, dmSpaceId, tenantId)` — idempotent membership creation
+- Dashboard layout calls `ensureDMSpace()` server-side and passes `dmSpaceId` to client
+
+#### Phase 4: DM Channel Operations
+- `findOrCreateDM(tenantId, dmSpaceId, userA, userB)` — deterministic slug, find-or-create with type 'dm', ensures SpaceMembership
+- `POST /api/dm/find-or-create` endpoint — authenticated, body: `{ targetUserId, tenantId }`, returns channel + dmSpaceId + isNew
+- Registered in payload.config.ts
+
+#### Phase 5: ChatProvider
+- `ChatProvider` React Context mounted at dashboard layout level
+- Exports: `ChatProvider`, `useChatContext` (nullable), `useRequiredChatContext` (throws)
+- On mount: resolves LEO DM channel via `POST /api/dm/find-or-create` with targetUserId 'leo'
+- Loads all DM channels for tenant, provides `openDM(userId)` for creating arbitrary DMs
+- Internally consumes `useChat()` hook as the engine (backward-compatible)
+
+#### Phase 6: View Migrations
+- **SidebarChat** — Tries `useChatContext()` first, falls back to direct `useChat()`. Shows "Persistent DM" badge when LEO DM active.
+- **MultiChannelChat** — DM section in channel sidebar with "DIRECT MESSAGES" header. LEO DM pinned first. Source icons (📱📧💬📲) for external channels.
+- **FloatingBubble** — Detects ChatProvider, uses LEO DM spaceId and channel slug when available.
+
+#### Phase 7: Navigation
+- DM section integrated into MultiChannelChat sidebar (Phase 6)
+- Channel header adapts for DM channels (Bot/User icon, source badge)
+- Input placeholder adapts for DMs vs regular channels
+
+#### Phase 8: External DM Foundation (Bridge Stub)
+- `POST /api/bridge/inbound` — validates source/externalUserId/message/tenantId, returns stub response
+- Detailed commented implementation steps for Sprint 13 (webhook validation, external user creation, DM channel creation, message persistence, LEO auto-response)
+- Registered in payload.config.ts
+
+### Key Files (Sprint 12)
+
+| File | Change |
+|------|--------|
+| `src/app/.../admin/tenants/[id]/page.tsx` | NEW — tenant detail route |
+| `src/app/.../admin/tenants/[id]/actions.ts` | NEW — server actions (getTenantDetail, updateBranding, deactivate) |
+| `src/app/.../admin/tenants/[id]/TenantDetail.tsx` | NEW — full tenant detail UI (stats, branding, members, spaces, danger zone) |
+| `src/components/ChatControl/ChatProvider.tsx` | NEW — unified chat context (ChatProvider, useChatContext, useRequiredChatContext) |
+| `src/utilities/dmChannels.ts` | NEW — findOrCreateDM with deterministic slugs |
+| `src/endpoints/dm-find-or-create.ts` | NEW — POST /api/dm/find-or-create endpoint |
+| `src/endpoints/bridge-inbound.ts` | NEW — POST /api/bridge/inbound stub for Sprint 13 |
+| `src/collections/Channels/index.ts` | MODIFIED — dm type, members field, source field |
+| `src/components/ChatControl/types.ts` | MODIFIED — ChatChannel members/source, ChatControlProps tenantId/userId/dmSpaceId |
+| `src/components/ChatControl/useChat.ts` | MODIFIED — UseChatOpts interface, backward-compatible signature |
+| `src/components/ChatControl/index.tsx` | MODIFIED — re-exports ChatProvider |
+| `src/components/ChatControl/SidebarChat.tsx` | MODIFIED — ChatProvider consumption with fallback |
+| `src/components/ChatControl/MultiChannelChat.tsx` | MODIFIED — DM section, source icons, ChatProvider consumption |
+| `src/components/ChatControl/FloatingBubble.tsx` | MODIFIED — ChatProvider detection, LEO DM resolution |
+| `src/utilities/ensureSystemSpace.ts` | MODIFIED — ensureDMSpace, ensureDMSpaceMembership |
+| `src/app/.../dashboard/layout.tsx` | MODIFIED — ChatProvider wrapping, ensureDMSpace, ChatSpace mapping |
+| `src/app/.../dashboard/DashboardLEOSidebar.tsx` | MODIFIED — forwards dmSpaceId/tenantId/userId |
+| `src/app/.../dashboard/admin/AdminPanel.tsx` | MODIFIED — tenant cards clickable Links |
+| `src/payload.config.ts` | MODIFIED — dm-find-or-create + bridge-inbound endpoints |
 
 ---
 
@@ -266,7 +346,7 @@
 
 ---
 
-## Sprint 12: Next Priorities — Integration Bridges
+## Sprint 13: Next Priorities — Integration Bridges (Live Wiring)
 
 ### Priority 0: End-to-End Prototype Verification
 - Verify chat pipeline: send message → LEO responds → message persists → displays correctly
@@ -274,26 +354,26 @@
 - Verify tenant provisioning: new tenant → space created → LEO active → channels working
 - Fix any broken flows found during verification
 
-### Priority 1: Integration Bridge Pattern
+### Priority 1: Bridge Inbound Implementation (Stub → Live)
+- Wire `bridge-inbound.ts` stub to live Payload collections (external user, DM channel, message creation)
 - Define adapter interface: `normalizeInbound()`, `formatOutbound()`, `validateWebhook()`
 - All external channels normalize to Universal Message Structure (UMS)
 - Bridge → Messages collection → LEO processing → Response → Bridge
 
 ### Priority 2: WhatsApp Business API Bridge
-- Webhook endpoint for inbound messages
+- Twilio/Meta webhook signature validation in bridge-inbound
 - UMS normalization from WhatsApp format
 - Outbound response formatting (text, images, buttons)
 - Business account verification flow
 
 ### Priority 3: Email Integration
-- Inbound parse webhook (SendGrid/Mailgun)
+- SendGrid inbound parse webhook → bridge-inbound handler
 - Outbound transactional (Nodemailer)
 - Email → Message normalization
 - Reply threading
 
 ### Priority 4: Voice Mode
 - Web Speech API toggle in MessageInput (STT/TTS)
-- Vapi.ai bridge for phone-based LEO (1-800 IVR)
 - LiveKit session transcription stored as messages
 
 ### Priority 5: Social Syndication
@@ -363,6 +443,24 @@ HIT Promotional Products (hit.angel-os.com)
   → HIT fulfills → ships → 60% vendor share
 ```
 
+### Chat Architecture (Sprint 12)
+```
+Dashboard Layout
+  └── ChatProvider (React Context)
+        ├── resolves LEO DM channel on mount (POST /api/dm/find-or-create)
+        ├── loads all DM channels for tenant
+        ├── internally uses useChat() hook as engine
+        └── consumed by:
+              ├── SidebarChat (sidebar panel, LEO DM persistence)
+              ├── MultiChannelChat (full channel view + DM section)
+              └── FloatingBubble (minimalist bubble, LEO DM aware)
+
+DM Channel Slug Pattern: dm-{sortedId1}-{sortedId2} (deterministic)
+LEO DM Pattern: dm-{userId}-leo (user ↔ LEO always resolves same channel)
+External Channels: source field tracks origin (whatsapp, email, google_chat, sms)
+Bridge Inbound: POST /api/bridge/inbound → (Sprint 13: normalize → DM → LEO → respond)
+```
+
 ### Test Pattern
 Re-implement pure functions in test files to avoid Payload-coupled imports. All utility engines are "zero Payload imports" for edge function testability. Currently 1,119 tests across 25 unit test files (+ 1 integration test that requires DB).
 
@@ -393,6 +491,7 @@ pnpm dev                             # Dev server (localhost:3000)
 | Sprint 10 (Chat Foundation) | — | — | +6 files | Session 17 |
 | Sprint 11 (Vendor Marketplace) | — | — | +8 files | Session 17 |
 | Sprint 11.5 (Chat UX + Docs) | — | — | +12 files | Session 18 |
+| Sprint 12 (Chat Architecture + DMs) | — | — | +7 files, ~12 modified | Session 19 |
 
 ---
 

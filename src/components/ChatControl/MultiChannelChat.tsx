@@ -1,17 +1,26 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings, Bot, User } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
+import { useChatContext } from './ChatProvider'
 import { useSpaces } from './useSpaces'
 import { SpaceSelector } from './SpaceSelector'
 import { LiveKitButton } from './LiveKitButton'
 import { MemberPanelTrigger, MemberPanel } from './MemberPanel'
 import { ChannelSettingsPanel } from './ChannelSettingsPanel'
 import { useIsMobile } from '@/utilities/useMediaQuery'
-import type { ChatControlProps } from './types'
+import type { ChatControlProps, ChatChannel } from './types'
+
+/** Source icons for external DM channels */
+const SOURCE_ICONS: Record<string, string> = {
+  whatsapp: '\uD83D\uDCF1',
+  email: '\uD83D\uDCE7',
+  google_chat: '\uD83D\uDCAC',
+  sms: '\uD83D\uDCF2',
+}
 
 /** Channel type options matching the Payload schema */
 const CHANNEL_TYPES = [
@@ -29,12 +38,7 @@ const CHANNEL_TYPES = [
  * Desktop: Space selector + collapsible channel list on left, messages on right.
  * Mobile: Space selector pill, horizontal channel tabs, messages below.
  *
- * Features:
- * - Space selector dropdown (switch between user's spaces)
- * - Collapsible channel sidebar (toggle with button)
- * - Channel management (create/delete)
- * - Member panel (slide-out)
- * - LiveKit voice/video button placeholder (channel header)
+ * Sprint 12: Consumes ChatProvider when available, adds DM section.
  */
 export function MultiChannelChat({
   spaceId: initialSpaceId,
@@ -44,25 +48,37 @@ export function MultiChannelChat({
   liveKitEnabled,
   className = '',
 }: ChatControlProps) {
-  // Space management
-  const [activeSpaceId, setActiveSpaceId] = useState(initialSpaceId || '1')
-  const { spaces, isLoading: isLoadingSpaces } = useSpaces(initialSpaces)
+  // Try ChatProvider context
+  const chatCtx = useChatContext()
+  const hasProvider = chatCtx !== null
 
-  // Chat for active space
-  const {
-    messages,
-    channels,
-    activeChannel,
-    isLoading,
-    isLoadingChannels,
-    isLoadingMore,
-    hasMore,
-    sendMessage,
-    switchChannel,
-    createChannel,
-    deleteChannel,
-    loadMoreMessages,
-  } = useChat(activeSpaceId, channelSlug)
+  // Space management — provider or local
+  const [localSpaceId, setLocalSpaceId] = useState(initialSpaceId || '1')
+  const activeSpaceId = hasProvider ? (chatCtx!.activeSpaceId || localSpaceId) : localSpaceId
+  const { spaces: fetchedSpaces, isLoading: isLoadingSpaces } = useSpaces(
+    hasProvider ? chatCtx!.spaces : initialSpaces,
+  )
+  const spaces = hasProvider ? chatCtx!.spaces : fetchedSpaces
+
+  // Chat — provider or direct hook
+  const directChat = useChat(activeSpaceId, channelSlug)
+
+  const messages = hasProvider ? chatCtx!.messages : directChat.messages
+  const channels = hasProvider ? chatCtx!.channels : directChat.channels
+  const activeChannel = hasProvider ? chatCtx!.activeChannelSlug : directChat.activeChannel
+  const isLoading = hasProvider ? chatCtx!.isLoading : directChat.isLoading
+  const isLoadingChannels = hasProvider ? chatCtx!.isLoadingChannels : directChat.isLoadingChannels
+  const isLoadingMore = hasProvider ? chatCtx!.isLoadingMore : directChat.isLoadingMore
+  const hasMore = hasProvider ? chatCtx!.hasMore : directChat.hasMore
+  const sendMessage = hasProvider ? chatCtx!.sendMessage : directChat.sendMessage
+  const switchChannel = hasProvider ? chatCtx!.switchChannel : directChat.switchChannel
+  const createChannel = hasProvider ? chatCtx!.createChannel : directChat.createChannel
+  const deleteChannel = hasProvider ? chatCtx!.deleteChannel : directChat.deleteChannel
+  const loadMoreMessages = hasProvider ? chatCtx!.loadMoreMessages : directChat.loadMoreMessages
+
+  // DM channels from provider
+  const dmChannels = hasProvider ? chatCtx!.dmChannels : []
+  const leoDMChannel = hasProvider ? chatCtx!.leoDMChannel : null
 
   const isMobile = useIsMobile()
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -73,11 +89,18 @@ export function MultiChannelChat({
   const [memberPanelOpen, setMemberPanelOpen] = useState(false)
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false)
 
-  const activeChannelData = channels.find((c) => c.slug === activeChannel)
+  // Find active channel data from both regular and DM channels
+  const activeChannelData =
+    channels.find((c) => c.slug === activeChannel) ||
+    dmChannels.find((c) => c.slug === activeChannel)
   const activeSpace = spaces.find((s) => s.id === activeSpaceId)
 
   const handleSpaceChange = (newSpaceId: string) => {
-    setActiveSpaceId(newSpaceId)
+    if (hasProvider) {
+      chatCtx!.setActiveSpace(newSpaceId)
+    } else {
+      setLocalSpaceId(newSpaceId)
+    }
     onSpaceChange?.(newSpaceId)
   }
 
@@ -94,9 +117,37 @@ export function MultiChannelChat({
     setIsCreating(false)
   }
 
-  // NEXT_PUBLIC_* env vars are inlined at build time — same value on server & client.
-  // No useEffect needed; this avoids hydration mismatch.
   const showLiveKit = !!(liveKitEnabled && process.env.NEXT_PUBLIC_LIVEKIT_URL)
+
+  /** Render a DM channel item in the sidebar */
+  function renderDMItem(ch: ChatChannel) {
+    const isLeo = ch.slug.endsWith('-leo')
+    const sourceIcon = ch.source && ch.source !== 'native' ? SOURCE_ICONS[ch.source] : null
+    const icon = isLeo ? <Bot size={14} className="shrink-0 opacity-70" /> : <User size={14} className="shrink-0 opacity-50" />
+
+    return (
+      <div
+        key={ch.id}
+        className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+          ch.slug === activeChannel
+            ? 'bg-muted font-medium text-foreground'
+            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+        }`}
+      >
+        <button
+          onClick={() => switchChannel(ch.slug)}
+          className="flex flex-1 items-center gap-2 text-left min-w-0"
+        >
+          {sourceIcon ? <span className="shrink-0 text-xs">{sourceIcon}</span> : icon}
+          {channelsPanelOpen && (
+            <span className="truncate">
+              {isLeo ? 'LEO' : ch.name}
+            </span>
+          )}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className={`flex h-full min-h-[500px] flex-col md:flex-row overflow-hidden rounded-lg border border-border bg-background ${className}`}>
@@ -105,7 +156,6 @@ export function MultiChannelChat({
       {isMobile ? (
         /* Mobile: compact top bar with space selector + channel tabs */
         <div className="shrink-0 border-b border-border bg-muted/30">
-          {/* Space selector row */}
           {spaces.length > 1 && (
             <div className="border-b border-border">
               <SpaceSelector
@@ -117,7 +167,7 @@ export function MultiChannelChat({
             </div>
           )}
 
-          {/* Channel tabs (horizontal scroll) */}
+          {/* Channel tabs (horizontal scroll) — includes DMs */}
           <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none">
             {isLoadingChannels ? (
               <div className="flex gap-2 px-2">
@@ -125,23 +175,39 @@ export function MultiChannelChat({
                   <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-muted" />
                 ))}
               </div>
-            ) : channels.length === 0 ? (
-              <div className="px-3 py-1 text-xs text-muted-foreground">No channels</div>
             ) : (
-              channels.map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => switchChannel(ch.slug)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    ch.slug === activeChannel
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground active:bg-muted/80'
-                  }`}
-                >
-                  <Hash size={12} className="shrink-0" />
-                  <span>{ch.name}</span>
-                </button>
-              ))
+              <>
+                {/* Regular channels */}
+                {channels.filter((c) => c.type !== 'dm').map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => switchChannel(ch.slug)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      ch.slug === activeChannel
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground active:bg-muted/80'
+                    }`}
+                  >
+                    <Hash size={12} className="shrink-0" />
+                    <span>{ch.name}</span>
+                  </button>
+                ))}
+                {/* DM channels on mobile */}
+                {dmChannels.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => switchChannel(ch.slug)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      ch.slug === activeChannel
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground active:bg-muted/80'
+                    }`}
+                  >
+                    {ch.slug.endsWith('-leo') ? <Bot size={12} /> : <User size={12} />}
+                    <span>{ch.slug.endsWith('-leo') ? 'LEO' : ch.name}</span>
+                  </button>
+                ))}
+              </>
             )}
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
@@ -270,7 +336,7 @@ export function MultiChannelChat({
             </div>
           )}
 
-          {/* Channel list */}
+          {/* Channel list — regular channels */}
           <nav className="flex-1 overflow-y-auto p-1">
             {isLoadingChannels ? (
               <div className="space-y-2 p-2">
@@ -278,40 +344,61 @@ export function MultiChannelChat({
                   <div key={i} className="h-8 animate-pulse rounded bg-muted" />
                 ))}
               </div>
-            ) : channels.length === 0 ? (
+            ) : channels.length === 0 && dmChannels.length === 0 ? (
               channelsPanelOpen ? (
                 <div className="p-3 text-xs text-muted-foreground">No channels yet</div>
               ) : null
             ) : (
-              channels.map((ch) => (
-                <div
-                  key={ch.id}
-                  className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
-                    ch.slug === activeChannel
-                      ? 'bg-muted font-medium text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  }`}
-                  title={!channelsPanelOpen ? `#${ch.name}` : undefined}
-                >
-                  <button
-                    onClick={() => switchChannel(ch.slug)}
-                    className="flex flex-1 items-center gap-2 text-left min-w-0"
+              <>
+                {/* Regular channels */}
+                {channels.filter((c) => c.type !== 'dm').map((ch) => (
+                  <div
+                    key={ch.id}
+                    className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                      ch.slug === activeChannel
+                        ? 'bg-muted font-medium text-foreground'
+                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    }`}
+                    title={!channelsPanelOpen ? `#${ch.name}` : undefined}
                   >
-                    <Hash size={14} className="shrink-0 opacity-50" />
-                    {channelsPanelOpen && <span className="truncate">{ch.name}</span>}
-                  </button>
-                  {/* Delete button — only for non-default channels, only when expanded */}
-                  {!ch.isDefault && channelsPanelOpen && (
                     <button
-                      onClick={() => deleteChannel(ch.id)}
-                      className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive group-hover:flex"
-                      title={`Delete #${ch.name}`}
+                      onClick={() => switchChannel(ch.slug)}
+                      className="flex flex-1 items-center gap-2 text-left min-w-0"
                     >
-                      <X size={12} />
+                      <Hash size={14} className="shrink-0 opacity-50" />
+                      {channelsPanelOpen && <span className="truncate">{ch.name}</span>}
                     </button>
-                  )}
-                </div>
-              ))
+                    {!ch.isDefault && channelsPanelOpen && (
+                      <button
+                        onClick={() => deleteChannel(ch.id)}
+                        className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive group-hover:flex"
+                        title={`Delete #${ch.name}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {/* ─── Direct Messages Section ─── */}
+                {dmChannels.length > 0 && (
+                  <>
+                    {channelsPanelOpen && (
+                      <div className="mt-3 mb-1 px-2">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Direct Messages
+                        </span>
+                      </div>
+                    )}
+                    {/* LEO always first */}
+                    {leoDMChannel && renderDMItem(leoDMChannel)}
+                    {/* Other DMs */}
+                    {dmChannels
+                      .filter((c) => c.id !== leoDMChannel?.id)
+                      .map((ch) => renderDMItem(ch))}
+                  </>
+                )}
+              </>
             )}
           </nav>
         </aside>
@@ -322,14 +409,29 @@ export function MultiChannelChat({
         {/* Channel header */}
         {!isMobile && (
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <Hash size={16} className="text-muted-foreground" />
+            {activeChannelData?.type === 'dm' ? (
+              activeChannelData.slug.endsWith('-leo') ? (
+                <Bot size={16} className="text-primary" />
+              ) : (
+                <User size={16} className="text-muted-foreground" />
+              )
+            ) : (
+              <Hash size={16} className="text-muted-foreground" />
+            )}
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold text-foreground">
-                {activeChannelData?.name || activeChannel}
+                {activeChannelData?.type === 'dm' && activeChannelData.slug.endsWith('-leo')
+                  ? 'LEO'
+                  : activeChannelData?.name || activeChannel}
               </h2>
               {activeChannelData?.description && (
                 <p className="text-xs text-muted-foreground truncate">
                   {activeChannelData.description}
+                </p>
+              )}
+              {activeChannelData?.source && activeChannelData.source !== 'native' && (
+                <p className="text-[10px] text-muted-foreground">
+                  {SOURCE_ICONS[activeChannelData.source] || ''} via {activeChannelData.source.replace('_', ' ')}
                 </p>
               )}
             </div>
@@ -361,7 +463,13 @@ export function MultiChannelChat({
         <MessageInput
           onSend={sendMessage}
           disabled={isLoading}
-          placeholder={`Message #${activeChannelData?.name || activeChannel}...`}
+          placeholder={
+            activeChannelData?.type === 'dm'
+              ? activeChannelData.slug.endsWith('-leo')
+                ? 'Ask LEO anything...'
+                : `Message ${activeChannelData.name}...`
+              : `Message #${activeChannelData?.name || activeChannel}...`
+          }
         />
       </div>
 
@@ -384,7 +492,6 @@ export function MultiChannelChat({
 
 /**
  * Single-channel mode - just the chat area, no sidebar.
- * Literally MultiChannelChat minus the sidebar.
  */
 export function SingleChannelChat({
   spaceId,

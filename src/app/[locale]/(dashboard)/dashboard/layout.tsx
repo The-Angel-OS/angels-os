@@ -7,11 +7,14 @@ import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { fetchUserSpaces } from '@/utilities/fetchUserSpaces'
+import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
 import { DashboardSidebar } from './DashboardSidebar'
 import { DashboardHeader } from './DashboardHeader'
 import { DashboardLEOSidebar } from './DashboardLEOSidebar'
 import { DashboardProvider } from '@/providers/DashboardContext'
 import type { DashboardSpace } from '@/providers/DashboardContext'
+import { ChatProvider } from '@/components/ChatControl/ChatProvider'
+import type { ChatSpace } from '@/components/ChatControl/types'
 import type { Media } from '@/payload-types'
 
 /**
@@ -151,34 +154,58 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }
   }
 
+  // Ensure DM space exists for this tenant (non-blocking, auto-provision)
+  let dmSpaceId: string | undefined
+  if (tenant?.id) {
+    dmSpaceId = await ensureDMSpace(tenant.id)
+  }
+
+  // Map DashboardSpace[] to ChatSpace[] for ChatProvider
+  const chatSpaces: ChatSpace[] = userSpaces.map((s) => ({
+    id: s.id,
+    name: s.name,
+    slug: s.slug,
+    description: s.description,
+    visibility: s.visibility,
+    isSystem: s.isSystem,
+  }))
+
   return (
     <DashboardProvider initialSpaces={userSpaces} defaultSpaceId={defaultSpaceId}>
-      <div className="flex h-screen bg-background overflow-hidden">
-        {/* ─── Sidebar Navigation (left) ─── */}
-        <DashboardSidebar
-          prefix={prefix}
-          isAdmin={isAdmin}
-          isBusinessOwner={isBusinessOwner}
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-          tenantBranding={tenantBranding}
-          userTenants={userTenants}
-          currentTenantId={tenant?.id}
-        />
+      <ChatProvider
+        tenantId={tenant?.id ? String(tenant.id) : ''}
+        dmSpaceId={dmSpaceId}
+        defaultSpaceId={defaultSpaceId}
+        spaces={chatSpaces}
+        userId={userId ? String(userId) : ''}
+      >
+        <div className="flex h-screen bg-background overflow-hidden">
+          {/* ─── Sidebar Navigation (left) ─── */}
+          <DashboardSidebar
+            prefix={prefix}
+            isAdmin={isAdmin}
+            isBusinessOwner={isBusinessOwner}
+            userName={userName}
+            userEmail={userEmail}
+            userInitials={userInitials}
+            tenantBranding={tenantBranding}
+            userTenants={userTenants}
+            currentTenantId={tenant?.id}
+          />
 
-        {/* ─── Main Content (center) ─── */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Dashboard Header Bar — title + user info */}
-          <DashboardHeader prefix={prefix} userName={userName} />
+          {/* ─── Main Content (center) ─── */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Dashboard Header Bar — title + user info */}
+            <DashboardHeader prefix={prefix} userName={userName} />
 
-          {/* Page Content — reduced padding on mobile */}
-          <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
+            {/* Page Content — reduced padding on mobile */}
+            <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
+          </div>
+
+          {/* ─── LEO Chat Sidebar (right, toggle) ─── */}
+          <DashboardLEOSidebar spaceId={defaultSpaceId} dmSpaceId={dmSpaceId} tenantId={tenant?.id ? String(tenant.id) : undefined} userId={userId ? String(userId) : undefined} />
         </div>
-
-        {/* ─── LEO Chat Sidebar (right, toggle) ─── */}
-        <DashboardLEOSidebar spaceId={defaultSpaceId} />
-      </div>
+      </ChatProvider>
     </DashboardProvider>
   )
 }
