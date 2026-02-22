@@ -13,15 +13,65 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import fs from 'fs'
+import path from 'path'
 import type { Payload } from 'payload'
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const dotenv = require('dotenv') as { parse(src: Buffer | string): Record<string, string> }
 
 import type { MessageContent } from '../types/messages'
 import type { ConversationContext } from '../types/conversation'
 import { buildMinimalConstitutionalPrompt } from './constitutional-prompt'
+import { logError } from './logError'
 import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
+
+// ---------------------------------------------------------------------------
+// Env helper — reads ANTHROPIC_API_KEY directly from .env.local when the
+// process.env value is empty (happens when a parent process like Claude Code
+// shadows the variable with an empty string, preventing dotenv from loading it).
+// ---------------------------------------------------------------------------
+
+let _envFileKey: string | undefined
+
+function resolveAnthropicKey(): string | undefined {
+  // 1. Prefer the real process.env value if non-empty
+  const envVal = process.env.ANTHROPIC_API_KEY
+  if (envVal) return envVal
+
+  // 2. Return cached file-based value
+  if (_envFileKey) return _envFileKey
+
+  // 3. Parse .env.local directly (one-time read)
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local')
+    if (fs.existsSync(envPath)) {
+      const parsed = dotenv.parse(fs.readFileSync(envPath))
+      if (parsed.ANTHROPIC_API_KEY) {
+        _envFileKey = parsed.ANTHROPIC_API_KEY
+        console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env.local (process.env was empty)')
+        return _envFileKey
+      }
+    }
+    // Also try .env as fallback
+    const envFallback = path.resolve(process.cwd(), '.env')
+    if (fs.existsSync(envFallback)) {
+      const parsed = dotenv.parse(fs.readFileSync(envFallback))
+      if (parsed.ANTHROPIC_API_KEY) {
+        _envFileKey = parsed.ANTHROPIC_API_KEY
+        console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env (process.env was empty)')
+        return _envFileKey
+      }
+    }
+  } catch (err) {
+    console.warn('[ConversationEngine] Failed to read .env files:', err)
+  }
+
+  return undefined
+}
 
 // ---------------------------------------------------------------------------
 // LLM Client (lazy singleton — avoids import-time side effects on Vercel)
@@ -29,6 +79,7 @@ import { extractTextFromContent } from './messageContent'
 // ---------------------------------------------------------------------------
 
 let _anthropic: Anthropic | null = null
+let _cachedKey: string | undefined
 
 function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
   // If a tenant-specific key is provided, create a fresh client (not cached)
@@ -36,14 +87,16 @@ function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
     return new Anthropic({ apiKey: tenantApiKey })
   }
 
-  // Otherwise use the platform singleton
-  if (_anthropic) return _anthropic
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  // Invalidate the singleton if the env var changed (e.g. after restart/HMR)
+  const apiKey = resolveAnthropicKey()
+  if (_anthropic && _cachedKey === apiKey) return _anthropic
+
   if (!apiKey) {
     console.warn('[ConversationEngine] ANTHROPIC_API_KEY not set — using fallback responses')
     return null
   }
   _anthropic = new Anthropic({ apiKey })
+  _cachedKey = apiKey
   return _anthropic
 }
 
@@ -246,6 +299,16 @@ export class ConversationEngine {
       }
     } catch (error) {
       console.error('[ConversationEngine] LLM call failed:', error)
+      // Log to Error Log Viewer for triage
+      logError({
+        source: 'ConversationEngine.generateResponse',
+        message: `LLM call failed: ${error instanceof Error ? error.message : String(error)}`,
+        details: error instanceof Error ? error.stack : String(error),
+        statusCode: (error as { status?: number })?.status,
+        tenantId: this.context.sessionMemory?.tenantId
+          ? String(this.context.sessionMemory.tenantId)
+          : undefined,
+      }).catch(() => {}) // fire-and-forget
       return this.buildFallbackResponse(userMessage)
     }
   }

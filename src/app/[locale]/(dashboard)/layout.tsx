@@ -10,7 +10,15 @@ import { TenantFonts } from '@/components/TenantFonts'
 import { TenantStyles } from '@/components/TenantStyles'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import type { Metadata } from 'next'
 import '../(app)/globals.css'
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Dashboard | Angel OS',
+    template: '%s | Angel OS',
+  },
+}
 
 /**
  * Dashboard route group layout.

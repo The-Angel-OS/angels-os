@@ -104,7 +104,7 @@ export async function Footer({ tenant }: Props) {
           </div>
         </div>
       </div>
-      <div className="border-t border-neutral-200 py-6 text-sm dark:border-neutral-700">
+      <div className="border-t border-neutral-200 pt-6 pb-20 md:pb-6 text-sm dark:border-neutral-700">
         <div className="container mx-auto flex w-full flex-col items-center gap-1 md:flex-row md:gap-0">
           <p>
             &copy; {copyrightDate} {copyrightName}

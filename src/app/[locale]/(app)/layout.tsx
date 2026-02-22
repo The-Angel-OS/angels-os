@@ -17,34 +17,16 @@ import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
+import type { Metadata } from 'next'
 import './globals.css'
 
-/* const { SITE_NAME, TWITTER_CREATOR, TWITTER_SITE } = process.env
-const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : 'http://localhost:3000'
-const twitterCreator = TWITTER_CREATOR ? ensureStartsWith(TWITTER_CREATOR, '@') : undefined
-const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : undefined
- */
-/* export const metadata = {
-  metadataBase: new URL(baseUrl),
-  robots: {
-    follow: true,
-    index: true,
-  },
+export const metadata: Metadata = {
   title: {
-    default: SITE_NAME,
-    template: `%s | ${SITE_NAME}`,
+    default: 'Angel OS',
+    template: '%s | Angel OS',
   },
-  ...(twitterCreator &&
-    twitterSite && {
-      twitter: {
-        card: 'summary_large_image',
-        creator: twitterCreator,
-        site: twitterSite,
-      },
-    }),
-} */
+  description: 'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale()

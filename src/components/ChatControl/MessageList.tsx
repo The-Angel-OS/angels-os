@@ -159,6 +159,8 @@ function CompactMessageList({ messages, isLoading }: MessageListProps) {
 
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+      {/* Spacer pushes messages toward the bottom when few messages exist */}
+      <div className="flex-1" />
       {messages.map((msg) => (
         <div
           key={msg.id}

@@ -50,9 +50,11 @@ import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
+import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
+import { chatSendHandler } from '@/endpoints/chat-send'
 import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
@@ -117,6 +119,7 @@ export default buildConfig({
     HolonCapabilities,
     JusticeFundTransactions,
     ProcessedStripeEvents,
+    ApplicationLogs,
   ],
   db: postgresAdapter({
     pool: {
@@ -240,6 +243,11 @@ export default buildConfig({
           capabilities: ['chat', 'content-query', 'inventory', 'scheduling'],
           tenantId: req.headers.get('x-tenant-id'),
         }),
+    },
+    {
+      path: '/chat/send',
+      method: 'post',
+      handler: chatSendHandler,
     },
     {
       path: '/leo',

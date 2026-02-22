@@ -159,7 +159,7 @@ export function ProductManager({ products, totalProducts }: ProductManagerProps)
 }
 
 function ProductCard({ product }: { product: SerializedProduct }) {
-  const priceStr = product.priceInUSD != null ? `$${product.priceInUSD.toFixed(2)}` : 'No price'
+  const priceStr = product.priceInUSD != null ? `$${(product.priceInUSD / 100).toFixed(2)}` : 'No price'
 
   return (
     <Link

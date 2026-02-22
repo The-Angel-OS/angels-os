@@ -67,9 +67,14 @@ export function HeaderClient({ header, tenant }: Props) {
   // which could cause useMemo to recompute unexpectedly.
   const navItems = header?.navItems
   const menu = useMemo(() => {
-    const items = [...(navItems ?? []), POSTS_NAV_ITEM, EVENTS_NAV_ITEM]
+    const items = [...(navItems ?? [])]
+    const urls = new Set(items.map((i) => i.link?.url))
+    // Ensure Posts, Events always present (even if CMS omits them)
+    if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
+    if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (user) {
-      items.push(SPACES_NAV_ITEM, DASHBOARD_NAV_ITEM)
+      if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
+      if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     }
     return items
   }, [navItems, user])
@@ -125,7 +130,7 @@ export function HeaderClient({ header, tenant }: Props) {
                 <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
                   Login
                 </Link>
-                <Link href="/login?tab=create" className="hidden md:inline text-sm font-medium text-primary hover:text-primary/80 transition">
+                <Link href="/create-account" className="hidden md:inline text-sm font-medium text-primary hover:text-primary/80 transition">
                   Sign Up
                 </Link>
               </>

@@ -48,10 +48,24 @@ export default function AdminPanel() {
   }
 
   if (error) {
+    const isAuthError = error === 'Not authenticated'
     return (
-      <div className="rounded-lg border border-red-300 bg-red-50 p-6 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
-        <p className="font-medium">Access Denied</p>
-        <p className="mt-1 text-sm">{error}</p>
+      <div className={`rounded-lg border p-6 ${isAuthError ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400' : 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400'}`}>
+        <p className="font-medium">{isAuthError ? 'Session Loading' : 'Access Denied'}</p>
+        <p className="mt-1 text-sm">
+          {isAuthError
+            ? 'Your session is still loading. This usually resolves in a moment.'
+            : error}
+        </p>
+        <button
+          onClick={() => {
+            setError(null)
+            loadTenants()
+          }}
+          className="mt-3 rounded-md border border-current px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          Retry
+        </button>
       </div>
     )
   }
@@ -66,7 +80,13 @@ export default function AdminPanel() {
             {tenants.length} tenant{tenants.length !== 1 ? 's' : ''} registered
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="admin/error-logs"
+            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+          >
+            Error Logs
+          </Link>
           <Link
             href="admin/suitcase"
             className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
