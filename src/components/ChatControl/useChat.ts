@@ -198,18 +198,56 @@ export function useChat(spaceId?: string, channelSlug?: string) {
       author &&
       (author.isSystemUser === true ||
         (author.roles && Array.isArray(author.roles) && author.roles.includes('system')))
+    // Extract metadata fields from the message's metadata JSON
+    const msgMeta = msg.metadata && typeof msg.metadata === 'object'
+      ? (msg.metadata as Record<string, unknown>)
+      : undefined
+
+    // Extract images from attachments array (relationship to media)
+    const attachmentImages: ChatMessage['images'] = []
+    if (Array.isArray(msg.attachments)) {
+      for (const att of msg.attachments as Array<Record<string, unknown>>) {
+        const media = att.media as Record<string, unknown> | number | null
+        if (media && typeof media === 'object') {
+          const url = (media.url as string) || `/api/media/file/${media.filename as string}`
+          if (url) {
+            attachmentImages.push({
+              url,
+              alt: (att.caption as string) || (media.alt as string) || undefined,
+              mediaId: media.id as number | undefined,
+            })
+          }
+        }
+      }
+    }
+
+    // Also extract images from message text content
+    const content = extractText(msg.content)
+    const textImages = extractImagesFromText(content)
+
+    // Merge attachment images + text images (deduplicated)
+    const seenUrls = new Set(attachmentImages.map((img) => img.url))
+    const allImages = [
+      ...attachmentImages,
+      ...textImages.filter((img) => !seenUrls.has(img.url)),
+    ]
+
     return {
       id: String(msg.id),
-      role: isSystem
+      role: isSystem || msg.messageType === 'ai_agent'
         ? 'leo'
         : msg.messageType === 'system' || msg.messageType === 'announcement'
           ? 'system'
           : 'user',
-      content: extractText(msg.content),
+      content,
       timestamp: new Date(String(msg.createdAt)),
       authorName,
+      ...(allImages.length > 0 ? { images: allImages } : {}),
       metadata: {
         messageType: String(msg.messageType || 'user'),
+        agentName: msgMeta?.agentName as string | undefined,
+        agentType: msgMeta?.agentType as string | undefined,
+        conversationId: msgMeta?.conversationId as string | undefined,
       },
     }
   }, [])
@@ -300,7 +338,11 @@ export function useChat(spaceId?: string, channelSlug?: string) {
    * Returns true if streaming succeeded, false if should fallback to batch.
    */
   const sendViaStream = useCallback(
-    async (content: string, leoMsgId: string): Promise<boolean> => {
+    async (
+      content: string,
+      leoMsgId: string,
+      images?: Array<{ url: string; mediaId?: number; alt?: string }>,
+    ): Promise<boolean> => {
       try {
         // Cancel any previous stream
         streamAbortRef.current?.abort()
@@ -316,6 +358,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
             conversationId: conversationIdRef.current,
             channelSlug: activeChannel,
             spaceId,
+            ...(images && images.length > 0 ? { images } : {}),
           }),
           signal: controller.signal,
         })
@@ -522,24 +565,55 @@ export function useChat(spaceId?: string, channelSlug?: string) {
     [activeChannel, spaceId],
   )
 
-  // Send a message
+  // Send a message (with optional file attachments)
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || !spaceId) return
+    async (content: string, files?: File[]) => {
+      if ((!content.trim() && (!files || files.length === 0)) || !spaceId) return
 
-      // Optimistic UI update
+      // Optimistic UI update — show images immediately from File objects
       const tempId = `temp_${Date.now()}`
+      const previewImages = files?.map((f) => ({
+        url: URL.createObjectURL(f),
+        alt: f.name,
+      }))
       const optimistic: ChatMessage = {
         id: tempId,
         role: 'user',
         content: content.trim(),
         timestamp: new Date(),
         authorName: 'You',
+        ...(previewImages && previewImages.length > 0 ? { images: previewImages } : {}),
       }
       setMessages((prev) => [...prev, optimistic])
       setIsLoading(true)
 
       try {
+        // Upload files to /api/media if provided
+        let attachments: Array<{ media: number; caption?: string }> | undefined
+        const uploadedImageUrls: Array<{ url: string; mediaId: number; alt?: string }> = []
+
+        if (files && files.length > 0) {
+          attachments = []
+          for (const file of files) {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('alt', file.name)
+            const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
+              method: 'POST',
+              credentials: 'include',
+              body: formData,
+            })
+            if (uploadRes.ok) {
+              const mediaDoc = await uploadRes.json()
+              const mediaId = mediaDoc.doc?.id || mediaDoc.id
+              attachments.push({ media: mediaId, caption: file.name })
+              // Collect URLs for LEO vision
+              const mediaUrl = mediaDoc.doc?.url || mediaDoc.url || `/api/media/file/${mediaDoc.doc?.filename || mediaDoc.filename}`
+              uploadedImageUrls.push({ url: mediaUrl, mediaId, alt: file.name })
+            }
+          }
+        }
+
         // Send user message via the /api/chat/send endpoint which uses
         // Payload's local API — bypasses the multi-tenant plugin's
         // filterOptions validation on the space relationship field.
@@ -554,6 +628,7 @@ export function useChat(spaceId?: string, channelSlug?: string) {
             space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
             channel: activeChannel,
             messageType: 'user',
+            ...(attachments && attachments.length > 0 ? { attachments } : {}),
           }),
         })
 
@@ -572,18 +647,22 @@ export function useChat(spaceId?: string, channelSlug?: string) {
 
         const saved = await res.json()
 
-        // Replace optimistic message with real one
+        // Replace optimistic message with real one (and replace blob URLs with real media URLs)
         setMessages((prev) =>
           prev.map((m) =>
             m.id === tempId
-              ? { ...m, id: String(saved.doc?.id || saved.id || tempId) }
+              ? {
+                  ...m,
+                  id: String(saved.doc?.id || saved.id || tempId),
+                  ...(uploadedImageUrls.length > 0 ? { images: uploadedImageUrls } : {}),
+                }
               : m,
           ),
         )
 
         // Ask LEO to respond — try streaming first, fallback to batch
         const leoMsgId = `leo_${Date.now()}`
-        const streamed = await sendViaStream(content.trim(), leoMsgId)
+        const streamed = await sendViaStream(content.trim(), leoMsgId, uploadedImageUrls)
         if (!streamed) {
           await sendViaBatch(content.trim(), leoMsgId)
         }

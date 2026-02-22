@@ -681,6 +681,112 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Sprint 11: Vendor Onboarding & Production ─────────────────
+  {
+    name: 'onboard_vendor',
+    description:
+      'Onboard a new vendor/producer to the Angel OS network. Creates a tenant, space, channels, and user with producer role. Use when someone says they want to sell on Angel OS, become a vendor, or set up a shop. This is an irreversible action — confirm details first.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        businessName: { type: 'string', description: 'Name of the vendor business' },
+        ownerName: { type: 'string', description: 'Name of the business owner' },
+        ownerEmail: { type: 'string', description: 'Email for the vendor account' },
+        businessType: {
+          type: 'string',
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'custom'],
+          description: 'Type of business',
+        },
+        tagline: { type: 'string', description: 'Short business tagline' },
+        primaryColor: { type: 'string', description: 'Brand primary color (hex)' },
+      },
+      required: ['businessName', 'ownerName', 'ownerEmail'],
+    },
+  },
+  {
+    name: 'suggest_products',
+    description:
+      'Generate product ideas based on a vendor description, business type, and capabilities. Use when a new vendor asks what they should sell or needs product inspiration.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        vendorDescription: { type: 'string', description: 'Description of what the vendor does or makes' },
+        businessType: { type: 'string', description: 'Type of business' },
+        skills: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Vendor capabilities/skills (e.g., "screen-printing", "woodworking")',
+        },
+        count: { type: 'number', description: 'Number of suggestions to generate (default 5)' },
+      },
+      required: ['vendorDescription'],
+    },
+  },
+  {
+    name: 'generate_cad_instructions',
+    description:
+      'Convert a product specification and customizations into CNC-ready production notes. Use when a producer needs to prepare a custom order for manufacturing (CNC, laser-cut, or print-on-demand).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productTitle: { type: 'string', description: 'Name of the product' },
+        productionType: {
+          type: 'string',
+          enum: ['ready_made', 'print_on_demand', 'custom_order', 'digital'],
+          description: 'Manufacturing method',
+        },
+        customizations: {
+          type: 'object',
+          description: 'Customer customization choices (text, color, size, etc.)',
+        },
+        materials: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Required materials',
+        },
+        notes: { type: 'string', description: 'Additional production notes' },
+      },
+      required: ['productTitle', 'productionType'],
+    },
+  },
+  {
+    name: 'fetch_reviews',
+    description:
+      'Fetch reviews for the current tenant/business. Returns internal Angel OS reviews and optionally Google Places reviews if configured. Use when users ask about reviews, ratings, or feedback.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Max reviews to return (default 10)' },
+        source: {
+          type: 'string',
+          enum: ['all', 'angelos', 'google'],
+          description: 'Filter by review source',
+        },
+        minRating: { type: 'number', description: 'Minimum star rating (1-5)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'draft_review_response',
+    description:
+      'Draft a professional, warm response to a customer review. Use when a business owner asks for help responding to reviews. Returns a suggested response the owner can edit before posting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        reviewContent: { type: 'string', description: 'The text of the review to respond to' },
+        reviewRating: { type: 'number', description: 'Star rating (1-5)' },
+        reviewerName: { type: 'string', description: 'Name of the reviewer' },
+        businessName: { type: 'string', description: 'Name of the business' },
+        tone: {
+          type: 'string',
+          enum: ['warm', 'professional', 'grateful', 'apologetic'],
+          description: 'Desired tone for the response',
+        },
+      },
+      required: ['reviewContent', 'reviewRating'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -765,6 +871,17 @@ export async function executeToolCall(
         return await handleConfigureBusiness(payload, toolInput, ctx)
       case 'connect_stripe_account':
         return await handleConnectStripe(payload, toolInput, ctx)
+      // ─── Sprint 11: Vendor Onboarding & Production ────────────
+      case 'onboard_vendor':
+        return await handleOnboardVendor(payload, toolInput, ctx)
+      case 'suggest_products':
+        return await handleSuggestProducts(toolInput)
+      case 'generate_cad_instructions':
+        return await handleGenerateCadInstructions(toolInput)
+      case 'fetch_reviews':
+        return await handleFetchReviews(payload, toolInput, ctx)
+      case 'draft_review_response':
+        return await handleDraftReviewResponse(toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -2679,4 +2796,286 @@ async function handleConnectStripe(
     console.error('[LEO Tools] Error checking Stripe status:', err)
     return `Error checking Stripe status: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 11: Vendor Onboarding & Production Tools
+// ---------------------------------------------------------------------------
+
+/**
+ * onboard_vendor — Creates tenant + space + channels + user with producer role.
+ * The conversational front door to the Angel OS marketplace.
+ */
+async function handleOnboardVendor(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const businessName = input.businessName as string
+  const ownerName = input.ownerName as string
+  const ownerEmail = input.ownerEmail as string
+
+  if (!businessName || !ownerName || !ownerEmail) {
+    return 'I need the business name, owner name, and email to set up the vendor account. Could you provide those?'
+  }
+  if (!isValidEmail(ownerEmail)) {
+    return `"${ownerEmail}" doesn't look like a valid email. Could you double-check?`
+  }
+
+  try {
+    // Generate slug from business name
+    const slug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    // Check if tenant already exists
+    const existing = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: slug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (existing.docs.length > 0) {
+      return `A tenant with the slug "${slug}" already exists. The business may already be on Angel OS. Would you like me to check?`
+    }
+
+    // Create tenant
+    const businessType = (input.businessType as string) || 'custom'
+    const primaryColor = (input.primaryColor as string) || '#10B981'
+    const tagline = (input.tagline as string) || ''
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = await payload.create({
+      collection: 'tenants',
+      data: {
+        name: businessName,
+        slug,
+        domain: `${slug}.angelos.local`,
+        type: 'tenant',
+        status: 'active',
+        businessType,
+        branding: {
+          siteName: businessName,
+          tagline,
+          primaryColor,
+          headingFont: 'inter',
+          bodyFont: 'inter',
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create user with producer role
+    const password = `vendor-${Date.now().toString(36)}`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await payload.create({
+      collection: 'users',
+      data: {
+        name: ownerName,
+        email: ownerEmail,
+        password,
+        roles: ['producer', 'admin'],
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create tenant membership
+    await payload.create({
+      collection: 'tenant-memberships' as any,
+      data: {
+        user: user.id,
+        tenant: tenant.id,
+        role: 'tenant_admin',
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create LEO agent for the tenant
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.create({
+      collection: 'users',
+      data: {
+        name: `LEO (${businessName})`,
+        email: `leo@${slug}.angelos.system`,
+        password: `leo-${Date.now().toString(36)}`,
+        isSystemUser: true,
+        servesTenant: tenant.id,
+        agentConfig: {
+          agentType: 'leo',
+          angelName: 'LEO',
+          displayName: 'LEO',
+          personality: `I am LEO, the AI assistant for ${businessName}. I help manage products, orders, and customer interactions.`,
+          routingRules: { isDefault: true },
+        },
+        roles: ['admin'],
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create default space via provisioning
+    const { createSpaceFromTemplate } = await import('./spaceProvisioning')
+    const endeavorType = businessType === 'retail' ? 'retail-commerce' : 'service-provider'
+    await createSpaceFromTemplate(payload, endeavorType as any, tenant.id, `${businessName} Hub`)
+
+    return `Welcome to Angel OS, ${ownerName}! Here's what I set up for ${businessName}:\n\n` +
+      `- Tenant: "${businessName}" (${slug})\n` +
+      `- Your account: ${ownerEmail} (producer + admin roles)\n` +
+      `- LEO agent: ready to assist your customers\n` +
+      `- Workspace: "${businessName} Hub" with channels\n\n` +
+      `Next steps:\n` +
+      `1. Visit /dashboard/producer to see your producer dashboard\n` +
+      `2. Add your first products (I can help!)\n` +
+      `3. Connect Stripe for payments\n` +
+      `4. Customize your branding\n\n` +
+      `Would you like me to help you add your first products?`
+  } catch (err) {
+    console.error('[LEO Tools] Error onboarding vendor:', err)
+    return `Error setting up vendor: ${err instanceof Error ? err.message : 'Unknown error'}. Let me know if you'd like to try again.`
+  }
+}
+
+/**
+ * suggest_products — Generates product ideas based on vendor description.
+ * Returns structured suggestions the user can act on.
+ */
+async function handleSuggestProducts(
+  input: Record<string, unknown>,
+): Promise<string> {
+  const description = input.vendorDescription as string
+  const skills = (input.skills as string[]) || []
+  const count = Math.min(Number(input.count) || 5, 10)
+
+  if (!description) {
+    return 'Tell me about your business — what do you make or offer? I\'ll suggest products based on that.'
+  }
+
+  // Return a structured prompt for the LLM to expand on
+  // (The actual creativity comes from Claude's next response)
+  const skillsList = skills.length > 0 ? `\nCapabilities: ${skills.join(', ')}` : ''
+  return `Based on the vendor description: "${description}"${skillsList}\n\n` +
+    `I'll suggest ${count} product ideas. For each product, I'll include:\n` +
+    `- Product name and description\n` +
+    `- Suggested price range\n` +
+    `- Production type (ready-made, print-on-demand, custom order, or digital)\n` +
+    `- Whether it's suitable for network listing\n` +
+    `- Configurator options if applicable\n\n` +
+    `[LEO will now generate ${count} specific product suggestions in the response]`
+}
+
+/**
+ * generate_cad_instructions — Converts product spec to production-ready notes.
+ */
+async function handleGenerateCadInstructions(
+  input: Record<string, unknown>,
+): Promise<string> {
+  const title = input.productTitle as string
+  const productionType = input.productionType as string
+  const customizations = input.customizations as Record<string, unknown> || {}
+  const materials = (input.materials as string[]) || []
+  const notes = (input.notes as string) || ''
+
+  const customizationList = Object.entries(customizations)
+    .map(([k, v]) => `  - ${k}: ${v}`)
+    .join('\n')
+
+  return `=== CAD/Production Instructions ===\n` +
+    `Product: ${title}\n` +
+    `Production Type: ${productionType}\n` +
+    `${materials.length > 0 ? `Materials: ${materials.join(', ')}\n` : ''}` +
+    `${customizationList ? `\nCustomizations:\n${customizationList}\n` : ''}` +
+    `${notes ? `\nNotes: ${notes}\n` : ''}` +
+    `\n--- Instructions ---\n` +
+    `[LEO will generate specific CNC/laser/print instructions based on the above specifications.\n` +
+    `Include: file format recommendations, tool paths, material settings, quality checks, and packaging notes.]`
+}
+
+/**
+ * fetch_reviews — Returns reviews for the current tenant.
+ */
+async function handleFetchReviews(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const limit = Math.min(Number(input.limit) || 10, 50)
+  const source = (input.source as string) || 'all'
+  const minRating = Number(input.minRating) || 0
+
+  if (!tenantId) {
+    return 'No tenant context — I can\'t fetch reviews without knowing which business.'
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = [{ tenant: { equals: tenantId } }]
+
+    if (source !== 'all') {
+      conditions.push({ source: { equals: source } })
+    }
+    if (minRating > 0) {
+      conditions.push({ rating: { greater_than_equal: minRating } })
+    }
+
+    const result = await payload.find({
+      collection: 'reviews' as any,
+      where: { and: conditions },
+      limit,
+      sort: '-publishedAt',
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (result.docs.length === 0) {
+      return 'No reviews found yet. Reviews will appear here as customers leave feedback.'
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reviews = result.docs.map((r: any) => ({
+      author: r.author || 'Anonymous',
+      rating: r.rating || 0,
+      content: r.content || '',
+      source: r.source || 'angelos',
+      date: r.publishedAt || r.createdAt,
+    }))
+
+    const avgRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
+
+    return `Found ${result.totalDocs} reviews (showing ${reviews.length}). Average rating: ${avgRating.toFixed(1)}/5\n\n` +
+      reviews.map((r: any, i: number) =>
+        `${i + 1}. ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)} — ${r.author} (${r.source})\n   "${r.content}"`
+      ).join('\n\n')
+  } catch {
+    return 'The Reviews collection is not set up yet. It will be available once the collection is registered.'
+  }
+}
+
+/**
+ * draft_review_response — Creates a suggested reply to a customer review.
+ */
+async function handleDraftReviewResponse(
+  input: Record<string, unknown>,
+): Promise<string> {
+  const content = input.reviewContent as string
+  const rating = Number(input.reviewRating) || 5
+  const reviewer = (input.reviewerName as string) || 'there'
+  const business = (input.businessName as string) || 'our business'
+  const tone = (input.tone as string) || (rating >= 4 ? 'grateful' : 'apologetic')
+
+  if (!content) {
+    return 'I need the review text to draft a response. What did the customer write?'
+  }
+
+  return `[LEO will draft a ${tone} response to the following ${rating}-star review from ${reviewer}:\n` +
+    `"${content}"\n\n` +
+    `The response should:\n` +
+    `- Thank the reviewer by name\n` +
+    `- Address specific points they mentioned\n` +
+    `- ${rating >= 4 ? 'Express genuine gratitude' : 'Acknowledge the issue and offer resolution'}\n` +
+    `- Represent ${business} warmly and professionally\n` +
+    `- Be 2-4 sentences, conversational, not corporate-speak\n` +
+    `- End with an invitation to return or reach out]`
 }

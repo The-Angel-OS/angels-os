@@ -314,10 +314,20 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { message, conversationId, channelSlug, spaceId } = body
+  const { message, conversationId, channelSlug, spaceId, images: bodyImages } = body
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
+  }
+
+  // Parse image attachments for Anthropic vision
+  const userImages: Array<{ url: string; mediaId?: number; alt?: string }> = []
+  if (Array.isArray(bodyImages)) {
+    for (const img of bodyImages) {
+      if (img && typeof img === 'object' && typeof (img as Record<string, unknown>).url === 'string') {
+        userImages.push(img as { url: string; mediaId?: number; alt?: string })
+      }
+    }
   }
 
   const client = getAnthropicClient()
@@ -391,10 +401,28 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     ? await fetchConversationHistory(req.payload, resolvedSpaceId, resolvedChannel)
     : []
 
-  // Build messages array
+  // Build messages array — use multi-part content when user attached images
+  const userContent: Anthropic.ContentBlockParam[] = [
+    { type: 'text', text: message.trim() },
+  ]
+  if (userImages.length > 0) {
+    for (const img of userImages) {
+      // Resolve relative URLs to absolute for Anthropic API
+      let imageUrl = img.url
+      if (imageUrl.startsWith('/')) {
+        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+        imageUrl = `${serverUrl}${imageUrl}`
+      }
+      userContent.push({
+        type: 'image',
+        source: { type: 'url', url: imageUrl },
+      } as Anthropic.ContentBlockParam)
+    }
+  }
+
   const messages: Anthropic.MessageParam[] = [
     ...historyMessages,
-    { role: 'user' as const, content: message.trim() },
+    { role: 'user' as const, content: userImages.length > 0 ? userContent : message.trim() },
   ]
 
   // Create SSE stream

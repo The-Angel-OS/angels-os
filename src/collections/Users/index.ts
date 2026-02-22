@@ -245,6 +245,10 @@ export const Users: CollectionConfig = {
           value: 'admin',
         },
         {
+          label: 'producer',
+          value: 'producer',
+        },
+        {
           label: 'customer',
           value: 'customer',
         },

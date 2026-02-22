@@ -208,6 +208,64 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
       hasMany: true,
       relationTo: 'categories',
     },
+    // ─── Marketplace & Vendor Fields ─────────────────────────
+    {
+      name: 'isLimitedEdition',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'Mark as limited edition — shown with countdown/badge',
+      },
+    },
+    {
+      name: 'availableUntil',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        description: 'When this limited edition expires',
+        condition: (data) => data?.isLimitedEdition === true,
+        date: { pickerAppearance: 'dayOnly' },
+      },
+    },
+    {
+      name: 'vendor',
+      type: 'relationship',
+      relationTo: 'tenants',
+      admin: {
+        position: 'sidebar',
+        description: 'Producing vendor tenant (who fulfills this product)',
+      },
+    },
+    {
+      name: 'productionType',
+      type: 'select',
+      options: [
+        { label: 'Ready-made', value: 'ready_made' },
+        { label: 'Print-on-demand', value: 'print_on_demand' },
+        { label: 'Custom order', value: 'custom_order' },
+        { label: 'Digital', value: 'digital' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'How this product is manufactured',
+      },
+    },
+    {
+      name: 'cadFile',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'CAD/design file for CNC, laser-cut, or print-on-demand production (SVG, DXF, STL)',
+      },
+    },
+    {
+      name: 'configuratorOptions',
+      type: 'json',
+      admin: {
+        description: 'Product configurator schema: { colors: [...], sizes: [...], customText: boolean, maxTextLength: number }',
+      },
+    },
     // ─── Network Federation Fields ────────────────────────────
     {
       name: 'networkListing',
