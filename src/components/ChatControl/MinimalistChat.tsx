@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { MessageCircle, X, Minus, ChevronDown } from 'lucide-react'
+import { Backdrop } from '@/components/Backdrop'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
@@ -86,12 +87,7 @@ export function MinimalistChat({
   if (isMobile) {
     return (
       <>
-        {/* Backdrop */}
-        <div
-          className="fixed inset-0 z-50 bg-black/40 transition-opacity"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
+        <Backdrop isOpen onClick={() => setIsOpen(false)} zIndex="z-50" opacity="bg-black/40" />
 
         {/* Bottom Sheet */}
         <div

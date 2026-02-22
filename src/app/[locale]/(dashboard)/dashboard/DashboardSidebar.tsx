@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/utilities/useMediaQuery'
+import { useClickOutside } from '@/hooks/useClickOutside'
+import { Backdrop } from '@/components/Backdrop'
 
 /**
  * DashboardSidebar — Rev 4 responsive sidebar with categorized navigation.
@@ -89,13 +91,7 @@ export function DashboardSidebar({
         </button>
 
         {/* Backdrop */}
-        {isMobileOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/40 transition-opacity"
-            onClick={() => setIsMobileOpen(false)}
-            aria-hidden="true"
-          />
-        )}
+        <Backdrop isOpen={isMobileOpen} onClick={() => setIsMobileOpen(false)} zIndex="z-50" opacity="bg-black/40" />
 
         {/* Sidebar overlay */}
         <aside
@@ -751,16 +747,8 @@ function TenantChooser({
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    window.addEventListener('click', handler)
-    return () => window.removeEventListener('click', handler)
-  }, [])
+  const closeDropdown = useCallback(() => setOpen(false), [])
+  useClickOutside(ref, closeDropdown, open)
 
   const handleSwitch = (tenant: TenantInfo) => {
     setOpen(false)

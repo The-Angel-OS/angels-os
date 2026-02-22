@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import type { ChatMessage } from './types'
+import { TOOL_LABELS } from '@/constants/toolLabels'
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -43,23 +44,7 @@ function isSameDay(a: Date, b: Date): boolean {
 // ---------------------------------------------------------------------------
 
 function ToolCallIndicator({ toolCall }: { toolCall: string }) {
-  const toolLabels: Record<string, string> = {
-    query_products: 'Searching products',
-    query_posts: 'Looking up posts',
-    query_bookings: 'Checking bookings',
-    query_spaces: 'Listing spaces',
-    query_projects: 'Searching projects',
-    query_availability: 'Checking availability',
-    create_booking: 'Creating booking',
-    update_booking_status: 'Updating booking',
-    add_to_cart: 'Adding to cart',
-    view_cart: 'Loading cart',
-    generate_image: '🎨 Generating image',
-    improve_image: '✨ Improving image',
-    attach_image_to_product: '📎 Attaching to product',
-    replace_image: '🔄 Replacing image',
-  }
-  const label = toolLabels[toolCall] || toolCall
+  const label = TOOL_LABELS[toolCall] || toolCall
   return (
     <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
       <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />

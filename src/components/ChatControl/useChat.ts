@@ -11,32 +11,7 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
  */
 const STREAM_DONE_GRACE_MS = 3000
 
-/** Tool call display names */
-const TOOL_LABELS: Record<string, string> = {
-  query_products: 'Looking up products',
-  query_posts: 'Searching posts',
-  query_bookings: 'Checking bookings',
-  query_spaces: 'Finding spaces',
-  query_projects: 'Browsing projects',
-  query_availability: 'Checking availability',
-  add_to_cart: 'Adding to cart',
-  view_cart: 'Checking cart',
-  generate_image: '🎨 Generating image',
-  improve_image: '✨ Improving image',
-  attach_image_to_product: '📎 Attaching to product',
-  replace_image: '🔄 Replacing image',
-  create_booking: 'Creating booking',
-  update_booking_status: 'Updating booking',
-  create_product: 'Creating product',
-  update_product: 'Updating product',
-  invite_member: 'Sending invitation',
-  find_producers: 'Finding capable producers',
-  browse_network: 'Browsing network catalog',
-  query_orders: 'Looking up orders',
-  route_order: 'Routing order to vendor',
-  accept_order: 'Accepting order',
-  update_fulfillment: 'Updating fulfillment',
-}
+import { TOOL_LABELS } from '@/constants/toolLabels'
 
 /**
  * Extract image URLs and media IDs from LEO response text.
