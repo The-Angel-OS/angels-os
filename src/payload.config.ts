@@ -75,6 +75,8 @@ import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashbo
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
+import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
+import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -410,6 +412,18 @@ export default buildConfig({
       path: '/livekit/token',
       method: 'post',
       handler: liveKitTokenHandler,
+    },
+    // ─── DM Channel Operations ──────────────────────────────────
+    {
+      path: '/dm/find-or-create',
+      method: 'post',
+      handler: dmFindOrCreateHandler,
+    },
+    // ─── External Bridge Endpoint (Sprint 13 stub) ──────────────
+    {
+      path: '/bridge/inbound',
+      method: 'post',
+      handler: bridgeInboundHandler,
     },
     // ─── Documentation Endpoint ──────────────────────────────────
     {

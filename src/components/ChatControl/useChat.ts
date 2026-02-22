@@ -95,11 +95,25 @@ function extractText(content: unknown): string {
 }
 
 /**
+ * Extended options for DM-aware channel loading.
+ * All fields optional — existing callers pass (spaceId, channelSlug) unchanged.
+ */
+export interface UseChatOpts {
+  /** Tenant ID for DM channel queries */
+  tenantId?: string
+  /** Direct channel ID — load this specific channel instead of querying by space */
+  channelId?: string
+}
+
+/**
  * Core chat hook - handles messages, channels, and LEO communication.
  * Supports SSE streaming responses with fallback to batch /api/leo.
  * Includes cursor-based pagination for infinite scroll.
+ *
+ * Extended in Sprint 12 with optional `opts` for DM-aware channel loading.
+ * Existing callers pass (spaceId, channelSlug) — no changes needed.
  */
-export function useChat(spaceId?: string, channelSlug?: string) {
+export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOpts) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [channels, setChannels] = useState<ChatChannel[]>([])
   const [activeChannel, setActiveChannel] = useState<string>(channelSlug || 'general')

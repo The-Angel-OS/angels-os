@@ -150,7 +150,10 @@ function TenantCard({
   const accentColor = tenant.branding?.primaryColor || '#10B981'
 
   return (
-    <div className="rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md">
+    <Link
+      href={`admin/tenants/${tenant.id}`}
+      className="block rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
+    >
       {/* Color accent bar */}
       <div className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: accentColor }} />
 
@@ -187,13 +190,13 @@ function TenantCard({
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
         <span className="font-mono text-xs text-muted-foreground">{tenant.slug}</span>
         <button
-          onClick={() => onToggleStatus(tenant)}
+          onClick={(e) => { e.preventDefault(); onToggleStatus(tenant) }}
           disabled={isPending || tenant.type === 'platform'}
           className="rounded-md px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
         >
           {tenant.status === 'active' ? 'Deactivate' : 'Activate'}
         </button>
       </div>
-    </div>
+    </Link>
   )
 }

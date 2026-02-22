@@ -59,6 +59,29 @@ export const Channels: CollectionConfig = {
         { label: 'Video', value: 'video' },
         { label: 'Team', value: 'team' },
         { label: 'Social', value: 'social' },
+        { label: 'Direct Message', value: 'dm' },
+      ],
+    },
+    {
+      name: 'members',
+      type: 'relationship',
+      relationTo: 'users',
+      hasMany: true,
+      admin: {
+        description:
+          'Explicit channel members (required for DMs, optional for regular channels)',
+      },
+    },
+    {
+      name: 'source',
+      type: 'select',
+      defaultValue: 'native',
+      options: [
+        { label: 'Native', value: 'native' },
+        { label: 'WhatsApp', value: 'whatsapp' },
+        { label: 'Email', value: 'email' },
+        { label: 'Google Chat', value: 'google_chat' },
+        { label: 'SMS', value: 'sms' },
       ],
     },
     {

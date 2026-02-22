@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react'
 import { ChatControl } from './index'
 import { useAuth } from '@/providers/Auth'
+import { useChatContext } from './ChatProvider'
 import Link from 'next/link'
 
 /**
  * Global floating chat bubble - appears on every page.
  * Wrap this in the root layout for site-wide LEO access.
  *
- * Authenticated users get the full chat interface.
+ * Authenticated users inside the dashboard get ChatProvider context.
+ * Authenticated users outside the dashboard get a direct chat.
  * Guests see a teaser icon linking to login.
  *
  * @param spaceId - Resolved server-side from the tenant's default space.
@@ -17,6 +19,7 @@ import Link from 'next/link'
  */
 export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   const { status } = useAuth()
+  const chatCtx = useChatContext()
   const [resolvedSpaceId, setResolvedSpaceId] = useState(spaceId || '')
 
   // If no spaceId prop and user is logged in, resolve from API
@@ -38,14 +41,19 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
 
   // Full chat for authenticated users
   if (status === 'loggedIn') {
+    // If we have ChatProvider context, use LEO DM space
+    const effectiveSpaceId = chatCtx?.leoDMChannel
+      ? chatCtx.leoDMChannel.spaceId
+      : resolvedSpaceId
+
     // Wait for space resolution before rendering chat
-    if (!resolvedSpaceId) return null
+    if (!effectiveSpaceId) return null
 
     return (
       <ChatControl
         mode="minimalist"
-        spaceId={resolvedSpaceId}
-        channelSlug="general"
+        spaceId={effectiveSpaceId}
+        channelSlug={chatCtx?.leoDMChannel?.slug || 'general'}
         position="bottom-right"
       />
     )

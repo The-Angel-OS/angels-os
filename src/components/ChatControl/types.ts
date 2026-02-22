@@ -37,6 +37,10 @@ export interface ChatChannel {
   spaceId: string
   isDefault?: boolean
   unreadCount?: number
+  /** Explicit channel members (required for DMs, optional for regular channels) */
+  members?: Array<{ id: string; name?: string; email?: string }>
+  /** Channel source — native for in-app, or external bridge origin */
+  source?: 'native' | 'whatsapp' | 'email' | 'google_chat' | 'sms'
   /** Widget state storage (task lists, timelines, note hierarchies) */
   data?: Record<string, unknown> | null
   /** UI configuration (active widgets, layout, display preferences) */
@@ -60,8 +64,14 @@ export interface ChatControlProps {
   mode: ChatMode
   /** Tenant slug for API calls */
   tenantSlug?: string
+  /** Tenant ID for DM channel operations */
+  tenantId?: string
+  /** Current user ID */
+  userId?: string
   /** Space ID to scope channels/messages */
   spaceId?: string
+  /** DM system space ID (for persistent LEO DMs) */
+  dmSpaceId?: string
   /** Pre-loaded spaces list (avoids client-side fetch when server has the data) */
   spaces?: ChatSpace[]
   /** Callback when user switches to a different space */

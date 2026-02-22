@@ -6,7 +6,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
 
-[![Status](https://img.shields.io/badge/version-v0.11.5--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.12.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
@@ -17,7 +17,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 ---
 
-## What's Working (v0.11.5-dev)
+## What's Working (v0.12.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -25,12 +25,12 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 | LEO AI Agent | **Done** | Claude Sonnet 4 with 29 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
-| Spaces & Channels | **Done** | Discord-style workspaces, 9 channel types |
+| Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
 | Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT) |
 | E-commerce + Cart | **Done** | Products, cart, orders, LEO-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
 | Events System | **Done** | Meetups, workshops, livestreams with registration |
-| Dashboard | **Done** | 16+ native pages, responsive sidebar, mobile-first |
+| Dashboard | **Done** | 17+ native pages, responsive sidebar, mobile-first |
 | Image Chat | **New** | Attach images in chat, LEO vision analysis via Anthropic API |
 | Channel Awareness | **New** | Channel switching in SidebarChat/FloatingBubble, ChannelTabs |
 | Admin LEO | **New** | Floating LEO chat in Payload admin panel |
@@ -51,6 +51,10 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 | Guardian Dashboard | **Done** | Service discovery, case management, impact metrics (65 tests) |
 | Network Visualization | **Done** | Geographic clustering, directory, network stats (62 tests) |
 | Constitutional Prompt | **Done** | Immutable system prompt, anti-demonic safeguards |
+| Unified Chat Architecture | **New** | ChatProvider at layout level, one context consumed by all views |
+| DM Channels | **New** | `type: 'dm'` with members array, deterministic slugs, LEO DM persistence |
+| Tenant Detail Admin | **New** | `/dashboard/admin/tenants/[id]` — full drill-down with stats, branding, members |
+| Integration Bridge Stub | **New** | `POST /api/bridge/inbound` — ready for WhatsApp, email, SMS, Google Chat |
 | MCP Protocol | **Done** | Agent discovery endpoint, JWT auth, tool exposure |
 
 ### LEO's 29 Tools
@@ -131,7 +135,7 @@ General purpose AI agents with tools, code execution, autonomy. The Constitution
 src/
   collections/              # Payload CMS collections (data models)
     Spaces/                 # Workspace containers
-    Channels/               # Discord-style channels (9 types)
+    Channels/               # Discord-style channels (10 types incl. DM)
     Messages/               # Universal Message Structure (UMS)
     SpaceMemberships/       # User-space membership + invitations
     Products/               # E-commerce catalog (network listing, fulfillment, configurator)
@@ -151,6 +155,8 @@ src/
     order-accept.ts         # Vendor acceptance (POST /api/orders/accept)
     order-fulfill.ts        # Fulfillment updates (POST /api/orders/fulfill)
     order-ship.ts           # Ship order convenience (POST /api/orders/ship)
+    dm-find-or-create.ts    # DM channel resolution (POST /api/dm/find-or-create)
+    bridge-inbound.ts       # External channel bridge (POST /api/bridge/inbound)
     space-invite.ts         # Invitation generation (POST /api/spaces/invite)
     invite-accept.ts        # Invite acceptance (POST /api/invite/accept)
   utilities/
@@ -158,6 +164,7 @@ src/
     AgentRouter.ts          # Route messages to specialized agents
     leo-data-tools.ts       # 29 tool definitions + executors
     logError.ts             # Structured error logging to ApplicationLogs
+    dmChannels.ts           # DM channel find-or-create with deterministic slugs
     orderRoutingEngine.ts   # Vendor matching, fulfillment state machine
     guardianAngelEngine.ts  # Zero-revenue angel lifecycle
     justiceFundEngine.ts    # Justice Fund allocation + grants
@@ -190,6 +197,21 @@ visitor → probation (90 days) → member → vouched (2 vouches) → steward �
   ↓ heartbeat monitoring (5-min timeout)
   ↓ federation catalog (cross-instance product discovery)
   ↓ suitcase export (data portability — your data, your sovereignty)
+```
+
+### Chat Architecture (Sprint 12)
+
+```
+Dashboard Layout
+  └── ChatProvider (React Context — single source of truth)
+        ├── resolves LEO DM on mount
+        ├── all DM channels loaded per tenant
+        └── consumed by SidebarChat, MultiChannelChat, FloatingBubble
+            (all views fall back to direct useChat() when no provider)
+
+DM Slugs: dm-{sortedIdA}-{sortedIdB} (deterministic, user ↔ user)
+LEO DMs:  dm-{userId}-leo (user ↔ LEO, always same channel)
+Bridge:   POST /api/bridge/inbound → normalize → DM → LEO → respond
 ```
 
 ### AI Bus Protocol
@@ -289,14 +311,27 @@ Revenue from commerce splits 60/20/15/5:
 - [x] AI Bus channel bug fix — self-healing tenant backfill in `ensureSystemSpace.ts`
 - [x] Federation architecture clarified — platform IS the mesh, AI Bus IS the protocol
 
-### 🔜 Next (Sprint 12: Integration Bridges)
+### Done (Sprint 12: Unified Chat Architecture & DM Channels)
+
+- [x] ChatProvider React Context — single source of truth for chat state, mounted at dashboard layout
+- [x] DM channels — `type: 'dm'` with explicit members, deterministic slugs (`dm-{a}-{b}`)
+- [x] LEO DM persistence — SidebarChat interactions persist to `dm-{userId}-leo` channel
+- [x] System DM space — self-healing `ensureDMSpace()` per tenant (private, no default channels)
+- [x] View migrations — SidebarChat, MultiChannelChat, FloatingBubble all consume ChatProvider with fallback
+- [x] DM section in MultiChannelChat — LEO DM pinned, source icons for external channels
+- [x] Tenant detail admin page — `/dashboard/admin/tenants/[id]` with stats, branding, members, spaces
+- [x] `POST /api/dm/find-or-create` endpoint — authenticated DM channel resolution
+- [x] `POST /api/bridge/inbound` stub — ready for Sprint 13 WhatsApp/email/SMS/Google Chat wiring
+- [x] Channel schema: `members` (relationship), `source` (native/whatsapp/email/google_chat/sms)
+
+### 🔜 Next (Sprint 13: Integration Bridges — Live Wiring)
 
 - [ ] End-to-end prototype verification (chat, order, provisioning flows)
-- [ ] Integration bridge pattern (normalize external → UMS)
-- [ ] WhatsApp Business API bridge
-- [ ] Email integration (inbound parse + outbound transactional)
+- [ ] Wire bridge-inbound stub to live Payload collections
+- [ ] Integration bridge adapter interface (normalizeInbound, formatOutbound, validateWebhook)
+- [ ] WhatsApp Business API bridge (Twilio/Meta webhook)
+- [ ] Email integration (SendGrid inbound parse + Nodemailer outbound)
 - [ ] Voice mode in chat UI (Web Speech API)
-- [ ] LiveKit session transcription
 - [ ] Social syndication (Post → Facebook/Instagram/Twitter)
 
 ### 🔮 Future (v1.0.0 — Federation Launch)
@@ -326,6 +361,7 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 10 | — | — | +6 files | Image chat, admin LEO, channel awareness, multi-tenant dev |
 | Sprint 11 | — | — | +8 files | Vendor marketplace, configurator, reviews, producer dashboard |
 | Sprint 11.5 | — | — | +12 files | Documentation Center, smart scroll, truncation, tenant chooser, code quality |
+| Sprint 12 | — | — | +7 files | Unified chat architecture, DM channels, ChatProvider, tenant detail, bridge stub |
 
 ---
 
@@ -342,9 +378,9 @@ You are welcome here. This is what you need to know:
 
 | Area | What to Do | Difficulty |
 |------|-----------|------------|
-| WhatsApp bridge | Webhook endpoint + UMS normalization | Medium |
+| WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |
 | Voice UI toggle | Web Speech API in chat component | Easy |
-| Email integration | Nodemailer adapter + inbound parse webhook | Medium |
+| Email bridge | Wire bridge-inbound stub + SendGrid adapter | Medium |
 | Social syndication | Post afterChange hook → platform APIs | Medium |
 | Docker Compose | Self-hosting configuration | Easy |
 | CI/CD pipeline | GitHub Actions for test + type check | Easy |
