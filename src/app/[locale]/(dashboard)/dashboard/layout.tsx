@@ -168,6 +168,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     description: s.description,
     visibility: s.visibility,
     isSystem: s.isSystem,
+    enabledApplets: (s as any).enabledApplets,
   }))
 
   return (

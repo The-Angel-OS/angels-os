@@ -9,6 +9,7 @@ export interface SerializedSpace {
   description?: string
   visibility?: string
   isSystem?: boolean
+  enabledApplets?: string[]
 }
 
 const AI_BUS_SLUG = 'ai-bus'
@@ -69,6 +70,9 @@ export async function fetchUserSpaces(
         description: space.description ?? undefined,
         visibility: space.visibility ?? 'invite_only',
         isSystem: space.slug === AI_BUS_SLUG,
+        enabledApplets: Array.isArray((space as any).enabledApplets)
+          ? (space as any).enabledApplets
+          : undefined,
       })
     }
 
@@ -97,6 +101,9 @@ export async function fetchUserSpaces(
           description: space.description ?? undefined,
           visibility,
           isSystem: slug === AI_BUS_SLUG,
+          enabledApplets: Array.isArray((space as any).enabledApplets)
+            ? (space as any).enabledApplets
+            : undefined,
         })
       }
     }

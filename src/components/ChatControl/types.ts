@@ -56,7 +56,25 @@ export interface ChatSpace {
   isSystem?: boolean
   /** Space visibility from Payload */
   visibility?: 'public' | 'invite_only' | 'private'
+  /** Enabled applet IDs for this space (default: ['chat', 'files', 'tasks']) */
+  enabledApplets?: string[]
 }
+
+// ─── Applets ──────────────────────────────────────────────────────
+
+export interface Applet {
+  id: string
+  label: string
+  icon: string // Lucide icon name
+  isDefault?: boolean
+}
+
+/** Registry of built-in applets. Future sprints swap placeholders for real components. */
+export const DEFAULT_APPLETS: Applet[] = [
+  { id: 'chat', label: 'Chat', icon: 'MessageSquare', isDefault: true },
+  { id: 'files', label: 'Files', icon: 'FolderOpen' },
+  { id: 'tasks', label: 'Tasks', icon: 'CheckSquare' },
+]
 
 export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel' | 'sidebar'
 

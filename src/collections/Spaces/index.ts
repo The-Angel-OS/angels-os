@@ -49,5 +49,14 @@ export const Spaces: CollectionConfig = {
         { label: 'Private', value: 'private' },
       ],
     },
+    {
+      name: 'enabledApplets',
+      type: 'json',
+      defaultValue: ['chat', 'files', 'tasks'],
+      admin: {
+        description:
+          'Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.',
+      },
+    },
   ],
 }
