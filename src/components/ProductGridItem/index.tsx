@@ -33,22 +33,28 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
     gallery?.[0]?.image && typeof gallery[0]?.image !== 'string' ? gallery[0]?.image : false
 
   return (
-    <Link className="relative inline-block h-full w-full group" href={`/products/${product.slug}`}>
+    <Link className="relative block h-full w-full group rounded-lg border border-border bg-card overflow-hidden transition-colors hover:border-primary/50" href={`/products/${product.slug}`}>
       {image ? (
         <Media
           className={clsx(
-            'relative aspect-square object-cover border rounded-2xl p-8 bg-primary-foreground',
+            'relative aspect-square object-cover p-8 bg-primary-foreground',
           )}
           height={80}
-          imgClassName={clsx('h-full w-full object-cover rounded-2xl', {
+          imgClassName={clsx('h-full w-full object-cover', {
             'transition duration-300 ease-in-out group-hover:scale-102': true,
           })}
           resource={image}
           width={80}
         />
-      ) : null}
+      ) : (
+        <div className="relative aspect-square flex items-center justify-center bg-muted/30">
+          <svg className="h-12 w-12 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+          </svg>
+        </div>
+      )}
 
-      <div className="font-mono text-primary/50 group-hover:text-primary flex justify-between items-center mt-4">
+      <div className="p-4 font-mono text-primary/50 group-hover:text-primary flex justify-between items-center">
         <div>{title}</div>
 
         {typeof price === 'number' && (

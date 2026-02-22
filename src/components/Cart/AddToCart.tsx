@@ -82,11 +82,11 @@ export function AddToCart({ product }: Props) {
         return true
       }
 
-      if (selectedVariant.inventory === 0) {
+      if (!selectedVariant.inventory || selectedVariant.inventory <= 0) {
         return true
       }
     } else {
-      if (product.inventory === 0) {
+      if (!product.inventory || product.inventory <= 0) {
         return true
       }
     }

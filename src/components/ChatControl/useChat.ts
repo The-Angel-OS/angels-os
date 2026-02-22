@@ -540,10 +540,12 @@ export function useChat(spaceId?: string, channelSlug?: string) {
       setIsLoading(true)
 
       try {
-        // Send user message to Payload — UMS JSON content format
+        // Send user message via the /api/chat/send endpoint which uses
+        // Payload's local API — bypasses the multi-tenant plugin's
+        // filterOptions validation on the space relationship field.
         const spaceIdNum = Number(spaceId)
         const umsContent = { type: 'text', text: content.trim() }
-        const res = await fetch(`${SERVER_URL}/api/messages`, {
+        const res = await fetch(`${SERVER_URL}/api/chat/send`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -556,6 +558,15 @@ export function useChat(spaceId?: string, channelSlug?: string) {
         })
 
         if (!res.ok) {
+          // Capture response body for diagnostics
+          let detail = ''
+          try {
+            const body = await res.json()
+            detail = JSON.stringify(body.errors || body, null, 2)
+          } catch {
+            // response wasn't JSON
+          }
+          console.error(`[useChat] POST /api/chat/send ${res.status}`, detail)
           throw new Error(`Failed to send: ${res.status}`)
         }
 

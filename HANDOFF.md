@@ -1,9 +1,47 @@
-# Angel OS — Session Handoff: Sprint 5 Complete
+# Angel OS — Session Handoff: Sprint 9 Complete
 
-**Date:** February 19, 2026
+**Date:** February 21, 2026
 **Branch:** `main`
-**Status:** 1,119 tests passing (25 unit test files), Sprint 5 complete
-**Sprint:** Phase 4, Sprint 5 complete — Sprint 6 next
+**Status:** TypeScript clean, LEO AI streaming live, 1,119 unit tests + 9 new files
+**Sprint:** Sprint 9 complete (UX Polish + LEO Resurrection) — Sprint 10 next
+**Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
+
+---
+
+## What Was Done (Sessions 13–16: Sprint 8.5–9)
+
+### Sprint 8.5: Production Recovery (Session 13)
+- Upgraded to Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1
+- Fresh DB seed with two-pass FK-safe deletion
+- Increased DB pool size + timeout for Drizzle introspection
+- Posts pagination tenant filter fix
+- Chat bubble auth status fix
+
+### Sprint 9: UX Polish & LEO Resurrection (Sessions 14–16)
+
+#### UX Polish Pass
+- **Site title** fixed from "Payload Website Template" to "Angel OS"
+- **Dashboard header** simplified — removed redundant Space selector from DashboardHeader
+- **Sidebar navigation** — added Home and Error Logs links
+- **Spaces layout** — fixed messages hugging bottom of viewport
+
+#### Error Log Viewer (New Feature)
+- `ApplicationLogs` collection — structured error storage (source, message, details, statusCode, tenantId, resolved flag)
+- `logError()` utility — fire-and-forget error logging from anywhere in the server
+- Error Log Viewer page at `/dashboard/admin/error-logs` with real-time refresh, source filtering, resolve toggle
+- Server actions for fetching and updating logs
+
+#### Chat 400 Error Fix
+- **Root cause:** `@payloadcms/plugin-multi-tenant` adds `filterOptions` to ALL relationship fields pointing to tenant-scoped collections. The `space` field on Messages was rejected ("invalid selections: 15") because the multi-tenant plugin's filter query ran without the `payload-tenant` cookie.
+- **Fix:** Created `/api/chat/send` endpoint (`src/endpoints/chat-send.ts`) using Payload's local API with `overrideAccess: true` to bypass filterOptions validation. Resolves tenant from space server-side.
+- **Hook:** `setTenantFromSpace` beforeValidate hook auto-resolves tenant from the space's tenant when creating messages.
+
+#### LEO AI Response Resurrection
+- **Root cause:** `process.env.ANTHROPIC_API_KEY` was shadowed as empty string `""` by the parent process (Claude Code). Dotenv's default behavior refuses to overwrite existing variables — even empty ones. So the correct key in `.env.local` was never loaded.
+- **Fix:** Added `resolveAnthropicKey()` to both `leo-stream.ts` and `ConversationEngine.ts` — if `process.env.ANTHROPIC_API_KEY` is falsy, reads `.env.local` directly via `dotenv.parse()`, caches the result.
+- **Singleton fix:** Added key-tracking to cached Anthropic client — invalidates when the API key changes (handles HMR/restart).
+- **Error logging:** Both streaming and batch LEO paths now call `logError()` on failure, feeding the Error Log Viewer.
+- **Verified:** Full end-to-end flow working — user message saved, LEO streaming response with personalized AI content, response persisted to Messages collection.
 
 ---
 
@@ -129,7 +167,29 @@
 
 ---
 
-## Sprint 6: Next Priorities
+## Key Files Created/Modified in Sprint 9
+
+| File | Change |
+|------|--------|
+| `src/collections/ApplicationLogs.ts` | NEW — structured error/event logging collection |
+| `src/utilities/logError.ts` | NEW — fire-and-forget error logging utility |
+| `src/endpoints/chat-send.ts` | NEW — chat message creation bypassing multi-tenant validation |
+| `src/collections/Messages/hooks/setTenantFromSpace.ts` | NEW — auto-resolve tenant from space |
+| `src/app/.../admin/error-logs/page.tsx` | NEW — Error Log Viewer page |
+| `src/app/.../admin/error-logs/ErrorLogViewer.tsx` | NEW — Error Log Viewer client component |
+| `src/app/.../admin/error-logs/actions.ts` | NEW — Server actions for log CRUD |
+| `src/endpoints/leo-stream.ts` | MODIFIED — `resolveAnthropicKey()`, error logging, singleton fix |
+| `src/utilities/ConversationEngine.ts` | MODIFIED — `resolveAnthropicKey()`, error logging, singleton fix |
+| `src/components/ChatControl/useChat.ts` | MODIFIED — switched to `/api/chat/send` endpoint |
+| `src/payload.config.ts` | MODIFIED — registered chat-send endpoint, ApplicationLogs |
+| `src/app/.../dashboard/DashboardHeader.tsx` | MODIFIED — removed redundant space selector |
+| `src/app/.../dashboard/DashboardSidebar.tsx` | MODIFIED — added Home + Error Logs links |
+| `src/utilities/generateMeta.ts` | MODIFIED — site title "Angel OS" |
+| `src/utilities/mergeOpenGraph.ts` | MODIFIED — OpenGraph title "Angel OS" |
+
+---
+
+## Sprint 10: Next Priorities
 
 ### Priority 1: API Provider Strategy & Tenant Limits
 - Settle on OpenRouter as primary AI gateway (already handles UltimateFairSplit alignment)

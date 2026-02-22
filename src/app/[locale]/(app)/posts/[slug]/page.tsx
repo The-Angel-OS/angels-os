@@ -41,14 +41,40 @@ export default async function PostPage({ params }: Args) {
 
   if (!post) return notFound()
 
-  const { hero, layout, id, relatedPosts } = post
+  const { hero, layout, id, relatedPosts, title, publishedOn, categories } = post
   const related = (relatedPosts ?? []).filter(
     (p): p is import('@/payload-types').Post =>
       typeof p === 'object' && p != null && 'slug' in p,
   )
 
+  const cats = (categories ?? [])
+    .map((c) => (typeof c === 'object' && c != null ? c.title : null))
+    .filter(Boolean)
+
   return (
     <article className="pt-16 pb-24">
+      {/* Post header — always show title & date even when hero type is "none" */}
+      <div className="container mb-8">
+        {cats.length > 0 && (
+          <div className="flex gap-2 mb-3">
+            {cats.map((cat) => (
+              <span key={cat} className="text-xs uppercase tracking-wider text-primary font-medium">
+                {cat}
+              </span>
+            ))}
+          </div>
+        )}
+        <h1 className="text-4xl font-bold">{title}</h1>
+        {publishedOn && (
+          <time className="mt-2 block text-sm text-muted-foreground" dateTime={publishedOn}>
+            {new Date(publishedOn).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </time>
+        )}
+      </div>
       <RenderHero {...hero} />
       <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts' }} />
       {related.length > 0 && (

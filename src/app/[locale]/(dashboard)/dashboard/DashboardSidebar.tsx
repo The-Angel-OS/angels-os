@@ -175,6 +175,9 @@ export function DashboardSidebar({
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {/* OVERVIEW – visible to all */}
         <NavSection label="OVERVIEW" collapsed={isCollapsed}>
+          <NavLink href={`${prefix}/`} icon={<HomeIcon />} collapsed={isCollapsed} active={false}>
+            Home
+          </NavLink>
           <NavLink href={`${prefix}/dashboard`} icon={<GridIcon />} collapsed={isCollapsed} active={pathname === `${prefix}/dashboard` || pathname === '/dashboard'}>
             Dashboard
           </NavLink>
@@ -284,6 +287,9 @@ export function DashboardSidebar({
             </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/ai-settings')}>
               AI Settings
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/error-logs')}>
+              Error Logs
             </NavLink>
           </NavSection>
         )}
@@ -397,6 +403,9 @@ function MobileNavContent({
   return (
     <div className="flex-1 overflow-y-auto px-2 py-3">
       <NavSection label="OVERVIEW" collapsed={false}>
+        <NavLink href={`${prefix}/`} icon={<HomeIcon />} collapsed={false} active={false}>
+          Home
+        </NavLink>
         <NavLink href={`${prefix}/dashboard`} icon={<GridIcon />} collapsed={false} active={pathname === `${prefix}/dashboard` || pathname === '/dashboard'}>
           Dashboard
         </NavLink>
@@ -487,6 +496,9 @@ function MobileNavContent({
           </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/ai-settings')}>
             AI Settings
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/error-logs')}>
+            Error Logs
           </NavLink>
         </NavSection>
       )}
@@ -656,6 +668,22 @@ function SparkleIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  )
+}
+
+function HomeIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  )
+}
+
+function AlertIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
   )
 }

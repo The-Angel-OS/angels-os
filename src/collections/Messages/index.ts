@@ -2,6 +2,7 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
+import { setTenantFromSpace } from './hooks/setTenantFromSpace'
 import { broadcastToSubscribers } from '@/endpoints/ai-bus-stream'
 
 /**
@@ -272,6 +273,7 @@ export const Messages: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeValidate: [setTenantFromSpace],
     beforeChange: [setAuthor],
     afterChange: [
       runWorkflows,

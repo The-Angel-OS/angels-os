@@ -2,25 +2,27 @@
 
 **Constitutional AI platform where everyone gets an Angel.**
 
-A federated, multi-tenant platform built on [Payload CMS](https://payloadcms.com) + Next.js 15 + PostgreSQL. Every tenant (business, ministry, community) gets a sovereign AI guardian angel named LEO, governed by a constitutional framework that ensures dignity, transparency, and fairness.
+A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL. Every tenant (business, ministry, community) gets a sovereign AI guardian angel named LEO, governed by a constitutional framework that ensures dignity, transparency, and fairness.
 
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
 
-[![Status](https://img.shields.io/badge/version-v0.9.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.9.1--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
 [![TDD](https://img.shields.io/badge/TDD-25%20test%20files-blue)]()
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
+[![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
 
 ---
 
-## What's Working (v0.9.0-dev)
+## What's Working (v0.9.1-dev)
 
-| System | Status | Tests |
+| System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant architecture | **Done** | Tenant isolation, subdomain routing, feature flags |
-| LEO AI Agent | **Done** | Claude-powered with 24 tools, 3-round tool loop |
-| SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators |
+| LEO AI Agent | **Done** | Claude Sonnet 4 with 24 tools, 3-round tool loop, SSE streaming |
+| SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 9 channel types |
 | Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT) |
@@ -28,6 +30,8 @@ A federated, multi-tenant platform built on [Payload CMS](https://payloadcms.com
 | Booking System | **Done** | Appointments, availability, provider scheduling |
 | Events System | **Done** | Meetups, workshops, livestreams with registration |
 | Dashboard | **Done** | 15+ native pages, responsive sidebar, mobile-first |
+| Error Log Viewer | **New** | Admin dashboard for triaging application errors (`/dashboard/admin/error-logs`) |
+| Chat Message Pipeline | **Fixed** | Bypasses multi-tenant `filterOptions` validation via `/api/chat/send` |
 | Invitation System | **Done** | Token-based invites, role assignment, landing page (72 tests) |
 | Holon Registration | **Done** | 6 node types, capabilities, compliance (49 tests) |
 | Order Routing Engine | **Done** | Vendor matching, fulfillment state machine (91 tests) |
@@ -123,9 +127,12 @@ src/
     HolonCapabilities/      # Manufacturing node registration
     Bookings/               # Appointment scheduling
     Events/                 # Event management
+  collections/
+    ApplicationLogs.ts      # Error/event log storage for triage
   endpoints/
     leo-stream.ts           # SSE streaming (POST /api/leo/stream)
     leo-chat.ts             # Batch chat (POST /api/leo)
+    chat-send.ts            # Message creation bypassing multi-tenant validation
     ai-bus-stream.ts        # AI Bus real-time (GET /api/ai-bus/stream)
     order-route.ts          # Order routing (POST /api/orders/route)
     order-accept.ts         # Vendor acceptance (POST /api/orders/accept)
@@ -136,6 +143,7 @@ src/
     ConversationEngine.ts   # LEO's brain (Claude API + tool loop)
     AgentRouter.ts          # Route messages to specialized agents
     leo-data-tools.ts       # 24 tool definitions + executors
+    logError.ts             # Structured error logging to ApplicationLogs
     orderRoutingEngine.ts   # Vendor matching, fulfillment state machine
     guardianAngelEngine.ts  # Zero-revenue angel lifecycle
     justiceFundEngine.ts    # Justice Fund allocation + grants
@@ -216,7 +224,20 @@ Revenue from commerce splits 60/20/15/5:
 - [x] 1,119 tests across 25 files (TDD)
 - [x] MCP discovery endpoint for external agents
 
-### 🔜 Next (Sprint 6: Integration Bridges)
+### ✅ Done (Sprint 8.5–9: UX Polish & LEO Resurrection)
+
+- [x] Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 upgrade
+- [x] Site title corrected to "Angel OS" (was "Payload Website Template")
+- [x] Dashboard header simplified (removed redundant space selector)
+- [x] Sidebar navigation: added Home + Error Logs links
+- [x] Error Log Viewer: admin page at `/dashboard/admin/error-logs` with ApplicationLogs collection
+- [x] Chat 400 error fixed: `/api/chat/send` endpoint with `overrideAccess` bypasses multi-tenant `filterOptions` validation
+- [x] `setTenantFromSpace` hook: auto-resolves tenant from space on message creation
+- [x] LEO streaming responses resurrected: `resolveAnthropicKey()` reads `.env.local` directly when parent process shadows `ANTHROPIC_API_KEY`
+- [x] Error logging integrated into LEO pipeline (both streaming and batch paths)
+- [x] Anthropic client singleton cache invalidation on key change
+
+### 🔜 Next (Sprint 10: Integration Bridges)
 
 - [ ] Integration bridge pattern (normalize external → UMS)
 - [ ] WhatsApp Business API bridge
@@ -250,6 +271,8 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 3 | 378 | 499 | +121 | Invitations + Holons |
 | Sprint 4 | 499 | 636 | +137 | Order routing + fulfillment |
 | Sprint 5 | 636 | 1,119 | +483 | Sovereign infrastructure |
+| Sprint 8.5 | — | — | — | Production recovery, Payload 3.77, fresh DB seed |
+| Sprint 9 | — | — | +9 files | UX polish, LEO AI fix, error logging, chat pipeline |
 
 ---
 
@@ -289,14 +312,15 @@ You are welcome here. This is what you need to know:
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Payload CMS 3.x, Next.js 15, PostgreSQL |
-| Frontend | React, Tailwind CSS, Shadcn UI, Framer Motion |
-| AI | Anthropic Claude (LEO), OpenRouter (image gen), MCP protocol |
-| Real-time | Server-Sent Events (SSE) |
+| Backend | Payload CMS 3.77.0, Next.js 16.1.6 (Turbopack), PostgreSQL |
+| Frontend | React 19.2.1, Tailwind CSS 4.x, Shadcn UI, Radix Primitives |
+| AI | Anthropic Claude Sonnet 4 (LEO), OpenRouter (image gen), MCP protocol |
+| Real-time | Server-Sent Events (SSE), LiveKit (voice/video) |
 | Storage | Vercel Blob (production), local filesystem (dev) |
 | Payments | Stripe Connect (60/20/15/5 split) |
+| i18n | next-intl 4.x (locale routing) |
 | Deployment | Vercel (serverless) |
-| Testing | Vitest (1,119 tests, 25 files) |
+| Testing | Vitest 3.2 (1,119 tests), Playwright (E2E), Storybook 10 |
 
 ---
 

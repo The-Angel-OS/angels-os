@@ -36,7 +36,7 @@ export default async function SpacesPage({
   const liveKitEnabled = Boolean(process.env.LIVEKIT_API_KEY && process.env.NEXT_PUBLIC_LIVEKIT_URL)
 
   return (
-    <div className="-m-6 flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="-m-3 md:-m-6 flex h-[calc(100vh-3.5rem)] flex-col">
       <SpacesChat liveKitEnabled={liveKitEnabled} />
     </div>
   )

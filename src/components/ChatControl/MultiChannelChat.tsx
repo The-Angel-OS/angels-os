@@ -91,11 +91,9 @@ export function MultiChannelChat({
     setIsCreating(false)
   }
 
-  // LiveKit URL from env (client-side check)
-  const liveKitUrl = typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_LIVEKIT_URL || '')
-    : ''
-  const showLiveKit = liveKitEnabled && Boolean(liveKitUrl)
+  // NEXT_PUBLIC_* env vars are inlined at build time — same value on server & client.
+  // No useEffect needed; this avoids hydration mismatch.
+  const showLiveKit = !!(liveKitEnabled && process.env.NEXT_PUBLIC_LIVEKIT_URL)
 
   return (
     <div className={`flex h-full min-h-[500px] flex-col md:flex-row overflow-hidden rounded-lg border border-border bg-background ${className}`}>

@@ -96,6 +96,7 @@ export interface Config {
     'holon-capabilities': HolonCapability;
     'justice-fund-transactions': JusticeFundTransaction;
     'processed-stripe-events': ProcessedStripeEvent;
+    'application-logs': ApplicationLog;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -149,6 +150,7 @@ export interface Config {
     'holon-capabilities': HolonCapabilitiesSelect<false> | HolonCapabilitiesSelect<true>;
     'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
+    'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -2857,6 +2859,55 @@ export interface ProcessedStripeEvent {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "application-logs".
+ */
+export interface ApplicationLog {
+  id: number;
+  /**
+   * Severity level of the log entry
+   */
+  level: 'error' | 'warning' | 'info' | 'debug';
+  /**
+   * Component or module that generated the error (e.g., "useChat", "API /messages", "Footer")
+   */
+  source: string;
+  /**
+   * Human-readable error description
+   */
+  message: string;
+  /**
+   * Stack trace, request body, or additional context
+   */
+  details?: string | null;
+  /**
+   * HTTP status code (if applicable)
+   */
+  statusCode?: number | null;
+  /**
+   * Request URL or page URL where the error occurred
+   */
+  url?: string | null;
+  /**
+   * Browser user-agent string
+   */
+  userAgent?: string | null;
+  /**
+   * ID of the user who triggered the error (if authenticated)
+   */
+  userId?: string | null;
+  /**
+   * Tenant context when the error occurred
+   */
+  tenantId?: string | null;
+  /**
+   * Mark as resolved after triage
+   */
+  resolved?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -3182,6 +3233,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'processed-stripe-events';
         value: number | ProcessedStripeEvent;
+      } | null)
+    | ({
+        relationTo: 'application-logs';
+        value: number | ApplicationLog;
       } | null)
     | ({
         relationTo: 'forms';
@@ -4271,6 +4326,24 @@ export interface ProcessedStripeEventsSelect<T extends boolean = true> {
   eventId?: T;
   eventType?: T;
   processedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "application-logs_select".
+ */
+export interface ApplicationLogsSelect<T extends boolean = true> {
+  level?: T;
+  source?: T;
+  message?: T;
+  details?: T;
+  statusCode?: T;
+  url?: T;
+  userAgent?: T;
+  userId?: T;
+  tenantId?: T;
+  resolved?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
