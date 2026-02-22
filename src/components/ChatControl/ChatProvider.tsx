@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useChat } from './useChat'
 import type { ChatMessage, ChatChannel, ChatSpace } from './types'
@@ -90,10 +90,22 @@ export function ChatProvider({
   const [dmChannels, setDmChannels] = useState<ChatChannel[]>([])
   const [leoDMChannel, setLeoDMChannel] = useState<ChatChannel | null>(null)
   const leoResolvedRef = useRef(false)
+  const [activeChannelSlugLocal, setActiveChannelSlugLocal] = useState<string>('')
 
-  // The core useChat hook drives messages/channels for the active space+channel
+  // ─── Effective Space ID ───────────────────────────────────────
+  // When the active channel is a DM, route queries to the DM space
+  // instead of the visually active space. This fixes the bug where
+  // DM messages were invisible because useChat queried the wrong space.
+  const effectiveSpaceId = useMemo(() => {
+    if (!activeChannelSlugLocal) return activeSpaceId
+    const isDM = dmChannels.find((c) => c.slug === activeChannelSlugLocal)
+    if (isDM && dmSpaceId) return dmSpaceId
+    return activeSpaceId
+  }, [activeChannelSlugLocal, activeSpaceId, dmSpaceId, dmChannels])
+
+  // The core useChat hook drives messages/channels for the effective space+channel
   const chat = useChat(
-    activeSpaceId || undefined,
+    effectiveSpaceId || undefined,
     undefined,
     { tenantId },
   )
@@ -178,6 +190,7 @@ export function ChatProvider({
 
   const setActiveChannel = useCallback(
     (slug: string) => {
+      setActiveChannelSlugLocal(slug)
       chat.switchChannel(slug)
     },
     [chat],
@@ -209,8 +222,8 @@ export function ChatProvider({
               if (prev.find((c) => c.id === ch.id)) return prev
               return [ch, ...prev]
             })
-            // Navigate to DMs space and this channel
-            setActiveSpaceId(dmSpaceId)
+            // Navigate to DM channel — effectiveSpaceId handles space routing
+            setActiveChannelSlugLocal(ch.slug)
             chat.switchChannel(ch.slug)
           }
         })
@@ -249,7 +262,10 @@ export function ChatProvider({
 
     createChannel: chat.createChannel,
     deleteChannel: chat.deleteChannel,
-    switchChannel: chat.switchChannel,
+    switchChannel: (slug: string) => {
+      setActiveChannelSlugLocal(slug)
+      chat.switchChannel(slug)
+    },
   }
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

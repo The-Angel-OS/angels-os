@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Settings, Save, Loader2 } from 'lucide-react'
 import { Backdrop } from '@/components/Backdrop'
 import type { ChatChannel } from './types'
+import { DEFAULT_APPLETS } from './types'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
 
@@ -157,14 +158,34 @@ export function ChannelSettingsPanel({ channel, isOpen, onClose, onSaved }: Chan
             </div>
           )}
 
-          {/* Widgets — placeholder for future */}
+          {/* Applets */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Widgets</label>
-            <div className="rounded-lg border border-dashed border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">
-                Widget configuration coming soon. Channel type determines available widgets and applet behavior.
-              </p>
+            <label className="text-xs font-medium text-muted-foreground">Applets</label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Applets add capabilities to every channel in this space. Toggle applets on or off.
+            </p>
+            <div className="space-y-2">
+              {DEFAULT_APPLETS.map((applet) => (
+                <label key={applet.id} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled={applet.id === 'chat'}
+                    readOnly
+                    className="rounded border-border accent-primary"
+                  />
+                  <span className={applet.id === 'chat' ? 'text-muted-foreground' : 'text-foreground'}>
+                    {applet.label}
+                  </span>
+                  {applet.id === 'chat' && (
+                    <span className="text-[10px] text-muted-foreground">(always on)</span>
+                  )}
+                </label>
+              ))}
             </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Space-level applet management coming in a future update.
+            </p>
           </div>
 
           {/* Feedback */}

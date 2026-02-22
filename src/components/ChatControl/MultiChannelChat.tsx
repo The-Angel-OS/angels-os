@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings, Bot, User } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
@@ -11,8 +11,12 @@ import { SpaceSelector } from './SpaceSelector'
 import { LiveKitButton } from './LiveKitButton'
 import { MemberPanelTrigger, MemberPanel } from './MemberPanel'
 import { ChannelSettingsPanel } from './ChannelSettingsPanel'
+import { AppletBar } from './AppletBar'
+import { FilesBrowser } from './applets/FilesBrowser'
+import { TaskBoard } from './applets/TaskBoard'
 import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps, ChatChannel } from './types'
+import { DEFAULT_APPLETS } from './types'
 
 /** Source icons for external DM channels */
 const SOURCE_ICONS: Record<string, string> = {
@@ -88,12 +92,32 @@ export function MultiChannelChat({
   const [channelsPanelOpen, setChannelsPanelOpen] = useState(!isMobile)
   const [memberPanelOpen, setMemberPanelOpen] = useState(false)
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false)
+  const [activeApplet, setActiveApplet] = useState<string>('chat')
 
   // Find active channel data from both regular and DM channels
   const activeChannelData =
     channels.find((c) => c.slug === activeChannel) ||
     dmChannels.find((c) => c.slug === activeChannel)
   const activeSpace = spaces.find((s) => s.id === activeSpaceId)
+
+  // Compute which applets are enabled for the active space + channel
+  const enabledApplets = useMemo(() => {
+    // DM channels: only chat (DMs are conversations, not workspaces)
+    if (activeChannelData?.type === 'dm') {
+      return DEFAULT_APPLETS.filter((a) => a.id === 'chat')
+    }
+    const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'files', 'tasks']
+    return DEFAULT_APPLETS.filter((a) => spaceAppletIds.includes(a.id))
+  }, [activeChannelData, activeSpace])
+
+  // Reset applet to chat when switching channels
+  const handleSwitchChannel = useCallback(
+    (slug: string) => {
+      setActiveApplet('chat')
+      switchChannel(slug)
+    },
+    [switchChannel],
+  )
 
   const handleSpaceChange = (newSpaceId: string) => {
     if (hasProvider) {
@@ -109,7 +133,7 @@ export function MultiChannelChat({
     setIsCreating(true)
     const created = await createChannel(newChannelName.trim(), newChannelType)
     if (created) {
-      switchChannel(created.slug)
+      handleSwitchChannel(created.slug)
       setNewChannelName('')
       setNewChannelType('general')
       setShowCreateForm(false)
@@ -135,7 +159,7 @@ export function MultiChannelChat({
         }`}
       >
         <button
-          onClick={() => switchChannel(ch.slug)}
+          onClick={() => handleSwitchChannel(ch.slug)}
           className="flex flex-1 items-center gap-2 text-left min-w-0"
         >
           {sourceIcon ? <span className="shrink-0 text-xs">{sourceIcon}</span> : icon}
@@ -181,7 +205,7 @@ export function MultiChannelChat({
                 {channels.filter((c) => c.type !== 'dm').map((ch) => (
                   <button
                     key={ch.id}
-                    onClick={() => switchChannel(ch.slug)}
+                    onClick={() => handleSwitchChannel(ch.slug)}
                     className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                       ch.slug === activeChannel
                         ? 'bg-primary text-primary-foreground'
@@ -196,7 +220,7 @@ export function MultiChannelChat({
                 {dmChannels.map((ch) => (
                   <button
                     key={ch.id}
-                    onClick={() => switchChannel(ch.slug)}
+                    onClick={() => handleSwitchChannel(ch.slug)}
                     className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                       ch.slug === activeChannel
                         ? 'bg-primary text-primary-foreground'
@@ -362,7 +386,7 @@ export function MultiChannelChat({
                     title={!channelsPanelOpen ? `#${ch.name}` : undefined}
                   >
                     <button
-                      onClick={() => switchChannel(ch.slug)}
+                      onClick={() => handleSwitchChannel(ch.slug)}
                       className="flex flex-1 items-center gap-2 text-left min-w-0"
                     >
                       <Hash size={14} className="shrink-0 opacity-50" />
@@ -436,6 +460,13 @@ export function MultiChannelChat({
               )}
             </div>
 
+            {/* Applet toggle bar — hidden for DM channels (only chat) */}
+            <AppletBar
+              applets={enabledApplets}
+              activeApplet={activeApplet}
+              onAppletChange={setActiveApplet}
+            />
+
             {/* Right side: LiveKit + Settings + Members */}
             <div className="flex items-center gap-1">
               {showLiveKit && (
@@ -456,21 +487,31 @@ export function MultiChannelChat({
           </div>
         )}
 
-        {/* Messages */}
-        <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
-
-        {/* Input */}
-        <MessageInput
-          onSend={sendMessage}
-          disabled={isLoading}
-          placeholder={
-            activeChannelData?.type === 'dm'
-              ? activeChannelData.slug.endsWith('-leo')
-                ? 'Ask LEO anything...'
-                : `Message ${activeChannelData.name}...`
-              : `Message #${activeChannelData?.name || activeChannel}...`
-          }
-        />
+        {/* Content area — switches based on active applet */}
+        {activeApplet === 'chat' ? (
+          <>
+            <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
+            <MessageInput
+              onSend={sendMessage}
+              disabled={isLoading}
+              placeholder={
+                activeChannelData?.type === 'dm'
+                  ? activeChannelData.slug.endsWith('-leo')
+                    ? 'Ask LEO anything...'
+                    : `Message ${activeChannelData.name}...`
+                  : `Message #${activeChannelData?.name || activeChannel}...`
+              }
+            />
+          </>
+        ) : activeApplet === 'files' ? (
+          <FilesBrowser channelId={activeChannelData?.id} spaceId={activeSpaceId} />
+        ) : activeApplet === 'tasks' ? (
+          <TaskBoard channelId={activeChannelData?.id} spaceId={activeSpaceId} />
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+            Applet &ldquo;{activeApplet}&rdquo; is not yet available.
+          </div>
+        )}
       </div>
 
       {/* Member panel overlay */}
