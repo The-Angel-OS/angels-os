@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Hash, ChevronDown } from 'lucide-react'
+import { Backdrop } from '@/components/Backdrop'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
@@ -72,13 +73,7 @@ export function SidebarChat({
       </button>
 
       {/* Mobile backdrop */}
-      {isMobile && isExpanded && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 transition-opacity"
-          onClick={() => setIsExpanded(false)}
-          aria-hidden="true"
-        />
-      )}
+      <Backdrop isOpen={isMobile && isExpanded} onClick={() => setIsExpanded(false)} zIndex="z-30" opacity="bg-black/40" />
 
       {/* Chat Panel — full-width on mobile, w-96 on desktop */}
       <div

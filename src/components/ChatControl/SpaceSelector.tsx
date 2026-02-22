@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { ChevronDown, Bot, Globe, Lock, Users } from 'lucide-react'
 import type { ChatSpace } from './types'
 import { AI_BUS_SPACE_SLUG } from './useSpaces'
+import { useClickOutside } from '@/hooks/useClickOutside'
 
 interface SpaceSelectorProps {
   spaces: ChatSpace[]
@@ -45,28 +46,8 @@ export function SpaceSelector({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId)
-
-  // Close on outside click
-  useEffect(() => {
-    if (!isOpen) return
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [isOpen])
-
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen])
+  const closeDropdown = useCallback(() => setIsOpen(false), [])
+  useClickOutside(dropdownRef, closeDropdown, isOpen)
 
   if (isLoading) {
     return (

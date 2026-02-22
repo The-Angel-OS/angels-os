@@ -5,13 +5,20 @@ import configPromise from '@payload-config'
 export const AI_BUS_SPACE_SLUG = 'ai-bus'
 export const AI_BUS_SPACE_NAME = 'AI Bus'
 
+/** Default channels every AI Bus space should have */
+const AI_BUS_CHANNELS = [
+  { name: 'general', slug: 'general', description: 'AI agent activity feed', type: 'general', isDefault: true },
+  { name: 'support', slug: 'support', description: 'Support requests and system help', type: 'support', isDefault: false },
+] as const
+
 /**
  * Ensures the AI Bus system space exists for a given tenant.
  *
  * The AI Bus space is a private, system-created space where all AI agent
  * activity is visible. It's created on first visit to the spaces page.
  *
- * Also creates a default "general" channel in the space if it doesn't exist.
+ * Also ensures default channels exist with proper tenant scoping.
+ * Self-healing: backfills missing tenant IDs on orphaned channels.
  *
  * @returns The space ID of the AI Bus space
  */
@@ -34,46 +41,95 @@ export async function ensureSystemSpace(
       depth: 0,
     })
 
+    let spaceId: string | number
+
     if (existing.docs?.[0]) {
-      return String(existing.docs[0].id)
-    }
-
-    // Create the AI Bus space
-    const space = await payload.create({
-      collection: 'spaces',
-      data: {
-        name: AI_BUS_SPACE_NAME,
-        slug: AI_BUS_SPACE_SLUG,
-        description: 'System space for AI agent activity and monitoring. All Angel actions are visible here.',
-        visibility: 'private',
-        tenant: tenantId as number,
-      },
-      overrideAccess: true,
-    })
-
-    // Create the default "general" channel
-    try {
-      await payload.create({
-        collection: 'channels',
+      spaceId = existing.docs[0].id
+    } else {
+      // Create the AI Bus space
+      const space = await payload.create({
+        collection: 'spaces',
         data: {
-          name: 'general',
-          slug: 'general',
-          description: 'AI agent activity feed',
-          type: 'general',
-          space: space.id,
-          isDefault: true,
+          name: AI_BUS_SPACE_NAME,
+          slug: AI_BUS_SPACE_SLUG,
+          description: 'System space for AI agent activity and monitoring. All Angel actions are visible here.',
+          visibility: 'private',
+          tenant: tenantId as number,
         },
         overrideAccess: true,
       })
-    } catch {
-      // Channel creation is non-critical — space still usable
-      console.warn('[ensureSystemSpace] Failed to create default channel for AI Bus space')
+      spaceId = space.id
     }
 
-    return String(space.id)
+    // Ensure all default channels exist with proper tenant scoping
+    await ensureChannels(payload, spaceId, tenantId)
+
+    return String(spaceId)
   } catch (err) {
     // Non-critical — spaces page works without AI Bus space
-    console.warn('[ensureSystemSpace] Failed to create AI Bus space:', err)
+    console.warn('[ensureSystemSpace] Failed to ensure AI Bus space:', err)
     return undefined
+  }
+}
+
+/**
+ * Ensure default channels exist for a space, creating missing ones
+ * and backfilling tenant IDs on orphaned channels (self-healing).
+ */
+async function ensureChannels(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  spaceId: string | number,
+  tenantId: number | string,
+): Promise<void> {
+  // Fetch existing channels for this space (bypass tenant filter)
+  const existingChannels = await payload.find({
+    collection: 'channels',
+    where: { space: { equals: spaceId } },
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  const existingBySlug = new Map(
+    existingChannels.docs.map((ch) => [ch.slug, ch]),
+  )
+
+  for (const template of AI_BUS_CHANNELS) {
+    const existing = existingBySlug.get(template.slug)
+
+    if (existing) {
+      // Self-heal: backfill tenant if missing (fixes orphaned channels)
+      if (!existing.tenant) {
+        try {
+          await payload.update({
+            collection: 'channels',
+            id: existing.id,
+            data: { tenant: tenantId as number },
+            overrideAccess: true,
+          })
+        } catch {
+          console.warn(`[ensureSystemSpace] Failed to backfill tenant on channel ${template.slug}`)
+        }
+      }
+    } else {
+      // Create missing channel
+      try {
+        await payload.create({
+          collection: 'channels',
+          data: {
+            name: template.name,
+            slug: template.slug,
+            description: template.description,
+            type: template.type,
+            space: spaceId as number,
+            isDefault: template.isDefault,
+            tenant: tenantId as number,
+          },
+          overrideAccess: true,
+        })
+      } catch {
+        console.warn(`[ensureSystemSpace] Failed to create channel ${template.slug}`)
+      }
+    }
   }
 }

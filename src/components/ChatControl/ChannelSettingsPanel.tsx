@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { X, Settings, Save, Loader2 } from 'lucide-react'
+import { Backdrop } from '@/components/Backdrop'
 import type { ChatChannel } from './types'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
@@ -85,12 +86,7 @@ export function ChannelSettingsPanel({ channel, isOpen, onClose, onSaved }: Chan
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/20"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <Backdrop isOpen onClick={onClose} />
 
       {/* Panel */}
       <div className="fixed right-0 top-0 z-50 flex h-full w-80 flex-col border-l border-border bg-background shadow-xl transition-transform duration-200 ease-out">

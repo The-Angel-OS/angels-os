@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Users, X, UserPlus, Shield, Crown, Eye, MoreVertical } from 'lucide-react'
+import { Backdrop } from '@/components/Backdrop'
 
 /**
  * MemberPanel — Slide-out member list for Space chat views.
@@ -126,12 +127,7 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/20"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <Backdrop isOpen onClick={onClose} />
 
       {/* Panel */}
       <div className="fixed right-0 top-0 z-50 flex h-full w-72 flex-col border-l border-border bg-background shadow-xl transition-transform duration-200 ease-out">
