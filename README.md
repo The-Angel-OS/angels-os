@@ -6,7 +6,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
 
-[![Status](https://img.shields.io/badge/version-v0.11.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.11.5--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
@@ -17,7 +17,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 ---
 
-## What's Working (v0.11.0-dev)
+## What's Working (v0.11.5-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -278,16 +278,26 @@ Revenue from commerce splits 60/20/15/5:
 - [x] Clearwater Cruisin' seed tenant (brand colors, products, LEO personality)
 - [x] Angel OS favicon
 
+### ✅ Done (Sprint 11.5: Chat UX, Docs, & Code Quality)
+
+- [x] Documentation Center (`/dashboard/docs`) — 137 docs indexed, search, Quick Start cards
+- [x] Smart scroll — no forced scroll when reading history, "New messages" pill
+- [x] Message truncation — CSS `line-clamp-4`, 200-char threshold, "More"/"Show less"
+- [x] Infinite scroll in compact chat — IntersectionObserver sentinel, cursor-based pagination
+- [x] Tenant chooser — sidebar dropdown for multi-tenant switching, domain-based navigation
+- [x] Code quality: `TOOL_LABELS` (centralized), `useClickOutside` (hook), `Backdrop` (component)
+- [x] AI Bus channel bug fix — self-healing tenant backfill in `ensureSystemSpace.ts`
+- [x] Federation architecture clarified — platform IS the mesh, AI Bus IS the protocol
+
 ### 🔜 Next (Sprint 12: Integration Bridges)
 
+- [ ] End-to-end prototype verification (chat, order, provisioning flows)
 - [ ] Integration bridge pattern (normalize external → UMS)
 - [ ] WhatsApp Business API bridge
-- [ ] Voice mode in chat UI (Web Speech API)
-- [ ] Vapi.ai voice bridge (1-800 IVR)
 - [ ] Email integration (inbound parse + outbound transactional)
-- [ ] Social syndication (Post → Facebook/Instagram/Twitter)
+- [ ] Voice mode in chat UI (Web Speech API)
 - [ ] LiveKit session transcription
-- [ ] API rate limits by federation trust level
+- [ ] Social syndication (Post → Facebook/Instagram/Twitter)
 
 ### 🔮 Future (v1.0.0 — Federation Launch)
 
@@ -315,6 +325,7 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 9 | — | — | +9 files | UX polish, LEO AI fix, error logging, chat pipeline |
 | Sprint 10 | — | — | +6 files | Image chat, admin LEO, channel awareness, multi-tenant dev |
 | Sprint 11 | — | — | +8 files | Vendor marketplace, configurator, reviews, producer dashboard |
+| Sprint 11.5 | — | — | +12 files | Documentation Center, smart scroll, truncation, tenant chooser, code quality |
 
 ---
 

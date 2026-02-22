@@ -1,9 +1,9 @@
-# Angel OS — Session Handoff: Sprint 11 Complete
+# Angel OS — Session Handoff: Sprint 11.5 Complete
 
 **Date:** February 22, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 29 LEO tools, v0.11.0-dev deployed
-**Sprint:** Sprint 11 complete (Vendor Marketplace & Branding) — Sprint 12 next
+**Status:** TypeScript clean, build passing, 29 LEO tools, v0.11.5-dev deployed
+**Sprint:** Sprint 11.5 complete (Chat UX, Docs, & Code Quality) — Sprint 12 next
 **Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
 
 ---
@@ -35,6 +35,16 @@
 - **Angel OS favicon** — `src/app/[locale]/(app)/icon.svg`
 - **Podcast script** — `docs/podcast-sprint-10-11.md`
 
+### Sprint 11.5: Chat UX, Docs, & Code Quality
+- **Documentation Center** — DocsViewer page moved to `/dashboard/docs`, 137 documents indexed from `docs/` directory with search, Quick Start cards, markdown rendering. Custom Payload endpoint at `/api/docs` with path traversal protection.
+- **Smart scroll** — CompactMessageList no longer force-scrolls to bottom when user is reading history. Uses `isNearBottom` threshold (100px). Shows sticky "New messages" pill to jump back.
+- **Message truncation** — `TruncatedMessage` component with CSS `line-clamp-4` and 200-char threshold. "More"/"Show less" toggle. Streaming messages bypass truncation.
+- **Infinite scroll** — IntersectionObserver sentinel at top of CompactMessageList. Cursor-based pagination (`createdAt[less_than]`). Scroll position preserved on prepend.
+- **Tenant chooser** — Sidebar brand area becomes dropdown for users with 2+ tenant memberships. Domain-based switching. Colored initial avatars, checkmark on current tenant.
+- **Code quality extractions** — `useClickOutside` hook (replaces 30+ lines of duplicate handlers across SpaceSelector, TenantChooser), `Backdrop` component (replaces 5 identical overlay patterns), `TOOL_LABELS` centralized constant (single source of truth, was duplicated with inconsistent values)
+- **AI Bus channel bug fix** — `ensureSystemSpace.ts` was creating channels without `tenant` field → multi-tenant plugin filtered them out → "No channels yet". Fixed with self-healing: backfills missing tenant IDs on every space visit.
+- **Federation architecture clarified** — The platform IS the mesh. The AI Bus IS the protocol. HTTPS IS the transport. The Constitution IS the ACL. No external dependency needed for federation (Tailscale evaluated, deferred as unnecessary).
+
 ### Key Files (Sprint 10 + 11)
 
 | File | Change |
@@ -62,6 +72,16 @@
 | `src/payload.config.ts` | MODIFIED — new endpoints + components registered |
 | `src/app/[locale]/(dashboard)/dashboard/producer/page.tsx` | NEW — producer dashboard |
 | `docs/podcast-sprint-10-11.md` | NEW — podcast script |
+| `src/app/[locale]/(dashboard)/dashboard/docs/page.tsx` | NEW — Documentation Center with search + markdown viewer |
+| `src/endpoints/docs.ts` | NEW — Payload endpoint for docs listing/reading |
+| `src/constants/toolLabels.ts` | NEW — centralized tool display names |
+| `src/hooks/useClickOutside.ts` | NEW — click-outside + escape hook |
+| `src/components/Backdrop.tsx` | NEW — reusable translucent overlay |
+| `src/utilities/ensureSystemSpace.ts` | MODIFIED — self-healing tenant backfill for AI Bus channels |
+| `src/components/ChatControl/MessageList.tsx` | MODIFIED — smart scroll, truncation, infinite scroll |
+| `src/components/ChatControl/MultiChannelChat.tsx` | MODIFIED — pass infinite scroll props |
+| `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx` | MODIFIED — tenant chooser, Documentation link, useClickOutside, Backdrop |
+| `src/app/[locale]/(dashboard)/dashboard/layout.tsx` | MODIFIED — fetch tenant memberships for chooser |
 
 ---
 
@@ -248,6 +268,12 @@
 
 ## Sprint 12: Next Priorities — Integration Bridges
 
+### Priority 0: End-to-End Prototype Verification
+- Verify chat pipeline: send message → LEO responds → message persists → displays correctly
+- Verify order flow: browse products → add to cart → place order → vendor sees it
+- Verify tenant provisioning: new tenant → space created → LEO active → channels working
+- Fix any broken flows found during verification
+
 ### Priority 1: Integration Bridge Pattern
 - Define adapter interface: `normalizeInbound()`, `formatOutbound()`, `validateWebhook()`
 - All external channels normalize to Universal Message Structure (UMS)
@@ -366,6 +392,7 @@ pnpm dev                             # Dev server (localhost:3000)
 | Sprint 9 (UX Polish + LEO) | — | — | +9 files | Sessions 14-16 |
 | Sprint 10 (Chat Foundation) | — | — | +6 files | Session 17 |
 | Sprint 11 (Vendor Marketplace) | — | — | +8 files | Session 17 |
+| Sprint 11.5 (Chat UX + Docs) | — | — | +12 files | Session 18 |
 
 ---
 

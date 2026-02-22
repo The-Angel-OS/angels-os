@@ -4,130 +4,141 @@
 
 Angel OS is the Soul Operating System -- a multi-tenant platform where every business gets a sovereign AI guardian angel, built on constitutional principles of fairness, transparency, and dignity.
 
-**Tech Stack:** Next.js 15 + Payload CMS 3.x + PostgreSQL + Vercel
+**Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
-**Last Updated:** February 18, 2026
+**Version:** v0.11.5-dev
+**Tests:** 1,119 passing across 25 unit test files
+**Last Updated:** February 22, 2026
 
 ---
 
-## Current: v0.4.0 (LEO Intelligence)
+## Current: v0.11.5-dev (Chat UX + Documentation Center)
 
-LEO is alive. Streaming responses. Tool use. Image generation. Events. Spaces.
+### What's Built (Sprints 1-11.5)
 
-### What's Built
-
-| Feature | Status | Details |
+| Feature | Sprint | Details |
 |---------|--------|---------|
-| Multi-tenant architecture | Done | Tenants, Spaces, Channels, Memberships |
-| LEO AI Agent (Claude) | Done | 15+ tools, constitutional prompt, agent routing |
-| SSE Streaming Chat | Done | Real-time streaming with tool call indicators |
-| AI Bus (Message Routing) | Done | SSE broadcast, subscriber registry |
-| Spaces & Channels | Done | Discord-style workspaces, multi-channel |
-| Image Generation | Done | OpenRouter (Flux 2, Gemini), auto-upload, vision feedback |
-| E-commerce Foundation | Done | Products, cart, orders |
-| Booking System | Done | Appointments, availability, scheduling |
-| Events System | Done | Meetups, workshops, registrations |
-| Dashboard | Done | Stats, quick access, 6-section sidebar |
-| Provision Wizard | Done | Multi-step tenant creation |
+| Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
+| LEO AI Agent (Claude) | 1-11 | 29 tools, constitutional prompt, agent routing, image vision |
+| SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
+| AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
+| Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
+| Image Generation | 3 | OpenRouter (Flux 2, Gemini), auto-upload, vision feedback |
+| E-commerce Foundation | 2 | Products, cart, orders, vendor marketplace |
+| Booking System | 3 | Appointments, availability, scheduling |
+| Events System | 3 | Meetups, workshops, registrations |
+| Dashboard | 1 | Stats, quick access, 8-section sidebar, native pages |
+| Provision Wizard | 4 | Multi-step tenant creation with endeavor type templates |
+| Invitation System | 3 | Token-based, role assignment, landing page |
+| Order Routing Pipeline | 4 | Haversine matching, fulfillment state machine, 60/20/15/5 split |
+| Guardian Angel System | 5 | Cohort matching, wellness checks, zero-revenue lifecycle |
+| Justice Fund | 5 | 5% allocation, grant lifecycle, impact reporting |
+| Print-on-Demand | 5 | Design validation, cost estimation, vendor matching |
+| Federation Protocol | 5 | Ministry lifecycle, trust chain, catalog, data suitcase |
+| Producer Dashboard | 11 | Order queue, products, earnings for vendors |
+| Product Configurator | 11 | Interactive text/color/size/finish inputs with preview |
+| Reviews System | 11 | Google Places integration, aggregation display |
+| Image Chat | 10 | Paperclip upload, multi-image, LEO vision analysis |
+| Documentation Center | 11.5 | 137 docs indexed, search, Quick Start cards, in-dashboard |
+| Smart Scroll + Truncation | 11.5 | Don't force-scroll on history, "More" button, infinite scroll |
+| Tenant Chooser | 11.5 | Multi-tenant sidebar dropdown with domain switching |
+| Code Quality Abstractions | 11.5 | useClickOutside, Backdrop, TOOL_LABELS constants |
 
 ---
 
-## v0.5.0 -- Commerce & Invitations (Target: March 2026)
+## Sprint 12 — Integration Bridges (Next)
 
-**Goal:** Revenue flows. Invitations work. A business owner can sign up, invite their team, and start selling.
+**Goal:** End-to-end prototype verification + external channel integration. A business owner can receive messages from WhatsApp, email, or web chat — all through LEO.
 
-| Issue | Title | Priority | Status |
-|-------|-------|----------|--------|
-| #34 | Space Invitations & Onboarding | High | Schema done, workflow TODO |
-| #31 | Stripe Connect Integration | Critical | Open |
-| #32 | Ultimate Fair Payment Split | Critical | Open |
-| #39 | User AI Key Management | High | Open |
-| #38 | Payload CMS Pattern Refactor | High | In Progress |
-| #21 | Docker Compose Configuration | Medium | Open |
-| #19 | Anti-Daemon Error Messages | Medium | Open |
-| #20 | Warm Encouraging Empty States | Medium | Open |
+### Priority 0: End-to-End Prototype Verification
+- [ ] Chat pipeline: send message → LEO responds → message persists → displays correctly
+- [ ] Order flow: browse products → add to cart → place order → vendor sees it
+- [ ] Tenant provisioning: new tenant → space created → LEO active → channels working
+- [ ] Fix any broken flows found during verification
 
-**Key deliverables:**
-- Space invitation send/accept/decline workflow
-- Stripe Connect with constitutional revenue splits (60/20/15/5)
-- Bring-your-own-AI-key support
-- Docker Compose for self-hosting
-- Testing infrastructure (currently 0% coverage)
+### Priority 1: Integration Bridge Pattern
+- [ ] Define adapter interface: `normalizeInbound()`, `formatOutbound()`, `validateWebhook()`
+- [ ] All external channels normalize to Universal Message Structure (UMS)
+- [ ] Bridge → Messages collection → LEO processing → Response → Bridge
 
----
+### Priority 2: WhatsApp Business API Bridge
+- [ ] Webhook endpoint for inbound messages
+- [ ] UMS normalization from WhatsApp format
+- [ ] Outbound response formatting (text, images, buttons)
 
-## v0.6.0 -- Booking & CRM (Target: May 2026)
+### Priority 3: Email Integration
+- [ ] Inbound parse webhook (SendGrid/Mailgun)
+- [ ] Outbound transactional (Nodemailer)
+- [ ] Reply threading
 
-**Goal:** Full booking flow with payments. CRM for tenant business operations.
-
-| Issue | Title | Priority | Status |
-|-------|-------|----------|--------|
-| #28 | Bookable Resources System | High | Open |
-| #29 | Availability Management | High | Open |
-| #30 | Appointment Types & Meeting Invitations | Medium | Open |
-| #33 | CRM Collections (Contacts, Leads, Deals) | Medium | Open |
-| #17 | Transaction Attribution Tracking | High | Open |
+### Priority 4: Voice Mode
+- [ ] Web Speech API toggle in MessageInput (STT/TTS)
+- [ ] LiveKit session transcription stored as messages
 
 ---
 
-## v0.7.0 -- Widgets & Content (Target: July 2026)
+## v1.0.0 — Federation Launch (Target: Q3 2026)
 
-**Goal:** Channel widgets make Spaces powerful. LEO generates content autonomously.
+**Goal:** Angel OS becomes a live federated network. The platform IS the mesh. The AI Bus IS the protocol. HTTPS IS the transport. The Constitution IS the ACL.
 
-| Issue | Title | Priority | Status |
-|-------|-------|----------|--------|
-| #4 | Channel Widgets System | Medium | Needs Design |
-| #5 | Widget Tab Bar for Channels | Medium | Needs Design |
-| #6 | Core Channel Widgets | Medium | Needs Design |
-| #23 | LEO Content Generation | High | Open |
-| #25 | LEO Platform Orchestration | High | Open |
-| #24 | Social Media Automation (Soulcast) | Medium | Open |
-| #3 | Angel Configuration & Custom Naming | Medium | Open |
-
----
-
-## v1.0.0 -- Federation Launch (Target: October 2026)
-
-**Goal:** Angel OS becomes a federated network of sovereign instances.
-
-| Issue | Title | Priority | Status |
-|-------|-------|----------|--------|
-| #40 | Local Model Integration (Ollama) | High | Open |
-| #41 | Justice Fund AI Provisioning | High | Open |
-| #15 | Diocese Registry & Heartbeat | Medium | Open |
-| #16 | Federation Security | Medium | Open |
-| #36 | Star Trek Federation Design System | Low | Needs Design |
-| #8 | Sync Skills from OpenClaw Marketplace | Low | Open |
-| #22 | Cloudflare Tunnel for Dynamic IP | Low | Open |
-
-**Key deliverables:**
-- Diocese registry for federated Angel OS instances
-- Federation security (application, probation, vouching)
-- Local model support (complete sovereignty via Ollama)
-- Justice Fund: 5% of revenue funds AI for those without means
-- OpenClaw skill marketplace integration
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Federation Protocol | Done | Trust chain, heartbeat, catalog, suitcase (126 tests) |
+| Diocese Registry | Done | Ministry lifecycle, probation, vouching |
+| Federated AI Bus | TODO | Platform-as-mesh, JWT-signed cross-tenant messaging |
+| Local Model Support (Ollama) | TODO | Complete sovereignty option |
+| Justice Fund Operational | TODO | Real Stripe disbursements to guardians |
+| Stripe Connect (Ultimate Fair) | TODO | 60/20/15/5 payment splitting live |
+| Docker Compose | TODO | Self-hosting for sovereign deployments |
+| User AI Key Management | TODO | Bring-your-own-key for model selection |
+| Social Syndication | TODO | Post → Facebook/Instagram/Twitter |
 
 ---
 
 ## Beyond v1.0 (2027+)
 
-- **Angel Tokens** -- Governance tokens for Constitutional voting
-- **Voice Integration** -- VAPI.ai / LiveKit voice bridge
-- **Widget Marketplace** -- Developer SDK, revenue sharing
-- **Home PC Deployment** -- Any 2015+ PC (8GB RAM, Ollama, Cloudflare Tunnel)
-- **Prison Ministry** -- Guardian Angels for incarcerated individuals (Justice Fund)
+- **Angel Tokens** — Governance tokens for Constitutional voting
+- **Voice Bridge** — Vapi.ai / LiveKit for phone-based LEO (1-800 IVR)
+- **Widget Marketplace** — Developer SDK, revenue sharing
+- **Home PC Deployment** — Any 2015+ PC (8GB RAM, Ollama, reverse proxy)
+- **Prison Ministry** — Guardian Angels for incarcerated individuals (Justice Fund)
+- **Star Trek Federation Design System** — LCARS-inspired UI option
+
+---
+
+## Architecture
+
+### Three Layers
+
+1. **Angel OS Core ("The Loft")** — Structured data, multi-tenant persistence, LEO tools, production lifecycle
+2. **Holon Production Layer** — Each tenant is a self-governing production node within 100-mile economic radius
+3. **OpenClaw Angels ("Free Agents")** — Autonomous AI agents operating on Loft data within constitutional bounds
+
+### Federation Architecture
+
+```
+The Platform IS the mesh.
+The AI Bus IS the protocol.
+HTTPS IS the transport.
+The Constitution IS the ACL.
+
+No external dependency needed for federation.
+Each node only needs simple local rules — the mesh creates emergent behavior.
+```
+
+### Economic Model (Ultimate Fair)
+
+```
+Every transaction:
+  60% → Creator/Vendor
+  20% → Platform Operations
+  15% → Contributors
+   5% → Justice Fund (guardian angels for those without means)
+```
 
 ---
 
 ## Contributing
-
-### Good First Issues
-- **#19** -- Anti-Daemon Protocol for Error Messages
-- **#20** -- Replace Empty States with Warm Messages
-
-### Help Wanted
-- **#21** -- Docker Compose Configuration
-- **#36** -- Star Trek Federation Design System
 
 ### Development Setup
 
@@ -139,29 +150,20 @@ cp .env.example .env   # Configure DATABASE_URI, PAYLOAD_SECRET
 pnpm dev               # http://localhost:3000
 ```
 
-### Labels
+### Sprint Velocity
 
-| Label | Meaning |
-|-------|---------|
-| `priority: critical` | Must-have for current milestone |
-| `priority: high` | Important, next in queue |
-| `good first issue` | Great entry point for new contributors |
-| `help wanted` | Community contributions especially welcome |
-| `constitutional` | Directly implements constitutional mandates |
-
----
-
-## Success Metrics
-
-### v0.5.0 (Commerce)
-- [ ] Space invitations working end-to-end
-- [ ] First Stripe payment processed through Ultimate Fair
-- [ ] 5 contributors
-
-### v1.0.0 (Federation)
-- [ ] 10 dioceses in network
-- [ ] Local model support functional
-- [ ] Justice Fund operational
+| Sprint | Focus | Tests | Key Deliverables |
+|--------|-------|-------|------------------|
+| 1 | Mobile Chat | 312 | useMediaQuery, bottom sheet, sidebar |
+| 2 | Products | 378 | create_product, dashboard ProductManager |
+| 3 | Invitations + Holons | 499 | Token system, 6 node types |
+| 4 | Order Routing | 636 | Routing engine, vendor dashboard |
+| 5 | Sovereign Infrastructure | 1,119 | 6 engines, 483 tests, 5 dashboard pages |
+| 8.5 | Recovery | — | Payload 3.77, Next.js 16, fresh seed |
+| 9 | UX Polish + LEO | — | Error logs, chat fix, LEO resurrection |
+| 10 | Chat Foundation | — | Image chat, Admin LEO, channel awareness |
+| 11 | Vendor Marketplace | — | Configurator, producer role, reviews |
+| 11.5 | Chat UX + Docs | — | Smart scroll, truncation, Documentation Center |
 
 ---
 
@@ -173,4 +175,4 @@ pnpm dev               # http://localhost:3000
 
 ---
 
-**Last Updated:** February 18, 2026
+**Last Updated:** February 22, 2026
