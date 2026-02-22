@@ -101,14 +101,13 @@ export function MultiChannelChat({
   const activeSpace = spaces.find((s) => s.id === activeSpaceId)
 
   // Compute which applets are enabled for the active space + channel
+  // DMs get the same applets as regular channels — guard rails, not walls.
+  // A Guardian Angel DM needs LiveKit voice. A vendor DM needs file sharing.
+  // Chat is always on; everything else is opt-in but available.
   const enabledApplets = useMemo(() => {
-    // DM channels: only chat (DMs are conversations, not workspaces)
-    if (activeChannelData?.type === 'dm') {
-      return DEFAULT_APPLETS.filter((a) => a.id === 'chat')
-    }
     const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'files', 'tasks']
     return DEFAULT_APPLETS.filter((a) => spaceAppletIds.includes(a.id))
-  }, [activeChannelData, activeSpace])
+  }, [activeSpace])
 
   // Reset applet to chat when switching channels
   const handleSwitchChannel = useCallback(
