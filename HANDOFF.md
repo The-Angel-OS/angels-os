@@ -1,10 +1,67 @@
-# Angel OS — Session Handoff: Sprint 9 Complete
+# Angel OS — Session Handoff: Sprint 11 Complete
 
-**Date:** February 21, 2026
+**Date:** February 22, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, LEO AI streaming live, 1,119 unit tests + 9 new files
-**Sprint:** Sprint 9 complete (UX Polish + LEO Resurrection) — Sprint 10 next
+**Status:** TypeScript clean, build passing, 29 LEO tools, v0.11.0-dev deployed
+**Sprint:** Sprint 11 complete (Vendor Marketplace & Branding) — Sprint 12 next
 **Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
+
+---
+
+## What Was Done (Sprint 10 + 11)
+
+### Sprint 10: Chat Foundation & Multi-Tenant Dev
+- **LEO role mapping fix** — `messageType: 'ai_agent'` now correctly maps to 'leo' role in `useChat.ts` `mapMessage()`. Messages persist as LEO-styled after poll replaces stream.
+- **Image attachments in chat** — Paperclip button in MessageInput, thumbnail preview row, multi-image upload to `/api/media`, attachments array passed through chat-send endpoint
+- **LEO vision analysis** — leo-stream.ts constructs Anthropic multi-part content blocks with `type: 'image'` when images attached
+- **Admin LEO panel** — `PayloadAdminLEO/index.tsx` floating toggle in Payload admin, tenant-scoped via `payload-tenant` cookie
+- **BeforeDashboard replaced** — Angel OS welcome with quick links, active tenant display, SeedButton
+- **Channel awareness** — SidebarChat dropdown switcher, FloatingBubble resolves default space from API
+- **ChannelTabs** — New component with Chat/Files/Tasks tabs above MessageList
+- **Profile avatars** — Deterministic color hash from authorName, streaming pulse ring, online/offline dots
+- **Multi-tenant local dev** — TENANT_DOMAINS env var, hosts file routing documentation
+
+### Sprint 11: Vendor Marketplace & Branding
+- **Products collection expanded** — `vendor` (→ tenants), `productionType` (ready_made/print_on_demand/custom_order/digital), `cadFile` (upload), `configuratorOptions` (json), `isLimitedEdition` + `availableUntil`
+- **Product Configurator** — `ProductConfigurator/index.tsx` reads configuratorOptions JSON, renders text/color/size/finish inputs with live preview, "Preview with LEO" and "Add to Cart" buttons
+- **Producer role + dashboard** — Added `'producer'` to Users roles, `/dashboard/producer` with ProducerPanel (order queue, products, earnings)
+- **LEO onboarding tools** — `onboard_vendor` (creates tenant + space + channels + user), `suggest_products` (generates product ideas from description)
+- **LEO production tools** — `generate_cad_instructions` (converts product spec to CNC-ready notes)
+- **Reviews** — Reviews collection (author, rating, source, isVerified), Google Places utility with rate limiting + TTL cache, ReviewAggregation display component
+- **LEO review tools** — `fetch_reviews`, `draft_review_response`
+- **Order shipping** — `POST /api/orders/ship` endpoint, validates in_production → shipped transition, sets tracking data
+- **Ministry tenant type** — `'ministry'` added to Tenants type options, `isTaxExempt` + `taxExemptId` fields
+- **Clearwater Cruisin' seed** — Rich tenant with brand colors, sample products, LEO personality
+- **Angel OS favicon** — `src/app/[locale]/(app)/icon.svg`
+- **Podcast script** — `docs/podcast-sprint-10-11.md`
+
+### Key Files (Sprint 10 + 11)
+
+| File | Change |
+|------|--------|
+| `src/components/ChatControl/useChat.ts` | MODIFIED — role mapping fix, image upload flow, channel switching |
+| `src/components/ChatControl/MessageInput.tsx` | MODIFIED — paperclip upload, thumbnails, multi-image |
+| `src/components/ChatControl/MessageList.tsx` | MODIFIED — user-attached image display |
+| `src/components/ChatControl/SidebarChat.tsx` | MODIFIED — channel dropdown switcher |
+| `src/components/ChatControl/FloatingBubble.tsx` | MODIFIED — dynamic space/channel resolution |
+| `src/components/ChatControl/ChannelTabs.tsx` | NEW — Chat/Files/Tasks tab bar |
+| `src/components/PayloadAdminLEO/index.tsx` | NEW — floating admin LEO chat |
+| `src/components/BeforeDashboard/index.tsx` | MODIFIED — Angel OS welcome |
+| `src/components/ProductConfigurator/index.tsx` | NEW — interactive product configurator |
+| `src/components/Reviews/ReviewAggregation.tsx` | NEW — review display with aggregation |
+| `src/collections/Products/index.ts` | MODIFIED — vendor, productionType, cadFile, configurator fields |
+| `src/collections/Tenants/index.ts` | MODIFIED — ministry type, tax exempt fields |
+| `src/collections/Users/index.ts` | MODIFIED — producer role |
+| `src/collections/Reviews/index.ts` | NEW — reviews collection |
+| `src/endpoints/chat-send.ts` | MODIFIED — attachments support |
+| `src/endpoints/leo-stream.ts` | MODIFIED — vision (multi-part image content) |
+| `src/endpoints/order-ship.ts` | NEW — shipping convenience endpoint |
+| `src/utilities/leo-data-tools.ts` | MODIFIED — 5 new tools (29 total) |
+| `src/utilities/googlePlaces.ts` | NEW — Google Places API utility |
+| `src/endpoints/seed/use-case-tenants.ts` | MODIFIED — Clearwater Cruisin' tenant |
+| `src/payload.config.ts` | MODIFIED — new endpoints + components registered |
+| `src/app/[locale]/(dashboard)/dashboard/producer/page.tsx` | NEW — producer dashboard |
+| `docs/podcast-sprint-10-11.md` | NEW — podcast script |
 
 ---
 
@@ -189,37 +246,34 @@
 
 ---
 
-## Sprint 10: Next Priorities
+## Sprint 12: Next Priorities — Integration Bridges
 
-### Priority 1: API Provider Strategy & Tenant Limits
-- Settle on OpenRouter as primary AI gateway (already handles UltimateFairSplit alignment)
-- Anthropic direct for core text tasks (already working)
-- Implement tiered rate limits by federation trust level (probation = strict, elder = generous)
-- New tenant onboarding fee to cover real processing costs (AI tokens, storage, compute)
-- The `ai-bus-router.ts` abstraction makes provider swaps trivial
+### Priority 1: Integration Bridge Pattern
+- Define adapter interface: `normalizeInbound()`, `formatOutbound()`, `validateWebhook()`
+- All external channels normalize to Universal Message Structure (UMS)
+- Bridge → Messages collection → LEO processing → Response → Bridge
 
-### Priority 2: Dashboard UI Components
-- Client-side interactivity for the 5 new native dashboard pages (currently server-rendered lists)
-- Inline actions (quick status changes, bulk operations)
-- Real-time updates via SSE for order status changes
+### Priority 2: WhatsApp Business API Bridge
+- Webhook endpoint for inbound messages
+- UMS normalization from WhatsApp format
+- Outbound response formatting (text, images, buttons)
+- Business account verification flow
 
-### Priority 3: Federation Integration Testing
-- Wire federation engine to actual Payload collections
-- Cross-tenant catalog sync
-- Heartbeat monitoring cron job
-- Trust chain advancement via vouching UI
+### Priority 3: Email Integration
+- Inbound parse webhook (SendGrid/Mailgun)
+- Outbound transactional (Nodemailer)
+- Email → Message normalization
+- Reply threading
 
-### Priority 4: Guardian Angel UI
-- Guardian dashboard page at `/dashboard/guardians`
-- Case management interface
-- Benefits navigator
-- Impact tracking visualizations
+### Priority 4: Voice Mode
+- Web Speech API toggle in MessageInput (STT/TTS)
+- Vapi.ai bridge for phone-based LEO (1-800 IVR)
+- LiveKit session transcription stored as messages
 
-### Priority 5: Network Map
-- Wire network visualization engine to real data
-- Interactive map component (Leaflet or Mapbox)
-- Filterable directory sidebar
-- Geographic clustering visualization
+### Priority 5: Social Syndication
+- Post afterChange hook → Facebook/Instagram/Twitter APIs
+- Content scheduling and queue management
+- Engagement metrics back into dashboard
 
 ---
 
@@ -231,10 +285,13 @@
 2. **Holon Production Layer** — Each tenant is a self-governing production node within 100-mile economic radius
 3. **OpenClaw Angels ("Free Agents")** — Autonomous AI agents operating on Loft data within constitutional bounds
 
-### LEO Tools (24 total)
-- **Query (8):** products, posts, bookings, events, event_registrations, spaces, projects, availability
-- **Actions (13):** create_booking, update_booking_status, add_to_cart, view_cart, create_product, update_product, invite_member, find_producers, browse_network, query_orders, route_order, accept_order, update_fulfillment
-- **Media (4):** generate_image, improve_image, attach_image_to_product, replace_image
+### LEO Tools (29 total)
+- **Query (9):** products, posts, bookings, events, event_registrations, spaces, projects, availability, fetch_reviews
+- **Actions (15):** create_booking, update_booking_status, add_to_cart, view_cart, create_product, update_product, invite_member, find_producers, browse_network, query_orders, route_order, accept_order, update_fulfillment, configure_business, connect_stripe
+- **Onboarding (2):** onboard_vendor, suggest_products
+- **Production (1):** generate_cad_instructions
+- **Reviews (1):** draft_review_response
+- **Media (3):** generate_image, improve_image, attach/replace_image
 
 ### Utility Engines (10 total)
 | Engine | Purpose | Tests |
@@ -305,6 +362,10 @@ pnpm dev                             # Dev server (localhost:3000)
 | Sprint 3 (Invitations + Holons) | 378 | 499 | +121 | Sessions 7-8 |
 | Sprint 4 (Order Routing + Fulfillment) | 499 | 636 | +137 | Sessions 9-10 |
 | Sprint 5 (Sovereign Infrastructure) | 636 | 1,119 | +483 | Sessions 11-12 |
+| Sprint 8.5 (Recovery) | — | — | — | Session 13 |
+| Sprint 9 (UX Polish + LEO) | — | — | +9 files | Sessions 14-16 |
+| Sprint 10 (Chat Foundation) | — | — | +6 files | Session 17 |
+| Sprint 11 (Vendor Marketplace) | — | — | +8 files | Session 17 |
 
 ---
 
