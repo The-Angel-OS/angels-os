@@ -68,7 +68,7 @@ export async function Footer({ tenant }: Props) {
         <div className="container mx-auto flex flex-col items-center gap-4 md:flex-row md:justify-between">
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
             <a
-              href="https://github.com/kgangMI/angels-os"
+              href="https://github.com/the-angel-os/angels-os"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition-colors"
@@ -78,7 +78,7 @@ export async function Footer({ tenant }: Props) {
             </a>
             <span className="hidden text-neutral-300 dark:text-neutral-600 md:inline">|</span>
             <a
-              href="https://github.com/kgangMI/angels-os/wiki"
+              href="https://github.com/the-angel-os/angels-os/wiki"
               target="_blank"
               rel="noopener noreferrer"
               className="text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition-colors"
@@ -87,7 +87,7 @@ export async function Footer({ tenant }: Props) {
             </a>
             <span className="hidden text-neutral-300 dark:text-neutral-600 md:inline">|</span>
             <a
-              href="https://github.com/kgangMI/angels-os/issues"
+              href="https://github.com/the-angel-os/angels-os/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition-colors"
@@ -115,7 +115,7 @@ export async function Footer({ tenant }: Props) {
             Designed in Clearwater, FL
             <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
             <a
-              href="https://github.com/kgangMI/angels-os"
+              href="https://github.com/the-angel-os/angels-os"
               target="_blank"
               rel="noopener noreferrer"
               className="text-black dark:text-white hover:underline"

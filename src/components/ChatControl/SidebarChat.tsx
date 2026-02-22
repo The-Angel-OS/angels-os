@@ -30,8 +30,11 @@ export function SidebarChat({
     activeChannel,
     isLoading,
     isLoadingChannels,
+    isLoadingMore,
+    hasMore,
     sendMessage,
     switchChannel,
+    loadMoreMessages,
   } = useChat(spaceId, channelSlug)
 
   // Lock body scroll when mobile overlay is open
@@ -144,7 +147,7 @@ export function SidebarChat({
           </div>
 
           {/* Messages */}
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
 
           {/* Input */}
           <MessageInput

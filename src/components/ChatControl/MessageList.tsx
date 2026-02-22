@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, useCallback } from 'react'
+import React, { useRef, useEffect, useCallback, useState } from 'react'
 import type { ChatMessage } from './types'
 
 interface MessageListProps {
@@ -156,15 +156,108 @@ function Avatar({ name, isLeo, isStreaming }: { name: string; isLeo: boolean; is
 }
 
 // ---------------------------------------------------------------------------
+// Truncated Message — CSS line-clamp with expand/collapse toggle
+// ---------------------------------------------------------------------------
+
+const TRUNCATE_THRESHOLD = 200
+
+function TruncatedMessage({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  const shouldTruncate = !isStreaming && content.length > TRUNCATE_THRESHOLD
+
+  return (
+    <>
+      <div className={`whitespace-pre-wrap ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
+        {content}
+        {isStreaming && <StreamingCursor />}
+      </div>
+      {shouldTruncate && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+          className="mt-1 text-xs font-medium text-primary/80 hover:text-primary transition-colors"
+        >
+          {expanded ? 'Show less' : 'More'}
+        </button>
+      )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Compact Mode (existing bubble style — for MinimalistChat & MultiChannelChat)
 // ---------------------------------------------------------------------------
 
-function CompactMessageList({ messages, isLoading }: MessageListProps) {
+function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoadMore }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const prevScrollHeight = useRef<number>(0)
+  const prevCountRef = useRef(messages.length)
+  const [showNewBadge, setShowNewBadge] = useState(false)
+
+  // Smart scroll — only auto-scroll if user is near bottom
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const threshold = 100
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+
+    if (isNearBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      setShowNewBadge(false)
+    } else if (messages.length > prevCountRef.current) {
+      setShowNewBadge(true)
+    }
+    prevCountRef.current = messages.length
+  }, [messages])
+
+  // Dismiss badge when user scrolls back to bottom
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const handleScroll = () => {
+      const threshold = 100
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+      if (isNearBottom) setShowNewBadge(false)
+    }
+    el.addEventListener('scroll', handleScroll, { passive: true })
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Preserve scroll position when prepending older messages
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !isLoadingMore) return
+    prevScrollHeight.current = el.scrollHeight
+  }, [isLoadingMore])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    const el = scrollRef.current
+    if (!el || isLoadingMore) return
+    if (prevScrollHeight.current > 0) {
+      const diff = el.scrollHeight - prevScrollHeight.current
+      el.scrollTop += diff
+      prevScrollHeight.current = 0
+    }
+  }, [messages, isLoadingMore])
+
+  // Infinite scroll — IntersectionObserver on sentinel at top
+  const observerCallback = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && onLoadMore) {
+        onLoadMore()
+      }
+    },
+    [hasMore, isLoadingMore, onLoadMore],
+  )
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(observerCallback, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [observerCallback])
 
   if (messages.length === 0 && !isLoading) {
     return (
@@ -175,7 +268,16 @@ function CompactMessageList({ messages, isLoading }: MessageListProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+    <div ref={scrollRef} className="relative flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" />
+
+      {isLoadingMore && (
+        <div className="flex justify-center py-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+        </div>
+      )}
+
       {/* Spacer pushes messages toward the bottom when few messages exist */}
       <div className="flex-1" />
       {messages.map((msg) => (
@@ -196,10 +298,7 @@ function CompactMessageList({ messages, isLoading }: MessageListProps) {
               <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
             )}
             {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
-            <div className="whitespace-pre-wrap">
-              {msg.content}
-              {msg.isStreaming && <StreamingCursor />}
-            </div>
+            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} />
             {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
             <div className="mt-1 text-[10px] opacity-50">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -218,6 +317,22 @@ function CompactMessageList({ messages, isLoading }: MessageListProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* New messages badge */}
+      {showNewBadge && (
+        <button
+          onClick={() => {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+            setShowNewBadge(false)
+          }}
+          className="sticky bottom-2 mx-auto flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+          New messages
+        </button>
       )}
 
       <div ref={bottomRef} />
@@ -432,21 +547,21 @@ function FullPageMessageList({
                                 }`
                         }`}
                       >
+                        {msg.isStreaming && !msg.content && !msg.activeToolCall ? (
                         <div className="whitespace-pre-wrap">
-                          {msg.content}
-                          {msg.isStreaming && !msg.content && !msg.activeToolCall && (
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <span className="animate-bounce text-xs">.</span>
-                              <span className="animate-bounce text-xs [animation-delay:0.1s]">
-                                .
-                              </span>
-                              <span className="animate-bounce text-xs [animation-delay:0.2s]">
-                                .
-                              </span>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <span className="animate-bounce text-xs">.</span>
+                            <span className="animate-bounce text-xs [animation-delay:0.1s]">
+                              .
                             </span>
-                          )}
-                          {msg.isStreaming && msg.content && <StreamingCursor />}
+                            <span className="animate-bounce text-xs [animation-delay:0.2s]">
+                              .
+                            </span>
+                          </span>
                         </div>
+                      ) : (
+                        <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} />
+                      )}
                         {msg.images && msg.images.length > 0 && (
                           <MessageImages images={msg.images} />
                         )}

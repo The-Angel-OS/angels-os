@@ -105,6 +105,52 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     defaultSpaceId = fallbackId ?? undefined
   }
 
+  // Fetch user's tenant memberships for tenant chooser
+  interface TenantInfo {
+    id: number | string
+    name: string
+    slug: string
+    domain: string
+    logoUrl: string | null
+    primaryColor: string | null
+  }
+  let userTenants: TenantInfo[] = []
+
+  if (userId) {
+    try {
+      const payload = await getPayload({ config })
+      const memberships = await payload.find({
+        collection: 'tenant-memberships',
+        where: {
+          user: { equals: userId },
+          status: { equals: 'active' },
+        },
+        depth: 2,
+        limit: 50,
+      })
+
+      userTenants = (memberships.docs || [])
+        .map((m: any) => {
+          const t = m.tenant
+          if (!t || typeof t !== 'object') return null
+          return {
+            id: t.id,
+            name: t.branding?.siteName || t.name || 'Unknown',
+            slug: t.slug || '',
+            domain: t.domain || '',
+            logoUrl:
+              typeof t.branding?.logo === 'object' && t.branding?.logo?.url
+                ? t.branding.logo.url
+                : null,
+            primaryColor: t.branding?.primaryColor || null,
+          }
+        })
+        .filter(Boolean) as TenantInfo[]
+    } catch {
+      // Failed to fetch tenant memberships — non-critical
+    }
+  }
+
   return (
     <DashboardProvider initialSpaces={userSpaces} defaultSpaceId={defaultSpaceId}>
       <div className="flex h-screen bg-background overflow-hidden">
@@ -117,6 +163,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           userEmail={userEmail}
           userInitials={userInitials}
           tenantBranding={tenantBranding}
+          userTenants={userTenants}
+          currentTenantId={tenant?.id}
         />
 
         {/* ─── Main Content (center) ─── */}
