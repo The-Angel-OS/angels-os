@@ -69,7 +69,7 @@ export function HeaderClient({ header, tenant }: Props) {
   const menu = useMemo(() => {
     const items = [...(navItems ?? [])]
     const urls = new Set(items.map((i) => i.link?.url))
-    // Ensure Posts, Events always present (even if CMS omits them)
+    // Ensure Posts, Events, Docs always present (even if CMS omits them)
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (user) {

@@ -78,6 +78,8 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-hook-form": "7.54.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "sharp": "0.34.2",
     "sonner": "^1.7.2",
     "stripe": "18.5.0",
