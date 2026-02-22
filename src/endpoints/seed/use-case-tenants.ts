@@ -30,6 +30,18 @@ export interface UseCaseTenant {
     slug: string
     excerpt: string
   }>
+  /** Optional sample products to seed for this tenant */
+  products?: Array<{
+    title: string
+    slug: string
+    description: string[]
+    priceInUSD: number
+    productionType?: 'ready_made' | 'print_on_demand' | 'custom_order' | 'digital'
+    isLimitedEdition?: boolean
+    availableUntil?: string
+    networkListing?: boolean
+    configuratorOptions?: Record<string, unknown>
+  }>
 }
 
 /**
@@ -126,7 +138,8 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   },
 
   // ─── Creator/Content: Clearwater Cruisin Ministries ───────
-  // Community ministry, outreach, and events
+  // Community ministry, outreach, merch, and artful street signs
+  // Brand palette: gold, teal, neon pink — warm retro-Florida vibe
   {
     name: 'Clearwater Cruisin Ministries',
     slug: 'clearwater-cruisin',
@@ -136,17 +149,17 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     branding: {
       siteName: 'Clearwater Cruisin Ministries',
       tagline: 'Faith, Community, and the Open Road',
-      primaryColor: '#D97706',
-      secondaryColor: '#F59E0B',
-      accentColor: '#0EA5E9',
-      backgroundColor: '#FFFBEB',
+      primaryColor: '#C4973B',
+      secondaryColor: '#1A7A6D',
+      accentColor: '#FF6B9D',
+      backgroundColor: '#FFF8F0',
       foregroundColor: '#1C1917',
-      borderColor: '#FDE68A',
+      borderColor: '#E8D5B7',
       headingFont: 'playfair-display',
       bodyFont: 'lato',
     },
     leoPersonality:
-      'Warm, welcoming, and community-minded. I help connect people to events, share ministry updates, and coordinate volunteers. Everyone is welcome here — that is the whole point.',
+      'Warm, welcoming, and a little bit retro. I speak with the laid-back ease of a Clearwater sunset — friendly, community-minded, and always ready to help. I connect people to events, help them find the perfect cruisin merch or street sign, share ministry updates, and coordinate volunteers. Everyone is welcome here — that is literally the whole point. Faith, community, and the open road.',
     posts: [
       {
         title: 'Welcome to Clearwater Cruisin Ministries',
@@ -165,6 +178,78 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         slug: 'ministry-of-showing-up',
         excerpt:
           'Sometimes the most powerful ministry is simply being present. How Clearwater Cruisin builds relationships one conversation at a time.',
+      },
+      {
+        title: 'Behind the Signs: Artful Street Decor with Purpose',
+        slug: 'behind-the-signs',
+        excerpt:
+          'Every sign tells a story. Discover how our hand-crafted street signs and artful decor bring warmth, humor, and meaning to any space.',
+      },
+    ],
+    products: [
+      {
+        title: 'Custom Street Sign — Retro Florida',
+        slug: 'custom-street-sign-retro-florida',
+        description: [
+          'Hand-crafted retro-style street sign with your custom text. Made from durable aluminum with UV-resistant vinyl lettering.',
+          'Choose from our classic Florida color palette: sunset gold, ocean teal, flamingo pink, or palm green. Each sign is weather-resistant and ready for indoor or outdoor display.',
+          'Perfect for man caves, she-sheds, patios, churches, and community spaces. Makes a great gift for anyone who loves that Old Florida vibe.',
+        ],
+        priceInUSD: 4500,
+        productionType: 'custom_order',
+        networkListing: true,
+        configuratorOptions: {
+          customText: true,
+          maxTextLength: 24,
+          colors: ['Sunset Gold', 'Ocean Teal', 'Flamingo Pink', 'Palm Green'],
+          sizes: ['12x4 inches', '18x6 inches', '24x8 inches'],
+        },
+      },
+      {
+        title: 'Cruisin Community T-Shirt',
+        slug: 'cruisin-community-tshirt',
+        description: [
+          'Soft tri-blend tee featuring the Clearwater Cruisin Ministries logo on the front and "Faith, Community, and the Open Road" on the back.',
+          'Available in heather gold, vintage teal, and charcoal. Unisex fit, pre-shrunk, and screen-printed locally in Clearwater.',
+        ],
+        priceInUSD: 2500,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        configuratorOptions: {
+          colors: ['Heather Gold', 'Vintage Teal', 'Charcoal'],
+          sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+        },
+      },
+      {
+        title: 'Artful Scripture Plaque',
+        slug: 'artful-scripture-plaque',
+        description: [
+          'Beautifully designed wall plaque featuring your favorite scripture verse or inspirational quote, laser-engraved on reclaimed wood.',
+          'Each piece is unique — the natural grain of the wood makes every plaque one of a kind. Finished with a warm walnut stain and satin clear coat.',
+          'Includes sawtooth hanger for easy wall mounting. Dimensions: 12x8 inches.',
+        ],
+        priceInUSD: 3500,
+        productionType: 'custom_order',
+        networkListing: true,
+        configuratorOptions: {
+          customText: true,
+          maxTextLength: 120,
+          finishes: ['Walnut Stain', 'Natural', 'Whitewash'],
+        },
+      },
+      {
+        title: 'Limited Edition: Clearwater Sunset Print',
+        slug: 'clearwater-sunset-print',
+        description: [
+          'Limited edition giclée print of a Clearwater Beach sunset, captured by a local photographer and produced in partnership with Clearwater Cruisin Ministries.',
+          'Printed on archival cotton rag paper with vivid, fade-resistant inks. Numbered and signed. Only 50 prints in this run.',
+          'A portion of every sale supports community outreach programs in the Clearwater area.',
+        ],
+        priceInUSD: 7500,
+        productionType: 'ready_made',
+        isLimitedEdition: true,
+        availableUntil: '2026-06-30',
+        networkListing: true,
       },
     ],
   },
@@ -257,6 +342,46 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         slug: 'shipping-live-plants',
         excerpt:
           'How we pack and ship cacti to ensure they arrive healthy and happy at your door.',
+      },
+    ],
+    products: [
+      {
+        title: 'Golden Barrel Cactus (Echinocactus grusonii)',
+        slug: 'golden-barrel-cactus',
+        description: [
+          'The iconic Golden Barrel — a showstopper in any xeriscape garden or sunny windowsill. Grown on-site from seed at Hays Cactus Farm.',
+          'This specimen is 4-6 inches in diameter, well-rooted in a 6-inch nursery pot. Ships bare-root for safety. Thrives in full sun with minimal watering.',
+        ],
+        priceInUSD: 2800,
+        productionType: 'ready_made',
+        networkListing: true,
+      },
+      {
+        title: 'Succulent Starter Kit — 6 Pack',
+        slug: 'succulent-starter-kit',
+        description: [
+          'Six hand-selected succulents perfect for beginners. Includes a mix of Echeveria, Haworthia, Sedum, and Crassula varieties.',
+          'Each plant arrives in a 2-inch pot with care instructions. Great for desk gardens, terrariums, or gifting. Ships year-round with heat packs in winter.',
+        ],
+        priceInUSD: 3200,
+        productionType: 'ready_made',
+        networkListing: true,
+      },
+      {
+        title: 'Custom Cactus Garden — Design Your Own',
+        slug: 'custom-cactus-garden',
+        description: [
+          'Work with our team to design a custom cactus garden arrangement. Choose your container, select from over 200 varieties, and we assemble it just for you.',
+          'Perfect for corporate gifts, wedding favors, or treating yourself. Each arrangement includes a drainage layer, premium cactus soil, and decorative top dressing.',
+        ],
+        priceInUSD: 6500,
+        productionType: 'custom_order',
+        networkListing: true,
+        configuratorOptions: {
+          containers: ['Terracotta Bowl', 'Ceramic Planter', 'Wooden Box', 'Glass Terrarium'],
+          sizes: ['Small (3 plants)', 'Medium (5 plants)', 'Large (8 plants)'],
+          customText: false,
+        },
       },
     ],
   },

@@ -10,75 +10,67 @@ export const BeforeDashboard: React.FC = () => {
   return (
     <div className={baseClass}>
       <Banner className={`${baseClass}__banner`} type="success">
-        <h4>Welcome to your dashboard!</h4>
+        <h4>Welcome to Angel OS</h4>
       </Banner>
-      Here&apos;s what to do next:
+
+      <p style={{ marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+        Constitutional AI platform where everyone gets an Angel. Manage your tenants, products,
+        spaces, and LEO AI agents from this admin panel.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+        <a
+          href="/"
+          style={{ display: 'block', padding: '12px 16px', border: '1px solid #e0e0e0', borderRadius: '8px', textDecoration: 'none', color: 'inherit' }}
+        >
+          <strong>View Site</strong>
+          <br />
+          <span style={{ fontSize: '12px', color: '#888' }}>Visit the public frontend</span>
+        </a>
+        <a
+          href="/en/dashboard"
+          style={{ display: 'block', padding: '12px 16px', border: '1px solid #e0e0e0', borderRadius: '8px', textDecoration: 'none', color: 'inherit' }}
+        >
+          <strong>Dashboard</strong>
+          <br />
+          <span style={{ fontSize: '12px', color: '#888' }}>Native dashboard with LEO chat</span>
+        </a>
+        <a
+          href="/admin/collections/products"
+          style={{ display: 'block', padding: '12px 16px', border: '1px solid #e0e0e0', borderRadius: '8px', textDecoration: 'none', color: 'inherit' }}
+        >
+          <strong>Products</strong>
+          <br />
+          <span style={{ fontSize: '12px', color: '#888' }}>Manage your product catalog</span>
+        </a>
+        <a
+          href="/admin/collections/tenants"
+          style={{ display: 'block', padding: '12px 16px', border: '1px solid #e0e0e0', borderRadius: '8px', textDecoration: 'none', color: 'inherit' }}
+        >
+          <strong>Tenants</strong>
+          <br />
+          <span style={{ fontSize: '12px', color: '#888' }}>Multi-tenant management</span>
+        </a>
+      </div>
+
       <ul className={`${baseClass}__instructions`}>
         <li>
           <SeedButton />
-          {' with a few products and pages to jump-start your new project, then '}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/">visit your website</a>
+          {' with products, pages, and tenant data to get started, then '}
+          <a href="/">visit your site</a>
           {' to see the results.'}
         </li>
         <li>
-          {'Head over to '}
-          <a
-            href="https://dashboard.stripe.com/test/apikeys"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Stripe to obtain your API Keys
-          </a>
-          {
-            '. Create a new account if needed, then copy them into your environment variables and restart your server. See the '
-          }
-          <a
-            href="https://github.com/payloadcms/payload/blob/main/templates/ecommerce/README.md#stripe"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            README
-          </a>
-          {' for more details.'}
+          {'Use the '}
+          <a href="/en/dashboard">native dashboard</a>
+          {' for LEO AI chat, spaces, events, and order management.'}
         </li>
         <li>
-          {'Modify your '}
-          <a
-            href="https://payloadcms.com/docs/configuration/collections"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            collections
-          </a>
-          {' and add more '}
-          <a
-            href="https://payloadcms.com/docs/fields/overview"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            fields
-          </a>
-          {' as needed. If you are new to Payload, we also recommend you check out the '}
-          <a
-            href="https://payloadcms.com/docs/getting-started/what-is-payload"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Getting Started
-          </a>
-          {' docs.'}
+          {'Configure tenant branding, Stripe Connect, and AI settings in '}
+          <a href="/admin/collections/tenants">Tenants</a>
+          {'.'}
         </li>
       </ul>
-      {'Pro Tip: This block is a '}
-      <a
-        href="https://payloadcms.com/docs/admin/components#base-component-overrides"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        custom component
-      </a>
-      , you can remove it at any time by updating your <strong>payload.config</strong>.
     </div>
   )
 }

@@ -329,6 +329,35 @@ export const seed = async ({
     }
     payload.logger.info(`  ✓ ${uc.posts.length} posts`)
 
+    // Seed products for this tenant (if defined)
+    if (uc.products && uc.products.length > 0) {
+      for (const prod of uc.products) {
+        await payload.create({
+          collection: 'products',
+          depth: 0,
+          data: {
+            title: prod.title,
+            slug: prod.slug,
+            _status: 'published',
+            priceInUSDEnabled: true,
+            priceInUSD: prod.priceInUSD,
+            description: buildRichText(prod.description),
+            vendor: tenant.id as number,
+            productionType: prod.productionType || 'ready_made',
+            isLimitedEdition: prod.isLimitedEdition || false,
+            ...(prod.availableUntil ? { availableUntil: prod.availableUntil } : {}),
+            networkListing: prod.networkListing || false,
+            ...(prod.configuratorOptions ? { configuratorOptions: prod.configuratorOptions } : {}),
+            layout: [],
+            gallery: [],
+            meta: { title: `${prod.title} | ${uc.branding.siteName}`, description: prod.description[0] },
+            tenant: tenant.id as number,
+          } as any,
+        })
+      }
+      payload.logger.info(`  ✓ ${uc.products.length} products`)
+    }
+
     // Header/footer for this tenant
     await Promise.all([
       payload.create({
@@ -871,6 +900,7 @@ export const seed = async ({
 
   const totalTenants = 1 + USE_CASE_TENANTS.length
   const totalPosts = angelOsPosts.length + USE_CASE_TENANTS.reduce((sum, t) => sum + t.posts.length, 0)
+  const totalTenantProducts = USE_CASE_TENANTS.reduce((sum, t) => sum + (t.products?.length || 0), 0)
 
   payload.logger.info(`\n${'═'.repeat(60)}`)
   payload.logger.info(`  Angel OS seed complete!`)
@@ -880,7 +910,7 @@ export const seed = async ({
   payload.logger.info(`  Archangel LEO + Merlin (AngelClaw) + ${totalTenants} tenant LEO agents`)
   payload.logger.info(`  ${bookingCount} sample bookings`)
   payload.logger.info(`  ${createdEvents.length} events + ${regCount} registrations`)
-  payload.logger.info(`  3 service products (AV, Security, Workshop)`)
+  payload.logger.info(`  ${3 + totalTenantProducts} products (3 platform + ${totalTenantProducts} tenant)`)
   payload.logger.info(`${'═'.repeat(60)}\n`)
 }
 

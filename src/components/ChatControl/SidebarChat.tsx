@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Hash, ChevronDown } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
@@ -13,7 +14,7 @@ import type { ChatControlProps } from './types'
  * Desktop: collapsible panel (w-96) that slides in from the right.
  * Mobile: full-screen overlay with backdrop.
  *
- * Includes a toggle button that stays visible when collapsed.
+ * Now channel-aware: dropdown to switch between channels in the active space.
  */
 export function SidebarChat({
   spaceId,
@@ -21,8 +22,17 @@ export function SidebarChat({
   className = '',
 }: ChatControlProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showChannelMenu, setShowChannelMenu] = useState(false)
   const isMobile = useIsMobile()
-  const { messages, isLoading, sendMessage } = useChat(spaceId, channelSlug)
+  const {
+    messages,
+    channels,
+    activeChannel,
+    isLoading,
+    isLoadingChannels,
+    sendMessage,
+    switchChannel,
+  } = useChat(spaceId, channelSlug)
 
   // Lock body scroll when mobile overlay is open
   useEffect(() => {
@@ -33,6 +43,8 @@ export function SidebarChat({
       }
     }
   }, [isMobile, isExpanded])
+
+  const activeChannelData = channels.find((c) => c.slug === activeChannel)
 
   return (
     <>
@@ -74,15 +86,48 @@ export function SidebarChat({
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
                 <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-foreground">LEO Assistant</h3>
-                <p className="text-xs text-muted-foreground">Your AI Guardian</p>
+                {/* Channel selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowChannelMenu(!showChannelMenu)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Hash size={10} />
+                    <span className="truncate max-w-[120px]">
+                      {activeChannelData?.name || activeChannel || 'general'}
+                    </span>
+                    <ChevronDown size={10} />
+                  </button>
+                  {showChannelMenu && !isLoadingChannels && channels.length > 1 && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
+                      {channels.map((ch) => (
+                        <button
+                          key={ch.id}
+                          onClick={() => {
+                            switchChannel(ch.slug)
+                            setShowChannelMenu(false)
+                          }}
+                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+                            ch.slug === activeChannel
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          <Hash size={10} />
+                          {ch.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <button
@@ -105,7 +150,7 @@ export function SidebarChat({
           <MessageInput
             onSend={sendMessage}
             disabled={isLoading}
-            placeholder="Ask LEO anything..."
+            placeholder={`Ask LEO anything...`}
           />
         </div>
       </div>

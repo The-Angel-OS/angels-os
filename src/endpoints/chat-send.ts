@@ -32,7 +32,7 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { space, channel, content, messageType } = body
+  const { space, channel, content, messageType, attachments } = body
 
   // Validate required fields
   if (!space) {
@@ -71,16 +71,26 @@ export const chatSendHandler: PayloadHandler = async (req) => {
   // Create the message via local API — overrideAccess bypasses
   // the multi-tenant plugin's filterOptions validation on relationships
   try {
+    // Build message data — include attachments if provided
+    const messageData: Record<string, unknown> = {
+      content,
+      space: spaceId,
+      channel,
+      messageType: typeof messageType === 'string' ? messageType : 'user',
+      author: (req.user as { id: number }).id,
+      tenant: tenantId,
+    }
+
+    // Pass through validated attachments array (media IDs + optional captions)
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      messageData.attachments = attachments.filter(
+        (a: unknown) => a && typeof a === 'object' && 'media' in (a as Record<string, unknown>),
+      )
+    }
+
     const saved = await req.payload.create({
       collection: 'messages',
-      data: {
-        content,
-        space: spaceId,
-        channel,
-        messageType: typeof messageType === 'string' ? messageType : 'user',
-        author: (req.user as { id: number }).id,
-        tenant: tenantId,
-      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
     })
 

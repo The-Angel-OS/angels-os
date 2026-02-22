@@ -116,11 +116,24 @@ function StreamingCursor() {
 // Avatar
 // ---------------------------------------------------------------------------
 
-function Avatar({ name, isLeo }: { name: string; isLeo: boolean }) {
+/** Generate a deterministic HSL hue from a string (for consistent user avatar colors) */
+function stringToHue(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 360
+}
+
+function Avatar({ name, isLeo, isStreaming }: { name: string; isLeo: boolean; isStreaming?: boolean }) {
   if (isLeo) {
     return (
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-[10px] font-bold text-white shadow-sm">
-        &#10022;
+      <div className="relative">
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-[10px] font-bold text-white shadow-sm ${isStreaming ? 'ring-2 ring-blue-400/50 animate-pulse' : ''}`}>
+          &#10022;
+        </div>
+        {/* Online status dot */}
+        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
       </div>
     )
   }
@@ -131,8 +144,12 @@ function Avatar({ name, isLeo }: { name: string; isLeo: boolean }) {
     .join('')
     .slice(0, 2)
     .toUpperCase()
+  const hue = stringToHue(name)
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
+    <div
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+      style={{ backgroundColor: `hsl(${hue}, 55%, 45%)` }}
+    >
       {initials || '?'}
     </div>
   )
@@ -365,7 +382,7 @@ function FullPageMessageList({
               {/* Avatar — only on first message of group */}
               {!isSystem && (
                 <div className="mt-0.5 shrink-0">
-                  <Avatar name={group.authorName || (isLeo ? 'LEO' : '?')} isLeo={isLeo} />
+                  <Avatar name={group.authorName || (isLeo ? 'LEO' : '?')} isLeo={isLeo} isStreaming={isLeo && group.messages.some((m) => m.isStreaming)} />
                 </div>
               )}
 

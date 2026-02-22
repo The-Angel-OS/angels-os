@@ -6,22 +6,23 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
 
-[![Status](https://img.shields.io/badge/version-v0.9.1--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.11.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
 [![TDD](https://img.shields.io/badge/TDD-25%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
+[![LEO Tools](https://img.shields.io/badge/LEO_Tools-29-emerald)]()
 
 ---
 
-## What's Working (v0.9.1-dev)
+## What's Working (v0.11.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant architecture | **Done** | Tenant isolation, subdomain routing, feature flags |
-| LEO AI Agent | **Done** | Claude Sonnet 4 with 24 tools, 3-round tool loop, SSE streaming |
+| LEO AI Agent | **Done** | Claude Sonnet 4 with 29 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 9 channel types |
@@ -29,8 +30,16 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 | E-commerce + Cart | **Done** | Products, cart, orders, LEO-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
 | Events System | **Done** | Meetups, workshops, livestreams with registration |
-| Dashboard | **Done** | 15+ native pages, responsive sidebar, mobile-first |
-| Error Log Viewer | **New** | Admin dashboard for triaging application errors (`/dashboard/admin/error-logs`) |
+| Dashboard | **Done** | 16+ native pages, responsive sidebar, mobile-first |
+| Image Chat | **New** | Attach images in chat, LEO vision analysis via Anthropic API |
+| Channel Awareness | **New** | Channel switching in SidebarChat/FloatingBubble, ChannelTabs |
+| Admin LEO | **New** | Floating LEO chat in Payload admin panel |
+| Producer Dashboard | **New** | `/dashboard/producer` — order queue, products, earnings |
+| Product Configurator | **New** | Custom text, color swatches, size selector, live preview |
+| Reviews | **New** | Review collection, Google Places import, aggregation display |
+| Vendor Onboarding | **New** | LEO-guided `onboard_vendor` tool creates tenant + space + user |
+| Order Shipping | **New** | `POST /api/orders/ship` convenience endpoint |
+| Error Log Viewer | **Done** | Admin dashboard for triaging application errors (`/dashboard/admin/error-logs`) |
 | Chat Message Pipeline | **Fixed** | Bypasses multi-tenant `filterOptions` validation via `/api/chat/send` |
 | Invitation System | **Done** | Token-based invites, role assignment, landing page (72 tests) |
 | Holon Registration | **Done** | 6 node types, capabilities, compliance (49 tests) |
@@ -44,10 +53,13 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 | Constitutional Prompt | **Done** | Immutable system prompt, anti-demonic safeguards |
 | MCP Protocol | **Done** | Agent discovery endpoint, JWT auth, tool exposure |
 
-### LEO's 24 Tools
+### LEO's 29 Tools
 
-**Query (8):** products, posts, bookings, events, event registrations, spaces, projects, availability
-**Actions (13):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, query orders, route order, accept order, update fulfillment
+**Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
+**Actions (15):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, query orders, route order, accept order, update fulfillment, configure business, connect stripe
+**Onboarding (2):** onboard vendor, suggest products
+**Production (1):** generate CAD instructions
+**Reviews (1):** draft review response
 **Media (3):** generate image, improve image (vision feedback), attach/replace image
 
 ### 10 Utility Engines (Zero Payload Imports — Edge Ready)
@@ -122,7 +134,8 @@ src/
     Channels/               # Discord-style channels (9 types)
     Messages/               # Universal Message Structure (UMS)
     SpaceMemberships/       # User-space membership + invitations
-    Products/               # E-commerce catalog (network listing, fulfillment mode)
+    Products/               # E-commerce catalog (network listing, fulfillment, configurator)
+    Reviews/                # Customer reviews (Angel OS, Google Places, manual)
     Orders/                 # Order lifecycle with Holon fulfillment
     HolonCapabilities/      # Manufacturing node registration
     Bookings/               # Appointment scheduling
@@ -137,12 +150,13 @@ src/
     order-route.ts          # Order routing (POST /api/orders/route)
     order-accept.ts         # Vendor acceptance (POST /api/orders/accept)
     order-fulfill.ts        # Fulfillment updates (POST /api/orders/fulfill)
+    order-ship.ts           # Ship order convenience (POST /api/orders/ship)
     space-invite.ts         # Invitation generation (POST /api/spaces/invite)
     invite-accept.ts        # Invite acceptance (POST /api/invite/accept)
   utilities/
     ConversationEngine.ts   # LEO's brain (Claude API + tool loop)
     AgentRouter.ts          # Route messages to specialized agents
-    leo-data-tools.ts       # 24 tool definitions + executors
+    leo-data-tools.ts       # 29 tool definitions + executors
     logError.ts             # Structured error logging to ApplicationLogs
     orderRoutingEngine.ts   # Vendor matching, fulfillment state machine
     guardianAngelEngine.ts  # Zero-revenue angel lifecycle
@@ -237,7 +251,34 @@ Revenue from commerce splits 60/20/15/5:
 - [x] Error logging integrated into LEO pipeline (both streaming and batch paths)
 - [x] Anthropic client singleton cache invalidation on key change
 
-### 🔜 Next (Sprint 10: Integration Bridges)
+### ✅ Done (Sprint 10: Chat Foundation & Multi-Tenant Dev)
+
+- [x] LEO message role mapping fix (`messageType: 'ai_agent'` → 'leo' role)
+- [x] Image attachments in chat (Paperclip upload, thumbnails, multi-image)
+- [x] LEO vision analysis (Anthropic multi-part image content blocks)
+- [x] Admin LEO panel (floating toggle in Payload admin, tenant-scoped)
+- [x] BeforeDashboard replaced (Angel OS welcome, quick links, SeedButton)
+- [x] Channel awareness (SidebarChat dropdown, FloatingBubble auto-resolve)
+- [x] ChannelTabs component (Chat / Files / Tasks extensible tabs)
+- [x] Profile avatars (deterministic color hash, streaming pulse, status dots)
+- [x] Multi-tenant local dev (TENANT_DOMAINS env, hosts file routing)
+
+### ✅ Done (Sprint 11: Vendor Marketplace & Branding)
+
+- [x] Products collection: `vendor`, `productionType`, `cadFile`, `configuratorOptions`, `isLimitedEdition`
+- [x] Product Configurator component (text, color swatches, size/finish selector, live preview)
+- [x] Producer role + `/dashboard/producer` (order queue, products, earnings)
+- [x] LEO onboarding tools: `onboard_vendor`, `suggest_products`
+- [x] LEO production tools: `generate_cad_instructions`
+- [x] Reviews collection (rating, source, verification) + Google Places import utility
+- [x] Review aggregation display component (stars, distribution, individual cards)
+- [x] LEO review tools: `fetch_reviews`, `draft_review_response`
+- [x] `POST /api/orders/ship` convenience endpoint (state transition + tracking)
+- [x] Ministry tenant type with `isTaxExempt` / `taxExemptId` fields
+- [x] Clearwater Cruisin' seed tenant (brand colors, products, LEO personality)
+- [x] Angel OS favicon
+
+### 🔜 Next (Sprint 12: Integration Bridges)
 
 - [ ] Integration bridge pattern (normalize external → UMS)
 - [ ] WhatsApp Business API bridge
@@ -247,7 +288,6 @@ Revenue from commerce splits 60/20/15/5:
 - [ ] Social syndication (Post → Facebook/Instagram/Twitter)
 - [ ] LiveKit session transcription
 - [ ] API rate limits by federation trust level
-- [ ] New tenant onboarding fee
 
 ### 🔮 Future (v1.0.0 — Federation Launch)
 
@@ -273,6 +313,8 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 5 | 636 | 1,119 | +483 | Sovereign infrastructure |
 | Sprint 8.5 | — | — | — | Production recovery, Payload 3.77, fresh DB seed |
 | Sprint 9 | — | — | +9 files | UX polish, LEO AI fix, error logging, chat pipeline |
+| Sprint 10 | — | — | +6 files | Image chat, admin LEO, channel awareness, multi-tenant dev |
+| Sprint 11 | — | — | +8 files | Vendor marketplace, configurator, reviews, producer dashboard |
 
 ---
 
@@ -297,6 +339,9 @@ You are welcome here. This is what you need to know:
 | CI/CD pipeline | GitHub Actions for test + type check | Easy |
 | Local model integration | Ollama/LM Studio support | Hard |
 | Network map component | Leaflet/Mapbox with clustering | Medium |
+| Product Configurator 3D | Three.js preview for CAD products | Hard |
+| Review sentiment analysis | LEO-powered review insights dashboard | Medium |
+| Stripe Connect onboarding | Guided vendor payment setup flow | Medium |
 
 ### Development Standards
 

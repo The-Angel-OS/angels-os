@@ -29,6 +29,7 @@ export const Tenants: CollectionConfig = {
       options: [
         { label: 'Platform', value: 'platform' },
         { label: 'Tenant', value: 'tenant' },
+        { label: 'Ministry', value: 'ministry' },
       ],
       defaultValue: 'tenant',
       required: true,
@@ -313,6 +314,20 @@ export const Tenants: CollectionConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: { description: 'Enable digital product delivery' },
+        },
+        {
+          name: 'isTaxExempt',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Tax-exempt organization (e.g. 501(c)(3) ministry, nonprofit)' },
+        },
+        {
+          name: 'taxExemptId',
+          type: 'text',
+          admin: {
+            description: 'Tax exemption ID / EIN',
+            condition: (_, siblingData) => siblingData?.isTaxExempt === true,
+          },
         },
       ],
     },

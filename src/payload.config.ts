@@ -51,6 +51,7 @@ import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
+import { Reviews } from '@/collections/Reviews'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -66,6 +67,7 @@ import { spaceMembersRemoveHandler } from '@/endpoints/space-members'
 import { orderRouteHandler } from '@/endpoints/order-route'
 import { orderAcceptHandler } from '@/endpoints/order-accept'
 import { orderFulfillHandler } from '@/endpoints/order-fulfill'
+import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { stripeConnectOnboardHandler } from '@/endpoints/stripe-connect-onboard'
 import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callback'
@@ -92,6 +94,7 @@ export default buildConfig({
       // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below and the import `BeforeDashboard` statement on line 15.
       beforeDashboard: ['@/components/BeforeDashboard#BeforeDashboard'],
+      afterNavLinks: ['@/components/PayloadAdminLEO#PayloadAdminLEO'],
     },
     user: Users.slug,
   },
@@ -120,6 +123,7 @@ export default buildConfig({
     JusticeFundTransactions,
     ProcessedStripeEvents,
     ApplicationLogs,
+    Reviews,
   ],
   db: postgresAdapter({
     pool: {
@@ -369,6 +373,11 @@ export default buildConfig({
       path: '/orders/fulfill',
       method: 'post',
       handler: orderFulfillHandler,
+    },
+    {
+      path: '/orders/ship',
+      method: 'post',
+      handler: orderShipHandler,
     },
     {
       path: '/orders/vendor',

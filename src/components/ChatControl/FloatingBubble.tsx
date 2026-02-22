@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { ChatControl } from './index'
 import { useAuth } from '@/providers/Auth'
 import Link from 'next/link'
@@ -12,17 +13,38 @@ import Link from 'next/link'
  * Guests see a teaser icon linking to login.
  *
  * @param spaceId - Resolved server-side from the tenant's default space.
- *                  Falls back to "1" for backward compatibility.
+ *                  If not provided, fetches user's first available space.
  */
 export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   const { status } = useAuth()
+  const [resolvedSpaceId, setResolvedSpaceId] = useState(spaceId || '')
+
+  // If no spaceId prop and user is logged in, resolve from API
+  useEffect(() => {
+    if (spaceId || status !== 'loggedIn' || resolvedSpaceId) return
+
+    fetch('/api/spaces?limit=1&sort=createdAt&depth=0', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const firstSpace = data?.docs?.[0]
+        if (firstSpace?.id) {
+          setResolvedSpaceId(String(firstSpace.id))
+        }
+      })
+      .catch(() => {
+        // Non-critical — will fallback
+      })
+  }, [spaceId, status, resolvedSpaceId])
 
   // Full chat for authenticated users
   if (status === 'loggedIn') {
+    // Wait for space resolution before rendering chat
+    if (!resolvedSpaceId) return null
+
     return (
       <ChatControl
         mode="minimalist"
-        spaceId={spaceId || '1'}
+        spaceId={resolvedSpaceId}
         channelSlug="general"
         position="bottom-right"
       />
