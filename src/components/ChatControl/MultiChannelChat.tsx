@@ -55,10 +55,13 @@ export function MultiChannelChat({
     activeChannel,
     isLoading,
     isLoadingChannels,
+    isLoadingMore,
+    hasMore,
     sendMessage,
     switchChannel,
     createChannel,
     deleteChannel,
+    loadMoreMessages,
   } = useChat(activeSpaceId, channelSlug)
 
   const isMobile = useIsMobile()
@@ -352,7 +355,7 @@ export function MultiChannelChat({
         )}
 
         {/* Messages */}
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
 
         {/* Input */}
         <MessageInput
@@ -388,7 +391,7 @@ export function SingleChannelChat({
   channelSlug = 'general',
   className = '',
 }: ChatControlProps) {
-  const { messages, activeChannel, isLoading, sendMessage } = useChat(
+  const { messages, activeChannel, isLoading, isLoadingMore, hasMore, sendMessage, loadMoreMessages } = useChat(
     spaceId,
     channelSlug,
   )
@@ -403,7 +406,7 @@ export function SingleChannelChat({
         </h2>
       </div>
 
-      <MessageList messages={messages} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
       <MessageInput
         onSend={sendMessage}
         disabled={isLoading}

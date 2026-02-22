@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/utilities/useMediaQuery'
@@ -20,6 +20,15 @@ interface TenantBranding {
   primaryColor: string | null
 }
 
+interface TenantInfo {
+  id: number | string
+  name: string
+  slug: string
+  domain: string
+  logoUrl: string | null
+  primaryColor: string | null
+}
+
 interface DashboardSidebarProps {
   prefix: string
   isAdmin: boolean
@@ -28,6 +37,8 @@ interface DashboardSidebarProps {
   userEmail: string
   userInitials: string
   tenantBranding?: TenantBranding | null
+  userTenants?: TenantInfo[]
+  currentTenantId?: number | string
 }
 
 export function DashboardSidebar({
@@ -38,6 +49,8 @@ export function DashboardSidebar({
   userEmail,
   userInitials,
   tenantBranding,
+  userTenants,
+  currentTenantId,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -92,10 +105,14 @@ export function DashboardSidebar({
         >
           {/* Logo / Brand — with close button */}
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
-            <Link href={`${prefix}/dashboard`} className="flex items-center gap-2">
-              <TenantLogo branding={tenantBranding} />
-              <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
-            </Link>
+            {userTenants && userTenants.length > 1 ? (
+              <TenantChooser tenants={userTenants} currentTenantId={currentTenantId} branding={tenantBranding} collapsed={false} />
+            ) : (
+              <Link href={`${prefix}/dashboard`} className="flex items-center gap-2">
+                <TenantLogo branding={tenantBranding} />
+                <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
+              </Link>
+            )}
             <button
               onClick={() => setIsMobileOpen(false)}
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -141,18 +158,25 @@ export function DashboardSidebar({
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >
-      {/* Logo / Brand — Tenant Branding */}
+      {/* Logo / Brand — Tenant Branding / Tenant Chooser */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
-        {!isCollapsed && (
-          <Link href={`${prefix}/dashboard`} className="flex items-center gap-2 min-w-0">
-            <TenantLogo branding={tenantBranding} />
-            <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
-          </Link>
-        )}
-        {isCollapsed && (
-          <Link href={`${prefix}/dashboard`} className="mx-auto">
-            <TenantLogo branding={tenantBranding} />
-          </Link>
+        {!isCollapsed ? (
+          userTenants && userTenants.length > 1 ? (
+            <TenantChooser tenants={userTenants} currentTenantId={currentTenantId} branding={tenantBranding} collapsed={false} />
+          ) : (
+            <Link href={`${prefix}/dashboard`} className="flex items-center gap-2 min-w-0">
+              <TenantLogo branding={tenantBranding} />
+              <span className="text-sm font-semibold truncate">{tenantBranding?.siteName || 'Angel OS'}</span>
+            </Link>
+          )
+        ) : (
+          userTenants && userTenants.length > 1 ? (
+            <TenantChooser tenants={userTenants} currentTenantId={currentTenantId} branding={tenantBranding} collapsed={true} />
+          ) : (
+            <Link href={`${prefix}/dashboard`} className="mx-auto">
+              <TenantLogo branding={tenantBranding} />
+            </Link>
+          )
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -709,6 +733,103 @@ function BookOpenIcon() {
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     </svg>
+  )
+}
+
+// ─── Tenant Chooser ─────────────────────────────────────────────
+
+function TenantChooser({
+  tenants,
+  currentTenantId,
+  branding,
+  collapsed,
+}: {
+  tenants: TenantInfo[]
+  currentTenantId?: number | string
+  branding?: TenantBranding | null
+  collapsed: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    window.addEventListener('click', handler)
+    return () => window.removeEventListener('click', handler)
+  }, [])
+
+  const handleSwitch = (tenant: TenantInfo) => {
+    setOpen(false)
+    if (tenant.domain) {
+      const protocol = window.location.protocol
+      window.location.href = `${protocol}//${tenant.domain}/dashboard`
+    }
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-muted/50"
+      >
+        <TenantLogo branding={branding} />
+        {!collapsed && (
+          <>
+            <span className="flex-1 truncate text-left text-sm font-semibold">
+              {branding?.siteName || 'Angel OS'}
+            </span>
+            <svg
+              className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-background py-1 shadow-lg">
+          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Switch tenant
+          </div>
+          {tenants.map((t) => (
+            <button
+              key={String(t.id)}
+              onClick={() => handleSwitch(t)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                String(t.id) === String(currentTenantId)
+                  ? 'bg-muted font-medium text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t.logoUrl ? (
+                <img src={t.logoUrl} alt={t.name} className="h-5 w-5 shrink-0 rounded object-cover" />
+              ) : (
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-bold text-primary-foreground"
+                  style={t.primaryColor ? { backgroundColor: t.primaryColor } : undefined}
+                >
+                  {t.name[0]?.toUpperCase() || '?'}
+                </span>
+              )}
+              <span className="truncate">{t.name}</span>
+              {String(t.id) === String(currentTenantId) && (
+                <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
