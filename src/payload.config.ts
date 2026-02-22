@@ -74,6 +74,7 @@ import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callbac
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
+import { docsHandler } from '@/endpoints/docs'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -409,6 +410,12 @@ export default buildConfig({
       path: '/livekit/token',
       method: 'post',
       handler: liveKitTokenHandler,
+    },
+    // ─── Documentation Endpoint ──────────────────────────────────
+    {
+      path: '/docs',
+      method: 'get',
+      handler: docsHandler,
     },
   ],
   globals: [],
