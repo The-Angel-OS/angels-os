@@ -97,18 +97,33 @@ export async function applySpaceTemplate(
   authorUserId: number | string,
   req: PayloadRequest,
 ): Promise<{ spaceId: number | string; channelNames: string[]; messageCount: number }> {
-  const space = await payload.create({
+  // Find or create the Space — idempotent so re-seeding never duplicates
+  const existingSpace = await payload.find({
     collection: 'spaces',
-    data: {
-      name: template.name,
-      slug: template.slug,
-      description: template.description,
-      tenant: tenantId as number,
-      visibility: 'invite_only',
-    },
-    req,
+    where: { and: [{ slug: { equals: template.slug } }, { tenant: { equals: tenantId } }] },
+    limit: 1,
+    depth: 0,
     overrideAccess: true,
   })
+
+  let spaceIsNew = false
+  const space = existingSpace.docs?.[0]
+    ? existingSpace.docs[0]
+    : await (async () => {
+        spaceIsNew = true
+        return payload.create({
+          collection: 'spaces',
+          data: {
+            name: template.name,
+            slug: template.slug,
+            description: template.description,
+            tenant: tenantId as number,
+            visibility: 'invite_only',
+          },
+          req,
+          overrideAccess: true,
+        })
+      })()
 
   const channelNames: string[] = []
   let messageCount = 0
@@ -116,38 +131,59 @@ export async function applySpaceTemplate(
   for (const ch of template.channels) {
     channelNames.push(ch.name)
 
-    // Create Channel document — slugs are NOT globally unique in multi-tenant
-    await payload.create({
+    // Find or create Channel — idempotent by slug+space+tenant
+    const existingCh = await payload.find({
       collection: 'channels',
-      data: {
-        name: ch.name,
-        slug: ch.name,
-        description: ch.description,
-        space: space.id,
-        type: ch.type,
-        isDefault: ch.isDefault,
-        tenant: tenantId as number,
+      where: {
+        and: [
+          { slug: { equals: ch.name } },
+          { space: { equals: space.id } },
+          { tenant: { equals: tenantId } },
+        ],
       },
-      req,
+      limit: 1,
+      depth: 0,
       overrideAccess: true,
     })
 
-    for (const msgText of ch.initialMessages) {
+    let channelIsNew = false
+    if (!existingCh.docs?.[0]) {
+      channelIsNew = true
       await payload.create({
-        collection: 'messages',
+        collection: 'channels',
         data: {
-          author: authorUserId as number,
+          name: ch.name,
+          slug: ch.name,
+          description: ch.description,
           space: space.id,
-          channel: ch.name,
-          // UMS JSON content format
-          content: { type: 'text', text: msgText } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-          messageType: 'system',
+          type: ch.type,
+          isDefault: ch.isDefault,
           tenant: tenantId as number,
         },
         req,
         overrideAccess: true,
       })
-      messageCount += 1
+    }
+
+    // Only seed initial messages on first creation
+    if (channelIsNew || spaceIsNew) {
+      for (const msgText of ch.initialMessages) {
+        await payload.create({
+          collection: 'messages',
+          data: {
+            author: authorUserId as number,
+            space: space.id,
+            channel: ch.name,
+            // UMS JSON content format
+            content: { type: 'text', text: msgText } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            messageType: 'system',
+            tenant: tenantId as number,
+          },
+          req,
+          overrideAccess: true,
+        })
+        messageCount += 1
+      }
     }
   }
 
