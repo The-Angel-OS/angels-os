@@ -103,6 +103,13 @@ export interface UseChatOpts {
   tenantId?: string
   /** Direct channel ID — load this specific channel instead of querying by space */
   channelId?: string
+  /**
+   * Override the space used for channel LIST loading.
+   * When set, channels are always fetched from this space, regardless of the
+   * spaceId passed for message loading (which may switch to dmSpaceId for DMs).
+   * Prevents the sidebar channel list from clearing when switching to DM channels.
+   */
+  channelSpaceId?: string
 }
 
 /**
@@ -114,6 +121,9 @@ export interface UseChatOpts {
  * Existing callers pass (spaceId, channelSlug) — no changes needed.
  */
 export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOpts) {
+  // Separate space IDs: channels always load from channelSpaceId (stable),
+  // messages use spaceId which may flip to dmSpaceId for DM routing.
+  const channelSpaceId = opts?.channelSpaceId ?? spaceId
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [channels, setChannels] = useState<ChatChannel[]>([])
   const [activeChannel, setActiveChannel] = useState<string>(channelSlug || 'general')
@@ -134,11 +144,11 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
   // Fetch channels for a space
   const loadChannels = useCallback(async () => {
-    if (!spaceId || authFailedRef.current) return
+    if (!channelSpaceId || authFailedRef.current) return
     setIsLoadingChannels(true)
     try {
       const res = await fetch(
-        `${SERVER_URL}/api/channels?where[space][equals]=${spaceId}&sort=name&limit=50`,
+        `${SERVER_URL}/api/channels?where[space][equals]=${channelSpaceId}&sort=name&limit=50`,
         { credentials: 'include' },
       )
       if (res.status === 401 || res.status === 403) {
@@ -174,7 +184,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     } finally {
       setIsLoadingChannels(false)
     }
-  }, [spaceId, channelSlug])
+  }, [channelSpaceId, channelSlug])
 
   // Map a raw Payload message doc to our ChatMessage type
   // Handles UMS JSON content via extractText for backward compatibility
