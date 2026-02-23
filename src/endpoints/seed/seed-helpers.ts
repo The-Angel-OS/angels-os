@@ -32,6 +32,14 @@ export async function findOrCreateTenant(
   })
   if (existing.docs?.[0]) {
     const t = existing.docs[0] as { id: number | string; name: string; slug: string }
+    // Always sync domain so re-seeding in prod upgrades *.angelos.local → *.spacesangels.com
+    await payload.update({
+      collection: 'tenants',
+      id: t.id as number,
+      data: { domain: data.domain },
+      req,
+      overrideAccess: true,
+    })
     return { id: t.id, name: t.name, slug: t.slug }
   }
   const created = await payload.create({

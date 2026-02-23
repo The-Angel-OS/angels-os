@@ -25,8 +25,24 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
 
     if (tenants.docs?.[0]) return tenants.docs[0]
 
-    // Fallback: return the "default" tenant so the site always works
-    // (e.g. when accessed via angels-os.vercel.app but tenant domain is "localhost")
+    // Second: subdomain-slug lookup.
+    // Handles the common env-mismatch case where the tenant's `domain` field was
+    // seeded as `celersoft.angelos.local` but we're now serving `celersoft.spacesangels.com`.
+    // The middleware already resolved the slug correctly via hostname parsing; this
+    // catches the fallback path when the x-tenant-id header wasn't forwarded.
+    const hostParts = domain.split('.')
+    if (hostParts.length >= 3) {
+      const subSlug = hostParts[0]
+      const bySlug = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: subSlug } },
+        limit: 1,
+        depth: 2,
+      })
+      if (bySlug.docs?.[0]) return bySlug.docs[0]
+    }
+
+    // Final fallback: return the "default" tenant so the site always has context
     const defaults = await payload.find({
       collection: 'tenants',
       where: { slug: { equals: 'default' } },
