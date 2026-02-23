@@ -24,6 +24,13 @@ export const Users: CollectionConfig = {
   },
   auth: {
     tokenExpiration: 1209600,
+    cookies: {
+      // Allow auth cookie to be shared across all tenant subdomains
+      // e.g. .angelos.local (dev) or .angelos.app (prod)
+      ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+      sameSite: 'Lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
   },
   fields: [
     {

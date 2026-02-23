@@ -97,6 +97,7 @@ export interface Config {
     'justice-fund-transactions': JusticeFundTransaction;
     'processed-stripe-events': ProcessedStripeEvent;
     'application-logs': ApplicationLog;
+    reviews: Review;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -151,6 +152,7 @@ export interface Config {
     'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
+    reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -241,7 +243,7 @@ export interface Tenant {
   /**
    * Platform tenant is the special singleton for Angel OS infrastructure
    */
-  type: 'platform' | 'tenant';
+  type: 'platform' | 'tenant' | 'ministry';
   name: string;
   /**
    * Used in x-tenant-id header and URLs (e.g., hays-cactus)
@@ -351,6 +353,14 @@ export interface Tenant {
      * Enable digital product delivery
      */
     digitalProductsEnabled?: boolean | null;
+    /**
+     * Tax-exempt organization (e.g. 501(c)(3) ministry, nonprofit)
+     */
+    isTaxExempt?: boolean | null;
+    /**
+     * Tax exemption ID / EIN
+     */
+    taxExemptId?: string | null;
   };
   /**
    * Stripe Connect account for receiving payments
@@ -545,7 +555,7 @@ export interface User {
       isDefault?: boolean | null;
     };
   };
-  roles?: ('super_admin' | 'archangel' | 'admin' | 'customer')[] | null;
+  roles?: ('super_admin' | 'archangel' | 'admin' | 'producer' | 'customer')[] | null;
   orders?: {
     docs?: (number | Order)[];
     hasNextPage?: boolean;
@@ -730,6 +740,38 @@ export interface Product {
     description?: string | null;
   };
   categories?: (number | Category)[] | null;
+  /**
+   * Mark as limited edition — shown with countdown/badge
+   */
+  isLimitedEdition?: boolean | null;
+  /**
+   * When this limited edition expires
+   */
+  availableUntil?: string | null;
+  /**
+   * Producing vendor tenant (who fulfills this product)
+   */
+  vendor?: (number | null) | Tenant;
+  /**
+   * How this product is manufactured
+   */
+  productionType?: ('ready_made' | 'print_on_demand' | 'custom_order' | 'digital') | null;
+  /**
+   * CAD/design file for CNC, laser-cut, or print-on-demand production (SVG, DXF, STL)
+   */
+  cadFile?: (number | null) | Media;
+  /**
+   * Product configurator schema: { colors: [...], sizes: [...], customText: boolean, maxTextLength: number }
+   */
+  configuratorOptions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * List this product on the Angel OS network for cross-tenant discovery
    */
@@ -1596,6 +1638,18 @@ export interface Space {
   slug: string;
   description?: string | null;
   visibility?: ('public' | 'invite_only' | 'private') | null;
+  /**
+   * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
+   */
+  enabledApplets?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1645,7 +1699,14 @@ export interface Channel {
   slug: string;
   description?: string | null;
   space: number | Space;
-  type?: ('general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social') | null;
+  type?:
+    | ('general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social' | 'dm')
+    | null;
+  /**
+   * Explicit channel members (required for DMs, optional for regular channels)
+   */
+  members?: (number | User)[] | null;
+  source?: ('native' | 'whatsapp' | 'email' | 'google_chat' | 'sms') | null;
   /**
    * Workflows that run on messages in this channel (e.g. inventory_from_image)
    */
@@ -2908,6 +2969,62 @@ export interface ApplicationLog {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  /**
+   * Reviewer display name
+   */
+  author: string;
+  /**
+   * Reviewer email (private, for deduplication)
+   */
+  authorEmail?: string | null;
+  /**
+   * Star rating (1-5)
+   */
+  rating: number;
+  /**
+   * Review text
+   */
+  content: string;
+  /**
+   * Where this review originated
+   */
+  source?: ('angelos' | 'google' | 'manual') | null;
+  /**
+   * External review ID (e.g., Google Places review ID)
+   */
+  externalId?: string | null;
+  /**
+   * Verified purchase/customer
+   */
+  isVerified?: boolean | null;
+  /**
+   * When the review was published
+   */
+  publishedAt?: string | null;
+  /**
+   * Business owner response to this review
+   */
+  response?: {
+    /**
+     * Response text
+     */
+    content?: string | null;
+    respondedAt?: string | null;
+    respondedBy?: (number | null) | User;
+  };
+  /**
+   * Product this review is about (optional)
+   */
+  product?: (number | null) | Product;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -3239,6 +3356,10 @@ export interface PayloadLockedDocument {
         value: number | ApplicationLog;
       } | null)
     | ({
+        relationTo: 'reviews';
+        value: number | Review;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3398,6 +3519,8 @@ export interface TenantsSelect<T extends boolean = true> {
         bookingsEnabled?: T;
         eventsEnabled?: T;
         digitalProductsEnabled?: T;
+        isTaxExempt?: T;
+        taxExemptId?: T;
       };
   stripeConnect?:
     | T
@@ -3520,6 +3643,7 @@ export interface SpacesSelect<T extends boolean = true> {
   slug?: T;
   description?: T;
   visibility?: T;
+  enabledApplets?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3558,6 +3682,8 @@ export interface ChannelsSelect<T extends boolean = true> {
   description?: T;
   space?: T;
   type?: T;
+  members?: T;
+  source?: T;
   workflows?: T;
   isDefault?: T;
   data?: T;
@@ -4347,6 +4473,30 @@ export interface ApplicationLogsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews_select".
+ */
+export interface ReviewsSelect<T extends boolean = true> {
+  author?: T;
+  authorEmail?: T;
+  rating?: T;
+  content?: T;
+  source?: T;
+  externalId?: T;
+  isVerified?: T;
+  publishedAt?: T;
+  response?:
+    | T
+    | {
+        content?: T;
+        respondedAt?: T;
+        respondedBy?: T;
+      };
+  product?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -4593,6 +4743,12 @@ export interface ProductsSelect<T extends boolean = true> {
         description?: T;
       };
   categories?: T;
+  isLimitedEdition?: T;
+  availableUntil?: T;
+  vendor?: T;
+  productionType?: T;
+  cadFile?: T;
+  configuratorOptions?: T;
   networkListing?: T;
   fulfillmentMode?: T;
   requiredCapabilities?:

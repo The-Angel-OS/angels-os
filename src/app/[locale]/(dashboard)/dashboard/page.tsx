@@ -1,12 +1,18 @@
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
+import type { Where } from 'payload'
 import config from '@payload-config'
 import Link from 'next/link'
 import { setRequestLocale } from 'next-intl/server'
+import { WelcomeBanner } from '@/components/WelcomeBanner'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 
 /**
  * Dashboard Overview – Rev 2 style stat cards + quick access.
  * Server component: fetches real counts from Payload Local API.
+ * Shows WelcomeBanner when database is unseeded (0 spaces + 0 products).
+ * Stats scoped to current tenant for non-super-admins.
  */
 export default async function DashboardPage({
   params,
@@ -17,7 +23,7 @@ export default async function DashboardPage({
   setRequestLocale(locale)
   const prefix = locale === 'en' ? '' : `/${locale}`
 
-  // Fetch platform stats server-side
+  // Fetch tenant-scoped stats server-side
   let stats = {
     tenants: 0,
     spaces: 0,
@@ -29,6 +35,7 @@ export default async function DashboardPage({
   }
   let tenantName = 'Angel OS'
   let tenantStatus = 'active'
+  let isSuperAdmin = false
   let isAdmin = false
 
   try {
@@ -36,33 +43,65 @@ export default async function DashboardPage({
     const headersList = await headers()
     const { user } = await payload.auth({ headers: headersList })
 
+    // Resolve current tenant from middleware header
+    const tenantSlug = headersList.get('x-tenant-id')
+    const host = headersList.get('host') ?? ''
+    const currentTenant =
+      (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
+      (await fetchTenantByDomain(host))
+
     if (user) {
       const roles = (user as any).roles as string[] | undefined
+      isSuperAdmin = Boolean(roles?.includes('super_admin'))
       isAdmin = Boolean(
-        roles?.includes('super_admin') ||
-          roles?.includes('admin') ||
-          roles?.includes('archangel'),
+        isSuperAdmin || roles?.includes('admin') || roles?.includes('archangel'),
       )
     }
 
+    // Use current tenant for header display
+    if (currentTenant) {
+      tenantName =
+        (currentTenant as any).branding?.siteName ||
+        (currentTenant as any).name ||
+        'Angel OS'
+      tenantStatus = (currentTenant as any).status || 'active'
+    }
+
+    // Tenant-scoped filter: super_admins see everything, others see their tenant only
+    const tenantFilter: Where | undefined =
+      isSuperAdmin || !currentTenant
+        ? undefined
+        : { tenant: { equals: currentTenant.id } }
+
     // Parallel count queries – catch individually so one failure doesn't kill all
     const [tenants, spaces, users, products, posts, bookings, projects] = await Promise.all([
-      payload.count({ collection: 'tenants', overrideAccess: true }),
-      payload.count({ collection: 'spaces', overrideAccess: true }),
+      // Tenants count only visible to super_admins
+      isSuperAdmin
+        ? payload.count({ collection: 'tenants', overrideAccess: true })
+        : Promise.resolve({ totalDocs: 0 }),
+      payload.count({
+        collection: 'spaces',
+        where: tenantFilter,
+        overrideAccess: true,
+      }),
       payload.count({
         collection: 'users',
         where: { isSystemUser: { not_equals: true } },
         overrideAccess: true,
       }),
       payload
-        .count({ collection: 'products', overrideAccess: true })
+        .count({ collection: 'products', where: tenantFilter, overrideAccess: true })
         .catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'posts', overrideAccess: true }),
+      payload.count({
+        collection: 'posts',
+        where: tenantFilter,
+        overrideAccess: true,
+      }),
       payload
-        .count({ collection: 'bookings', overrideAccess: true })
+        .count({ collection: 'bookings', where: tenantFilter, overrideAccess: true })
         .catch(() => ({ totalDocs: 0 })),
       payload
-        .count({ collection: 'projects', overrideAccess: true })
+        .count({ collection: 'projects', where: tenantFilter, overrideAccess: true })
         .catch(() => ({ totalDocs: 0 })),
     ])
 
@@ -75,25 +114,18 @@ export default async function DashboardPage({
       bookings: bookings.totalDocs,
       projects: projects.totalDocs,
     }
-
-    // Get platform tenant name for header
-    const platformTenant = await payload.find({
-      collection: 'tenants',
-      where: { type: { equals: 'platform' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (platformTenant.docs[0]) {
-      tenantName = (platformTenant.docs[0] as any).name || 'Angel OS'
-      tenantStatus = (platformTenant.docs[0] as any).status || 'active'
-    }
   } catch {
     // Not authenticated or DB not ready — show defaults
   }
 
+  // Unseeded = no spaces AND no products (tenants may exist from initial migration)
+  const isSeeded = stats.spaces > 0 || stats.products > 0
+
   return (
     <div className="space-y-8">
+      {/* Welcome Banner — shows when DB is unseeded, dismissible */}
+      <WelcomeBanner isSeeded={isSeeded} />
+
       {/* Platform Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold">{tenantName}</h1>
@@ -109,9 +141,11 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* Stat Cards – top 4 like Rev 2 */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard count={stats.tenants} label="Active Tenants" color="text-purple-500" />
+      {/* Stat Cards – top row, tenant-scoped for non-super-admins */}
+      <div className={`grid grid-cols-2 gap-4 ${isSuperAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        {isSuperAdmin && (
+          <StatCard count={stats.tenants} label="Active Tenants" color="text-purple-500" />
+        )}
         <StatCard count={stats.spaces} label="Collaboration Spaces" color="text-blue-500" />
         <StatCard count={stats.users} label="Platform Users" color="text-emerald-500" />
         <StatCard count={stats.products} label="Products Listed" color="text-orange-500" />

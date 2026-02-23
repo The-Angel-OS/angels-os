@@ -9,6 +9,7 @@ const projectRoot = path.resolve(__dirname, '..')
 loadEnv(projectRoot)
 
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { resendAdapter } from '@payloadcms/email-resend'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import sharp from 'sharp'
@@ -77,6 +78,7 @@ import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
 import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
 import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
+import { emailPollHandler } from '@/endpoints/email-poll'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 
@@ -169,8 +171,8 @@ export default buildConfig({
         workflows: {},
         'holon-capabilities': {},
         'justice-fund-transactions': {},
-        header: { isGlobal: true },
-        footer: { isGlobal: true },
+        header: {},
+        footer: {},
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
@@ -222,22 +224,37 @@ export default buildConfig({
       ]
     },
   }),
-  ...(process.env.SMTP_HOST
+  // ─── Email adapter — Resend takes priority, falls back to SMTP nodemailer ──
+  ...(process.env.RESEND_API_KEY
     ? {
-        email: nodemailerAdapter({
-          defaultFromAddress: process.env.SMTP_FROM_ADDRESS || 'noreply@angelos.app',
-          defaultFromName: process.env.SMTP_FROM_NAME || 'Angel OS',
-          transportOptions: {
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            },
-          },
+        email: resendAdapter({
+          defaultFromAddress:
+            process.env.SYSTEM_EMAIL_ADDRESS ||
+            process.env.EMAIL_FROM_ADDRESS ||
+            'hello@spacesangels.com',
+          defaultFromName:
+            process.env.SYSTEM_EMAIL_NAME ||
+            process.env.EMAIL_FROM_NAME ||
+            'Angel OS',
+          apiKey: process.env.RESEND_API_KEY,
         }),
       }
-    : {}),
+    : process.env.SMTP_HOST
+      ? {
+          email: nodemailerAdapter({
+            defaultFromAddress: process.env.SMTP_FROM_ADDRESS || 'noreply@angelos.app',
+            defaultFromName: process.env.SMTP_FROM_NAME || 'Angel OS',
+            transportOptions: {
+              host: process.env.SMTP_HOST,
+              port: Number(process.env.SMTP_PORT) || 587,
+              auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+              },
+            },
+          }),
+        }
+      : {}),
   endpoints: [
     {
       path: '/leo',
@@ -424,6 +441,14 @@ export default buildConfig({
       path: '/bridge/inbound',
       method: 'post',
       handler: bridgeInboundHandler,
+    },
+    // ─── Email Poll Endpoint (Vercel Cron: */2 * * * *) ─────────
+    // Fetches unseen emails from SYSTEM_EMAIL_ADDRESS via IMAP,
+    // creates AI Bus channels per sender, replies via Resend.
+    {
+      path: '/email/poll',
+      method: 'get',
+      handler: emailPollHandler,
     },
     // ─── Documentation Endpoint ──────────────────────────────────
     {

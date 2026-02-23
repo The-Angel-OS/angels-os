@@ -18,14 +18,34 @@ import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import type { Metadata } from 'next'
+import type { Media } from '@/payload-types'
 import './globals.css'
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Angel OS',
-    template: '%s | Angel OS',
-  },
-  description: 'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  const tenant = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  const siteName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
+  const tagline =
+    typeof (tenant as any)?.branding?.tagline === 'string'
+      ? (tenant as any).branding.tagline
+      : ''
+  const logoUrl =
+    typeof (tenant as any)?.branding?.logo === 'object' &&
+    (tenant as any)?.branding?.logo !== null
+      ? ((tenant as any).branding.logo as Media)?.url
+      : null
+
+  return {
+    title: {
+      default: siteName,
+      template: `%s | ${siteName}`,
+    },
+    description:
+      tagline ||
+      'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
+    ...(logoUrl ? { icons: { icon: logoUrl } } : {}),
+  }
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
