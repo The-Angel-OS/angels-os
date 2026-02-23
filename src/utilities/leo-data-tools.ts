@@ -787,6 +787,138 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['reviewContent', 'reviewRating'],
     },
   },
+  // ─── Sprint 14: Content Management ────────────────────────────────────────
+  {
+    name: 'create_post',
+    description:
+      'Create a new blog post or article. Use when the user wants to publish content, write an article, or add a post. Always confirm the title and content before creating. Created as draft by default.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Post title (required)' },
+        content: {
+          type: 'string',
+          description: 'Post body text. Use double newlines (\\n\\n) to separate paragraphs.',
+        },
+        excerpt: { type: 'string', description: 'Brief summary shown in post previews (optional)' },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'Publication status — defaults to "draft"',
+        },
+        categories: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Category names to assign (optional)',
+        },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_post',
+    description:
+      'Update an existing blog post. Use query_posts first to find the post ID. Always confirm changes with the user before updating.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        postId: { type: 'number', description: 'Numeric ID of the post to update (required)' },
+        title: { type: 'string', description: 'New post title (optional)' },
+        content: { type: 'string', description: 'New post body text (optional)' },
+        excerpt: { type: 'string', description: 'New excerpt / summary (optional)' },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'New publication status (optional)',
+        },
+        categories: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Replacement category names (optional)',
+        },
+      },
+      required: ['postId'],
+    },
+  },
+  {
+    name: 'create_page',
+    description:
+      'Create a new static page (About, Services, Contact, etc.). Use when the user wants to add a page to their site. Created as draft by default.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Page title (required)' },
+        content: {
+          type: 'string',
+          description: 'Page body text. Use double newlines (\\n\\n) to separate paragraphs.',
+        },
+        slug: {
+          type: 'string',
+          description: 'URL path (e.g. "about-us"). Auto-generated from title if omitted.',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'Publication status — defaults to "draft"',
+        },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_page',
+    description:
+      'Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'number', description: 'Numeric ID of the page to update (required)' },
+        title: { type: 'string', description: 'New page title (optional)' },
+        content: { type: 'string', description: 'New page body text (optional)' },
+        slug: { type: 'string', description: 'New URL slug (optional)' },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'New publication status (optional)',
+        },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name: 'query_media',
+    description:
+      'Search the media library for images and files. Use before attaching images to content, or when the user asks what images are available.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        search: { type: 'string', description: 'Search by filename or alt text (optional)' },
+        limit: { type: 'number', description: 'Max results (default 10, max 20)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'manage_categories',
+    description:
+      'Create, update, or delete categories used to organise posts and products. Use when the user wants to add a new category or rename an existing one.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'update', 'delete'],
+          description: 'Operation to perform (required)',
+        },
+        name: { type: 'string', description: 'Category name (required for create/update)' },
+        categoryId: {
+          type: 'number',
+          description: 'Numeric category ID (required for update/delete)',
+        },
+      },
+      required: ['action'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -882,6 +1014,19 @@ export async function executeToolCall(
         return await handleFetchReviews(payload, toolInput, ctx)
       case 'draft_review_response':
         return await handleDraftReviewResponse(toolInput)
+      // ─── Sprint 14: Content Management ────────────────────────────────────
+      case 'create_post':
+        return await createPost(payload, toolInput, ctx)
+      case 'update_post':
+        return await updatePost(payload, toolInput, ctx)
+      case 'create_page':
+        return await createPage(payload, toolInput, ctx)
+      case 'update_page':
+        return await updatePage(payload, toolInput, ctx)
+      case 'query_media':
+        return await queryMedia(payload, toolInput)
+      case 'manage_categories':
+        return await manageCategories(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -3078,4 +3223,380 @@ async function handleDraftReviewResponse(
     `- Represent ${business} warmly and professionally\n` +
     `- Be 2-4 sentences, conversational, not corporate-speak\n` +
     `- End with an invitation to return or reach out]`
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 14: Content Management Handlers
+// ---------------------------------------------------------------------------
+
+/** Convert plain text (with \n\n paragraph breaks) to Lexical richText root */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function textToLexical(text: string): any {
+  const paragraphs = text
+    .split(/\n\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+
+  const children = paragraphs.map((block) => ({
+    type: 'paragraph',
+    children: [
+      {
+        type: 'text',
+        text: block,
+        detail: 0,
+        format: 0,
+        mode: 'normal',
+        style: '',
+        version: 1,
+      },
+    ],
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    version: 1,
+  }))
+
+  return {
+    root: {
+      type: 'root',
+      children: children.length > 0 ? children : [{
+        type: 'paragraph',
+        children: [{ type: 'text', text: '', detail: 0, format: 0, mode: 'normal', style: '', version: 1 }],
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+      }],
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+  }
+}
+
+/** Wrap richText in a full-width Content block for the layout field */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function textToContentLayout(text: string): any[] {
+  return [
+    {
+      blockType: 'content',
+      columns: [
+        {
+          size: 'full',
+          richText: textToLexical(text),
+        },
+      ],
+    },
+  ]
+}
+
+/**
+ * create_post — Creates a new blog post with title, body, and optional categories.
+ */
+async function createPost(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: Post title is required.'
+
+  const content = input.content as string | undefined
+  const status = (input.status as string) || 'draft'
+  if (status !== 'draft' && status !== 'published') {
+    return 'Error: Status must be "draft" or "published".'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const postData: Record<string, any> = {
+    title,
+    _status: status,
+  }
+
+  if (ctx.tenantId) postData.tenant = ctx.tenantId
+
+  if (content) {
+    postData.layout = textToContentLayout(content)
+  }
+
+  // Resolve category IDs
+  const categoryNames = input.categories as string[] | undefined
+  if (categoryNames?.length) {
+    const categoryIds: (number | string)[] = []
+    for (const name of categoryNames) {
+      const found = await payload.find({
+        collection: 'categories',
+        where: { title: { contains: name } } as Where,
+        limit: 1,
+        overrideAccess: true,
+      })
+      if (found.docs[0]) categoryIds.push(found.docs[0].id)
+    }
+    if (categoryIds.length) postData.categories = categoryIds
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.create as any)({
+    collection: 'posts',
+    data: postData,
+    overrideAccess: true,
+  })
+
+  const slug = str(result, 'slug')
+  const lines = [
+    `Post created successfully!`,
+    `- **${title}** (${status})`,
+    `- Post ID: ${result.id}`,
+  ]
+  if (slug) lines.push(`- URL: /posts/${slug}`)
+  if (postData.categories?.length) lines.push(`- Categories: ${categoryNames?.join(', ')}`)
+  if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
+
+  return lines.join('\n')
+}
+
+/**
+ * update_post — Updates title, content, status, or categories on an existing post.
+ */
+async function updatePost(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const postId = Number(input.postId)
+  if (!postId) return 'Error: postId is required. Use query_posts to find the post ID first.'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: Record<string, any> = {}
+
+  if (input.title) updateData.title = (input.title as string).trim()
+  if (input.status) {
+    if (!['draft', 'published'].includes(input.status as string)) {
+      return 'Error: Status must be "draft" or "published".'
+    }
+    updateData._status = input.status
+  }
+  if (input.content) updateData.layout = textToContentLayout(input.content as string)
+
+  const categoryNames = input.categories as string[] | undefined
+  if (categoryNames?.length) {
+    const categoryIds: (number | string)[] = []
+    for (const name of categoryNames) {
+      const found = await payload.find({
+        collection: 'categories',
+        where: { title: { contains: name } } as Where,
+        limit: 1,
+        overrideAccess: true,
+      })
+      if (found.docs[0]) categoryIds.push(found.docs[0].id)
+    }
+    updateData.categories = categoryIds
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return 'Nothing to update — please provide at least one field to change (title, content, status, or categories).'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.update as any)({
+    collection: 'posts',
+    id: postId,
+    data: updateData,
+    overrideAccess: true,
+  })
+
+  const slug = str(result, 'slug')
+  const lines = [`Post updated successfully!`, `- Post ID: ${postId}`]
+  if (updateData.title) lines.push(`- New title: ${updateData.title}`)
+  if (updateData._status) lines.push(`- Status: ${updateData._status}`)
+  if (slug) lines.push(`- URL: /posts/${slug}`)
+
+  return lines.join('\n')
+}
+
+/**
+ * create_page — Creates a new static page with body content.
+ */
+async function createPage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: Page title is required.'
+
+  const content = input.content as string | undefined
+  const status = (input.status as string) || 'draft'
+  if (status !== 'draft' && status !== 'published') {
+    return 'Error: Status must be "draft" or "published".'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pageData: Record<string, any> = {
+    title,
+    _status: status,
+  }
+
+  if (ctx.tenantId) pageData.tenant = ctx.tenantId
+  if (input.slug) pageData.slug = (input.slug as string).toLowerCase().replace(/\s+/g, '-')
+  if (content) pageData.layout = textToContentLayout(content)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.create as any)({
+    collection: 'pages',
+    data: pageData,
+    overrideAccess: true,
+  })
+
+  const slug = str(result, 'slug')
+  const lines = [
+    `Page created successfully!`,
+    `- **${title}** (${status})`,
+    `- Page ID: ${result.id}`,
+  ]
+  if (slug) lines.push(`- URL: /${slug}`)
+  if (status === 'draft') lines.push(`\nThe page is saved as a draft. Say "publish page ${result.id}" to make it live.`)
+
+  return lines.join('\n')
+}
+
+/**
+ * update_page — Updates title, content, slug, or status on an existing page.
+ */
+async function updatePage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const pageId = Number(input.pageId)
+  if (!pageId) return 'Error: pageId is required.'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: Record<string, any> = {}
+
+  if (input.title) updateData.title = (input.title as string).trim()
+  if (input.slug) updateData.slug = (input.slug as string).toLowerCase().replace(/\s+/g, '-')
+  if (input.status) {
+    if (!['draft', 'published'].includes(input.status as string)) {
+      return 'Error: Status must be "draft" or "published".'
+    }
+    updateData._status = input.status
+  }
+  if (input.content) updateData.layout = textToContentLayout(input.content as string)
+
+  if (Object.keys(updateData).length === 0) {
+    return 'Nothing to update — please provide at least one field to change.'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.update as any)({
+    collection: 'pages',
+    id: pageId,
+    data: updateData,
+    overrideAccess: true,
+  })
+
+  const slug = str(result, 'slug')
+  const lines = [`Page updated successfully!`, `- Page ID: ${pageId}`]
+  if (updateData.title) lines.push(`- New title: ${updateData.title}`)
+  if (updateData._status) lines.push(`- Status: ${updateData._status}`)
+  if (slug) lines.push(`- URL: /${slug}`)
+
+  return lines.join('\n')
+}
+
+/**
+ * query_media — Searches the media library.
+ */
+async function queryMedia(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const limit = Math.min(Number(input.limit) || 10, 20)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+
+  if (input.search && typeof input.search === 'string') {
+    conditions.push({
+      or: [
+        { filename: { contains: input.search } },
+        { alt: { contains: input.search } },
+      ],
+    })
+  }
+
+  const result = await payload.find({
+    collection: 'media',
+    where: conditions.length ? ({ and: conditions } as Where) : {},
+    limit,
+    sort: '-createdAt',
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if (result.docs.length === 0) return 'No media files found.'
+
+  const items = result.docs.map((m) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc = m as any
+    const filename = doc.filename || doc.alt || 'Unnamed'
+    const url = doc.url || ''
+    const dims = doc.width && doc.height ? ` (${doc.width}×${doc.height})` : ''
+    return `- **${filename}**${dims} — ID: ${doc.id}${url ? `\n  URL: ${url}` : ''}`
+  })
+
+  return `Found ${result.totalDocs} media file(s) (showing ${result.docs.length}):\n${items.join('\n')}`
+}
+
+/**
+ * manage_categories — Create, update, or delete a category.
+ */
+async function manageCategories(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const action = input.action as string
+  const name = (input.name as string)?.trim()
+  const categoryId = input.categoryId ? Number(input.categoryId) : undefined
+
+  switch (action) {
+    case 'create': {
+      if (!name) return 'Error: Category name is required to create a category.'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: Record<string, any> = { title: name }
+      if (ctx.tenantId) data.tenant = ctx.tenantId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (payload.create as any)({
+        collection: 'categories',
+        data,
+        overrideAccess: true,
+      })
+      return `Category "${name}" created. ID: ${result.id}`
+    }
+    case 'update': {
+      if (!categoryId) return 'Error: categoryId is required to update a category.'
+      if (!name) return 'Error: New name is required to update a category.'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.update as any)({
+        collection: 'categories',
+        id: categoryId,
+        data: { title: name },
+        overrideAccess: true,
+      })
+      return `Category ${categoryId} renamed to "${name}".`
+    }
+    case 'delete': {
+      if (!categoryId) return 'Error: categoryId is required to delete a category.'
+      await payload.delete({
+        collection: 'categories',
+        id: categoryId,
+        overrideAccess: true,
+      })
+      return `Category ${categoryId} deleted.`
+    }
+    default:
+      return `Unknown action "${action}". Use "create", "update", or "delete".`
+  }
 }
