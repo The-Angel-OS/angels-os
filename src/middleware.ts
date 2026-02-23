@@ -9,6 +9,11 @@ import { detectTenantFromHostname } from './middleware/detectTenant'
  * Combines next-intl locale routing with hostname-based x-tenant-id injection.
  * Tenant detection delegated to detectTenant.ts for wildcard subdomain support.
  * See: https://finly.ch/engineering-blog/678698-zero-code-campaigns-how-we-built-a-multi-domain-lead-gen-engine-for-advisors
+ *
+ * Matcher covers /api routes so that x-tenant-id is propagated to all Payload
+ * API handlers and custom endpoints. For /api paths we skip next-intl's i18n
+ * routing (which would incorrectly redirect API calls) and only inject the
+ * tenant header, then pass straight through.
  */
 const TENANT_HEADER = 'x-tenant-id'
 
@@ -24,6 +29,12 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set(TENANT_HEADER, tenantId)
   }
 
+  // For /api routes: inject tenant header and pass through — do NOT run i18n
+  // routing, which would incorrectly locale-redirect API requests.
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    return NextResponse.next({ request: { headers: requestHeaders } })
+  }
+
   const modifiedRequest = new NextRequest(request.url, { headers: requestHeaders })
   return handleI18nRouting(modifiedRequest)
 }
@@ -32,10 +43,11 @@ export const config = {
   matcher: [
     /*
      * Match all pathnames except:
-     * - /admin (Payload CMS)
-     * - /api (Payload API, Next.js API)
+     * - /admin (Payload CMS admin panel — has its own auth)
      * - _next, _vercel, static files
+     * NOTE: /api IS included so that x-tenant-id is injected into all
+     * Payload API and custom endpoint requests.
      */
-    '/((?!admin|api|_next|_vercel|.*\\..*).*)',
+    '/((?!admin|_next|_vercel|.*\\..*).*)',
   ],
 }

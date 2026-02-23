@@ -159,7 +159,7 @@ export default async function DashboardPage({
             href={`${prefix}/dashboard/spaces`}
             icon={<ChatIcon />}
             iconColor="text-emerald-500"
-            title="LEO & Spaces"
+            title="Spaces"
             subtitle="AI Chat + Collaboration"
           />
           <QuickAccessCard

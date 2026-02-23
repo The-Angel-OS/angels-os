@@ -81,6 +81,7 @@ import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
+import { detectTenantFromHostname } from '@/middleware/detectTenant'
 
 export default buildConfig({
   admin: {
@@ -290,11 +291,11 @@ export default buildConfig({
         const { payload, headers } = req
         let tenantSlug = headers.get('x-tenant-id')
         if (!tenantSlug) {
+          // Fallback: derive from host using the shared detectTenantFromHostname
+          // (x-tenant-id is normally injected by middleware for all /api routes,
+          //  but Payload may call this handler server-side without middleware)
           const host = headers.get('host')?.split(':')[0] ?? 'localhost'
-          tenantSlug =
-            host === 'localhost' || host === '127.0.0.1'
-              ? process.env.DEFAULT_TENANT_SLUG || 'default'
-              : host.replace(/:\d+$/, '').split('.').slice(0, -1).join('-').toLowerCase() || 'default'
+          tenantSlug = detectTenantFromHostname(host) ?? (process.env.DEFAULT_TENANT_SLUG || 'default')
         }
         let body: Record<string, unknown>
         try {
@@ -316,16 +317,41 @@ export default buildConfig({
             { status: 400 },
           )
         }
-        let tenantId: number | undefined
-        if (tenantSlug) {
-          const tenants = await payload.find({
-            collection: 'tenants',
-            where: { slug: { equals: tenantSlug } },
-            limit: 1,
-            depth: 0,
-          })
-          tenantId = tenants.docs?.[0]?.id
+        // Resolve tenant ID from slug — required, not optional
+        if (!tenantSlug) {
+          return Response.json({ message: 'Tenant could not be resolved' }, { status: 400 })
         }
+        const tenants = await payload.find({
+          collection: 'tenants',
+          where: { slug: { equals: tenantSlug } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const tenantId: number | undefined = tenants.docs?.[0]?.id
+        if (!tenantId) {
+          return Response.json({ message: 'Tenant not found' }, { status: 404 })
+        }
+
+        // Verify the parent post/product belongs to this tenant (prevents cross-tenant injection)
+        const parentDoc = await payload.findByID({
+          collection: parentCollection as 'posts' | 'products',
+          id: String(parentId),
+          depth: 0,
+          overrideAccess: true,
+          select: { tenant: true } as any,
+        })
+        const parentTenantId =
+          parentDoc && typeof (parentDoc as any).tenant === 'object'
+            ? (parentDoc as any).tenant?.id
+            : (parentDoc as any)?.tenant
+        if (String(parentTenantId) !== String(tenantId)) {
+          return Response.json(
+            { message: 'Content not found for this tenant' },
+            { status: 404 },
+          )
+        }
+
         const doc = await payload.create({
           collection: 'comments',
           data: {
@@ -335,7 +361,7 @@ export default buildConfig({
             content: String(content).trim(),
             ...(rating != null && Number.isFinite(Number(rating)) && { rating: Number(rating) }),
             isApproved: false,
-            ...(tenantId != null && { tenant: tenantId }),
+            tenant: tenantId,
           } as any,
           overrideAccess: true,
         })

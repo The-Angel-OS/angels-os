@@ -52,3 +52,6 @@ public/media
 test-output.txt
 nul
 
+
+.vercel
+.env*.local

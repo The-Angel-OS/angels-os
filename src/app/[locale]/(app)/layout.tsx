@@ -44,7 +44,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       tagline ||
       'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
-    ...(logoUrl ? { icons: { icon: logoUrl } } : {}),
+    icons: {
+      icon: logoUrl ?? '/favicon.png',
+      apple: '/apple-touch-icon.png',
+    },
   }
 }
 
@@ -84,8 +87,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <InitTheme />
         <TenantFonts tenant={tenant} />
         <TenantStyles tenant={tenant} />
-        <link href="/favicon.ico" rel="icon" sizes="32x32" />
-        <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body>
         <Providers>

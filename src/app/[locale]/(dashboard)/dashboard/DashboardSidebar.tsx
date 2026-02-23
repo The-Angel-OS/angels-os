@@ -212,7 +212,7 @@ export function DashboardSidebar({
             collapsed={isCollapsed}
             active={pathname.includes('/dashboard/spaces')}
           >
-            LEO &amp; Spaces
+            Spaces
           </NavLink>
           <NavLink
             href={`${prefix}/dashboard/docs`}
@@ -448,7 +448,7 @@ function MobileNavContent({
           collapsed={false}
           active={pathname.includes('/dashboard/spaces')}
         >
-          LEO &amp; Spaces
+          Spaces
         </NavLink>
         <NavLink
           href={`${prefix}/dashboard/docs`}

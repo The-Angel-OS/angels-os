@@ -23,9 +23,17 @@ export function detectTenantFromHostname(hostname: string): string | null {
     }
   }
 
-  // Development fallback
+  // Development fallback — exact localhost
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return process.env.DEFAULT_TENANT_SLUG || 'default'
+  }
+
+  // Development subdomain — e.g. clearwater-cruisin.localhost
+  // Chrome resolves *.localhost → 127.0.0.1 for local multi-tenant testing.
+  // Strip the .localhost TLD to get the tenant slug directly.
+  if (hostname.endsWith('.localhost')) {
+    const subdomain = hostname.slice(0, -'.localhost'.length)
+    return subdomain || process.env.DEFAULT_TENANT_SLUG || 'default'
   }
 
   // Main platform domains return null (no tenant prefix)
@@ -40,14 +48,21 @@ export function detectTenantFromHostname(hostname: string): string | null {
   // Extract subdomain from *.kendev.co pattern
   // e.g., clearwater-wellness.kendev.co → clearwater-wellness
   const parts = hostname.replace(/:\d+$/, '').split('.')
-  
+
+  // Reject bare IP addresses (e.g. 192.168.1.1) — return default tenant
+  if (parts.every((p) => /^\d+$/.test(p))) {
+    return process.env.DEFAULT_TENANT_SLUG || 'default'
+  }
+
   // If we have at least 3 parts (subdomain.domain.tld), extract subdomain
   if (parts.length >= 3) {
+    // Skip www. prefix — treat as platform/root context (no tenant)
+    if (parts[0] === 'www') return null
     // For *.kendev.co, take everything before kendev.co
     const subdomain = parts.slice(0, -2).join('-').toLowerCase()
     return subdomain || null
   }
 
-  // Fallback: use whole hostname as tenant slug
-  return hostname.toLowerCase()
+  // Unknown 2-part pattern (e.g. unknown.com) — don't guess, return null
+  return null
 }
