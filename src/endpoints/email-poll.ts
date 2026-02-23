@@ -152,11 +152,18 @@ export const emailPollHandler: PayloadHandler = async (req) => {
           }
 
           // ── Derive channel slug ────────────────────────────────────────────
-          const sanitized = fromAddress.toLowerCase().replace(/[^a-z0-9._-]/g, '-')
+          // Normalize to match Payload's slugField transformation:
+          // @ → hyphen, everything non-alphanumeric removed, hyphens collapsed
+          const sanitized = fromAddress
+            .toLowerCase()
+            .replace(/@/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
           const channelSlug = `email-${sanitized}`
 
           // ── Find or create email-sourced channel ───────────────────────────
-          await findOrCreateEmailChannel(
+          const { channelId: emailChannelId } = await findOrCreateEmailChannel(
             payload,
             tenantId,
             Number(dmSpaceId),
@@ -312,13 +319,15 @@ async function findOrCreateEmailChannel(
   fromName: string,
   fromAddress: string,
 ): Promise<{ channelId: string; isNew: boolean }> {
+  // Look up by slug + tenant only — source filter is omitted because Payload's
+  // slugField transforms the slug (strips dots) before storing, so slug+tenant
+  // is the canonical dedup key. Adding source would cause false misses.
   const existing = await payload.find({
     collection: 'channels',
     where: {
       and: [
         { slug: { equals: slug } },
         { tenant: { equals: tenantId } },
-        { source: { equals: 'email' } },
       ],
     },
     limit: 1,
