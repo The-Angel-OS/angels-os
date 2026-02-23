@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useRef, useEffect, useCallback, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from './types'
 import { TOOL_LABELS } from '@/constants/toolLabels'
 
@@ -146,16 +148,56 @@ function Avatar({ name, isLeo, isStreaming }: { name: string; isLeo: boolean; is
 
 const TRUNCATE_THRESHOLD = 200
 
-function TruncatedMessage({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+function TruncatedMessage({
+  content,
+  isStreaming,
+  useMarkdown = false,
+}: {
+  content: string
+  isStreaming?: boolean
+  useMarkdown?: boolean
+}) {
   const [expanded, setExpanded] = useState(false)
   const shouldTruncate = !isStreaming && content.length > TRUNCATE_THRESHOLD
 
+  const body = useMarkdown ? (
+    <div className={`prose prose-sm prose-invert max-w-none break-words ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Open links in new tab safely
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+            {children}
+          </a>
+        ),
+        // Inline code style
+        code: ({ children, className }) => {
+          const isBlock = className?.includes('language-')
+          return isBlock ? (
+            <code className={`block rounded bg-black/30 p-2 text-xs font-mono overflow-x-auto ${className ?? ''}`}>
+              {children}
+            </code>
+          ) : (
+            <code className="rounded bg-black/30 px-1 py-0.5 text-xs font-mono">{children}</code>
+          )
+        },
+        pre: ({ children }) => <pre className="my-2 overflow-x-auto rounded bg-black/20 p-2">{children}</pre>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+    </div>
+  ) : (
+    <div className={`whitespace-pre-wrap ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
+      {content}
+    </div>
+  )
+
   return (
     <>
-      <div className={`whitespace-pre-wrap ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
-        {content}
-        {isStreaming && <StreamingCursor />}
-      </div>
+      {body}
+      {isStreaming && !useMarkdown && <StreamingCursor />}
       {shouldTruncate && (
         <button
           onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
@@ -283,7 +325,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
               <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
             )}
             {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
-            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} />
+            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} />
             {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
             <div className="mt-1 text-[10px] opacity-50">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -545,7 +587,7 @@ function FullPageMessageList({
                           </span>
                         </div>
                       ) : (
-                        <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} />
+                        <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={isLeo} />
                       )}
                         {msg.images && msg.images.length > 0 && (
                           <MessageImages images={msg.images} />
