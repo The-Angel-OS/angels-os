@@ -103,11 +103,13 @@ export function ChatProvider({
     return activeSpaceId
   }, [activeChannelSlugLocal, activeSpaceId, dmSpaceId, dmChannels])
 
-  // The core useChat hook drives messages/channels for the effective space+channel
+  // The core useChat hook drives messages/channels for the effective space+channel.
+  // channelSpaceId is always the visually-active space so the sidebar channel list
+  // stays stable when effectiveSpaceId switches to dmSpaceId for DM routing.
   const chat = useChat(
     effectiveSpaceId || undefined,
     undefined,
-    { tenantId },
+    { tenantId, channelSpaceId: activeSpaceId || undefined },
   )
 
   // ─── LEO DM Resolution ─────────────────────────────────────

@@ -25,7 +25,7 @@
 
 import type { PayloadHandler, Payload } from 'payload'
 import { ImapFlow } from 'imapflow'
-import { simpleParser } from 'mailparser'
+import { simpleParser, type ParsedMail } from 'mailparser'
 import { Resend } from 'resend'
 
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
@@ -36,6 +36,46 @@ import { logError } from '@/utilities/logError'
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const IMAP_HOST = 'imap.ionos.com'
+
+// ─── Auto-reply detection (RFC 3834 + heuristics) ───────────────────────────
+
+/**
+ * Returns true if the parsed email appears to be an automated response.
+ * We skip LEO processing and Resend replies for auto-replies to prevent
+ * infinite loops (e.g. LEO replies → external auto-responder → LEO replies …).
+ */
+function isAutoReply(parsed: ParsedMail): boolean {
+  const get = (h: string) => {
+    const v = parsed.headers.get(h)
+    return v ? String(v).toLowerCase() : ''
+  }
+
+  // RFC 3834 — the canonical header for automated responses
+  const autoSubmitted = get('auto-submitted')
+  if (autoSubmitted && autoSubmitted !== 'no') return true
+
+  // Microsoft Exchange / Outlook suppress flag
+  if (get('x-auto-response-suppress')) return true
+
+  // Common vacation / OOO headers
+  if (get('x-autoreply') || get('x-autorespond') || get('x-vacation-autorespond')) return true
+
+  // Precedence: bulk / junk / list (mass mailers, mailing lists)
+  const precedence = get('precedence')
+  if (['bulk', 'junk', 'list'].includes(precedence)) return true
+
+  // From address patterns that indicate no human sender
+  const fromAddr = (parsed.from?.value?.[0]?.address || '').toLowerCase()
+  const noReplyPatterns = ['noreply', 'no-reply', 'donotreply', 'do-not-reply', 'mailer-daemon', 'postmaster', 'bounce', 'devnull', 'null@', 'nobody@']
+  if (noReplyPatterns.some((p) => fromAddr.includes(p))) return true
+
+  // Subject line patterns that indicate auto-generated email
+  const subject = (parsed.subject || '').toLowerCase()
+  const autoSubjectPrefixes = ['out of office', 'automatic reply', 'auto reply', 'auto-reply', 'autoreply', 'delivery failure', 'undeliverable', 'mail delivery', 'returned mail', 'delivery status']
+  if (autoSubjectPrefixes.some((p) => subject.startsWith(p))) return true
+
+  return false
+}
 const IMAP_PORT = 993
 const MAX_EMAILS_PER_POLL = 10 // Guard against inbox burst
 
@@ -148,6 +188,18 @@ export const emailPollHandler: PayloadHandler = async (req) => {
           // Skip self-emails (avoid reply loops)
           if (fromAddress.toLowerCase() === emailAddress.toLowerCase()) {
             await client.messageFlagsAdd({ uid }, ['\\Seen'], { uid: true })
+            continue
+          }
+
+          // Skip automated responses (OOO, no-reply, auto-responders) to prevent
+          // LEO ↔ external-auto-responder infinite loops. Still mark as seen.
+          if (isAutoReply(parsed)) {
+            await client.messageFlagsAdd({ uid }, ['\\Seen'], { uid: true })
+            await logError({
+              source: 'email-poll',
+              message: `Skipped auto-reply from ${fromAddress} — subject: "${subject}"`,
+              details: 'Detected as automated response; no LEO reply generated.',
+            })
             continue
           }
 
