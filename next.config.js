@@ -3,27 +3,21 @@ import createNextIntlPlugin from 'next-intl/plugin'
 
 import redirects from './redirects.js'
 
-const NEXT_PUBLIC_SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
-      ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
-        const url = new URL(item)
-
-        return {
-          hostname: url.hostname,
-          protocol: url.protocol.replace(':', ''),
-        }
-      }),
-      // Allow images from Vercel Blob Storage
-      {
-        protocol: 'https',
-        hostname: '**.public.blob.vercel-storage.com',
-      },
+      // ── Production: all *.spacesangels.com subdomains ──────────────────────
+      { protocol: 'https', hostname: '**.spacesangels.com' },
+      // ── Vercel preview deployments ─────────────────────────────────────────
+      { protocol: 'https', hostname: '**.vercel.app' },
+      // ── Local dev: *.angelos.local subdomains + plain localhost ────────────
+      { protocol: 'http', hostname: '**.angelos.local' },
+      { protocol: 'http', hostname: 'localhost' },
+      // ── Vercel Blob Storage ────────────────────────────────────────────────
+      { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
     ],
     // Add quality 90 to allowed qualities (Next.js 16 requirement)
     // Default is [75], but our Image component uses quality={90}
