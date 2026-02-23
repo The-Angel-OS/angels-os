@@ -34,9 +34,17 @@ export const LoginForm: React.FC = () => {
   const onSubmit = useCallback(
     async (data: FormData) => {
       try {
-        await login(data)
-        if (redirect?.current) router.push(redirect.current)
-        else router.push('/account')
+        const user = await login(data)
+        if (redirect?.current) {
+          router.push(redirect.current)
+        } else {
+          // Route by role: admins → Payload admin panel, everyone else → dashboard
+          const roles: string[] = Array.isArray((user as any)?.roles) ? (user as any).roles : []
+          const isAdmin = roles.some((r) =>
+            ['super_admin', 'admin', 'archangel'].includes(r),
+          )
+          router.push(isAdmin ? '/admin' : '/dashboard')
+        }
       } catch (_) {
         setError('There was an error with the credentials provided. Please try again.')
       }

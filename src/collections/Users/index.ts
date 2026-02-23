@@ -11,7 +11,10 @@ import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    admin: ({ req: { user } }) => checkRole(['super_admin', 'admin'], user),
+    // super_admin: full platform access
+    // admin: tenant admin, can access Payload panel and manage tenant data
+    // archangel: elevated user role, can access Payload panel
+    admin: ({ req: { user } }) => checkRole(['super_admin', 'admin', 'archangel'], user),
     create: publicAccess,
     delete: adminOnly,
     read: adminOrSelf,
