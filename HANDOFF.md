@@ -1,11 +1,11 @@
-# Angel OS — Session Handoff: Sprint 15 Complete
+# Angel OS — Session Handoff: Sprint 16 Complete
 
 **Date:** February 23, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 29 Leo tools, v0.15.0-dev
-**Sprint:** Sprint 15 complete (Multi-Tenant Security Hardening) — Sprint 16 next
+**Status:** TypeScript clean, build passing, 29 Leo tools, v0.16.0-dev
+**Sprint:** Sprint 16 complete (Spaces Management UI) — Sprint 17 next
 **Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
-**Vercel:** Production deploying — commit `4698da3` (Sprint 15 build BUILDING)
+**Last commit:** `ad7b458` (Sprint 16 — Spaces menu header)
 
 ---
 
@@ -24,6 +24,56 @@ Full specs:
 - `docs/planning/260222 CLAUDE_CODE_BRIEFING.md` — the pivot session
 - `docs/planning/260223 FEDERATION.md` — federation architecture spec
 - `docs/REVENUE.md` — economic model with Toward-53
+
+---
+
+## What Was Done (Sprint 16)
+
+### Spaces Management UI
+
+#### 1. `SpacesMenuHeader` — New Component
+**File:** `src/components/ChatControl/SpacesMenuHeader.tsx`
+- Thin wrapper that replaces the bare `SpaceSelector` in `MultiChannelChat`
+- Desktop layout: `[SpaceIcon] Space Name [▼]   [👥] [⚙] [+]`
+- `compact=true` (collapsed sidebar): action buttons hidden, only icon shows
+- Props: `spaces`, `activeSpaceId`, `onSpaceSelect`, `onSpaceCreated`, optional `onSpaceUpdated`/`onSpaceDeleted`/`activeSpaceNumericId`
+- Manages `createOpen`, `settingsOpen`, `membersOpen` state internally
+- Renders `CreateSpaceDialog`, `SpaceSettingsDialog`, `MemberPanel` as children
+
+#### 2. `CreateSpaceDialog` — 4-Step Wizard
+**File:** `src/components/ChatControl/CreateSpaceDialog.tsx`
+- Step 1 (Info): Space name (required) + optional description
+- Step 2 (Visibility): Radio cards — Public / Invite-only / Private — with Globe/Users/Lock icons
+- Step 3 (Template): service-provider, retail-commerce, creator-content, booking-based, custom
+- Step 4 (Invite): Repeatable email rows with role selectors (member/moderator/guest)
+- Calls `POST /api/spaces/create` → switches to new space → `router.refresh()`
+
+#### 3. `SpaceSettingsDialog` — 3-Tab Settings
+**File:** `src/components/ChatControl/SpaceSettingsDialog.tsx`
+- **General tab:** Name + description + visibility radio (Public/Invite-only/Private) + Save via `PATCH /api/spaces/{id}` + Danger Zone with delete confirmation
+- **Applets tab:** Toggle switches — Chat (locked on), Files, Tasks + Save
+- **Members tab:** Invite form (email + role + Invite button → `/api/spaces/invite`) + scrollable member list with role badges + Remove buttons
+
+#### 4. `POST /api/spaces/create` — New Endpoint
+**File:** `src/endpoints/space-create.ts`
+- Auth check + tenant resolution from `x-tenant-id` header (injected by middleware since Sprint 15)
+- Creates Space with user-chosen name/slug/description/visibility
+- Creates `SpaceMembership` for creator as `space_admin`
+- Reads `SPACE_TEMPLATES[template].channels` and creates each channel
+- Sends batch invitations via `createInvitation()` + `sendInvitationEmail()` (non-fatally)
+- Returns `{ success, space: { id, name, slug }, channelsCreated }`
+
+#### 5. `MultiChannelChat` — Wired to SpacesMenuHeader
+**File:** `src/components/ChatControl/MultiChannelChat.tsx`
+- Imports `SpacesMenuHeader` (replaces direct `SpaceSelector` import)
+- Added `useRouter` from `next/navigation`
+- Added `handleSpaceCreated(newId)`: calls `handleSpaceChange(newId)` + `router.refresh()`
+- Desktop sidebar: `SpaceSelector` → `SpacesMenuHeader` with `compact={!channelsPanelOpen}`
+- Mobile top bar: `SpaceSelector` → `SpacesMenuHeader` (always expanded, always shown)
+
+#### 6. `payload.config.ts` — Endpoint Registered
+- Added `import { spaceCreateHandler } from '@/endpoints/space-create'`
+- Registered `{ path: '/spaces/create', method: 'post', handler: spaceCreateHandler }`
 
 ---
 
@@ -122,7 +172,7 @@ Helper added: `textToLexical()` + `textToContentLayout()` for plain text → Lex
 
 ## Known Issues / Next Sprint Scope
 
-### Priority 1 — Leo Wizard (Sprint 16)
+### Priority 1 — Leo Wizard (Sprint 17)
 The federation pivot requires a Leo-guided Diocese setup experience:
 
 1. `npx create-angel-diocese` installer
@@ -183,6 +233,19 @@ npx tsc --noEmit
 - `COOKIE_DOMAIN=` (empty — required for `*.localhost` auth cookies to work)
 - `DEFAULT_TENANT_SLUG=clearwater-cruisin`
 - `ANTHROPIC_API_KEY=` (set to your key)
+
+---
+
+## Files Changed (Sprint 16)
+
+| File | Change |
+|------|--------|
+| `src/components/ChatControl/SpacesMenuHeader.tsx` | **New** — Space selector + action buttons header |
+| `src/components/ChatControl/CreateSpaceDialog.tsx` | **New** — 4-step Create Space wizard |
+| `src/components/ChatControl/SpaceSettingsDialog.tsx` | **New** — 3-tab Space settings (General/Applets/Members) |
+| `src/endpoints/space-create.ts` | **New** — POST /api/spaces/create endpoint |
+| `src/components/ChatControl/MultiChannelChat.tsx` | SpaceSelector → SpacesMenuHeader (desktop + mobile); useRouter + handleSpaceCreated |
+| `src/payload.config.ts` | Registers /spaces/create endpoint |
 
 ---
 

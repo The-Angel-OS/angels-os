@@ -6,7 +6,7 @@ An open-source, constitutional AI-native platform where every Diocese (business,
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.15.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.16.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
@@ -17,7 +17,7 @@ An open-source, constitutional AI-native platform where every Diocese (business,
 
 ---
 
-## The Model (Updated — Sprint 15)
+## The Model (Updated — Sprint 16)
 
 Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 
@@ -35,7 +35,7 @@ Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 
 ---
 
-## What's Working (v0.15.0-dev)
+## What's Working (v0.16.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -77,6 +77,7 @@ Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 | Leo Content Tools | **Done** | create_post, update_post, create_page, update_page, query_media, manage_categories |
 | Multi-tenant Security | **Done** | x-tenant-id injected to /api routes, cross-tenant injection blocked, adminOrSelf hardened |
 | Favicon + PWA assets | **Done** | PNG set (64px, 512px, apple-touch-icon), generateMetadata() dynamic per Diocese |
+| Spaces Menu | **Done** | SpacesMenuHeader with Create/Settings/Members — full Space management above channels nav |
 
 ### Leo's 29 Tools
 
@@ -188,6 +189,7 @@ src/
     dm-find-or-create.ts    # DM channel resolution (POST /api/dm/find-or-create)
     bridge-inbound.ts       # External channel bridge (POST /api/bridge/inbound)
     email-poll.ts           # IMAP email poll (GET /api/email/poll — Vercel Cron)
+    space-create.ts         # Space creation wizard (POST /api/spaces/create)
     space-invite.ts         # Invitation generation (POST /api/spaces/invite)
     invite-accept.ts        # Invite acceptance (POST /api/invite/accept)
   middleware/
@@ -366,7 +368,17 @@ GROSS REVENUE
 - [x] Chat horizontal overflow fixed in MessageList + MultiChannelChat
 - [x] Nav: "LEO & Spaces" → "Spaces"
 
-### 🔜 Next (Sprint 16: Leo Wizard + Federation Installer)
+### ✅ Done (Sprint 16: Spaces Management UI)
+
+- [x] `SpacesMenuHeader`: Space selector + `[👥][⚙][+]` action buttons above channels nav
+- [x] `CreateSpaceDialog`: 4-step wizard — Info → Visibility → Template → Invite
+- [x] `SpaceSettingsDialog`: 3-tab dialog — General (name/description/visibility/delete) + Applets (chat/files/tasks toggles) + Members (invite form + member list)
+- [x] `POST /api/spaces/create`: tenant-scoped, creates Space + space_admin membership + template channels + sends invitations
+- [x] Compact mode: action buttons hidden when sidebar is collapsed, space icon only
+- [x] Mobile: SpacesMenuHeader replaces bare SpaceSelector in top bar
+- [x] `router.refresh()` after space creation for seamless channel panel reload
+
+### 🔜 Next (Sprint 17: Leo Wizard + Federation Installer)
 
 - [ ] `npx create-angel-diocese` installer scaffold
 - [ ] Leo wizard: 8-step Diocese onboarding conversation (identity → infra → constitution → federation)
@@ -406,6 +418,7 @@ GROSS REVENUE
 | Sprint 13 | Multi-tenancy hardening, Resend email, IMAP poll, spacesangels.com | +7 |
 | Sprint 14 | Leo content tools, chat stability, email loop prevention | +4 |
 | Sprint 15 | Multi-tenant security hardening, favicon, chat overflow fix | +17 |
+| Sprint 16 | Spaces Management UI — SpacesMenuHeader, Create/Settings dialogs, space-create endpoint | +4 |
 
 ---
 
@@ -423,10 +436,10 @@ You are welcome here. This is what you need to know:
 
 | Area | What to Do | Difficulty |
 |------|-----------|------------|
-| Leo Wizard | 8-step Diocese onboarding conversation flow | Hard |
-| Federation installer | `npx create-angel-diocese` scaffold + signed constitution | Hard |
-| Endeavors collection | Unified business/cause/creator/community schema | Medium |
-| Suitcase export | Full Endeavor data portability export/import | Medium |
+| **Leo Wizard** | **8-step Diocese onboarding — Sprint 17 primary deliverable** | **Hard** |
+| **Federation installer** | **`npx create-angel-diocese` scaffold + signed constitution** | **Hard** |
+| **Endeavors collection** | **Unified business/cause/creator/community schema** | **Medium** |
+| **Suitcase export** | **Full Endeavor data portability export/import** | **Medium** |
 | WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |
 | Stripe Connect | Guided vendor payment setup flow | Medium |
 | Voice UI toggle | Web Speech API in chat component | Easy |
