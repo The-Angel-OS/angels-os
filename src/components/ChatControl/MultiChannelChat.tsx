@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings, Bot, User } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat } from './useChat'
 import { useChatContext } from './ChatProvider'
 import { useSpaces } from './useSpaces'
-import { SpaceSelector } from './SpaceSelector'
+import { SpacesMenuHeader } from './SpacesMenuHeader'
 import { LiveKitButton } from './LiveKitButton'
 import { MemberPanelTrigger, MemberPanel } from './MemberPanel'
 import { ChannelSettingsPanel } from './ChannelSettingsPanel'
@@ -118,6 +119,8 @@ export function MultiChannelChat({
     [switchChannel],
   )
 
+  const router = useRouter()
+
   const handleSpaceChange = (newSpaceId: string) => {
     if (hasProvider) {
       chatCtx!.setActiveSpace(newSpaceId)
@@ -126,6 +129,15 @@ export function MultiChannelChat({
     }
     onSpaceChange?.(newSpaceId)
   }
+
+  const handleSpaceCreated = useCallback(
+    (newSpaceId: string) => {
+      handleSpaceChange(newSpaceId)
+      router.refresh()
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [router],
+  )
 
   const handleCreateChannel = async () => {
     if (!newChannelName.trim() || isCreating) return
@@ -179,16 +191,15 @@ export function MultiChannelChat({
       {isMobile ? (
         /* Mobile: compact top bar with space selector + channel tabs */
         <div className="shrink-0 border-b border-border bg-muted/30">
-          {spaces.length > 1 && (
-            <div className="border-b border-border">
-              <SpaceSelector
-                spaces={spaces}
-                activeSpaceId={activeSpaceId}
-                onSelect={handleSpaceChange}
-                isLoading={isLoadingSpaces}
-              />
-            </div>
-          )}
+          <div className="border-b border-border">
+            <SpacesMenuHeader
+              spaces={spaces}
+              activeSpaceId={activeSpaceId}
+              onSpaceSelect={handleSpaceChange}
+              onSpaceCreated={handleSpaceCreated}
+              isLoading={isLoadingSpaces}
+            />
+          </div>
 
           {/* Channel tabs (horizontal scroll) — includes DMs */}
           <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none">
@@ -286,12 +297,13 @@ export function MultiChannelChat({
             channelsPanelOpen ? 'w-56' : 'w-12'
           }`}
         >
-          {/* Space selector */}
+          {/* Space selector + management actions */}
           <div className="border-b border-border">
-            <SpaceSelector
+            <SpacesMenuHeader
               spaces={spaces}
               activeSpaceId={activeSpaceId}
-              onSelect={handleSpaceChange}
+              onSpaceSelect={handleSpaceChange}
+              onSpaceCreated={handleSpaceCreated}
               isLoading={isLoadingSpaces}
               compact={!channelsPanelOpen}
             />
