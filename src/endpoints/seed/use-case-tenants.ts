@@ -5,6 +5,15 @@
  */
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 
+/**
+ * Domain suffix is environment-aware:
+ *   Production (Vercel): *.spacesangels.com
+ *   Local dev:           *.angelos.local
+ * This ensures tenant.domain matches the actual hostname in each environment,
+ * so fetchTenantByDomain exact-match lookup works correctly.
+ */
+const DOMAIN_SUFFIX = process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'
+
 export interface UseCaseTenant {
   name: string
   slug: string
@@ -54,7 +63,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   {
     name: 'Celersoft Technology',
     slug: 'celersoft',
-    domain: 'celersoft.angelos.local',
+    domain: `celersoft.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     spaceName: 'Celersoft Hub',
     branding: {
@@ -98,7 +107,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   {
     name: 'Lucas Productions',
     slug: 'lucas-productions',
-    domain: 'lucas-productions.angelos.local',
+    domain: `lucas-productions.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     spaceName: 'Lucas Productions Studio',
     branding: {
@@ -143,7 +152,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   {
     name: 'Clearwater Cruisin Ministries',
     slug: 'clearwater-cruisin',
-    domain: 'clearwater-cruisin.angelos.local',
+    domain: `clearwater-cruisin.${DOMAIN_SUFFIX}`,
     endeavorType: 'creator-content',
     spaceName: 'Cruisin Community',
     branding: {
@@ -258,7 +267,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   {
     name: 'Serenity Massage & Wellness',
     slug: 'serenity-massage',
-    domain: 'serenity-massage.angelos.local',
+    domain: `serenity-massage.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     spaceName: 'Serenity Wellness Hub',
     branding: {
@@ -301,7 +310,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   {
     name: "Hays Cactus Farm",
     slug: 'hays-cactus',
-    domain: 'hays-cactus.angelos.local',
+    domain: `hays-cactus.${DOMAIN_SUFFIX}`,
     endeavorType: 'retail-commerce',
     spaceName: 'Cactus Community',
     branding: {
