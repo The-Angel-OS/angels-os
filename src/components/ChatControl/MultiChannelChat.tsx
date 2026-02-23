@@ -428,7 +428,7 @@ export function MultiChannelChat({
       )}
 
       {/* ─── MAIN CHAT AREA ─── */}
-      <div className="flex flex-1 flex-col min-h-0">
+      <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-x-hidden">
         {/* Channel header */}
         {!isMobile && (
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">

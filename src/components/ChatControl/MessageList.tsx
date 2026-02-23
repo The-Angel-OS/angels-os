@@ -295,7 +295,8 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
   }
 
   return (
-    <div ref={scrollRef} className="relative flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+    <div ref={scrollRef} className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-3 p-4">
       {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="h-1" />
 
@@ -363,6 +364,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
       )}
 
       <div ref={bottomRef} />
+      </div>
     </div>
   )
 }
