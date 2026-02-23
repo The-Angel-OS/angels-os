@@ -4,9 +4,9 @@
 
 A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL. Every tenant (business, ministry, community) gets a sovereign AI guardian angel named LEO, governed by a constitutional framework that ensures dignity, transparency, and fairness.
 
-**Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
+**Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.13.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.13.1--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
@@ -17,7 +17,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 ---
 
-## What's Working (v0.12.0-dev)
+## What's Working (v0.13.1-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -104,12 +104,13 @@ pnpm dev                      # http://localhost:3000
 | `PAYLOAD_SECRET` | Payload CMS secret |
 | `ANTHROPIC_API_KEY` | Claude API for LEO |
 | `OPENROUTER_API_KEY` | Image generation (Flux 2, Gemini) |
-| `NEXT_PUBLIC_SERVER_URL` | Server URL for API calls |
 | `RESEND_API_KEY` | Transactional email (invites, resets, LEO replies) |
 | `SYSTEM_EMAIL_ADDRESS` | IMAP inbox + reply-from (`hello@spacesangels.com`) |
 | `SYSTEM_EMAIL_PASSWORD` | IMAP password for system inbox |
 | `CRON_SECRET` | Shared secret for Vercel Cron authentication |
 | `COOKIE_DOMAIN` | Cross-subdomain auth cookie domain (`.angelos.local` dev, `.spacesangels.com` prod) |
+
+> **Important:** Leave `NEXT_PUBLIC_SERVER_URL` **unset** in production. The auth provider falls back to `window.location.origin`, which correctly uses each tenant's subdomain for API calls. Setting it to a fixed URL breaks cross-subdomain login.
 
 ### Running Tests
 
@@ -346,6 +347,11 @@ Revenue from commerce splits 60/20/15/5:
 - [x] Vercel Cron — `vercel.json` schedules email poll every 2 minutes
 - [x] `*.spacesangels.com` wildcard DNS — tenant subdomains ready for production
 - [x] IONOS DNS records — MX, SPF, DKIM, autodiscover for `spacesangels.com`
+- [x] Role-based login redirect — admins (`super_admin`/`admin`/`archangel`) → `/admin`, others → `/dashboard`
+- [x] `archangel` Payload admin access — archangel role can access the CMS admin panel
+- [x] Wildcard image domains — `next/image` `remotePatterns` covers `*.spacesangels.com`, `*.vercel.app`, `*.angelos.local`
+- [x] WelcomeBanner component — onboarding card for unseeded installs with seed button + dismiss
+- [x] Live at [spacesangels.com](https://spacesangels.com) — custom domain replacing `angels-os.vercel.app`
 
 ### 🔜 Next (Sprint 14: Integration Bridges — WhatsApp & Voice)
 
@@ -384,7 +390,7 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 11 | — | — | +8 files | Vendor marketplace, configurator, reviews, producer dashboard |
 | Sprint 11.5 | — | — | +12 files | Documentation Center, smart scroll, truncation, tenant chooser, code quality |
 | Sprint 12 | — | — | +7 files | Unified chat architecture, DM channels, ChatProvider, tenant detail, bridge stub |
-| Sprint 13 | — | — | +5 files | Multi-tenancy hardening, Resend email, IMAP poll, Vercel Cron, cookie-domain auth |
+| Sprint 13 | — | — | +7 files | Multi-tenancy hardening, Resend email, IMAP poll, Vercel Cron, login redirect, WelcomeBanner, spacesangels.com |
 
 ---
 

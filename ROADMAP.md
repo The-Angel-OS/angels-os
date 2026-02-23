@@ -5,7 +5,7 @@
 Angel OS is the Soul Operating System -- a multi-tenant platform where every business gets a sovereign AI guardian angel, built on constitutional principles of fairness, transparency, and dignity.
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
-**Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
+**Live:** [spacesangels.com](https://spacesangels.com)
 **Version:** v0.11.5-dev
 **Tests:** 1,119 passing across 25 unit test files
 **Last Updated:** February 22, 2026
