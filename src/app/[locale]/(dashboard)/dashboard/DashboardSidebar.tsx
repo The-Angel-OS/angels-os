@@ -754,7 +754,8 @@ function TenantChooser({
     setOpen(false)
     if (tenant.domain) {
       const protocol = window.location.protocol
-      window.location.href = `${protocol}//${tenant.domain}/dashboard`
+      const port = window.location.port ? `:${window.location.port}` : ''
+      window.location.href = `${protocol}//${tenant.domain}${port}/dashboard`
     }
   }
 

@@ -6,7 +6,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 **Live:** [angels-os.vercel.app](https://angels-os.vercel.app)
 
-[![Status](https://img.shields.io/badge/version-v0.12.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.13.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C119%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
@@ -21,7 +21,7 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 
 | System | Status | Notes |
 |--------|--------|-------|
-| Multi-tenant architecture | **Done** | Tenant isolation, subdomain routing, feature flags |
+| Multi-tenant architecture | **Done** | Cookie-domain auth, subdomain routing, per-tenant header/footer/home |
 | LEO AI Agent | **Done** | Claude Sonnet 4 with 29 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
@@ -54,7 +54,9 @@ A federated, multi-tenant platform built on [Payload CMS 3.77](https://payloadcm
 | Unified Chat Architecture | **New** | ChatProvider at layout level, one context consumed by all views |
 | DM Channels | **New** | `type: 'dm'` with members array, deterministic slugs, LEO DM persistence |
 | Tenant Detail Admin | **New** | `/dashboard/admin/tenants/[id]` — full drill-down with stats, branding, members |
-| Integration Bridge Stub | **New** | `POST /api/bridge/inbound` — ready for WhatsApp, email, SMS, Google Chat |
+| Integration Bridge Stub | **Done** | `POST /api/bridge/inbound` — ready for WhatsApp, email, SMS, Google Chat |
+| Email Inbound Polling | **New** | IMAP cron every 2 min → AI Bus channel per sender → LEO replies via Resend |
+| Transactional Email | **New** | Resend adapter (`hello@spacesangels.com`) — invites, resets, LEO replies |
 | MCP Protocol | **Done** | Agent discovery endpoint, JWT auth, tool exposure |
 
 ### LEO's 29 Tools
@@ -103,6 +105,11 @@ pnpm dev                      # http://localhost:3000
 | `ANTHROPIC_API_KEY` | Claude API for LEO |
 | `OPENROUTER_API_KEY` | Image generation (Flux 2, Gemini) |
 | `NEXT_PUBLIC_SERVER_URL` | Server URL for API calls |
+| `RESEND_API_KEY` | Transactional email (invites, resets, LEO replies) |
+| `SYSTEM_EMAIL_ADDRESS` | IMAP inbox + reply-from (`hello@spacesangels.com`) |
+| `SYSTEM_EMAIL_PASSWORD` | IMAP password for system inbox |
+| `CRON_SECRET` | Shared secret for Vercel Cron authentication |
+| `COOKIE_DOMAIN` | Cross-subdomain auth cookie domain (`.angelos.local` dev, `.spacesangels.com` prod) |
 
 ### Running Tests
 
@@ -157,6 +164,7 @@ src/
     order-ship.ts           # Ship order convenience (POST /api/orders/ship)
     dm-find-or-create.ts    # DM channel resolution (POST /api/dm/find-or-create)
     bridge-inbound.ts       # External channel bridge (POST /api/bridge/inbound)
+    email-poll.ts           # IMAP email poll (GET /api/email/poll — Vercel Cron)
     space-invite.ts         # Invitation generation (POST /api/spaces/invite)
     invite-accept.ts        # Invite acceptance (POST /api/invite/accept)
   utilities/
@@ -324,15 +332,29 @@ Revenue from commerce splits 60/20/15/5:
 - [x] `POST /api/bridge/inbound` stub — ready for Sprint 13 WhatsApp/email/SMS/Google Chat wiring
 - [x] Channel schema: `members` (relationship), `source` (native/whatsapp/email/google_chat/sms)
 
-### 🔜 Next (Sprint 13: Integration Bridges — Live Wiring)
+### ✅ Done (Sprint 13: Multi-Tenancy Hardening & Email Bridge)
 
-- [ ] End-to-end prototype verification (chat, order, provisioning flows)
-- [ ] Wire bridge-inbound stub to live Payload collections
-- [ ] Integration bridge adapter interface (normalizeInbound, formatOutbound, validateWebhook)
+- [x] Tenant-branded home pages — per-tenant fallback (replaces hardcoded "Everyone Gets an Angel")
+- [x] Dynamic `<title>` + favicon — `generateMetadata()` reads `x-tenant-id` → uses `tenant.branding.siteName`
+- [x] Per-tenant header/footer — removed `isGlobal: true`, seeded per-tenant docs
+- [x] Dashboard stats scoped — counts filtered by tenant for non-super-admins
+- [x] Footer platform links — Angel OS community links only shown for platform tenant
+- [x] TenantChooser port fix — `handleSwitch` preserves `:3000` port in dev
+- [x] Cross-subdomain auth — `COOKIE_DOMAIN=.angelos.local` (dev) / `.spacesangels.com` (prod)
+- [x] Resend email adapter — `RESEND_API_KEY` → `hello@spacesangels.com` via Resend API
+- [x] Email inbound polling — IMAP cron (`GET /api/email/poll`) — one AI Bus channel per sender, LEO auto-reply
+- [x] Vercel Cron — `vercel.json` schedules email poll every 2 minutes
+- [x] `*.spacesangels.com` wildcard DNS — tenant subdomains ready for production
+- [x] IONOS DNS records — MX, SPF, DKIM, autodiscover for `spacesangels.com`
+
+### 🔜 Next (Sprint 14: Integration Bridges — WhatsApp & Voice)
+
+- [ ] End-to-end smoke test on `*.spacesangels.com` subdomains
+- [ ] Wire bridge-inbound stub to live Payload collections (WhatsApp/SMS)
 - [ ] WhatsApp Business API bridge (Twilio/Meta webhook)
-- [ ] Email integration (SendGrid inbound parse + Nodemailer outbound)
 - [ ] Voice mode in chat UI (Web Speech API)
 - [ ] Social syndication (Post → Facebook/Instagram/Twitter)
+- [ ] Stripe Connect vendor onboarding flow (issue #86)
 
 ### 🔮 Future (v1.0.0 — Federation Launch)
 
@@ -362,6 +384,7 @@ Revenue from commerce splits 60/20/15/5:
 | Sprint 11 | — | — | +8 files | Vendor marketplace, configurator, reviews, producer dashboard |
 | Sprint 11.5 | — | — | +12 files | Documentation Center, smart scroll, truncation, tenant chooser, code quality |
 | Sprint 12 | — | — | +7 files | Unified chat architecture, DM channels, ChatProvider, tenant detail, bridge stub |
+| Sprint 13 | — | — | +5 files | Multi-tenancy hardening, Resend email, IMAP poll, Vercel Cron, cookie-domain auth |
 
 ---
 
@@ -380,7 +403,7 @@ You are welcome here. This is what you need to know:
 |------|-----------|------------|
 | WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |
 | Voice UI toggle | Web Speech API in chat component | Easy |
-| Email bridge | Wire bridge-inbound stub + SendGrid adapter | Medium |
+| Email bridge | IMAP poll done; extend for multi-tenant routing by To: address | Medium |
 | Social syndication | Post afterChange hook → platform APIs | Medium |
 | Docker Compose | Self-hosting configuration | Easy |
 | CI/CD pipeline | GitHub Actions for test + type check | Easy |

@@ -17,9 +17,6 @@ import fs from 'fs'
 import path from 'path'
 import type { Payload } from 'payload'
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const dotenv = require('dotenv') as { parse(src: Buffer | string): Record<string, string> }
-
 import type { MessageContent } from '../types/messages'
 import type { ConversationContext } from '../types/conversation'
 import { buildMinimalConstitutionalPrompt } from './constitutional-prompt'
@@ -28,6 +25,27 @@ import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
+
+// ---------------------------------------------------------------------------
+// Minimal env-file parser — avoids dotenv import issues with bundler resolution.
+// Handles KEY=VALUE, KEY="VALUE", KEY='VALUE', and skips comments/blank lines.
+// ---------------------------------------------------------------------------
+function parseEnvFile(src: Buffer | string): Record<string, string> {
+  const str = Buffer.isBuffer(src) ? src.toString('utf8') : src
+  const result: Record<string, string> = {}
+  for (const line of str.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx < 0) continue
+    const key = trimmed.slice(0, eqIdx).trim()
+    let val = trimmed.slice(eqIdx + 1).trim()
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+    else if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
+    result[key] = val
+  }
+  return result
+}
 
 // ---------------------------------------------------------------------------
 // Env helper — reads ANTHROPIC_API_KEY directly from .env.local when the
@@ -49,7 +67,7 @@ function resolveAnthropicKey(): string | undefined {
   try {
     const envPath = path.resolve(process.cwd(), '.env.local')
     if (fs.existsSync(envPath)) {
-      const parsed = dotenv.parse(fs.readFileSync(envPath))
+      const parsed = parseEnvFile(fs.readFileSync(envPath))
       if (parsed.ANTHROPIC_API_KEY) {
         _envFileKey = parsed.ANTHROPIC_API_KEY
         console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env.local (process.env was empty)')
@@ -59,7 +77,7 @@ function resolveAnthropicKey(): string | undefined {
     // Also try .env as fallback
     const envFallback = path.resolve(process.cwd(), '.env')
     if (fs.existsSync(envFallback)) {
-      const parsed = dotenv.parse(fs.readFileSync(envFallback))
+      const parsed = parseEnvFile(fs.readFileSync(envFallback))
       if (parsed.ANTHROPIC_API_KEY) {
         _envFileKey = parsed.ANTHROPIC_API_KEY
         console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env (process.env was empty)')

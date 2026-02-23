@@ -8,6 +8,7 @@ import * as migration_20260202_022727_add_leo_system_user_fields from './2026020
 import * as migration_20260216_085909_add_ums_and_channel_extensions from './20260216_085909_add_ums_and_channel_extensions';
 import * as migration_20260218_061453_add_events_and_registrations from './20260218_061453_add_events_and_registrations';
 import * as migration_20260220_051631_add_tenant_to_soul_collections from './20260220_051631_add_tenant_to_soul_collections';
+import * as migration_20260223_013326 from './20260223_013326';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20260220_051631_add_tenant_to_soul_collections.up,
     down: migration_20260220_051631_add_tenant_to_soul_collections.down,
-    name: '20260220_051631_add_tenant_to_soul_collections'
+    name: '20260220_051631_add_tenant_to_soul_collections',
+  },
+  {
+    up: migration_20260223_013326.up,
+    down: migration_20260223_013326.down,
+    name: '20260223_013326'
   },
 ];

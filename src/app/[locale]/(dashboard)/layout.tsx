@@ -11,13 +11,27 @@ import { TenantStyles } from '@/components/TenantStyles'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import type { Metadata } from 'next'
+import type { Media } from '@/payload-types'
 import '../(app)/globals.css'
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Dashboard | Angel OS',
-    template: '%s | Angel OS',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  const tenant = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  const siteName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
+  const logoUrl =
+    typeof (tenant as any)?.branding?.logo === 'object' &&
+    (tenant as any)?.branding?.logo !== null
+      ? ((tenant as any).branding.logo as Media)?.url
+      : null
+
+  return {
+    title: {
+      default: `Dashboard | ${siteName}`,
+      template: `%s | ${siteName}`,
+    },
+    ...(logoUrl ? { icons: { icon: logoUrl } } : {}),
+  }
 }
 
 /**

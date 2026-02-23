@@ -7,6 +7,8 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { draftMode, headers } from 'next/headers'
 import { homeStaticData } from '@/endpoints/seed/home-static'
+import { tenantHomeData } from '@/utilities/tenantHomeData'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import React from 'react'
 
 import type { Page } from '@/payload-types'
@@ -55,9 +57,19 @@ export default async function Page({ params }: Args) {
     slug,
   })
 
-  // Remove this code once your website is seeded
+  // Fallback home page: tenant-branded if tenant is resolved, else generic Angel OS
   if (!page && slug === 'home') {
-    page = homeStaticData() as Page
+    const headersList = await headers()
+    const tenantSlug = headersList.get('x-tenant-id')
+    if (tenantSlug) {
+      const tenant = await fetchTenantBySlug(tenantSlug)
+      if (tenant) {
+        page = tenantHomeData(tenant) as Page
+      }
+    }
+    if (!page) {
+      page = homeStaticData() as Page
+    }
   }
 
   if (!page) {
