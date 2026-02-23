@@ -752,11 +752,25 @@ function TenantChooser({
 
   const handleSwitch = (tenant: TenantInfo) => {
     setOpen(false)
-    if (tenant.domain) {
-      const protocol = window.location.protocol
-      const port = window.location.port ? `:${window.location.port}` : ''
-      window.location.href = `${protocol}//${tenant.domain}${port}/dashboard`
-    }
+    const protocol = window.location.protocol
+    const port = window.location.port ? `:${window.location.port}` : ''
+
+    // Derive base domain from current hostname so switching works across
+    // all environments without hardcoding (dev, stage, prod, qa, etc.).
+    //   angelos.local:3000          → celersoft.angelos.local:3000
+    //   spacesangels.com            → celersoft.spacesangels.com
+    //   celersoft.spacesangels.com  → lucas-productions.spacesangels.com
+    const currentHost = window.location.hostname
+    const hostParts = currentHost.split('.')
+    // Strip the leading subdomain if we're already on a tenant domain
+    const baseDomain = hostParts.length >= 3 ? hostParts.slice(1).join('.') : currentHost
+    const tenantHost = `${tenant.slug}.${baseDomain}`
+
+    // Preserve the locale prefix from the current path
+    const localeMatch = window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/)
+    const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+
+    window.location.href = `${protocol}//${tenantHost}${port}${localePrefix}/dashboard`
   }
 
   return (
