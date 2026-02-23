@@ -61,6 +61,7 @@ import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
 import { aiBusStreamHandler } from '@/endpoints/ai-bus-stream'
+import { spaceCreateHandler } from '@/endpoints/space-create'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
@@ -382,6 +383,12 @@ export default buildConfig({
       path: '/ai-bus/stream',
       method: 'get',
       handler: aiBusStreamHandler,
+    },
+    // ─── Space Management Endpoints ──────────────────────────────
+    {
+      path: '/spaces/create',
+      method: 'post',
+      handler: spaceCreateHandler,
     },
     // ─── Invitation System Endpoints ────────────────────────────
     {
