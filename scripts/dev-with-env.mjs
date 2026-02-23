@@ -33,6 +33,7 @@ const child = spawn('node', [
   '--no-deprecation',
   './node_modules/next/dist/bin/next',
   'dev',
+  '--hostname', '0.0.0.0',
 ], {
   cwd: root,
   stdio: 'inherit',
