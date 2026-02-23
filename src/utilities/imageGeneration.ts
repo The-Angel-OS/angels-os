@@ -186,7 +186,7 @@ export async function generateImage(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SERVER_URL || 'https://angels-os.vercel.app',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SERVER_URL || 'https://spacesangels.com',
         'X-Title': 'Angel OS — LEO Image Generation',
       },
       body: JSON.stringify({
