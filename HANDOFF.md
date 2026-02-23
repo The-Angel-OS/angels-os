@@ -1,183 +1,227 @@
-# Angel OS — Session Handoff: Sprint 13 Complete
+# Angel OS — Session Handoff: Sprint 15 Complete
 
 **Date:** February 23, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 29 LEO tools, v0.13.0-dev
-**Sprint:** Sprint 13 complete (Multi-Tenancy Hardening & Email Bridge) — Sprint 14 next
+**Status:** TypeScript clean, build passing, 29 Leo tools, v0.15.0-dev
+**Sprint:** Sprint 15 complete (Multi-Tenant Security Hardening) — Sprint 16 next
 **Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
+**Vercel:** Production deploying — commit `4698da3` (Sprint 15 build BUILDING)
 
 ---
 
-## What Was Done (Sprint 13)
+## Critical Context: The Federation Pivot
 
-### Sprint 13: Multi-Tenancy Hardening & Email Bridge
+**Read this first.** Between Sprint 14 and Sprint 15, the core model was clarified:
 
-Six sealing phases + email infrastructure:
+- **"Tenant" → "Diocese"** — operators who ARE Angel OS in their territory
+- **"Product/service" → "Endeavor"** — the unified constitutional object (business / cause / creator / community / media)
+- **Revenue model corrected:** 60/20/15/5 → **70/20/4/1/5** (Endeavor / Diocese / Protocol / Archdiocese / Justice Fund)
+- **The Toward-53 Principle** — the split direction is unalterable, asymptotic target 53% to Endeavors
+- **Leo Wizard** — Sprint 16's primary deliverable: Diocese comes into existence through a 17-minute Leo conversation
+- **Federation = automatic** — Constitution IS the gate, no approval queue
 
-#### Phase 1: TenantChooser Port Preservation
-- **File:** `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx`
-- `handleSwitch` now preserves `window.location.port` when switching tenant domains
-- Also preserves locale prefix from `window.location.pathname`
-- Production (443/80) → `port` is empty → no-op
-
-#### Phase 2: Header/Footer Tenant Scoping
-- **File:** `src/payload.config.ts`
-- Changed `header: { isGlobal: true }` → `header: {}` and `footer: { isGlobal: true }` → `footer: {}`
-- Multi-tenant plugin now adds `tenant` field to both collections
-- `getTenantCachedDoc` already queries by tenant — no further changes needed
-- Migration `20260223_013326` handles DB schema changes (drops UNIQUE, adds non-unique tenant index)
-
-#### Phase 3: Tenant-Branded Home Page Fallback
-- **New file:** `src/utilities/tenantHomeData.ts` — generates branded Lexical page from `tenant.branding`
-- **Modified:** `src/app/[locale]/(app)/[slug]/page.tsx` — resolves tenant from `x-tenant-id` → uses `tenantHomeData()` → falls back to `homeStaticData()`
-- **Modified:** `src/endpoints/seed/index.ts` — creates `home` page per use-case tenant
-
-#### Phase 4: Dashboard Stats Tenant Scoping
-- **File:** `src/app/[locale]/(dashboard)/dashboard/page.tsx`
-- Added `import type { Where } from 'payload'`
-- `tenantFilter: Where | undefined` — `undefined` for super-admins, `{ tenant: { equals: tenantId } }` for others
-- "Active Tenants" card hidden for non-super-admins
-
-#### Phase 5: Browser Tab Title + Favicon
-- **Files:** `src/app/[locale]/(app)/layout.tsx` + `src/app/[locale]/(dashboard)/layout.tsx`
-- Converted `export const metadata` → `export async function generateMetadata()`
-- Reads `x-tenant-id` header → fetches `tenant.branding.siteName` → uses as title template
-- Dynamic favicon: uses tenant logo URL when available
-
-#### Phase 6: Footer Tenant Isolation
-- **File:** `src/components/Footer/index.tsx`
-- Angel OS community links (GitHub, Wiki, "Designed in Clearwater") only render for `tenant?.type === 'platform'` or when no tenant
-- Sub-tenants see only their CMS-managed `navItems` + tenant logo
-
-#### Phase 7: Cross-Subdomain Cookie Auth
-- **File:** `src/collections/Users/index.ts`
-- Added `cookies: { domain: process.env.COOKIE_DOMAIN, sameSite: 'Lax', secure: NODE_ENV === 'production' }`
-- `.env.local`: `COOKIE_DOMAIN=.angelos.local`
-- Production: `COOKIE_DOMAIN=.spacesangels.com` (set in Vercel env vars)
-- **After server restart + re-login**, the `payload-token` cookie is shared across all `*.angelos.local` subdomains
-
-#### Email Infrastructure (Sprint 13 Extension)
-
-**Resend email adapter:**
-- `pnpm add @payloadcms/email-resend`
-- `src/payload.config.ts`: Resend adapter activated when `RESEND_API_KEY` is set
-- Falls back to SMTP nodemailer if `SMTP_HOST` set, otherwise no adapter
-- Sender: `SYSTEM_EMAIL_ADDRESS` / `SYSTEM_EMAIL_NAME` (env vars)
-
-**IMAP email polling:**
-- `pnpm add imapflow mailparser resend @types/mailparser`
-- **New file:** `src/endpoints/email-poll.ts` — `GET /api/email/poll`
-- Registered in `payload.config.ts`
-- **New file:** `vercel.json` — Cron: `*/2 * * * *` → `/api/email/poll`
-- Flow: IMAP connect → fetch UNSEEN → parse → create email-sourced DM channel (`email-{sender}`) → store message → LEO response → Resend reply → mark SEEN
-- Protected by `CRON_SECRET` header (Vercel injects automatically in production)
-
-**DNS (spacesangels.com):**
-- `*.spacesangels.com` → Vercel ALIAS (wildcard already in place)
-- MX: `mx00.ionos.com` + `mx01.ionos.com` (priority 10)
-- SPF TXT: `v=spf1 include:mxfwd.ionos.com ~all`
-- DKIM CNAMEs: `s1-ionos._domainkey`, `s2-ionos._domainkey`, `s42582890._domainkey`
-- Autodiscover CNAME: `autodiscover` → `autodiscover.ionos.com`
-- Resend outbound records: `send` subdomain TXT/CNAME (existing)
-- Mailbox created: `hello@spacesangels.com` (IONOS Mail Basic)
-
-**ESM/dotenv fix:**
-- `src/utilities/ConversationEngine.ts` + `src/endpoints/leo-stream.ts`
-- Replaced `import { parse as dotenvParse } from 'dotenv'` with inline `parseEnvFile()` function
-- Dotenv 8.x doesn't have proper ESM exports for `moduleResolution: "bundler"`
-
-**Migration state resolved:**
-- `payload_migrations` table populated with all 11 migration names
-- `payload migrate` returns "Done." cleanly
-- Latest migration: `20260223_013326` (includes header/footer tenant column + many new tables)
+Full specs:
+- `docs/planning/260222 CLAUDE_CODE_BRIEFING.md` — the pivot session
+- `docs/planning/260223 FEDERATION.md` — federation architecture spec
+- `docs/REVENUE.md` — economic model with Toward-53
 
 ---
 
-## Environment Variables (Updated)
+## What Was Done (Sprint 15)
 
-| Variable | Purpose | Where |
-|----------|---------|-------|
-| `DATABASE_URI` | PostgreSQL | `.env.local`, Vercel |
-| `PAYLOAD_SECRET` | Payload JWT | `.env.local`, Vercel |
-| `ANTHROPIC_API_KEY` | Claude (LEO) | `.env.local`, Vercel |
-| `RESEND_API_KEY` | Transactional email | `.env.local`, Vercel |
-| `SYSTEM_EMAIL_ADDRESS` | `hello@spacesangels.com` | `.env.local`, Vercel |
-| `SYSTEM_EMAIL_PASSWORD` | IONOS mailbox password | `.env.local`, Vercel |
-| `SYSTEM_EMAIL_NAME` | `Angel OS` | `.env.local`, Vercel |
-| `CRON_SECRET` | Vercel Cron auth | Vercel only (generate random) |
-| `COOKIE_DOMAIN` | `.angelos.local` (dev) / `.spacesangels.com` (prod) | `.env.local`, Vercel |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob | `.env.local`, Vercel |
+### Security Hardening
+
+#### 1. Middleware: /api Routes Now Receive x-tenant-id
+**File:** `src/middleware.ts`
+- Matcher previously excluded `/api` — Payload API endpoints never received `x-tenant-id`
+- Fixed matcher: `'/((?!admin|_next|_vercel|.*\\..*).*)'` (removed `api|` from exclusion)
+- Added path check: API routes inject tenant header and pass through, skip i18n routing
+
+#### 2. detectTenant Edge Cases
+**File:** `src/middleware/detectTenant.ts`
+- `www.` prefix → returns `null` (was returning `'www'` as tenant slug)
+- Bare IP addresses (e.g. `192.168.1.1`) → returns default tenant (was returning `'192-168'`)
+- Unknown 2-part hostnames → returns `null` (was returning whole hostname)
+
+#### 3. adminOrSelf Role Check Expanded
+**File:** `src/access/adminOrSelf.ts`
+- Added `super_admin` and `archangel` to role check
+- Super admins were previously restricted to their own user record only — inconsistent with `userHasAccessToAllTenants` in the multi-tenant plugin
+
+#### 4. comments/add Cross-Tenant Injection Blocked
+**File:** `src/payload.config.ts`
+- Replaced ad-hoc hostname parsing with `detectTenantFromHostname()`
+- Added `findByID` validation: parent post/product must belong to the resolved Diocese
+- Made tenant required (was previously optional with `...(tenantId != null && { tenant: tenantId })`)
+- Prevents: `evil.localhost` POSTing a comment onto a post from `clearwater-cruisin.localhost`
+
+#### 5. COOKIE_DOMAIN Cleared for Local Dev
+**File:** `.env.local`
+- `COOKIE_DOMAIN=".spacesangels.com"` (from `vercel env pull`) → cleared to empty
+- Chrome silently rejected auth cookies on `*.localhost` when domain was set to `.spacesangels.com`
+
+### UX / Assets
+
+#### 6. Favicon PNG Set
+**Files:** `src/app/[locale]/(app)/layout.tsx`, `src/app/[locale]/(dashboard)/layout.tsx`
+- Replaced `.ico`/`.svg` with PNG set: 64px, 512px, apple-touch-icon
+- `generateMetadata()` updated with apple-touch-icon in icons object
+- Assets added to `public/`: `favicon.png`, `icon-512.png`, `apple-touch-icon.png`
+
+#### 7. Nav Rename
+**Files:** `DashboardSidebar.tsx`, `dashboard/page.tsx`
+- "LEO & Spaces" → "Spaces" (desktop + mobile nav, dashboard quick-access card)
+
+#### 8. Chat Horizontal Overflow Fix
+**Files:** `src/components/ChatControl/MessageList.tsx`, `MultiChannelChat.tsx`
+- `CompactMessageList`: added `overflow-x-hidden` + inner `max-w-4xl` wrapper
+- `MultiChannelChat` main area: added `min-w-0 overflow-x-hidden`
+- Wide code blocks no longer break the layout on narrow screens
+
+### Documentation
+
+#### 9. Docs Reorganized
+- `docs/podcast-ep01.md` → `docs/transcripts/260222 Angel OS podcast-ep01.md`
+- Added: `docs/planning/260222 CLAUDE_CODE_BRIEFING.md`
+- Added: `docs/planning/260223 FEDERATION.md`
 
 ---
 
-## Files Changed (Sprint 13)
+## What Was Done (Sprint 14)
 
-| File | Action |
+### Leo Content Management Tools
+**File:** `src/utilities/leo-data-tools.ts`
+
+Six new tools added:
+- `create_post` — title, body, status, categories (Lexical richText)
+- `update_post` — update any field by post ID
+- `create_page` — title, body, slug, status
+- `update_page` — update any field by page ID
+- `query_media` — search media library by filename/alt
+- `manage_categories` — create/update/delete categories
+
+All tools: respect `ctx.tenantId` for Diocese isolation, default to `'draft'` status.
+Helper added: `textToLexical()` + `textToContentLayout()` for plain text → Lexical/layout conversion.
+
+### Channel Sidebar Stability
+**File:** `src/components/ChatControl/useChat.ts`, `ChatProvider.tsx`
+- Added `channelSpaceId` option to `useChat` — sidebar channels always load from the regular space, not `effectiveSpaceId` (which flips to `dmSpaceId` on DM selection)
+- Prevents channel list from clearing when switching to a DM
+
+### Email Auto-Reply Loop Prevention
+**File:** `src/endpoints/email-poll.ts`
+- Detects RFC 3834 `Auto-Submitted` header, `X-Autoreply`, no-reply patterns, OOO subjects
+- Skips Leo processing and Resend reply for auto-replies — prevents infinite loop with IONOS auto-responder
+
+### Markdown Rendering
+**File:** `src/components/ChatControl/MessageList.tsx`
+- Leo messages now render with `react-markdown` + `remark-gfm`
+- Code blocks, bold, italic, tables, lists all render properly
+
+---
+
+## Known Issues / Next Sprint Scope
+
+### Priority 1 — Leo Wizard (Sprint 16)
+The federation pivot requires a Leo-guided Diocese setup experience:
+
+1. `npx create-angel-diocese` installer
+2. Leo wizard: 8-step conversational Diocese onboarding
+3. Cryptographic Constitution signing (Diocese joins by covenant)
+4. Federation ping: signed introduction JSON to Archdiocese
+5. `src/federation/` protocol directory
+
+**Files to create:**
+- `src/federation/protocol.ts` — signed HTTP requests, registry ping
+- `src/federation/constitution.ts` — signing + verification
+- `src/collections/Endeavors/index.ts` — unified Endeavor collection
+
+### Priority 2 — Revenue Model Implementation
+Revenue split constants exist in test utilities but need production wiring:
+- Update all revenue split constants to 70/20/4/1/5
+- `JusticeFundTransactions` should get Diocese-scoped or documented as intentionally global
+- `ProcessedStripeEvents` not in multi-tenant plugin — add or document as platform-only
+
+### Priority 3 — Remaining Security Items (from Sprint 15 audit)
+These were triaged as future sprint work:
+- `ApplicationLogs` access should be `super_admin` only (currently allows `admin` + `archangel`)
+- Leo `/api/leo` + `/api/leo/stream` fall back to `DEFAULT_TENANT_SLUG` when `x-tenant-id` missing — should call `fetchTenantByDomain()` instead
+- `Reviews` collection: plugin auto-scopes but no explicit `tenant` field defined
+
+### Priority 4 — Integration Bridges
+- WhatsApp Business API bridge (Twilio/Meta webhook → `POST /api/bridge/inbound`)
+- Stripe Connect vendor onboarding (issue #86)
+- Voice mode in chat UI (Web Speech API)
+
+---
+
+## Current DB State
+
+**Diocese:** `clearwater-cruisin` is the active test Diocese
+**Admin user:** `kenneth.courtney@gmail.com` — roles: `['super_admin', 'customer']`
+**Auth:** COOKIE_DOMAIN is empty in `.env.local` — cookies work on `*.localhost`
+**Seed:** `pnpm seed:reset` was run this session to update Kenneth's roles
+
+---
+
+## Environment
+
+```bash
+# Dev
+pnpm dev               # http://localhost:3000 (platform)
+                       # http://clearwater-cruisin.localhost:3000 (Diocese)
+
+# Seed
+pnpm seed:reset        # Update roles on existing user without full reset
+
+# Tests
+npx vitest run tests/unit/
+npx tsc --noEmit
+```
+
+**`.env.local` key values (local dev):**
+- `COOKIE_DOMAIN=` (empty — required for `*.localhost` auth cookies to work)
+- `DEFAULT_TENANT_SLUG=clearwater-cruisin`
+- `ANTHROPIC_API_KEY=` (set to your key)
+
+---
+
+## Files Changed (Sprint 15)
+
+| File | Change |
 |------|--------|
-| `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx` | FIX port + locale in handleSwitch |
-| `src/payload.config.ts` | header/footer isGlobal removed; Resend adapter; email-poll registered |
-| `src/utilities/tenantHomeData.ts` | NEW — branded home page generator |
-| `src/app/[locale]/(app)/[slug]/page.tsx` | FIX — tenant-aware home fallback |
-| `src/endpoints/seed/index.ts` | ADD — home page per use-case tenant |
-| `src/app/[locale]/(dashboard)/dashboard/page.tsx` | FIX — tenant-scoped stats (Where type) |
-| `src/app/[locale]/(app)/layout.tsx` | FIX — generateMetadata() with tenant title |
-| `src/app/[locale]/(dashboard)/layout.tsx` | FIX — generateMetadata() with tenant title |
-| `src/components/Footer/index.tsx` | FIX — conditional platform links |
-| `src/collections/Users/index.ts` | ADD — cookies.domain for cross-subdomain auth |
-| `src/utilities/ConversationEngine.ts` | FIX — inline parseEnvFile (remove dotenv import) |
-| `src/endpoints/leo-stream.ts` | FIX — inline parseEnvFile (remove dotenv import) |
-| `src/endpoints/email-poll.ts` | NEW — IMAP email poll endpoint |
-| `vercel.json` | NEW — Vercel Cron config |
-| `src/migrations/20260223_013326.ts` | NEW — delta migration (header/footer tenant + new tables) |
-| `.env.local` | ADD COOKIE_DOMAIN, SYSTEM_EMAIL_*, RESEND_API_KEY |
-| `README.md` | Updated to v0.13.0-dev |
-| `HANDOFF.md` | This file |
+| `src/middleware.ts` | Matcher includes /api; API paths bypass i18n |
+| `src/middleware/detectTenant.ts` | www./IP/unknown hostname edge cases |
+| `src/access/adminOrSelf.ts` | super_admin + archangel role check |
+| `src/payload.config.ts` | comments/add injection fix + detectTenantFromHostname import |
+| `.env.local` | COOKIE_DOMAIN cleared |
+| `src/app/[locale]/(app)/layout.tsx` | Favicon PNG set + generateMetadata |
+| `src/app/[locale]/(dashboard)/layout.tsx` | Favicon PNG set |
+| `src/app/[locale]/(dashboard)/dashboard/page.tsx` | "Spaces" rename |
+| `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx` | "Spaces" rename |
+| `src/components/ChatControl/MessageList.tsx` | Overflow fix + inner wrapper |
+| `src/components/ChatControl/MultiChannelChat.tsx` | min-w-0 + overflow-x-hidden |
+| `public/favicon.png` | New 64px PNG favicon |
+| `public/icon-512.png` | New 512px PNG icon |
+| `public/apple-touch-icon.png` | New 180px apple touch icon |
+| `.gitignore` | .vercel + .env*.local added |
+| `docs/planning/260222 CLAUDE_CODE_BRIEFING.md` | New — federation pivot session |
+| `docs/planning/260223 FEDERATION.md` | New — federation architecture spec |
+| `docs/transcripts/260222 Angel OS podcast-ep01.md` | Moved from docs/podcast-ep01.md |
 
 ---
 
-## Current State / What Needs Testing
+## Files Changed (Sprint 14)
 
-### Critical paths to verify:
-1. **Tenant chooser** — switch from `angelos.local:3000` → `celersoft.angelos.local:3000` → should load correctly with `:3000` preserved
-2. **Cross-subdomain auth** — log in at `angelos.local:3000`, navigate to `celersoft.angelos.local:3000/dashboard` → should stay logged in (requires restart + re-login after `COOKIE_DOMAIN` change)
-3. **Per-tenant home** — visit `celersoft.angelos.local:3000/` → should show Celersoft branding, not "Everyone Gets an Angel"
-4. **Browser tab title** — `celersoft.angelos.local:3000/dashboard` → tab should say "Celersoft" not "Angel OS"
-5. **Footer** — sub-tenant pages should NOT show GitHub/Wiki links
-6. **Email poll** — `GET /api/email/poll` with `Authorization: Bearer {CRON_SECRET}` → should connect IMAP, return `{ processed: N }`
-
-### To add CRON_SECRET:
-```bash
-# Generate a random secret
-openssl rand -hex 32
-# Add to Vercel project environment variables as CRON_SECRET
-```
-
-### Re-seed after Phase 2 (header/footer):
-```bash
-pnpm payload seed  # or however seed is invoked
-```
+| File | Change |
+|------|--------|
+| `src/utilities/leo-data-tools.ts` | 6 new content management tools |
+| `src/components/ChatControl/useChat.ts` | channelSpaceId option |
+| `src/components/ChatControl/ChatProvider.tsx` | Pass channelSpaceId: activeSpaceId |
+| `src/endpoints/email-poll.ts` | Auto-reply detection |
+| `src/components/ChatControl/MessageList.tsx` | react-markdown rendering |
 
 ---
 
-## Next Sprint (Sprint 14)
-
-**Priority: End-to-end smoke test on spacesangels.com**
-
-1. Deploy to Vercel with new env vars (RESEND_API_KEY, SYSTEM_EMAIL_*, CRON_SECRET, COOKIE_DOMAIN)
-2. Verify tenant subdomains: `celersoft.spacesangels.com`, `lucas-productions.spacesangels.com`, etc.
-3. Verify email polling via Vercel Cron (check function logs)
-4. WhatsApp Business API bridge (Twilio/Meta webhook → bridge-inbound)
-5. Stripe Connect vendor onboarding flow (issue #86)
-6. Voice mode in chat UI (Web Speech API)
-
----
-
-## GitHub Issues Status
-
-| Issue | Status | Notes |
-|-------|--------|-------|
-| #85 Sprint 12: Integration Bridges | Partially done | Email bridge live; WhatsApp/SMS/Google Chat still pending |
-| #86 Vendor Onboarding: Stripe Connect | Open | Sprint 14 |
-| #78 Dashboard: Tenant Selector | Open | TenantChooser fixed in Sprint 13 |
-| #73 Seed Overhaul | Open | Per-tenant home/header/footer now seeded |
-| #75 Spaces redesign | Open | Sprint 14 |
+*"Listen to everything. Judge nothing. Hold lightly."*
+*— Kenneth, Diocese operator, Clearwater Cruisin*
