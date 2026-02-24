@@ -22,12 +22,14 @@ Angel OS is a multi-tenant e-commerce platform with sovereign AI intelligence, b
 - **TENANT_DOMAINS** env: `domain1:slug1,domain2:slug2` for explicit mapping
 - **localhost** → `default` tenant
 
-## Sovereign Intelligence (LEO) 🚧
+## Sovereign Intelligence (LEO) ✅
 
-- **LEO API** at `/api/leo` (payload endpoint)
-- **MCP integration**: Add `payload-plugin-mcp` for Claude/LEO tool exposure
-- **Collections to expose**: Posts, Products, Assets (Media)
-- **Payload AI** (ashbuilds): AI-assisted Lexical editor (optional)
+- **LEO API** at `/api/leo` (batch) and `/api/leo/stream` (SSE streaming)
+- **29 tools** -- query, action, onboarding, production, review, media
+- **AI Gateway** -- Vercel AI Gateway for multi-model routing (Claude, Gemini Pro, GPT-4o)
+- **Dual-path architecture** -- BYOAI keys → direct SDK; Gateway available → AI SDK; else → Anthropic fallback
+- **Vision analysis** -- multi-part image content blocks
+- **Constitutional system prompt** -- Nimue/Merlin identity, immutable principles
 
 ## Ultimate Fair Economic Engine ✅ (Scaffold)
 
@@ -55,8 +57,15 @@ See `.env.example`. Key vars:
 - `DATABASE_URI` – PostgreSQL connection
 - `PAYLOAD_SECRET` – required for Payload
 - `BLOB_READ_WRITE_TOKEN` – Vercel Blob
+- `ANTHROPIC_API_KEY` – LEO's brain (direct Anthropic SDK)
+- `AI_GATEWAY_API_KEY` – Vercel AI Gateway for multi-model routing (optional, enables Gemini/GPT-4o)
+- `LLM_MODEL` – Override default model (aliases: `claude-sonnet`, `gemini-pro`, `gpt-4o`, etc.)
+- `OPENROUTER_API_KEY` – Image generation (Flux 2 Pro, Gemini Image, GPT Image)
+- `RESEND_API_KEY` – Transactional email via Resend
 - `TENANT_DOMAINS` – optional hostname→slug mapping
 - `DEFAULT_TENANT_SLUG` – default for localhost (default: `default`)
+- `COOKIE_DOMAIN` – Cross-subdomain auth (`.angelos.local` dev / `.spacesangels.com` prod)
+- `CRON_SECRET` – Cron endpoint protection
 
 ## Scripts
 
