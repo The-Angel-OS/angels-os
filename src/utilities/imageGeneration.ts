@@ -55,6 +55,8 @@ export type ImageGenerationOptions = {
   model?: string
   /** Whether to auto-upload to Payload Media */
   autoUpload?: boolean
+  /** Tenant ID for multi-tenant media scoping */
+  tenantId?: number
 }
 
 export type ImageGenerationResult = {
@@ -387,6 +389,7 @@ async function tryUploadToMedia(
           ? `AI-generated image for ${options.enhancementContext.productName}`
           : 'AI-generated image',
       productName: options.enhancementContext?.productName,
+      tenantId: options.tenantId,
     })
 
     if ('mediaId' in uploadResult) {
@@ -535,6 +538,7 @@ export async function uploadGeneratedImage(
     alt: string
     filename?: string
     productName?: string
+    tenantId?: number
   },
 ): Promise<{ mediaId: number; permanentUrl: string } | { error: string }> {
   try {
@@ -578,6 +582,7 @@ export async function uploadGeneratedImage(
       collection: 'media',
       data: {
         alt: options.alt,
+        ...(options.tenantId ? { tenant: options.tenantId } : {}),
       },
       file,
       overrideAccess: true,

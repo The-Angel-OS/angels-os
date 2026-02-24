@@ -1042,7 +1042,7 @@ export async function executeToolCall(
         return await viewCart(payload, ctx)
       // Image generation & media management
       case 'generate_image':
-        return await handleGenerateImage(payload, toolInput)
+        return await handleGenerateImage(payload, toolInput, tenantId)
       case 'improve_image':
         return await handleImproveImage(payload, toolInput)
       case 'attach_image_to_product':
@@ -2176,6 +2176,7 @@ async function inviteMember(
 async function handleGenerateImage(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   if (!isImageGenerationAvailable()) {
     return 'Image generation is not available — OPENROUTER_API_KEY is not configured. Please add it to your environment variables.'
@@ -2199,6 +2200,7 @@ async function handleGenerateImage(
           backgroundColor: input.backgroundColor as string | undefined,
         },
         autoUpload: autoSave,
+        tenantId,
       },
       autoSave ? payload : undefined,
     )
