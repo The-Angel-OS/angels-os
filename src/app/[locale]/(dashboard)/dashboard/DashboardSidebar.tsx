@@ -41,7 +41,7 @@ interface DashboardSidebarProps {
   tenantBranding?: TenantBranding | null
   userTenants?: TenantInfo[]
   currentTenantId?: number | string
-  /** When false, shows "Diocese Setup" nav link in OVERVIEW. Hidden once wizard completes. */
+  /** When false, shows "Enterprise Setup" nav link in OVERVIEW. Hidden once wizard completes. */
   wizardComplete?: boolean
 }
 
@@ -235,7 +235,7 @@ export function DashboardSidebar({
               badge={!isCollapsed ? 'Setup' : undefined}
               badgeColor="bg-primary"
             >
-              Diocese Setup
+              Enterprise Setup
             </NavLink>
           )}
         </NavSection>
@@ -485,7 +485,7 @@ function MobileNavContent({
             badge="Setup"
             badgeColor="bg-primary"
           >
-            Diocese Setup
+            Enterprise Setup
           </NavLink>
         )}
       </NavSection>

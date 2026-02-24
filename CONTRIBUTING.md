@@ -104,7 +104,7 @@ See [ROADMAP.md](ROADMAP.md) for the complete vision.
 
 **Long-Term Vision:**
 - Angel Tokens (network economics)
-- Federation & Confederation (diocese network)
+- Federation & Confederation (enterprise network)
 - AI Bus & Morphic Resonance (distributed learning)
 - Prison Ministry & Justice Fund
 - Clearwater Cruisin' (serving the forgotten)

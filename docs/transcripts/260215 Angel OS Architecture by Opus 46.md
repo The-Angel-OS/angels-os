@@ -271,7 +271,7 @@ Constitutional Metadata:
 
 - Drag-and-drop UI with real-time validation
 - No angel leaves home without its constitution
-- Foundation for federation: angels travel between dioceses
+- Foundation for federation: angels travel between enterprises
 
 ---
 
@@ -318,7 +318,7 @@ Vercel (auto-deploy on push)
 - Cloudflare Tunnel for dynamic IP (v1.0.0)
 
 **Federation (planned v1.0.0):**
-- Diocese Registry with heartbeat monitoring
+- Enterprise Registry with heartbeat monitoring
 - Application, probation, vouching security model
 - Ollama integration for complete sovereignty
 

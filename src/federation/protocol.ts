@@ -20,13 +20,13 @@ export interface FederationKeyPair {
 }
 
 export interface ConstitutionSigningEvent {
-  dioceseName: string
+  enterpriseName: string
   operatorName: string
   domain: string
   constitutionVersion: string
   constitutionChecksum: string // SHA-256 of canonical constitution text
   signedAt: string             // ISO 8601
-  federationId: string         // UUID generated at signing time — immutable Diocese identity
+  federationId: string         // UUID generated at signing time — immutable Enterprise identity
 }
 
 export interface ConstitutionSignature {
@@ -37,7 +37,7 @@ export interface ConstitutionSignature {
 
 export interface FederationRegistryPing {
   federationId: string
-  dioceseName: string
+  enterpriseName: string
   domain: string
   endeavorType: string
   constitutionVersion: string
@@ -122,7 +122,7 @@ export function verifySignature(data: string, signatureHex: string, publicKeyHex
 
 /**
  * Create the signing event payload.
- * Generates the federationId (immutable Diocese identity in the network).
+ * Generates the federationId (immutable Enterprise identity in the network).
  */
 export function createSigningPayload(
   opts: Omit<ConstitutionSigningEvent, 'federationId' | 'constitutionChecksum' | 'signedAt'>,
@@ -137,7 +137,7 @@ export function createSigningPayload(
 }
 
 /**
- * Sign the Angel OS Constitution for a Diocese.
+ * Sign the Angel OS Constitution for an Enterprise.
  * @param event - signing event payload (from createSigningPayload)
  * @param privateKeyHex - hex-encoded PKCS8 DER private key
  * @returns ConstitutionSignature with event + signature + publicKey
@@ -167,7 +167,7 @@ export function signConstitution(
 
 /**
  * Verify a ConstitutionSignature.
- * Used by the Archdiocese registry to validate incoming Diocese pings.
+ * Used by the Archenterprise registry to validate incoming Enterprise pings.
  */
 export function verifyConstitutionSignature(sig: ConstitutionSignature): boolean {
   const payload = JSON.stringify(sig.event, Object.keys(sig.event).sort())
@@ -177,8 +177,8 @@ export function verifyConstitutionSignature(sig: ConstitutionSignature): boolean
 // ── Federation Registry Ping ───────────────────────────────────────────────
 
 /**
- * Send a federation registration ping to announce a Diocese to the Angel OS network.
- * The ping payload is signed with the Diocese's private key.
+ * Send a federation registration ping to announce an Enterprise to the Angel OS network.
+ * The ping payload is signed with the Enterprise's private key.
  *
  * Graceful degradation: if FEDERATION_REGISTRY_URL is not set, returns a stub
  * "registered locally" response. The wizard completes regardless.
@@ -194,7 +194,7 @@ export async function pingFederationRegistry(
 
   // No registry configured — stub response for local/self-hosted instances
   if (!url) {
-    return stubRegistryResponse(ping.federationId, ping.dioceseName)
+    return stubRegistryResponse(ping.federationId, ping.enterpriseName)
   }
 
   try {
@@ -238,16 +238,16 @@ export async function pingFederationRegistry(
       success: true,
       federationId: ping.federationId,
       registryId: data.registryId,
-      message: data.message ?? 'Diocese registered. Welcome to the network.',
+      message: data.message ?? 'Enterprise registered. Welcome to the network.',
       ministryStatus: data.ministryStatus ?? 'applicant',
     }
   } catch (err) {
-    // Network error, timeout, etc. — Diocese is still "locally registered"
+    // Network error, timeout, etc. — Enterprise is still "locally registered"
     const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       success: false,
       federationId: ping.federationId,
-      message: `Registry unreachable — Diocese registered locally. (${message})`,
+      message: `Registry unreachable — Enterprise registered locally. (${message})`,
       ministryStatus: 'applicant',
     }
   }
@@ -259,13 +259,13 @@ export async function pingFederationRegistry(
  */
 export function stubRegistryResponse(
   federationId: string,
-  dioceseName: string,
+  enterpriseName: string,
 ): FederationPingResult {
   return {
     success: true,
     federationId,
     registryId: `local-${federationId.slice(0, 8)}`,
-    message: `${dioceseName} is live as a sovereign Diocese. The registry will sync when the central node is reachable.`,
+    message: `${enterpriseName} is live as a sovereign Enterprise. The registry will sync when the central node is reachable.`,
     ministryStatus: 'applicant',
   }
 }
@@ -276,19 +276,19 @@ export function stubRegistryResponse(
  * Build the constitution signing introduction text shown to the operator before signing.
  * This is what Leo reads aloud (or displays) during wizard step 7.
  */
-export function getConstitutionSigningIntroduction(dioceseName: string): string {
+export function getConstitutionSigningIntroduction(enterpriseName: string): string {
   const constitution = getActiveConstitution()
   const text = getConstitutionText(constitution)
 
   return `
 ## The Angel OS Constitution — v${constitution.version}
 
-${dioceseName} is about to become a sovereign node in the Angel OS federation.
+${enterpriseName} is about to become a sovereign node in the Angel OS federation.
 
-Before the Diocese goes live, the operator must accept the Constitution.
+Before the Enterprise goes live, the operator must accept the Constitution.
 This is not a terms-of-service checkbox. It is a covenant.
 
-The Constitution commits this Diocese to:
+The Constitution commits this Enterprise to:
 - Human dignity in every interaction
 - No dark patterns, no surveillance capitalism, no algorithmic scoring of people
 - The Toward-53 Principle: Endeavor owners always keep more over time
@@ -301,6 +301,6 @@ ${text}
 
 Constitution checksum: ${constitution.checksum.slice(0, 16)}...
 
-If you accept, say "I accept the Angel OS Constitution on behalf of ${dioceseName}."
+If you accept, say "I accept the Angel OS Constitution on behalf of ${enterpriseName}."
   `.trim()
 }

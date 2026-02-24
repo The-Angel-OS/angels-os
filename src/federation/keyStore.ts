@@ -1,7 +1,7 @@
 /**
  * Federation Key Store
  *
- * Get or create a Diocese's Ed25519 key pair, stored encrypted in the Tenants collection.
+ * Get or create an Enterprise's Ed25519 key pair, stored encrypted in the Tenants collection.
  * Uses encryption.ts (AES-256-GCM) to protect the private key at rest.
  *
  * The private key is NEVER logged or returned in API responses.
@@ -25,7 +25,7 @@ interface TenantSetupProgress {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /**
- * Get or create the Ed25519 key pair for a Diocese.
+ * Get or create the Ed25519 key pair for an Enterprise.
  * If the tenant already has keys stored, decrypts and returns them.
  * If not, generates new keys, encrypts the private key, stores, and returns.
  *
@@ -86,7 +86,7 @@ export async function getOrCreateFederationKeyPair(
 }
 
 /**
- * Get the Diocese's public key without generating a new one.
+ * Get the Enterprise's public key without generating a new one.
  * Returns null if no key pair exists yet.
  */
 export async function getTenantPublicKey(

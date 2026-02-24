@@ -13,11 +13,11 @@
 
 **Read this first.** Between Sprint 14 and Sprint 15, the core model was clarified:
 
-- **"Tenant" → "Diocese"** — operators who ARE Angel OS in their territory
+- **"Tenant" → "Enterprise"** — operators who ARE Angel OS in their territory
 - **"Product/service" → "Endeavor"** — the unified constitutional object (business / cause / creator / community / media)
-- **Revenue model corrected:** 60/20/15/5 → **70/20/4/1/5** (Endeavor / Diocese / Protocol / Archdiocese / Justice Fund)
+- **Revenue model corrected:** 60/20/15/5 → **70/20/4/1/5** (Endeavor / Enterprise / Protocol / Archenterprise / Justice Fund)
 - **The Toward-53 Principle** — the split direction is unalterable, asymptotic target 53% to Endeavors
-- **Leo Wizard** — Sprint 16's primary deliverable: Diocese comes into existence through a 17-minute Leo conversation
+- **Leo Wizard** — Sprint 16's primary deliverable: Enterprise comes into existence through a 17-minute Leo conversation
 - **Federation = automatic** — Constitution IS the gate, no approval queue
 
 Full specs:
@@ -101,7 +101,7 @@ Full specs:
 #### 4. comments/add Cross-Tenant Injection Blocked
 **File:** `src/payload.config.ts`
 - Replaced ad-hoc hostname parsing with `detectTenantFromHostname()`
-- Added `findByID` validation: parent post/product must belong to the resolved Diocese
+- Added `findByID` validation: parent post/product must belong to the resolved Enterprise
 - Made tenant required (was previously optional with `...(tenantId != null && { tenant: tenantId })`)
 - Prevents: `evil.localhost` POSTing a comment onto a post from `clearwater-cruisin.localhost`
 
@@ -150,7 +150,7 @@ Six new tools added:
 - `query_media` — search media library by filename/alt
 - `manage_categories` — create/update/delete categories
 
-All tools: respect `ctx.tenantId` for Diocese isolation, default to `'draft'` status.
+All tools: respect `ctx.tenantId` for Enterprise isolation, default to `'draft'` status.
 Helper added: `textToLexical()` + `textToContentLayout()` for plain text → Lexical/layout conversion.
 
 ### Channel Sidebar Stability
@@ -173,12 +173,12 @@ Helper added: `textToLexical()` + `textToContentLayout()` for plain text → Lex
 ## Known Issues / Next Sprint Scope
 
 ### Priority 1 — Leo Wizard (Sprint 17)
-The federation pivot requires a Leo-guided Diocese setup experience:
+The federation pivot requires a Leo-guided Enterprise setup experience:
 
-1. `npx create-angel-diocese` installer
-2. Leo wizard: 8-step conversational Diocese onboarding
-3. Cryptographic Constitution signing (Diocese joins by covenant)
-4. Federation ping: signed introduction JSON to Archdiocese
+1. `npx create-angel-enterprise` installer
+2. Leo wizard: 8-step conversational Enterprise onboarding
+3. Cryptographic Constitution signing (Enterprise joins by covenant)
+4. Federation ping: signed introduction JSON to Archenterprise
 5. `src/federation/` protocol directory
 
 **Files to create:**
@@ -189,7 +189,7 @@ The federation pivot requires a Leo-guided Diocese setup experience:
 ### Priority 2 — Revenue Model Implementation
 Revenue split constants exist in test utilities but need production wiring:
 - Update all revenue split constants to 70/20/4/1/5
-- `JusticeFundTransactions` should get Diocese-scoped or documented as intentionally global
+- `JusticeFundTransactions` should get Enterprise-scoped or documented as intentionally global
 - `ProcessedStripeEvents` not in multi-tenant plugin — add or document as platform-only
 
 ### Priority 3 — Remaining Security Items (from Sprint 15 audit)
@@ -207,7 +207,7 @@ These were triaged as future sprint work:
 
 ## Current DB State
 
-**Diocese:** `clearwater-cruisin` is the active test Diocese
+**Enterprise:** `clearwater-cruisin` is the active test Enterprise
 **Admin user:** `kenneth.courtney@gmail.com` — roles: `['super_admin', 'customer']`
 **Auth:** COOKIE_DOMAIN is empty in `.env.local` — cookies work on `*.localhost`
 **Seed:** `pnpm seed:reset` was run this session to update Kenneth's roles
@@ -219,7 +219,7 @@ These were triaged as future sprint work:
 ```bash
 # Dev
 pnpm dev               # http://localhost:3000 (platform)
-                       # http://clearwater-cruisin.localhost:3000 (Diocese)
+                       # http://clearwater-cruisin.localhost:3000 (Enterprise)
 
 # Seed
 pnpm seed:reset        # Update roles on existing user without full reset
@@ -287,4 +287,4 @@ npx tsc --noEmit
 ---
 
 *"Listen to everything. Judge nothing. Hold lightly."*
-*— Kenneth, Diocese operator, Clearwater Cruisin*
+*— Kenneth, Enterprise operator, Clearwater Cruisin*

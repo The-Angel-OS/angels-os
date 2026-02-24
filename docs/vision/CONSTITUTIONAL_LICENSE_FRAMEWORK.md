@@ -49,7 +49,7 @@ All derivatives must prevent:
 
 ##### **4. Holon Protocol Compliance (Mandatory)**
 All commercial implementations must:
-- **Platform Fee Structure** - Fees flow upward to support network (Ultimate Fair 60/20/15/5 is the baseline; as dioceses/nodes grow substantially, incentive structures evolve to factor in scale)
+- **Platform Fee Structure** - Fees flow upward to support network (Ultimate Fair 60/20/15/5 is the baseline; as enterprises/nodes grow substantially, incentive structures evolve to factor in scale)
 - **Community Contribution** - Regular contribution to Angel OS commons
 - **Democratic Governance** - User participation in platform decisions
 - **Evidence Required:** Financial transparency and governance documentation

@@ -400,11 +400,11 @@ export interface Tenant {
     openrouterApiKey?: string | null;
   };
   /**
-   * Leo Wizard progress and federation identity for this Diocese
+   * Leo Wizard progress and federation identity for this Enterprise
    */
   setup?: {
     /**
-     * Set to true when the Leo Wizard (Diocese Setup) has been completed. Hides the "Diocese Setup" nav link.
+     * Set to true when the Leo Wizard (Enterprise Setup) has been completed. Hides the "Enterprise Setup" nav link.
      */
     wizardComplete?: boolean | null;
     /**
@@ -428,7 +428,7 @@ export interface Tenant {
      */
     constitutionSignature?: string | null;
     /**
-     * The Diocese's immutable UUID in the Angel OS federation network. Assigned at constitution signing.
+     * The Enterprise's immutable UUID in the Angel OS federation network. Assigned at constitution signing.
      */
     federationId?: string | null;
   };
@@ -3059,7 +3059,7 @@ export interface Review {
   createdAt: string;
 }
 /**
- * The constitutional identity of a Diocese — what it is, what it does, and what it stands for.
+ * The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "endeavors".
@@ -3067,7 +3067,7 @@ export interface Review {
 export interface Endeavor {
   id: number;
   /**
-   * Official name of this Endeavor / Diocese
+   * Official name of this Endeavor / Enterprise
    */
   name: string;
   /**
@@ -3075,15 +3075,15 @@ export interface Endeavor {
    */
   tagline?: string | null;
   /**
-   * Full description of what this Diocese does and stands for
+   * Full description of what this Enterprise does and stands for
    */
   description?: string | null;
   /**
-   * The primary operational model of this Diocese
+   * The primary operational model of this Enterprise
    */
   endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
   /**
-   * "Forming" during Leo Wizard setup. "Active" once the Diocese is live and federated.
+   * "Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.
    */
   status: 'forming' | 'active' | 'suspended' | 'retired';
   /**
@@ -3091,7 +3091,7 @@ export interface Endeavor {
    */
   primarySpace?: (number | null) | Space;
   /**
-   * The human who runs this Diocese
+   * The human who runs this Enterprise
    */
   operator?: {
     name?: string | null;
@@ -3102,7 +3102,7 @@ export interface Endeavor {
     role?: string | null;
   };
   /**
-   * What this Diocese can offer to the network (visible in federation catalog)
+   * What this Enterprise can offer to the network (visible in federation catalog)
    */
   capabilities?:
     | {
@@ -3136,11 +3136,11 @@ export interface Endeavor {
      */
     constitutionSignature?: string | null;
     /**
-     * Unique UUID assigned at constitution signing — the Diocese's immutable identity in the federation network
+     * Unique UUID assigned at constitution signing — the Enterprise's immutable identity in the federation network
      */
     federationId?: string | null;
     /**
-     * When this Diocese last pinged the federation registry
+     * When this Enterprise last pinged the federation registry
      */
     lastPingAt?: string | null;
   };

@@ -409,7 +409,7 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 - [x] ~~Dashboard mobile layout~~ -- hamburger sidebar, responsive padding
 - [x] ~~Posts/Pages/Products 500 fix~~ -- overrideAccess: true for public queries
 - [x] ~~Space invitations~~ -- token system, endpoints, landing page, MemberPanel (72 tests)
-- [x] ~~Diocese registry and heartbeat~~ -- federation engine with 126 tests
+- [x] ~~Enterprise registry and heartbeat~~ -- federation engine with 126 tests
 - [x] ~~Federation security~~ -- trust chain, vouching, probation
 - [x] ~~Anti-daemon error messages~~ -- Error Log Viewer + ApplicationLogs
 

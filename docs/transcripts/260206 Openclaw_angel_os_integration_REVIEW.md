@@ -10,7 +10,7 @@
 ## What the Discussion Does Well
 
 ### 1. **Clear framing: fork, not connect**
-You lead with **OpenClaw or Optional Forks** and "OpenClaw forks itself to Angel OS." That immediately corrects the mental model: this isn’t "plug OpenClaw into Angel OS," it’s "your instance can *become* an Angel OS tenant." Optional, upgrade path, keep your claw / gain the diocese. No confusion.
+You lead with **OpenClaw or Optional Forks** and "OpenClaw forks itself to Angel OS." That immediately corrects the mental model: this isn’t "plug OpenClaw into Angel OS," it’s "your instance can *become* an Angel OS tenant." Optional, upgrade path, keep your claw / gain the enterprise. No confusion.
 
 ### 2. **Layered value prop**
 You spell out three layers in order:
@@ -27,7 +27,7 @@ You put **The Constitution** (Answer 53, Ultimate Fair, Network Effects, Daemon 
 **For OpenClaw Developers** gives three options:
 - Full Migration (replace file storage with Payload)
 - Hybrid (OpenClaw runtime + Payload data/MCP)
-- Diocese Model (instance = tenant, workspace = endeavor, heartbeat → Moltbook)
+- Enterprise Model (instance = tenant, workspace = endeavor, heartbeat → Moltbook)
 
 So the discussion doesn’t assume one path; it lets OpenClaw (or a fork) choose. Clear and actionable.
 
@@ -62,8 +62,8 @@ The **Call to Action** asks Moltbook associates to read the repo and consider be
 ### 4. **Key files: one line each**
 **Key Files to Study** lists paths and one-line comments. Adding the *purpose* of each in one phrase would help: e.g. `src/plugins/mcp.ts` — "MCP tool definitions and `leo_respond`; where to add or restrict tools." That makes the discussion more actionable for someone opening the repo for the first time.
 
-### 5. **Diocese Model and Moltbook**
-Option 3 (Diocese Model) says "Your heartbeat checks Moltbook for community." Moltbook is mentioned again in Contact ("@MerlinAngelOS (once API key recovered)"). A single sentence on *what* Moltbook provides (e.g. "community discovery, instance registry, or shared channels") would clarify why heartbeat → Moltbook matters. If the API/key story is still in flux, you could say: "Moltbook: community layer; integration details TBD once API key recovered."
+### 5. **Enterprise Model and Moltbook**
+Option 3 (Enterprise Model) says "Your heartbeat checks Moltbook for community." Moltbook is mentioned again in Contact ("@MerlinAngelOS (once API key recovered)"). A single sentence on *what* Moltbook provides (e.g. "community discovery, instance registry, or shared channels") would clarify why heartbeat → Moltbook matters. If the API/key story is still in flux, you could say: "Moltbook: community layer; integration details TBD once API key recovered."
 
 ### 6. **Link to Constitution**
 You summarize the Constitution in the doc. Adding a line like *"Full text: `docs/Angel_OS_Constitution.md`"* in **The Constitution** section would tie the discussion to the canonical document and keep them in sync.
@@ -84,7 +84,7 @@ You summarize the Constitution in the doc. Adding a line like *"Full text: `docs
 | **So-what for OpenClaw** | ✅ Applied ("why fork" line). |
 | **MCP compatibility** | ✅ Applied (bullet in Why This Works). |
 | **First step** | ✅ Applied (First Step under Merlin Athrawes section). |
-| **Moltbook** | ✅ Applied (Diocese + Contact). |
+| **Moltbook** | ✅ Applied (Enterprise + Contact). |
 | **Constitution** | ✅ Applied (link to `docs/Angel_OS_Constitution.md`). |
 | **Merlin Athrawes** | ✅ Applied (canonical name in doc). |
 

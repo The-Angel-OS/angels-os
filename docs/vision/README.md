@@ -34,7 +34,7 @@ Planning for **network angel tokens** and related network economics is **canon**
 - OpenClaw Integration (skills sync, conversation engine, chat formatting)
 - Tenant Provisioning (sub-30s, Genesis Breath)
 - AI Bus & Communication (Guardian Council, wisdom sharing)
-- Federation (diocese registry, 5-layer security)
+- Federation (enterprise registry, 5-layer security)
 - Economics (attribution tracking, Ultimate Fair)
 - Anti-Daemon Protocol (warm UX)
 - Deployment (Docker, Cloudflare Tunnel)

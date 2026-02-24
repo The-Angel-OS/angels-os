@@ -166,7 +166,7 @@
 - Transaction types (inventory, services, tickets)
 
 **Issue #32: Ultimate Fair Payment Split System (Enhanced)**
-- 60% Provider / 20% Diocese / 15% Operations / 5% Justice Fund
+- 60% Provider / 20% Enterprise / 15% Operations / 5% Justice Fund
 - Attribution-based fees (0-25%)
 - **CRITICAL:** Splits on PROFIT, not revenue
 
@@ -201,7 +201,7 @@
 **The inversion happens in the SOFTWARE ARCHITECTURE:**
 
 1. **Angels serve humans, not platforms**
-   - Archangel LEO serves tenants, not the diocese
+   - Archangel LEO serves tenants, not the enterprise
    - Angels serve their tenant, not Archangel LEO
    - Humans have sovereignty, AI has service
 
@@ -211,8 +211,8 @@
    - Justice Fund (5% to the forgotten)
 
 3. **Federation & confederation**
-   - Dioceses cooperate, don't compete
-   - Cross-diocese payments (referral fees, not platform fees)
+   - Enterprises cooperate, don't compete
+   - Cross-enterprise payments (referral fees, not platform fees)
    - Constitutional Council (governance, not dictatorship)
 
 4. **Economic inversion**

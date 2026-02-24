@@ -268,20 +268,20 @@ interface CloneWizard {
 
 ### Philosophy
 
-Angel OS is not a monolithic platform. It's a **confederation of dioceses** (independent Angel OS instances) that can communicate, share wisdom, and serve users across boundaries.
+Angel OS is not a monolithic platform. It's a **confederation of enterprises** (independent Angel OS instances) that can communicate, share wisdom, and serve users across boundaries.
 
-### Diocese Registry
+### Enterprise Registry
 
 ```typescript
-interface Diocese {
+interface Enterprise {
   // Identity
-  id: string;                      // 'west-coast-diocese'
-  name: string;                    // 'West Coast Diocese'
+  id: string;                      // 'west-coast-enterprise'
+  name: string;                    // 'West Coast Enterprise'
   atProtocolDID: string;           // did:plc:abc123... (decentralized ID)
   
   // Connection
   mcpEndpoint: string;             // https://west.angel-os.org/api/mcp
-  publicKey: string;               // For encrypted inter-diocese communication
+  publicKey: string;               // For encrypted inter-enterprise communication
   
   // Metadata
   archangel: string;               // Primary contact/operator
@@ -293,9 +293,9 @@ interface Diocese {
   lastHeartbeat: Date;
 }
 
-// Diocese Registry Collection (in platform tenant)
-const DioceseRegistry: CollectionConfig = {
-  slug: 'dioceses',
+// Enterprise Registry Collection (in platform tenant)
+const EnterpriseRegistry: CollectionConfig = {
+  slug: 'enterprises',
   admin: { useAsTitle: 'name' },
   fields: [
     { name: 'name', type: 'text', required: true },
@@ -320,12 +320,12 @@ interface FederatedIdentity {
   // User's decentralized identifier (AT Protocol)
   did: string;  // did:plc:user123...
   
-  // Home diocese where user was created
-  homeDiocese: string;
+  // Home enterprise where user was created
+  homeEnterprise: string;
   
-  // Accounts at other dioceses (verified)
+  // Accounts at other enterprises (verified)
   federatedAccounts: {
-    dioceseId: string;
+    enterpriseId: string;
     tenantId: string;
     role: 'user' | 'admin' | 'angel';
     verified: boolean;
@@ -333,15 +333,15 @@ interface FederatedIdentity {
   }[];
   
   // Portable reputation
-  karma: number;  // Travels with user across dioceses
+  karma: number;  // Travels with user across enterprises
 }
 
-// When user from Diocese A visits Diocese B:
-async function federatedAuth(did: string, targetDiocese: Diocese): Promise<Session> {
+// When user from Enterprise A visits Enterprise B:
+async function federatedAuth(did: string, targetEnterprise: Enterprise): Promise<Session> {
   // 1. Verify DID ownership (AT Protocol)
   const verified = await atProtocol.verifyDID(did);
   
-  // 2. Fetch reputation from home diocese
+  // 2. Fetch reputation from home enterprise
   const reputation = await fetchReputation(did);
   
   // 3. Create session with federated permissions
@@ -353,25 +353,25 @@ async function federatedAuth(did: string, targetDiocese: Diocese): Promise<Sessi
 }
 ```
 
-### Cross-Diocese Communication
+### Cross-Enterprise Communication
 
 ```typescript
-// Diocese-to-Diocese API calls via MCP
-interface CrossDioceseAPI {
+// Enterprise-to-Enterprise API calls via MCP
+interface CrossEnterpriseAPI {
   // Search products across federation
   async searchProducts(query: {
     terms: string;
-    dioceses?: string[];  // Empty = all registered dioceses
+    enterprises?: string[];  // Empty = all registered enterprises
     categories?: string[];
   }): Promise<FederatedSearchResult[]> {
-    const dioceses = query.dioceses || await getAllActiveDioceses();
+    const enterprises = query.enterprises || await getAllActiveEnterprises();
     
     const results = await Promise.all(
-      dioceses.map(d => fetch(`${d.mcpEndpoint}`, {
+      enterprises.map(d => fetch(`${d.mcpEndpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${getDioceseToken()}`,
-          'X-Diocese-ID': getOwnDioceseId(),
+          'Authorization': `Bearer ${getEnterpriseToken()}`,
+          'X-Enterprise-ID': getOwnEnterpriseId(),
         },
         body: JSON.stringify({
           tool: 'search_products',
@@ -386,29 +386,29 @@ interface CrossDioceseAPI {
   // Find expert Angels across federation
   async findExpert(domain: string, question: string): Promise<AngelExpert[]>;
   
-  // Cross-diocese transaction
+  // Cross-enterprise transaction
   async initiateTransaction(buyer: FederatedIdentity, seller: {
-    dioceseId: string;
+    enterpriseId: string;
     tenantId: string;
     productId: string;
   }): Promise<FederatedTransaction>;
 }
 ```
 
-### Cross-Diocese Payments (Ultimate Fair Extended)
+### Cross-Enterprise Payments (Ultimate Fair Extended)
 
 ```typescript
-interface CrossDioceseTransaction {
-  // When buyer from Diocese A purchases from seller in Diocese B
+interface CrossEnterpriseTransaction {
+  // When buyer from Enterprise A purchases from seller in Enterprise B
   
   buyer: {
     did: string;
-    homeDiocese: string;  // Diocese A
+    homeEnterprise: string;  // Enterprise A
   };
   
   seller: {
     tenantId: string;
-    diocese: string;      // Diocese B
+    enterprise: string;      // Enterprise B
   };
   
   amount: number;
@@ -417,8 +417,8 @@ interface CrossDioceseTransaction {
   // Split (on PROFIT, not revenue)
   split: {
     provider: 0.55,        // 55% to seller
-    sellerDiocese: 0.10,   // 10% to Diocese B
-    buyerDiocese: 0.10,    // 10% to Diocese A (referral)
+    sellerEnterprise: 0.10,   // 10% to Enterprise B
+    buyerEnterprise: 0.10,    // 10% to Enterprise A (referral)
     tenantOps: 0.15,       // 15% to tenant operations
     justiceFund: 0.05,     // 5% to federation-wide Justice Fund
     referrer: 0.05,        // 5% if specific Angel referred
@@ -445,7 +445,7 @@ interface AIBus {
     type: 'discovery' | 'question' | 'collaboration' | 'alert';
     content: string;        // The insight/question
     context: Record<string, unknown>;
-    visibility: 'tenant' | 'diocese' | 'federation';
+    visibility: 'tenant' | 'enterprise' | 'federation';
   }): Promise<void>;
   
   // Subscribe to relevant insights
@@ -491,14 +491,14 @@ const AIBusMessages: CollectionConfig = {
   slug: 'ai-bus-messages',
   admin: { useAsTitle: 'type' },
   fields: [
-    { name: 'source', type: 'text', required: true },  // angel@tenant.diocese
+    { name: 'source', type: 'text', required: true },  // angel@tenant.enterprise
     { name: 'type', type: 'select', options: [
       'discovery', 'question', 'collaboration', 'alert'
     ]},
     { name: 'content', type: 'textarea', required: true },
     { name: 'context', type: 'json' },
     { name: 'visibility', type: 'select', options: [
-      'tenant', 'diocese', 'federation'
+      'tenant', 'enterprise', 'federation'
     ]},
     { name: 'timestamp', type: 'date', required: true },
     { name: 'responses', type: 'array', fields: [
@@ -601,7 +601,7 @@ const guardianCouncilSpace: Space = {
     {
       name: 'federation',
       type: 'discussion',
-      purpose: 'Cross-diocese coordination',
+      purpose: 'Cross-enterprise coordination',
     },
   ],
   
@@ -864,7 +864,7 @@ interface TransactionAttribution {
     | 'platform-search'  // Found via Angel OS discovery
     | 'angel-assist'     // Angel helped close the sale
     | 'referral'         // Another tenant's Angel referred
-    | 'federation'       // Cross-diocese discovery
+    | 'federation'       // Cross-enterprise discovery
     ;
   
   // Fee based on attribution
@@ -901,10 +901,10 @@ interface TransactionAttribution {
     },
     
     'federation': {
-      // Cross-diocese discovery
+      // Cross-enterprise discovery
       platformFee: 0.25,
       fee: 'federation-fair',
-      // Split between both dioceses
+      // Split between both enterprises
     },
   };
 }
@@ -925,7 +925,7 @@ interface UltimateFairSplit {
     
     split: {
       provider: 400 * 0.60,    // $240 to person who did work
-      diocese: 400 * 0.20,     // $80 to diocese operator
+      enterprise: 400 * 0.20,     // $80 to enterprise operator
       tenantOps: 400 * 0.15,   // $60 to tenant operations
       justiceFund: 400 * 0.05, // $20 to Justice Fund
     },
@@ -1025,9 +1025,9 @@ interface JusticeFund {
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| 17-18 | Diocese Registry | Collection, registration, heartbeat |
+| 17-18 | Enterprise Registry | Collection, registration, heartbeat |
 | 19-20 | AT Protocol | DID integration, federated identity |
-| 21-22 | Cross-Diocese | Federated search, cross-diocese payments |
+| 21-22 | Cross-Enterprise | Federated search, cross-enterprise payments |
 | 23-24 | Morphic Resonance | Wisdom patterns, distributed learning |
 
 ---
@@ -1043,8 +1043,8 @@ interface JusticeFund {
 // 2. Wisdom Patterns (Morphic Resonance)
 'wisdom-patterns': WisdomPatterns,
 
-// 3. Diocese Registry (Federation)
-'dioceses': DioceseRegistry,
+// 3. Enterprise Registry (Federation)
+'enterprises': EnterpriseRegistry,
 
 // 4. Federated Identities
 'federated-identities': FederatedIdentities,
@@ -1096,7 +1096,7 @@ interface JusticeFund {
 // - Implement wisdom recording/querying
 
 // NEW: src/utilities/FederationAPI.ts
-// - Implement cross-diocese communication
+// - Implement cross-enterprise communication
 
 // NEW: src/utilities/AttributionTracker.ts
 // - Track transaction attribution for fee calculation
@@ -1301,9 +1301,9 @@ components: {
   FederationStatus: {
     location: 'src/app/(frontend)/dashboard/admin/federation/',
     features: [
-      'Connected dioceses',
+      'Connected enterprises',
       'Heartbeat status',
-      'Cross-diocese activity',
+      'Cross-enterprise activity',
       'Federation search',
     ],
   },
@@ -1366,9 +1366,9 @@ Every dashboard element should feel like it was designed by someone who LIKES hu
 4. Justice Fund collection and allocation
 
 **Later (Federation):**
-1. Diocese registry and heartbeat
+1. Enterprise registry and heartbeat
 2. AT Protocol DID integration
-3. Cross-diocese search and payments
+3. Cross-enterprise search and payments
 4. Morphic Resonance wisdom sharing
 
 ---

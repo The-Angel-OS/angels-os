@@ -5,7 +5,7 @@ import { getWizardProgress, ensureWizardChannel } from './actions'
 import { SetupWizard } from './SetupWizard'
 
 /**
- * Diocese Setup page — /dashboard/setup
+ * Enterprise Setup page — /dashboard/setup
  *
  * Server component: resolves tenant context, ensures the wizard channel
  * exists, reads current wizard progress, then renders the SetupWizard
@@ -40,9 +40,9 @@ export default async function SetupPage({
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       {/* Page header */}
       <div className="shrink-0 border-b bg-background px-6 py-4">
-        <h1 className="text-xl font-semibold">Diocese Setup</h1>
+        <h1 className="text-xl font-semibold">Enterprise Setup</h1>
         <p className="text-sm text-muted-foreground">
-          Leo will guide you through setting up your Angel OS Diocese — takes about 17 minutes.
+          Leo will guide you through setting up your Angel OS Enterprise — takes about 17 minutes.
         </p>
       </div>
 

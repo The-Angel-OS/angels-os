@@ -6,7 +6,7 @@
  * constitution, communicate via AI Bus, and form a trust network.
  *
  * Key concepts:
- * - Ministry: A sovereign Angel OS instance (diocese member)
+ * - Ministry: A sovereign Angel OS instance (enterprise member)
  * - Trust Chain: Application → 90-day probation → 2 vouches → full membership
  * - Federation Catalog: Cross-instance product discovery (networkListing: true)
  * - Data Portability: Suitcase export/import for constitutional mobility

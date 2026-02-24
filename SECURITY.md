@@ -124,11 +124,11 @@ Angel OS integrates with AI providers (Anthropic, OpenAI, etc.):
 
 ### Federation
 
-Angel OS supports federation (diocese-to-diocese communication):
+Angel OS supports federation (enterprise-to-enterprise communication):
 
 - **5-Layer Security:** Application screening, probation, vouching, monitoring, council
 - **MCP Security:** Secure MCP endpoints with authentication
-- **Trust Boundaries:** Validate all data from federated dioceses
+- **Trust Boundaries:** Validate all data from federated enterprises
 - **Malicious Actors:** Monitor for meme coins, data harvesting, spam
 
 ## Security Features

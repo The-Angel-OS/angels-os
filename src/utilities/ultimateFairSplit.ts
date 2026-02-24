@@ -2,9 +2,9 @@ import Stripe from 'stripe'
 
 export interface UltimateFairConfig {
   providerShare: number       // Default: 70% — Endeavor owner (Toward-53: directionally toward 100%)
-  platformShare: number       // Default: 20% — Diocese operator
+  platformShare: number       // Default: 20% — Enterprise operator
   operationsShare: number     // Default:  4% — Angel OS protocol
-  infrastructureShare: number // Default:  1% — Archdiocese (founding node + federation stewardship)
+  infrastructureShare: number // Default:  1% — Archenterprise (founding node + federation stewardship)
   justiceShare: number        // Default:  5% — Justice Fund (Guardian Angel provisioning)
 }
 
@@ -30,7 +30,7 @@ export interface SplitResult {
 /**
  * Ultimate Fair Payment Splitting System
  * Implements the Angel OS economic model: 70/20/4/1/5 split
- * Endeavor owner / Diocese operator / Angel OS protocol / Archdiocese / Justice Fund
+ * Endeavor owner / Enterprise operator / Angel OS protocol / Archenterprise / Justice Fund
  *
  * The Toward-53 Principle: this split is constitutionally directional — it always
  * evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as
@@ -147,14 +147,14 @@ export class UltimateFairSplitter {
 
   /**
    * Process platform fee distribution after payment capture.
-   * Distributes application fee between Operations, Infrastructure (Archdiocese), and Justice Fund.
-   * Platform (Diocese operator) retains their share via Stripe Connect destination.
+   * Distributes application fee between Operations, Infrastructure (Archenterprise), and Justice Fund.
+   * Platform (Enterprise operator) retains their share via Stripe Connect destination.
    */
   async distributePlatformFees(
     paymentIntentId: string,
     operationsAccountId: string,
     justiceAccountId: string,
-    infrastructureAccountId?: string, // Archdiocese Stripe account (optional until registry live)
+    infrastructureAccountId?: string, // Archenterprise Stripe account (optional until registry live)
   ): Promise<{
     operationsTransfer: Stripe.Transfer
     justiceTransfer: Stripe.Transfer
@@ -190,14 +190,14 @@ export class UltimateFairSplitter {
       metadata: { paymentIntentId, purpose: 'justice_fund', ultimateFairSplit: 'true' },
     })
 
-    // Infrastructure (Archdiocese) transfer — optional until central registry is live
+    // Infrastructure (Archenterprise) transfer — optional until central registry is live
     let infrastructureTransfer: Stripe.Transfer | undefined
     if (infrastructureAccountId && infrastructureAmount > 0) {
       infrastructureTransfer = await this.stripe.transfers.create({
         amount: Math.round(infrastructureAmount * multiplier),
         currency,
         destination: infrastructureAccountId,
-        metadata: { paymentIntentId, purpose: 'archdiocese_infrastructure', ultimateFairSplit: 'true' },
+        metadata: { paymentIntentId, purpose: 'archenterprise_infrastructure', ultimateFairSplit: 'true' },
       })
     }
 
@@ -225,7 +225,7 @@ export class UltimateFairSplitter {
       platform: {
         amount: splits.platformAmount,
         percentage: Math.round((splits.platformAmount / total) * 100),
-        description: 'Diocese operator — the platform instance serving the Endeavor',
+        description: 'Enterprise operator — the platform instance serving the Endeavor',
       },
       operations: {
         amount: splits.operationsAmount,
@@ -235,7 +235,7 @@ export class UltimateFairSplitter {
       infrastructure: {
         amount: splits.infrastructureAmount,
         percentage: Math.round((splits.infrastructureAmount / total) * 100),
-        description: 'Archdiocese — founding node, federation stewardship, Justice Fund custodian',
+        description: 'Archenterprise — founding node, federation stewardship, Justice Fund custodian',
       },
       justice: {
         amount: splits.justiceAmount,

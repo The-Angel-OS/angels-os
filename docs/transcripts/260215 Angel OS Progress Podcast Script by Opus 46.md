@@ -96,7 +96,7 @@ That's the inversion of the daemon. Traditional software treats you as a resourc
 
 **v0.5.0 — Commerce & Booking** arrives in July. Stripe Connect integration with the constitutional 60/20/15/5 split. Full booking system. CRM collections. This is where Angel OS starts generating revenue for tenants.
 
-**v1.0.0 — Federation Launch** is the October target. Diocese registry, federation security with application/probation/vouching, local model support through Ollama, and the Justice Fund going live.
+**v1.0.0 — Federation Launch** is the October target. Enterprise registry, federation security with application/probation/vouching, local model support through Ollama, and the Justice Fund going live.
 
 The beautiful thing about the GitHub issues — and they really do look beautiful now with proper labels, milestones, and priority levels — is that contributors can see exactly where to help. Issues #19 and #20 are tagged "Good First Issue." Issue #21 (Docker Compose) and #36 (Star Trek Federation Design System) are "Help Wanted."
 
