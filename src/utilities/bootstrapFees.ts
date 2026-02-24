@@ -263,7 +263,7 @@ export async function getTotalBootstrapLiability(): Promise<{
   let tenantsGraduated = 0
 
   for (const tenant of tenants.docs) {
-    const bf = ((tenant as Record<string, unknown>).bootstrapFees ?? {}) as BootstrapFields
+    const bf = ((tenant as unknown as Record<string, unknown>).bootstrapFees ?? {}) as BootstrapFields
     const tier = bf.tier || 'free'
 
     if (tier === 'free') tenantsInFree++

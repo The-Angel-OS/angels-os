@@ -3971,7 +3971,7 @@ async function handlePingFederation(
 
 async function handleCheckFees(
   payload: Payload,
-  ctx: ToolContext,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   if (!ctx.tenantId) {
     return 'Unable to check fees — no Enterprise context available. Please select an Enterprise first.'

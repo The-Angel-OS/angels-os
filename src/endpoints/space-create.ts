@@ -12,6 +12,7 @@
  *   invites     Array<{ email: string; role: 'member' | 'moderator' | 'guest' }>
  */
 import type { PayloadHandler } from 'payload'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { SPACE_TEMPLATES } from '@/utilities/spaceProvisioning'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 import { createInvitation, isValidEmail } from '@/utilities/invitationSystem'
@@ -29,6 +30,10 @@ export const spaceCreateHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  // Rate limit: 3 space creations/min per user
+  const rateLimited = applyRateLimit(req, 'spaces_create')
+  if (rateLimited) return rateLimited
 
   // ── Resolve tenant ────────────────────────────────────────────────────────
   const tenantSlug =
