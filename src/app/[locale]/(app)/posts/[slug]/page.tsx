@@ -11,25 +11,8 @@ import React from 'react'
 import { notFound } from 'next/navigation'
 import { CollectionArchive } from '@/components/CollectionArchive'
 
-export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  try {
-    const posts = await payload.find({
-      collection: 'posts',
-      draft: false,
-      limit: 1000,
-      overrideAccess: true, // Build-time has no user context — override for static generation
-      pagination: false,
-      where: { _status: { equals: 'published' } },
-      select: { slug: true, tenant: true },
-    })
-
-    return (posts.docs ?? []).map(({ slug }) => ({ slug: slug! }))
-  } catch (err) {
-    console.error('[Posts] generateStaticParams failed:', err)
-    return []
-  }
-}
+// NOTE: generateStaticParams removed — this page uses headers() + draftMode()
+// which makes it dynamic. SSG conflicts with dynamic functions and causes 500s.
 
 type Args = {
   params: Promise<{ slug: string }>

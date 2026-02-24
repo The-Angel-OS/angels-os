@@ -14,34 +14,8 @@ import React from 'react'
 import type { Page } from '@/payload-types'
 import { notFound } from 'next/navigation'
 
-export async function generateStaticParams() {
-  try {
-    const payload = await getPayload({ config: configPromise })
-    const pages = await payload.find({
-      collection: 'pages',
-      draft: false,
-      limit: 1000,
-      overrideAccess: false,
-      pagination: false,
-      select: {
-        slug: true,
-      },
-    })
-
-    const params = pages.docs
-      ?.filter((doc) => {
-        return doc.slug !== 'home'
-      })
-      .map(({ slug }) => {
-        return { slug }
-      })
-
-    return params
-  } catch {
-    // Database may be empty or unavailable during build — return empty params
-    return []
-  }
-}
+// NOTE: generateStaticParams removed — this page uses headers() + draftMode()
+// which makes it dynamic. SSG conflicts with dynamic functions and causes 500s.
 
 type Args = {
   params: Promise<{
