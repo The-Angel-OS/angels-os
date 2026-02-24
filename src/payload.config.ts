@@ -55,6 +55,8 @@ import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
 import { Contacts } from '@/collections/Contacts'
+import { FederationAuditLog } from '@/collections/FederationAuditLog'
+import { AgentTransactions } from '@/collections/AgentTransactions'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -84,6 +86,11 @@ import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
 import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
+import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
+import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
+import { federationCatalogHandler } from '@/endpoints/federation-catalog'
+import { federationSkillsListHandler, federationSkillsInvokeHandler } from '@/endpoints/federation-skills'
+import { federationVouchHandler } from '@/endpoints/federation-vouch'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -137,6 +144,8 @@ export default buildConfig({
     Reviews,
     Endeavors,
     Contacts,
+    FederationAuditLog,
+    AgentTransactions,
   ],
   db: postgresAdapter({
     pool: {
@@ -502,11 +511,41 @@ export default buildConfig({
       method: 'get',
       handler: docsHandler,
     },
-    // ─── Federation Network Endpoint (Sprint 17) ─────────────────
+    // ─── Federation Network Endpoints (Sprint 17+) ────────────────
     {
       path: '/federation/ping',
       method: 'post',
       handler: federationPingHandler,
+    },
+    {
+      path: '/federation/heartbeat',
+      method: 'post',
+      handler: federationHeartbeatHandler,
+    },
+    {
+      path: '/federation/heartbeat-cron',
+      method: 'get',
+      handler: federationHeartbeatCronHandler,
+    },
+    {
+      path: '/federation/catalog',
+      method: 'get',
+      handler: federationCatalogHandler,
+    },
+    {
+      path: '/federation/skills',
+      method: 'get',
+      handler: federationSkillsListHandler,
+    },
+    {
+      path: '/federation/skills/invoke',
+      method: 'post',
+      handler: federationSkillsInvokeHandler,
+    },
+    {
+      path: '/federation/vouch',
+      method: 'post',
+      handler: federationVouchHandler,
     },
   ],
   globals: [],

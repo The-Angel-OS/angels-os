@@ -393,6 +393,74 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
+    // ─── Agent Wallet (Federation Sprint) ──────────────────────────
+    {
+      name: 'agentWallet',
+      type: 'group',
+      admin: {
+        description: 'LEO agent wallet for federation skill spending/earning. Structural guardrails the agent CANNOT override.',
+      },
+      fields: [
+        {
+          name: 'enabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Enable the agent wallet for federation commerce',
+          },
+        },
+        {
+          name: 'monthlyBudgetCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: 'Monthly spending budget in cents (e.g., 10000 = $100.00)',
+          },
+        },
+        {
+          name: 'spentThisMonthCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: 'Amount spent this month in cents (auto-tracked)',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'lifetimeSpentCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: 'Total lifetime spending in cents (auto-tracked)',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'lifetimeEarnedCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: 'Total lifetime earnings from federation skills in cents (auto-tracked)',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'lastResetAt',
+          type: 'date',
+          admin: {
+            description: 'When the monthly budget was last reset',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'spendingRules',
+          type: 'json',
+          admin: {
+            description: 'Structural spending guardrails: { maxPerTransactionCents, maxDailySpendCents, allowedCategories, humanApprovalThresholdCents }. The agent CANNOT modify these.',
+          },
+        },
+      ],
+    },
     // ─── Enterprise Setup / Leo Wizard (Sprint 17) ─────────────────
     {
       name: 'setup',

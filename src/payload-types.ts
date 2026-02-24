@@ -100,6 +100,8 @@ export interface Config {
     reviews: Review;
     endeavors: Endeavor;
     contacts: Contact;
+    'federation-audit-log': FederationAuditLog;
+    'agent-transactions': AgentTransaction;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -157,6 +159,8 @@ export interface Config {
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
+    'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
+    'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -400,6 +404,47 @@ export interface Tenant {
      * OpenRouter API key (encrypted at rest). Leave blank to use platform key.
      */
     openrouterApiKey?: string | null;
+  };
+  /**
+   * LEO agent wallet for federation skill spending/earning. Structural guardrails the agent CANNOT override.
+   */
+  agentWallet?: {
+    /**
+     * Enable the agent wallet for federation commerce
+     */
+    enabled?: boolean | null;
+    /**
+     * Monthly spending budget in cents (e.g., 10000 = $100.00)
+     */
+    monthlyBudgetCents?: number | null;
+    /**
+     * Amount spent this month in cents (auto-tracked)
+     */
+    spentThisMonthCents?: number | null;
+    /**
+     * Total lifetime spending in cents (auto-tracked)
+     */
+    lifetimeSpentCents?: number | null;
+    /**
+     * Total lifetime earnings from federation skills in cents (auto-tracked)
+     */
+    lifetimeEarnedCents?: number | null;
+    /**
+     * When the monthly budget was last reset
+     */
+    lastResetAt?: string | null;
+    /**
+     * Structural spending guardrails: { maxPerTransactionCents, maxDailySpendCents, allowedCategories, humanApprovalThresholdCents }. The agent CANNOT modify these.
+     */
+    spendingRules?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
   };
   /**
    * Leo Wizard progress and federation identity for this Enterprise
@@ -3219,6 +3264,142 @@ export interface Contact {
   createdAt: string;
 }
 /**
+ * Immutable audit trail of all federation network activity
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "federation-audit-log".
+ */
+export interface FederationAuditLog {
+  id: number;
+  /**
+   * The type of federation action performed
+   */
+  action: 'discovery' | 'heartbeat' | 'catalog_browse' | 'skill_invoke' | 'payment' | 'vouch' | 'skill_list';
+  /**
+   * Whether we received (inbound) or initiated (outbound) this action
+   */
+  direction: 'inbound' | 'outbound';
+  /**
+   * Federation UUID of the diocese that initiated this action
+   */
+  sourceFederationId: string;
+  /**
+   * Domain of the source diocese (if known)
+   */
+  sourceDomain?: string | null;
+  /**
+   * Name of the source diocese (if known)
+   */
+  sourceName?: string | null;
+  /**
+   * What specific resource/action was requested (e.g., skill name, catalog query)
+   */
+  targetAction?: string | null;
+  /**
+   * Trust level of the source diocese at the time of the request
+   */
+  trustLevel?: ('none' | 'probationary' | 'vouched' | 'full') | null;
+  /**
+   * Whether the action was permitted
+   */
+  allowed: boolean;
+  /**
+   * If blocked, why (rate limit, trust level, signature invalid, etc.)
+   */
+  deniedReason?: string | null;
+  /**
+   * How long the request took to process (milliseconds)
+   */
+  responseTimeMs?: number | null;
+  /**
+   * Additional context (request size, response status, skill params, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * LEO agent wallet transaction ledger — every spend and earn across the federation
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "agent-transactions".
+ */
+export interface AgentTransaction {
+  id: number;
+  /**
+   * The diocese this transaction belongs to
+   */
+  tenant: number | Tenant;
+  /**
+   * Whether we spent, earned, or received a refund
+   */
+  type: 'spend' | 'earn' | 'refund';
+  /**
+   * Amount in cents (e.g., 500 = $5.00)
+   */
+  amountCents: number;
+  /**
+   * Currency code
+   */
+  currency?: string | null;
+  /**
+   * What was purchased, sold, or refunded
+   */
+  description: string;
+  /**
+   * Federation UUID of the other diocese in this transaction
+   */
+  counterpartyFederationId?: string | null;
+  /**
+   * Domain of the other diocese
+   */
+  counterpartyDomain?: string | null;
+  /**
+   * Name of the other diocese
+   */
+  counterpartyName?: string | null;
+  /**
+   * Which federation skill triggered this transaction
+   */
+  skillInvoked?: string | null;
+  /**
+   * Category of the skill (for spending rules)
+   */
+  skillCategory?:
+    | ('catalog' | 'booking' | 'content' | 'communication' | 'analytics' | 'payment' | 'moderation' | 'infrastructure')
+    | null;
+  /**
+   * Stripe PaymentIntent ID if backed by a real payment
+   */
+  stripePaymentIntentId?: string | null;
+  /**
+   * Transaction status
+   */
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  /**
+   * Additional context (skill params, response data, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -3563,6 +3744,14 @@ export interface PayloadLockedDocument {
         value: number | Contact;
       } | null)
     | ({
+        relationTo: 'federation-audit-log';
+        value: number | FederationAuditLog;
+      } | null)
+    | ({
+        relationTo: 'agent-transactions';
+        value: number | AgentTransaction;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3739,6 +3928,17 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         anthropicApiKey?: T;
         openrouterApiKey?: T;
+      };
+  agentWallet?:
+    | T
+    | {
+        enabled?: T;
+        monthlyBudgetCents?: T;
+        spentThisMonthCents?: T;
+        lifetimeSpentCents?: T;
+        lifetimeEarnedCents?: T;
+        lastResetAt?: T;
+        spendingRules?: T;
       };
   setup?:
     | T
@@ -4772,6 +4972,46 @@ export interface ContactsSelect<T extends boolean = true> {
   lastInvitedAt?: T;
   inviteCount?: T;
   notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "federation-audit-log_select".
+ */
+export interface FederationAuditLogSelect<T extends boolean = true> {
+  action?: T;
+  direction?: T;
+  sourceFederationId?: T;
+  sourceDomain?: T;
+  sourceName?: T;
+  targetAction?: T;
+  trustLevel?: T;
+  allowed?: T;
+  deniedReason?: T;
+  responseTimeMs?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "agent-transactions_select".
+ */
+export interface AgentTransactionsSelect<T extends boolean = true> {
+  tenant?: T;
+  type?: T;
+  amountCents?: T;
+  currency?: T;
+  description?: T;
+  counterpartyFederationId?: T;
+  counterpartyDomain?: T;
+  counterpartyName?: T;
+  skillInvoked?: T;
+  skillCategory?: T;
+  stripePaymentIntentId?: T;
+  status?: T;
+  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }
