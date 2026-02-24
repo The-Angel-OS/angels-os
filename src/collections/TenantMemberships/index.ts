@@ -106,6 +106,11 @@ export const TenantMemberships: CollectionConfig = {
           name: 'invitationMessage',
           type: 'textarea',
         },
+        {
+          name: 'invitationEmail',
+          type: 'email',
+          admin: { description: 'Email of invited user (may not have an account yet)' },
+        },
       ],
     },
   ],
