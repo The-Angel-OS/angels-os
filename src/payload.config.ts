@@ -53,6 +53,7 @@ import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { Reviews } from '@/collections/Reviews'
+import { Endeavors } from '@/collections/Endeavors'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -80,6 +81,7 @@ import { docsHandler } from '@/endpoints/docs'
 import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
 import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import { emailPollHandler } from '@/endpoints/email-poll'
+import { federationPingHandler } from '@/endpoints/federation-ping'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -131,6 +133,7 @@ export default buildConfig({
     ProcessedStripeEvents,
     ApplicationLogs,
     Reviews,
+    Endeavors,
   ],
   db: postgresAdapter({
     pool: {
@@ -488,6 +491,12 @@ export default buildConfig({
       path: '/docs',
       method: 'get',
       handler: docsHandler,
+    },
+    // ─── Federation Network Endpoint (Sprint 17) ─────────────────
+    {
+      path: '/federation/ping',
+      method: 'post',
+      handler: federationPingHandler,
     },
   ],
   globals: [],

@@ -11,6 +11,7 @@ import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
 import { DashboardSidebar } from './DashboardSidebar'
 import { DashboardHeader } from './DashboardHeader'
 import { DashboardLEOSidebar } from './DashboardLEOSidebar'
+import { checkSetupRequired } from './setup/actions'
 import { DashboardProvider } from '@/providers/DashboardContext'
 import type { DashboardSpace } from '@/providers/DashboardContext'
 import { ChatProvider } from '@/components/ChatControl/ChatProvider'
@@ -160,6 +161,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     dmSpaceId = await ensureDMSpace(tenant.id)
   }
 
+  // Check if the Leo Wizard is complete — controls "Diocese Setup" nav link
+  const setupRequired = await checkSetupRequired().catch(() => false)
+  const wizardComplete = !setupRequired
+
   // Map DashboardSpace[] to ChatSpace[] for ChatProvider
   const chatSpaces: ChatSpace[] = userSpaces.map((s) => ({
     id: s.id,
@@ -192,6 +197,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             tenantBranding={tenantBranding}
             userTenants={userTenants}
             currentTenantId={tenant?.id}
+            wizardComplete={wizardComplete}
           />
 
           {/* ─── Main Content (center) ─── */}

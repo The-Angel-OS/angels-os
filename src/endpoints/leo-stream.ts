@@ -25,6 +25,8 @@ import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
 import { routeToAgent } from '@/utilities/AgentRouter'
 import { extractTextFromContent, wrapTextContent } from '@/utilities/messageContent'
 import { logError } from '@/utilities/logError'
+import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
+import type { WizardContext } from '@/utilities/wizardPrompt'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -331,7 +333,22 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { message, conversationId, channelSlug, spaceId, images: bodyImages } = body
+  const {
+    message,
+    conversationId,
+    channelSlug,
+    spaceId,
+    images: bodyImages,
+    wizardStep,
+    wizardContext: rawWizardContext,
+  } = body
+
+  // Wizard mode — extract optional step + context for Diocese Setup
+  const isWizardMode = typeof wizardStep === 'number'
+  const wizardContext: WizardContext =
+    rawWizardContext && typeof rawWizardContext === 'object'
+      ? (rawWizardContext as WizardContext)
+      : {}
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
@@ -401,8 +418,9 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   const resolvedConversationId =
     typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
 
-  // Build system prompt
-  const systemPrompt = buildStreamingSystemPrompt({
+  // Build system prompt — append wizard suffix when in Diocese Setup wizard
+  const phase = isWizardMode ? 'diocese-setup-wizard' : 'general'
+  const baseSystemPrompt = buildStreamingSystemPrompt({
     agentName,
     personality,
     capabilities,
@@ -410,8 +428,11 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     userName,
     userEmail,
     userRoles,
-    phase: 'general',
+    phase,
   })
+  const systemPrompt = isWizardMode
+    ? baseSystemPrompt + buildWizardSystemPromptSuffix(wizardStep as number, wizardContext)
+    : baseSystemPrompt
 
   // Fetch conversation history
   const historyMessages = resolvedSpaceId
@@ -565,6 +586,61 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             }
 
             messages.push({ role: 'user' as const, content: toolResults })
+
+            // ── Wizard step advancement ──────────────────────────────────
+            // When a tool completes during wizard mode, advance the step
+            if (isWizardMode && tenantId) {
+              const TOOL_TO_STEP: Record<string, number> = {
+                configure_business: wizardStep === 1 ? 1 : 2,
+                create_space: 3,
+                invite_member: 4,
+                create_product: 5,
+                suggest_products: -1, // intermediate — don't advance
+                connect_stripe_account: 6,
+                sign_constitution: -1, // intermediate — ping_federation finishes step 7
+                ping_federation: 7,
+              }
+              const completedTools = toolUseBlocks.map((t) => t.name)
+              const stepsToComplete = completedTools
+                .map((name) => TOOL_TO_STEP[name] ?? -1)
+                .filter((s) => s >= 0)
+
+              if (stepsToComplete.length > 0) {
+                try {
+                  const tenant = await req.payload.findByID({
+                    collection: 'tenants',
+                    id: tenantId,
+                    depth: 0,
+                    overrideAccess: true,
+                  })
+                  const existing = ((tenant as any)?.setup?.wizardProgress as Record<string, unknown>) ?? {}
+                  const existingCompleted: number[] = Array.isArray(existing.completedSteps)
+                    ? (existing.completedSteps as number[])
+                    : []
+                  const newCompleted = Array.from(
+                    new Set([...existingCompleted, ...stepsToComplete]),
+                  ).sort((a, b) => a - b)
+                  const nextStep = Math.max(...stepsToComplete) + 1
+
+                  await req.payload.update({
+                    collection: 'tenants',
+                    id: tenantId,
+                    data: {
+                      setup: {
+                        wizardProgress: {
+                          ...existing,
+                          completedSteps: newCompleted,
+                          currentStep: Math.min(nextStep, 7),
+                        },
+                      },
+                    } as any,
+                    overrideAccess: true,
+                  })
+                } catch (stepErr) {
+                  console.error('[LEO Stream] Wizard step advancement error:', stepErr)
+                }
+              }
+            }
 
             // Reset fullText for the next round (tool results response)
             fullText = ''

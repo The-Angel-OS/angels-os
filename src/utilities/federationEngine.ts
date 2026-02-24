@@ -373,9 +373,9 @@ export function checkSuitcaseCompatibility(
   }
 
   // Constitutional compatibility
-  if (manifest.constitutional.revenueModel !== '60/20/15/5') {
+  if (manifest.constitutional.revenueModel !== '70/20/4/1/5') {
     warnings.push(
-      `Non-standard revenue model: ${manifest.constitutional.revenueModel}. Will be normalized to 60/20/15/5.`,
+      `Non-standard revenue model: ${manifest.constitutional.revenueModel}. Will be normalized to 70/20/4/1/5 (Toward-53).`,
     )
   }
 

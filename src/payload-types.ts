@@ -98,6 +98,7 @@ export interface Config {
     'processed-stripe-events': ProcessedStripeEvent;
     'application-logs': ApplicationLog;
     reviews: Review;
+    endeavors: Endeavor;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -153,6 +154,7 @@ export interface Config {
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
+    endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -396,6 +398,39 @@ export interface Tenant {
      * OpenRouter API key (encrypted at rest). Leave blank to use platform key.
      */
     openrouterApiKey?: string | null;
+  };
+  /**
+   * Leo Wizard progress and federation identity for this Diocese
+   */
+  setup?: {
+    /**
+     * Set to true when the Leo Wizard (Diocese Setup) has been completed. Hides the "Diocese Setup" nav link.
+     */
+    wizardComplete?: boolean | null;
+    /**
+     * Persisted wizard state — current step, completed steps, and encrypted Ed25519 key pair. Managed by Leo Wizard actions.
+     */
+    wizardProgress?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * When the operator signed the Angel OS Constitution (set by Leo Wizard step 7)
+     */
+    constitutionSignedAt?: string | null;
+    /**
+     * Ed25519 signature of the constitution signing event (hex-encoded). Set by Leo Wizard step 7.
+     */
+    constitutionSignature?: string | null;
+    /**
+     * The Diocese's immutable UUID in the Angel OS federation network. Assigned at constitution signing.
+     */
+    federationId?: string | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -1505,7 +1540,7 @@ export interface HolonCapability {
    */
   acceptingOrders?: boolean | null;
   /**
-   * I agree to operate under the Angel OS constitution: 60/20/15/5 Ultimate Fair Split, Answer 53 principles, and network governance.
+   * I agree to operate under the Angel OS constitution: 70/20/4/1/5 Ultimate Fair Split (Toward-53), Answer 53 principles, and network governance.
    */
   constitutionalCompliance: boolean;
   updatedAt: string;
@@ -3024,6 +3059,111 @@ export interface Review {
   createdAt: string;
 }
 /**
+ * The constitutional identity of a Diocese — what it is, what it does, and what it stands for.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "endeavors".
+ */
+export interface Endeavor {
+  id: number;
+  /**
+   * Official name of this Endeavor / Diocese
+   */
+  name: string;
+  /**
+   * One-sentence mission statement
+   */
+  tagline?: string | null;
+  /**
+   * Full description of what this Diocese does and stands for
+   */
+  description?: string | null;
+  /**
+   * The primary operational model of this Diocese
+   */
+  endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
+  /**
+   * "Forming" during Leo Wizard setup. "Active" once the Diocese is live and federated.
+   */
+  status: 'forming' | 'active' | 'suspended' | 'retired';
+  /**
+   * The main community space for this Endeavor — created during Leo Wizard step 3
+   */
+  primarySpace?: (number | null) | Space;
+  /**
+   * The human who runs this Diocese
+   */
+  operator?: {
+    name?: string | null;
+    email?: string | null;
+    /**
+     * e.g., "Founder", "Chapter Lead", "Community Manager"
+     */
+    role?: string | null;
+  };
+  /**
+   * What this Diocese can offer to the network (visible in federation catalog)
+   */
+  capabilities?:
+    | {
+        skill: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Network participation and constitutional commitment
+   */
+  federation?: {
+    /**
+     * Appear in the Angel OS network catalog. Enable after Leo Wizard is complete.
+     */
+    networkVisible?: boolean | null;
+    /**
+     * Federation trust level. Starts as "applicant" after first ping. Advances to "active" after 90-day probation and 2 vouches.
+     */
+    ministryStatus?: ('applicant' | 'probation' | 'active' | 'suspended') | null;
+    /**
+     * Version of the Angel OS Constitution that was signed
+     */
+    constitutionVersion?: string | null;
+    /**
+     * When the operator signed the Angel OS Constitution
+     */
+    constitutionSignedAt?: string | null;
+    /**
+     * Ed25519 signature of the constitution signing event (hex-encoded, first 32 chars shown)
+     */
+    constitutionSignature?: string | null;
+    /**
+     * Unique UUID assigned at constitution signing — the Diocese's immutable identity in the federation network
+     */
+    federationId?: string | null;
+    /**
+     * When this Diocese last pinged the federation registry
+     */
+    lastPingAt?: string | null;
+  };
+  /**
+   * Primary logo for network catalog display
+   */
+  logo?: (number | null) | Media;
+  /**
+   * Cover image for the network catalog card
+   */
+  coverImage?: (number | null) | Media;
+  /**
+   * Geographic region for network discovery and routing
+   */
+  region?: {
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -3360,6 +3500,10 @@ export interface PayloadLockedDocument {
         value: number | Review;
       } | null)
     | ({
+        relationTo: 'endeavors';
+        value: number | Endeavor;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3536,6 +3680,15 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         anthropicApiKey?: T;
         openrouterApiKey?: T;
+      };
+  setup?:
+    | T
+    | {
+        wizardComplete?: T;
+        wizardProgress?: T;
+        constitutionSignedAt?: T;
+        constitutionSignature?: T;
+        federationId?: T;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -4492,6 +4645,54 @@ export interface ReviewsSelect<T extends boolean = true> {
         respondedBy?: T;
       };
   product?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "endeavors_select".
+ */
+export interface EndeavorsSelect<T extends boolean = true> {
+  name?: T;
+  tagline?: T;
+  description?: T;
+  endeavorType?: T;
+  status?: T;
+  primarySpace?: T;
+  operator?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        role?: T;
+      };
+  capabilities?:
+    | T
+    | {
+        skill?: T;
+        description?: T;
+        id?: T;
+      };
+  federation?:
+    | T
+    | {
+        networkVisible?: T;
+        ministryStatus?: T;
+        constitutionVersion?: T;
+        constitutionSignedAt?: T;
+        constitutionSignature?: T;
+        federationId?: T;
+        lastPingAt?: T;
+      };
+  logo?: T;
+  coverImage?: T;
+  region?:
+    | T
+    | {
+        city?: T;
+        state?: T;
+        country?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
