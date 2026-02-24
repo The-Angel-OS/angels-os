@@ -156,16 +156,48 @@ export function getConfiguredModelId(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Image model factory
+// ---------------------------------------------------------------------------
+
+/** Image models available through the AI Gateway */
+export const IMAGE_MODEL_CATALOG = {
+  'gemini-flash-image': 'google/gemini-2.5-flash',
+  'gemini-pro-image': 'google/gemini-3-pro-image-preview',
+  'gpt-image': 'openai/gpt-5-image',
+  'gpt-image-mini': 'openai/gpt-5-image-mini',
+} as const
+
+export type ImageModelAlias = keyof typeof IMAGE_MODEL_CATALOG
+
+/** Default image model */
+export const DEFAULT_IMAGE_MODEL = 'google/gemini-2.5-flash'
+
+/**
+ * Creates an AI SDK ImageModel routed through Vercel AI Gateway.
+ * Returns null if no gateway key is configured.
+ */
+export function getImageModel(
+  modelId?: string,
+): ReturnType<ReturnType<typeof createGateway>['imageModel']> | null {
+  const apiKey = resolveGatewayKey()
+  if (!apiKey) return null
+
+  const resolvedId =
+    modelId && modelId in IMAGE_MODEL_CATALOG
+      ? IMAGE_MODEL_CATALOG[modelId as ImageModelAlias]
+      : modelId || DEFAULT_IMAGE_MODEL
+
+  const provider = createGateway({ apiKey })
+  return provider.imageModel(resolvedId)
+}
+
+// ---------------------------------------------------------------------------
 // Tool converter — Anthropic format → AI SDK format
 // ---------------------------------------------------------------------------
 
 /**
  * Converts Anthropic-format tool definitions to AI SDK ToolSet format.
  * Binds each tool's execute function to the provided dispatcher + context.
- *
- * Usage:
- *   const tools = convertToolsForAISDK(LEO_TOOLS, executeToolCall, ctx)
- *   const { text } = await generateText({ model, tools, ... })
  */
 export function convertToolsForAISDK(
   anthropicTools: Anthropic.Tool[],

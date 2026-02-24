@@ -1,28 +1,24 @@
 /**
  * Image Generation Utility — LEO Media Creation
  *
- * Uses OpenRouter as a one-stop-shop to access image generation models
- * (Flux 2, Gemini Image, GPT Image) through a unified API.
- * Also uses Anthropic for image understanding/feedback (vision API).
+ * Dual-path architecture:
+ *   Path A (preferred): Vercel AI Gateway → generateImage() from AI SDK
+ *   Path B (fallback):  OpenRouter API → chat completions with image models
  *
  * Architecture:
  *   1. LEO's `generate_image` tool calls generateImage() with a prompt
- *   2. OpenRouter routes to the best image model and returns base64 image
+ *   2. AI Gateway (or OpenRouter fallback) generates the image
  *   3. We upload the image to Payload Media (→ Vercel Blob in prod)
  *   4. The Media doc ID can be attached to products, messages, etc.
  *
- * Content Management:
- *   - Generate product images from descriptions
- *   - Replace existing images with improved versions
- *   - Accept feedback on images ("make it warmer", "remove background")
- *   - Auto-generate content images for posts/articles
- *   - Deep links for dynamically produced product imagery
+ * Also uses Anthropic for image understanding/feedback (vision API).
  *
  * @see leo-data-tools.ts — tool definitions
- * @see ConversationEngine.ts — tool execution loop
+ * @see ai-gateway.ts — gateway image model factory
  */
 
 import type { Payload } from 'payload'
+import { getImageModel, isGatewayAvailable } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -30,14 +26,14 @@ import type { Payload } from 'payload'
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-/** Default model for image generation — Flux 2 Pro for best photorealism */
-const DEFAULT_IMAGE_MODEL = 'black-forest-labs/flux-2-pro'
+/** Default OpenRouter image model (fallback path) */
+const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-image'
 
-/** Fallback models in priority order */
-const FALLBACK_MODELS = [
-  'black-forest-labs/flux-2-pro',
-  'google/gemini-2.5-flash-image-preview',
-  'black-forest-labs/flux-2-flex',
+/** Fallback OpenRouter models in priority order */
+const OPENROUTER_FALLBACK_MODELS = [
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3-pro-image-preview',
+  'openai/gpt-5-image-mini',
 ]
 
 // ---------------------------------------------------------------------------
@@ -160,25 +156,115 @@ function enhancePromptForProduct(
 // ---------------------------------------------------------------------------
 
 /**
- * Generate an image using OpenRouter (routes to Flux 2, Gemini Image, etc.)
- * Returns base64 image data — call uploadGeneratedImage() to persist.
+ * Generate an image using Vercel AI Gateway (preferred) or OpenRouter (fallback).
+ *
+ * Path A: AI Gateway → AI SDK generateImage() → base64
+ * Path B: OpenRouter → chat completions → extract image from response
+ *
+ * Returns base64 image data — auto-uploads to Payload Media if requested.
  */
 export async function generateImage(
   options: ImageGenerationOptions,
   payload?: Payload,
   tenantOpenRouterKey?: string,
 ): Promise<ImageGenerationResult> {
-  // Sprint 6: Support tenant-specific OpenRouter key (BYOAI)
+  const enhancedPrompt = enhancePromptForProduct(options.prompt, options.enhancementContext)
+
+  // --- Path A: Vercel AI Gateway (preferred) ---
+  if (isGatewayAvailable()) {
+    console.log('[ImageGeneration] Using Vercel AI Gateway')
+    try {
+      const result = await generateViaGateway(enhancedPrompt, options, payload)
+      if (result.success) return result
+      console.warn('[ImageGeneration] Gateway failed, trying OpenRouter fallback:', result.error)
+    } catch (err) {
+      console.warn('[ImageGeneration] Gateway error, falling back to OpenRouter:', err)
+    }
+  }
+
+  // --- Path B: OpenRouter (fallback) ---
   const apiKey = tenantOpenRouterKey || process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     return {
       success: false,
-      error: 'Image generation unavailable — OPENROUTER_API_KEY not configured.',
+      error: 'Image generation unavailable — neither AI_GATEWAY_API_KEY nor OPENROUTER_API_KEY is configured.',
     }
   }
 
-  const enhancedPrompt = enhancePromptForProduct(options.prompt, options.enhancementContext)
-  const model = options.model || DEFAULT_IMAGE_MODEL
+  console.log('[ImageGeneration] Using OpenRouter fallback')
+  return generateViaOpenRouter(enhancedPrompt, apiKey, options, payload)
+}
+
+/**
+ * Generate an image via Vercel AI Gateway using the AI SDK generateImage().
+ */
+async function generateViaGateway(
+  prompt: string,
+  options: ImageGenerationOptions,
+  payload?: Payload,
+): Promise<ImageGenerationResult> {
+  const { generateImage: aiGenerateImage } = await import('ai')
+  const imageModel = getImageModel(options.model)
+
+  if (!imageModel) {
+    return { success: false, error: 'AI Gateway image model not available.' }
+  }
+
+  try {
+    const response = await aiGenerateImage({
+      model: imageModel,
+      prompt,
+      n: 1,
+    })
+
+    if (!response.images || response.images.length === 0) {
+      return { success: false, error: 'AI Gateway returned no images.' }
+    }
+
+    const img = response.images[0]
+    // AI SDK returns base64 string; convert to data URL
+    const imageDataUrl = img.base64.startsWith('data:')
+      ? img.base64
+      : `data:image/png;base64,${img.base64}`
+
+    const result: ImageGenerationResult = {
+      success: true,
+      imageDataUrl,
+      modelUsed: `gateway/${imageModel.modelId}`,
+    }
+
+    // Auto-upload to Payload Media
+    if (options.autoUpload && payload) {
+      await tryUploadToMedia(result, imageDataUrl, options, payload)
+    }
+
+    return result
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[ImageGeneration] Gateway generation error:', msg)
+
+    if (msg.includes('content_policy') || msg.includes('safety')) {
+      return {
+        success: false,
+        error: 'The image prompt was flagged by content policy. Please try a different description.',
+      }
+    }
+
+    return { success: false, error: `Gateway image generation failed: ${msg}` }
+  }
+}
+
+/**
+ * Generate an image via OpenRouter chat completions API.
+ */
+async function generateViaOpenRouter(
+  prompt: string,
+  apiKey: string,
+  options: ImageGenerationOptions,
+  payload?: Payload,
+  model?: string,
+): Promise<ImageGenerationResult> {
+  const selectedModel = model || options.model || DEFAULT_OPENROUTER_MODEL
 
   try {
     const response = await fetch(OPENROUTER_BASE_URL, {
@@ -187,17 +273,17 @@ export async function generateImage(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_SERVER_URL || 'https://spacesangels.com',
-        'X-Title': 'Angel OS — LEO Image Generation',
+        'X-Title': 'Angel OS - LEO Image Generation',
       },
       body: JSON.stringify({
-        model,
+        model: selectedModel,
         messages: [
           {
             role: 'user',
-            content: enhancedPrompt,
+            content: prompt,
           },
         ],
-        modalities: ['image'],
+        modalities: ['image', 'text'],
       }),
     })
 
@@ -206,11 +292,10 @@ export async function generateImage(
       console.error('[ImageGeneration] OpenRouter error:', response.status, errorBody)
 
       // Try fallback models
-      if (model === DEFAULT_IMAGE_MODEL) {
-        for (const fallbackModel of FALLBACK_MODELS.slice(1)) {
-          const fallbackResult = await generateImage(
-            { ...options, model: fallbackModel },
-            payload,
+      if (selectedModel === DEFAULT_OPENROUTER_MODEL) {
+        for (const fallbackModel of OPENROUTER_FALLBACK_MODELS.slice(1)) {
+          const fallbackResult = await generateViaOpenRouter(
+            prompt, apiKey, options, payload, fallbackModel,
           )
           if (fallbackResult.success) return fallbackResult
         }
@@ -229,18 +314,17 @@ export async function generateImage(
       return { success: false, error: 'Image generation returned no data.' }
     }
 
-    // Extract image from response — OpenRouter returns images in message.images array
-    const images = choice.images as
-      | Array<{ type: string; image_url: { url: string } }>
-      | undefined
-
+    // Extract image — OpenRouter models return images in different formats
     let imageDataUrl: string | undefined
 
-    if (images && images.length > 0) {
-      imageDataUrl = images[0].image_url?.url
+    // Format 1: message.images array (Gemini models)
+    if (choice.images && Array.isArray(choice.images) && choice.images.length > 0) {
+      const img = choice.images[0]
+      imageDataUrl = img.image_url?.url || img.url || img
+      if (typeof imageDataUrl === 'object') imageDataUrl = undefined
     }
 
-    // Some models may also return image content in the content array
+    // Format 2: content array with image_url blocks
     if (!imageDataUrl && Array.isArray(choice.content)) {
       for (const block of choice.content) {
         if (block.type === 'image_url' && block.image_url?.url) {
@@ -261,40 +345,19 @@ export async function generateImage(
     const result: ImageGenerationResult = {
       success: true,
       imageDataUrl,
-      modelUsed: data?.model || model,
+      modelUsed: data?.model || selectedModel,
       modelText: typeof choice.content === 'string' ? choice.content : undefined,
     }
 
-    // Auto-upload to Payload Media if requested and payload available
+    // Auto-upload to Payload Media
     if (options.autoUpload && payload) {
-      try {
-        const uploadResult = await uploadGeneratedImage(payload, imageDataUrl, {
-          alt:
-            options.enhancementContext?.productName
-              ? `AI-generated image for ${options.enhancementContext.productName}`
-              : 'AI-generated image',
-          productName: options.enhancementContext?.productName,
-        })
-
-        if ('mediaId' in uploadResult) {
-          result.mediaId = uploadResult.mediaId
-          result.permanentUrl = uploadResult.permanentUrl
-        } else {
-          console.warn('[ImageGeneration] Upload succeeded but returned no mediaId')
-          result.uploadWarning = 'Image generated but could not be saved to media library.'
-        }
-      } catch (uploadErr) {
-        console.error('[ImageGeneration] Upload failed:', uploadErr)
-        // Image was generated successfully — don't fail the whole result,
-        // but surface the upload error so LEO can inform the user
-        result.uploadWarning = `Image generated but upload to media library failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`
-      }
+      await tryUploadToMedia(result, imageDataUrl, options, payload)
     }
 
     return result
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[ImageGeneration] Error:', msg)
+    console.error('[ImageGeneration] OpenRouter error:', msg)
 
     if (msg.includes('content_policy')) {
       return {
@@ -304,6 +367,38 @@ export async function generateImage(
     }
 
     return { success: false, error: `Image generation failed: ${msg}` }
+  }
+}
+
+/**
+ * Tries to upload a generated image to Payload Media.
+ * Mutates `result` to add mediaId/permanentUrl or uploadWarning.
+ */
+async function tryUploadToMedia(
+  result: ImageGenerationResult,
+  imageDataUrl: string,
+  options: ImageGenerationOptions,
+  payload: Payload,
+): Promise<void> {
+  try {
+    const uploadResult = await uploadGeneratedImage(payload, imageDataUrl, {
+      alt:
+        options.enhancementContext?.productName
+          ? `AI-generated image for ${options.enhancementContext.productName}`
+          : 'AI-generated image',
+      productName: options.enhancementContext?.productName,
+    })
+
+    if ('mediaId' in uploadResult) {
+      result.mediaId = uploadResult.mediaId
+      result.permanentUrl = uploadResult.permanentUrl
+    } else {
+      console.warn('[ImageGeneration] Upload returned no mediaId')
+      result.uploadWarning = 'Image generated but could not be saved to media library.'
+    }
+  } catch (uploadErr) {
+    console.error('[ImageGeneration] Upload failed:', uploadErr)
+    result.uploadWarning = `Image generated but upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`
   }
 }
 
@@ -694,9 +789,9 @@ function deepReplaceMediaId(
 // ---------------------------------------------------------------------------
 
 /**
- * Returns true if image generation is available (OPENROUTER_API_KEY is set,
- * or a tenant-specific key is provided).
+ * Returns true if image generation is available.
+ * Checks: AI Gateway (preferred) → OpenRouter → tenant BYOAI key.
  */
 export function isImageGenerationAvailable(tenantOpenRouterKey?: string): boolean {
-  return Boolean(tenantOpenRouterKey || process.env.OPENROUTER_API_KEY)
+  return isGatewayAvailable() || Boolean(tenantOpenRouterKey || process.env.OPENROUTER_API_KEY)
 }

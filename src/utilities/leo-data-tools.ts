@@ -2202,7 +2202,6 @@ async function handleGenerateImage(
       },
       autoSave ? payload : undefined,
     )
-
     if (!result.success) {
       return `Image generation failed: ${result.error}`
     }
