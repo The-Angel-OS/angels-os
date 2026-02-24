@@ -6,7 +6,7 @@ import { Gallery } from '@/components/product/Gallery'
 import { ProductDescription } from '@/components/product/ProductDescription'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
+import { draftMode, headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React, { Suspense } from 'react'
@@ -191,6 +191,33 @@ const queryProductBySlug = async ({ slug }: { slug: string }) => {
 
   const payload = await getPayload({ config: configPromise })
 
+  // Resolve tenant from middleware-injected header
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  let tenantId: number | undefined
+
+  if (tenantSlug) {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: tenantSlug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = tenants.docs?.[0]?.id
+  }
+
+  if (!tenantId) {
+    const defaults = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: 'default' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = defaults.docs?.[0]?.id
+  }
+
   const result = await payload.find({
     collection: 'products',
     depth: 3,
@@ -206,6 +233,7 @@ const queryProductBySlug = async ({ slug }: { slug: string }) => {
           },
         },
         ...(draft ? [] : [{ _status: { equals: 'published' } }]),
+        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
       ],
     },
     populate: {
