@@ -479,6 +479,55 @@ export interface Tenant {
      */
     federationId?: string | null;
   };
+  /**
+   * Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.
+   */
+  bootstrapFees?: {
+    /**
+     * Current fee tier. Transitions: free → bootstrap → standard.
+     */
+    tier?: ('free' | 'bootstrap' | 'standard') | null;
+    /**
+     * Number of fee-free transactions used. After threshold, tier auto-promotes to bootstrap.
+     */
+    freeTransactionsUsed?: number | null;
+    /**
+     * Maximum number of free transactions before bootstrap fee kicks in.
+     */
+    freeTransactionLimit?: number | null;
+    /**
+     * Gross Merchandise Value processed for free (in cents). Auto-tracked.
+     */
+    freeGmvCents?: number | null;
+    /**
+     * GMV ceiling before bootstrap fee activates (in cents). Default: $5,000.
+     */
+    freeGmvLimitCents?: number | null;
+    /**
+     * Bootstrap-phase fee as percentage of transaction (default: 5%). Added on top of standard split.
+     */
+    bootstrapFeePercent?: number | null;
+    /**
+     * Total bootstrap fees collected to date (in cents). This is the refund liability.
+     */
+    totalFeesCollectedCents?: number | null;
+    /**
+     * Binding commitment: all bootstrap fees will be fully refunded when the bootstrap phase ends.
+     */
+    refundPromised?: boolean | null;
+    /**
+     * Status of the bootstrap fee refund promise.
+     */
+    refundStatus?: ('accruing' | 'processing' | 'completed' | 'waived') | null;
+    /**
+     * When the tenant entered bootstrap fee tier.
+     */
+    bootstrapStartedAt?: string | null;
+    /**
+     * When the bootstrap phase ended for this tenant.
+     */
+    bootstrapEndedAt?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -3948,6 +3997,21 @@ export interface TenantsSelect<T extends boolean = true> {
         constitutionSignedAt?: T;
         constitutionSignature?: T;
         federationId?: T;
+      };
+  bootstrapFees?:
+    | T
+    | {
+        tier?: T;
+        freeTransactionsUsed?: T;
+        freeTransactionLimit?: T;
+        freeGmvCents?: T;
+        freeGmvLimitCents?: T;
+        bootstrapFeePercent?: T;
+        totalFeesCollectedCents?: T;
+        refundPromised?: T;
+        refundStatus?: T;
+        bootstrapStartedAt?: T;
+        bootstrapEndedAt?: T;
       };
   updatedAt?: T;
   createdAt?: T;

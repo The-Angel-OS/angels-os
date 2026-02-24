@@ -39,4 +39,7 @@ export const TOOL_LABELS: Record<string, string> = {
   route_order: 'Routing order to vendor',
   accept_order: 'Accepting order',
   update_fulfillment: 'Updating fulfillment',
+
+  // Platform / Fees
+  check_fees: 'Checking platform fees',
 }

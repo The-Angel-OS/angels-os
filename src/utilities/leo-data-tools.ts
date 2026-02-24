@@ -22,6 +22,7 @@
 
 import type { Payload, Where } from 'payload'
 import type Anthropic from '@anthropic-ai/sdk'
+import { getBootstrapFeeStatus } from './bootstrapFees'
 import {
   generateImage,
   uploadGeneratedImage,
@@ -570,6 +571,16 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'check_fees',
+    description:
+      'Check the current platform fee tier and bootstrap fee status for this Enterprise. Shows free transactions remaining, bootstrap fee percentage, total fees collected, and refund promise status. Use when a user asks about "fees", "platform costs", "pricing", "how much does Angel OS charge", or "bootstrap phase".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
     name: 'query_orders',
     description:
       'Look up orders. Customer view shows purchase history. Vendor view shows orders assigned to your Holon node. Use when a user asks "show my orders" or "what orders do I have".',
@@ -1062,6 +1073,8 @@ export async function executeToolCall(
         return await handleFindProducers(payload, toolInput, ctx)
       case 'browse_network':
         return await handleBrowseNetwork(payload, toolInput, ctx)
+      case 'check_fees':
+        return await handleCheckFees(payload, ctx)
       case 'query_orders':
         return await handleQueryOrders(payload, toolInput, ctx)
       case 'route_order':
@@ -3949,5 +3962,72 @@ async function handlePingFederation(
       `🎉 Your Enterprise setup is complete! The wizard is done.`,
       `You'll be redirected to your dashboard.`,
     ].join('\n')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// check_fees — Bootstrap fee tier and refund promise status
+// ---------------------------------------------------------------------------
+
+async function handleCheckFees(
+  payload: Payload,
+  ctx: ToolContext,
+): Promise<string> {
+  if (!ctx.tenantId) {
+    return 'Unable to check fees — no Enterprise context available. Please select an Enterprise first.'
+  }
+
+  try {
+    const status = await getBootstrapFeeStatus(ctx.tenantId)
+
+    const tierLabels = {
+      free: 'Free Tier (no platform fees)',
+      bootstrap: 'Bootstrap Phase (fee active, full refund promised)',
+      standard: 'Standard (post-bootstrap, UltimateFairSplit)',
+    }
+
+    const lines = [
+      `## Platform Fee Status`,
+      ``,
+      `**Current Tier:** ${tierLabels[status.tier] || status.tier}`,
+      ``,
+    ]
+
+    if (status.tier === 'free') {
+      lines.push(
+        `### Free Tier Details`,
+        `- **Transactions used:** ${status.freeTransactionsUsed} / ${status.freeTransactionLimit}`,
+        `- **GMV processed:** $${(status.freeGmvCents / 100).toFixed(2)} / $${(status.freeGmvLimitCents / 100).toFixed(2)}`,
+        `- **Free transactions remaining:** ${status.freeTransactionsRemaining}`,
+        ``,
+        `You're currently paying **zero platform fees**. After reaching the free tier limit, a small bootstrap fee (${status.bootstrapFeePercent}%) will apply — but every cent is tracked and committed for **full refund** when the bootstrap phase ends.`,
+      )
+    } else if (status.tier === 'bootstrap') {
+      lines.push(
+        `### Bootstrap Phase Details`,
+        `- **Fee rate:** ${status.bootstrapFeePercent}% per transaction`,
+        `- **Total fees collected:** $${(status.totalFeesCollectedCents / 100).toFixed(2)}`,
+        `- **Refund promised:** ${status.refundPromised ? 'Yes — binding commitment' : 'No'}`,
+        `- **Refund status:** ${status.refundStatus}`,
+        `- **Bootstrap started:** ${status.bootstrapStartedAt ? new Date(status.bootstrapStartedAt).toLocaleDateString() : 'N/A'}`,
+        ``,
+        `Every dollar of bootstrap fees is tracked with a **binding refund promise**. When the platform graduates from the bootstrap phase, all $${(status.totalFeesCollectedCents / 100).toFixed(2)} will be returned to you. Early tenants are investors, not customers.`,
+      )
+    } else {
+      lines.push(
+        `### Standard Tier`,
+        `- **Revenue split:** 60% Provider / 20% Platform / 15% Operations / 5% Justice Fund`,
+        `- **Bootstrap fees collected:** $${(status.totalFeesCollectedCents / 100).toFixed(2)}`,
+        `- **Refund status:** ${status.refundStatus}`,
+        status.bootstrapEndedAt
+          ? `- **Graduated on:** ${new Date(status.bootstrapEndedAt).toLocaleDateString()}`
+          : '',
+      )
+    }
+
+    return lines.filter(Boolean).join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error checking fees:', err)
+    return 'Unable to retrieve fee status. Please try again later.'
   }
 }
