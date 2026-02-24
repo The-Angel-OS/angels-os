@@ -378,6 +378,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             timestamp: new Date(),
             authorName: 'LEO',
             isStreaming: true,
+            lastDeltaAt: Date.now(),
           },
         ])
 
@@ -402,23 +403,24 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
                 switch (eventType) {
                   case 'delta':
-                    // Append text chunk to streaming message
+                    // Append text chunk to streaming message + update liveness timestamp
                     setMessages((prev) =>
                       prev.map((m) =>
                         m.id === leoMsgId
-                          ? { ...m, content: m.content + String(data.text || '') }
+                          ? { ...m, content: m.content + String(data.text || ''), lastDeltaAt: Date.now() }
                           : m,
                       ),
                     )
                     break
 
                   case 'tool_call':
-                    // Show tool call status
+                    // Show tool call status + update liveness timestamp
                     setMessages((prev) =>
                       prev.map((m) =>
                         m.id === leoMsgId
                           ? {
                               ...m,
+                              lastDeltaAt: Date.now(),
                               activeToolCall:
                                 data.status === 'executing'
                                   ? TOOL_LABELS[data.name as string] ||
