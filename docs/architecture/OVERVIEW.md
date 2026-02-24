@@ -31,8 +31,25 @@
 |-------|------|
 | **Constitution** | Non-negotiable principles (dignity, transparency, service, Ultimate Fair, etc.). |
 | **OpenClaw** | Conversation engine, skills, chat UX; constitutionally aligned. |
-| **Angel OS Core** | Payload CMS + collections (Tenants, Users, Spaces, Channels, Messages, Workflows, etc.), multi-tenant, branding, and future widgets/blocks. |
+| **Angel OS Core** | Payload CMS + collections (Tenants, Users, Spaces, Channels, Messages, Contacts, etc.), multi-tenant, branding, and future widgets/blocks. |
+| **AI Gateway** | Vercel AI Gateway for multi-model routing (Claude, Gemini, GPT-4o) with BYOAI fallback. |
 | **Voice / 800#** | Future: VAPI/Twilio (or equivalent), Nimue-style routing to Angels. |
+
+### AI Gateway architecture
+
+LEO's brain supports multiple LLM providers via Vercel AI Gateway (`ai-gateway.ts`):
+
+| Priority | Path | When |
+|----------|------|------|
+| 1 | Anthropic SDK (direct) | Tenant has BYOAI key |
+| 2 | Vercel AI Gateway | `AI_GATEWAY_API_KEY` configured |
+| 3 | Anthropic SDK (fallback) | Default — uses platform `ANTHROPIC_API_KEY` |
+
+Model aliases: `claude-sonnet`, `claude-opus`, `gemini-pro`, `gemini-flash`, `gpt-4o`, `gpt-4o-mini`. Set `LLM_MODEL` env to override default.
+
+### CRM and growth infrastructure
+
+The Contacts collection (`src/collections/Contacts`) is the CRM source of truth. Supports CSV/JSON import, source tagging (clerk-lms, csv-import, manual, etc.), and bulk invite to Enterprise via TenantMemberships tokens. Admin UI at `/dashboard/admin/contacts` with Import, Contacts, and Invite tabs.
 
 ### Pratchett and the Pipedream Index
 

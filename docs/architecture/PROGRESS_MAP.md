@@ -1,10 +1,10 @@
 # Architecture Progress Map
 
 **Purpose:** Track implementation progress across all Angel OS subsystems.
-**Last Updated:** February 22, 2026 (Sprint 11.5 -- Chat UX, Docs, Code Quality)
+**Last Updated:** February 23, 2026 (Sprint 19 -- CRM Contacts, AI Gateway, Vercel Analytics)
 **Test Coverage:** 1,119 unit tests across 25 test files
 **LEO Tools:** 29 total (9 query, 15 action, 2 onboarding, 1 production, 1 review, 3 media)
-**Version:** v0.11.5-dev
+**Version:** v0.19-dev
 
 ---
 
@@ -55,6 +55,9 @@
 | Constitutional System Prompt | Done | Nimue/Merlin identity, Safehold lore, Herald's story |
 | Vision Analysis | Done | Multi-part image content blocks via Anthropic API |
 | Env-Resilient API Key | Done | `resolveAnthropicKey()` reads `.env.local` when parent shadows key |
+| **AI Gateway (Multi-Model)** | **Done** | `ai-gateway.ts` -- Vercel AI Gateway with dual-path routing |
+| **Model Catalog** | **Done** | Claude Sonnet/Opus/Haiku, Gemini Pro/Flash, GPT-4o aliases |
+| **BYOAI Fallback** | **Done** | Tenant keys → Anthropic direct; Gateway → AI SDK; else → Anthropic fallback |
 
 ### LEO Tools (29 tools)
 
@@ -322,9 +325,63 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 
 ---
 
+## CRM Contacts & Bulk Invite
+
+**Status:** DONE (Sprint 19)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Contacts Collection | Done | `src/collections/Contacts/index.ts` -- email, name, source, tags, status |
+| Unique Email Enforcement | Done | `enforceUniqueEmailPerTenant.ts` hook -- [email + tenant] uniqueness |
+| CSV/JSON Parser | Done | `csvParser.ts` -- handles `email,name` CSV and JSON arrays, no external deps |
+| Import Server Action | Done | `importContacts()` -- parse, dedupe, create records, return created/skipped |
+| Contact Query Action | Done | `getContacts()` -- paginated with search, source, status, inviteStatus filters |
+| Contact Stats Action | Done | `getContactStats()` -- counts by status (total, invited, accepted, pending) |
+| Bulk Invite Action | Done | `bulkInvite()` -- creates TenantMemberships with tokens, batched email send |
+| Tenant Invite Email | Done | `sendTenantInvitationEmail.ts` -- HTML template for Enterprise invites |
+| Tenant Invite Endpoint | Done | `tenant-invite-accept.ts` -- POST /api/tenant-invite/accept |
+| Tenant Invite Landing Page | Done | `/tenant-invite/[token]/page.tsx` -- Enterprise accept UI |
+| Contacts Admin UI | Done | `ContactsManager.tsx` -- 3-tab interface (Import/Contacts/Invite) |
+| Import Tab | Done | Drag-drop CSV/JSON, source tag selector, result feedback |
+| Contacts Tab | Done | Searchable table, status badges, filters, checkbox selection, pagination |
+| Invite Tab | Done | Selected contacts summary, role picker, progress bar, results |
+| Sidebar Nav Link | Done | "Contacts" in admin section (desktop + mobile) |
+
+---
+
+## AI Gateway & Multi-Model Support
+
+**Status:** DONE (Sprint 19)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Vercel AI Gateway | Done | `ai-gateway.ts` -- multi-model routing via single API key |
+| AI SDK v6 Integration | Done | `ai@6.0.97` + `@ai-sdk/gateway@3.0.53` |
+| Model Catalog | Done | 7 aliases: claude-sonnet/opus/haiku, gemini-pro/flash, gpt-4o/mini |
+| Dual-Path Batch | Done | `ConversationEngine.ts` -- gateway preferred, Anthropic fallback |
+| Dual-Path Streaming | Done | `leo-stream.ts` -- gateway preferred, Anthropic fallback |
+| Tool Converter | Done | `convertToolsForAISDK()` -- Anthropic Tool[] → AI SDK ToolSet |
+| BYOAI Passthrough | Done | Tenant-specific keys always use direct Anthropic SDK |
+| Env Configuration | Done | `AI_GATEWAY_API_KEY`, `LLM_MODEL` override, alias resolution |
+
+---
+
+## Vercel Analytics & Observability
+
+**Status:** DONE (Sprint 19)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Vercel Analytics | Done | `@vercel/analytics` -- page views, web vitals in both layouts |
+| Speed Insights | Done | `@vercel/speed-insights` -- Core Web Vitals monitoring |
+| App Layout Integration | Done | `(app)/layout.tsx` -- Analytics + SpeedInsights components |
+| Dashboard Layout Integration | Done | `(dashboard)/layout.tsx` -- Analytics + SpeedInsights components |
+
+---
+
 ## Dashboard & Navigation
 
-**Status:** DONE (16+ native pages)
+**Status:** DONE (17+ native pages)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -344,6 +401,7 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 | Documentation Center | Done | `/dashboard/docs` -- 137 docs indexed, search, Quick Start cards |
 | Admin LEO Panel | Done | Floating LEO chat in Payload admin |
 | Spaces & Channels | Done | Full Discord-style experience |
+| Contacts Manager | Done | `/dashboard/admin/contacts` -- CRM import, search, bulk invite |
 
 ---
 
@@ -396,7 +454,6 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 ### Important (v1.0.0)
 - [ ] Docker Compose for self-hosting (#21)
 - [ ] Local model integration -- Ollama (#40)
-- [ ] CRM collections (#33)
 - [ ] Network map visualization (Leaflet/Mapbox)
 - [ ] Social syndication (Post -> Facebook/Instagram/Twitter)
 - [ ] LiveKit session transcription
@@ -412,6 +469,9 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 - [x] ~~Enterprise registry and heartbeat~~ -- federation engine with 126 tests
 - [x] ~~Federation security~~ -- trust chain, vouching, probation
 - [x] ~~Anti-daemon error messages~~ -- Error Log Viewer + ApplicationLogs
+- [x] ~~CRM collections (#33)~~ -- Contacts collection + bulk invite + admin UI
+- [x] ~~Multi-model AI~~ -- Vercel AI Gateway with Claude/Gemini/GPT-4o support
+- [x] ~~Vercel Analytics~~ -- page views + Core Web Vitals in both app and dashboard layouts
 
 ---
 
@@ -419,6 +479,10 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-02-23 | Sprint 19: CRM Contacts + Bulk Invite | Contacts collection, CSV/JSON import, bulk invite pipeline, admin UI |
+| 2026-02-23 | AI Gateway multi-model architecture | Dual-path routing: AI Gateway preferred, Anthropic SDK fallback, BYOAI passthrough |
+| 2026-02-23 | Vercel Analytics + Speed Insights | Pro plan metrics in both app and dashboard layouts |
+| 2026-02-23 | Diocese → Enterprise rename | System-wide rename to match federation terminology |
 | 2026-02-22 | Sprint 11.5: Documentation Center + chat UX | Smart scroll, truncation, infinite scroll, tenant chooser, code quality extractions |
 | 2026-02-22 | Federation architecture: platform IS the mesh | AI Bus as protocol, HTTPS as transport, Constitution as ACL -- no Tailscale needed |
 | 2026-02-22 | Extracted TOOL_LABELS, useClickOutside, Backdrop | Single source of truth pattern, reduced ~90 lines of duplication |
