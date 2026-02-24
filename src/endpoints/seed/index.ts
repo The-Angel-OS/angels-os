@@ -292,17 +292,17 @@ export const seed = async ({
   await findOrCreateTenantMembership(payload, req, {
     userId: customerUserId,
     tenantId: defaultTenantId,
-    role: 'member',
+    role: 'tenant_member',
   })
   await findOrCreateTenantMembership(payload, req, {
     userId: vendorUserId,
     tenantId: defaultTenantId,
-    role: 'member',
+    role: 'tenant_member',
   })
   await findOrCreateTenantMembership(payload, req, {
     userId: guardianUserId,
     tenantId: defaultTenantId,
-    role: 'member',
+    role: 'tenant_member',
   })
 
   const leoUser = await findOrCreateLeoUser(payload, req, {

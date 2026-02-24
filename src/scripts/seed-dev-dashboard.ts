@@ -119,11 +119,11 @@ async function main() {
 
   // ─── Step 3: Tenant Memberships ───────────────────────────────────
   console.log('🔗 Step 3/7: Creating tenant memberships...')
-  await findOrCreateTenantMembership(payload, req, { userId: admin.id, tenantId, role: 'admin' })
-  await findOrCreateTenantMembership(payload, req, { userId: mod.id, tenantId, role: 'admin' })
-  await findOrCreateTenantMembership(payload, req, { userId: member.id, tenantId, role: 'member' })
-  await findOrCreateTenantMembership(payload, req, { userId: guest.id, tenantId, role: 'member' })
-  await findOrCreateTenantMembership(payload, req, { userId: leo.id, tenantId, role: 'member' })
+  await findOrCreateTenantMembership(payload, req, { userId: admin.id, tenantId, role: 'tenant_admin' })
+  await findOrCreateTenantMembership(payload, req, { userId: mod.id, tenantId, role: 'tenant_admin' })
+  await findOrCreateTenantMembership(payload, req, { userId: member.id, tenantId, role: 'tenant_member' })
+  await findOrCreateTenantMembership(payload, req, { userId: guest.id, tenantId, role: 'tenant_member' })
+  await findOrCreateTenantMembership(payload, req, { userId: leo.id, tenantId, role: 'tenant_member' })
   console.log('   ✅ 5 tenant memberships')
 
   // ─── Step 4: Spaces ───────────────────────────────────────────────
