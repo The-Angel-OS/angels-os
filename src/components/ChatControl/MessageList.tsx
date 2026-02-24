@@ -100,6 +100,31 @@ function StreamingCursor() {
 }
 
 // ---------------------------------------------------------------------------
+// SSE Liveness Indicator — decaying heartbeat between stream events
+// ---------------------------------------------------------------------------
+
+/**
+ * Shows a small animated bar that pulses bright when an SSE event arrives and
+ * smoothly decays to near-transparent over ~600ms.  Each new `lastDeltaAt`
+ * timestamp restarts the CSS animation so the decay is visually continuous.
+ *
+ * Uses a key-based remount to restart the CSS animation on every event rather
+ * than manipulating styles imperatively — simple and React-idiomatic.
+ */
+function LivenessIndicator({ lastDeltaAt }: { lastDeltaAt: number }) {
+  return (
+    <span
+      key={lastDeltaAt}
+      className="liveness-decay ml-1.5 inline-flex items-center gap-1"
+      aria-hidden="true"
+    >
+      <span className="liveness-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      <span className="liveness-bar h-1 w-6 rounded-full bg-emerald-400" />
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Avatar
 // ---------------------------------------------------------------------------
 
@@ -327,6 +352,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
             )}
             {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
             <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} />
+            {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
             {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
             <div className="mt-1 text-[10px] opacity-50">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -591,6 +617,11 @@ function FullPageMessageList({
                       ) : (
                         <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={isLeo} />
                       )}
+                        {msg.isStreaming && msg.lastDeltaAt && (
+                          <div className="mt-1">
+                            <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />
+                          </div>
+                        )}
                         {msg.images && msg.images.length > 0 && (
                           <MessageImages images={msg.images} />
                         )}
