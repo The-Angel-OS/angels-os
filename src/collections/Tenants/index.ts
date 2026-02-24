@@ -514,5 +514,133 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
+    // ─── Bootstrap-Phase Platform Fees ────────────────────────────
+    // All tenants start with free access. After the free tier threshold,
+    // a platform fee kicks in. ALL fees collected during bootstrap are
+    // tracked with a binding refund promise — when the bootstrap phase
+    // ends, every cent is returned. Goal: cover expenses + maximize
+    // startup capital while keeping the constitutional promise of fairness.
+    {
+      name: 'bootstrapFees',
+      type: 'group',
+      admin: {
+        description:
+          'Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.',
+      },
+      fields: [
+        {
+          name: 'tier',
+          type: 'select',
+          defaultValue: 'free',
+          options: [
+            { label: 'Free (within free tier)', value: 'free' },
+            { label: 'Bootstrap (fee active, refund promised)', value: 'bootstrap' },
+            { label: 'Standard (post-bootstrap, UltimateFairSplit)', value: 'standard' },
+          ],
+          admin: {
+            description: 'Current fee tier. Transitions: free → bootstrap → standard.',
+          },
+        },
+        {
+          name: 'freeTransactionsUsed',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description:
+              'Number of fee-free transactions used. After threshold, tier auto-promotes to bootstrap.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'freeTransactionLimit',
+          type: 'number',
+          defaultValue: 50,
+          admin: {
+            description:
+              'Maximum number of free transactions before bootstrap fee kicks in.',
+          },
+        },
+        {
+          name: 'freeGmvCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description:
+              'Gross Merchandise Value processed for free (in cents). Auto-tracked.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'freeGmvLimitCents',
+          type: 'number',
+          defaultValue: 500000,
+          admin: {
+            description:
+              'GMV ceiling before bootstrap fee activates (in cents). Default: $5,000.',
+          },
+        },
+        {
+          name: 'bootstrapFeePercent',
+          type: 'number',
+          defaultValue: 5,
+          min: 0,
+          max: 15,
+          admin: {
+            description:
+              'Bootstrap-phase fee as percentage of transaction (default: 5%). Added on top of standard split.',
+          },
+        },
+        {
+          name: 'totalFeesCollectedCents',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description:
+              'Total bootstrap fees collected to date (in cents). This is the refund liability.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'refundPromised',
+          type: 'checkbox',
+          defaultValue: true,
+          admin: {
+            description:
+              'Binding commitment: all bootstrap fees will be fully refunded when the bootstrap phase ends.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'refundStatus',
+          type: 'select',
+          defaultValue: 'accruing',
+          options: [
+            { label: 'Accruing (fees being collected)', value: 'accruing' },
+            { label: 'Refund Processing', value: 'processing' },
+            { label: 'Refund Complete', value: 'completed' },
+            { label: 'Waived (tenant opted out of refund)', value: 'waived' },
+          ],
+          admin: {
+            description: 'Status of the bootstrap fee refund promise.',
+          },
+        },
+        {
+          name: 'bootstrapStartedAt',
+          type: 'date',
+          admin: {
+            description: 'When the tenant entered bootstrap fee tier.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'bootstrapEndedAt',
+          type: 'date',
+          admin: {
+            description: 'When the bootstrap phase ended for this tenant.',
+            readOnly: true,
+          },
+        },
+      ],
+    },
   ],
 }

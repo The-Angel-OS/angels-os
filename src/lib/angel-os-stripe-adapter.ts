@@ -16,6 +16,7 @@
 import type { PayloadRequest } from 'payload'
 import Stripe from 'stripe'
 import { getStripeApplicationFeeCents } from './stripe-connect-config'
+import { calculateBootstrapFee } from '@/utilities/bootstrapFees'
 
 // Re-export the client adapter as-is (no changes needed on the client side)
 export { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
@@ -41,7 +42,7 @@ interface AngelOsStripeAdapterArgs {
  */
 async function resolveTenantStripeAccount(
   req: PayloadRequest,
-): Promise<{ stripeAccountId: string; chargesEnabled: boolean } | null> {
+): Promise<{ tenantId: number; stripeAccountId: string; chargesEnabled: boolean } | null> {
   try {
     const tenantSlug =
       req.headers.get('x-tenant-id') ||
@@ -63,6 +64,7 @@ async function resolveTenantStripeAccount(
     if (!connect?.stripeAccountId) return null
 
     return {
+      tenantId: tenant.id as number,
       stripeAccountId: connect.stripeAccountId as string,
       chargesEnabled: Boolean(connect.stripeChargesEnabled),
     }
@@ -215,10 +217,24 @@ export function angelOsStripeAdapter(
         // Inject Connect split if tenant has charges enabled
         if (connectAccount?.chargesEnabled && connectAccount.stripeAccountId) {
           const applicationFee = getStripeApplicationFeeCents(amount)
+
+          // Calculate bootstrap fee (may be 0 if in free tier or standard)
+          let bootstrapFeeCents = 0
+          let bootstrapTier = 'unknown'
+          try {
+            const bfResult = await calculateBootstrapFee(connectAccount.tenantId, amount)
+            bootstrapFeeCents = bfResult.bootstrapFeeCents
+            bootstrapTier = bfResult.tier
+          } catch (err) {
+            payload.logger.warn('Bootstrap fee calculation failed, proceeding without:', err)
+          }
+
+          const totalApplicationFee = applicationFee + bootstrapFeeCents
+
           intentParams.transfer_data = {
             destination: connectAccount.stripeAccountId,
           }
-          intentParams.application_fee_amount = applicationFee
+          intentParams.application_fee_amount = totalApplicationFee
 
           // Add split metadata for webhook reconciliation
           intentParams.metadata = {
@@ -226,7 +242,10 @@ export function angelOsStripeAdapter(
             angelOs_splitEnabled: 'true',
             angelOs_providerAccount: connectAccount.stripeAccountId,
             angelOs_applicationFee: String(applicationFee),
-            angelOs_providerAmount: String(amount - applicationFee),
+            angelOs_bootstrapFee: String(bootstrapFeeCents),
+            angelOs_bootstrapTier: bootstrapTier,
+            angelOs_totalPlatformFee: String(totalApplicationFee),
+            angelOs_providerAmount: String(amount - totalApplicationFee),
           }
         } else if (connectAccount && !connectAccount.chargesEnabled) {
           // Connected but charges not yet enabled — note in metadata
