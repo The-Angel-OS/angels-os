@@ -5,14 +5,19 @@
  * Each agent (LEO, Support, Sales, etc.) gets its own personality injected
  * into the constitutional system prompt before every LLM call.
  *
- * P2 Implementation: Replaces the stub with real Anthropic Claude integration.
+ * Supports two LLM paths:
+ *   1. Vercel AI Gateway (preferred) — multi-model via AI SDK
+ *   2. Direct Anthropic SDK (fallback) — when gateway key is not configured
  *
  * @see constitutional-prompt.ts — immutable system prompt (Article VII.2)
  * @see AgentRouter.ts — selects which agent handles a message
  * @see leoProcessMessage.ts — orchestration wrapper
+ * @see ai-gateway.ts — Vercel AI Gateway integration
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { generateText, stepCountIs } from 'ai'
+import type { ModelMessage } from 'ai'
 import fs from 'fs'
 import path from 'path'
 import type { Payload } from 'payload'
@@ -25,6 +30,7 @@ import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
+import { getModel, isGatewayAvailable, convertToolsForAISDK } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Minimal env-file parser — avoids dotenv import issues with bundler resolution.
@@ -56,14 +62,10 @@ function parseEnvFile(src: Buffer | string): Record<string, string> {
 let _envFileKey: string | undefined
 
 function resolveAnthropicKey(): string | undefined {
-  // 1. Prefer the real process.env value if non-empty
   const envVal = process.env.ANTHROPIC_API_KEY
   if (envVal) return envVal
-
-  // 2. Return cached file-based value
   if (_envFileKey) return _envFileKey
 
-  // 3. Parse .env.local directly (one-time read)
   try {
     const envPath = path.resolve(process.cwd(), '.env.local')
     if (fs.existsSync(envPath)) {
@@ -74,7 +76,6 @@ function resolveAnthropicKey(): string | undefined {
         return _envFileKey
       }
     }
-    // Also try .env as fallback
     const envFallback = path.resolve(process.cwd(), '.env')
     if (fs.existsSync(envFallback)) {
       const parsed = parseEnvFile(fs.readFileSync(envFallback))
@@ -92,20 +93,17 @@ function resolveAnthropicKey(): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// LLM Client (lazy singleton — avoids import-time side effects on Vercel)
-// Supports per-tenant BYOAI keys (Sprint 6) with fallback to platform key.
+// LLM Client (lazy singleton — Anthropic SDK fallback)
 // ---------------------------------------------------------------------------
 
 let _anthropic: Anthropic | null = null
 let _cachedKey: string | undefined
 
 function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
-  // If a tenant-specific key is provided, create a fresh client (not cached)
   if (tenantApiKey) {
     return new Anthropic({ apiKey: tenantApiKey })
   }
 
-  // Invalidate the singleton if the env var changed (e.g. after restart/HMR)
   const apiKey = resolveAnthropicKey()
   if (_anthropic && _cachedKey === apiKey) return _anthropic
 
@@ -122,16 +120,9 @@ function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max conversation turns to include for context (user + agent pairs) */
 const MAX_HISTORY_TURNS = 8
-
-/** Max tokens for LLM response (1500 to accommodate tool call responses) */
 const MAX_RESPONSE_TOKENS = 1500
-
-/** Max tool-use round-trips per message (prevent infinite loops) */
 const MAX_TOOL_ROUNDS = 3
-
-/** Model to use */
 const LLM_MODEL = 'claude-sonnet-4-20250514'
 
 // ---------------------------------------------------------------------------
@@ -152,19 +143,13 @@ export class ConversationEngine {
     }
   }
 
-  /**
-   * Processes an incoming message and generates an AI response.
-   * Now async — calls Claude API for real intelligence.
-   */
   public async handleIncomingMessage(message: MessageContent): Promise<MessageContent | null> {
-    // Track intent if provided
     if (message.metadata?.intent) {
       this.context.intentHistory.push(message.metadata.intent)
       this.context.currentPrimaryIntent = message.metadata.intent.name
     }
     this.context.lastUserMessageTimestamp = new Date()
 
-    // Always generate an AI response (no more "log_message" dead end)
     const aiResponse = await this.generateResponse(message)
 
     if (aiResponse?.metadata?.intent) {
@@ -176,45 +161,143 @@ export class ConversationEngine {
   }
 
   // -----------------------------------------------------------------------
-  // LLM Response Generation
+  // LLM Response Generation — Router
   // -----------------------------------------------------------------------
 
-  /**
-   * Generates a response using Claude API with constitutional constraints,
-   * agent personality, conversation history, and data access tools.
-   *
-   * P2.5: Supports tool_use — LEO can query Payload collections (products,
-   * posts, bookings, etc.) when relevant to the user's question.
-   */
   private async generateResponse(
     userMessage: MessageContent,
   ): Promise<MessageContent | null> {
-    // Sprint 6: Check for tenant-specific Anthropic API key (BYOAI)
+    // Sprint 6: BYOAI (tenant-specific key) always uses direct Anthropic SDK
     const tenantAnthropicKey = this.context.sessionMemory?.tenantAnthropicApiKey as string | undefined
-    const client = getAnthropicClient(tenantAnthropicKey)
+    if (tenantAnthropicKey) {
+      return this.generateViaAnthropic(userMessage, tenantAnthropicKey)
+    }
+
+    // Prefer Vercel AI Gateway when available (multi-model support)
+    if (isGatewayAvailable()) {
+      return this.generateViaGateway(userMessage)
+    }
+
+    // Fallback to direct Anthropic SDK
+    return this.generateViaAnthropic(userMessage)
+  }
+
+  // -----------------------------------------------------------------------
+  // Path 1: Vercel AI Gateway (AI SDK)
+  // -----------------------------------------------------------------------
+
+  private async generateViaGateway(
+    userMessage: MessageContent,
+  ): Promise<MessageContent | null> {
+    const model = getModel()
+    if (!model) return this.buildFallbackResponse(userMessage)
+
+    try {
+      const systemPrompt = this.buildSystemPrompt()
+      const historyMessages = await this.fetchConversationHistory()
+
+      // Convert history to AI SDK format
+      const messages: ModelMessage[] = historyMessages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: typeof m.content === 'string' ? m.content : '',
+      }))
+      messages.push({ role: 'user', content: userMessage.text || '' })
+
+      // Convert tools
+      const payload = this.context.sessionMemory?.payload as Payload | undefined
+      const toolCtx: ToolExecutorContext = {
+        payload: payload!,
+        tenantId: this.context.sessionMemory?.tenantId as number | undefined,
+        spaceId: this.context.sessionMemory?.spaceId as number | undefined,
+        userId: (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id,
+      }
+      const tools = payload
+        ? convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
+        : undefined
+
+      const result = await generateText({
+        model,
+        system: systemPrompt,
+        messages,
+        tools,
+        stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+        maxOutputTokens: MAX_RESPONSE_TOKENS,
+      })
+
+      const responseText = result.text
+      if (!responseText) return this.buildFallbackResponse(userMessage)
+
+      // Constitutional validation
+      const validation = validateConstitutionalResponse(responseText)
+      if (!validation.valid) {
+        console.warn(
+          '[ConversationEngine] Constitutional concerns detected:',
+          validation.concerns,
+        )
+      }
+
+      this.inferPhaseFromResponse(userMessage.text || '')
+
+      return {
+        type: 'text',
+        text: responseText,
+        metadata: {
+          conversationId: this.context.conversationId,
+          intent: {
+            intentId: `intent_${Date.now()}`,
+            name: 'ai_response',
+            confidence: 1.0,
+            entities: [],
+            timestamp: new Date(),
+            sourceType: 'agent_suggestion',
+            isPrimary: true,
+          },
+        },
+      }
+    } catch (error) {
+      console.error('[ConversationEngine] AI Gateway call failed:', error)
+      logError({
+        source: 'ConversationEngine.generateViaGateway',
+        message: `AI Gateway call failed: ${error instanceof Error ? error.message : String(error)}`,
+        details: error instanceof Error ? error.stack : String(error),
+        statusCode: (error as { status?: number })?.status,
+        tenantId: this.context.sessionMemory?.tenantId
+          ? String(this.context.sessionMemory.tenantId)
+          : undefined,
+      }).catch(() => {})
+
+      // Fall back to direct Anthropic SDK
+      console.warn('[ConversationEngine] Falling back to direct Anthropic SDK')
+      return this.generateViaAnthropic(userMessage)
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Path 2: Direct Anthropic SDK (fallback / BYOAI)
+  // -----------------------------------------------------------------------
+
+  private async generateViaAnthropic(
+    userMessage: MessageContent,
+    tenantApiKey?: string,
+  ): Promise<MessageContent | null> {
+    const client = getAnthropicClient(tenantApiKey)
     if (!client) {
       return this.buildFallbackResponse(userMessage)
     }
 
     try {
-      // 1. Build system prompt (constitution + agent personality)
       const systemPrompt = this.buildSystemPrompt()
-
-      // 2. Fetch conversation history from DB if Payload is available
       const historyMessages = await this.fetchConversationHistory()
 
-      // 3. Construct messages array for the API call
       const messages: Anthropic.MessageParam[] = [
         ...historyMessages,
         { role: 'user' as const, content: userMessage.text || '' },
       ]
 
-      // 4. Determine if we can offer data tools (need Payload instance)
       const payload = this.context.sessionMemory?.payload as Payload | undefined
       const hasDataAccess = Boolean(payload)
       const tools = hasDataAccess ? LEO_TOOLS : undefined
 
-      // 5. Call Claude (with tool-use loop for data queries)
       let responseText = ''
       let round = 0
 
@@ -229,22 +312,13 @@ export class ConversationEngine {
           ...(tools && tools.length > 0 ? { tools } : {}),
         })
 
-        // Check if Claude wants to use a tool
         const toolUseBlocks = response.content.filter(
           (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
         )
 
         if (toolUseBlocks.length > 0 && payload) {
-          // Extract any text Claude said before/alongside the tool call
-          const textBeforeTool = response.content
-            .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-            .map((block) => block.text)
-            .join('\n')
-
-          // Add assistant's response (with tool_use blocks) to messages
           messages.push({ role: 'assistant' as const, content: response.content })
 
-          // Execute each tool and collect results
           const toolResults: Anthropic.ToolResultBlockParam[] = []
           const toolCtx: ToolExecutorContext = {
             payload,
@@ -266,37 +340,30 @@ export class ConversationEngine {
             })
           }
 
-          // Add tool results to messages for the next round
           messages.push({ role: 'user' as const, content: toolResults })
-
-          // Continue loop — Claude will process the tool results
           continue
         }
 
-        // No tool use — extract final text response
         responseText = response.content
           .filter((block): block is Anthropic.TextBlock => block.type === 'text')
           .map((block) => block.text)
           .join('\n')
 
-        break // Done — no more tool calls
+        break
       }
 
       if (!responseText) {
         return this.buildFallbackResponse(userMessage)
       }
 
-      // 6. Constitutional validation
       const validation = validateConstitutionalResponse(responseText)
       if (!validation.valid) {
         console.warn(
           '[ConversationEngine] Constitutional concerns detected:',
           validation.concerns,
         )
-        // Still return the response but log the concern — don't silently block
       }
 
-      // 7. Update phase based on response
       this.inferPhaseFromResponse(userMessage.text || '')
 
       return {
@@ -317,7 +384,6 @@ export class ConversationEngine {
       }
     } catch (error) {
       console.error('[ConversationEngine] LLM call failed:', error)
-      // Log to Error Log Viewer for triage
       logError({
         source: 'ConversationEngine.generateResponse',
         message: `LLM call failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -326,7 +392,7 @@ export class ConversationEngine {
         tenantId: this.context.sessionMemory?.tenantId
           ? String(this.context.sessionMemory.tenantId)
           : undefined,
-      }).catch(() => {}) // fire-and-forget
+      }).catch(() => {})
       return this.buildFallbackResponse(userMessage)
     }
   }
@@ -335,10 +401,6 @@ export class ConversationEngine {
   // System Prompt Construction
   // -----------------------------------------------------------------------
 
-  /**
-   * Builds the system prompt: constitutional base + agent personality +
-   * current context + capabilities.
-   */
   private buildSystemPrompt(): string {
     const agent = this.context.agent
     const agentName = agent?.displayName || 'LEO'
@@ -414,8 +476,7 @@ You have access to the platform's data through tools. When users ask about produ
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.` : ''}
 
-${this.buildUserContextSection()}
-## Guidelines
+${this.buildUserContextSection()}## Guidelines
 
 - Be warm, concise, and genuinely helpful.
 - You may use personality, humor, and warmth — but never be sycophantic.
@@ -432,17 +493,10 @@ ${this.context.currentPrimaryIntent ? `- Current intent: ${this.context.currentP
 `
   }
 
-  /**
-   * Returns true if the Payload instance is available for data queries.
-   */
   private hasDataAccess(): boolean {
     return Boolean(this.context.sessionMemory?.payload)
   }
 
-  /**
-   * Builds the user context section for the system prompt.
-   * Tells LEO who it's talking to, their role, and appropriate security context.
-   */
   private buildUserContextSection(): string {
     const userCtx = this.context.sessionMemory?.userContext as
       | { id?: number | string; name?: string; email?: string; roles?: string[] }
@@ -453,7 +507,6 @@ ${this.context.currentPrimaryIntent ? `- Current intent: ${this.context.currentP
     const name = userCtx.name || userCtx.email?.split('@')[0] || 'there'
     const roles = userCtx.roles || []
 
-    // Determine access level description
     let accessLevel = 'authenticated user'
     if (roles.includes('super_admin') || roles.includes('archangel')) {
       accessLevel = 'platform administrator (full access)'
@@ -478,10 +531,6 @@ Tailor your responses to their access level. Administrators can see all data and
   // Conversation History
   // -----------------------------------------------------------------------
 
-  /**
-   * Fetches recent conversation history from the Messages collection.
-   * Returns formatted messages for the Claude API.
-   */
   private async fetchConversationHistory(): Promise<Anthropic.MessageParam[]> {
     const payload = this.context.sessionMemory?.payload as Payload | undefined
     const spaceId = this.context.sessionMemory?.spaceId
@@ -502,12 +551,11 @@ Tailor your responses to their access level. Administrators can see all data and
           ],
         },
         sort: '-createdAt',
-        limit: MAX_HISTORY_TURNS * 2, // Each turn has user + agent
+        limit: MAX_HISTORY_TURNS * 2,
         depth: 1,
         overrideAccess: true,
       })
 
-      // Reverse to chronological order and convert to Claude message format
       const messages: Anthropic.MessageParam[] = []
       const docs = [...result.docs].reverse()
 
@@ -518,14 +566,11 @@ Tailor your responses to their access level. Administrators can see all data and
           (author.isSystemUser === true ||
             (Array.isArray(author.roles) && author.roles.includes('system')))
         const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-        // UMS: content is now JSON — extract displayable text
         const content = extractTextFromContent(msg.content)
 
         if (content.trim()) {
-          // Merge consecutive same-role messages (Claude API requires alternating roles)
           const lastMsg = messages[messages.length - 1]
           if (lastMsg && lastMsg.role === role) {
-            // Append to existing message
             lastMsg.content = `${lastMsg.content}\n${content}`
           } else {
             messages.push({ role, content })
@@ -533,7 +578,6 @@ Tailor your responses to their access level. Administrators can see all data and
         }
       }
 
-      // Ensure messages start with 'user' role (Claude API requirement)
       while (messages.length > 0 && messages[0].role !== 'user') {
         messages.shift()
       }
@@ -549,9 +593,6 @@ Tailor your responses to their access level. Administrators can see all data and
   // Phase Inference
   // -----------------------------------------------------------------------
 
-  /**
-   * Infers the conversation phase from the user's message.
-   */
   private inferPhaseFromResponse(text: string): void {
     const lower = text.toLowerCase()
     if (lower.includes('help') || lower.includes('issue') || lower.includes('problem')) {
@@ -569,9 +610,6 @@ Tailor your responses to their access level. Administrators can see all data and
   // Fallback (no API key or LLM failure)
   // -----------------------------------------------------------------------
 
-  /**
-   * Generates a fallback response when the LLM is unavailable.
-   */
   private buildFallbackResponse(originalMessage: MessageContent): MessageContent {
     const agentName = this.context.agent?.displayName || 'LEO'
     return {

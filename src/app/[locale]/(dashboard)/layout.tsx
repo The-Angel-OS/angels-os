@@ -10,6 +10,8 @@ import { TenantFonts } from '@/components/TenantFonts'
 import { TenantStyles } from '@/components/TenantStyles'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import type { Media } from '@/payload-types'
 import '../(app)/globals.css'
@@ -66,6 +68,8 @@ export default async function DashboardGroupLayout({ children }: { children: Rea
       </head>
       <body>
         <Providers>{children}</Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

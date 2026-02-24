@@ -29,6 +29,7 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/int"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^3.0.53",
     "@anthropic-ai/sdk": "^0.74.0",
     "@livekit/components-react": "^2.9.20",
     "@livekit/components-styles": "^1.2.0",
@@ -55,7 +56,10 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@stripe/react-stripe-js": "^3",
     "@stripe/stripe-js": "^4.0.0",
+    "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^2.0.1",
+    "@vercel/speed-insights": "^1.3.1",
+    "ai": "^6.0.97",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cross-env": "^7.0.3",
