@@ -11,6 +11,18 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
  */
 const STREAM_DONE_GRACE_MS = 3000
 
+// ─── Decaying Poll Interval ──────────────────────────────────────────────
+// Starts fast when activity is detected, backs off exponentially when idle.
+// Resets to fast on any user activity (send, receive, channel switch).
+//
+//   Active:  2s → 3s → 5s → 8s → 12s → 20s → 30s (cap)
+//   Factor:  ×1.5 per idle tick, capped at 30s
+//   Reset:   any user/LEO message → back to 2s
+// ──────────────────────────────────────────────────────────────────────────
+const POLL_MIN_MS = 2000
+const POLL_MAX_MS = 30000
+const POLL_DECAY_FACTOR = 1.5
+
 import { TOOL_LABELS } from '@/constants/toolLabels'
 
 /**
@@ -134,7 +146,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   const conversationIdRef = useRef<string>(
     `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
   )
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pollIntervalRef = useRef(POLL_MIN_MS)
   const lastMessageIdRef = useRef<string | null>(null)
   const authFailedRef = useRef(false)
   /** Abort controller for in-flight SSE stream — cancel on channel switch */
@@ -472,6 +485,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                     }
                     // Record when stream finished — protects against poll race condition
                     streamDoneAtRef.current = Date.now()
+                    // Reset poll to fast interval — chat is active
+                    resetPollInterval()
                     break
                   }
 
@@ -515,7 +530,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         return false
       }
     },
-    [activeChannel, spaceId],
+    [activeChannel, spaceId, resetPollInterval],
   )
 
   /**
@@ -570,6 +585,9 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   const sendMessage = useCallback(
     async (content: string, files?: File[]) => {
       if ((!content.trim() && (!files || files.length === 0)) || !spaceId) return
+
+      // Reset poll to fast interval on user activity
+      resetPollInterval()
 
       // Optimistic UI update — show images immediately from File objects
       const tempId = `temp_${Date.now()}`
@@ -683,7 +701,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         setIsLoading(false)
       }
     },
-    [spaceId, activeChannel, sendViaStream, sendViaBatch],
+    [spaceId, activeChannel, sendViaStream, sendViaBatch, resetPollInterval],
   )
 
   // Create a new channel in the current space
@@ -767,10 +785,11 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     streamAbortRef.current?.abort()
     streamAbortRef.current = null
     streamDoneAtRef.current = 0
+    resetPollInterval()
     setActiveChannel(slug)
     setMessages([])
     setHasMore(true)
-  }, [])
+  }, [resetPollInterval])
 
   // Load channels on mount
   useEffect(() => {
@@ -782,13 +801,33 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     loadMessages()
   }, [loadMessages])
 
-  // Poll for new messages every 5s (but not while streaming)
+  // ─── Decaying poll: fast when active, backs off when idle ──────────
+  // Uses recursive setTimeout so each tick can adjust the next delay.
+  // Activity (sendMessage, stream delta, channel switch) resets to fast.
+  const resetPollInterval = useCallback(() => {
+    pollIntervalRef.current = POLL_MIN_MS
+  }, [])
+
   useEffect(() => {
-    pollingRef.current = setInterval(() => {
+    let cancelled = false
+
+    const tick = () => {
+      if (cancelled) return
       loadMessages()
-    }, 5000)
+      // Decay: increase interval by factor, cap at max
+      pollIntervalRef.current = Math.min(
+        pollIntervalRef.current * POLL_DECAY_FACTOR,
+        POLL_MAX_MS,
+      )
+      pollingRef.current = setTimeout(tick, pollIntervalRef.current)
+    }
+
+    // Start the first tick
+    pollingRef.current = setTimeout(tick, pollIntervalRef.current)
+
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
+      cancelled = true
+      if (pollingRef.current) clearTimeout(pollingRef.current)
     }
   }, [loadMessages])
 
