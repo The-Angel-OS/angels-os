@@ -5,7 +5,7 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
+import { draftMode, headers } from 'next/headers'
 import React from 'react'
 
 import { notFound } from 'next/navigation'
@@ -21,7 +21,7 @@ export async function generateStaticParams() {
       overrideAccess: true, // Build-time has no user context — override for static generation
       pagination: false,
       where: { _status: { equals: 'published' } },
-      select: { slug: true },
+      select: { slug: true, tenant: true },
     })
 
     return (posts.docs ?? []).map(({ slug }) => ({ slug: slug! }))
@@ -98,6 +98,34 @@ async function queryPostBySlug({ slug }: { slug: string }) {
 
   const payload = await getPayload({ config: configPromise })
 
+  // Resolve tenant from middleware-injected header (matches posts/page.tsx pattern)
+  const headersList = await headers()
+  const tenantSlug = headersList.get('x-tenant-id')
+  let tenantId: number | undefined
+
+  if (tenantSlug) {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: tenantSlug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = tenants.docs?.[0]?.id
+  }
+
+  // Fallback to default tenant
+  if (!tenantId) {
+    const defaults = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: 'default' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantId = defaults.docs?.[0]?.id
+  }
+
   const result = await payload.find({
     collection: 'posts',
     draft,
@@ -109,6 +137,7 @@ async function queryPostBySlug({ slug }: { slug: string }) {
       and: [
         { slug: { equals: slug } },
         ...(draft ? [] : [{ _status: { equals: 'published' } }]),
+        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
       ],
     },
   })
