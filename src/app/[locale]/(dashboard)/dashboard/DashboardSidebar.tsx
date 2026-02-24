@@ -41,6 +41,8 @@ interface DashboardSidebarProps {
   tenantBranding?: TenantBranding | null
   userTenants?: TenantInfo[]
   currentTenantId?: number | string
+  /** When false, shows "Diocese Setup" nav link in OVERVIEW. Hidden once wizard completes. */
+  wizardComplete?: boolean
 }
 
 export function DashboardSidebar({
@@ -53,6 +55,7 @@ export function DashboardSidebar({
   tenantBranding,
   userTenants,
   currentTenantId,
+  wizardComplete = true,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -126,6 +129,7 @@ export function DashboardSidebar({
             isAdmin={isAdmin}
             isBusinessOwner={isBusinessOwner}
             pathname={pathname}
+            wizardComplete={wizardComplete}
           />
 
           {/* User footer */}
@@ -222,6 +226,18 @@ export function DashboardSidebar({
           >
             Documentation
           </NavLink>
+          {!wizardComplete && (
+            <NavLink
+              href={`${prefix}/dashboard/setup`}
+              icon={<WandIcon />}
+              collapsed={isCollapsed}
+              active={pathname.includes('/dashboard/setup')}
+              badge={!isCollapsed ? 'Setup' : undefined}
+              badgeColor="bg-primary"
+            >
+              Diocese Setup
+            </NavLink>
+          )}
         </NavSection>
 
         {/* BUSINESS OPERATIONS */}
@@ -422,11 +438,13 @@ function MobileNavContent({
   isAdmin,
   isBusinessOwner,
   pathname,
+  wizardComplete = true,
 }: {
   prefix: string
   isAdmin: boolean
   isBusinessOwner: boolean
   pathname: string
+  wizardComplete?: boolean
 }) {
   return (
     <div className="flex-1 overflow-y-auto px-2 py-3">
@@ -458,6 +476,18 @@ function MobileNavContent({
         >
           Documentation
         </NavLink>
+        {!wizardComplete && (
+          <NavLink
+            href={`${prefix}/dashboard/setup`}
+            icon={<WandIcon />}
+            collapsed={false}
+            active={pathname.includes('/dashboard/setup')}
+            badge="Setup"
+            badgeColor="bg-primary"
+          >
+            Diocese Setup
+          </NavLink>
+        )}
       </NavSection>
 
       {isBusinessOwner && (
@@ -728,6 +758,15 @@ function BookOpenIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    </svg>
+  )
+}
+
+function WandIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 10l2-2m-2 0l-2-2m2 2v4" />
     </svg>
   )
 }

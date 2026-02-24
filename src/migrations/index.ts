@@ -9,6 +9,7 @@ import * as migration_20260216_085909_add_ums_and_channel_extensions from './202
 import * as migration_20260218_061453_add_events_and_registrations from './20260218_061453_add_events_and_registrations';
 import * as migration_20260220_051631_add_tenant_to_soul_collections from './20260220_051631_add_tenant_to_soul_collections';
 import * as migration_20260223_013326 from './20260223_013326';
+import * as migration_20260223_232507_sprint17 from './20260223_232507_sprint17';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20260223_013326.up,
     down: migration_20260223_013326.down,
-    name: '20260223_013326'
+    name: '20260223_013326',
+  },
+  {
+    up: migration_20260223_232507_sprint17.up,
+    down: migration_20260223_232507_sprint17.down,
+    name: '20260223_232507_sprint17'
   },
 ];

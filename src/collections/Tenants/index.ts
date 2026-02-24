@@ -393,5 +393,58 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
+    // ─── Diocese Setup / Leo Wizard (Sprint 17) ─────────────────
+    {
+      name: 'setup',
+      type: 'group',
+      admin: {
+        description: 'Leo Wizard progress and federation identity for this Diocese',
+      },
+      fields: [
+        {
+          name: 'wizardComplete',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description:
+              'Set to true when the Leo Wizard (Diocese Setup) has been completed. Hides the "Diocese Setup" nav link.',
+          },
+        },
+        {
+          name: 'wizardProgress',
+          type: 'json',
+          admin: {
+            description:
+              'Persisted wizard state — current step, completed steps, and encrypted Ed25519 key pair. Managed by Leo Wizard actions.',
+          },
+        },
+        {
+          name: 'constitutionSignedAt',
+          type: 'date',
+          admin: {
+            description: 'When the operator signed the Angel OS Constitution (set by Leo Wizard step 7)',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'constitutionSignature',
+          type: 'text',
+          admin: {
+            description:
+              'Ed25519 signature of the constitution signing event (hex-encoded). Set by Leo Wizard step 7.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'federationId',
+          type: 'text',
+          admin: {
+            description:
+              "The Diocese's immutable UUID in the Angel OS federation network. Assigned at constitution signing.",
+            readOnly: true,
+          },
+        },
+      ],
+    },
   ],
 }

@@ -28,7 +28,7 @@ export interface SuitcaseManifest {
   }
   constitutional: {
     isAngel: boolean
-    revenueModel: '60/20/15/5'
+    revenueModel: '70/20/4/1/5'
     antiDemonic: true
   }
 }
@@ -162,7 +162,7 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       },
       constitutional: {
         isAngel: true,
-        revenueModel: '60/20/15/5',
+        revenueModel: '70/20/4/1/5',
         antiDemonic: true,
       },
     }

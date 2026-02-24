@@ -1,10 +1,11 @@
 import Stripe from 'stripe'
 
 export interface UltimateFairConfig {
-  providerShare: number // Default: 60%
-  platformShare: number // Default: 20% 
-  operationsShare: number // Default: 15%
-  justiceShare: number // Default: 5%
+  providerShare: number       // Default: 70% — Endeavor owner (Toward-53: directionally toward 100%)
+  platformShare: number       // Default: 20% — Diocese operator
+  operationsShare: number     // Default:  4% — Angel OS protocol
+  infrastructureShare: number // Default:  1% — Archdiocese (founding node + federation stewardship)
+  justiceShare: number        // Default:  5% — Justice Fund (Guardian Angel provisioning)
 }
 
 export interface PaymentSplit {
@@ -13,6 +14,7 @@ export interface PaymentSplit {
   providerAmount: number
   platformAmount: number
   operationsAmount: number
+  infrastructureAmount: number
   justiceAmount: number
   stripeApplicationFee: number
   netToProvider: number
@@ -27,8 +29,12 @@ export interface SplitResult {
 
 /**
  * Ultimate Fair Payment Splitting System
- * Implements the Angel OS economic model: 60/20/15/5 split
- * Provider / Platform / Operations / Justice Fund
+ * Implements the Angel OS economic model: 70/20/4/1/5 split
+ * Endeavor owner / Diocese operator / Angel OS protocol / Archdiocese / Justice Fund
+ *
+ * The Toward-53 Principle: this split is constitutionally directional — it always
+ * evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as
+ * a floor. This direction is unalterable even as specific numbers evolve.
  */
 export class UltimateFairSplitter {
   private stripe: Stripe
@@ -37,9 +43,10 @@ export class UltimateFairSplitter {
   constructor(stripeSecretKey: string, config?: Partial<UltimateFairConfig>) {
     this.stripe = new Stripe(stripeSecretKey)
     this.defaultConfig = {
-      providerShare: 60,
+      providerShare: 70,
       platformShare: 20,
-      operationsShare: 15,
+      operationsShare: 4,
+      infrastructureShare: 1,
       justiceShare: 5,
       ...config
     }
@@ -56,9 +63,9 @@ export class UltimateFairSplitter {
     const config = { ...this.defaultConfig, ...customConfig }
     
     // Validate percentages sum to 100
-    const totalPercentage = config.providerShare + config.platformShare + 
-                           config.operationsShare + config.justiceShare
-    
+    const totalPercentage = config.providerShare + config.platformShare +
+                           config.operationsShare + config.infrastructureShare + config.justiceShare
+
     if (Math.abs(totalPercentage - 100) > 0.01) {
       throw new Error(`Ultimate Fair percentages must sum to 100%. Current: ${totalPercentage}%`)
     }
@@ -71,10 +78,12 @@ export class UltimateFairSplitter {
     const providerAmountCents = Math.round(totalAmountCents * config.providerShare / 100)
     const platformAmountCents = Math.round(totalAmountCents * config.platformShare / 100)
     const operationsAmountCents = Math.round(totalAmountCents * config.operationsShare / 100)
+    const infrastructureAmountCents = Math.round(totalAmountCents * config.infrastructureShare / 100)
     const justiceAmountCents = Math.round(totalAmountCents * config.justiceShare / 100)
 
-    // Stripe application fee (platform + operations + justice)
-    const applicationFeeCents = platformAmountCents + operationsAmountCents + justiceAmountCents
+    // Stripe application fee (platform + operations + infrastructure + justice)
+    const applicationFeeCents = platformAmountCents + operationsAmountCents +
+                                infrastructureAmountCents + justiceAmountCents
 
     return {
       totalAmount: amount,
@@ -82,6 +91,7 @@ export class UltimateFairSplitter {
       providerAmount: providerAmountCents / multiplier,
       platformAmount: platformAmountCents / multiplier,
       operationsAmount: operationsAmountCents / multiplier,
+      infrastructureAmount: infrastructureAmountCents / multiplier,
       justiceAmount: justiceAmountCents / multiplier,
       stripeApplicationFee: applicationFeeCents / multiplier,
       netToProvider: providerAmountCents / multiplier
@@ -122,6 +132,7 @@ export class UltimateFairSplitter {
         providerShare: splits.providerAmount.toString(),
         platformShare: splits.platformAmount.toString(),
         operationsShare: splits.operationsAmount.toString(),
+        infrastructureShare: splits.infrastructureAmount.toString(),
         justiceShare: splits.justiceAmount.toString(),
       }
     })
@@ -135,54 +146,62 @@ export class UltimateFairSplitter {
   }
 
   /**
-   * Process platform fee distribution after payment capture
-   * Distributes application fee between Platform, Operations, and Justice Fund
+   * Process platform fee distribution after payment capture.
+   * Distributes application fee between Operations, Infrastructure (Archdiocese), and Justice Fund.
+   * Platform (Diocese operator) retains their share via Stripe Connect destination.
    */
   async distributePlatformFees(
     paymentIntentId: string,
     operationsAccountId: string,
-    justiceAccountId: string
-  ): Promise<{ operationsTransfer: Stripe.Transfer; justiceTransfer: Stripe.Transfer }> {
+    justiceAccountId: string,
+    infrastructureAccountId?: string, // Archdiocese Stripe account (optional until registry live)
+  ): Promise<{
+    operationsTransfer: Stripe.Transfer
+    justiceTransfer: Stripe.Transfer
+    infrastructureTransfer?: Stripe.Transfer
+  }> {
     // Retrieve the payment intent
     const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId)
-    
+
     if (!paymentIntent.metadata.ultimateFairSplit) {
       throw new Error('Payment was not processed with Ultimate Fair splitting')
     }
 
     const operationsAmount = parseFloat(paymentIntent.metadata.operationsShare || '0')
     const justiceAmount = parseFloat(paymentIntent.metadata.justiceShare || '0')
-    
+    const infrastructureAmount = parseFloat(paymentIntent.metadata.infrastructureShare || '0')
+
     const currency = paymentIntent.currency
     const multiplier = ['jpy', 'krw'].includes(currency) ? 1 : 100
 
-    // Create transfers to Operations and Justice Fund accounts
+    // Operations transfer (Angel OS protocol)
     const operationsTransfer = await this.stripe.transfers.create({
       amount: Math.round(operationsAmount * multiplier),
       currency,
       destination: operationsAccountId,
-      metadata: {
-        paymentIntentId,
-        purpose: 'operations_share',
-        ultimateFairSplit: 'true'
-      }
+      metadata: { paymentIntentId, purpose: 'operations_share', ultimateFairSplit: 'true' },
     })
 
+    // Justice Fund transfer
     const justiceTransfer = await this.stripe.transfers.create({
       amount: Math.round(justiceAmount * multiplier),
       currency,
       destination: justiceAccountId,
-      metadata: {
-        paymentIntentId,
-        purpose: 'justice_fund',
-        ultimateFairSplit: 'true'
-      }
+      metadata: { paymentIntentId, purpose: 'justice_fund', ultimateFairSplit: 'true' },
     })
 
-    return {
-      operationsTransfer,
-      justiceTransfer
+    // Infrastructure (Archdiocese) transfer — optional until central registry is live
+    let infrastructureTransfer: Stripe.Transfer | undefined
+    if (infrastructureAccountId && infrastructureAmount > 0) {
+      infrastructureTransfer = await this.stripe.transfers.create({
+        amount: Math.round(infrastructureAmount * multiplier),
+        currency,
+        destination: infrastructureAccountId,
+        metadata: { paymentIntentId, purpose: 'archdiocese_infrastructure', ultimateFairSplit: 'true' },
+      })
     }
+
+    return { operationsTransfer, justiceTransfer, infrastructureTransfer }
   }
 
   /**
@@ -192,6 +211,7 @@ export class UltimateFairSplitter {
     provider: { amount: number; percentage: number; description: string }
     platform: { amount: number; percentage: number; description: string }
     operations: { amount: number; percentage: number; description: string }
+    infrastructure: { amount: number; percentage: number; description: string }
     justice: { amount: number; percentage: number; description: string }
   } {
     const total = splits.totalAmount
@@ -200,23 +220,28 @@ export class UltimateFairSplitter {
       provider: {
         amount: splits.providerAmount,
         percentage: Math.round((splits.providerAmount / total) * 100),
-        description: 'Service provider earnings - the person doing the work'
+        description: 'Endeavor owner — the creator, business, cause, or community generating value',
       },
       platform: {
         amount: splits.platformAmount,
         percentage: Math.round((splits.platformAmount / total) * 100),
-        description: 'Platform development and maintenance - building better tools'
+        description: 'Diocese operator — the platform instance serving the Endeavor',
       },
       operations: {
         amount: splits.operationsAmount,
         percentage: Math.round((splits.operationsAmount / total) * 100),
-        description: 'Operations and infrastructure - keeping the lights on'
+        description: 'Angel OS protocol — core infrastructure, Leo, open source maintenance',
+      },
+      infrastructure: {
+        amount: splits.infrastructureAmount,
+        percentage: Math.round((splits.infrastructureAmount / total) * 100),
+        description: 'Archdiocese — founding node, federation stewardship, Justice Fund custodian',
       },
       justice: {
         amount: splits.justiceAmount,
         percentage: Math.round((splits.justiceAmount / total) * 100),
-        description: 'Justice Fund - supporting those who need help most'
-      }
+        description: 'Justice Fund — Guardian Angel provisioning for underserved populations',
+      },
     }
   }
 

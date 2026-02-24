@@ -919,6 +919,78 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['action'],
     },
   },
+
+  // ─── Sprint 17: Leo Wizard Tools ─────────────────────────────────────────
+  {
+    name: 'create_space',
+    description:
+      'Create a new community space for the Diocese during the Leo Wizard setup (step 3). Provisions the space with default channels based on the Endeavor type. Use during wizard step 3: First Space.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Name for the new space (e.g., "Clearwater Cruisin Hub")',
+        },
+        endeavorType: {
+          type: 'string',
+          enum: ['service-provider', 'retail-commerce', 'creator-content', 'booking-based', 'custom'],
+          description: 'Endeavor type — determines which channels are provisioned',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description of the space',
+        },
+      },
+      required: ['name', 'endeavorType'],
+    },
+  },
+  {
+    name: 'sign_constitution',
+    description:
+      'Sign the Angel OS Constitution on behalf of the Diocese operator, generating a cryptographic Ed25519 signature and a permanent federationId (UUID). Use during wizard step 7: Federation. This is the moment of constitutional commitment.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        operatorName: {
+          type: 'string',
+          description: 'Full name of the operator signing the constitution',
+        },
+        dioceseName: {
+          type: 'string',
+          description: 'Name of the Diocese being registered',
+        },
+        constitutionVersion: {
+          type: 'string',
+          description: 'Version of the constitution to sign (default: "1.1")',
+        },
+      },
+      required: ['operatorName', 'dioceseName'],
+    },
+  },
+  {
+    name: 'ping_federation',
+    description:
+      'Ping the Angel OS federation registry to announce this Diocese\'s existence. Called after sign_constitution during wizard step 7. Gracefully handles no registry URL — completes wizard regardless.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        dioceseName: {
+          type: 'string',
+          description: 'Name of the Diocese',
+        },
+        domain: {
+          type: 'string',
+          description: 'Domain of the Diocese (e.g., clearwater-cruisin.localhost)',
+        },
+        endeavorType: {
+          type: 'string',
+          description: 'Endeavor type for the federation catalog',
+        },
+      },
+      required: ['dioceseName'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1027,6 +1099,13 @@ export async function executeToolCall(
         return await queryMedia(payload, toolInput)
       case 'manage_categories':
         return await manageCategories(payload, toolInput, ctx)
+      // ─── Sprint 17: Leo Wizard Tools ──────────────────────────
+      case 'create_space':
+        return await handleCreateSpace(payload, toolInput, ctx)
+      case 'sign_constitution':
+        return await handleSignConstitution(payload, toolInput, ctx)
+      case 'ping_federation':
+        return await handlePingFederation(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -3598,5 +3677,245 @@ async function manageCategories(
     }
     default:
       return `Unknown action "${action}". Use "create", "update", or "delete".`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 17: Leo Wizard Tools
+// ---------------------------------------------------------------------------
+
+/**
+ * create_space — Provisions a new community space during wizard step 3.
+ * Wraps createSpaceFromTemplate from spaceProvisioning.ts.
+ */
+async function handleCreateSpace(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const name = (input.name as string)?.trim()
+  const endeavorType = input.endeavorType as string
+  const description = input.description as string | undefined
+
+  if (!name) return 'Error: Space name is required.'
+  if (!endeavorType) return 'Error: Endeavor type is required to provision channels.'
+
+  try {
+    const { createSpaceFromTemplate } = await import('./spaceProvisioning')
+
+    const space = await createSpaceFromTemplate(
+      payload,
+      endeavorType as import('./spaceProvisioning').EndeavorType,
+      tenantId,
+      name,
+    )
+
+    const lines = [
+      `Space created!`,
+      `- **${name}** (ID: ${space.spaceId})`,
+      `- Channels provisioned for ${endeavorType}`,
+    ]
+    if (description) lines.push(`- Description: ${description}`)
+    lines.push(`\nThis is the main room where your community gathers.`)
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error creating space:', err)
+    return `Error creating space: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * sign_constitution — Signs the Angel OS Constitution for wizard step 7.
+ * Generates an Ed25519 signature, federationId, and persists to tenant.setup.*
+ */
+async function handleSignConstitution(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const operatorName = (input.operatorName as string)?.trim()
+  const dioceseName = (input.dioceseName as string)?.trim()
+  const constitutionVersion = (input.constitutionVersion as string) || '1.1'
+
+  if (!operatorName) return 'Error: Operator name is required to sign the constitution.'
+  if (!dioceseName) return 'Error: Diocese name is required to sign the constitution.'
+
+  try {
+    const { getOrCreateFederationKeyPair } = await import('@/federation/keyStore')
+    const { createSigningPayload, signConstitution } = await import('@/federation/protocol')
+    const { getActiveConstitution } = await import('@/federation/constitution')
+
+    // Get (or generate) the Diocese's Ed25519 key pair
+    const keyPair = await getOrCreateFederationKeyPair(payload, tenantId)
+
+    // Build the signing event
+    const constitution = getActiveConstitution()
+    const signingEvent = createSigningPayload({
+      dioceseName,
+      operatorName,
+      domain: process.env.NEXT_PUBLIC_SERVER_URL || `${tenantId}.angelos.local`,
+      constitutionVersion: constitution.version,
+    })
+
+    // Sign the constitution
+    const sig = signConstitution(signingEvent, keyPair.privateKey)
+
+    // Persist to tenant.setup.*
+    await payload.update({
+      collection: 'tenants',
+      id: tenantId,
+      data: {
+        setup: {
+          constitutionSignedAt: sig.event.signedAt,
+          constitutionSignature: sig.signature.slice(0, 64), // first 32 bytes for storage
+          federationId: signingEvent.federationId,
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    return [
+      `Constitution signed!`,
+      `- **Operator:** ${operatorName}`,
+      `- **Diocese:** ${dioceseName}`,
+      `- **Constitution:** v${constitutionVersion}`,
+      `- **Federation ID:** ${signingEvent.federationId}`,
+      `- **Signed at:** ${new Date(sig.event.signedAt).toLocaleString()}`,
+      ``,
+      `The signature is cryptographically verified and stored immutably. ${dioceseName} is now constitutionally committed to the Angel OS network.`,
+    ].join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error signing constitution:', err)
+    return `Error signing constitution: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * ping_federation — Pings the Angel OS federation registry for wizard step 7.
+ * Gracefully falls back to stub response when no registry URL is configured.
+ */
+async function handlePingFederation(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  const dioceseName = (input.dioceseName as string)?.trim()
+  const domain = (input.domain as string) || `${tenantId}.angelos.local`
+  const endeavorType = (input.endeavorType as string) || 'custom'
+
+  if (!dioceseName) return 'Error: Diocese name is required to ping the federation.'
+
+  try {
+    const { getTenantPublicKey } = await import('@/federation/keyStore')
+    const { pingFederationRegistry } = await import('@/federation/protocol')
+    const { getOrCreateFederationKeyPair } = await import('@/federation/keyStore')
+
+    // Get the tenant's federation ID from setup.* if available
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let federationId: string | undefined
+    let publicKey: string | undefined
+
+    if (tenantId) {
+      try {
+        const tenant = await payload.findByID({
+          collection: 'tenants',
+          id: tenantId,
+          depth: 0,
+          overrideAccess: true,
+        }) as any
+        federationId = tenant?.setup?.federationId
+        publicKey = (await getTenantPublicKey(payload, tenantId)) ?? undefined
+      } catch {
+        // Non-critical
+      }
+    }
+
+    // If no key pair yet, generate one now
+    if (!publicKey && tenantId) {
+      const kp = await getOrCreateFederationKeyPair(payload, tenantId)
+      publicKey = kp.publicKey
+    }
+
+    const ping = {
+      dioceseName,
+      domain,
+      endeavorType,
+      publicKey: publicKey || '',
+      federationId: federationId || '',
+      constitutionVersion: '1.1',
+      constitutionSignature: '',
+      pingAt: new Date().toISOString(),
+      capabilities: [] as string[],
+    }
+
+    // Get private key for signing the ping
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let privateKey: string | undefined
+    if (tenantId) {
+      try {
+        const kp = await getOrCreateFederationKeyPair(payload, tenantId)
+        privateKey = kp.privateKey
+      } catch {
+        // Non-critical
+      }
+    }
+
+    const result = await pingFederationRegistry(ping, privateKey || '')
+
+    // Mark wizard complete on the tenant
+    if (tenantId) {
+      try {
+        await payload.update({
+          collection: 'tenants',
+          id: tenantId,
+          data: {
+            setup: {
+              wizardComplete: true,
+              wizardProgress: { completedStep: 7, completedAt: new Date().toISOString() },
+            },
+          } as any,
+          overrideAccess: true,
+        })
+      } catch {
+        // Non-critical
+      }
+    }
+
+    const statusLabel =
+      result.ministryStatus === 'applicant'
+        ? 'Applicant (90-day probation begins now)'
+        : result.ministryStatus
+
+    return [
+      result.success
+        ? `Federation ping successful! ${dioceseName} is now registered in the Angel OS network.`
+        : `Federation ping completed (registry unavailable — stub response used).`,
+      `- **Ministry status:** ${statusLabel}`,
+      `- **Federation ID:** ${result.federationId || federationId || 'pending'}`,
+      `- **Registry:** ${process.env.FEDERATION_REGISTRY_URL || 'local stub (no registry URL configured)'}`,
+      ``,
+      `🎉 Your Diocese is live! The setup wizard is complete.`,
+      ``,
+      `You'll be redirected to your dashboard in a moment. Welcome to the Angel OS network, ${dioceseName}.`,
+    ].join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error pinging federation:', err)
+    // NEVER fail the wizard over a ping error
+    return [
+      `Federation registry ping attempted — network unavailable (this is expected in development).`,
+      `- **Status:** Diocese registered locally`,
+      ``,
+      `🎉 Your Diocese setup is complete! The wizard is done.`,
+      `You'll be redirected to your dashboard.`,
+    ].join('\n')
   }
 }

@@ -5,7 +5,7 @@
  * The tenant admin initiates this to connect their bank account.
  *
  * @see src/lib/stripe-connect-config.ts — fee configuration
- * @see src/lib/ultimate-fair-split.ts — 60/20/15/5 split
+ * @see src/lib/ultimate-fair-split.ts — 70/20/4/1/5 split (Toward-53)
  */
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
