@@ -8,11 +8,12 @@
  *
  * Constitutional Reference: Article VII — "The Constitution IS the gate."
  */
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { getActiveConstitution } from '@/federation/constitution'
 import { getTenantPublicKey } from '@/federation/keyStore'
+import { headers } from 'next/headers'
 
 export async function GET() {
   try {
@@ -78,12 +79,16 @@ export async function GET() {
     const uniqueHolonTypes = [...new Set(holonTypes)]
     if (uniqueHolonTypes.length === 0) uniqueHolonTypes.push('general')
 
+    // Resolve domain: prefer tenant config, then request host, then env
+    const headersList = await headers()
+    const requestHost = headersList.get('host') || headersList.get('x-forwarded-host')
     const domain =
       (tenant.domain as string) ||
+      requestHost?.replace(/:\d+$/, '') || // Strip port
       process.env.NEXT_PUBLIC_SERVER_URL?.replace(/^https?:\/\//, '') ||
       'localhost'
 
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || `https://${domain}`
+    const serverUrl = `https://${domain}`
 
     return NextResponse.json(
       {
