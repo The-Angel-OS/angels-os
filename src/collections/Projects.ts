@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
-import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -11,7 +10,9 @@ export const Projects: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: authenticatedOrPublished,
+    // Projects are portfolio items — publicly readable for showcase purposes.
+    // No _status field (no Payload drafts), so can't use authenticatedOrPublished.
+    read: () => true,
     update: authenticated,
     delete: authenticated,
   },

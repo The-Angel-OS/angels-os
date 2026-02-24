@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
-import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
@@ -11,7 +10,8 @@ export const Bookings: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: authenticatedOrPublished,
+    // Bookings are private — require authentication to view
+    read: authenticated,
     update: authenticated,
     delete: authenticated,
   },

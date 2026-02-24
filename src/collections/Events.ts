@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
-import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 
 export const Events: CollectionConfig = {
@@ -12,7 +11,14 @@ export const Events: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: authenticatedOrPublished,
+    // Events don't use Payload drafts (_status) — they have their own status field.
+    // Authenticated users see all; public sees non-draft events.
+    read: ({ req: { user } }) => {
+      if (user) return true
+      return {
+        status: { not_equals: 'draft' },
+      }
+    },
     update: authenticated,
     delete: authenticated,
   },
