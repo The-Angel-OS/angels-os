@@ -341,6 +341,11 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     }
   }, [spaceId, activeChannel, isLoadingMore, hasMore, messages, mapMessage])
 
+  // ─── Decaying poll: reset callback (declared early for dependency refs) ──
+  const resetPollInterval = useCallback(() => {
+    pollIntervalRef.current = POLL_MIN_MS
+  }, [])
+
   // ---------------------------------------------------------------------------
   // SSE Streaming Consumer
   // ---------------------------------------------------------------------------
@@ -804,9 +809,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   // ─── Decaying poll: fast when active, backs off when idle ──────────
   // Uses recursive setTimeout so each tick can adjust the next delay.
   // Activity (sendMessage, stream delta, channel switch) resets to fast.
-  const resetPollInterval = useCallback(() => {
-    pollIntervalRef.current = POLL_MIN_MS
-  }, [])
+  // (resetPollInterval is declared earlier, before sendViaStream)
 
   useEffect(() => {
     let cancelled = false

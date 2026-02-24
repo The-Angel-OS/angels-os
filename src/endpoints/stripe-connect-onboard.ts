@@ -8,6 +8,7 @@
  * @see src/lib/ultimate-fair-split.ts — 70/20/4/1/5 split (Toward-53)
  */
 import type { PayloadHandler } from 'payload'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import Stripe from 'stripe'
 
 let _stripe: Stripe | null = null
@@ -26,6 +27,10 @@ export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required.' }, { status: 401 })
   }
+
+  // Rate limit: 10 Stripe requests/min per user
+  const rateLimited = applyRateLimit(req, 'stripe')
+  if (rateLimited) return rateLimited
 
   let body: Record<string, unknown>
   try {

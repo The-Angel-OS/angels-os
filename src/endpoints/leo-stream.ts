@@ -17,6 +17,7 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import Anthropic from '@anthropic-ai/sdk'
 import { streamText, stepCountIs } from 'ai'
 import type { ModelMessage } from 'ai'
@@ -468,6 +469,10 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   if (!req.user) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 })
   }
+
+  // Rate limit: 5 streaming requests/min per user (SSE streams are expensive)
+  const rateLimited = applyRateLimit(req, 'leo_stream')
+  if (rateLimited) return rateLimited
 
   // Parse body
   let body: Record<string, unknown>

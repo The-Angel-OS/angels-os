@@ -226,7 +226,7 @@ export function angelOsStripeAdapter(
             bootstrapFeeCents = bfResult.bootstrapFeeCents
             bootstrapTier = bfResult.tier
           } catch (err) {
-            payload.logger.warn('Bootstrap fee calculation failed, proceeding without:', err)
+            payload.logger.warn('Bootstrap fee calculation failed, proceeding without: %s', err)
           }
 
           const totalApplicationFee = applicationFee + bootstrapFeeCents

@@ -19,12 +19,17 @@ import type { PayloadHandler } from 'payload'
 
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { wrapTextContent } from '@/utilities/messageContent'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const leoChatHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
   if (!req.user) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 })
   }
+
+  // Rate limit: 10 requests/min per user (each call = Anthropic API cost)
+  const rateLimited = applyRateLimit(req, 'leo_chat')
+  if (rateLimited) return rateLimited
 
   // Parse request body
   let body: Record<string, unknown>

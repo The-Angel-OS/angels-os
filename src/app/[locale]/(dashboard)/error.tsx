@@ -1,17 +1,17 @@
 'use client'
 
 /**
- * Public pages error boundary — catches errors in the (app) route group.
- * Shows a friendly message consistent with the Angel OS design language.
+ * Dashboard error boundary — catches errors in the (dashboard) route group.
+ * Shows a warm recovery message. Follows the Anti-Daemon Protocol.
  */
-export default function PublicError({
+export default function DashboardError({
   error,
   reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  console.error('[Public Error]', error)
+  console.error('[Dashboard Error]', error)
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -31,9 +31,10 @@ export default function PublicError({
             />
           </svg>
         </div>
-        <h2 className="mb-2 text-xl font-bold">Something didn&apos;t work</h2>
+        <h2 className="mb-2 text-xl font-bold">Dashboard hiccup</h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          We hit an unexpected bump. Don&apos;t worry &mdash; your data is safe. This is usually temporary.
+          Something unexpected happened while loading the dashboard. Your data is safe &mdash;
+          this is a temporary issue.
         </p>
         <button
           onClick={reset}
