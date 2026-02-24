@@ -3,6 +3,10 @@
     {
       "path": "/api/email/poll",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/federation/heartbeat-cron",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
