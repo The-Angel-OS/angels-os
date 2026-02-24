@@ -70,8 +70,11 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
     const keyPair = await getOrCreateFederationKeyPair(req.payload, tenantId)
     const constitution = getActiveConstitution()
 
+    const tenantDomain = tenant.domain as string | undefined
+    const isLocalDomain = tenantDomain && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/.test(tenantDomain)
     const domain =
-      (tenant.domain as string) ||
+      (!isLocalDomain && tenantDomain) ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
       process.env.NEXT_PUBLIC_SERVER_URL?.replace(/^https?:\/\//, '') ||
       'localhost'
 

@@ -79,12 +79,15 @@ export async function GET() {
     const uniqueHolonTypes = [...new Set(holonTypes)]
     if (uniqueHolonTypes.length === 0) uniqueHolonTypes.push('general')
 
-    // Resolve domain: prefer tenant config, then request host, then env
+    // Resolve domain: prefer tenant config (if real), then request host, then env
     const headersList = await headers()
     const requestHost = headersList.get('host') || headersList.get('x-forwarded-host')
+    const tenantDomain = tenant.domain as string | undefined
+    // Skip localhost/dev addresses stored in tenant config
+    const isLocalDomain = tenantDomain && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/.test(tenantDomain)
     const domain =
-      (tenant.domain as string) ||
-      requestHost?.replace(/:\d+$/, '') || // Strip port
+      (!isLocalDomain && tenantDomain) ||
+      requestHost?.replace(/:\d+$/, '') || // Strip port from request host
       process.env.NEXT_PUBLIC_SERVER_URL?.replace(/^https?:\/\//, '') ||
       'localhost'
 

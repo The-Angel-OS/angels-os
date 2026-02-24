@@ -153,7 +153,7 @@ export const seed = async ({
   const defaultTenant = await findOrCreateTenant(payload, req, {
     name: 'Angel OS',
     slug: DEFAULT_TENANT_SLUG,
-    domain: 'localhost',
+    domain: process.env.VERCEL_PROJECT_PRODUCTION_URL || 'localhost',
     type: 'tenant',
     branding: {
       siteName: 'Angel OS',
