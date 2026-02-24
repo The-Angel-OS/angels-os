@@ -99,6 +99,7 @@ export interface Config {
     'application-logs': ApplicationLog;
     reviews: Review;
     endeavors: Endeavor;
+    contacts: Contact;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -155,6 +156,7 @@ export interface Config {
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
+    contacts: ContactsSelect<false> | ContactsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1654,6 +1656,10 @@ export interface TenantMembership {
     invitationToken?: string | null;
     invitationExpiresAt?: string | null;
     invitationMessage?: string | null;
+    /**
+     * Email of invited user (may not have an account yet)
+     */
+    invitationEmail?: string | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -3164,6 +3170,55 @@ export interface Endeavor {
   createdAt: string;
 }
 /**
+ * CRM contact records for invite management
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contacts".
+ */
+export interface Contact {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Contact email address
+   */
+  email: string;
+  /**
+   * Contact display name (optional)
+   */
+  name?: string | null;
+  /**
+   * Where this contact was sourced from
+   */
+  source: 'clerk-lms' | 'manual' | 'csv-import' | 'json-import' | 'signup' | 'referral' | 'api';
+  /**
+   * External ID from source system (Clerk user_xxx, etc.)
+   */
+  sourceId?: string | null;
+  /**
+   * Tags for segmentation (e.g. "lms-student", "beta-tester")
+   */
+  tags?: string[] | null;
+  /**
+   * Overall contact lifecycle status
+   */
+  contactStatus?: ('lead' | 'invited' | 'accepted' | 'bounced' | 'unsubscribed') | null;
+  /**
+   * Current invitation status
+   */
+  inviteStatus?: ('not-invited' | 'pending' | 'accepted' | 'expired' | 'failed') | null;
+  lastInvitedAt?: string | null;
+  /**
+   * Number of times invited
+   */
+  inviteCount?: number | null;
+  /**
+   * Internal notes about this contact
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -3504,6 +3559,10 @@ export interface PayloadLockedDocument {
         value: number | Endeavor;
       } | null)
     | ({
+        relationTo: 'contacts';
+        value: number | Contact;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -3781,6 +3840,7 @@ export interface TenantMembershipsSelect<T extends boolean = true> {
         invitationToken?: T;
         invitationExpiresAt?: T;
         invitationMessage?: T;
+        invitationEmail?: T;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -4693,6 +4753,25 @@ export interface EndeavorsSelect<T extends boolean = true> {
         state?: T;
         country?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contacts_select".
+ */
+export interface ContactsSelect<T extends boolean = true> {
+  tenant?: T;
+  email?: T;
+  name?: T;
+  source?: T;
+  sourceId?: T;
+  tags?: T;
+  contactStatus?: T;
+  inviteStatus?: T;
+  lastInvitedAt?: T;
+  inviteCount?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

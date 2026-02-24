@@ -10,6 +10,7 @@ import * as migration_20260218_061453_add_events_and_registrations from './20260
 import * as migration_20260220_051631_add_tenant_to_soul_collections from './20260220_051631_add_tenant_to_soul_collections';
 import * as migration_20260223_013326 from './20260223_013326';
 import * as migration_20260223_232507_sprint17 from './20260223_232507_sprint17';
+import * as migration_20260224_031440_contacts_crm from './20260224_031440_contacts_crm';
 
 export const migrations = [
   {
@@ -70,6 +71,11 @@ export const migrations = [
   {
     up: migration_20260223_232507_sprint17.up,
     down: migration_20260223_232507_sprint17.down,
-    name: '20260223_232507_sprint17'
+    name: '20260223_232507_sprint17',
+  },
+  {
+    up: migration_20260224_031440_contacts_crm.up,
+    down: migration_20260224_031440_contacts_crm.down,
+    name: '20260224_031440_contacts_crm'
   },
 ];

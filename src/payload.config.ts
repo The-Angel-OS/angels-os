@@ -54,6 +54,7 @@ import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
+import { Contacts } from '@/collections/Contacts'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -66,6 +67,7 @@ import { spaceCreateHandler } from '@/endpoints/space-create'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
+import { tenantInviteAcceptHandler } from '@/endpoints/tenant-invite-accept'
 import { spaceMembersRemoveHandler } from '@/endpoints/space-members'
 import { orderRouteHandler } from '@/endpoints/order-route'
 import { orderAcceptHandler } from '@/endpoints/order-accept'
@@ -134,6 +136,7 @@ export default buildConfig({
     ApplicationLogs,
     Reviews,
     Endeavors,
+    Contacts,
   ],
   db: postgresAdapter({
     pool: {
@@ -176,6 +179,7 @@ export default buildConfig({
         workflows: {},
         'holon-capabilities': {},
         'justice-fund-transactions': {},
+        contacts: {},
         header: {},
         footer: {},
       },
@@ -413,6 +417,12 @@ export default buildConfig({
       path: '/spaces/members/remove',
       method: 'post',
       handler: spaceMembersRemoveHandler,
+    },
+    // ─── Tenant Invitation Endpoint ─────────────────────────────
+    {
+      path: '/tenant-invite/accept',
+      method: 'post',
+      handler: tenantInviteAcceptHandler,
     },
     // ─── Order Routing & Fulfillment Endpoints ──────────────────
     {

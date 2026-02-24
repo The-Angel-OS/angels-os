@@ -1,0 +1,108 @@
+/**
+ * Tenant Invitation Email Sender
+ *
+ * Sends tenant-level (Enterprise) invitation emails.
+ * Variant of sendInvitationEmail.ts for tenant-level invites.
+ *
+ * @see src/utilities/sendInvitationEmail.ts — space-level equivalent
+ */
+import type { Payload } from 'payload'
+
+export interface SendTenantInvitationEmailOptions {
+  payload: Payload
+  recipientEmail: string
+  inviterName: string
+  enterpriseName: string
+  inviteUrl: string
+  role: string
+  message?: string
+}
+
+export async function sendTenantInvitationEmail(
+  opts: SendTenantInvitationEmailOptions,
+): Promise<boolean> {
+  const {
+    payload,
+    recipientEmail,
+    inviterName,
+    enterpriseName,
+    inviteUrl,
+    role,
+    message,
+  } = opts
+
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const fullInviteUrl = inviteUrl.startsWith('http') ? inviteUrl : `${baseUrl}${inviteUrl}`
+
+  const roleLabel = role.replace('tenant_', '').replace('_', ' ')
+  const subject = `${inviterName} invited you to join ${enterpriseName}`
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="display: inline-block; background: #10B981; color: white; width: 48px; height: 48px; border-radius: 12px; line-height: 48px; font-size: 20px; font-weight: bold;">A</div>
+          <p style="margin: 8px 0 0; font-size: 14px; color: #666;">${enterpriseName}</p>
+        </div>
+
+        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">You're invited!</h1>
+
+        <p style="font-size: 16px; line-height: 1.5; color: #333;">
+          <strong>${inviterName}</strong> has invited you to join
+          <strong>${enterpriseName}</strong> as a <strong>${roleLabel}</strong>.
+        </p>
+
+        ${
+          message
+            ? `
+          <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <p style="font-size: 14px; color: #666; margin: 0 0 4px;">Personal message:</p>
+            <p style="font-size: 15px; color: #333; margin: 0; font-style: italic;">"${message}"</p>
+          </div>
+        `
+            : ''
+        }
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${fullInviteUrl}"
+             style="display: inline-block; background: #10B981; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+            Accept Invitation
+          </a>
+        </div>
+
+        <p style="font-size: 13px; color: #999; text-align: center;">
+          This invitation expires in 7 days. If you didn't expect this email, you can safely ignore it.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
+
+        <p style="font-size: 12px; color: #999; text-align: center;">
+          Powered by Angel OS — Everyone gets an Angel.
+        </p>
+      </body>
+    </html>
+  `
+
+  const text = `${inviterName} invited you to join ${enterpriseName} as a ${roleLabel}.${message ? `\n\nMessage: "${message}"` : ''}\n\nAccept the invitation: ${fullInviteUrl}\n\nThis invitation expires in 7 days.`
+
+  try {
+    await payload.sendEmail({
+      to: recipientEmail,
+      subject,
+      html,
+      text,
+    })
+    return true
+  } catch (err) {
+    console.warn(
+      `[Tenant Invitation Email] Could not send email to ${recipientEmail}. Invite URL: ${fullInviteUrl}`,
+      err instanceof Error ? err.message : err,
+    )
+    return false
+  }
+}

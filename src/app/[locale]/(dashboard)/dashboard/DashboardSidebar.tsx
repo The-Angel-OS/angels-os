@@ -329,6 +329,9 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/invitations')}>
               Invitations
             </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/contacts`} icon={<BookOpenIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/contacts')}>
+              Contacts
+            </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/ai-settings')}>
               AI Settings
             </NavLink>
@@ -559,6 +562,9 @@ function MobileNavContent({
           </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/invitations')}>
             Invitations
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/contacts`} icon={<BookOpenIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/contacts')}>
+            Contacts
           </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/ai-settings')}>
             AI Settings
