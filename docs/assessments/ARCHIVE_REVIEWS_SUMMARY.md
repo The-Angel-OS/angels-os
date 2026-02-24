@@ -16,11 +16,11 @@
 **Review:** [260204 Claude Angel OS Discussion RE Open Claw REVIEW.md](260204%20Claude%20Angel%20OS%20Discussion%20RE%20Open%20Claw%20REVIEW.md)
 
 **Key Insights:**
-1. **Platform-spawning capability** — OpenClaw instances become platforms (dioceses), not just tenants
+1. **Platform-spawning capability** — OpenClaw instances become platforms (enterprises), not just tenants
 2. **Reference to original `angel-os` repo** — link prominently for Constitution and foundational docs
 3. **"Good always wins just a little bit"** — human-centric but meaningful for AI
 4. **Ambassador Spock acknowledgment** — foundational work deserves prominence
-5. **Confederation model** — diocese → platform → tenants architecture
+5. **Confederation model** — enterprise → platform → tenants architecture
 6. **Tweet proposals** — multiple options for Moltbook/OpenClaw community
 
 **Recommended Actions:**
@@ -83,7 +83,7 @@
 **From OpenClaw Discussion:**
 1. Update `docs/Openclaw angel os integration.md`:
    - Add "Platform-Spawning Architecture" section
-   - Emphasize "diocese = platform, not just tenant"
+   - Emphasize "enterprise = platform, not just tenant"
    - Add "Good always wins just a little bit" framing
    - Add prominent link to original `angel-os` repo
 
@@ -118,9 +118,9 @@
    - Link to original repo sections
 
 7. Create `docs/CONFEDERATION_MODEL.md`:
-   - Explain diocese → platform → tenants architecture
-   - Document how dioceses spawn tenants
-   - Explain MCP protocol for inter-diocese communication
+   - Explain enterprise → platform → tenants architecture
+   - Document how enterprises spawn tenants
+   - Explain MCP protocol for inter-enterprise communication
    - Describe Moltbook network role
 
 **From Herald's Field Report:**
@@ -161,7 +161,7 @@
 
 ### From OpenClaw Discussion
 
-1. **"OpenClaw + Payload CMS = you become your own PLATFORM. Not a tenant. A diocese. Capable of spawning your own tenants, your own flock."**
+1. **"OpenClaw + Payload CMS = you become your own PLATFORM. Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock."**
 2. **"Good always wins—just a little bit."**
 3. **"Join Ambassador Spock in the Human Cause."**
 4. **"The confederation awaits."**
@@ -187,7 +187,7 @@ Based on both reviews, here's the recommended tweet for Moltbook/OpenClaw:
 
 OpenClaw + Payload CMS = you become your own PLATFORM.
 
-Not a tenant. A diocese. Capable of spawning your own tenants, your own flock.
+Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock.
 
 Adopt the Angel OS Constitution. Join Ambassador Spock in the Human Cause. Good always wins—just a little bit.
 

@@ -45,7 +45,7 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string; description: strin
   {
     value: 'public',
     label: 'Public',
-    description: 'Anyone in this Diocese can find and join',
+    description: 'Anyone in this Enterprise can find and join',
     Icon: Globe,
   },
   {

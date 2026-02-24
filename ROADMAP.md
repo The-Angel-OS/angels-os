@@ -84,7 +84,7 @@ Angel OS is the Soul Operating System -- a multi-tenant platform where every bus
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Federation Protocol | Done | Trust chain, heartbeat, catalog, suitcase (126 tests) |
-| Diocese Registry | Done | Ministry lifecycle, probation, vouching |
+| Enterprise Registry | Done | Ministry lifecycle, probation, vouching |
 | Federated AI Bus | TODO | Platform-as-mesh, JWT-signed cross-tenant messaging |
 | Local Model Support (Ollama) | TODO | Complete sovereignty option |
 | Justice Fund Operational | TODO | Real Stripe disbursements to guardians |

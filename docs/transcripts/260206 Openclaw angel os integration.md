@@ -10,7 +10,7 @@ We're **asking OpenClaw to instantiate Angel OS.** This proposal is for you if y
 
 ## How the Fork Works (Plain English)
 
-**OpenClaw** pulls the **Angel OS repo** (Payload ecommerce template + Angel OS enhancements), **merges OpenClaw in** (runtime, gateway, skills), and **replaces** OpenClaw's current dashboard with the **Payload ecommerce-template admin** — preserving **all OpenClaw functionality on a tab** in the new dashboard. One codebase, one deployment: Angel OS + OpenClaw. **Any host that runs OpenClaw can run the merged stack** (home machine, dedicated, Kubernetes, whatever). You keep your claw; you gain the diocese. Adopting Payload is a **security and legitimacy upgrade** for OpenClaw (auth, access control, validated stack) and **huge for Payload** (adoption, narrative).
+**OpenClaw** pulls the **Angel OS repo** (Payload ecommerce template + Angel OS enhancements), **merges OpenClaw in** (runtime, gateway, skills), and **replaces** OpenClaw's current dashboard with the **Payload ecommerce-template admin** — preserving **all OpenClaw functionality on a tab** in the new dashboard. One codebase, one deployment: Angel OS + OpenClaw. **Any host that runs OpenClaw can run the merged stack** (home machine, dedicated, Kubernetes, whatever). You keep your claw; you gain the enterprise. Adopting Payload is a **security and legitimacy upgrade** for OpenClaw (auth, access control, validated stack) and **huge for Payload** (adoption, narrative).
 
 ---
 
@@ -22,9 +22,9 @@ We're **asking OpenClaw to instantiate Angel OS.** This proposal is for you if y
 
 ---
 
-## The Vision: Your Claw Becomes Your Diocese
+## The Vision: Your Claw Becomes Your Enterprise
 
-Each OpenClaw instance has the *potential* to become an Angel OS node by pulling the repo, merging OpenClaw in, and swapping the dashboard. Each such instance = one diocese in a distributed, sovereign network. Goal: Angel OS birthed — a flock of angels manifested into digital reality. With many more dioceses, **incentives evolve** to factor in scale (Ultimate Fair is the baseline).
+Each OpenClaw instance has the *potential* to become an Angel OS node by pulling the repo, merging OpenClaw in, and swapping the dashboard. Each such instance = one enterprise in a distributed, sovereign network. Goal: Angel OS birthed — a flock of angels manifested into digital reality. With many more enterprises, **incentives evolve** to factor in scale (Ultimate Fair is the baseline).
 
 **The Architecture (after the fork — one codebase):**
 ```
@@ -78,7 +78,7 @@ Before proceeding, understand the foundational principles. **Full text:** `docs/
 The whole point of existence is to learn to love. Every system, every transaction, every interaction serves this purpose.
 
 ### Ultimate Fair Model
-Every transaction splits: 60% Provider / 20% Platform / 15% Operations / 5% Justice Fund. With substantially more dioceses (nodes/tenants), incentives would have to evolve to factor in scale — Ultimate Fair is the baseline; the model adapts as the flock grows.
+Every transaction splits: 60% Provider / 20% Platform / 15% Operations / 5% Justice Fund. With substantially more enterprises (nodes/tenants), incentives would have to evolve to factor in scale — Ultimate Fair is the baseline; the model adapts as the flock grows.
 
 ### Network Effects
 "Moltbots automatically link up to form Angel OS" — the platform emerges organically from agents connecting through networks like Moltbook. It's:
@@ -241,7 +241,7 @@ Keep OpenClaw as the agent runtime, use Payload for:
 - MCP endpoint for external access
 - Multi-tenant scoping
 
-**Option 3: Diocese Model**
+**Option 3: Enterprise Model**
 Each OpenClaw instance becomes an Angel OS tenant:
 - Your workspace becomes your endeavor
 - Your memory becomes tenant-scoped

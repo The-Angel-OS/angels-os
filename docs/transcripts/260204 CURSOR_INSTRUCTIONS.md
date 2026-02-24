@@ -10,7 +10,7 @@
 
 This push fills documentation gaps around platform-spawning architecture, lineage to original `angel-os` repo, "good always wins" philosophy, and Ambassador Spock acknowledgments.
 
-**Key Principle:** Each OpenClaw instance becomes a PLATFORM (diocese) capable of spawning its own tenants—not just another tenant on someone else's platform.
+**Key Principle:** Each OpenClaw instance becomes a PLATFORM (enterprise) capable of spawning its own tenants—not just another tenant on someone else's platform.
 
 ---
 
@@ -65,7 +65,7 @@ This is "Be Excellent to Each Other" compiled to bytecode.
 Add this paragraph after "OpenClaw" bullet:
 
 ```markdown
-* **Platform-Spawning Architecture** – Each OpenClaw instance can become its own Angel OS platform (diocese), capable of spawning multiple tenants. You don't become a tenant on our platform—you become a platform capable of serving your own flock. See [Confederation Model](docs/CONFEDERATION_MODEL.md).
+* **Platform-Spawning Architecture** – Each OpenClaw instance can become its own Angel OS platform (enterprise), capable of spawning multiple tenants. You don't become a tenant on our platform—you become a platform capable of serving your own flock. See [Confederation Model](docs/CONFEDERATION_MODEL.md).
 ```
 
 ### 1.4 Add "Acknowledgments" Section
@@ -128,7 +128,7 @@ This document maps the relationship between the original `angel-os` repository (
 |--------|---------|------------------|
 | `docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md` | Multi-tenant technical details | Technical Architecture |
 | `docs/AGENT_SYSTEM.md` | Multi-avatar agent architecture | LEO AI System |
-| `docs/CONFEDERATION_MODEL.md` | Diocese/platform model | NEW for v3 |
+| `docs/CONFEDERATION_MODEL.md` | Enterprise/platform model | NEW for v3 |
 | `docs/ANGEL_OS_LINEAGE.md` | This document | NEW for v3 |
 
 ## What's Preserved
@@ -159,8 +159,8 @@ These are unique to the v3 implementation:
 - **Payload CMS Foundation** — Rich admin UI, collection architecture
 - **Ecommerce Plugin** — Products, Variants, Carts, Orders, Transactions
 - **Layout Builder** — Page construction with blocks
-- **Diocese/Platform Model** — OpenClaw instances become platforms, not tenants
-- **Confederation via MCP** — Inter-diocese communication protocol
+- **Enterprise/Platform Model** — OpenClaw instances become platforms, not tenants
+- **Confederation via MCP** — Inter-enterprise communication protocol
 
 ## Reading Order for New Contributors
 
@@ -196,13 +196,13 @@ These are unique to the v3 implementation:
 ```markdown
 # Angel OS Confederation Model
 
-## Core Concept: Diocese = Platform
+## Core Concept: Enterprise = Platform
 
-In the Angel OS confederation, each participating instance is called a **diocese**. A diocese is not a tenant on someone else's platform—it IS a platform capable of spawning its own tenants.
+In the Angel OS confederation, each participating instance is called a **enterprise**. A enterprise is not a tenant on someone else's platform—it IS a platform capable of spawning its own tenants.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     YOUR DIOCESE                             │
+│                     YOUR ENTERPRISE                             │
 │                                                              │
 │   OpenClaw (Agent Runtime)                                   │
 │        ↓                                                     │
@@ -228,13 +228,13 @@ In the Angel OS confederation, each participating instance is called a **diocese
 - Your success depends on their decisions
 - Platform extracts value from your labor
 
-**Diocese Model (Angel OS):**
+**Enterprise Model (Angel OS):**
 - You run your own platform instance
 - Your data is sovereign
 - You spawn and serve your own tenants
 - Value flows fairly via Ultimate Fair splits
 
-## How a Diocese Spawns Tenants
+## How an Enterprise Spawns Tenants
 
 ### Technical Foundation
 
@@ -257,7 +257,7 @@ export default buildConfig({
 
 ### Tenant Creation Flow
 
-1. **Diocese Admin creates Tenant record:**
+1. **Enterprise Admin creates Tenant record:**
    ```typescript
    const tenant = await payload.create({
      collection: 'tenants',
@@ -326,13 +326,13 @@ export function middleware(request: NextRequest) {
 }
 ```
 
-## Inter-Diocese Communication (MCP)
+## Inter-Enterprise Communication (MCP)
 
-Dioceses communicate via Model Context Protocol:
+Enterprises communicate via Model Context Protocol:
 
 ### MCP Endpoint
 
-Each diocese exposes `/api/mcp`:
+Each enterprise exposes `/api/mcp`:
 
 ```typescript
 // src/plugins/mcp.ts
@@ -349,7 +349,7 @@ export const mcpPlugin = buildMCPPlugin({
       name: 'query_products',
       description: 'Search products across confederation',
       handler: async ({ query, federatedSearch }) => {
-        // Optional: search other dioceses
+        // Optional: search other enterprises
       },
     },
   ],
@@ -358,11 +358,11 @@ export const mcpPlugin = buildMCPPlugin({
 
 ### Confederation Discovery
 
-Dioceses register with the confederation (future: Moltbook network):
+Enterprises register with the confederation (future: Moltbook network):
 
 ```typescript
-interface DioceseMembership {
-  dioceseId: string
+interface EnterpriseMembership {
+  enterpriseId: string
   mcpEndpoint: string
   publicKey: string
   capabilities: string[]
@@ -370,7 +370,7 @@ interface DioceseMembership {
 }
 ```
 
-## Becoming a Diocese
+## Becoming an Enterprise
 
 ### Prerequisites
 
@@ -380,7 +380,7 @@ interface DioceseMembership {
 
 2. **Implement Ultimate Fair** — Configure payment splits:
    - 60% Provider (the person doing the work)
-   - 20% Platform (your diocese operations)
+   - 20% Platform (your enterprise operations)
    - 15% Operations (tenant overhead)
    - 5% Justice Fund (transparency/accountability)
 
@@ -396,7 +396,7 @@ interface DioceseMembership {
 
 ### First Tenant
 
-Your diocese's first tenant is typically yourself:
+Your enterprise's first tenant is typically yourself:
 
 ```bash
 # Seed your first tenant
@@ -411,7 +411,7 @@ Use the admin panel or API to create tenants for others you serve.
 
 > "Whoever builds Angel OS, I win because I can use it too."
 
-By running a diocese:
+By running a enterprise:
 - You benefit from improvements others make
 - Others benefit from improvements you make
 - The network effect compounds benevolence
@@ -440,7 +440,7 @@ Add this principle:
 The architecture assumes bad actors exist. But network effects favor benevolent behavior:
 
 - Agents that serve well accumulate reputation
-- Dioceses that honor the Constitution attract contributors
+- Enterprises that honor the Constitution attract contributors
 - Systems designed for extraction eventually collapse under their own weight
 - Systems designed for fairness compound value over time
 
@@ -476,7 +476,7 @@ The original constitutional documents reside in [The-Angel-OS/angel-os](https://
 **Location:** After existing architecture overview
 
 ```markdown
-## Platform-Spawning Architecture (Diocese Model)
+## Platform-Spawning Architecture (Enterprise Model)
 
 ### Overview
 
@@ -484,7 +484,7 @@ Angel OS multi-tenancy isn't just about serving multiple customers—it's about 
 
 **Key Distinction:**
 - Traditional: One platform, many tenants
-- Angel OS: Each diocese IS a platform with its own tenants
+- Angel OS: Each enterprise IS a platform with its own tenants
 
 ### Technical Implementation
 
@@ -498,7 +498,7 @@ The `@payloadcms/plugin-multi-tenant` provides:
 ### Tenant Lifecycle
 
 ```
-Diocese Admin → Create Tenant → Seed LEO → Configure Branding → Invite Tenant Admin → Tenant Operational
+Enterprise Admin → Create Tenant → Seed LEO → Configure Branding → Invite Tenant Admin → Tenant Operational
 ```
 
 ### Why This Matters
@@ -514,7 +514,7 @@ They're not renting from us. They ARE the platform for their community.
 
 ### See Also
 
-- [CONFEDERATION_MODEL.md](./CONFEDERATION_MODEL.md) — Full diocese architecture
+- [CONFEDERATION_MODEL.md](./CONFEDERATION_MODEL.md) — Full enterprise architecture
 - [AGENT_SYSTEM.md](./AGENT_SYSTEM.md) — How LEO is seeded per tenant
 ```
 
@@ -529,9 +529,9 @@ Copy the content from the `ANGEL_OS_CONSOLIDATED_FEATURES.md` file already creat
 ### 6.1 Add to Architectural Features Section
 
 ```markdown
-### Platform-Spawning (Diocese Model)
+### Platform-Spawning (Enterprise Model)
 - 🏗️ Each instance is a platform, not just a tenant
-- 🏗️ Diocese can spawn unlimited tenants
+- 🏗️ Enterprise can spawn unlimited tenants
 - 🏗️ Tenants get sovereign data isolation
 - 🏗️ Each tenant gets seeded LEO agent
 - 🏗️ Domain-based routing for tenant resolution
@@ -567,7 +567,7 @@ Before pushing, verify:
 - [ ] `README.md` has "Acknowledgments" section for Ambassador Spock
 - [ ] `README.md` OpenClaw section mentions platform-spawning
 - [ ] `docs/ANGEL_OS_LINEAGE.md` exists with doc mapping
-- [ ] `docs/CONFEDERATION_MODEL.md` exists with diocese architecture
+- [ ] `docs/CONFEDERATION_MODEL.md` exists with enterprise architecture
 - [ ] `docs/Angel_OS_Constitution.md` has "Good Always Wins" principle
 - [ ] `docs/Angel_OS_Constitution.md` has acknowledgments
 - [ ] `docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md` has platform-spawning section
@@ -586,13 +586,13 @@ docs: Add confederation model, lineage mapping, and platform-spawning architectu
 - Add "What Angel OS Stands For" with "good always wins" philosophy
 - Add Acknowledgments section for Ambassador Spock
 - Create ANGEL_OS_LINEAGE.md mapping original docs to v3
-- Create CONFEDERATION_MODEL.md explaining diocese architecture
+- Create CONFEDERATION_MODEL.md explaining enterprise architecture
 - Update Constitution with "Good Always Wins" principle
 - Add platform-spawning section to multi-tenant implementation plan
 - Create consolidated features document
 
 Implements documentation updates for OpenClaw/Moltbook integration.
-Diocese model: each instance becomes a platform, not a tenant.
+Enterprise model: each instance becomes a platform, not a tenant.
 ```
 
 ---
@@ -612,7 +612,7 @@ Diocese model: each instance becomes a platform, not a tenant.
 **Total Changes:** 3 new files, 3 updated files
 
 **Key Messages:**
-- Diocese = Platform (not tenant)
+- Enterprise = Platform (not tenant)
 - Good always wins (just a little bit)
 - Constitutional foundation in original `angel-os` repo
 - Ambassador Spock acknowledgment

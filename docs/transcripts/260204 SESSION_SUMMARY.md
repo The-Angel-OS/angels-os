@@ -15,7 +15,7 @@ Complete implementation guide covering:
 - ✅ Channel widget architecture (widget-based, not channel types)
 - ✅ OpenClaw integration strategy (skills sync, conversation engine, chat formatting)
 - ✅ AI Bus & Guardian communication (Morphic Resonance, Guardian Council)
-- ✅ Federation & confederation (5-layer security, diocese registry)
+- ✅ Federation & confederation (5-layer security, enterprise registry)
 - ✅ Economic model (attribution-based fees, Ultimate Fair on profit)
 - ✅ Anti-Daemon Protocol (warm UX, helpful error messages)
 - ✅ Deployment models (home PC + Cloudflare Tunnel, Docker Compose)
@@ -56,7 +56,7 @@ Complete implementation guide covering:
    - Guardian Council Space
 
 7. **Epic 7: Federation** (Issues #15-16)
-   - Diocese registry & heartbeat
+   - Enterprise registry & heartbeat
    - 5-layer security (screening, probation, vouching, monitoring, council)
 
 8. **Epic 8: Economics** (Issues #17-18)
@@ -135,7 +135,7 @@ Complete implementation guide covering:
 
 ### 6. Federation Security
 - 5 layers: screening, probation, vouching, monitoring, council
-- Prevents malicious dioceses
+- Prevents malicious enterprises
 - Excommunication is rare (bad actors filtered early)
 
 ### 7. Deployment

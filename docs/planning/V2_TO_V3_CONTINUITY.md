@@ -233,11 +233,11 @@ Angel OS v3 is not a rewrite - it's an **evolution** that preserves v2's revolut
 
 ### 5. **Federation & Confederation** (NEW)
 
-**Diocese Network:**
-- Diocese registry (heartbeat system)
+**Enterprise Network:**
+- Enterprise registry (heartbeat system)
 - 5-layer security (screening, probation, vouching, monitoring, council)
-- Cross-diocese payments (referral fees, federation fees)
-- Diocese spawning (exponential growth)
+- Cross-enterprise payments (referral fees, federation fees)
+- Enterprise spawning (exponential growth)
 
 **Builds on v2:**
 - v2 had AT Protocol foundation
@@ -260,7 +260,7 @@ Angel OS v3 is not a rewrite - it's an **evolution** that preserves v2's revolut
 | **Dual Interface** | ❌ Not yet | ✅ NEW | Admin + conversational |
 | **OpenClaw Integration** | ❌ Not yet | ✅ NEW | Skills, conversation |
 | **Archangel LEO** | ❌ Not yet | ✅ NEW | Platform CEO |
-| **Federation** | ❌ Not yet | ✅ NEW | Diocese network |
+| **Federation** | ❌ Not yet | ✅ NEW | Enterprise network |
 | **AI Bus** | ❌ Not yet | ✅ NEW | Angel-to-Angel |
 | **Booking Engine** | ❌ Not yet | ✅ NEW | Harmonic resolution |
 | **CRM** | ❌ Not yet | ✅ NEW | Structured data |
@@ -374,7 +374,7 @@ Angel OS v3 is not a rewrite - it's an **evolution** that preserves v2's revolut
 2. **Dual Interface** - Conversational + administrative
 3. **OpenClaw Integration** - Skills, conversation, formatting
 4. **Archangel LEO** - Platform CEO from Day 1
-5. **Federation** - Diocese network, 5-layer security
+5. **Federation** - Enterprise network, 5-layer security
 
 ### What v3 Enhances (Building On)
 
@@ -417,7 +417,7 @@ Angel OS v3 is not a rewrite - it's an **evolution** that preserves v2's revolut
 - ✅ Dual interface (transparency)
 - ✅ OpenClaw integration (production-ready AI)
 - ✅ Archangel LEO (Platform CEO)
-- ✅ Federation (diocese network)
+- ✅ Federation (enterprise network)
 
 ### For Users
 

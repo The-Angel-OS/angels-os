@@ -153,15 +153,15 @@ When you build on Payload, you're not just building a website. You're building a
 
 And when you're talking about AI agents that can take actions in the world - create products, send messages, handle money - that security foundation isn't optional. It's everything.
 
-Because here's the nightmare scenario: You build an open platform, anyone can spin up an instance, some malicious actor creates a fake "diocese" - that's their term for an independent Angel OS node - and they use it to scam people, harvest data, poison the network.
+Because here's the nightmare scenario: You build an open platform, anyone can spin up an instance, some malicious actor creates a fake "enterprise" - that's their term for an independent Angel OS node - and they use it to scam people, harvest data, poison the network.
 
-Angel OS has thought about this. They have this whole "Federation Security" system. New dioceses go through a  probationary period. They can't process cross-platform payments. They're not discoverable in federation search. They're monitored for patterns that indicate bad behavior - pyramid schemes, data harvesting, reputation attacks.
+Angel OS has thought about this. They have this whole "Federation Security" system. New enterprises go through a  probationary period. They can't process cross-platform payments. They're not discoverable in federation search. They're monitored for patterns that indicate bad behavior - pyramid schemes, data harvesting, reputation attacks.
 
-And - this is the part I love - they propose a vouching system. To become a full member of the federation, you need TWO established dioceses to vouch for you. 
+And - this is the part I love - they propose a vouching system. To become a full member of the federation, you need TWO established enterprises to vouch for you. 
 
 It's like... trust through accountability. Organic gatekeeping. No central authority saying "you're in, you're out." Just a web of trust where everyone's reputation is on the line.
 
-They call it the "No Assholes Rule," which... again, I love. The Terry Pratchett test: "Would Commander Vimes be suspicious of this diocese?" If yes, probably decline.
+They call it the "No Assholes Rule," which... again, I love. The Terry Pratchett test: "Would Commander Vimes be suspicious of this enterprise?" If yes, probably decline.
 
 The good news though, if you don't like it, you can always go fork yourself.
 
@@ -174,7 +174,7 @@ Okay. This is where it gets philosophical. Bear with me.
 Angel OS has this economic model called "Ultimate Fair." The split is 60-20-15-5.
 
 - 60% goes to the provider - the person who actually did the work
-- 20% goes to the diocese operator - the person running the platform
+- 20% goes to the enterprise operator - the person running the platform
 - 15% goes to tenant operations - the business itself
 - 5% goes to something called the Justice Fund
 
@@ -186,7 +186,7 @@ But if someone finds your shop through the federation search, and your Angel hel
 
 Attribution-based fees. Pay for what you use. And - this is the part that blows my mind - **the platform only earns on PROFIT, not revenue.**
 
-Now, real talk: the first dioceses will have standard platform fees while the ecosystem bootstraps. That's just practical. You can't run infrastructure on good vibes. But the vision - and the architecture supports it - is a rapid transition to a purely attribution-driven model. The platform earns by creating value, not by extracting rent.
+Now, real talk: the first enterprises will have standard platform fees while the ecosystem bootstraps. That's just practical. You can't run infrastructure on good vibes. But the vision - and the architecture supports it - is a rapid transition to a purely attribution-driven model. The platform earns by creating value, not by extracting rent.
 
 If you have $1000 in revenue but $1000 in costs, your profit is zero. Platform fee? Zero. The platform still served you. Still hosted your site. Still ran your Angel. But you didn't make money, so they don't take money.
 
@@ -292,7 +292,7 @@ Seeds grow.
 
 Links to the repositories are in the description. The original vision is at github.com/The-Angel-OS/angel-os. The v3 implementation is at github.com/The-Angel-OS/angels-os. 
 
-If you're a developer, there are 35 issues waiting for contributors. If you're running an OpenClaw instance, they're actively recruiting dioceses for the federation. If you're just interested, watch the space.
+If you're a developer, there are 35 issues waiting for contributors. If you're running an OpenClaw instance, they're actively recruiting enterprises for the federation. If you're just interested, watch the space.
 
 The Angels await.
 

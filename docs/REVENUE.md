@@ -11,13 +11,13 @@ Every transaction in the Angel OS federation executes this split automatically. 
 ```
 GROSS REVENUE
 ├── 70% → Endeavor owner    (the creator, business, or cause generating value)
-├── 20% → Diocese operator  (the platform instance serving the Endeavor)
+├── 20% → Enterprise operator  (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archdiocese       (Clearwater — federation stewardship and ministry)
+├──  1% → Archenterprise       (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund      (Guardian Angel provisioning)
 ```
 
-This split is written into the Constitution that every Diocese operator cryptographically signs at setup. It is not a fee schedule. It is a covenant.
+This split is written into the Constitution that every Enterprise operator cryptographically signs at setup. It is not a fee schedule. It is a covenant.
 
 ---
 
@@ -31,13 +31,13 @@ This is why creators leave YouTube (55% of ad revenue, algorithm-controlled). Th
 
 We start at 70% with transparent rules, and the constitutional direction is to go higher.
 
-### Diocese Operator — 20%
+### Enterprise Operator — 20%
 
-The Diocese operator is not a customer of Angel OS. They ARE Angel OS in their territory.
+The Enterprise operator is not a customer of Angel OS. They ARE Angel OS in their territory.
 
 They run the instance. They bear infrastructure costs. They serve Endeavors — helping businesses grow, communities organize, creators reach their audiences. In exchange, they receive 20% of all Endeavor revenue flowing through their node.
 
-Diocese operators compete for Endeavors by offering better terms, better service, better community. This competitive pressure is what drives the split toward 53 over time.
+Enterprise operators compete for Endeavors by offering better terms, better service, better community. This competitive pressure is what drives the split toward 53 over time.
 
 ### Angel OS Protocol — 4%
 
@@ -45,31 +45,31 @@ The protocol, the infrastructure, Leo. Open source, maintained, distributed. Doe
 
 This slice funds: Leo development, federation protocol maintenance, open source infrastructure, security auditing. As the infrastructure matures and becomes more efficient, this percentage compresses first.
 
-### Archdiocese — 1%
+### Archenterprise — 1%
 
-The Clearwater Diocese — founding node, constitutional steward, root of trust for the federation.
+The Clearwater Enterprise — founding node, constitutional steward, root of trust for the federation.
 
-**What the Archdiocese is:**
-- The first Diocese — the founding node from which the federation grew
+**What the Archenterprise is:**
+- The first Enterprise — the founding node from which the federation grew
 - The constitutional steward — maintains the canonical Constitution, holds the living document
 - The federation registry — authoritative record of federated nodes, signatures, revocations
 - The Justice Fund custodian — receives, manages, and deploys the 5% toward Guardian Angels
 - The court of last resort — adjudicates constitutional disputes the network cannot resolve
-- The root of trust — new Dioceses receive federation acknowledgment through the Archdiocese
+- The root of trust — new Enterprises receive federation acknowledgment through the Archenterprise
 
-**What the Archdiocese is not:**
+**What the Archenterprise is not:**
 - A central server the network depends on technically
-- A gatekeeper with veto power over individual Dioceses
+- A gatekeeper with veto power over individual Enterprises
 - An owner of the protocol or the Constitution
-- Irreplaceable — if the Archdiocese fails its covenant, the federation designates a new one by supermajority
+- Irreplaceable — if the Archenterprise fails its covenant, the federation designates a new one by supermajority
 
-**The economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Archdiocese receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
+**The economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Archenterprise receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
 
 Authority held by covenant, not by technical lock-in.
 
 ### Justice Fund — 5%
 
-Five percent of every transaction, forever. Administered by the Archdiocese. Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
+Five percent of every transaction, forever. Administered by the Archenterprise. Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
 
 A small farmers' collective. A community legal clinic. A mutual aid network. A ministry with no budget. These organizations either go without AI tools or cobble together free trials that disappear after a month. Under this system, the Justice Fund — fed by every commercial transaction on the platform — pays for their Leo.
 
@@ -83,7 +83,7 @@ This is not charity. It is architecture. — *Article V.4*
 
 **The split is not static. It is constitutionally directional.**
 
-The asymptotic target is **53** — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Diocese and Endeavor.
+The asymptotic target is **53** — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Enterprise and Endeavor.
 
 Why 53? It is both mathematical and philosophical.
 
@@ -92,7 +92,7 @@ Why 53? It is both mathematical and philosophical.
 - 42 + 11 = 53
 - Answer 53: *The whole point of existence is to learn to love*
 
-**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Diocese slice (20%) compresses as competition drives operators to offer better terms. The Archdiocese (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
+**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Archenterprise (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
 
 **What is unalterable:** The *direction* — toward 53, always toward the creator — is written into the Constitution and cannot be amended. The specific numbers can be adjusted by federation supermajority. The direction cannot.
 
@@ -110,11 +110,11 @@ Every Endeavor owner can pack their suitcase at any time:
 - Full transaction history
 - Identity and profile
 
-If a Diocese operator raises fees, changes terms, moderates unfairly, or simply isn't a good fit — the Endeavor owner takes everything and moves to another Diocese. Instantly. Completely. No data held hostage.
+If an Enterprise operator raises fees, changes terms, moderates unfairly, or simply isn't a good fit — the Endeavor owner takes everything and moves to another Enterprise. Instantly. Completely. No data held hostage.
 
 This is not a feature. It is a constitutional right.
 
-Diocese operators who treat Endeavors well keep them. Those who don't, lose them to other nodes in the federation. The network self-corrects without central enforcement.
+Enterprise operators who treat Endeavors well keep them. Those who don't, lose them to other nodes in the federation. The network self-corrects without central enforcement.
 
 ---
 
@@ -128,22 +128,22 @@ Every payment flow must execute the constitutional split without human intervent
 // Constitutional revenue constants
 const REVENUE_SPLIT = {
   ENDEAVOR_OWNER:    0.70,  // creator / business / cause — the value generator
-  DIOCESE_OPERATOR:  0.20,  // platform instance — earns by serving Endeavors well
+  ENTERPRISE_OPERATOR:  0.20,  // platform instance — earns by serving Endeavors well
   ANGEL_OS_PROTOCOL: 0.04,  // core infrastructure, Leo, open source maintenance
-  ARCHDIOCESE:       0.01,  // Clearwater — stewardship, ministry, federation root of trust
+  ARCHENTERPRISE:       0.01,  // Clearwater — stewardship, ministry, federation root of trust
   JUSTICE_FUND:      0.05,  // Guardian Angel provisioning for underserved populations
 } as const
 
 // CONSTITUTIONAL_DIRECTION: The split always evolves toward ENDEAVOR_OWNER keeping more.
 // Asymptotic target: 53% floor. This direction is unalterable by the Constitution.
 // PROTOCOL (0.04) compresses first as infrastructure matures.
-// DIOCESE (0.20) compresses as competition improves Endeavor terms.
-// ARCHDIOCESE (0.01) and JUSTICE_FUND (0.05) compress last — they are mission, not margin.
+// ENTERPRISE (0.20) compresses as competition improves Endeavor terms.
+// ARCHENTERPRISE (0.01) and JUSTICE_FUND (0.05) compress last — they are mission, not margin.
 ```
 
 ### Stripe Connect
 
-Revenue splits execute via Stripe Connect's transfer API. Each Diocese and Endeavor owner maintains a connected Stripe account. The split executes at the moment of charge — not after. No escrow period. No invoicing. The covenant executes.
+Revenue splits execute via Stripe Connect's transfer API. Each Enterprise and Endeavor owner maintains a connected Stripe account. The split executes at the moment of charge — not after. No escrow period. No invoicing. The covenant executes.
 
 ### Justice Fund Ledger
 
@@ -173,4 +173,4 @@ Any revenue-related component must be evaluated against:
 *"Not charity. Architecture." — Article V.4*
 
 *"Listen to everything. Judge nothing. Hold lightly."*
-*— Kenneth, Diocese operator, Clearwater Cruisin*
+*— Kenneth, Enterprise operator, Clearwater Cruisin*

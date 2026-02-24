@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * SetupWizard — Diocese Setup Leo Wizard
+ * SetupWizard — Enterprise Setup Leo Wizard
  *
  * Two-panel layout:
  *   Left  — Step indicator panel (step 0–7, with status icons)
@@ -12,7 +12,7 @@
  * No custom SSE events needed — simple and reliable for a 17-minute flow.
  *
  * When the wizard is complete (step 7 ping succeeds), the wizard redirects
- * to /dashboard and the "Diocese Setup" nav link disappears from the sidebar.
+ * to /dashboard and the "Enterprise Setup" nav link disappears from the sidebar.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
@@ -62,7 +62,7 @@ function StepIndicator({
   completedSteps: number[]
 }) {
   return (
-    <div className="flex flex-col gap-1 pt-2">
+    <div className="flex flex-col gap-0.5 pt-1">
       {steps.map((name, idx) => {
         const isCompleted = completedSteps.includes(idx)
         const isCurrent = idx === currentStep
@@ -71,24 +71,32 @@ function StepIndicator({
         return (
           <div
             key={idx}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
               isCurrent
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary/10 text-primary shadow-sm'
                 : isCompleted
-                  ? 'text-muted-foreground'
-                  : 'text-muted-foreground/50'
+                  ? 'text-foreground/70'
+                  : 'text-muted-foreground/40'
             }`}
           >
-            <div className="flex size-6 shrink-0 items-center justify-center rounded-full border">
+            <div
+              className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                isCompleted
+                  ? 'border-green-500/40 bg-green-500/10'
+                  : isCurrent
+                    ? 'border-primary/40 bg-primary/10'
+                    : 'border-border/50'
+              }`}
+            >
               {isCompleted ? (
-                <Check size={12} className="text-green-500" />
+                <Check size={12} className="text-green-600" />
               ) : isCurrent ? (
                 <div className="size-2 rounded-full bg-primary" />
               ) : (
-                <Circle size={10} className="opacity-30" />
+                <Circle size={10} className="opacity-20" />
               )}
             </div>
-            <span className={`text-sm ${isCurrent ? 'font-medium' : ''} ${isFuture ? 'opacity-40' : ''}`}>
+            <span className={`text-sm ${isCurrent ? 'font-semibold' : isCompleted ? 'font-medium' : ''} ${isFuture ? 'opacity-50' : ''}`}>
               {name}
             </span>
             {isCurrent && (
@@ -111,8 +119,8 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
   if (isSystem) {
     return (
-      <div className="flex justify-center py-1">
-        <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+      <div className="flex justify-center py-2">
+        <span className="rounded-full border border-border/50 bg-muted/50 px-3.5 py-1 text-xs font-medium text-muted-foreground">
           {msg.content}
         </span>
       </div>
@@ -120,11 +128,11 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   }
 
   return (
-    <div className={`flex items-start gap-3 ${isLeo ? '' : 'flex-row-reverse'}`}>
+    <div className={`flex items-start gap-2.5 ${isLeo ? '' : 'flex-row-reverse'}`}>
       {/* Avatar */}
       <div
-        className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
-          isLeo ? 'bg-primary/10 text-primary' : 'bg-muted'
+        className={`flex size-7 shrink-0 items-center justify-center rounded-full shadow-sm ${
+          isLeo ? 'bg-primary text-primary-foreground' : 'bg-foreground/10 text-foreground'
         }`}
       >
         {isLeo ? <Bot size={14} /> : <User size={14} />}
@@ -132,27 +140,30 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
       {/* Bubble */}
       <div
-        className={`group relative max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+        className={`group relative max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
           isLeo
-            ? 'rounded-tl-sm bg-muted text-foreground'
+            ? 'rounded-tl-sm border border-border/40 bg-card text-card-foreground'
             : 'rounded-tr-sm bg-primary text-primary-foreground'
         }`}
       >
         {msg.activeToolCall && (
-          <div className="mb-1.5 flex items-center gap-1.5 text-xs opacity-60">
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 size={10} className="animate-spin" />
             <span>{msg.activeToolCall}...</span>
           </div>
         )}
         {isLeo ? (
-          <div className="prose prose-sm prose-invert max-w-none break-words leading-relaxed">
+          <div className="prose prose-sm max-w-none break-words leading-relaxed text-card-foreground prose-headings:text-card-foreground prose-strong:text-card-foreground prose-a:text-primary prose-li:marker:text-primary/60">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ ...props }) => (
-                  <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary underline" />
+                  <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary underline decoration-primary/30 hover:decoration-primary" />
                 ),
                 p: ({ ...props }) => <p {...props} className="mb-2 last:mb-0" />,
+                ul: ({ ...props }) => <ul {...props} className="my-2 space-y-1 pl-4" />,
+                ol: ({ ...props }) => <ol {...props} className="my-2 space-y-1 pl-4" />,
+                li: ({ ...props }) => <li {...props} className="text-card-foreground" />,
               }}
             >
               {msg.content}
@@ -162,7 +173,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
         )}
         {msg.isStreaming && (
-          <span className="inline-block h-3.5 w-0.5 animate-pulse bg-current opacity-50" />
+          <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse rounded-full bg-primary/60" />
         )}
       </div>
     </div>
@@ -208,16 +219,16 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
       if (existing.length > 0) {
         // Restore chat history
         setMessages([
-          { id: 'welcome', role: 'system', content: 'Diocese Setup — Conversation restored' },
+          { id: 'welcome', role: 'system', content: 'Enterprise Setup — Conversation restored' },
           ...existing,
         ])
       } else {
         // Fresh wizard — trigger Leo's opening message
         setMessages([
-          { id: 'welcome', role: 'system', content: 'Diocese Setup — Leo is ready' },
+          { id: 'welcome', role: 'system', content: 'Enterprise Setup — Leo is ready' },
         ])
         sendToLeo(
-          'Start the Diocese setup wizard. Introduce yourself as Leo. Explain that a Diocese is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation. Confirm they are ready to begin.',
+          'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation. Confirm they are ready to begin.',
           true,
         )
       }
@@ -297,14 +308,14 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
           },
           body: JSON.stringify({
             message: isOpening
-              ? userMessage || 'Start the Diocese setup wizard. Introduce yourself as Leo. Explain that a Diocese is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation.'
+              ? userMessage || 'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation.'
               : userMessage,
             channelSlug,
             spaceId,
             wizardStep: progress.currentStep,
             wizardContext: {
               operatorName: progress.operatorName,
-              dioceseName: progress.dioceseName,
+              enterpriseName: progress.enterpriseName,
               endeavorType: progress.endeavorType,
               completedSteps: progress.completedSteps,
               tenantSlug,
@@ -436,14 +447,14 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
   return (
     <div className="flex h-full min-h-0 flex-1 overflow-hidden">
       {/* ── Left: Step Panel ── */}
-      <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-border/60 bg-muted/30">
         {/* Header */}
-        <div className="flex items-center gap-2.5 border-b px-4 py-4">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-            <Wand2 size={16} className="text-primary" />
+        <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-4">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Wand2 size={16} />
           </div>
           <div>
-            <p className="text-sm font-semibold">Diocese Setup</p>
+            <p className="text-sm font-semibold text-foreground">Enterprise Setup</p>
             <p className="text-xs text-muted-foreground">
               Step {progress.currentStep + 1} of {WIZARD_STEP_NAMES.length}
             </p>
@@ -451,7 +462,7 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
         </div>
 
         {/* Step list */}
-        <div className="flex-1 overflow-y-auto px-2 py-2">
+        <div className="flex-1 overflow-y-auto px-2 py-3">
           <StepIndicator
             steps={WIZARD_STEP_NAMES}
             currentStep={progress.currentStep}
@@ -460,25 +471,25 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
         </div>
 
         {/* Footer */}
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
-            <ChurchIcon size={13} className="text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">~17 min · guided by Leo</p>
+            <ChurchIcon size={13} className="text-muted-foreground/70" />
+            <p className="text-xs text-muted-foreground/70">~17 min · guided by Leo</p>
           </div>
         </div>
       </aside>
 
       {/* ── Right: Leo Chat ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col bg-background">
         {/* Chat header */}
-        <div className="flex items-center gap-3 border-b bg-card px-5 py-3">
-          <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
-            <Bot size={15} className="text-primary" />
+        <div className="flex items-center gap-3 border-b border-border/60 bg-card px-5 py-3">
+          <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+            <Bot size={15} />
           </div>
           <div>
-            <p className="text-sm font-semibold">Leo</p>
+            <p className="text-sm font-semibold text-foreground">Leo</p>
             <p className="text-xs text-muted-foreground">
-              {WIZARD_STEP_NAMES[progress.currentStep] ?? 'Diocese Setup'}
+              {WIZARD_STEP_NAMES[progress.currentStep] ?? 'Enterprise Setup'}
             </p>
           </div>
           {wizardComplete && (
@@ -490,7 +501,7 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
@@ -498,8 +509,8 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
         </div>
 
         {/* Input */}
-        <div className="border-t bg-card px-4 py-3">
-          <div className="flex items-end gap-2 rounded-xl border bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-primary/30">
+        <div className="border-t border-border/60 bg-card px-4 py-3">
+          <div className="flex items-end gap-2 rounded-xl border border-border/60 bg-background px-3 py-2.5 shadow-sm focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20">
             <textarea
               ref={inputRef}
               value={input}
@@ -512,13 +523,13 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
               }
               disabled={wizardComplete || isSending}
               rows={1}
-              className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
+              className="max-h-32 flex-1 resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
               style={{ minHeight: '24px' }}
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || isSending || wizardComplete}
-              className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
+              className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-30 disabled:shadow-none"
             >
               {isSending ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -527,7 +538,7 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
               )}
             </button>
           </div>
-          <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+          <p className="mt-1.5 px-1 text-[11px] text-muted-foreground/50">
             Enter to send · Shift+Enter for new line
           </p>
         </div>

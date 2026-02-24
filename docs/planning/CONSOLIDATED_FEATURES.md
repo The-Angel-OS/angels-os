@@ -253,9 +253,9 @@
 - 🏗️ Branding per tenant (colors, typography, logo)
 
 ### The Confederation Model
-- 🏗️ Each OpenClaw instance = Diocese
-- 🏗️ Diocese can spawn multiple tenants
-- 🏗️ MCP protocol for inter-diocese communication
+- 🏗️ Each OpenClaw instance = Enterprise
+- 🏗️ Enterprise can spawn multiple tenants
+- 🏗️ MCP protocol for inter-enterprise communication
 - 🏗️ Moltbook network for community discovery
 - 🏗️ Constitutional governance (Answer 53, Ultimate Fair)
 

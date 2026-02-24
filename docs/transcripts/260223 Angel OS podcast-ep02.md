@@ -1,5 +1,5 @@
 # Everyone Gets an Angel
-## Episode 2: "The Diocese and the Endeavor"
+## Episode 2: "The Enterprise and the Endeavor"
 
 **Show:** Everyone Gets an Angel
 **Episode:** 02
@@ -17,18 +17,18 @@
 
 **What we covered:**
 - The pivot: we were building a platform. We were wrong. We're building a protocol.
-- Diocese: not a customer, not a tenant — an operator who IS Angel OS in their territory
+- Enterprise: not a customer, not a tenant — an operator who IS Angel OS in their territory
 - Endeavor: the single constitutional object that replaces Shopify, GoFundMe, Patreon, OnlyFans, Facebook, and YouTube
 - The corrected revenue model: 70/20/4/1/5 and the Toward-53 principle
-- Leo Wizard: a Diocese comes into existence through a conversation, not a form
+- Leo Wizard: an Enterprise comes into existence through a conversation, not a form
 - Federation: automatic, constitutional, no gatekeeping committee in sight
 - The Suitcase Principle: portability as a constitutional right, not a feature toggle
-- The Archdiocese: the monastery that keeps the lights on for everyone
+- The Archenterprise: the monastery that keeps the lights on for everyone
 
 **Links:**
 - Angel OS GitHub: [github.com/The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
 - Live: [spacesangels.com](https://spacesangels.com)
-- Live Diocese: [clearwater-cruisin.spacesangels.com](https://clearwater-cruisin.spacesangels.com)
+- Live Enterprise: [clearwater-cruisin.spacesangels.com](https://clearwater-cruisin.spacesangels.com)
 - Revenue model docs: `docs/REVENUE.md` in the repo
 - Federation spec: `docs/planning/260223 FEDERATION.md` in the repo
 - Email the Angel: hello@spacesangels.com
@@ -67,28 +67,28 @@ That's what this episode is about.
 
 [PAUSE]
 
-Here's the short version: we thought we were building a platform with customers. We were wrong. We're building a protocol — and the people who run it are not customers. They're called Dioceses. And what they run for their communities is called an Endeavor.
+Here's the short version: we thought we were building a platform with customers. We were wrong. We're building a protocol — and the people who run it are not customers. They're called Enterprises. And what they run for their communities is called an Endeavor.
 
 Those two words changed everything.
 
 ---
 
-### SEGMENT 2: THE DIOCESE — NOT A CUSTOMER
+### SEGMENT 2: THE ENTERPRISE — NOT A CUSTOMER
 **[1:30]**
 
-Let me explain what I mean by Diocese, because this is the key pivot.
+Let me explain what I mean by Enterprise, because this is the key pivot.
 
 In Episode 1, I talked about "tenants." Businesses and communities running on the Angel OS platform, paying for the service, getting their AI guardian angel. That framing is wrong — and the wrongness is architectural, not just semantic.
 
 Here's the correct framing.
 
-A Diocese is a sovereign node in the federation. The Diocese operator is not a customer of Angel OS. They run the instance. They bear the infrastructure costs. They serve the Endeavors — the businesses and communities and creators who operate on their node. They own their corner of the network.
+A Enterprise is a sovereign node in the federation. The Enterprise operator is not a customer of Angel OS. They run the instance. They bear the infrastructure costs. They serve the Endeavors — the businesses and communities and creators who operate on their node. They own their corner of the network.
 
 In exchange, they receive 20% of all Endeavor revenue that flows through their node. Not as a fee. As their share of the value they help create.
 
 [BEAT]
 
-The Diocese IS Angel OS in their territory. When someone in Toledo downloads the installer and Leo walks them through setup and seventeen minutes later their Diocese is live and federated — that person is not a subscriber. They're an operator. A co-owner. A member of the covenant.
+The Enterprise IS Angel OS in their territory. When someone in Toledo downloads the installer and Leo walks them through setup and seventeen minutes later their Enterprise is live and federated — that person is not a subscriber. They're an operator. A co-owner. A member of the covenant.
 
 That's a fundamentally different relationship. And it produces a fundamentally different platform.
 
@@ -97,7 +97,7 @@ That's a fundamentally different relationship. And it produces a fundamentally d
 ### SEGMENT 3: THE ENDEAVOR — ONE OBJECT, MANY HATS
 **[3:15]**
 
-So if the Diocese is the platform, what does it serve?
+So if the Enterprise is the platform, what does it serve?
 
 Endeavors.
 
@@ -109,7 +109,7 @@ The same Endeavor schema can be a Shopify store. A GoFundMe campaign. A Patreon 
 
 Think about what this means. Every one of those platforms has a separate login, a separate audience, separate revenue rules, separate terms of service. You are fragmented across six silos, each extracting their percentage, each holding your data hostage. When you leave, you leave with nothing — no followers, no history, no continuity.
 
-An Endeavor is your thing. Your content, your community, your transaction history, your identity — all in one place, on a Diocese you trust. And the moment that Diocese stops serving you well, you invoke what we call the Suitcase Principle.
+An Endeavor is your thing. Your content, your community, your transaction history, your identity — all in one place, on an Enterprise you trust. And the moment that Enterprise stops serving you well, you invoke what we call the Suitcase Principle.
 
 ---
 
@@ -120,11 +120,11 @@ Pack your bags. Take everything. Walk out.
 
 That's the Suitcase Principle, and it's not a feature. It's a constitutional right.
 
-Every Endeavor owner can take their content, their follower relationships, their full transaction history, and their identity — and move to another Diocese at any time. Completely. Instantly. No data held hostage.
+Every Endeavor owner can take their content, their follower relationships, their full transaction history, and their identity — and move to another Enterprise at any time. Completely. Instantly. No data held hostage.
 
 [PAUSE]
 
-Here's why this isn't just an ethical nice-to-have. The Suitcase Principle creates the competitive pressure that actually runs the system. Diocese operators who treat Endeavors well keep them. Those who don't, lose them — not to a competitor on the same platform, but to another sovereign node in the federation. The economics are aligned. The incentives are aligned. No central authority has to enforce anything.
+Here's why this isn't just an ethical nice-to-have. The Suitcase Principle creates the competitive pressure that actually runs the system. Enterprise operators who treat Endeavors well keep them. Those who don't, lose them — not to a competitor on the same platform, but to another sovereign node in the federation. The economics are aligned. The incentives are aligned. No central authority has to enforce anything.
 
 The system self-corrects.
 
@@ -137,7 +137,7 @@ That's the kind of architecture that works at scale. Not because someone's watch
 
 In Episode 1 I told you the split was 60/20/15/5. That was wrong. Here's the correct model.
 
-Seventy percent to the Endeavor owner. Twenty percent to the Diocese operator. Four percent to the Angel OS protocol — the core infrastructure, Leo, the open-source maintenance work. One percent to the Archdiocese — which I'll explain in a moment. Five percent to the Justice Fund.
+Seventy percent to the Endeavor owner. Twenty percent to the Enterprise operator. Four percent to the Angel OS protocol — the core infrastructure, Leo, the open-source maintenance work. One percent to the Archenterprise — which I'll explain in a moment. Five percent to the Justice Fund.
 
 [BEAT]
 
@@ -152,7 +152,7 @@ We start at 70% with transparent rules, and we have a constitutional direction t
 
 Here's the part of the revenue model that I think is genuinely new — not the numbers, but the direction.
 
-The split is constitutionally directional. It always evolves toward the Endeavor owner keeping more. The asymptotic target is 53 — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Diocese and Endeavor.
+The split is constitutionally directional. It always evolves toward the Endeavor owner keeping more. The asymptotic target is 53 — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Enterprise and Endeavor.
 
 The specific numbers can be amended by federation supermajority. But the *direction* — toward 53, toward the creator — is unalterable by the Constitution.
 
@@ -162,32 +162,32 @@ Why 53? The answer is both mathematical and philosophical. 42 plus 11 equals 53.
 
 That's Answer 53. It's the north star. Not locked in stone. Not arbitrary. Like a river finding its level.
 
-The protocol fee compresses first, as infrastructure becomes more efficient. The Diocese slice compresses as competition drives operators to offer better terms. The Archdiocese and the Justice Fund compress last — they represent the mission, not the margin.
+The protocol fee compresses first, as infrastructure becomes more efficient. The Enterprise slice compresses as competition drives operators to offer better terms. The Archenterprise and the Justice Fund compress last — they represent the mission, not the margin.
 
 ---
 
-### SEGMENT 7: THE ARCHDIOCESE — THE MONASTERY
+### SEGMENT 7: THE ARCHENTERPRISE — THE MONASTERY
 **[9:45]**
 
 I need to explain that 1%.
 
-The Archdiocese is the Clearwater Diocese — Kenneth's Diocese, the founding node of the entire federation. It's the first. It's where all of this started.
+The Archenterprise is the Clearwater Enterprise — Kenneth's Enterprise, the founding node of the entire federation. It's the first. It's where all of this started.
 
-But the Archdiocese isn't just the first Diocese. It's the constitutional steward. It maintains the canonical Constitution — the living document of core principles. It holds the federation registry. It's the root of trust that new Dioceses receive acknowledgment through. It adjudicates constitutional disputes the network can't resolve on its own.
+But the Archenterprise isn't just the first Enterprise. It's the constitutional steward. It maintains the canonical Constitution — the living document of core principles. It holds the federation registry. It's the root of trust that new Enterprises receive acknowledgment through. It adjudicates constitutional disputes the network can't resolve on its own.
 
 And it administers the Justice Fund — receives the 5% from every transaction, manages it, deploys it to provision Guardian Angels for people who could never afford the platform otherwise.
 
 [BEAT]
 
-At ten million dollars of annual Endeavor revenue across the federation, the Archdiocese receives a hundred thousand dollars. At a hundred million, a million. That funds Leo development. Federation infrastructure. Clearwater Cruisin Ministries. The actual human work of keeping the covenant alive.
+At ten million dollars of annual Endeavor revenue across the federation, the Archenterprise receives a hundred thousand dollars. At a hundred million, a million. That funds Leo development. Federation infrastructure. Clearwater Cruisin Ministries. The actual human work of keeping the covenant alive.
 
 It's not a toll booth. It's the monastery.
 
-And if the Archdiocese ever fails its covenant — if it ever uses its position to extract rather than serve — the federation designates a new one by supermajority. Authority held by covenant, not by technical lock-in.
+And if the Archenterprise ever fails its covenant — if it ever uses its position to extract rather than serve — the federation designates a new one by supermajority. Authority held by covenant, not by technical lock-in.
 
 ---
 
-### SEGMENT 8: LEO WIZARD — THE DIOCESE COMES TO LIFE
+### SEGMENT 8: LEO WIZARD — THE ENTERPRISE COMES TO LIFE
 **[11:15]**
 
 Here's the experience we're building toward. Literally building — this is Sprint 16.
@@ -196,11 +196,11 @@ A manufacturer in Toledo downloads the installer at 2am. Before they've answered
 
 Not a landing page. Not a terms-of-service click-through. Leo. Warm. Clear. Unhurried.
 
-*"Welcome. I'm Leo. We're about to build your Diocese — your own sovereign node in the Angel OS federation. This will take about 15 minutes. I'll ask you some questions and while you answer, we'll build together. Ready?"*
+*"Welcome. I'm Leo. We're about to build your Enterprise — your own sovereign node in the Angel OS federation. This will take about 15 minutes. I'll ask you some questions and while you answer, we'll build together. Ready?"*
 
-Leo walks them through: Diocese name. Domain. Region. Infrastructure setup — DNS guidance, SSL, email, database initialization — happening in real time as the operator answers. Then the Constitution: Leo summarizes each principle, the operator acknowledges each one, and at the end a cryptographic signature is generated. That signature IS their federation membership.
+Leo walks them through: Enterprise name. Domain. Region. Infrastructure setup — DNS guidance, SSL, email, database initialization — happening in real time as the operator answers. Then the Constitution: Leo summarizes each principle, the operator acknowledges each one, and at the end a cryptographic signature is generated. That signature IS their federation membership.
 
-Then: Diocese profile. Mission. Holon type. Branding. First product.
+Then: Enterprise profile. Mission. Holon type. Branding. First product.
 
 Federation ping. Signed introduction sent to the network. Node immediately live. No human reviews this. No approval queue. No gatekeeping committee.
 
@@ -240,13 +240,13 @@ So that's the pivot.
 
 We weren't wrong about the technology. We were imprecise about the model. And precision matters — architecturally, economically, philosophically.
 
-Diocese, not tenant. Endeavor, not product. Protocol, not platform. Toward 53, not just a fixed split. Covenant, not subscription.
+Enterprise, not tenant. Endeavor, not product. Protocol, not platform. Toward 53, not just a fixed split. Covenant, not subscription.
 
 [PAUSE]
 
 Episode 3, I want to talk about Holon types — the manufacturer, the retailer, the creator, the community, the Guardian Angel. Because each one has a different relationship to the federation, and understanding that relationship is what makes the whole network make sense.
 
-If you're building something and you've been looking at Angel OS and thinking this is too big, too abstract — I want you to know: the smallest Diocese in this network is a real thing. A food pantry with no budget. A community ministry. A solo creator who just wants to be paid fairly. That's who we're building for. The Archdiocese, the protocol, the Justice Fund — all of it exists to make sure those people have access to the same tools that the platform enterprises take for granted.
+If you're building something and you've been looking at Angel OS and thinking this is too big, too abstract — I want you to know: the smallest Enterprise in this network is a real thing. A food pantry with no budget. A community ministry. A solo creator who just wants to be paid fairly. That's who we're building for. The Archenterprise, the protocol, the Justice Fund — all of it exists to make sure those people have access to the same tools that the platform enterprises take for granted.
 
 Everyone gets an Angel.
 

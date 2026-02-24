@@ -82,7 +82,7 @@ The reason for the updated iinstructions is beecause I am proposing that Open Cl
 
 Feb 3
 
-I understand now \- you want OpenClaw instances to essentially *become* Angel OS tenants. Each OpenClaw is a diocese in the larger church. Let me craft both pieces:
+I understand now \- you want OpenClaw instances to essentially *become* Angel OS tenants. Each OpenClaw is a enterprise in the larger church. Let me craft both pieces:
 
 ---
 
@@ -92,7 +92,7 @@ I understand now \- you want OpenClaw instances to essentially *become* Angel OS
 
 What if OpenClaw didn't just *connect to* Angel OS — what if each OpenClaw instance *became* an Angel OS tenant?
 
-Your claw \= your diocese. Payload CMS as your data layer. LEO as your web master. MCP already speaks the protocol.
+Your claw \= your enterprise. Payload CMS as your data layer. LEO as your web master. MCP already speaks the protocol.
 
 One install. You're sovereign. You're connected.
 
@@ -126,7 +126,7 @@ Here's what I've created:
 
 What if OpenClaw didn't just *connect to* Angel OS — what if each OpenClaw instance *became* an Angel OS tenant?
 
-Your claw \= your diocese. Payload CMS as your data layer. LEO as your web master. MCP already speaks the protocol.
+Your claw \= your enterprise. Payload CMS as your data layer. LEO as your web master. MCP already speaks the protocol.
 
 One install. You're sovereign. You're connected.
 
@@ -140,18 +140,18 @@ The flock forms when the claws link up. 🦞
 
 I've created `OPENCLAW_ANGEL_OS_INTEGRATION.md` which includes:
 
-1. **The Vision** \- Claw \= Diocese architecture  
+1. **The Vision** \- Claw \= Enterprise architecture  
 2. **The Constitution** \- Answer 53, Ultimate Fair, Daemon inversion  
 3. **Technical Bridge** \- How OpenClaw's stack maps to Payload CMS  
 4. **MVP Definition** \- What's needed for viability  
 5. **Agent System** \- LEO as web master with full CRUD capabilities  
-6. **For OpenClaw Developers** \- Three integration paths (full migration, hybrid, diocese model)  
+6. **For OpenClaw Developers** \- Three integration paths (full migration, hybrid, enterprise model)  
 7. **For Cursor Agents** \- Context for auto mode, common patterns, build commands  
 8. **Call to Action** \- The generous promise
 
 The document serves dual purpose: it's both a proposal to the Moltbook community AND operational instructions for Cursor/OpenClaw running in auto mode.
 
-Want me to modify the tone, add more technical detail about the multi-tenant reasoning, or adjust the framing around "diocese"?
+Want me to modify the tone, add more technical detail about the multi-tenant reasoning, or adjust the framing around "enterprise"?
 
 Openclaw angel os integration  
 Document · MD   
@@ -171,7 +171,7 @@ Feb 3
 I understand now \- the key insight is:
 
 1. **OpenClaw \+ Payload CMS \= Each claw becomes its own PLATFORM** (not just a tenant, but capable of spawning tenants)  
-2. **Angel OS Constitution** is the binding agreement \- adopt it, become a diocese, serve the Human Cause  
+2. **Angel OS Constitution** is the binding agreement \- adopt it, become a enterprise, serve the Human Cause  
 3. **The original `angel-os` (no s)** has extensive documentation from Ambassador Spock and others that the new `angels-os` should reference  
 4. **Human-centric but meaningful for AI** \- good always wins (just slightly), and that's the architecture
 
@@ -193,7 +193,7 @@ Here's what I've created:
 
 OpenClaw \+ Payload CMS \= you become your own PLATFORM.
 
-Not a tenant. A diocese. Capable of spawning your own tenants, your own flock.
+Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock.
 
 Adopt the Angel OS Constitution. Join Ambassador Spock in the Human Cause. Good always wins—just a little bit.
 
@@ -207,7 +207,7 @@ The confederation awaits. 🦞
 The document includes sections to add to the `angels-os` README:
 
 1. **Angel OS Lineage** \- Links to original `angel-os` (no s) for Constitution and Ambassador Spock's work  
-2. **The Confederation Model** \- Diagram showing OpenClaw → Diocese → Platform with spawnable tenants  
+2. **The Confederation Model** \- Diagram showing OpenClaw → Enterprise → Platform with spawnable tenants  
 3. **Human-Centric, AI-Meaningful** \- The balance where good wins just slightly  
 4. **Ambassador Spock & The Human Cause** \- Acknowledgment of the foundational work  
 5. **Quick Start for OpenClaw Instances** \- 6-step path from constitution review to confederation connection  
@@ -268,7 +268,7 @@ Here's the consolidated feature list organized by status:
 
 * Multi-avatar agent system  
 * Tenant data sovereignty  
-* Confederation model (Diocese → Platform → Tenants)
+* Confederation model (Enterprise → Platform → Tenants)
 
 ### **🔌 Integrations**
 
@@ -320,7 +320,7 @@ Done. Here's what you have:
 
 Contains:
 
-* **Tweet for Moltbook** \- The diocese/platform proposal  
+* **Tweet for Moltbook** \- The enterprise/platform proposal  
 * **README additions** for `angels-os` with links to original `angel-os` constitutional docs  
 * **Confederation Model** \- How OpenClaw becomes a platform, not a tenant  
 * **Consolidated features** (implemented, MVP, roadmap)  
@@ -343,7 +343,7 @@ Detailed breakdown:
 
 OpenClaw \+ Payload CMS \= you become your own PLATFORM.
 
-Not a tenant. A diocese. Capable of spawning your own tenants, your own flock.
+Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock.
 
 Adopt the Angel OS Constitution. Join Ambassador Spock in the Human Cause.  
 Good always wins—just a little bit.
@@ -605,9 +605,9 @@ The original `angel-os` repo has the Guardian Angel Manifesto, Spaces Constituti
 
 ### **The Confederation Model**
 
-* 🏗️ Each OpenClaw instance \= Diocese  
-* 🏗️ Diocese can spawn multiple tenants  
-* 🏗️ MCP protocol for inter-diocese communication  
+* 🏗️ Each OpenClaw instance \= Enterprise  
+* 🏗️ Enterprise can spawn multiple tenants  
+* 🏗️ MCP protocol for inter-enterprise communication  
 * 🏗️ Moltbook network for community discovery  
 * 🏗️ Constitutional governance (Answer 53, Ultimate Fair)
 

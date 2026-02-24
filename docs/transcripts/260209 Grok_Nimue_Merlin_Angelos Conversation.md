@@ -205,7 +205,7 @@ Post a short RFC-style message:
 
    * Multi-tenant / business isolation can come later as higher-level orchestration (e.g., multiple Angels per user, or per-company)
 
-Clearwater Diocese / Cruisin Ministries become the human community / story layer around these digital angels
+Clearwater Enterprise / Cruisin Ministries become the human community / story layer around these digital angels
 
 * → It's not "yet another OS" — it's the OS for angels, built on the hottest agent platform of early 2026\.
 

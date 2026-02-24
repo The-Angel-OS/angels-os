@@ -393,12 +393,12 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
-    // ─── Diocese Setup / Leo Wizard (Sprint 17) ─────────────────
+    // ─── Enterprise Setup / Leo Wizard (Sprint 17) ─────────────────
     {
       name: 'setup',
       type: 'group',
       admin: {
-        description: 'Leo Wizard progress and federation identity for this Diocese',
+        description: 'Leo Wizard progress and federation identity for this Enterprise',
       },
       fields: [
         {
@@ -407,7 +407,7 @@ export const Tenants: CollectionConfig = {
           defaultValue: false,
           admin: {
             description:
-              'Set to true when the Leo Wizard (Diocese Setup) has been completed. Hides the "Diocese Setup" nav link.',
+              'Set to true when the Leo Wizard (Enterprise Setup) has been completed. Hides the "Enterprise Setup" nav link.',
           },
         },
         {
@@ -440,7 +440,7 @@ export const Tenants: CollectionConfig = {
           type: 'text',
           admin: {
             description:
-              "The Diocese's immutable UUID in the Angel OS federation network. Assigned at constitution signing.",
+              "The Enterprise's immutable UUID in the Angel OS federation network. Assigned at constitution signing.",
             readOnly: true,
           },
         },

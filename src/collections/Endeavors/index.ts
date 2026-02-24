@@ -1,16 +1,16 @@
 /**
  * Endeavors Collection
  *
- * The constitutional identity of a Diocese — what it is, what it does,
+ * The constitutional identity of an Enterprise — what it is, what it does,
  * and what it stands for. Think of it as the "Articles of Incorporation"
- * for an Angel OS Diocese.
+ * for an Angel OS Enterprise.
  *
- * One Endeavor per Diocese. Created during the Leo Wizard (wizard step 1).
+ * One Endeavor per Enterprise. Created during the Leo Wizard (wizard step 1).
  * Contains constitution signing data and federation network status.
  *
  * This is NOT a replacement for Products/Bookings/Events — those remain
  * separate collections. The Endeavor is the meta-object that declares
- * what kind of value-creation this Diocese is organized around.
+ * what kind of value-creation this Enterprise is organized around.
  *
  * Constitutional Reference: "An Endeavor is ONE constitutional object that
  * configures itself as a business, cause, creator channel, community, or
@@ -26,7 +26,7 @@ export const Endeavors: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'endeavorType', 'status', 'updatedAt'],
     description:
-      'The constitutional identity of a Diocese — what it is, what it does, and what it stands for.',
+      'The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.',
   },
   access: {
     // Network-visible for federation catalog (filter by federation.networkVisible)
@@ -47,7 +47,7 @@ export const Endeavors: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        description: 'Official name of this Endeavor / Diocese',
+        description: 'Official name of this Endeavor / Enterprise',
         placeholder: 'e.g., Clearwater Cruisin\' Ministries',
       },
     },
@@ -63,7 +63,7 @@ export const Endeavors: CollectionConfig = {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Full description of what this Diocese does and stands for',
+        description: 'Full description of what this Enterprise does and stands for',
         rows: 4,
       },
     },
@@ -79,7 +79,7 @@ export const Endeavors: CollectionConfig = {
         { label: 'Custom', value: 'custom' },
       ],
       admin: {
-        description: 'The primary operational model of this Diocese',
+        description: 'The primary operational model of this Enterprise',
       },
     },
     {
@@ -96,7 +96,7 @@ export const Endeavors: CollectionConfig = {
         {
           label: 'Active',
           value: 'active',
-          // Wizard complete, Diocese is operating
+          // Wizard complete, Enterprise is operating
         },
         {
           label: 'Suspended',
@@ -111,7 +111,7 @@ export const Endeavors: CollectionConfig = {
       ],
       admin: {
         description:
-          '"Forming" during Leo Wizard setup. "Active" once the Diocese is live and federated.',
+          '"Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.',
       },
     },
 
@@ -131,7 +131,7 @@ export const Endeavors: CollectionConfig = {
       name: 'operator',
       type: 'group',
       admin: {
-        description: 'The human who runs this Diocese',
+        description: 'The human who runs this Enterprise',
       },
       fields: [
         {
@@ -158,7 +158,7 @@ export const Endeavors: CollectionConfig = {
       name: 'capabilities',
       type: 'array',
       admin: {
-        description: 'What this Diocese can offer to the network (visible in federation catalog)',
+        description: 'What this Enterprise can offer to the network (visible in federation catalog)',
         initCollapsed: true,
       },
       fields: [
@@ -239,7 +239,7 @@ export const Endeavors: CollectionConfig = {
           type: 'text',
           admin: {
             description:
-              'Unique UUID assigned at constitution signing — the Diocese\'s immutable identity in the federation network',
+              'Unique UUID assigned at constitution signing — the Enterprise\'s immutable identity in the federation network',
             readOnly: true,
           },
         },
@@ -247,7 +247,7 @@ export const Endeavors: CollectionConfig = {
           name: 'lastPingAt',
           type: 'date',
           admin: {
-            description: 'When this Diocese last pinged the federation registry',
+            description: 'When this Enterprise last pinged the federation registry',
             readOnly: true,
           },
         },

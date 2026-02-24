@@ -2,7 +2,7 @@
 
 **The federated cooperative operating system. Everyone gets an Angel.**
 
-An open-source, constitutional AI-native platform where every Diocese (business, ministry, community) runs its own sovereign AI guardian angel — **Leo** — on infrastructure they own. Built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL.
+An open-source, constitutional AI-native platform where every Enterprise (business, ministry, community) runs its own sovereign AI guardian angel — **Leo** — on infrastructure they own. Built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL.
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
@@ -19,19 +19,19 @@ An open-source, constitutional AI-native platform where every Diocese (business,
 
 ## The Model (Updated — Sprint 16)
 
-Angel OS is not a platform with customers. It is a **federation of Dioceses**.
+Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
 | Role | What they are | Revenue share |
 |------|--------------|---------------|
 | **Endeavor owner** | The creator, business, cause, or community generating value | **70%** |
-| **Diocese operator** | The platform instance — they ARE Angel OS in their territory | **20%** |
+| **Enterprise operator** | The platform instance — they ARE Angel OS in their territory | **20%** |
 | **Angel OS protocol** | Core infrastructure, Leo, open source maintenance | **4%** |
-| **Archdiocese** | Clearwater — founding node, federation steward, Justice Fund custodian | **1%** |
+| **Archenterprise** | Clearwater — founding node, federation steward, Justice Fund custodian | **1%** |
 | **Justice Fund** | Guardian Angel provisioning for underserved populations | **5%** |
 
 **The Toward-53 Principle:** The split is constitutionally directional. It always evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers can be amended by federation supermajority.
 
-**The Diocese IS the platform.** Diocese operators are not customers of Angel OS. They run the instance, serve Endeavors, bear infrastructure costs, and earn 20% of all Endeavor revenue on their node.
+**The Enterprise IS the platform.** Enterprise operators are not customers of Angel OS. They run the instance, serve Endeavors, bear infrastructure costs, and earn 20% of all Endeavor revenue on their node.
 
 ---
 
@@ -39,7 +39,7 @@ Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 
 | System | Status | Notes |
 |--------|--------|-------|
-| Multi-tenant / Diocese architecture | **Done** | Subdomain routing, per-Diocese header/footer/home, x-tenant-id injection to all API routes |
+| Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
 | Leo AI Agent | **Done** | Claude Sonnet 4 with 29 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
@@ -55,7 +55,7 @@ Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 | Producer Dashboard | **Done** | `/dashboard/producer` — order queue, products, earnings |
 | Product Configurator | **Done** | Custom text, color swatches, size selector, live preview |
 | Reviews | **Done** | Review collection, Google Places import, aggregation display |
-| Vendor Onboarding | **Done** | Leo-guided `onboard_vendor` tool creates Diocese + space + user |
+| Vendor Onboarding | **Done** | Leo-guided `onboard_vendor` tool creates Enterprise + space + user |
 | Error Log Viewer | **Done** | Admin dashboard for triaging application errors |
 | Invitation System | **Done** | Token-based invites, role assignment, landing page (72 tests) |
 | Holon Registration | **Done** | 6 node types, capabilities, compliance (49 tests) |
@@ -69,14 +69,14 @@ Angel OS is not a platform with customers. It is a **federation of Dioceses**.
 | Constitutional Prompt | **Done** | Immutable system prompt, anti-demonic safeguards |
 | Unified Chat Architecture | **Done** | ChatProvider at layout level, one context consumed by all views |
 | DM Channels | **Done** | `type: 'dm'` with members array, deterministic slugs, Leo DM persistence |
-| Diocese Detail Admin | **Done** | `/dashboard/admin/tenants/[id]` — stats, branding editor, member management |
+| Enterprise Detail Admin | **Done** | `/dashboard/admin/tenants/[id]` — stats, branding editor, member management |
 | Integration Bridge Stub | **Done** | `POST /api/bridge/inbound` — ready for WhatsApp, email, SMS, Google Chat |
 | Email Inbound Polling | **Done** | IMAP cron every 2 min → AI Bus channel per sender → Leo replies via Resend |
 | Transactional Email | **Done** | Resend adapter (`hello@spacesangels.com`) — invites, resets, Leo replies |
 | MCP Protocol | **Done** | Agent discovery endpoint, JWT auth, tool exposure |
 | Leo Content Tools | **Done** | create_post, update_post, create_page, update_page, query_media, manage_categories |
 | Multi-tenant Security | **Done** | x-tenant-id injected to /api routes, cross-tenant injection blocked, adminOrSelf hardened |
-| Favicon + PWA assets | **Done** | PNG set (64px, 512px, apple-touch-icon), generateMetadata() dynamic per Diocese |
+| Favicon + PWA assets | **Done** | PNG set (64px, 512px, apple-touch-icon), generateMetadata() dynamic per Enterprise |
 | Spaces Menu | **Done** | SpacesMenuHeader with Create/Settings/Members — full Space management above channels nav |
 
 ### Leo's 29 Tools
@@ -130,9 +130,9 @@ pnpm dev                      # http://localhost:3000
 | `SYSTEM_EMAIL_PASSWORD` | IMAP password for system inbox |
 | `CRON_SECRET` | Shared secret for Vercel Cron authentication |
 | `COOKIE_DOMAIN` | Leave empty in dev (`.spacesangels.com` in Vercel env for prod) |
-| `DEFAULT_TENANT_SLUG` | Fallback Diocese slug for localhost dev |
+| `DEFAULT_TENANT_SLUG` | Fallback Enterprise slug for localhost dev |
 
-> **Important:** Leave `NEXT_PUBLIC_SERVER_URL` **unset** in production. The auth provider falls back to `window.location.origin`, which correctly uses each Diocese's subdomain for API calls.
+> **Important:** Leave `NEXT_PUBLIC_SERVER_URL` **unset** in production. The auth provider falls back to `window.location.origin`, which correctly uses each Enterprise's subdomain for API calls.
 
 ### Running Tests
 
@@ -151,15 +151,15 @@ npx tsc --noEmit              # TypeScript check
 **The Endeavor**
 The fundamental unit of value creation. An Endeavor is ONE constitutional object that configures itself as a business (Shopify replacement), a cause (GoFundMe replacement), a creator channel (Patreon/OnlyFans replacement), a community (Facebook replacement), or a media presence (YouTube replacement). The Endeavor owner decides. The platform does not.
 
-**The Diocese**
-A sovereign node in the federation. Diocese operators are not customers of Angel OS — they ARE Angel OS in their territory. They run the instance, serve Endeavors, bear infrastructure costs, and earn 20% of all Endeavor revenue on their node. Dioceses compete for Endeavors by offering better terms, better service, better community.
+**The Enterprise**
+A sovereign node in the federation. Enterprise operators are not customers of Angel OS — they ARE Angel OS in their territory. They run the instance, serve Endeavors, bear infrastructure costs, and earn 20% of all Endeavor revenue on their node. Enterprises compete for Endeavors by offering better terms, better service, better community.
 
 **The Federation**
 The network that forms itself. Constitution accepted → Federation ping sent → Node is immediately live. No approval queue. No gatekeeping committee. The Constitution IS the gate.
 
 ### Leo — The Wizard
 
-Leo is not a chatbot bolted onto a platform. Leo IS the platform during onboarding. When a new Diocese runs the installer, Leo is already there — warm, clear, unhurried — walking the operator through DNS configuration, constitution acceptance, diocese profile, federation ping, and first Endeavor. By the end of the wizard (≈17 minutes), the Diocese is live, federated, and their first product is indexed in the marketplace.
+Leo is not a chatbot bolted onto a platform. Leo IS the platform during onboarding. When a new Enterprise runs the installer, Leo is already there — warm, clear, unhurried — walking the operator through DNS configuration, constitution acceptance, enterprise profile, federation ping, and first Endeavor. By the end of the wizard (≈17 minutes), the Enterprise is live, federated, and their first product is indexed in the marketplace.
 
 ### Key Directories
 
@@ -193,7 +193,7 @@ src/
     space-invite.ts         # Invitation generation (POST /api/spaces/invite)
     invite-accept.ts        # Invite acceptance (POST /api/invite/accept)
   middleware/
-    detectTenant.ts         # Hostname → Diocese slug resolution
+    detectTenant.ts         # Hostname → Enterprise slug resolution
   federation/               # (Sprint 16) Federation protocol
   utilities/
     ConversationEngine.ts   # Leo's brain (Claude API + tool loop)
@@ -241,7 +241,7 @@ visitor → probation (90 days) → member → vouched (2 vouches) → steward �
 Dashboard Layout
   └── ChatProvider (React Context — single source of truth)
         ├── resolves Leo DM on mount
-        ├── all DM channels loaded per Diocese
+        ├── all DM channels loaded per Enterprise
         └── consumed by SidebarChat, MultiChannelChat, FloatingBubble
             (all views fall back to direct useChat() when no provider)
 
@@ -254,7 +254,7 @@ Bridge:   POST /api/bridge/inbound → normalize → DM → Leo → respond
 
 Messages flow through Spaces and Channels with visibility levels:
 - `private` — User and Angel only
-- `tenant` — All agents in the Diocese (default)
+- `tenant` — All agents in the Enterprise (default)
 - `network` — Federation-wide (with consent)
 
 Real-time delivery via Server-Sent Events. Polling fallback for reliability.
@@ -266,9 +266,9 @@ Revenue from every Endeavor transaction splits automatically. No manual calculat
 ```
 GROSS REVENUE
 ├── 70% → Endeavor owner (creator / business / cause — the value generator)
-├── 20% → Diocese operator (the platform instance serving the Endeavor)
+├── 20% → Enterprise operator (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archdiocese (Clearwater — federation stewardship and ministry)
+├──  1% → Archenterprise (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund (Guardian Angel provisioning)
 ```
 
@@ -321,14 +321,14 @@ GROSS REVENUE
 - [x] Producer role + `/dashboard/producer`
 - [x] Leo onboarding tools: `onboard_vendor`, `suggest_products`
 - [x] Reviews collection + Google Places import + aggregation display
-- [x] Ministry Diocese type with `isTaxExempt` / `taxExemptId` fields
-- [x] Clearwater Cruisin' seed Diocese
+- [x] Ministry Enterprise type with `isTaxExempt` / `taxExemptId` fields
+- [x] Clearwater Cruisin' seed Enterprise
 
 ### ✅ Done (Sprint 11.5: Chat UX, Docs, Code Quality)
 
 - [x] Documentation Center (`/dashboard/docs`) — indexed, searchable
 - [x] Smart scroll, message truncation, infinite scroll
-- [x] Diocese chooser — sidebar dropdown for multi-Diocese switching
+- [x] Enterprise chooser — sidebar dropdown for multi-Enterprise switching
 - [x] Code quality: `TOOL_LABELS`, `useClickOutside`, `Backdrop`
 
 ### ✅ Done (Sprint 12: Unified Chat Architecture & DM Channels)
@@ -336,15 +336,15 @@ GROSS REVENUE
 - [x] ChatProvider React Context — single source of truth at dashboard layout
 - [x] DM channels — `type: 'dm'` with explicit members, deterministic slugs
 - [x] Leo DM persistence — SidebarChat interactions persist to `dm-{userId}-leo`
-- [x] Diocese detail admin page — full drill-down with stats, branding, members
+- [x] Enterprise detail admin page — full drill-down with stats, branding, members
 - [x] `POST /api/bridge/inbound` stub — ready for WhatsApp/email/SMS/Google Chat
 
 ### ✅ Done (Sprint 13: Multi-Tenancy Hardening & Email Bridge)
 
-- [x] Per-Diocese branded home pages, `<title>`, favicon
-- [x] Dashboard stats scoped per Diocese
+- [x] Per-Enterprise branded home pages, `<title>`, favicon
+- [x] Dashboard stats scoped per Enterprise
 - [x] Resend email adapter + IMAP email polling (cron every 2 min)
-- [x] `*.spacesangels.com` wildcard DNS — Diocese subdomains live in production
+- [x] `*.spacesangels.com` wildcard DNS — Enterprise subdomains live in production
 - [x] Role-based login redirect, archangel admin access
 - [x] WelcomeBanner component for unseeded installs
 - [x] Live at [spacesangels.com](https://spacesangels.com)
@@ -362,7 +362,7 @@ GROSS REVENUE
 - [x] Middleware: API paths bypass i18n routing (pass-through only)
 - [x] `detectTenant`: `www.` → null, bare IPs → default, unknown 2-part → null (stop guessing)
 - [x] `adminOrSelf`: `super_admin` + `archangel` added to role check
-- [x] `comments/add`: cross-Diocese injection blocked; parent doc ownership validated
+- [x] `comments/add`: cross-Enterprise injection blocked; parent doc ownership validated
 - [x] `COOKIE_DOMAIN` cleared for local dev (was silently set to `.spacesangels.com` in `.env.local`)
 - [x] Favicon PNG set: 64px, 512px, apple-touch-icon across all layouts
 - [x] Chat horizontal overflow fixed in MessageList + MultiChannelChat
@@ -380,15 +380,15 @@ GROSS REVENUE
 
 ### 🔜 Next (Sprint 17: Leo Wizard + Federation Installer)
 
-- [ ] `npx create-angel-diocese` installer scaffold
-- [ ] Leo wizard: 8-step Diocese onboarding conversation (identity → infra → constitution → federation)
-- [ ] Cryptographic constitution signing (Diocese joins by signed covenant, not form submission)
-- [ ] Federation ping: signed introduction JSON sent to Archdiocese on setup
+- [ ] `npx create-angel-enterprise` installer scaffold
+- [ ] Leo wizard: 8-step Enterprise onboarding conversation (identity → infra → constitution → federation)
+- [ ] Cryptographic constitution signing (Enterprise joins by signed covenant, not form submission)
+- [ ] Federation ping: signed introduction JSON sent to Archenterprise on setup
 - [ ] `src/federation/` protocol directory: signed HTTP requests, gossip sync, registry
 - [ ] Endeavors collection: unified object replacing separate business/cause/creator/community schemas
 - [ ] Suitcase export: full Endeavor portability (content + followers + transaction history + identity)
 - [ ] Wire federation engine to live Payload collections
-- [ ] Cross-Diocese catalog sync
+- [ ] Cross-Enterprise catalog sync
 
 ### 🔮 Future (v1.0.0 — Federation Live)
 
@@ -413,8 +413,8 @@ GROSS REVENUE
 | Sprint 9 | UX polish, Leo AI fix, error logging, chat pipeline | +9 |
 | Sprint 10 | Image chat, admin Leo, channel awareness, multi-tenant dev | +6 |
 | Sprint 11 | Vendor marketplace, configurator, reviews, producer dashboard | +8 |
-| Sprint 11.5 | Documentation Center, smart scroll, truncation, Diocese chooser | +12 |
-| Sprint 12 | Unified chat architecture, DM channels, ChatProvider, diocese detail | +7 |
+| Sprint 11.5 | Documentation Center, smart scroll, truncation, Enterprise chooser | +12 |
+| Sprint 12 | Unified chat architecture, DM channels, ChatProvider, enterprise detail | +7 |
 | Sprint 13 | Multi-tenancy hardening, Resend email, IMAP poll, spacesangels.com | +7 |
 | Sprint 14 | Leo content tools, chat stability, email loop prevention | +4 |
 | Sprint 15 | Multi-tenant security hardening, favicon, chat overflow fix | +17 |
@@ -436,8 +436,8 @@ You are welcome here. This is what you need to know:
 
 | Area | What to Do | Difficulty |
 |------|-----------|------------|
-| **Leo Wizard** | **8-step Diocese onboarding — Sprint 17 primary deliverable** | **Hard** |
-| **Federation installer** | **`npx create-angel-diocese` scaffold + signed constitution** | **Hard** |
+| **Leo Wizard** | **8-step Enterprise onboarding — Sprint 17 primary deliverable** | **Hard** |
+| **Federation installer** | **`npx create-angel-enterprise` scaffold + signed constitution** | **Hard** |
 | **Endeavors collection** | **Unified business/cause/creator/community schema** | **Medium** |
 | **Suitcase export** | **Full Endeavor data portability export/import** | **Medium** |
 | WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |

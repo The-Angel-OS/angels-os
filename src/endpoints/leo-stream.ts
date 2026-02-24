@@ -343,7 +343,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     wizardContext: rawWizardContext,
   } = body
 
-  // Wizard mode — extract optional step + context for Diocese Setup
+  // Wizard mode — extract optional step + context for Enterprise Setup
   const isWizardMode = typeof wizardStep === 'number'
   const wizardContext: WizardContext =
     rawWizardContext && typeof rawWizardContext === 'object'
@@ -418,8 +418,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   const resolvedConversationId =
     typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
 
-  // Build system prompt — append wizard suffix when in Diocese Setup wizard
-  const phase = isWizardMode ? 'diocese-setup-wizard' : 'general'
+  // Build system prompt — append wizard suffix when in Enterprise Setup wizard
+  const phase = isWizardMode ? 'enterprise-setup-wizard' : 'general'
   const baseSystemPrompt = buildStreamingSystemPrompt({
     agentName,
     personality,

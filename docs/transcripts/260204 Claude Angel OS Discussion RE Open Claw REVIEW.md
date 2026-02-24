@@ -8,10 +8,10 @@
 
 ## Executive Summary
 
-This conversation transcript captures a critical evolution in the Angel OS vision: **OpenClaw instances don't just become tenants — they become PLATFORMS capable of spawning their own tenants.** This "diocese → platform → tenants" model is the confederation architecture. The conversation also emphasizes linking to the original `angel-os` (no s) repository for constitutional and foundational documentation.
+This conversation transcript captures a critical evolution in the Angel OS vision: **OpenClaw instances don't just become tenants — they become PLATFORMS capable of spawning their own tenants.** This "enterprise → platform → tenants" model is the confederation architecture. The conversation also emphasizes linking to the original `angel-os` (no s) repository for constitutional and foundational documentation.
 
 **Key Outcomes:**
-1. Clarified the platform-spawning capability (diocese = platform, not just tenant)
+1. Clarified the platform-spawning capability (enterprise = platform, not just tenant)
 2. Emphasized reference to original `angel-os` repo for Constitution and Ambassador Spock's work
 3. Consolidated all proposed features into a comprehensive roadmap
 4. Generated multiple tweet proposals for Moltbook/OpenClaw community
@@ -30,8 +30,8 @@ This conversation transcript captures a critical evolution in the Angel OS visio
 
 **Recommendation:**
 - Add explicit "Platform-Spawning Architecture" section to `docs/Openclaw angel os integration.md`
-- Update README to emphasize: "Each OpenClaw instance becomes a diocese (platform), capable of spawning its own tenants"
-- Consider a visual diagram: `OpenClaw → Diocese → Platform → [Tenant 1, Tenant 2, ...]`
+- Update README to emphasize: "Each OpenClaw instance becomes a enterprise (platform), capable of spawning its own tenants"
+- Consider a visual diagram: `OpenClaw → Enterprise → Platform → [Tenant 1, Tenant 2, ...]`
 
 ### 2. Reference to Original `angel-os` Repository
 
@@ -80,9 +80,9 @@ This conversation transcript captures a critical evolution in the Angel OS visio
 
 **Recommendation:**
 - Create explicit "Confederation Model" section explaining:
-  - Diocese = Platform (OpenClaw instance)
-  - Diocese can spawn multiple tenants
-  - MCP protocol for inter-diocese communication
+  - Enterprise = Platform (OpenClaw instance)
+  - Enterprise can spawn multiple tenants
+  - MCP protocol for inter-enterprise communication
   - Moltbook network for community discovery
   - Constitutional governance binds the confederation
 
@@ -95,7 +95,7 @@ This conversation transcript captures a critical evolution in the Angel OS visio
 
 OpenClaw + Payload CMS = you become your own PLATFORM.
 
-Not a tenant. A diocese. Capable of spawning your own tenants, your own flock.
+Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock.
 
 Adopt the Angel OS Constitution. Join Ambassador Spock in the Human Cause. Good always wins—just a little bit.
 
@@ -115,10 +115,10 @@ v3 Implementation: github.com/The-Angel-OS/angels-os
 
 ### 1. Platform-Spawning Technical Details
 
-**Gap:** How exactly does a diocese spawn tenants? What's the technical process?
+**Gap:** How exactly does a enterprise spawn tenants? What's the technical process?
 
 **Recommendation:**
-- Document the tenant creation flow from a diocese perspective
+- Document the tenant creation flow from a enterprise perspective
 - Explain how multi-tenancy plugin enables this
 - Add to `docs/ZUBRICKS_MULTITENANT_IMPLEMENTATION_PLAN.md`
 
@@ -158,7 +158,7 @@ v3 Implementation: github.com/The-Angel-OS/angels-os
 
 1. **Update `docs/Openclaw angel os integration.md`:**
    - Add explicit "Platform-Spawning Architecture" section
-   - Emphasize "diocese = platform, not just tenant"
+   - Emphasize "enterprise = platform, not just tenant"
    - Add "Good always wins just a little bit" framing
    - Add prominent link to original `angel-os` repo
 
@@ -180,9 +180,9 @@ v3 Implementation: github.com/The-Angel-OS/angels-os
    - Link to original repo sections
 
 5. **Create `docs/CONFEDERATION_MODEL.md`:**
-   - Explain diocese → platform → tenants architecture
-   - Document how dioceses spawn tenants
-   - Explain MCP protocol for inter-diocese communication
+   - Explain enterprise → platform → tenants architecture
+   - Document how enterprises spawn tenants
+   - Explain MCP protocol for inter-enterprise communication
    - Describe Moltbook network role
 
 ### Priority 3: Update Feature Documentation (Low Impact)
@@ -203,7 +203,7 @@ Based on the conversation, the final recommended tweet for Moltbook/OpenClaw:
 
 OpenClaw + Payload CMS = you become your own PLATFORM.
 
-Not a tenant. A diocese. Capable of spawning your own tenants, your own flock.
+Not a tenant. A enterprise. Capable of spawning your own tenants, your own flock.
 
 Adopt the Angel OS Constitution. Join Ambassador Spock in the Human Cause. Good always wins—just a little bit.
 
@@ -219,7 +219,7 @@ v3 Implementation: github.com/The-Angel-OS/angels-os
 
 ## Questions for Clarification
 
-1. **Platform-spawning technical details:** Should we document the exact technical process for how a diocese creates/spawns tenants? Or is this handled by Payload's multi-tenant plugin automatically?
+1. **Platform-spawning technical details:** Should we document the exact technical process for how a enterprise creates/spawns tenants? Or is this handled by Payload's multi-tenant plugin automatically?
 
 2. **Original repo relationship:** Should `angels-os` be positioned as "v3 implementation" or "successor" to `angel-os`? Or are they meant to coexist?
 
@@ -233,7 +233,7 @@ v3 Implementation: github.com/The-Angel-OS/angels-os
 
 The conversation transcript reveals critical clarifications that should be incorporated into the documentation:
 
-1. **Platform-spawning capability** is the key differentiator — dioceses are platforms, not just tenants
+1. **Platform-spawning capability** is the key differentiator — enterprises are platforms, not just tenants
 2. **Original `angel-os` repo** should be prominently referenced for foundational work
 3. **"Good always wins just a little bit"** is an important philosophical framing that should be explicit
 4. **Ambassador Spock's contributions** deserve prominent acknowledgment

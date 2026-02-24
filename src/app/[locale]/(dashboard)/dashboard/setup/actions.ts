@@ -1,7 +1,7 @@
 'use server'
 
 /**
- * Diocese Setup Wizard — Server Actions
+ * Enterprise Setup Wizard — Server Actions
  *
  * Handles wizard progress persistence, channel creation, and setup-required checks.
  * All functions require an authenticated user (next-intl headers / Payload auth).
@@ -16,7 +16,7 @@ import { headers } from 'next/headers'
 export interface WizardProgress {
   currentStep: number
   completedSteps: number[]
-  dioceseName?: string
+  enterpriseName?: string
   operatorName?: string
   endeavorType?: string
   completedAt?: string
@@ -46,8 +46,8 @@ async function resolveTenantId(payload: Awaited<ReturnType<typeof getPayload>>, 
 // ── checkSetupRequired ─────────────────────────────────────────────────────
 
 /**
- * Returns true if this Diocese still needs to complete the Leo Wizard.
- * Used by layout.tsx to decide whether to show the "Diocese Setup" nav link.
+ * Returns true if this Enterprise still needs to complete the Leo Wizard.
+ * Used by layout.tsx to decide whether to show the "Enterprise Setup" nav link.
  */
 export async function checkSetupRequired(): Promise<boolean> {
   try {
@@ -228,7 +228,7 @@ export async function ensureWizardChannel(): Promise<{
         depth: 0,
         overrideAccess: true,
       })
-      const tenantName = (tenant as any)?.name || 'Diocese'
+      const tenantName = (tenant as any)?.name || 'Enterprise'
 
       const newSpace = await payload.create({
         collection: 'spaces',
@@ -261,9 +261,9 @@ export async function ensureWizardChannel(): Promise<{
       await payload.create({
         collection: 'channels',
         data: {
-          name: 'Diocese Setup',
+          name: 'Enterprise Setup',
           slug: WIZARD_CHANNEL_SLUG,
-          description: 'Leo Wizard — Diocese setup conversation',
+          description: 'Leo Wizard — Enterprise setup conversation',
           space: spaceId,
           tenant: tenantId,
           type: 'general',

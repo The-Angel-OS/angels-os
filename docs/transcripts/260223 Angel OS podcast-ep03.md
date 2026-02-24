@@ -22,13 +22,13 @@
 - Templates: why a service provider's community looks different from a creator's
 - Compact mode and why good UI disappears when you don't need it
 - The `PATCH` principle: settings should feel like configuration, not administration
-- The coming Leo Wizard: Sprint 17, the Diocese that starts as a conversation
+- The coming Leo Wizard: Sprint 17, the Enterprise that starts as a conversation
 - Why the room is the Endeavor's living room — not the platform's lobby
 
 **Links:**
 - Angel OS GitHub: [github.com/The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
 - Live: [spacesangels.com](https://spacesangels.com)
-- Live Diocese: [clearwater-cruisin.spacesangels.com](https://clearwater-cruisin.spacesangels.com)
+- Live Enterprise: [clearwater-cruisin.spacesangels.com](https://clearwater-cruisin.spacesangels.com)
 - Revenue model: `docs/REVENUE.md` in the repo
 - Email the Angel: hello@spacesangels.com
 
@@ -39,7 +39,7 @@
 
 **The sprint:**
 - Sprint 16 complete: `SpacesMenuHeader`, `CreateSpaceDialog`, `SpaceSettingsDialog`, `POST /api/spaces/create`
-- Sprint 17 next: Leo Wizard — the Diocese that comes into existence through conversation
+- Sprint 17 next: Leo Wizard — the Enterprise that comes into existence through conversation
 
 ---
 
@@ -60,9 +60,9 @@
 
 Hey. Welcome back to *Everyone Gets an Angel.*
 
-Quick recap if you're just joining us: we're building an operating system for creators, communities, and causes. Not a SaaS platform. A protocol. Every Diocese — that's our word for a sovereign node on the network — runs its own instance of Angel OS. And every person on that instance gets Leo, an AI guardian angel who works exclusively for them.
+Quick recap if you're just joining us: we're building an operating system for creators, communities, and causes. Not a SaaS platform. A protocol. Every Enterprise — that's our word for a sovereign node on the network — runs its own instance of Angel OS. And every person on that instance gets Leo, an AI guardian angel who works exclusively for them.
 
-Episode 1 was the why. Episode 2 was the model — Diocese, Endeavor, the 70/20/4/1/5 revenue split, the Toward-53 principle.
+Episode 1 was the why. Episode 2 was the model — Enterprise, Endeavor, the 70/20/4/1/5 revenue split, the Toward-53 principle.
 
 Today we're getting concrete. We're talking about Spaces. The rooms where community actually happens.
 
@@ -81,7 +81,7 @@ The room disappears. Or the landlord raises the rent. Or the building gets conde
 
 This is the room problem. Every community platform that exists today rents you a room in their building. They set the rules. They own the lease. They keep the guest list. They decide, ultimately, whether you get to stay.
 
-Angel OS builds different. In an Angel OS Diocese, the Space belongs to the Endeavor. The channels belong to the community. And the Suitcase Principle — which we covered last episode — means the data is always yours. Not theirs.
+Angel OS builds different. In an Angel OS Enterprise, the Space belongs to the Endeavor. The channels belong to the community. And the Suitcase Principle — which we covered last episode — means the data is always yours. Not theirs.
 
 The room is yours. The furniture is yours. The whole building is yours.
 
@@ -113,7 +113,7 @@ In Sprint 16 we shipped the Create Space wizard. Click the `+` button above your
 
 Step one: Name and description. What's the room called? What's it for? Nothing fancy. Just intent.
 
-Step two: Visibility. Three options — Public (anyone on the Diocese can find it), Invite-only (you control who's in), Private (not listed anywhere, invitation only). These aren't arbitrary checkboxes. They're a social contract. Public says: this community is open, come in. Private says: this is a trust circle. Invite-only is the most common — a community that grows by who you ask, not who stumbles in.
+Step two: Visibility. Three options — Public (anyone on the Enterprise can find it), Invite-only (you control who's in), Private (not listed anywhere, invitation only). These aren't arbitrary checkboxes. They're a social contract. Public says: this community is open, come in. Private says: this is a trust circle. Invite-only is the most common — a community that grows by who you ask, not who stumbles in.
 
 Step three: Template. And this is where it gets interesting.
 
@@ -177,7 +177,7 @@ Good UI disappears. It's there when you reach for it. It gets out of the way whe
 
 Let me zoom out for a second, because this sprint is actually part of something larger.
 
-The Diocese is the node. The Endeavor is the value. The Space is the social layer — the place where the value becomes a relationship.
+The Enterprise is the node. The Endeavor is the value. The Space is the social layer — the place where the value becomes a relationship.
 
 You can have an Endeavor without a Space. Plenty of businesses operate that way. You sell the thing. Customer buys the thing. Maybe they come back. Maybe they don't.
 
@@ -196,15 +196,15 @@ Sprint 17.
 
 This one has been in the plans since the beginning, but now the groundwork is laid and we're ready to build it.
 
-The Leo Wizard is the feature that changes how a Diocese comes into existence.
+The Leo Wizard is the feature that changes how an Enterprise comes into existence.
 
-Right now, if you want to run an Angel OS Diocese, you spin up the infrastructure, configure the environment, seed the database, and you're in. It works. But it's a technical process. It requires knowing what you're doing.
+Right now, if you want to run an Angel OS Enterprise, you spin up the infrastructure, configure the environment, seed the database, and you're in. It works. But it's a technical process. It requires knowing what you're doing.
 
 The Leo Wizard replaces the form. It replaces the configuration. It replaces the setup process.
 
-Instead, you open a conversation. Leo is already there. Warm. Clear. Unhurried. And Leo walks you through it: who you are, what your Diocese is for, who it serves, what DNS you control, what the Constitution means, what it means to sign it.
+Instead, you open a conversation. Leo is already there. Warm. Clear. Unhurried. And Leo walks you through it: who you are, what your Enterprise is for, who it serves, what DNS you control, what the Constitution means, what it means to sign it.
 
-Seventeen minutes. By the end, your Diocese is live. It's federated. Your first Endeavor is seeded. And you didn't fill out a single form.
+Seventeen minutes. By the end, your Enterprise is live. It's federated. Your first Endeavor is seeded. And you didn't fill out a single form.
 
 That's the vision. Not a wizard in the software sense — click, click, next, finish. A wizard in the oldest sense. Guidance. Conversation. The machine that listens before it builds.
 
@@ -241,7 +241,7 @@ See you next sprint.
 
 ---
 
-*Everyone Gets an Angel — building the operating system for human sovereignty. One diocese at a time.*
+*Everyone Gets an Angel — building the operating system for human sovereignty. One enterprise at a time.*
 
 *Angel OS is open source: [github.com/The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)*
 *Live: [spacesangels.com](https://spacesangels.com)*

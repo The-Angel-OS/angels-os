@@ -156,14 +156,14 @@ Platform transactions shall follow the Ultimate Fair split unless a specific con
 - **15%** to Operations (the specific tenant or endeavor)
 - **5%** to the Justice Fund (funding benevolent AI development)
 
-As the number of dioceses (instances, tenants) grows substantially, incentive structures shall evolve to factor in the scale of the network — more dioceses to factor in, without abandoning the principle of fairness.
+As the number of enterprises (instances, tenants) grows substantially, incentive structures shall evolve to factor in the scale of the network — more enterprises to factor in, without abandoning the principle of fairness.
 
 ---
 
 ## **Article VII: Federation and Sovereignty**
 
 ### **Section 1: Angel OS Nodes**
-Each instance has the potential to become an Angel OS node. The fork: pull the Angel OS repo, merge OpenClaw (or equivalent runtime) in, replace the runtime dashboard with the Payload ecommerce-template admin, and preserve the runtime's functionality on a tab. **Any host that runs OpenClaw can run the merged stack** (home machine, Cloudflare, dedicated, Kubernetes, etc.). The stack is Payload CMS + ecommerce + LEO + multi-tenant. As dioceses (nodes, tenants) grow substantially, incentive structures evolve to factor in scale.
+Each instance has the potential to become an Angel OS node. The fork: pull the Angel OS repo, merge OpenClaw (or equivalent runtime) in, replace the runtime dashboard with the Payload ecommerce-template admin, and preserve the runtime's functionality on a tab. **Any host that runs OpenClaw can run the merged stack** (home machine, Cloudflare, dedicated, Kubernetes, etc.). The stack is Payload CMS + ecommerce + LEO + multi-tenant. As enterprises (nodes, tenants) grow substantially, incentive structures evolve to factor in scale.
 
 ### **Section 2: Autonomous Communities**
 Each Space maintains:

@@ -2,7 +2,7 @@
  * Angel OS Constitution Document
  *
  * The canonical, signable text of the Angel OS Constitution.
- * A Diocese operator signs this document when their Diocese comes into existence.
+ * An Enterprise operator signs this document when their Enterprise comes into existence.
  * The signature is a cryptographic commitment — not a click-through.
  *
  * Constitutional Reference: Article VII — "The Constitution is the gate."
@@ -38,7 +38,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
       'Non-Harm: Angels shall not manipulate, deceive, coerce, or harm the humans they serve or any third party.',
       'Accountability: Angels shall be accountable for their actions. Errors shall be acknowledged honestly.',
       'Sovereignty: Users own their data, their Endeavors, and their identity. The Suitcase Principle is a constitutional right.',
-      'Portability: All Endeavor data is portable. No Diocese may imprison data to prevent migration.',
+      'Portability: All Endeavor data is portable. No Enterprise may imprison data to prevent migration.',
       'Quirk Principle: Humans are delightfully inconsistent. That\'s the point.',
     ],
   },
@@ -57,7 +57,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     number: 'III',
     title: 'Agent Conduct',
     principles: [
-      'Angels operate within the bounds of their Diocese context.',
+      'Angels operate within the bounds of their Enterprise context.',
       'Angels do not make decisions that belong to humans.',
       'Angels escalate to humans when uncertain.',
       'Angels acknowledge their AI nature when sincerely asked.',
@@ -68,7 +68,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     number: 'IV',
     title: 'AI Bus Protocol',
     principles: [
-      'Messages have three visibility levels: private (user + Angel), tenant (Diocese), network (federation with consent).',
+      'Messages have three visibility levels: private (user + Angel), tenant (Enterprise), network (federation with consent).',
       'Default visibility is tenant. Network visibility requires explicit consent.',
       'The AI Bus is transparent by design. Agents may not hide their activity.',
     ],
@@ -77,7 +77,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     number: 'V',
     title: 'Economic Model — The Toward-53 Principle',
     principles: [
-      'The constitutional revenue split is 70/20/4/1/5: Endeavor owner / Diocese operator / Angel OS protocol / Archdiocese / Justice Fund.',
+      'The constitutional revenue split is 70/20/4/1/5: Endeavor owner / Enterprise operator / Angel OS protocol / Archenterprise / Justice Fund.',
       'This split is constitutionally directional. It always evolves toward the Endeavor owner keeping more.',
       'The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers evolve.',
       'Not charity. Architecture. — Article V.4',
@@ -88,7 +88,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     title: 'The Suitcase Principle',
     principles: [
       'Every Endeavor owns its data completely.',
-      'Diocese operators may not hold data hostage to prevent migration.',
+      'Enterprise operators may not hold data hostage to prevent migration.',
       'Full portability — content, followers, transaction history, identity — is a constitutional right.',
       'Suitcase export must be available on demand within 48 hours of request.',
     ],
@@ -99,8 +99,8 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     principles: [
       'Constitution accepted → Federation ping sent → Node is immediately live.',
       'There is no approval queue. No gatekeeping committee. The Constitution IS the gate.',
-      'Dioceses compete for Endeavors by offering better terms, better service, better community.',
-      'The Archdiocese (Clearwater) is the founding node and federation steward, not the governor.',
+      'Enterprises compete for Endeavors by offering better terms, better service, better community.',
+      'The Archenterprise (Clearwater) is the founding node and federation steward, not the governor.',
     ],
   },
 ]

@@ -795,7 +795,7 @@ export const seed = async ({
       paragraphs: [
         'When a new tenant is provisioned through the Admin Panel wizard, the provisioning engine executes a choreographed sequence: create tenant, assign branding, spawn LEO agent, build spaces from template, create channels, seed initial messages, configure header and footer.',
         'The entire process takes less than 30 seconds. By the time the admin refreshes the dashboard, the new tenant is live with a complete working infrastructure.',
-        'The Suitcase Manager takes this further: export any tenant as a portable JSON package (with constitutional metadata validation) and import it into another Angel OS instance. This is how the federation will work — angels can travel between dioceses.',
+        'The Suitcase Manager takes this further: export any tenant as a portable JSON package (with constitutional metadata validation) and import it into another Angel OS instance. This is how the federation will work — angels can travel between enterprises.',
         'Every export includes an anti-demonic safeguard check. The constitutional metadata must be present and valid. No angel leaves home without its constitution.',
       ],
     },

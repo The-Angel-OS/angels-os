@@ -112,7 +112,7 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 **Quest:** Federation and sovereignty — every instance is sovereign, every Angel portable.
 
 **Objectives Completed:**
-- Federation engine (trust chain, diocese governance, suitcase export/import)
+- Federation engine (trust chain, enterprise governance, suitcase export/import)
 - Constitutional prompt hardening (8 articles, anti-demonic safeguards)
 - Guardian Angel lifecycle (provision → active → monitoring → graduated)
 - Network visualization (geographic clustering, signal strength mapping)

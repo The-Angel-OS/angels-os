@@ -1,13 +1,13 @@
 /**
  * Federation Ping Endpoint — POST /api/federation/ping
  *
- * Receives a ping from a Diocese announcing its presence to the Angel OS
+ * Receives a ping from an Enterprise announcing its presence to the Angel OS
  * federation network. In production this endpoint would be hosted by the
- * central Archdiocese registry and validate signatures before recording
+ * central Archenterprise registry and validate signatures before recording
  * the ping. In development / self-hosted mode it acts as a local registry.
  *
  * Request body:
- *   { dioceseName, domain, endeavorType, publicKey, federationId?, signature }
+ *   { enterpriseName, domain, endeavorType, publicKey, federationId?, signature }
  *
  * Response:
  *   { success, ministryStatus, federationId, registryUrl, message }
@@ -30,7 +30,7 @@ export const federationPingHandler: PayloadHandler = async (req) => {
   }
 
   const {
-    dioceseName,
+    enterpriseName,
     domain,
     endeavorType,
     publicKey,
@@ -38,9 +38,9 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     signature,
   } = body
 
-  if (!dioceseName || typeof dioceseName !== 'string') {
+  if (!enterpriseName || typeof enterpriseName !== 'string') {
     return Response.json(
-      { success: false, error: 'dioceseName is required' },
+      { success: false, error: 'enterpriseName is required' },
       { status: 400 },
     )
   }
@@ -54,11 +54,11 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     typeof publicKey === 'string'
   ) {
     try {
-      const payload = JSON.stringify({ dioceseName, domain, endeavorType, publicKey })
+      const payload = JSON.stringify({ enterpriseName, domain, endeavorType, publicKey })
       signatureValid = verifySignature(payload, signature, publicKey)
     } catch {
       // Non-fatal — log and continue
-      console.warn('[Federation Ping] Signature verification failed for:', dioceseName)
+      console.warn('[Federation Ping] Signature verification failed for:', enterpriseName)
     }
   }
 
@@ -68,7 +68,7 @@ export const federationPingHandler: PayloadHandler = async (req) => {
       collection: 'endeavors',
       where: {
         and: [
-          { name: { equals: dioceseName } },
+          { name: { equals: enterpriseName } },
           ...(federationId ? [{ 'federation.federationId': { equals: federationId } }] : []),
         ],
       },
@@ -113,7 +113,7 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     registryUrl,
     signatureValid,
     message: signatureValid
-      ? `Welcome to the network, ${dioceseName}! Your constitution signature is verified. 90-day probation begins now.`
-      : `${dioceseName} registered in the federation network. Signature verification skipped (development mode).`,
+      ? `Welcome to the network, ${enterpriseName}! Your constitution signature is verified. 90-day probation begins now.`
+      : `${enterpriseName} registered in the federation network. Signature verification skipped (development mode).`,
   })
 }

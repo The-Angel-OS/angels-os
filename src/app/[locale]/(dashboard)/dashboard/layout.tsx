@@ -161,7 +161,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     dmSpaceId = await ensureDMSpace(tenant.id)
   }
 
-  // Check if the Leo Wizard is complete — controls "Diocese Setup" nav link
+  // Check if the Leo Wizard is complete — controls "Enterprise Setup" nav link
   const setupRequired = await checkSetupRequired().catch(() => false)
   const wizardComplete = !setupRequired
 

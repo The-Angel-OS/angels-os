@@ -346,7 +346,7 @@ For Phase 4, we don't build the full matching network. We build the **registrati
 4. LEO tool: `query_nearby_producers` — find nodes that can fulfill an order
 5. Product listings can be marked as "fulfilled by network" vs. "fulfilled by seller"
 
-The matching algorithm, cross-diocese fulfillment, and swarm coordination are v1.0.0+ federation features. But the data model starts now.
+The matching algorithm, cross-enterprise fulfillment, and swarm coordination are v1.0.0+ federation features. But the data model starts now.
 
 ### The Flattening
 
@@ -433,7 +433,7 @@ The Director provides Intent (e.g., "We need a way to track Stripe disputes in t
 2. **Mobile-first or mobile-responsive?** Bottom sheet pattern vs. fully native-like PWA?
 3. **Stripe Connect Standard vs Express?** Express is faster onboarding but less provider control. Standard gives producers full Stripe dashboard (aligns with Holon self-governance). Express is faster to market.
 4. **LinkedIn outreach to Suarez/Cline:** Direct message or tagged article? Both? Start with Article 2 ("The Holon Protocol") to establish credibility, then direct outreach with link. Suarez published *Freedom™* in 2010 — he was 16 years early. This is the contemporized version.
-5. **Federation timeline:** Do we pull any diocese work forward into Phase 4, or save it all for v1.0.0? The Holon node registration is a proto-federation act — declaring capabilities across a network. Diocese heartbeat could be the Holon heartbeat.
+5. **Federation timeline:** Do we pull any enterprise work forward into Phase 4, or save it all for v1.0.0? The Holon node registration is a proto-federation act — declaring capabilities across a network. Enterprise heartbeat could be the Holon heartbeat.
 6. **Holon capability taxonomy:** How granular should node capabilities be? "3d-printing" vs "fdm-printing-pla-petg"? Start coarse, refine with community input. Suarez's Holons self-organized — the taxonomy should emerge, not be imposed.
 7. **Proximity vs. quality tradeoff:** When matching producers — if the nearest 3D printer operator has constitutional compliance but lower throughput vs. someone 50 miles further with higher capacity — how does Answer 53 weight that? The constitution replaces star ratings: you're either compliant or you're not. Within compliant nodes, proximity wins (re-localization principle). Sliding scale biases toward nodes that need the work most, not nodes with the most reviews.
 8. **"Fulfilled by network" UX:** How does a buyer know their phone case will be printed by someone 12 miles away vs. shipped from China? This is the primary selling point — make the producer visible, show the distance, show the constitutional guarantee. "Made 12 miles from you by a constitutional producer" is the anti-Amazon message.

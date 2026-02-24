@@ -28,8 +28,8 @@ The issues don't mention:
 - **Scrollstream Nodes** (memory preservation)
 - **Widget Marketplace** (SDK, revenue sharing)
 - **Home PC Deployment** (local AI, Ollama, LM Studio)
-- **Diocese Spawning** (exponential network growth)
-- **Cross-Diocese Payments** (referral fees, federation fees)
+- **Enterprise Spawning** (exponential network growth)
+- **Cross-Enterprise Payments** (referral fees, federation fees)
 - **Constitutional Council** (governance, appeals)
 - **Token Distribution** (governance, rewards, economic)
 
@@ -47,7 +47,7 @@ The issues don't mention:
 - Channel widgets (multi-channel architecture)
 - Tenant provisioning (sub-30s, Genesis Breath)
 - AI Bus (Angel-to-Angel communication)
-- Federation (diocese registry, 5-layer security)
+- Federation (enterprise registry, 5-layer security)
 - Economics (attribution tracking, Ultimate Fair scaffold)
 - Anti-Daemon Protocol (warm UX)
 - Deployment (Docker, Cloudflare Tunnel)
@@ -97,12 +97,12 @@ Without these, Angel OS is a tech demo. With these, it's a real business platfor
 
 ### Phase 4: Federation & Confederation (Q4 2026)
 
-**Goal:** Enable dioceses to form self-sustaining network.
+**Goal:** Enable enterprises to form self-sustaining network.
 
 **Includes:**
-- Diocese Spawning (exponential growth)
-- Cross-Diocese Communication
-- Cross-Diocese Payments
+- Enterprise Spawning (exponential growth)
+- Cross-Enterprise Communication
+- Cross-Enterprise Payments
 - Federation Security (full implementation)
 - Anti-Sybil Measures
 
@@ -206,7 +206,7 @@ Without these, Angel OS is a tech demo. With these, it's a real business platfor
 - Features like Angel Tokens, CRM, booking seem like afterthoughts
 - The constitutional mission (Prison Ministry, Justice Fund) is invisible
 - The economic model (Ultimate Fair, attribution) is unclear
-- The federation vision (diocese network) is lost
+- The federation vision (enterprise network) is lost
 
 **With the roadmap:**
 - Clear phased plan from MVP → full vision

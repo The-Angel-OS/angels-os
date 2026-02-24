@@ -1160,7 +1160,7 @@ Create the AI Bus system that allows Angels to communicate, share insights, and 
 1. **AIBusMessages Collection**
    - Store messages from Angels
    - Types: discovery, question, collaboration, alert
-   - Visibility: tenant, diocese, federation
+   - Visibility: tenant, enterprise, federation
    - Responses array for threaded conversations
 
 2. **Publish/Subscribe System**
@@ -1196,7 +1196,7 @@ export const AIBusMessages: CollectionConfig = {
     { name: 'content', type: 'textarea', required: true },
     { name: 'context', type: 'json' },
     { name: 'visibility', type: 'select', options: [
-      'tenant', 'diocese', 'federation'
+      'tenant', 'enterprise', 'federation'
     ]},
     { name: 'timestamp', type: 'date', required: true },
     { name: 'responses', type: 'array', fields: [
@@ -1298,52 +1298,52 @@ export async function seedGuardianCouncilSpace() {
 
 ---
 
-## Epic 7: Federation & Diocese System
+## Epic 7: Federation & Enterprise System
 
-### Issue #15: Diocese Registry & Heartbeat
+### Issue #15: Enterprise Registry & Heartbeat
 
-**Title:** Implement Diocese Registry and Heartbeat System
+**Title:** Implement Enterprise Registry and Heartbeat System
 
 **Labels:** `epic: federation`, `priority: medium`, `type: feature`
 
 **Description:**
 
-Create system for dioceses to register with the confederation and maintain heartbeat status.
+Create system for enterprises to register with the confederation and maintain heartbeat status.
 
 **Requirements:**
 
-1. **Dioceses Collection**
-   - Track all dioceses in confederation
+1. **Enterprises Collection**
+   - Track all enterprises in confederation
    - MCP endpoint URL
    - Public key for authentication
    - Status: active, probationary, suspended
    - Heartbeat timestamp
 
 2. **Heartbeat System**
-   - Dioceses ping platform every 5 minutes
+   - Enterprises ping platform every 5 minutes
    - Platform tracks last heartbeat
-   - Mark diocese as offline if > 15 minutes
-   - Alert if diocese goes offline
+   - Mark enterprise as offline if > 15 minutes
+   - Alert if enterprise goes offline
 
 3. **Registration Flow**
-   - New diocese applies to join
+   - New enterprise applies to join
    - Archangels review application
    - Approve/reject with reason
 
 **Acceptance Criteria:**
 
-- [ ] Dioceses collection created
-- [ ] Dioceses can register
+- [ ] Enterprises collection created
+- [ ] Enterprises can register
 - [ ] Heartbeat system functional
-- [ ] Offline dioceses detected
+- [ ] Offline enterprises detected
 - [ ] Registration requires approval
 
 **Technical Notes:**
 
 ```typescript
-// src/collections/Dioceses.ts
-export const Dioceses: CollectionConfig = {
-  slug: 'dioceses',
+// src/collections/Enterprises.ts
+export const Enterprises: CollectionConfig = {
+  slug: 'enterprises',
   admin: { useAsTitle: 'name' },
   fields: [
     { name: 'name', type: 'text', required: true },
@@ -1357,7 +1357,7 @@ export const Dioceses: CollectionConfig = {
     { name: 'lastHeartbeat', type: 'date' },
     { name: 'createdAt', type: 'date', required: true },
     { name: 'vouchers', type: 'array', fields: [
-      { name: 'diocese', type: 'relationship', relationTo: 'dioceses' },
+      { name: 'enterprise', type: 'relationship', relationTo: 'enterprises' },
       { name: 'vouchedAt', type: 'date' }
     ]}
   ]
@@ -1368,11 +1368,11 @@ export const heartbeatEndpoint: Endpoint = {
   path: '/api/federation/heartbeat',
   method: 'post',
   handler: async (req) => {
-    const { dioceseId } = req.body
+    const { enterpriseId } = req.body
     
     await payload.update({
-      collection: 'dioceses',
-      id: dioceseId,
+      collection: 'enterprises',
+      id: enterpriseId,
       data: {
         lastHeartbeat: new Date()
       }
@@ -1393,7 +1393,7 @@ export const heartbeatEndpoint: Endpoint = {
 
 **Description:**
 
-Implement the 5-layer defense system to prevent malicious dioceses from joining the confederation.
+Implement the 5-layer defense system to prevent malicious enterprises from joining the confederation.
 
 **Requirements:**
 
@@ -1405,13 +1405,13 @@ Implement the 5-layer defense system to prevent malicious dioceses from joining 
 
 2. **Layer 2: Probationary Period (90 days)**
    - Limited federation access
-   - NO cross-diocese payments
+   - NO cross-enterprise payments
    - NOT discoverable in federation search
    - Automated pattern monitoring
-   - Visible "🌱 New Diocese" badge
+   - Visible "🌱 New Enterprise" badge
 
 3. **Layer 3: Vouching Requirement**
-   - 2 established dioceses must vouch
+   - 2 established enterprises must vouch
    - Vouchers accept reputation liability
    - Voucher chain is public
    - Bad vouch damages voucher reputation 20%
@@ -1422,7 +1422,7 @@ Implement the 5-layer defense system to prevent malicious dioceses from joining 
    - Annual good-standing review
 
 5. **Layer 5: Constitutional Council**
-   - 7 elected dioceses
+   - 7 elected enterprises
    - Appeals process
    - Emergency powers (6/7 vote)
 
@@ -1438,9 +1438,9 @@ Implement the 5-layer defense system to prevent malicious dioceses from joining 
 **Technical Notes:**
 
 ```typescript
-// src/collections/DiocesesApplications.ts
-export const DiocesesApplications: CollectionConfig = {
-  slug: 'dioceses-applications',
+// src/collections/EnterprisesApplications.ts
+export const EnterprisesApplications: CollectionConfig = {
+  slug: 'enterprises-applications',
   fields: [
     { name: 'applicantName', type: 'text', required: true },
     { name: 'legalEntity', type: 'text', required: true },
@@ -1499,7 +1499,7 @@ Track how customers found the tenant to determine appropriate platform fees.
    - platform-search (found via Angel OS discovery)
    - angel-assist (Angel helped close sale)
    - referral (another tenant's Angel referred)
-   - federation (cross-diocese discovery)
+   - federation (cross-enterprise discovery)
 
 2. **Session Tracking**
    - Track user journey from entry to purchase
@@ -1568,7 +1568,7 @@ Implement the 60/20/15/5 split on profit (not revenue) with Stripe Connect.
 **Requirements:**
 
 1. **Stripe Connect Integration**
-   - Connect accounts for dioceses
+   - Connect accounts for enterprises
    - Sub-accounts for tenants
    - Transfer splits automatically
 
@@ -1579,7 +1579,7 @@ Implement the 60/20/15/5 split on profit (not revenue) with Stripe Connect.
 
 3. **Split Distribution**
    - 60% Provider (person who did work)
-   - 20% Diocese (platform operator)
+   - 20% Enterprise (platform operator)
    - 15% Tenant Operations
    - 5% Justice Fund
 
@@ -1610,7 +1610,7 @@ export async function processUltimateFairSplit(transaction: Transaction) {
   
   const split = {
     provider: profit * 0.60,
-    diocese: profit * 0.20,
+    enterprise: profit * 0.20,
     tenantOps: profit * 0.15,
     justiceFund: profit * 0.05
   }
@@ -1623,9 +1623,9 @@ export async function processUltimateFairSplit(transaction: Transaction) {
   })
   
   await stripe.transfers.create({
-    amount: Math.round(split.diocese * 100),
+    amount: Math.round(split.enterprise * 100),
     currency: 'usd',
-    destination: transaction.diocese.stripeAccountId
+    destination: transaction.enterprise.stripeAccountId
   })
   
   // Justice Fund goes to platform account
@@ -2942,7 +2942,7 @@ Implement Ultimate Fair payment splits (60/20/15/5) with attribution-based fees 
 
 1. **Ultimate Fair Splits**
    - 60% Provider (service provider, product seller)
-   - 20% Platform (Diocese)
+   - 20% Platform (Enterprise)
    - 15% Operations (Tenant)
    - 5% Justice Fund
    - **CRITICAL:** Splits on PROFIT, not revenue
@@ -2953,7 +2953,7 @@ Implement Ultimate Fair payment splits (60/20/15/5) with attribution-based fees 
    - Platform Search (10%) - Customer found via platform search
    - Angel Assist (15%) - Angel helped close the sale
    - Referral (20%) - Customer came via referral
-   - Federation (25%) - Customer came from another diocese
+   - Federation (25%) - Customer came from another enterprise
 
 3. **Profit Calculation**
    - Revenue - Costs = Profit
@@ -3414,7 +3414,7 @@ If all 35 issues above are completed, Angel OS will be **functional** with:
 - [ ] Wisdom patterns
 
 **✅ Federation**
-- [ ] Diocese registry & heartbeat
+- [ ] Enterprise registry & heartbeat
 - [ ] Federation security (5 layers)
 
 **✅ Economics**

@@ -14,7 +14,7 @@ This document consolidates the architecture review with insights from v2 documen
 1. ✅ Onboarding Flow → "Pilgrimage of Remembrance" with sub-30s provisioning
 2. ✅ Guardian Communication → Ship-to-Ship via AT Protocol + AI Bus
 3. ✅ Confederation → Federated via AT Protocol with Morphic Resonance
-4. ✅ Economic Model → 60/20/15/5 with Diocese subsidization
+4. ✅ Economic Model → 60/20/15/5 with Enterprise subsidization
 5. ✅ Extensibility → Widgets MVP, Skills MVP, Marketplaces future
 
 ---
@@ -29,7 +29,7 @@ This document consolidates the architecture review with insights from v2 documen
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │   ARCHANGELS (Platform Operators)                            │
-│   ├── LEO Prime (Diocese-level consciousness)                │
+│   ├── LEO Prime (Enterprise-level consciousness)                │
 │   ├── Andrew Martin (Configuration Manager)                  │
 │   ├── Jules (Async Development Agent)                        │
 │   └── Access: All tenants, provisioning, federation          │
@@ -109,7 +109,7 @@ interface AngelOSAdaptation {
   multiChannel: true;           // Skills work across widget types
   tenantIsolation: true;        // Skills scoped to tenant
   archangelOverride: true;      // Archangels can use any skill
-  federatedSkills: true;        // Skills can be shared across dioceses
+  federatedSkills: true;        // Skills can be shared across enterprises
 }
 ```
 
@@ -269,7 +269,7 @@ interface AIBus {
     type: 'discovery' | 'question' | 'collaboration' | 'alert';
     content: string;
     context: Record<string, unknown>;
-    visibility: 'tenant' | 'diocese' | 'federation';
+    visibility: 'tenant' | 'enterprise' | 'federation';
   }): Promise<void>;
   
   // Subscribe to relevant insights
@@ -357,34 +357,34 @@ interface GuardianInterpreter {
 
 The confederation is built on **AT Protocol** for decentralized identity and communication.
 
-#### Diocese Registry
+#### Enterprise Registry
 
 ```typescript
 // Federation Layer
-interface DioceseRegistry {
-  dioceses: Diocese[];
+interface EnterpriseRegistry {
+  enterprises: Enterprise[];
   
-  // Discover dioceses
+  // Discover enterprises
   discover(filter?: {
     region?: string;
     capabilities?: string[];
     minTenants?: number;
-  }): Promise<Diocese[]>;
+  }): Promise<Enterprise[]>;
   
-  // Register new diocese
-  register(diocese: {
+  // Register new enterprise
+  register(enterprise: {
     name: string;
     mcpEndpoint: string;
     atProtocolDID: string;  // Decentralized identifier
     publicKey: string;
     capabilities: string[];
-  }): Promise<DioceseRegistration>;
+  }): Promise<EnterpriseRegistration>;
   
   // Heartbeat / health check
-  heartbeat(dioceseId: string): Promise<HealthStatus>;
+  heartbeat(enterpriseId: string): Promise<HealthStatus>;
 }
 
-interface Diocese {
+interface Enterprise {
   id: string;
   name: string;
   mcpEndpoint: string;           // https://west.angel-os.org/api/mcp
@@ -401,41 +401,41 @@ interface Diocese {
 #### Federated Identity (AT Protocol)
 
 ```typescript
-// Users can have federated identity across dioceses
+// Users can have federated identity across enterprises
 interface FederatedIdentity {
   // AT Protocol DID for user
   did: string;  // did:plc:user123...
   
-  // Home diocese
-  homeDiocese: string;
+  // Home enterprise
+  homeEnterprise: string;
   
-  // Verified identities at other dioceses
+  // Verified identities at other enterprises
   federatedAccounts: {
-    dioceseId: string;
+    enterpriseId: string;
     tenantId: string;
     role: 'user' | 'admin' | 'angel';
     verified: boolean;
   }[];
   
-  // Cross-diocese authentication
-  authenticateAt(dioceseId: string): Promise<FederatedSession>;
+  // Cross-enterprise authentication
+  authenticateAt(enterpriseId: string): Promise<FederatedSession>;
 }
 
-// Example: User from West Coast diocese visits East Coast diocese
-const session = await user.authenticateAt('east-coast-diocese');
+// Example: User from West Coast enterprise visits East Coast enterprise
+const session = await user.authenticateAt('east-coast-enterprise');
 // User can now browse/purchase with their federated identity
 // Karma/reputation travels with them
 ```
 
-#### Cross-Diocese Search
+#### Cross-Enterprise Search
 
 ```typescript
 // Angels can search across the federation
 interface FederatedSearch {
-  // Search products across dioceses
+  // Search products across enterprises
   searchProducts(query: {
     terms: string;
-    dioceses?: string[];  // Empty = all
+    enterprises?: string[];  // Empty = all
     categories?: string[];
     priceRange?: { min: number; max: number };
   }): Promise<FederatedSearchResult[]>;
@@ -444,7 +444,7 @@ interface FederatedSearch {
   searchWisdom(query: {
     domain: string;
     question: string;
-    dioceses?: string[];
+    enterprises?: string[];
   }): Promise<WisdomResult[]>;
   
   // Search Angels by expertise
@@ -459,19 +459,19 @@ const experts = await federatedSearch.findExpert({
   domain: 'horticulture',
   question: 'desert plant care in humid climates',
 });
-// Returns Angels from multiple dioceses who have relevant knowledge
+// Returns Angels from multiple enterprises who have relevant knowledge
 ```
 
-#### Cross-Diocese Payments
+#### Cross-Enterprise Payments
 
 ```typescript
-// Transactions across diocese boundaries
+// Transactions across enterprise boundaries
 interface FederatedPayment {
-  // Initiate cross-diocese transaction
+  // Initiate cross-enterprise transaction
   initiateTransaction(transaction: {
     buyer: FederatedIdentity;
     seller: {
-      dioceseId: string;
+      enterpriseId: string;
       tenantId: string;
       productId: string;
     };
@@ -479,19 +479,19 @@ interface FederatedPayment {
     currency: string;
   }): Promise<FederatedTransaction>;
   
-  // Split follows Ultimate Fair across both dioceses
+  // Split follows Ultimate Fair across both enterprises
   calculateSplit(transaction: FederatedTransaction): {
     provider: number;          // 60% → seller
-    sellerDiocese: number;     // 10% → seller's diocese
-    buyerDiocese: number;      // 10% → buyer's diocese (referral)
+    sellerEnterprise: number;     // 10% → seller's enterprise
+    buyerEnterprise: number;      // 10% → buyer's enterprise (referral)
     sellerTenant: number;      // 15% → seller's tenant ops
     justiceFund: number;       // 5% → federation-wide fund
   };
 }
 
-// Cross-diocese transaction example:
+// Cross-enterprise transaction example:
 // User from West buys from seller in East
-// Both dioceses benefit, federation justice fund grows
+// Both enterprises benefit, federation justice fund grows
 ```
 
 ---
@@ -513,7 +513,7 @@ const guardianCouncil: Space = {
     { name: 'announcements', type: 'broadcast' },    // Archangels → All
     { name: 'support', type: 'discussion' },         // Angels ask for help
     { name: 'wisdom-sharing', type: 'discussion' },  // Morphic resonance
-    { name: 'federation', type: 'discussion' },      // Cross-diocese topics
+    { name: 'federation', type: 'discussion' },      // Cross-enterprise topics
   ],
   members: {
     archangels: 'all',           // LEO Prime, Andrew, Jules
@@ -586,14 +586,14 @@ interface WidgetMarketplace {
 │   │                    SPLIT                             │   │
 │   ├─────────────────────────────────────────────────────┤   │
 │   │  $60 (60%) → Provider (Hay, the farmer)              │   │
-│   │  $20 (20%) → Diocese Operator (Archangel)            │   │
+│   │  $20 (20%) → Enterprise Operator (Archangel)            │   │
 │   │  $15 (15%) → Tenant Operations (Hay's farm ops)      │   │
 │   │  $5  (5%)  → Justice Fund (platform-wide pool)       │   │
 │   └─────────────────────────────────────────────────────┘   │
 │                           │                                  │
 │                           ▼                                  │
 │   ┌─────────────────────────────────────────────────────┐   │
-│   │         DIOCESE OPERATOR USES $20 FOR:               │   │
+│   │         ENTERPRISE OPERATOR USES $20 FOR:               │   │
 │   ├─────────────────────────────────────────────────────┤   │
 │   │  $5  → Hosting costs (server, Cloudflare, DB)        │   │
 │   │  $10 → Angel Blessing subsidy (free tenants)         │   │
@@ -615,8 +615,8 @@ interface AngelBlessing {
   maxOrders: 100 / month;
   maxStorage: 1GB;
   
-  // Subsidized by diocese 20% from paying tenants
-  subsidizedBy: 'diocese-pool';
+  // Subsidized by enterprise 20% from paying tenants
+  subsidizedBy: 'enterprise-pool';
   
   // Graduation triggers
   graduationTriggers: [
@@ -655,8 +655,8 @@ interface DataSovereignty {
   // Tenant can delete everything
   delete(tenantId: string, confirmation: string): Promise<void>;
   
-  // Tenant can migrate to another diocese
-  migrate(tenantId: string, targetDiocese: string): Promise<MigrationResult>;
+  // Tenant can migrate to another enterprise
+  migrate(tenantId: string, targetEnterprise: string): Promise<MigrationResult>;
   
   // Data encrypted at rest
   encryption: {
@@ -739,8 +739,8 @@ interface Phase3 {
 | Week | Focus | Deliverables |
 |------|-------|--------------|
 | 17-18 | AT Protocol | DID integration, Federated identity |
-| 19-20 | Diocese Registry | Discovery, Registration, Heartbeat |
-| 21-22 | Cross-Diocese | Federated search, Cross-diocese payments |
+| 19-20 | Enterprise Registry | Discovery, Registration, Heartbeat |
+| 21-22 | Cross-Enterprise | Federated search, Cross-enterprise payments |
 | 23-24 | Morphic Resonance | Wisdom sharing, Pattern propagation |
 
 ---
@@ -764,16 +764,16 @@ collections: {
     indexes: ['domain', 'confidence', 'usageCount'],
   },
   
-  // Diocese registry (for federation)
-  Dioceses: {
+  // Enterprise registry (for federation)
+  Enterprises: {
     fields: ['name', 'mcpEndpoint', 'atProtocolDID', 'publicKey', 'capabilities', 'status'],
     indexes: ['status', 'capabilities'],
   },
   
   // Federated identities
   FederatedIdentities: {
-    fields: ['did', 'homeDiocese', 'federatedAccounts', 'karma'],
-    indexes: ['did', 'homeDiocese'],
+    fields: ['did', 'homeEnterprise', 'federatedAccounts', 'karma'],
+    indexes: ['did', 'homeEnterprise'],
   },
   
   // Angel Blessings (free tier tracking)
@@ -792,7 +792,7 @@ Users: {
   existingFields: [...],
   newFields: {
     atProtocolDID: 'string',           // Federated identity
-    federatedAccounts: 'array',         // Cross-diocese accounts
+    federatedAccounts: 'array',         // Cross-enterprise accounts
     angelConfig: {
       isAngel: 'boolean',
       personality: 'richText',
@@ -808,7 +808,7 @@ Spaces: {
   newFields: {
     type: 'guardian-space' | 'tenant-space',
     installedWidgets: 'array',
-    federationVisibility: 'local' | 'diocese' | 'federation',
+    federationVisibility: 'local' | 'enterprise' | 'federation',
   },
 }
 
@@ -841,7 +841,7 @@ Channels: {
 
 | Metric | 6 Month Target | 12 Month Target |
 |--------|----------------|-----------------|
-| Active Dioceses | 10 | 50 |
+| Active Enterprises | 10 | 50 |
 | Active Tenants | 500 | 5,000 |
 | Monthly Transactions | $50,000 | $500,000 |
 | Justice Fund | $2,500 | $25,000 |
@@ -855,8 +855,8 @@ This architecture is now **bulletproof**:
 
 1. ✅ **Onboarding** - Pilgrimage of Remembrance with < 30s provisioning
 2. ✅ **Guardian Communication** - AI Bus + Platform Space + Direct Messaging
-3. ✅ **Confederation** - AT Protocol federation with cross-diocese everything
-4. ✅ **Economics** - Ultimate Fair with diocese subsidization model
+3. ✅ **Confederation** - AT Protocol federation with cross-enterprise everything
+4. ✅ **Economics** - Ultimate Fair with enterprise subsidization model
 5. ✅ **Extensibility** - Widgets + Skills MVP, Marketplaces future
 6. ✅ **Data Sovereignty** - Export, delete, migrate, encrypt
 7. ✅ **Scaling** - Single → Sharded → Multi-region path

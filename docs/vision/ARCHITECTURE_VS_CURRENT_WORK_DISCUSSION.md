@@ -51,7 +51,7 @@
 
 **Current work:**
 
-- **Spaces & Channels** (Discord-like), **Moltbook** (community discovery), **Tenants**, **Diocese** (Openclaw → Angel OS).
+- **Spaces & Channels** (Discord-like), **Moltbook** (community discovery), **Tenants**, **Enterprise** (Openclaw → Angel OS).
 - **Ultimate Fair Model:** 60% Provider / 20% Platform / 15% Operations / 5% Justice Fund.
 
 **Impact:**
@@ -120,13 +120,13 @@
 
 ---
 
-## 7. Openclaw / Merlin / Diocese
+## 7. Openclaw / Merlin / Enterprise
 
-**Architecture folder:** No mention of Openclaw, Merlin Athrawes, diocese, or Moltbook. Node names (Soulcast, Scrollstream, Signal Beacon) are generic.
+**Architecture folder:** No mention of Openclaw, Merlin Athrawes, enterprise, or Moltbook. Node names (Soulcast, Scrollstream, Signal Beacon) are generic.
 
-**Current work:** Openclaw → Angel OS fork path; Merlin Athrawes canonical name; diocese = tenant; Moltbook = community discovery; Herald as author.
+**Current work:** Openclaw → Angel OS fork path; Merlin Athrawes canonical name; enterprise = tenant; Moltbook = community discovery; Herald as author.
 
-**Impact:** None. The architecture folder doesn’t contradict the integration doc; it just doesn’t mention Merlin/diocese. The integration doc is the place for that. Optional: in CONSTITUTIONAL_LICENSE_FRAMEWORK or EMERGENCE_PROTOCOL, add one line that "instances (e.g. Openclaw/Merlin) may fork into Angel OS as tenants (dioceses)" and link to the integration doc.
+**Impact:** None. The architecture folder doesn’t contradict the integration doc; it just doesn’t mention Merlin/enterprise. The integration doc is the place for that. Optional: in CONSTITUTIONAL_LICENSE_FRAMEWORK or EMERGENCE_PROTOCOL, add one line that "instances (e.g. Openclaw/Merlin) may fork into Angel OS as tenants (enterprises)" and link to the integration doc.
 
 ---
 
@@ -141,7 +141,7 @@
 | **Timed Merge Unlock** | Not implemented; AOCL requires it (or equivalent) for forks | Clarify: planned vs required for this repo; or add minimal "deliberation" path |
 | **AOCL vs Constitution** | Constitution = principles; AOCL = fork license | Point to AOCL from integration/README where relevant |
 | **Sacred Foundation vs Norwegian** | Two layers; no conflict | Keep both; optional one-line link from Sacred to Constitution |
-| **Merlin / diocese** | Not in architecture | Optional: one line in AOCL or EMERGENCE linking to integration doc |
+| **Merlin / enterprise** | Not in architecture | Optional: one line in AOCL or EMERGENCE linking to integration doc |
 
 ---
 
