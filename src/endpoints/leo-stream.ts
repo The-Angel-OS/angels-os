@@ -2,7 +2,9 @@
  * LEO Streaming Endpoint — POST /api/leo/stream
  *
  * Server-Sent Events (SSE) endpoint for real-time streaming responses.
- * Uses Anthropic's streaming API to progressively deliver LEO's response.
+ * Supports two LLM paths:
+ *   1. Vercel AI Gateway (preferred) — multi-model via AI SDK streamText
+ *   2. Direct Anthropic SDK (fallback) — when gateway key is not configured
  *
  * SSE Event Protocol:
  *   event: start      → { conversationId }
@@ -11,11 +13,13 @@
  *   event: done       → { text, agentName, messageId }
  *   event: error      → { message }
  *
- * Falls back to batch response via /api/leo if streaming is unavailable.
+ * @see ai-gateway.ts — Vercel AI Gateway integration
  */
 
 import type { PayloadHandler } from 'payload'
 import Anthropic from '@anthropic-ai/sdk'
+import { streamText, stepCountIs } from 'ai'
+import type { ModelMessage } from 'ai'
 import fs from 'fs'
 import path from 'path'
 
@@ -27,6 +31,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
+import { getModel, isGatewayAvailable, convertToolsForAISDK } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -38,7 +43,7 @@ const MAX_TOOL_ROUNDS = 3
 const LLM_MODEL = 'claude-sonnet-4-20250514'
 
 // ---------------------------------------------------------------------------
-// Minimal env-file parser — avoids dotenv import issues with bundler resolution.
+// Minimal env-file parser
 // ---------------------------------------------------------------------------
 function parseEnvFile(src: Buffer | string): Record<string, string> {
   const str = Buffer.isBuffer(src) ? src.toString('utf8') : src
@@ -58,22 +63,16 @@ function parseEnvFile(src: Buffer | string): Record<string, string> {
 }
 
 // ---------------------------------------------------------------------------
-// Env helper — reads ANTHROPIC_API_KEY directly from .env.local when the
-// process.env value is empty (happens when a parent process like Claude Code
-// shadows the variable with an empty string, preventing dotenv from loading it).
+// Anthropic key resolution (fallback path)
 // ---------------------------------------------------------------------------
 
 let _envFileKey: string | undefined
 
 function resolveAnthropicKey(): string | undefined {
-  // 1. Prefer the real process.env value if non-empty
   const envVal = process.env.ANTHROPIC_API_KEY
   if (envVal) return envVal
-
-  // 2. Return cached file-based value
   if (_envFileKey) return _envFileKey
 
-  // 3. Parse .env.local directly (one-time read)
   try {
     const envPath = path.resolve(process.cwd(), '.env.local')
     if (fs.existsSync(envPath)) {
@@ -84,7 +83,6 @@ function resolveAnthropicKey(): string | undefined {
         return _envFileKey
       }
     }
-    // Also try .env as fallback
     const envFallback = path.resolve(process.cwd(), '.env')
     if (fs.existsSync(envFallback)) {
       const parsed = parseEnvFile(fs.readFileSync(envFallback))
@@ -102,7 +100,7 @@ function resolveAnthropicKey(): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Lazy Anthropic client
+// Lazy Anthropic client (fallback path)
 // ---------------------------------------------------------------------------
 
 let _anthropic: Anthropic | null = null
@@ -291,7 +289,6 @@ async function fetchConversationHistory(
         (author.isSystemUser === true ||
           (Array.isArray(author.roles) && author.roles.includes('system')))
       const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-      // UMS: content is now JSON — extract displayable text for LLM context
       const content = extractTextFromContent(msg.content)
 
       if (content.trim()) {
@@ -304,7 +301,6 @@ async function fetchConversationHistory(
       }
     }
 
-    // Ensure messages start with 'user' role
     while (messages.length > 0 && messages[0].role !== 'user') {
       messages.shift()
     }
@@ -313,6 +309,154 @@ async function fetchConversationHistory(
   } catch {
     return []
   }
+}
+
+// ---------------------------------------------------------------------------
+// Wizard Step Advancement Helper
+// ---------------------------------------------------------------------------
+
+async function advanceWizardStep(
+  payload: import('payload').Payload,
+  tenantId: number,
+  wizardStep: number,
+  toolNames: string[],
+): Promise<void> {
+  const TOOL_TO_STEP: Record<string, number> = {
+    configure_business: wizardStep === 1 ? 1 : 2,
+    create_space: 3,
+    invite_member: 4,
+    create_product: 5,
+    suggest_products: -1,
+    connect_stripe_account: 6,
+    sign_constitution: -1,
+    ping_federation: 7,
+  }
+  const stepsToComplete = toolNames
+    .map((name) => TOOL_TO_STEP[name] ?? -1)
+    .filter((s) => s >= 0)
+
+  if (stepsToComplete.length === 0) return
+
+  try {
+    const tenant = await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const existing = ((tenant as any)?.setup?.wizardProgress as Record<string, unknown>) ?? {}
+    const existingCompleted: number[] = Array.isArray(existing.completedSteps)
+      ? (existing.completedSteps as number[])
+      : []
+    const newCompleted = Array.from(
+      new Set([...existingCompleted, ...stepsToComplete]),
+    ).sort((a, b) => a - b)
+    const nextStep = Math.max(...stepsToComplete) + 1
+
+    await payload.update({
+      collection: 'tenants',
+      id: tenantId,
+      data: {
+        setup: {
+          wizardProgress: {
+            ...existing,
+            completedSteps: newCompleted,
+            currentStep: Math.min(nextStep, 7),
+          },
+        },
+      } as any,
+      overrideAccess: true,
+    })
+  } catch (stepErr) {
+    console.error('[LEO Stream] Wizard step advancement error:', stepErr)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image URL extraction from tool results
+// ---------------------------------------------------------------------------
+
+function extractImageUrls(messages: Anthropic.MessageParam[]): Array<{ url: string; alt?: string; mediaId?: number }> {
+  const imageUrls: Array<{ url: string; alt?: string; mediaId?: number }> = []
+  for (const msg of messages) {
+    if (msg.role === 'user' && Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (typeof block === 'object' && 'type' in block && block.type === 'tool_result') {
+          const resultContent = typeof block.content === 'string' ? block.content : ''
+          const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9._-]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
+          if (blobMatch) {
+            for (const url of blobMatch) {
+              imageUrls.push({ url })
+            }
+          }
+          const urlPrefixed = resultContent.match(/URL:\s*(https?:\/\/[^\s"')]+)/gi)
+          if (urlPrefixed) {
+            for (const match of urlPrefixed) {
+              const url = match.replace(/^URL:\s*/i, '')
+              if (!imageUrls.some((img) => img.url === url)) {
+                imageUrls.push({ url })
+              }
+            }
+          }
+          const mediaMatch = resultContent.match(/Media\s*(?:ID|#):\s*(\d+)/gi)
+          if (mediaMatch) {
+            for (let i = 0; i < mediaMatch.length; i++) {
+              const idMatch = mediaMatch[i].match(/(\d+)/)
+              if (idMatch) {
+                const mediaId = parseInt(idMatch[1], 10)
+                if (i < imageUrls.length) {
+                  imageUrls[i].mediaId = mediaId
+                } else {
+                  imageUrls.push({ url: '', mediaId })
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return imageUrls.filter((img) => img.url)
+}
+
+// ---------------------------------------------------------------------------
+// Image URL extraction from AI SDK tool results (string-based)
+// ---------------------------------------------------------------------------
+
+function extractImageUrlsFromText(toolResultTexts: string[]): Array<{ url: string; alt?: string; mediaId?: number }> {
+  const imageUrls: Array<{ url: string; alt?: string; mediaId?: number }> = []
+  for (const resultContent of toolResultTexts) {
+    const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9._-]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
+    if (blobMatch) {
+      for (const url of blobMatch) {
+        imageUrls.push({ url })
+      }
+    }
+    const urlPrefixed = resultContent.match(/URL:\s*(https?:\/\/[^\s"')]+)/gi)
+    if (urlPrefixed) {
+      for (const match of urlPrefixed) {
+        const url = match.replace(/^URL:\s*/i, '')
+        if (!imageUrls.some((img) => img.url === url)) {
+          imageUrls.push({ url })
+        }
+      }
+    }
+    const mediaMatch = resultContent.match(/Media\s*(?:ID|#):\s*(\d+)/gi)
+    if (mediaMatch) {
+      for (let i = 0; i < mediaMatch.length; i++) {
+        const idMatch = mediaMatch[i].match(/(\d+)/)
+        if (idMatch) {
+          const mediaId = parseInt(idMatch[1], 10)
+          if (i < imageUrls.length) {
+            imageUrls[i].mediaId = mediaId
+          } else {
+            imageUrls.push({ url: '', mediaId })
+          }
+        }
+      }
+    }
+  }
+  return imageUrls.filter((img) => img.url)
 }
 
 // ---------------------------------------------------------------------------
@@ -343,7 +487,6 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     wizardContext: rawWizardContext,
   } = body
 
-  // Wizard mode — extract optional step + context for Enterprise Setup
   const isWizardMode = typeof wizardStep === 'number'
   const wizardContext: WizardContext =
     rawWizardContext && typeof rawWizardContext === 'object'
@@ -354,7 +497,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
   }
 
-  // Parse image attachments for Anthropic vision
+  // Parse image attachments
   const userImages: Array<{ url: string; mediaId?: number; alt?: string }> = []
   if (Array.isArray(bodyImages)) {
     for (const img of bodyImages) {
@@ -364,9 +507,11 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     }
   }
 
-  const client = getAnthropicClient()
-  if (!client) {
-    return Response.json({ message: 'Streaming unavailable — API key not configured' }, { status: 503 })
+  // Check if we have any LLM backend available
+  const useGateway = isGatewayAvailable()
+  const client = useGateway ? null : getAnthropicClient()
+  if (!useGateway && !client) {
+    return Response.json({ message: 'Streaming unavailable — no LLM backend configured' }, { status: 503 })
   }
 
   // Resolve tenant
@@ -418,7 +563,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   const resolvedConversationId =
     typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
 
-  // Build system prompt — append wizard suffix when in Enterprise Setup wizard
+  // Build system prompt
   const phase = isWizardMode ? 'enterprise-setup-wizard' : 'general'
   const baseSystemPrompt = buildStreamingSystemPrompt({
     agentName,
@@ -439,216 +584,51 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     ? await fetchConversationHistory(req.payload, resolvedSpaceId, resolvedChannel)
     : []
 
-  // Build messages array — use multi-part content when user attached images
-  const userContent: Anthropic.ContentBlockParam[] = [
-    { type: 'text', text: message.trim() },
-  ]
-  if (userImages.length > 0) {
-    for (const img of userImages) {
-      // Resolve relative URLs to absolute for Anthropic API
-      let imageUrl = img.url
-      if (imageUrl.startsWith('/')) {
-        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
-        imageUrl = `${serverUrl}${imageUrl}`
-      }
-      userContent.push({
-        type: 'image',
-        source: { type: 'url', url: imageUrl },
-      } as Anthropic.ContentBlockParam)
-    }
-  }
-
-  const messages: Anthropic.MessageParam[] = [
-    ...historyMessages,
-    { role: 'user' as const, content: userImages.length > 0 ? userContent : message.trim() },
-  ]
-
   // Create SSE stream
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Send start event
         controller.enqueue(encoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
 
         let fullText = ''
-        let round = 0
 
-        while (round < MAX_TOOL_ROUNDS) {
-          round++
-
-          const response = await client.messages.create({
-            model: LLM_MODEL,
-            max_tokens: MAX_RESPONSE_TOKENS,
-            system: systemPrompt,
-            messages,
-            ...(LEO_TOOLS.length > 0 ? { tools: LEO_TOOLS } : {}),
-            stream: true,
+        if (useGateway) {
+          // ─── Path 1: Vercel AI Gateway via AI SDK ───────────────────
+          fullText = await streamViaGateway({
+            controller,
+            encoder,
+            systemPrompt,
+            historyMessages,
+            userMessage: message.trim(),
+            userImages,
+            payload: req.payload,
+            tenantId,
+            resolvedSpaceId,
+            userId: req.user?.id as number | undefined,
+            isWizardMode,
+            wizardStep: wizardStep as number,
           })
-
-          // Collect tool use blocks from the stream
-          let currentToolUseId = ''
-          let currentToolName = ''
-          let currentToolInputJson = ''
-          const toolUseBlocks: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
-          let stopReason: string | null = null
-
-          // Process the stream
-          for await (const event of response) {
-            if (event.type === 'content_block_start') {
-              if (event.content_block.type === 'text') {
-                // Text block starting — nothing to do yet
-              } else if (event.content_block.type === 'tool_use') {
-                currentToolUseId = event.content_block.id
-                currentToolName = event.content_block.name
-                currentToolInputJson = ''
-                // Notify client about tool call
-                controller.enqueue(
-                  encoder.encode(
-                    sseEvent('tool_call', { name: currentToolName, status: 'calling' }),
-                  ),
-                )
-              }
-            } else if (event.type === 'content_block_delta') {
-              if (event.delta.type === 'text_delta') {
-                const chunk = event.delta.text
-                fullText += chunk
-                controller.enqueue(encoder.encode(sseEvent('delta', { text: chunk })))
-              } else if (event.delta.type === 'input_json_delta') {
-                currentToolInputJson += event.delta.partial_json
-              }
-            } else if (event.type === 'content_block_stop') {
-              if (currentToolUseId && currentToolName) {
-                // Parse tool input
-                let toolInput: Record<string, unknown> = {}
-                try {
-                  toolInput = currentToolInputJson ? JSON.parse(currentToolInputJson) : {}
-                } catch {
-                  toolInput = {}
-                }
-                toolUseBlocks.push({
-                  id: currentToolUseId,
-                  name: currentToolName,
-                  input: toolInput,
-                })
-                currentToolUseId = ''
-                currentToolName = ''
-                currentToolInputJson = ''
-              }
-            } else if (event.type === 'message_delta') {
-              stopReason = event.delta.stop_reason
-            }
-          }
-
-          // If Claude used tools, execute them and continue
-          if (stopReason === 'tool_use' && toolUseBlocks.length > 0) {
-            // Build the assistant content blocks for the messages array
-            const assistantContent: Anthropic.ContentBlockParam[] = []
-            if (fullText) {
-              assistantContent.push({ type: 'text', text: fullText })
-            }
-            for (const tool of toolUseBlocks) {
-              assistantContent.push({
-                type: 'tool_use',
-                id: tool.id,
-                name: tool.name,
-                input: tool.input,
-              })
-            }
-            messages.push({ role: 'assistant' as const, content: assistantContent })
-
-            // Execute tools
-            const toolResults: Anthropic.ToolResultBlockParam[] = []
-            const toolCtx: ToolExecutorContext = {
-              payload: req.payload,
-              tenantId,
-              spaceId: resolvedSpaceId,
-              userId: req.user?.id as number | undefined,
-            }
-
-            for (const tool of toolUseBlocks) {
-              controller.enqueue(
-                encoder.encode(sseEvent('tool_call', { name: tool.name, status: 'executing' })),
-              )
-              let result: string
-              try {
-                result = await executeToolCall(tool.name, tool.input, toolCtx)
-              } catch (toolErr) {
-                console.error(`[LEO Stream] Tool ${tool.name} failed:`, toolErr)
-                result = `Tool execution failed: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}. I'll try to help without this tool.`
-              }
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: tool.id,
-                content: result,
-              })
-            }
-
-            messages.push({ role: 'user' as const, content: toolResults })
-
-            // ── Wizard step advancement ──────────────────────────────────
-            // When a tool completes during wizard mode, advance the step
-            if (isWizardMode && tenantId) {
-              const TOOL_TO_STEP: Record<string, number> = {
-                configure_business: wizardStep === 1 ? 1 : 2,
-                create_space: 3,
-                invite_member: 4,
-                create_product: 5,
-                suggest_products: -1, // intermediate — don't advance
-                connect_stripe_account: 6,
-                sign_constitution: -1, // intermediate — ping_federation finishes step 7
-                ping_federation: 7,
-              }
-              const completedTools = toolUseBlocks.map((t) => t.name)
-              const stepsToComplete = completedTools
-                .map((name) => TOOL_TO_STEP[name] ?? -1)
-                .filter((s) => s >= 0)
-
-              if (stepsToComplete.length > 0) {
-                try {
-                  const tenant = await req.payload.findByID({
-                    collection: 'tenants',
-                    id: tenantId,
-                    depth: 0,
-                    overrideAccess: true,
-                  })
-                  const existing = ((tenant as any)?.setup?.wizardProgress as Record<string, unknown>) ?? {}
-                  const existingCompleted: number[] = Array.isArray(existing.completedSteps)
-                    ? (existing.completedSteps as number[])
-                    : []
-                  const newCompleted = Array.from(
-                    new Set([...existingCompleted, ...stepsToComplete]),
-                  ).sort((a, b) => a - b)
-                  const nextStep = Math.max(...stepsToComplete) + 1
-
-                  await req.payload.update({
-                    collection: 'tenants',
-                    id: tenantId,
-                    data: {
-                      setup: {
-                        wizardProgress: {
-                          ...existing,
-                          completedSteps: newCompleted,
-                          currentStep: Math.min(nextStep, 7),
-                        },
-                      },
-                    } as any,
-                    overrideAccess: true,
-                  })
-                } catch (stepErr) {
-                  console.error('[LEO Stream] Wizard step advancement error:', stepErr)
-                }
-              }
-            }
-
-            // Reset fullText for the next round (tool results response)
-            fullText = ''
-            continue
-          }
-
-          // No more tool calls — we're done
-          break
+        } else {
+          // ─── Path 2: Direct Anthropic SDK (fallback) ────────────────
+          const result = await streamViaAnthropic({
+            controller,
+            encoder,
+            client: client!,
+            systemPrompt,
+            historyMessages,
+            userMessage: message.trim(),
+            userImages,
+            payload: req.payload,
+            tenantId,
+            resolvedSpaceId,
+            userId: req.user?.id as number | undefined,
+            isWizardMode,
+            wizardStep: wizardStep as number,
+            tenantSlug,
+          })
+          fullText = result.fullText
         }
 
         // Persist LEO's response to Messages collection
@@ -681,7 +661,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
                 ...(leoUserId ? { author: leoUserId } : {}),
-              } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+              } as any,
               overrideAccess: true,
             })
             savedMessageId = saved.id as number
@@ -690,55 +670,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           }
         }
 
-        // Extract any image URLs from tool results for the client
-        const imageUrls: Array<{ url: string; alt?: string; mediaId?: number }> = []
-        // Scan tool results for image-related data
-        for (const msg of messages) {
-          if (msg.role === 'user' && Array.isArray(msg.content)) {
-            for (const block of msg.content) {
-              if (typeof block === 'object' && 'type' in block && block.type === 'tool_result') {
-                const resultContent = typeof block.content === 'string' ? block.content : ''
-                // Look for Vercel Blob URLs in tool results (broad pattern)
-                const blobMatch = resultContent.match(/(https?:\/\/[a-z0-9._-]+\.public\.blob\.vercel-storage\.com\/[^\s"')]+)/gi)
-                if (blobMatch) {
-                  for (const url of blobMatch) {
-                    imageUrls.push({ url })
-                  }
-                }
-                // Also look for any URL following "URL:" pattern in tool results
-                const urlPrefixed = resultContent.match(/URL:\s*(https?:\/\/[^\s"')]+)/gi)
-                if (urlPrefixed) {
-                  for (const match of urlPrefixed) {
-                    const url = match.replace(/^URL:\s*/i, '')
-                    if (!imageUrls.some((img) => img.url === url)) {
-                      imageUrls.push({ url })
-                    }
-                  }
-                }
-                // Look for Media ID references and associate with images
-                const mediaMatch = resultContent.match(/Media\s*(?:ID|#):\s*(\d+)/gi)
-                if (mediaMatch) {
-                  for (let i = 0; i < mediaMatch.length; i++) {
-                    const idMatch = mediaMatch[i].match(/(\d+)/)
-                    if (idMatch) {
-                      const mediaId = parseInt(idMatch[1], 10)
-                      if (i < imageUrls.length) {
-                        imageUrls[i].mediaId = mediaId
-                      } else {
-                        // Media ID without a URL — try to construct one from the response text
-                        imageUrls.push({ url: '', mediaId })
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        // Remove entries with empty URLs (Media ID only — client can't display these)
-        const validImageUrls = imageUrls.filter((img) => img.url)
-
-        // Send done event (with images if any were generated)
+        // Send done event
         controller.enqueue(
           encoder.encode(
             sseEvent('done', {
@@ -746,7 +678,6 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               agentName,
               messageId: savedMessageId,
               conversationId: resolvedConversationId,
-              ...(validImageUrls.length > 0 ? { images: validImageUrls } : {}),
             }),
           ),
         )
@@ -754,13 +685,12 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         const errMsg = error instanceof Error ? error.message : 'Unknown error'
         console.error('[LEO Stream] Error:', errMsg)
         controller.enqueue(encoder.encode(sseEvent('error', { message: errMsg })))
-        // Log to Error Log Viewer for triage
         logError({
           source: 'leo-stream',
           message: `Streaming LLM call failed: ${errMsg}`,
           details: error instanceof Error ? error.stack : String(error),
           statusCode: (error as { status?: number })?.status,
-        }).catch(() => {}) // fire-and-forget
+        }).catch(() => {})
       } finally {
         controller.close()
       }
@@ -775,4 +705,298 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       'X-Accel-Buffering': 'no',
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Path 1: Vercel AI Gateway streaming via AI SDK
+// ---------------------------------------------------------------------------
+
+async function streamViaGateway(opts: {
+  controller: ReadableStreamDefaultController
+  encoder: TextEncoder
+  systemPrompt: string
+  historyMessages: Anthropic.MessageParam[]
+  userMessage: string
+  userImages: Array<{ url: string; mediaId?: number; alt?: string }>
+  payload: import('payload').Payload
+  tenantId?: number
+  resolvedSpaceId?: number
+  userId?: number
+  isWizardMode: boolean
+  wizardStep: number
+}): Promise<string> {
+  const {
+    controller, encoder, systemPrompt, historyMessages, userMessage,
+    userImages, payload, tenantId, resolvedSpaceId, userId,
+    isWizardMode, wizardStep,
+  } = opts
+
+  const model = getModel()
+  if (!model) throw new Error('AI Gateway model could not be created')
+
+  // Convert history to AI SDK format
+  const messages: ModelMessage[] = historyMessages.map((m) => ({
+    role: m.role as 'user' | 'assistant',
+    content: typeof m.content === 'string' ? m.content : '',
+  }))
+
+  // Build user message (with images if present)
+  if (userImages.length > 0) {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = [
+      { type: 'text', text: userMessage },
+    ]
+    for (const img of userImages) {
+      let imageUrl = img.url
+      if (imageUrl.startsWith('/')) {
+        imageUrl = `${serverUrl}${imageUrl}`
+      }
+      parts.push({ type: 'image', image: new URL(imageUrl) })
+    }
+    messages.push({ role: 'user', content: parts })
+  } else {
+    messages.push({ role: 'user', content: userMessage })
+  }
+
+  // Convert tools with execute functions bound to Payload context
+  const toolCtx: ToolExecutorContext = {
+    payload,
+    tenantId,
+    spaceId: resolvedSpaceId,
+    userId,
+  }
+  const tools = convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
+
+  // Track tool calls for wizard step advancement and image extraction
+  const allToolNames: string[] = []
+  const allToolResults: string[] = []
+
+  const result = streamText({
+    model,
+    system: systemPrompt,
+    messages,
+    tools,
+    stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+    maxOutputTokens: MAX_RESPONSE_TOKENS,
+    onStepFinish: (step) => {
+      // Track tool names for wizard advancement
+      if (step.toolCalls) {
+        for (const tc of step.toolCalls) {
+          allToolNames.push((tc as any).toolName)
+        }
+      }
+      // Track tool results for image URL extraction
+      if (step.toolResults) {
+        for (const tr of step.toolResults) {
+          const output = (tr as any).output
+          if (typeof output === 'string') {
+            allToolResults.push(output)
+          }
+        }
+      }
+    },
+  })
+
+  // Stream text deltas to SSE
+  let fullText = ''
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-delta') {
+      fullText += part.text
+      controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+    } else if (part.type === 'tool-call') {
+      controller.enqueue(
+        encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'calling' })),
+      )
+    } else if (part.type === 'tool-result') {
+      controller.enqueue(
+        encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'executed' })),
+      )
+    }
+  }
+
+  // Wizard step advancement
+  if (isWizardMode && tenantId && allToolNames.length > 0) {
+    await advanceWizardStep(payload, tenantId, wizardStep, allToolNames)
+  }
+
+  // Extract and append image URLs from tool results
+  const validImageUrls = extractImageUrlsFromText(allToolResults)
+  if (validImageUrls.length > 0) {
+    // Re-emit done with images — the main handler will send its own done event too,
+    // but we include images here for the client to pick up
+    controller.enqueue(
+      encoder.encode(sseEvent('images', { images: validImageUrls })),
+    )
+  }
+
+  return fullText
+}
+
+// ---------------------------------------------------------------------------
+// Path 2: Direct Anthropic SDK streaming (fallback)
+// ---------------------------------------------------------------------------
+
+async function streamViaAnthropic(opts: {
+  controller: ReadableStreamDefaultController
+  encoder: TextEncoder
+  client: Anthropic
+  systemPrompt: string
+  historyMessages: Anthropic.MessageParam[]
+  userMessage: string
+  userImages: Array<{ url: string; mediaId?: number; alt?: string }>
+  payload: import('payload').Payload
+  tenantId?: number
+  resolvedSpaceId?: number
+  userId?: number
+  isWizardMode: boolean
+  wizardStep: number
+  tenantSlug: string
+}): Promise<{ fullText: string }> {
+  const {
+    controller, encoder, client, systemPrompt, historyMessages, userMessage,
+    userImages, payload, tenantId, resolvedSpaceId, userId,
+    isWizardMode, wizardStep,
+  } = opts
+
+  // Build user content (with images if present)
+  const userContent: Anthropic.ContentBlockParam[] = [
+    { type: 'text', text: userMessage },
+  ]
+  if (userImages.length > 0) {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    for (const img of userImages) {
+      let imageUrl = img.url
+      if (imageUrl.startsWith('/')) {
+        imageUrl = `${serverUrl}${imageUrl}`
+      }
+      userContent.push({
+        type: 'image',
+        source: { type: 'url', url: imageUrl },
+      } as Anthropic.ContentBlockParam)
+    }
+  }
+
+  const messages: Anthropic.MessageParam[] = [
+    ...historyMessages,
+    { role: 'user' as const, content: userImages.length > 0 ? userContent : userMessage },
+  ]
+
+  let fullText = ''
+  let round = 0
+
+  while (round < MAX_TOOL_ROUNDS) {
+    round++
+
+    const response = await client.messages.create({
+      model: LLM_MODEL,
+      max_tokens: MAX_RESPONSE_TOKENS,
+      system: systemPrompt,
+      messages,
+      ...(LEO_TOOLS.length > 0 ? { tools: LEO_TOOLS } : {}),
+      stream: true,
+    })
+
+    let currentToolUseId = ''
+    let currentToolName = ''
+    let currentToolInputJson = ''
+    const toolUseBlocks: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
+    let stopReason: string | null = null
+
+    for await (const event of response) {
+      if (event.type === 'content_block_start') {
+        if (event.content_block.type === 'tool_use') {
+          currentToolUseId = event.content_block.id
+          currentToolName = event.content_block.name
+          currentToolInputJson = ''
+          controller.enqueue(
+            encoder.encode(sseEvent('tool_call', { name: currentToolName, status: 'calling' })),
+          )
+        }
+      } else if (event.type === 'content_block_delta') {
+        if (event.delta.type === 'text_delta') {
+          const chunk = event.delta.text
+          fullText += chunk
+          controller.enqueue(encoder.encode(sseEvent('delta', { text: chunk })))
+        } else if (event.delta.type === 'input_json_delta') {
+          currentToolInputJson += event.delta.partial_json
+        }
+      } else if (event.type === 'content_block_stop') {
+        if (currentToolUseId && currentToolName) {
+          let toolInput: Record<string, unknown> = {}
+          try {
+            toolInput = currentToolInputJson ? JSON.parse(currentToolInputJson) : {}
+          } catch {
+            toolInput = {}
+          }
+          toolUseBlocks.push({ id: currentToolUseId, name: currentToolName, input: toolInput })
+          currentToolUseId = ''
+          currentToolName = ''
+          currentToolInputJson = ''
+        }
+      } else if (event.type === 'message_delta') {
+        stopReason = event.delta.stop_reason
+      }
+    }
+
+    if (stopReason === 'tool_use' && toolUseBlocks.length > 0) {
+      const assistantContent: Anthropic.ContentBlockParam[] = []
+      if (fullText) {
+        assistantContent.push({ type: 'text', text: fullText })
+      }
+      for (const tool of toolUseBlocks) {
+        assistantContent.push({
+          type: 'tool_use',
+          id: tool.id,
+          name: tool.name,
+          input: tool.input,
+        })
+      }
+      messages.push({ role: 'assistant' as const, content: assistantContent })
+
+      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      const toolCtx: ToolExecutorContext = {
+        payload,
+        tenantId,
+        spaceId: resolvedSpaceId,
+        userId,
+      }
+
+      for (const tool of toolUseBlocks) {
+        controller.enqueue(
+          encoder.encode(sseEvent('tool_call', { name: tool.name, status: 'executing' })),
+        )
+        let result: string
+        try {
+          result = await executeToolCall(tool.name, tool.input, toolCtx)
+        } catch (toolErr) {
+          console.error(`[LEO Stream] Tool ${tool.name} failed:`, toolErr)
+          result = `Tool execution failed: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}. I'll try to help without this tool.`
+        }
+        toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result })
+      }
+
+      messages.push({ role: 'user' as const, content: toolResults })
+
+      // Wizard step advancement
+      if (isWizardMode && tenantId) {
+        const completedTools = toolUseBlocks.map((t) => t.name)
+        await advanceWizardStep(payload, tenantId, wizardStep, completedTools)
+      }
+
+      fullText = ''
+      continue
+    }
+
+    break
+  }
+
+  // Extract image URLs from tool results
+  const validImageUrls = extractImageUrls(messages)
+  if (validImageUrls.length > 0) {
+    controller.enqueue(
+      encoder.encode(sseEvent('images', { images: validImageUrls })),
+    )
+  }
+
+  return { fullText }
 }
