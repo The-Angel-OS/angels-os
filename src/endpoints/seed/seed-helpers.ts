@@ -6,7 +6,10 @@ import type { Payload, PayloadRequest } from 'payload'
 
 export const INITIAL_USER_EMAILS = {
   admin: 'kenneth.courtney@gmail.com',
+  devAdmin: 'admin@angelos.local',
   customer: 'customer@angelos.local',
+  vendor: 'vendor@angelos.local',
+  guardian: 'guardian@angelos.local',
 } as const
 
 export const DEFAULT_TENANT_SLUG = 'default'
