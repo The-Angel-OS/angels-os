@@ -116,7 +116,10 @@ export const federationCatalogHandler: PayloadHandler = async (req) => {
       total: filtered.length,
       federationId,
       diocese: (tenant?.name as string) || 'Angel OS Instance',
-      domain: (tenant?.domain as string) || 'localhost',
+      domain: (() => {
+        const d = tenant?.domain as string | undefined
+        return d && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/.test(d) ? d : (req.headers?.get('host')?.replace(/:\d+$/, '') || 'localhost')
+      })(),
       query: { capability, region, q, limit, minRating, maxPrice, sortBy },
     })
   } catch (err) {
