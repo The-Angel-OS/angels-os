@@ -589,27 +589,56 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // fullText lives outside try/catch so partial responses survive errors
+      let fullText = ''
+      let hadError = false
+
       try {
         controller.enqueue(encoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
 
-        let fullText = ''
-
         if (useGateway) {
           // ─── Path 1: Vercel AI Gateway via AI SDK ───────────────────
-          fullText = await streamViaGateway({
-            controller,
-            encoder,
-            systemPrompt,
-            historyMessages,
-            userMessage: message.trim(),
-            userImages,
-            payload: req.payload,
-            tenantId,
-            resolvedSpaceId,
-            userId: req.user?.id as number | undefined,
-            isWizardMode,
-            wizardStep: wizardStep as number,
-          })
+          try {
+            fullText = await streamViaGateway({
+              controller,
+              encoder,
+              systemPrompt,
+              historyMessages,
+              userMessage: message.trim(),
+              userImages,
+              payload: req.payload,
+              tenantId,
+              resolvedSpaceId,
+              userId: req.user?.id as number | undefined,
+              isWizardMode,
+              wizardStep: wizardStep as number,
+            })
+          } catch (gwErr) {
+            // Gateway failed — try Anthropic fallback
+            const fallbackClient = getAnthropicClient()
+            if (fallbackClient) {
+              console.warn('[LEO Stream] Gateway failed, falling back to Anthropic:', gwErr instanceof Error ? gwErr.message : gwErr)
+              const result = await streamViaAnthropic({
+                controller,
+                encoder,
+                client: fallbackClient,
+                systemPrompt,
+                historyMessages,
+                userMessage: message.trim(),
+                userImages,
+                payload: req.payload,
+                tenantId,
+                resolvedSpaceId,
+                userId: req.user?.id as number | undefined,
+                isWizardMode,
+                wizardStep: wizardStep as number,
+                tenantSlug,
+              })
+              fullText = result.fullText
+            } else {
+              throw gwErr // No fallback available
+            }
+          }
         } else {
           // ─── Path 2: Direct Anthropic SDK (fallback) ────────────────
           const result = await streamViaAnthropic({
@@ -630,58 +659,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           })
           fullText = result.fullText
         }
-
-        // Persist LEO's response to Messages collection
-        let savedMessageId: number | undefined
-        if (resolvedSpaceId && fullText) {
-          try {
-            let leoUserId: number | undefined
-            if (tenantSlug) {
-              const leoEmail = `leo-${tenantSlug}@system.angelos.local`
-              const leoUsers = await req.payload.find({
-                collection: 'users',
-                where: {
-                  and: [
-                    { email: { equals: leoEmail } },
-                    { isSystemUser: { equals: true } },
-                  ],
-                },
-                limit: 1,
-                depth: 0,
-                overrideAccess: true,
-              })
-              leoUserId = leoUsers.docs?.[0]?.id
-            }
-
-            const saved = await req.payload.create({
-              collection: 'messages',
-              data: {
-                content: wrapTextContent(fullText),
-                space: resolvedSpaceId,
-                channel: resolvedChannel,
-                messageType: 'ai_agent',
-                ...(leoUserId ? { author: leoUserId } : {}),
-              } as any,
-              overrideAccess: true,
-            })
-            savedMessageId = saved.id as number
-          } catch (saveErr) {
-            console.warn('[LEO Stream] Failed to persist response:', saveErr)
-          }
-        }
-
-        // Send done event
-        controller.enqueue(
-          encoder.encode(
-            sseEvent('done', {
-              text: fullText,
-              agentName,
-              messageId: savedMessageId,
-              conversationId: resolvedConversationId,
-            }),
-          ),
-        )
       } catch (error) {
+        hadError = true
         const errMsg = error instanceof Error ? error.message : 'Unknown error'
         console.error('[LEO Stream] Error:', errMsg)
         controller.enqueue(encoder.encode(sseEvent('error', { message: errMsg })))
@@ -691,9 +670,63 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           details: error instanceof Error ? error.stack : String(error),
           statusCode: (error as { status?: number })?.status,
         }).catch(() => {})
-      } finally {
-        controller.close()
       }
+
+      // Always persist whatever text was accumulated (even partial on error)
+      let savedMessageId: number | undefined
+      if (resolvedSpaceId && fullText.trim()) {
+        try {
+          let leoUserId: number | undefined
+          if (tenantSlug) {
+            const leoEmail = `leo-${tenantSlug}@system.angelos.local`
+            const leoUsers = await req.payload.find({
+              collection: 'users',
+              where: {
+                and: [
+                  { email: { equals: leoEmail } },
+                  { isSystemUser: { equals: true } },
+                ],
+              },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+            leoUserId = leoUsers.docs?.[0]?.id
+          }
+
+          const saved = await req.payload.create({
+            collection: 'messages',
+            data: {
+              content: wrapTextContent(fullText),
+              space: resolvedSpaceId,
+              channel: resolvedChannel,
+              messageType: 'ai_agent',
+              ...(leoUserId ? { author: leoUserId } : {}),
+            } as any,
+            overrideAccess: true,
+          })
+          savedMessageId = saved.id as number
+        } catch (saveErr) {
+          console.warn('[LEO Stream] Failed to persist response:', saveErr)
+        }
+      }
+
+      // Send done event (even on error, if we have partial text)
+      if (!hadError || fullText.trim()) {
+        controller.enqueue(
+          encoder.encode(
+            sseEvent('done', {
+              text: fullText,
+              agentName,
+              messageId: savedMessageId,
+              conversationId: resolvedConversationId,
+              ...(hadError ? { partial: true } : {}),
+            }),
+          ),
+        )
+      }
+
+      controller.close()
     },
   })
 
@@ -797,21 +830,33 @@ async function streamViaGateway(opts: {
     },
   })
 
-  // Stream text deltas to SSE
+  // Stream text deltas to SSE — capture fullText even on partial failure
   let fullText = ''
-  for await (const part of result.fullStream) {
-    if (part.type === 'text-delta') {
-      fullText += part.text
-      controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
-    } else if (part.type === 'tool-call') {
-      controller.enqueue(
-        encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'calling' })),
-      )
-    } else if (part.type === 'tool-result') {
-      controller.enqueue(
-        encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'executed' })),
-      )
+  try {
+    for await (const part of result.fullStream) {
+      if (part.type === 'text-delta') {
+        fullText += part.text
+        controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+      } else if (part.type === 'tool-call') {
+        controller.enqueue(
+          encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'calling' })),
+        )
+      } else if (part.type === 'tool-result') {
+        controller.enqueue(
+          encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'executed' })),
+        )
+      } else if (part.type === 'error') {
+        console.error('[LEO Stream] AI SDK stream error part:', (part as any).error)
+      }
     }
+  } catch (streamErr) {
+    // Partial text already captured — rethrow so caller can handle
+    console.error('[LEO Stream] Gateway stream interrupted:', streamErr instanceof Error ? streamErr.message : streamErr)
+    if (fullText.trim()) {
+      // Return partial text instead of losing it
+      return fullText
+    }
+    throw streamErr
   }
 
   // Wizard step advancement

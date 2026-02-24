@@ -236,19 +236,73 @@ export const seed = async ({
   const adminUserId = adminUser.id as number
   payload.logger.info(`— Admin user: ${adminUser.email} id=${adminUserId}`)
 
+  // Dev admin — a second admin account for testing (easy-to-type credentials)
+  const devAdminUser = await findOrCreateUser(payload, req, {
+    email: INITIAL_USER_EMAILS.devAdmin,
+    name: 'Dev Admin',
+    password: 'admin',
+    roles: ['admin', 'customer'],
+    tenantId: defaultTenantId,
+  })
+  const devAdminUserId = devAdminUser.id as number
+  payload.logger.info(`— Dev Admin user: ${devAdminUser.email} id=${devAdminUserId}`)
+
   const customerUser = await findOrCreateUser(payload, req, {
     email: INITIAL_USER_EMAILS.customer,
     name: 'Demo Customer',
     password: 'password',
     roles: ['customer'],
+    tenantId: defaultTenantId,
   })
   const customerUserId = customerUser.id as number
   payload.logger.info(`— Customer user: ${customerUser.email} id=${customerUserId}`)
+
+  // Vendor user — tests producer/vendor flows
+  const vendorUser = await findOrCreateUser(payload, req, {
+    email: INITIAL_USER_EMAILS.vendor,
+    name: 'Demo Vendor',
+    password: 'vendor',
+    roles: ['customer'],
+    tenantId: defaultTenantId,
+  })
+  const vendorUserId = vendorUser.id as number
+  payload.logger.info(`— Vendor user: ${vendorUser.email} id=${vendorUserId}`)
+
+  // Guardian user — tests Guardian Angel flows
+  const guardianUser = await findOrCreateUser(payload, req, {
+    email: INITIAL_USER_EMAILS.guardian,
+    name: 'Demo Guardian',
+    password: 'guardian',
+    roles: ['customer'],
+    tenantId: defaultTenantId,
+  })
+  const guardianUserId = guardianUser.id as number
+  payload.logger.info(`— Guardian user: ${guardianUser.email} id=${guardianUserId}`)
 
   await findOrCreateTenantMembership(payload, req, {
     userId: adminUserId,
     tenantId: defaultTenantId,
     role: 'tenant_admin',
+  })
+  await findOrCreateTenantMembership(payload, req, {
+    userId: devAdminUserId,
+    tenantId: defaultTenantId,
+    role: 'tenant_admin',
+  })
+  await findOrCreateTenantMembership(payload, req, {
+    userId: customerUserId,
+    tenantId: defaultTenantId,
+    role: 'member',
+  })
+  await findOrCreateTenantMembership(payload, req, {
+    userId: vendorUserId,
+    tenantId: defaultTenantId,
+    role: 'member',
+  })
+  await findOrCreateTenantMembership(payload, req, {
+    userId: guardianUserId,
+    tenantId: defaultTenantId,
+    role: 'member',
   })
 
   const leoUser = await findOrCreateLeoUser(payload, req, {
@@ -274,6 +328,11 @@ export const seed = async ({
 
   await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId, role: 'space_admin', tenantId: defaultTenantId })
   await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: supportSpaceId, role: 'space_admin', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: devAdminUserId, spaceId, role: 'space_admin', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: devAdminUserId, spaceId: supportSpaceId, role: 'space_admin', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: customerUserId, spaceId, role: 'member', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: vendorUserId, spaceId, role: 'member', tenantId: defaultTenantId })
+  await findOrCreateSpaceMembership(payload, req, { userId: guardianUserId, spaceId, role: 'member', tenantId: defaultTenantId })
 
   // ═══════════════════════════════════════════════════════════════
   // PHASE 5: Use-Case Tenants (exercises provisioning engine)
