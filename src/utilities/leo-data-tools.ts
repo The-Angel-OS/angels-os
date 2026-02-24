@@ -1017,21 +1017,21 @@ export async function executeToolCall(
   try {
     switch (toolName) {
       case 'query_products':
-        return await queryProducts(payload, toolInput)
+        return await queryProducts(payload, toolInput, tenantId)
       case 'query_posts':
-        return await queryPosts(payload, toolInput)
+        return await queryPosts(payload, toolInput, tenantId)
       case 'query_bookings':
-        return await queryBookings(payload, toolInput)
+        return await queryBookings(payload, toolInput, tenantId)
       case 'query_events':
-        return await queryEvents(payload, toolInput)
+        return await queryEvents(payload, toolInput, tenantId)
       case 'query_event_registrations':
-        return await queryEventRegistrations(payload, toolInput)
+        return await queryEventRegistrations(payload, toolInput, tenantId)
       case 'query_spaces':
         return await querySpaces(payload, toolInput, tenantId)
       case 'query_projects':
-        return await queryProjects(payload, toolInput)
+        return await queryProjects(payload, toolInput, tenantId)
       case 'query_availability':
-        return await queryAvailability(payload, toolInput)
+        return await queryAvailability(payload, toolInput, tenantId)
       case 'create_booking':
         return await createBooking(payload, toolInput, ctx)
       case 'update_booking_status':
@@ -1140,10 +1140,16 @@ function num(doc: any, key: string): number | undefined {
 async function queryProducts(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
+
+  // Scope to current tenant
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
 
   if (input.search && typeof input.search === 'string') {
     conditions.push({ title: { contains: input.search } })
@@ -1180,11 +1186,15 @@ async function queryProducts(
 async function queryPosts(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ _status: { equals: 'published' } }]
 
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
   if (input.search && typeof input.search === 'string') {
     conditions.push({ title: { contains: input.search } })
   }
@@ -1216,11 +1226,15 @@ async function queryPosts(
 async function queryBookings(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
 
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
   if (input.status && typeof input.status === 'string') {
     conditions.push({ status: { equals: input.status } })
   }
@@ -1258,11 +1272,15 @@ async function queryBookings(
 async function queryEvents(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
 
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
   if (input.status && typeof input.status === 'string') {
     conditions.push({ status: { equals: input.status } })
   }
@@ -1326,6 +1344,7 @@ async function queryEvents(
 async function queryEventRegistrations(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const eventId = Number(input.eventId)
   if (!eventId) {
@@ -1336,6 +1355,9 @@ async function queryEventRegistrations(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ event: { equals: eventId } }]
 
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
   if (input.status && typeof input.status === 'string') {
     conditions.push({ status: { equals: input.status } })
   }
@@ -1418,11 +1440,15 @@ async function querySpaces(
 async function queryProjects(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
 
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
   if (input.status && typeof input.status === 'string') {
     conditions.push({ projectStatus: { equals: input.status } })
   }
@@ -1458,9 +1484,14 @@ async function queryProjects(
 async function queryAvailability(
   payload: Payload,
   input: Record<string, unknown>,
+  tenantId?: number,
 ): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ isActive: { equals: true } }]
+
+  if (tenantId) {
+    conditions.push({ tenant: { equals: tenantId } })
+  }
 
   if (input.providerId && typeof input.providerId === 'number') {
     conditions.push({ provider: { equals: input.providerId } })
