@@ -7,10 +7,10 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
 **Version:** v0.18.0-dev
-**Tests:** 1,274 passing across 29 unit test files
+**Tests:** 1,330 passing across 31 unit test files
 **Leo Tools:** 47
-**API Endpoints:** 42 registered routes
-**Collections:** 32
+**API Endpoints:** 46 registered routes
+**Collections:** 33
 **Last Updated:** February 25, 2026
 
 ---
@@ -63,6 +63,28 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **3 New Leo Tools** | **18B** | **analyze_image, extract_pdf_pages, query_knowledge** |
 | **Stripe Direct Charges** | **18C** | **Sellers collect directly, appear on receipts, 40% application_fee** |
 | **Revenue Speculation** | **18C** | **3 growth scenarios, break-even analysis, 5 revenue-capturing user journeys** |
+| **Vapi Voice AI** | **19** | **Phone-based Leo, Vapi webhook, phone provisioning** |
+| **Customer Orders UI** | **19** | **Angel Token status banners, vendor claims** |
+| **StreetSigns Collection** | **20** | **Cross-holon marketplace discovery with attribution + analytics** |
+| **Federation Election** | **20** | **Supermajority governance: propose amendments, vote with Ed25519** |
+| **Federation Suitcase** | **20** | **Article VI data portability: full export/import with SHA-256 manifest** |
+| **Federation Dashboard** | **20** | **4-tab admin UI: Overview, Street Signs, Governance, Suitcase** |
+| **Holon Types** | **20** | **5 holon types on Endeavors: manufacturer, retailer, creator, community, guardian-angel** |
+
+---
+
+## Sprint 20 — Federation Launch Campaign (Current)
+
+### Goal
+Any Diocese operator can see their federation status, discover other holons via Street Signs, participate in constitutional governance, and exercise the Suitcase Principle — all from the dashboard.
+
+### Deliverables
+- [x] **StreetSigns Collection** — Cross-holon content references with source attribution, region, pricing, impressions/click analytics
+- [x] **Federation Election Endpoints** — POST/GET `/api/federation/election` — supermajority (⅔) governance with Ed25519 signature verification, Toward-53 floor enforcement
+- [x] **Federation Suitcase Endpoints** — POST `/api/federation/suitcase/export` and `/import` — full tenant data portability with SHA-256 manifest checksums, constitutional compliance verification
+- [x] **Federation Admin Dashboard** — 4-tab dashboard at `/dashboard/admin/federation` (Overview stats, Street Signs marketplace, Governance proposals, Suitcase export/import)
+- [x] **Holon Types on Endeavors** — 5-type multi-select (manufacturer, retailer, creator, community, guardian-angel) + mission statement field
+- [x] **Endeavors in Multi-Tenant Plugin** — Registered `endeavors` in plugin collections for proper tenant scoping
 
 ---
 
@@ -93,46 +115,37 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 ---
 
-## Sprint 19 — Voice AI + Leo Wizard + Customer UX (Next)
+## Sprint 19 — Voice AI + Leo Wizard + Customer UX (Done)
 
 **Goal:** Phone-based Leo access via Vapi.ai, conversational Enterprise onboarding, and customer-facing Angel Token UI.
 
-### Priority 1: Vapi Voice AI Integration
-- [ ] Phone-based Leo via vapi.ai (1-800 number)
-- [ ] Each Enterprise gets a Vapi number where Leo answers
-- [ ] Wire Leo's 47 tools into Vapi as function calls
+### Vapi Voice AI Integration
+- [x] Phone-based Leo via vapi.ai — Vapi webhook endpoint + phone provisioning
+- [x] Vapi webhook handler with Leo tool integration
+- [x] Sidebar chat fixes — default to LEO DM, skip truncation on newest msg
 
-### Priority 2: Leo Wizard (8-step Onboarding)
+### Remaining (Deferred to future sprint)
 - [ ] `npx create-angel-enterprise` installer scaffold
-- [ ] 8-step conversational Enterprise onboarding
-- [ ] Cryptographic constitution signing
-
-### Priority 3: Customer Angel Token UI
-- [ ] Order detail page: amber banner for active, green for redeemed
-- [ ] Configuration display: customer's choices
-- [ ] "Cancel & Refund" button for active tokens
-
-### Priority 4: Vendor Dashboard Claims
-- [ ] "Available Orders" tab with capability-matched filtering
-- [ ] "Claim Order" button per card with configuration preview
-
-### Priority 5: GA4 Event Wiring
+- [ ] Customer Angel Token UI (order detail page, amber/green banners)
+- [ ] Vendor "Available Orders" tab with capability-matched filtering
 - [ ] GA4 script tag in layout + wire events into product pages + checkout
 
 ---
 
-## v0.18.0 — Federation Installer (Q2 2026)
+## v0.20.0 — Federation Installer (Q2 2026)
 
 **Goal:** Any business can set up a sovereign Angel OS instance through a conversational Leo wizard.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Leo Wizard (8-step) | TODO | Identity, infrastructure, constitution, federation |
-| Cryptographic Constitution | TODO | Enterprise joins by signed covenant, not form |
-| Federation Ping | TODO | Signed introduction JSON to Archenterprise |
-| Endeavors Collection | TODO | Unified business/cause/creator/community schema |
-| Cross-Enterprise Catalog | TODO | Products discoverable across the federation |
-| Suitcase Export | TODO | Full Endeavor data portability |
+| Cryptographic Constitution | Done | Ed25519 signing in `src/federation/protocol.ts` |
+| Federation Ping | Done | Signed introduction JSON + acknowledgment |
+| Endeavors Collection | Done | Holon types, mission statement, federation identity |
+| Cross-Enterprise Catalog | **Done** | **StreetSigns collection — Sprint 20** |
+| Suitcase Export/Import | **Done** | **Full data portability with SHA-256 — Sprint 20** |
+| Federation Governance | **Done** | **Supermajority election endpoints — Sprint 20** |
+| Federation Dashboard | **Done** | **4-tab admin UI — Sprint 20** |
 | Configuration Pipeline | TODO | ProductConfigurator choices flow through checkout to work orders |
 
 ---
@@ -278,6 +291,8 @@ pnpm dev                      # http://localhost:3000
 | 18A | Chat Images + LiveKit + Mesh | --- | Lightbox, voice/video applet, Edenist distributed mesh (62 tests) |
 | 18B | Media Intelligence + RAG | --- | MediaMeta, Claude Vision, PDF extraction, RAG chunking (52 tests) |
 | 18C | Stripe Direct Charges | --- | Sellers collect directly, 40% application_fee, revenue speculation |
+| 19 | Voice AI + Sidebar Chat | --- | Vapi webhook, phone provisioning, sidebar chat fixes |
+| 20 | Federation Launch Campaign | 1,330 | StreetSigns, governance elections, suitcase export/import, federation dashboard |
 
 ---
 
