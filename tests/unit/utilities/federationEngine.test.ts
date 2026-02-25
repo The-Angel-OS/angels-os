@@ -1530,7 +1530,7 @@ describe('Federation Protocol Engine', () => {
 
   // ── Mesh Types (re-implemented for test isolation) ─────────────────────
 
-  type FederationRole = 'archenterprise' | 'sentinel' | 'member'
+  type FederationRole = 'flagship' | 'sentinel' | 'member'
 
   interface FederationNode extends Ministry {
     role: FederationRole
@@ -1569,9 +1569,9 @@ describe('Federation Protocol Engine', () => {
 
   function determineFederationRole(
     ministry: Ministry,
-    isArchenterprise: boolean = false,
+    isFlagship: boolean = false,
   ): FederationRole {
-    if (isArchenterprise && ministry.status === 'active') return 'archenterprise'
+    if (isFlagship && ministry.status === 'active') return 'flagship'
     if (ministry.status !== 'active') return 'member'
     const trust = calculateTrustLevel(ministry)
     if (trust === 'full') return 'sentinel'
@@ -1581,10 +1581,10 @@ describe('Federation Protocol Engine', () => {
   function calculateFederationRank(
     ministry: Ministry,
     allMinistries: Ministry[],
-    isArchenterprise: boolean = false,
+    isFlagship: boolean = false,
     currentDate: Date = new Date(),
   ): number {
-    if (isArchenterprise && ministry.status === 'active') return 1
+    if (isFlagship && ministry.status === 'active') return 1
     if (ministry.status !== 'active') return allMinistries.length + 1
 
     const scored = allMinistries
@@ -1631,7 +1631,7 @@ describe('Federation Protocol Engine', () => {
     const healthySentinels = nodes
       .filter(
         (n) =>
-          (n.role === 'archenterprise' || n.role === 'sentinel') &&
+          (n.role === 'flagship' || n.role === 'sentinel') &&
           n.status === 'active' &&
           isHeartbeatHealthy(n.lastHeartbeat, currentDate),
       )
@@ -1640,7 +1640,7 @@ describe('Federation Protocol Engine', () => {
   }
 
   function getSentinels(nodes: FederationNode[]): FederationNode[] {
-    return nodes.filter((n) => n.role === 'archenterprise' || n.role === 'sentinel')
+    return nodes.filter((n) => n.role === 'flagship' || n.role === 'sentinel')
   }
 
   function getHealthySentinels(
@@ -1770,8 +1770,8 @@ describe('Federation Protocol Engine', () => {
   const recentHB = new Date('2025-06-01T11:58:00Z').toISOString() // 2 min ago — healthy
   const staleHB = new Date('2025-06-01T11:00:00Z').toISOString()  // 1 hour ago — unhealthy
 
-  /** Archenterprise: spacesangels.com — active, full trust, healthy */
-  function makeArchenterprise(overrides: Partial<Ministry> = {}): Ministry {
+  /** Flagship: spacesangels.com — active, full trust, healthy */
+  function makeFlagship(overrides: Partial<Ministry> = {}): Ministry {
     return makeMinistry({
       id: 'arch-001',
       name: 'SpacesAngels',
@@ -1838,13 +1838,13 @@ describe('Federation Protocol Engine', () => {
   // ── Role Determination ────────────────────────────────────────────────
 
   describe('determineFederationRole', () => {
-    it('returns archenterprise when flagged and active', () => {
-      const ministry = makeArchenterprise()
-      expect(determineFederationRole(ministry, true)).toBe('archenterprise')
+    it('returns flagship when flagged and active', () => {
+      const ministry = makeFlagship()
+      expect(determineFederationRole(ministry, true)).toBe('flagship')
     })
 
     it('returns sentinel when flagged as arch but not active', () => {
-      const ministry = makeArchenterprise({ status: 'suspended' })
+      const ministry = makeFlagship({ status: 'suspended' })
       expect(determineFederationRole(ministry, true)).toBe('member')
     })
 
@@ -1872,8 +1872,8 @@ describe('Federation Protocol Engine', () => {
   // ── Federation Rank ────────────────────────────────────────────────────
 
   describe('calculateFederationRank', () => {
-    it('gives archenterprise rank 1', () => {
-      const arch = makeArchenterprise()
+    it('gives flagship rank 1', () => {
+      const arch = makeFlagship()
       const all = [arch, makeSentinel1(), makeSentinel2()]
       expect(calculateFederationRank(arch, all, true, meshNow)).toBe(1)
     })
@@ -1892,7 +1892,7 @@ describe('Federation Protocol Engine', () => {
 
     it('gives non-active ministries max rank', () => {
       const suspended = makeMinistry({ id: 'sus-001', status: 'suspended' })
-      const all = [makeArchenterprise(), makeSentinel1(), suspended]
+      const all = [makeFlagship(), makeSentinel1(), suspended]
       expect(calculateFederationRank(suspended, all, false, meshNow)).toBe(all.length + 1)
     })
 
@@ -1908,7 +1908,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('produces deterministic results (same input → same output)', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2(), makeMember()]
       const r1 = calculateFederationRank(all[1], all, false, meshNow)
       const r2 = calculateFederationRank(all[1], all, false, meshNow)
       expect(r1).toBe(r2)
@@ -1919,24 +1919,24 @@ describe('Federation Protocol Engine', () => {
 
   describe('buildFederationMesh', () => {
     it('assigns roles correctly across all node types', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2(), makeMember()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
 
-      expect(mesh.find((n) => n.id === 'arch-001')?.role).toBe('archenterprise')
+      expect(mesh.find((n) => n.id === 'arch-001')?.role).toBe('flagship')
       expect(mesh.find((n) => n.id === 'sentinel-001')?.role).toBe('sentinel')
       expect(mesh.find((n) => n.id === 'sentinel-002')?.role).toBe('sentinel')
       expect(mesh.find((n) => n.id === 'member-001')?.role).toBe('member')
     })
 
-    it('sets archenterprise to rank 1', () => {
-      const all = [makeArchenterprise(), makeSentinel1()]
+    it('sets flagship to rank 1', () => {
+      const all = [makeFlagship(), makeSentinel1()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       expect(mesh.find((n) => n.id === 'arch-001')?.federationRank).toBe(1)
     })
 
     it('marks healthy/unhealthy nodes correctly', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -1953,16 +1953,16 @@ describe('Federation Protocol Engine', () => {
   // ── Coordinator Election ──────────────────────────────────────────────
 
   describe('electCoordinator', () => {
-    it('elects archenterprise when healthy', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+    it('elects flagship when healthy', () => {
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       const coordinator = electCoordinator(mesh, meshNow)
       expect(coordinator?.id).toBe('arch-001')
     })
 
-    it('falls back to next sentinel when archenterprise is down', () => {
+    it('falls back to next sentinel when flagship is down', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }), // Unhealthy
+        makeFlagship({ lastHeartbeat: staleHB }), // Unhealthy
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: recentHB }),
       ]
@@ -1974,7 +1974,7 @@ describe('Federation Protocol Engine', () => {
 
     it('cascades through all sentinels', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),  // Down
+        makeFlagship({ lastHeartbeat: staleHB }),  // Down
         makeSentinel1({ lastHeartbeat: staleHB }),         // Down
         makeSentinel2({ lastHeartbeat: recentHB }),         // Only healthy sentinel
       ]
@@ -1985,7 +1985,7 @@ describe('Federation Protocol Engine', () => {
 
     it('returns null when all sentinels are down', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
         makeSentinel2({ lastHeartbeat: staleHB }),
       ]
@@ -1996,7 +1996,7 @@ describe('Federation Protocol Engine', () => {
 
     it('does not elect members as coordinator', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeMember({ lastHeartbeat: recentHB }), // Healthy but only a member
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -2004,10 +2004,10 @@ describe('Federation Protocol Engine', () => {
       expect(coordinator).toBeNull() // No healthy sentinel
     })
 
-    it('restores archenterprise as coordinator when it recovers', () => {
+    it('restores flagship as coordinator when it recovers', () => {
       // Simulate: arch was down, now recovered
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }), // Back up
+        makeFlagship({ lastHeartbeat: recentHB }), // Back up
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: recentHB }),
       ]
@@ -2020,17 +2020,17 @@ describe('Federation Protocol Engine', () => {
   // ── Sentinel Management ────────────────────────────────────────────────
 
   describe('getSentinels / getHealthySentinels', () => {
-    it('returns only archenterprise and sentinel roles', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+    it('returns only flagship and sentinel roles', () => {
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2(), makeMember()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       const sentinels = getSentinels(mesh)
       expect(sentinels).toHaveLength(3) // arch + 2 sentinels
-      expect(sentinels.every((s) => s.role === 'archenterprise' || s.role === 'sentinel')).toBe(true)
+      expect(sentinels.every((s) => s.role === 'flagship' || s.role === 'sentinel')).toBe(true)
     })
 
     it('filters out unhealthy sentinels', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: staleHB }), // Unhealthy
         makeSentinel2({ lastHeartbeat: recentHB }),
       ]
@@ -2045,14 +2045,14 @@ describe('Federation Protocol Engine', () => {
 
   describe('isMeshHealthy', () => {
     it('returns true with 2+ healthy sentinels', () => {
-      const all = [makeArchenterprise(), makeSentinel1()]
+      const all = [makeFlagship(), makeSentinel1()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       expect(isMeshHealthy(mesh, meshNow)).toBe(true)
     })
 
     it('returns false with only 1 healthy sentinel', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -2061,7 +2061,7 @@ describe('Federation Protocol Engine', () => {
 
     it('returns false with no healthy sentinels', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -2070,7 +2070,7 @@ describe('Federation Protocol Engine', () => {
 
     it('members do not count toward mesh health', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeMember({ lastHeartbeat: recentHB }), // Healthy but just a member
         makeMember({ id: 'member-002', lastHeartbeat: recentHB }),
       ]
@@ -2084,7 +2084,7 @@ describe('Federation Protocol Engine', () => {
   describe('hasGovernanceQuorum', () => {
     it('has quorum when majority of sentinels are healthy', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: staleHB }), // 1 unhealthy
       ]
@@ -2094,7 +2094,7 @@ describe('Federation Protocol Engine', () => {
 
     it('no quorum when minority of sentinels are healthy', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
         makeSentinel2({ lastHeartbeat: recentHB }), // Only 1 healthy
       ]
@@ -2109,7 +2109,7 @@ describe('Federation Protocol Engine', () => {
 
     it('has quorum with exactly 2 of 3 healthy sentinels', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: staleHB }),
       ]
@@ -2119,7 +2119,7 @@ describe('Federation Protocol Engine', () => {
 
     it('quorum with exactly 50% is not sufficient (must be >50%)', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeFlagship({ lastHeartbeat: recentHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -2227,7 +2227,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('returns high score for full trust with vouches and heartbeat', () => {
-      const ministry = makeArchenterprise({ lastHeartbeat: recentHB })
+      const ministry = makeFlagship({ lastHeartbeat: recentHB })
       // full(70) + 2 vouches(10) + heartbeat(15) = 95
       expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(95)
     })
@@ -2249,7 +2249,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('no heartbeat bonus when unhealthy', () => {
-      const ministry = makeArchenterprise({ lastHeartbeat: staleHB })
+      const ministry = makeFlagship({ lastHeartbeat: staleHB })
       // full(70) + 2 vouches(10) + 0 heartbeat = 80
       expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(80)
     })
@@ -2264,20 +2264,20 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('includes all ministries', () => {
-      const ministries = [makeArchenterprise(), makeSentinel1()]
+      const ministries = [makeFlagship(), makeSentinel1()]
       const snapshot = buildGovernanceSnapshot(ministries, [], 'hash', 0, meshNow)
       expect(snapshot.ministries).toHaveLength(2)
     })
 
     it('builds trust scores for all ministries', () => {
-      const ministries = [makeArchenterprise(), makeSentinel1(), makeMember()]
+      const ministries = [makeFlagship(), makeSentinel1(), makeMember()]
       const snapshot = buildGovernanceSnapshot(ministries, [], 'hash', 0, meshNow)
       expect(Object.keys(snapshot.trustScores)).toHaveLength(3)
       expect(snapshot.trustScores['arch-001']).toBeGreaterThan(0)
     })
 
     it('builds vouch graph from all vouches', () => {
-      const arch = makeArchenterprise() // Has 2 vouches received
+      const arch = makeFlagship() // Has 2 vouches received
       const s1 = makeSentinel1() // Has 2 vouches received
       const snapshot = buildGovernanceSnapshot([arch, s1], [], 'hash', 0, meshNow)
       expect(snapshot.vouchGraph.length).toBe(4) // 2 + 2
@@ -2304,7 +2304,7 @@ describe('Federation Protocol Engine', () => {
 
   describe('selectSyncPeer', () => {
     it('selects highest-version healthy sentinel', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       // Give sentinel-001 a higher registry version
       mesh.find((n) => n.id === 'sentinel-001')!.registryVersion = 10
@@ -2315,7 +2315,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('excludes self from candidates', () => {
-      const all = [makeArchenterprise(), makeSentinel1()]
+      const all = [makeFlagship(), makeSentinel1()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       const peer = selectSyncPeer(mesh, 'arch-001', meshNow)
       expect(peer?.id).toBe('sentinel-001') // Not arch-001
@@ -2323,7 +2323,7 @@ describe('Federation Protocol Engine', () => {
 
     it('returns null when no healthy peers', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
       ]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
@@ -2332,7 +2332,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('breaks ties by rank when versions are equal', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
       // All have version 0 — should pick by rank (arch is rank 1)
       const peer = selectSyncPeer(mesh, 'sentinel-002', meshNow)
@@ -2343,8 +2343,8 @@ describe('Federation Protocol Engine', () => {
   // ── Failover Scenarios ─────────────────────────────────────────────────
 
   describe('Failover scenarios (Edenist resilience)', () => {
-    it('Scenario 1: Normal operation — archenterprise is coordinator', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+    it('Scenario 1: Normal operation — flagship is coordinator', () => {
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2(), makeMember()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
 
       const coordinator = electCoordinator(mesh, meshNow)
@@ -2353,9 +2353,9 @@ describe('Federation Protocol Engine', () => {
       expect(hasGovernanceQuorum(mesh, meshNow)).toBe(true)
     })
 
-    it('Scenario 2: Archenterprise goes down — next sentinel takes over', () => {
+    it('Scenario 2: Flagship goes down — next sentinel takes over', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }), // DOWN
+        makeFlagship({ lastHeartbeat: staleHB }), // DOWN
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: recentHB }),
         makeMember({ lastHeartbeat: recentHB }),
@@ -2371,7 +2371,7 @@ describe('Federation Protocol Engine', () => {
 
     it('Scenario 3: Two nodes down — last sentinel coordinates', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }), // DOWN
+        makeFlagship({ lastHeartbeat: staleHB }), // DOWN
         makeSentinel1({ lastHeartbeat: staleHB }),       // DOWN
         makeSentinel2({ lastHeartbeat: recentHB }),       // Last sentinel
       ]
@@ -2385,7 +2385,7 @@ describe('Federation Protocol Engine', () => {
 
     it('Scenario 4: All sentinels down — network failure', () => {
       const all = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: staleHB }),
         makeSentinel2({ lastHeartbeat: staleHB }),
       ]
@@ -2396,10 +2396,10 @@ describe('Federation Protocol Engine', () => {
       expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false)
     })
 
-    it('Scenario 5: Archenterprise recovers — primacy restored', () => {
+    it('Scenario 5: Flagship recovers — primacy restored', () => {
       // First: arch is down
       const downAll = [
-        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeFlagship({ lastHeartbeat: staleHB }),
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: recentHB }),
       ]
@@ -2409,7 +2409,7 @@ describe('Federation Protocol Engine', () => {
 
       // Then: arch recovers
       const upAll = [
-        makeArchenterprise({ lastHeartbeat: recentHB }), // RECOVERED
+        makeFlagship({ lastHeartbeat: recentHB }), // RECOVERED
         makeSentinel1({ lastHeartbeat: recentHB }),
         makeSentinel2({ lastHeartbeat: recentHB }),
       ]
@@ -2419,7 +2419,7 @@ describe('Federation Protocol Engine', () => {
     })
 
     it('Scenario 6: New node joins — gets governance from any peer', () => {
-      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const all = [makeFlagship(), makeSentinel1(), makeSentinel2()]
       const mesh = buildFederationMesh(all, 'arch-001', meshNow)
 
       // Simulate: even with arch down, new node can sync from sentinel

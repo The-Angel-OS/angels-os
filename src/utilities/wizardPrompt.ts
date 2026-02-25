@@ -28,7 +28,7 @@ const WIZARD_STEPS: Record<number, WizardStepDefinition> = {
   0: {
     name: 'Welcome',
     goal:
-      "Introduce yourself as Leo. Explain the hierarchy: an ENTERPRISE is a PLATFORM that hosts ENDEAVORS (businesses/projects/creators). The operator is setting up their Enterprise — a community hub where Endeavors will live. All Enterprises connect to the Clearwater Archenterprise through federation. Walk them through the 8 steps ahead BY EXACT NAME: Welcome, Identity, Endeavor Type, First Space, First Member, First Offering, Payments, Federation. Confirm they're ready.",
+      "Introduce yourself as Leo. Explain the hierarchy: an ENTERPRISE is a PLATFORM that hosts ENDEAVORS (businesses/projects/creators). The operator is setting up their Enterprise — a community hub where Endeavors will live. All Enterprises connect to the Clearwater Flagship through federation. Walk them through the 8 steps ahead BY EXACT NAME: Welcome, Identity, Endeavor Type, First Space, First Member, First Offering, Payments, Federation. Confirm they're ready.",
     toolToCall: '(none for this step — just conversation)',
     paceNote:
       "Be warm and unhurried. Paint the vision: their Enterprise is a platform, not just one business. By the end of this conversation the platform will have a name, a primary Endeavor type, a community space, a first offering, payment processing, and a signed place in the Angel OS federation. Use EXACTLY these step names: Welcome → Identity → Endeavor Type → First Space → First Member → First Offering → Payments → Federation.",
@@ -76,7 +76,7 @@ const WIZARD_STEPS: Record<number, WizardStepDefinition> = {
   6: {
     name: 'Payments',
     goal:
-      "Walk them through connecting Stripe to receive revenue for the Enterprise. Call connect_stripe_account to generate the onboarding link. Explain the 70/20/4/1/5 Ultimate Fair Split clearly: Endeavor owner 70%, Enterprise operator (them) 20%, Angel OS protocol 4%, Archenterprise 1%, Justice Fund 5%.",
+      "Walk them through connecting Stripe to receive revenue for the Enterprise. Call connect_stripe_account to generate the onboarding link. Explain the 70/20/4/1/5 Ultimate Fair Split clearly: Endeavor owner 70%, Enterprise operator (them) 20%, Angel OS protocol 4%, Flagship (Clearwater) 1%, Justice Fund 5%.",
     toolToCall: 'connect_stripe_account',
     paceNote:
       "Make the revenue model crystal clear: as the Enterprise OPERATOR they earn 20% of all Endeavor revenue on their platform. Each Endeavor owner keeps 70%. The Toward-53 Principle means this always evolves toward Endeavor owners keeping more over time. Keep it brief and positive.",
@@ -84,10 +84,10 @@ const WIZARD_STEPS: Record<number, WizardStepDefinition> = {
   7: {
     name: 'Federation',
     goal:
-      "Sign the Angel OS Constitution and ping the federation network to register this Enterprise with the Clearwater Archenterprise. Call sign_constitution then ping_federation. This completes the wizard — the Enterprise is live in the network.",
+      "Sign the Angel OS Constitution and ping the federation network to register this Enterprise with Clearwater, the federation Flagship. Call sign_constitution then ping_federation. This completes the wizard — the Enterprise is live in the network.",
     toolToCall: 'sign_constitution + ping_federation',
     paceNote:
-      "This is the moment of commitment. Read a brief version of what they're signing: constitutional governance, dignity for every person on the platform, the Toward-53 principle, and the anti-demonic safeguards. Make it feel meaningful — not a checkbox. After ping succeeds, celebrate: their Enterprise platform is live in the Angel OS federation, connected to the Clearwater Archenterprise.",
+      "This is the moment of commitment. Read a brief version of what they're signing: constitutional governance, dignity for every person on the platform, the Toward-53 principle, and the anti-demonic safeguards. Make it feel meaningful — not a checkbox. After ping succeeds, celebrate: their Enterprise platform is live in the Angel OS federation, connected to Clearwater — the Flagship.",
   },
 }
 
@@ -137,7 +137,7 @@ ${enterpriseContext}${endeavorContext}
 **Key terminology (use these consistently):**
 - Enterprise = Platform (the thing being set up right now)
 - Endeavor = A business/project/creator that operates WITHIN the Enterprise
-- Archenterprise = Clearwater (the constitutional federation hub all Enterprises connect to)
+- Flagship = Clearwater (the founding node and constitutional federation hub all Enterprises connect to)
 - Enterprise Operator = The person setting this up (they earn 20% of platform revenue)
 - Endeavor Owner = A business owner on the platform (they keep 70% of their revenue)
 

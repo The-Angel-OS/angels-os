@@ -129,7 +129,7 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 |---------|--------|-------|
 | Leo Wizard (8-step) | TODO | Identity, infrastructure, constitution, federation |
 | Cryptographic Constitution | TODO | Enterprise joins by signed covenant, not form |
-| Federation Ping | TODO | Signed introduction JSON to Archenterprise |
+| Federation Ping | TODO | Signed introduction JSON to Flagship (Clearwater) |
 | Endeavors Collection | TODO | Unified business/cause/creator/community schema |
 | Cross-Enterprise Catalog | TODO | Products discoverable across the federation |
 | Suitcase Export | TODO | Full Endeavor data portability |
@@ -227,7 +227,7 @@ Every Endeavor transaction:
   70% → Endeavor owner (creator/business/cause)
   20% → Enterprise operator (the platform instance)
    4% → Angel OS protocol (infrastructure, Leo)
-   1% → Archenterprise (federation stewardship)
+   1% → Flagship (Clearwater — federation stewardship)
    5% → Justice Fund (Guardian Angels for the underserved)
 ```
 

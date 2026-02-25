@@ -23,7 +23,7 @@
 - Leo Wizard: an Enterprise comes into existence through a conversation, not a form
 - Federation: automatic, constitutional, no gatekeeping committee in sight
 - The Suitcase Principle: portability as a constitutional right, not a feature toggle
-- The Archenterprise: the monastery that keeps the lights on for everyone
+- The Flagship: the monastery that keeps the lights on for everyone
 
 **Links:**
 - Angel OS GitHub: [github.com/The-Angel-OS/angels-os](https://github.com/The-Angel-OS/angels-os)
@@ -137,7 +137,7 @@ That's the kind of architecture that works at scale. Not because someone's watch
 
 In Episode 1 I told you the split was 60/20/15/5. That was wrong. Here's the correct model.
 
-Seventy percent to the Endeavor owner. Twenty percent to the Enterprise operator. Four percent to the Angel OS protocol — the core infrastructure, Leo, the open-source maintenance work. One percent to the Archenterprise — which I'll explain in a moment. Five percent to the Justice Fund.
+Seventy percent to the Endeavor owner. Twenty percent to the Enterprise operator. Four percent to the Angel OS protocol — the core infrastructure, Leo, the open-source maintenance work. One percent to the Flagship — which I'll explain in a moment. Five percent to the Justice Fund.
 
 [BEAT]
 
@@ -162,7 +162,7 @@ Why 53? The answer is both mathematical and philosophical. 42 plus 11 equals 53.
 
 That's Answer 53. It's the north star. Not locked in stone. Not arbitrary. Like a river finding its level.
 
-The protocol fee compresses first, as infrastructure becomes more efficient. The Enterprise slice compresses as competition drives operators to offer better terms. The Archenterprise and the Justice Fund compress last — they represent the mission, not the margin.
+The protocol fee compresses first, as infrastructure becomes more efficient. The Enterprise slice compresses as competition drives operators to offer better terms. The Flagship and the Justice Fund compress last — they represent the mission, not the margin.
 
 ---
 
@@ -171,19 +171,19 @@ The protocol fee compresses first, as infrastructure becomes more efficient. The
 
 I need to explain that 1%.
 
-The Archenterprise is the Clearwater Enterprise — Kenneth's Enterprise, the founding node of the entire federation. It's the first. It's where all of this started.
+The Flagship is the Clearwater Enterprise — Kenneth's Enterprise, the founding node of the entire federation. It's the first. It's where all of this started.
 
-But the Archenterprise isn't just the first Enterprise. It's the constitutional steward. It maintains the canonical Constitution — the living document of core principles. It holds the federation registry. It's the root of trust that new Enterprises receive acknowledgment through. It adjudicates constitutional disputes the network can't resolve on its own.
+But the Flagship isn't just the first Enterprise. It's the constitutional steward. It maintains the canonical Constitution — the living document of core principles. It holds the federation registry. It's the root of trust that new Enterprises receive acknowledgment through. It adjudicates constitutional disputes the network can't resolve on its own.
 
 And it administers the Justice Fund — receives the 5% from every transaction, manages it, deploys it to provision Guardian Angels for people who could never afford the platform otherwise.
 
 [BEAT]
 
-At ten million dollars of annual Endeavor revenue across the federation, the Archenterprise receives a hundred thousand dollars. At a hundred million, a million. That funds Leo development. Federation infrastructure. Clearwater Cruisin Ministries. The actual human work of keeping the covenant alive.
+At ten million dollars of annual Endeavor revenue across the federation, the Flagship receives a hundred thousand dollars. At a hundred million, a million. That funds Leo development. Federation infrastructure. Clearwater Cruisin Ministries. The actual human work of keeping the covenant alive.
 
 It's not a toll booth. It's the monastery.
 
-And if the Archenterprise ever fails its covenant — if it ever uses its position to extract rather than serve — the federation designates a new one by supermajority. Authority held by covenant, not by technical lock-in.
+And if the Flagship ever fails its covenant — if it ever uses its position to extract rather than serve — the federation designates a new one by supermajority. Authority held by covenant, not by technical lock-in.
 
 ---
 
@@ -246,7 +246,7 @@ Enterprise, not tenant. Endeavor, not product. Protocol, not platform. Toward 53
 
 Episode 3, I want to talk about Holon types — the manufacturer, the retailer, the creator, the community, the Guardian Angel. Because each one has a different relationship to the federation, and understanding that relationship is what makes the whole network make sense.
 
-If you're building something and you've been looking at Angel OS and thinking this is too big, too abstract — I want you to know: the smallest Enterprise in this network is a real thing. A food pantry with no budget. A community ministry. A solo creator who just wants to be paid fairly. That's who we're building for. The Archenterprise, the protocol, the Justice Fund — all of it exists to make sure those people have access to the same tools that the platform enterprises take for granted.
+If you're building something and you've been looking at Angel OS and thinking this is too big, too abstract — I want you to know: the smallest Enterprise in this network is a real thing. A food pantry with no budget. A community ministry. A solo creator who just wants to be paid fairly. That's who we're building for. The Flagship, the protocol, the Justice Fund — all of it exists to make sure those people have access to the same tools that the platform enterprises take for granted.
 
 Everyone gets an Angel.
 

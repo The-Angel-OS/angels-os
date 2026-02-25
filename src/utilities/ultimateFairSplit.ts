@@ -4,7 +4,7 @@ export interface UltimateFairConfig {
   providerShare: number       // Default: 70% — Endeavor owner (Toward-53: directionally toward 100%)
   platformShare: number       // Default: 20% — Enterprise operator
   operationsShare: number     // Default:  4% — Angel OS protocol
-  infrastructureShare: number // Default:  1% — Archenterprise (founding node + federation stewardship)
+  infrastructureShare: number // Default:  1% — Flagship (founding node + federation stewardship)
   justiceShare: number        // Default:  5% — Justice Fund (Guardian Angel provisioning)
 }
 
@@ -30,7 +30,7 @@ export interface SplitResult {
 /**
  * Ultimate Fair Payment Splitting System
  * Implements the Angel OS economic model: 70/20/4/1/5 split
- * Endeavor owner / Enterprise operator / Angel OS protocol / Archenterprise / Justice Fund
+ * Endeavor owner / Enterprise operator / Angel OS protocol / Flagship (Clearwater) / Justice Fund
  *
  * The Toward-53 Principle: this split is constitutionally directional — it always
  * evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as
@@ -147,14 +147,14 @@ export class UltimateFairSplitter {
 
   /**
    * Process platform fee distribution after payment capture.
-   * Distributes application fee between Operations, Infrastructure (Archenterprise), and Justice Fund.
+   * Distributes application fee between Operations, Infrastructure (Flagship), and Justice Fund.
    * Platform (Enterprise operator) retains their share via Stripe Connect destination.
    */
   async distributePlatformFees(
     paymentIntentId: string,
     operationsAccountId: string,
     justiceAccountId: string,
-    infrastructureAccountId?: string, // Archenterprise Stripe account (optional until registry live)
+    infrastructureAccountId?: string, // Flagship (Clearwater) Stripe account (optional until registry live)
   ): Promise<{
     operationsTransfer: Stripe.Transfer
     justiceTransfer: Stripe.Transfer
@@ -190,14 +190,14 @@ export class UltimateFairSplitter {
       metadata: { paymentIntentId, purpose: 'justice_fund', ultimateFairSplit: 'true' },
     })
 
-    // Infrastructure (Archenterprise) transfer — optional until central registry is live
+    // Infrastructure (Flagship) transfer — optional until central registry is live
     let infrastructureTransfer: Stripe.Transfer | undefined
     if (infrastructureAccountId && infrastructureAmount > 0) {
       infrastructureTransfer = await this.stripe.transfers.create({
         amount: Math.round(infrastructureAmount * multiplier),
         currency,
         destination: infrastructureAccountId,
-        metadata: { paymentIntentId, purpose: 'archenterprise_infrastructure', ultimateFairSplit: 'true' },
+        metadata: { paymentIntentId, purpose: 'flagship_infrastructure', ultimateFairSplit: 'true' },
       })
     }
 
@@ -235,7 +235,7 @@ export class UltimateFairSplitter {
       infrastructure: {
         amount: splits.infrastructureAmount,
         percentage: Math.round((splits.infrastructureAmount / total) * 100),
-        description: 'Archenterprise — founding node, federation stewardship, Justice Fund custodian',
+        description: 'Flagship (Clearwater) — founding node, federation stewardship, Justice Fund custodian',
       },
       justice: {
         amount: splits.justiceAmount,

@@ -77,7 +77,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     number: 'V',
     title: 'Economic Model — The Toward-53 Principle',
     principles: [
-      'The constitutional revenue split is 70/20/4/1/5: Endeavor owner / Enterprise operator / Angel OS protocol / Archenterprise / Justice Fund.',
+      'The constitutional revenue split is 70/20/4/1/5: Endeavor owner / Enterprise operator / Angel OS protocol / Flagship (Clearwater) / Justice Fund.',
       'This split is constitutionally directional. It always evolves toward the Endeavor owner keeping more.',
       'The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers evolve.',
       'Not charity. Architecture. — Article V.4',
@@ -100,7 +100,7 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
       'Constitution accepted → Federation ping sent → Node is immediately live.',
       'There is no approval queue. No gatekeeping committee. The Constitution IS the gate.',
       'Enterprises compete for Endeavors by offering better terms, better service, better community.',
-      'The Archenterprise (Clearwater) is the founding node and federation steward, not the governor.',
+      'The Flagship (Clearwater) is the founding node and federation steward, not the governor.',
     ],
   },
 ]

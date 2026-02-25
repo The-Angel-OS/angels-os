@@ -28,7 +28,7 @@ Angel OS is not a platform with customers. It is a **federation of Enterprises**
 | **Endeavor owner** | The creator, business, cause, or community generating value | **70%** |
 | **Enterprise operator** | The platform instance — they ARE Angel OS in their territory | **20%** |
 | **Angel OS protocol** | Core infrastructure, Leo, open source maintenance | **4%** |
-| **Archenterprise** | Clearwater — founding node, federation steward, Justice Fund custodian | **1%** |
+| **Flagship (Clearwater)** | Founding node, federation steward, Justice Fund custodian | **1%** |
 | **Justice Fund** | Guardian Angel provisioning for underserved populations | **5%** |
 
 **The Toward-53 Principle:** The split is constitutionally directional. It always evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers can be amended by federation supermajority.
@@ -314,7 +314,7 @@ Inspired by Peter F. Hamilton's Edenists: every fully-trusted Enterprise IS the 
 
 ```
 Federation Roles:
-  archenterprise  One founding node (spacesangels.com). Rank 1 by convention, not privilege.
+  flagship        One founding node (spacesangels.com). Rank 1 by convention, not privilege.
   sentinel        Any active Enterprise with full trust (2+ vouches). Replicates governance.
   member          Active but not yet fully trusted. Participates, doesn't replicate.
 
@@ -446,7 +446,7 @@ GROSS REVENUE
 ├── 70% → Endeavor owner (creator / business / cause — the value generator)
 ├── 20% → Enterprise operator (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archenterprise (Clearwater — federation stewardship and ministry)
+├──  1% → Flagship (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund (Guardian Angel provisioning)
 ```
 

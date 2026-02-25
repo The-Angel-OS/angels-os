@@ -153,7 +153,7 @@ GROSS REVENUE
 ├── 70% → Endeavor owner (the creator, business, or cause generating value)
 ├── 20% → Enterprise operator (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archenterprise (Clearwater — federation stewardship and ministry)
+├──  1% → Flagship (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund (Guardian Angel provisioning)
 ```
 
@@ -165,31 +165,31 @@ GROSS REVENUE
 
 **The Endeavor owner** is the value creator — the business, the cause, the creator, the community. They keep the lion's share because they generate the value. This is why creators leave YouTube, leave Patreon, leave OnlyFans. We start fair and get fairer.
 
-**The Archenterprise** (1%) is the Clearwater Enterprise — the founding node, the constitutional steward, the root of trust for the entire federation. Its slice funds real ministry: Guardian Angel provisioning, federation infrastructure, constitutional governance, and the actual human work of running the network. This is not a toll booth. It is the monastery that keeps the lights on for everyone. At federation scale, 1% becomes a significant economic engine — enough to fund the mission properly without extracting from anyone.
+**The Flagship** (1%) is the Clearwater Enterprise — the founding node, the constitutional steward, the root of trust for the entire federation. Its slice funds real ministry: Guardian Angel provisioning, federation infrastructure, constitutional governance, and the actual human work of running the network. This is not a toll booth. It is the monastery that keeps the lights on for everyone. At federation scale, 1% becomes a significant economic engine — enough to fund the mission properly without extracting from anyone.
 
-**The Justice Fund** (5%) is the covenant's social contract — administered by the Archenterprise, deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
+**The Justice Fund** (5%) is the covenant's social contract — administered by the Flagship, deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
 
-### The Archenterprise — Strong, Distributed, Trusted
+### The Flagship — Strong, Distributed, Trusted
 
-The Clearwater Archenterprise is the founding node of the Angel OS federation. It holds authority by covenant, not by technical lock-in.
+Clearwater is the Flagship of the Angel OS federation — the founding node. It holds authority by covenant, not by technical lock-in.
 
-**What the Archenterprise is:**
+**What the Flagship is:**
 - The first Enterprise — the founding node from which the federation grew
 - The constitutional steward — maintains the canonical Constitution, holds the living document
 - The federation registry — authoritative record of federated nodes, signatures, revocations
 - The Justice Fund custodian — receives, manages, and deploys the 5% toward Guardian Angels
 - The court of last resort — adjudicates constitutional disputes the network cannot resolve
-- The root of trust — new Enterprises receive federation acknowledgment through the Archenterprise
+- The root of trust — new Enterprises receive federation acknowledgment through the Flagship
 
-**What the Archenterprise is not:**
+**What the Flagship is not:**
 - A central server that the network depends on technically
 - A gatekeeper with veto power over individual Enterprises
 - An owner of the protocol or the Constitution
-- Irreplaceable — if the Archenterprise fails its covenant, the federation designates a new one by supermajority
+- Irreplaceable — if the Flagship fails its covenant, the federation designates a new one by supermajority
 
-**Distributed strength.** Any Enterprise can verify the federation registry independently. The Constitution is public. The Justice Fund accounting is transparent. The Archenterprise earns its position every day by serving the network well.
+**Distributed strength.** Any Enterprise can verify the federation registry independently. The Constitution is public. The Justice Fund accounting is transparent. The Flagship earns its position every day by serving the network well.
 
-**Economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Archenterprise receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
+**Economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Flagship receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
 
 ### The Ultimate Fair Split — Toward 53
 
@@ -199,7 +199,7 @@ As the network matures, as Enterprise operators compete for Endeavors by offerin
 
 The asymptotic target is **53** — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Enterprise and Endeavor.
 
-**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Archenterprise (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
+**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Flagship (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
 
 Not locked. Not arbitrary. **Constitutionally directional.**
 

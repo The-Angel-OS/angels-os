@@ -167,7 +167,7 @@ export function signConstitution(
 
 /**
  * Verify a ConstitutionSignature.
- * Used by the Archenterprise registry to validate incoming Enterprise pings.
+ * Used by the Flagship registry to validate incoming Enterprise pings.
  */
 export function verifyConstitutionSignature(sig: ConstitutionSignature): boolean {
   const payload = JSON.stringify(sig.event, Object.keys(sig.event).sort())

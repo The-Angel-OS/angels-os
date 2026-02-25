@@ -13,7 +13,7 @@ GROSS REVENUE
 ├── 70% → Endeavor owner    (the creator, business, or cause generating value)
 ├── 20% → Enterprise operator  (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archenterprise       (Clearwater — federation stewardship and ministry)
+├──  1% → Flagship             (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund      (Guardian Angel provisioning)
 ```
 
@@ -45,31 +45,31 @@ The protocol, the infrastructure, Leo. Open source, maintained, distributed. Doe
 
 This slice funds: Leo development, federation protocol maintenance, open source infrastructure, security auditing. As the infrastructure matures and becomes more efficient, this percentage compresses first.
 
-### Archenterprise — 1%
+### Flagship (Clearwater) — 1%
 
 The Clearwater Enterprise — founding node, constitutional steward, root of trust for the federation.
 
-**What the Archenterprise is:**
+**What the Flagship is:**
 - The first Enterprise — the founding node from which the federation grew
 - The constitutional steward — maintains the canonical Constitution, holds the living document
 - The federation registry — authoritative record of federated nodes, signatures, revocations
 - The Justice Fund custodian — receives, manages, and deploys the 5% toward Guardian Angels
 - The court of last resort — adjudicates constitutional disputes the network cannot resolve
-- The root of trust — new Enterprises receive federation acknowledgment through the Archenterprise
+- The root of trust — new Enterprises receive federation acknowledgment through the Flagship
 
-**What the Archenterprise is not:**
+**What the Flagship is not:**
 - A central server the network depends on technically
 - A gatekeeper with veto power over individual Enterprises
 - An owner of the protocol or the Constitution
-- Irreplaceable — if the Archenterprise fails its covenant, the federation designates a new one by supermajority
+- Irreplaceable — if the Flagship fails its covenant, the federation designates a new one by supermajority
 
-**The economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Archenterprise receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
+**The economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Flagship receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
 
 Authority held by covenant, not by technical lock-in.
 
 ### Justice Fund — 5%
 
-Five percent of every transaction, forever. Administered by the Archenterprise. Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
+Five percent of every transaction, forever. Administered by the Flagship (Clearwater). Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
 
 A small farmers' collective. A community legal clinic. A mutual aid network. A ministry with no budget. These organizations either go without AI tools or cobble together free trials that disappear after a month. Under this system, the Justice Fund — fed by every commercial transaction on the platform — pays for their Leo.
 
@@ -92,7 +92,7 @@ Why 53? It is both mathematical and philosophical.
 - 42 + 11 = 53
 - Answer 53: *The whole point of existence is to learn to love*
 
-**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Archenterprise (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
+**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Flagship (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
 
 **What is unalterable:** The *direction* — toward 53, always toward the creator — is written into the Constitution and cannot be amended. The specific numbers can be adjusted by federation supermajority. The direction cannot.
 
@@ -130,7 +130,7 @@ const REVENUE_SPLIT = {
   ENDEAVOR_OWNER:    0.70,  // creator / business / cause — the value generator
   ENTERPRISE_OPERATOR:  0.20,  // platform instance — earns by serving Endeavors well
   ANGEL_OS_PROTOCOL: 0.04,  // core infrastructure, Leo, open source maintenance
-  ARCHENTERPRISE:       0.01,  // Clearwater — stewardship, ministry, federation root of trust
+  FLAGSHIP:             0.01,  // Clearwater — stewardship, ministry, federation root of trust
   JUSTICE_FUND:      0.05,  // Guardian Angel provisioning for underserved populations
 } as const
 
@@ -138,7 +138,7 @@ const REVENUE_SPLIT = {
 // Asymptotic target: 53% floor. This direction is unalterable by the Constitution.
 // PROTOCOL (0.04) compresses first as infrastructure matures.
 // ENTERPRISE (0.20) compresses as competition improves Endeavor terms.
-// ARCHENTERPRISE (0.01) and JUSTICE_FUND (0.05) compress last — they are mission, not margin.
+// FLAGSHIP (0.01) and JUSTICE_FUND (0.05) compress last — they are mission, not margin.
 ```
 
 ### Stripe Connect

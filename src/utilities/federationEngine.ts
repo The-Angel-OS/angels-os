@@ -447,7 +447,7 @@ export function generateFederationHealthReport(
 // Inspired by PFH's Edenists: every fully-trusted Enterprise IS the network.
 // No single point of failure. No hierarchy. Any healthy node can serve any
 // federation function. Governance data is replicated across all sentinels
-// (active + full trust). If the Archenterprise goes down, the network
+// (active + full trust). If the Flagship goes down, the network
 // continues — any sentinel can answer queries, accept pings, and coordinate.
 //
 // Key principles:
@@ -460,7 +460,7 @@ export function generateFederationHealthReport(
 
 /** Role in the federation mesh. */
 export type FederationRole =
-  | 'archenterprise' // Original founding node — rank 1 by convention
+  | 'flagship'       // Original founding node — rank 1 by convention
   | 'sentinel'       // Active + full trust — replicates governance, can coordinate
   | 'member'         // Active but not yet fully trusted — participates, doesn't replicate
 
@@ -497,7 +497,7 @@ export interface GovernanceSyncResult {
   remoteVersion: number
 }
 
-/** Minimum number of sentinels for healthy mesh (including archenterprise). */
+/** Minimum number of sentinels for healthy mesh (including flagship). */
 export const MIN_SENTINEL_COUNT = 2
 
 /** Maximum governance data age before a sentinel should re-sync (seconds). */
@@ -511,7 +511,7 @@ export const GOVERNANCE_QUORUM_FRACTION = 0.5
 /**
  * Determine a ministry's role in the federation mesh.
  *
- * - archenterprise: explicitly flagged (only one per federation, rank 1)
+ * - flagship: explicitly flagged (only one per federation, rank 1)
  * - sentinel: active status + full trust (2+ valid vouches)
  * - member: active but not yet fully trusted
  *
@@ -520,9 +520,9 @@ export const GOVERNANCE_QUORUM_FRACTION = 0.5
  */
 export function determineFederationRole(
   ministry: Ministry,
-  isArchenterprise: boolean = false,
+  isFlagship: boolean = false,
 ): FederationRole {
-  if (isArchenterprise && ministry.status === 'active') return 'archenterprise'
+  if (isFlagship && ministry.status === 'active') return 'flagship'
 
   if (ministry.status !== 'active') return 'member'
 
@@ -537,7 +537,7 @@ export function determineFederationRole(
  * coordinator selection. Lower rank = higher priority.
  *
  * Rank factors (weighted):
- *   - Archenterprise flag: always rank 1
+ *   - Flagship flag: always rank 1
  *   - Trust level: full=100, vouched=50, probationary=10
  *   - Uptime: days since activation (capped at 365)
  *   - Vouch count: more diverse vouches = higher rank
@@ -549,11 +549,11 @@ export function determineFederationRole(
 export function calculateFederationRank(
   ministry: Ministry,
   allMinistries: Ministry[],
-  isArchenterprise: boolean = false,
+  isFlagship: boolean = false,
   currentDate: Date = new Date(),
 ): number {
-  // Archenterprise always rank 1 (by convention, not privilege)
-  if (isArchenterprise && ministry.status === 'active') return 1
+  // Flagship always rank 1 (by convention, not privilege)
+  if (isFlagship && ministry.status === 'active') return 1
 
   // Non-active ministries get max rank (lowest priority)
   if (ministry.status !== 'active') return allMinistries.length + 1
@@ -585,7 +585,7 @@ export function calculateFederationRank(
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)) // Deterministic tiebreak
 
   const idx = scored.findIndex((s) => s.id === ministry.id)
-  // +2 because rank 1 is reserved for archenterprise
+  // +2 because rank 1 is reserved for flagship
   return idx >= 0 ? idx + 2 : allMinistries.length + 1
 }
 
@@ -594,11 +594,11 @@ export function calculateFederationRank(
  */
 export function buildFederationMesh(
   ministries: Ministry[],
-  archentepriseId: string,
+  flagshipId: string,
   currentDate: Date = new Date(),
 ): FederationNode[] {
   return ministries.map((m) => {
-    const isArch = m.id === archentepriseId
+    const isArch = m.id === flagshipId
     const role = determineFederationRole(m, isArch)
     const rank = calculateFederationRank(m, ministries, isArch, currentDate)
     const healthy = isHeartbeatHealthy(m.lastHeartbeat, currentDate)
@@ -630,7 +630,7 @@ export function electCoordinator(
   const healthySentinels = nodes
     .filter(
       (n) =>
-        (n.role === 'archenterprise' || n.role === 'sentinel') &&
+        (n.role === 'flagship' || n.role === 'sentinel') &&
         n.status === 'active' &&
         isHeartbeatHealthy(n.lastHeartbeat, currentDate),
     )
@@ -641,11 +641,11 @@ export function electCoordinator(
 
 /**
  * Get all sentinels (nodes eligible for governance replication).
- * Includes archenterprise + all active nodes with full trust.
+ * Includes flagship + all active nodes with full trust.
  */
 export function getSentinels(nodes: FederationNode[]): FederationNode[] {
   return nodes.filter(
-    (n) => n.role === 'archenterprise' || n.role === 'sentinel',
+    (n) => n.role === 'flagship' || n.role === 'sentinel',
   )
 }
 
