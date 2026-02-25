@@ -1,206 +1,172 @@
-# Angel OS — Session Handoff: Sprint 16 Complete
+# Angel OS — Session Handoff: Sprint 17B Complete
 
-**Date:** February 23, 2026
+**Date:** February 24, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 29 Leo tools, v0.16.0-dev
-**Sprint:** Sprint 16 complete (Spaces Management UI) — Sprint 17 next
-**Stack:** Payload 3.77.0 · Next.js 16.1.6 · React 19.2.1 · Claude Sonnet 4 · Turbopack
-**Last commit:** `ad7b458` (Sprint 16 — Spaces menu header)
+**Status:** TypeScript clean, build passing, 44 Leo tools, v0.17.0-dev
+**Sprint:** Sprint 17B complete (Angel Tokens + Federation Fulfillment Queue) — Sprint 18 next
+**Stack:** Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 + Claude Sonnet 4 + Turbopack
+**Last commits:**
+- `2b8cafb` — Angel Tokens: zero-manufacturer launch with federation fulfillment queue
+- `b28cbf5` — Launch hardening: rate limiting, security headers, error boundaries, fees dashboard
+- `9453d46` — Bootstrap-phase platform fee model with refund promise
 
 ---
 
-## Critical Context: The Federation Pivot
+## Critical Context: Angel Tokens + Federation
 
-**Read this first.** Between Sprint 14 and Sprint 15, the core model was clarified:
+**Read this first.** Sprint 17B implements the zero-manufacturer launch strategy:
 
-- **"Tenant" → "Enterprise"** — operators who ARE Angel OS in their territory
-- **"Product/service" → "Endeavor"** — the unified constitutional object (business / cause / creator / community / media)
-- **Revenue model corrected:** 60/20/15/5 → **70/20/4/1/5** (Endeavor / Enterprise / Protocol / Archenterprise / Justice Fund)
-- **The Toward-53 Principle** — the split direction is unalterable, asymptotic target 53% to Endeavors
-- **Leo Wizard** — Sprint 16's primary deliverable: Enterprise comes into existence through a 17-minute Leo conversation
-- **Federation = automatic** — Constitution IS the gate, no approval queue
+- **Angel Tokens** — when a customer pays for a product and no qualified maker exists, they receive a paid claim (Angel Token) on future production. The backlog becomes the incentive for makers to join.
+- **Queue-on-zero-matches** — `order-route.ts` now queues orders instead of failing when no Holon matches
+- **Auto-match on Holon registration** — `HolonCapabilities/hooks.ts` drains the Angel Token queue when new makers register
+- **Equipment as first-class matching** — `+15` scoring bonus in the routing engine
+- **Vendor claim system** — makers can browse and claim queued orders
+- **Public maker opportunity board** — `/makers` page shows demand signals
 
-Full specs:
-- `docs/planning/260222 CLAUDE_CODE_BRIEFING.md` — the pivot session
+### Key Documents
+- `docs/v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md` — the governing vision (three-layer token economy)
 - `docs/planning/260223 FEDERATION.md` — federation architecture spec
 - `docs/REVENUE.md` — economic model with Toward-53
 
----
-
-## What Was Done (Sprint 16)
-
-### Spaces Management UI
-
-#### 1. `SpacesMenuHeader` — New Component
-**File:** `src/components/ChatControl/SpacesMenuHeader.tsx`
-- Thin wrapper that replaces the bare `SpaceSelector` in `MultiChannelChat`
-- Desktop layout: `[SpaceIcon] Space Name [▼]   [👥] [⚙] [+]`
-- `compact=true` (collapsed sidebar): action buttons hidden, only icon shows
-- Props: `spaces`, `activeSpaceId`, `onSpaceSelect`, `onSpaceCreated`, optional `onSpaceUpdated`/`onSpaceDeleted`/`activeSpaceNumericId`
-- Manages `createOpen`, `settingsOpen`, `membersOpen` state internally
-- Renders `CreateSpaceDialog`, `SpaceSettingsDialog`, `MemberPanel` as children
-
-#### 2. `CreateSpaceDialog` — 4-Step Wizard
-**File:** `src/components/ChatControl/CreateSpaceDialog.tsx`
-- Step 1 (Info): Space name (required) + optional description
-- Step 2 (Visibility): Radio cards — Public / Invite-only / Private — with Globe/Users/Lock icons
-- Step 3 (Template): service-provider, retail-commerce, creator-content, booking-based, custom
-- Step 4 (Invite): Repeatable email rows with role selectors (member/moderator/guest)
-- Calls `POST /api/spaces/create` → switches to new space → `router.refresh()`
-
-#### 3. `SpaceSettingsDialog` — 3-Tab Settings
-**File:** `src/components/ChatControl/SpaceSettingsDialog.tsx`
-- **General tab:** Name + description + visibility radio (Public/Invite-only/Private) + Save via `PATCH /api/spaces/{id}` + Danger Zone with delete confirmation
-- **Applets tab:** Toggle switches — Chat (locked on), Files, Tasks + Save
-- **Members tab:** Invite form (email + role + Invite button → `/api/spaces/invite`) + scrollable member list with role badges + Remove buttons
-
-#### 4. `POST /api/spaces/create` — New Endpoint
-**File:** `src/endpoints/space-create.ts`
-- Auth check + tenant resolution from `x-tenant-id` header (injected by middleware since Sprint 15)
-- Creates Space with user-chosen name/slug/description/visibility
-- Creates `SpaceMembership` for creator as `space_admin`
-- Reads `SPACE_TEMPLATES[template].channels` and creates each channel
-- Sends batch invitations via `createInvitation()` + `sendInvitationEmail()` (non-fatally)
-- Returns `{ success, space: { id, name, slug }, channelsCreated }`
-
-#### 5. `MultiChannelChat` — Wired to SpacesMenuHeader
-**File:** `src/components/ChatControl/MultiChannelChat.tsx`
-- Imports `SpacesMenuHeader` (replaces direct `SpaceSelector` import)
-- Added `useRouter` from `next/navigation`
-- Added `handleSpaceCreated(newId)`: calls `handleSpaceChange(newId)` + `router.refresh()`
-- Desktop sidebar: `SpaceSelector` → `SpacesMenuHeader` with `compact={!channelsPanelOpen}`
-- Mobile top bar: `SpaceSelector` → `SpacesMenuHeader` (always expanded, always shown)
-
-#### 6. `payload.config.ts` — Endpoint Registered
-- Added `import { spaceCreateHandler } from '@/endpoints/space-create'`
-- Registered `{ path: '/spaces/create', method: 'post', handler: spaceCreateHandler }`
+### Revenue Models
+- **Endeavor revenue:** 70/20/4/1/5 (Endeavor / Enterprise / Protocol / Archenterprise / Justice Fund)
+- **Maker revenue:** 60/20/15/5 (Maker / Platform / Operations / Justice Fund)
+- **The Toward-53 Principle** — split direction is unalterable, asymptotic target 53% to Endeavors
 
 ---
 
-## What Was Done (Sprint 15)
+## What Was Done (Sprint 17B — Angel Tokens)
 
-### Security Hardening
+### 1. Order Schema — Angel Token Fields
+**File:** `src/collections/Orders/index.ts`
+- Added to fulfillment array: `angelTokenId`, `tokenStatus` (active/redeemed/refunded), `queuedAt`, `queueReason`, `customerNotifiedAt`, `selectedConfiguration` (JSON)
+- Added `cancelled` status to `fulfillmentStatus` options
+- Angel Token lifecycle: `active` → `redeemed` (maker fulfilled) | `refunded` (customer cancelled)
 
-#### 1. Middleware: /api Routes Now Receive x-tenant-id
-**File:** `src/middleware.ts`
-- Matcher previously excluded `/api` — Payload API endpoints never received `x-tenant-id`
-- Fixed matcher: `'/((?!admin|_next|_vercel|.*\\..*).*)'` (removed `api|` from exclusion)
-- Added path check: API routes inject tenant header and pass through, skip i18n routing
+### 2. Angel Token Utility
+**File:** `src/utilities/angelTokens.ts` (NEW)
+- `generateAngelTokenId()` → `"AT-2026-00042"` (year + 5-digit sequence)
+- `createAngelTokenEntry()` — builds fulfillment entry with `pending_match` + `active` token
+- `getActiveTokensForUser(userId)` — customer's unfulfilled tokens
+- `getActiveTokensByCapability()` — aggregates for maker opportunity board
+- `redeemToken()`, `refundToken()` — lifecycle transitions
+- Types exported: `AngelToken`, `MakerOpportunity`
 
-#### 2. detectTenant Edge Cases
-**File:** `src/middleware/detectTenant.ts`
-- `www.` prefix → returns `null` (was returning `'www'` as tenant slug)
-- Bare IP addresses (e.g. `192.168.1.1`) → returns default tenant (was returning `'192-168'`)
-- Unknown 2-part hostnames → returns `null` (was returning whole hostname)
+### 3. Equipment on Products
+**File:** `src/collections/Products/index.ts`
+- Added `equipment` text field to `requiredCapabilities` array (alongside `skill` + `materials`)
+- Example: `"Homag Centateq P-110"`, `"CNC router"`, `"Bambu Lab X1C"`
 
-#### 3. adminOrSelf Role Check Expanded
-**File:** `src/access/adminOrSelf.ts`
-- Added `super_admin` and `archangel` to role check
-- Super admins were previously restricted to their own user record only — inconsistent with `userHasAccessToAllTenants` in the multi-tenant plugin
+### 4. Routing Engine Updates
+**File:** `src/utilities/orderRoutingEngine.ts`
+- Added `cancelled` to `FulfillmentStatus` union + `FULFILLMENT_STATES`
+- Added `AngelTokenStatus` type, `FulfillmentEntry` interface
+- Updated `VALID_TRANSITIONS`: `pending_match → ['matched', 'cancelled']`, `cancelled → []`
+- New helpers: `isQueuedAngelToken()`, `getQueuePosition()`, `calculateEquipmentBonus()`
+- `findMatchingHolons()` now applies `+15` equipment bonus to total score
 
-#### 4. comments/add Cross-Tenant Injection Blocked
+### 5. Queue-on-Zero-Matches
+**File:** `src/endpoints/order-route.ts`
+- The critical behavioral change: when `matches.length === 0`, creates Angel Token entries via `createAngelTokenEntry()` instead of returning failure
+- Collects `equipment` from product `requiredCapabilities`
+- Softened `skills.length === 0` to use `['general-manufacturing']` fallback
+
+### 6. Auto-Match on Holon Registration
+**File:** `src/collections/HolonCapabilities/hooks.ts` (NEW)
+- `afterHolonChange` hook fires on create/update when `acceptingOrders` is true
+- Queries all orders with `pending_match` + `active` tokens
+- Matches against new Holon's capabilities (skills + equipment)
+- Updates matching entries to `matched`, assigns Holon
+- Creates AI Bus messages for visibility
+
+**File:** `src/collections/HolonCapabilities/index.ts` — registered the hook
+
+### 7. Vendor Claim Endpoints
+**File:** `src/endpoints/orders-claimable.ts` (NEW) — `GET /api/orders/claimable`
+- Auth required, returns queued orders matching caller's Holon capabilities
+- Returns: orderId, angelTokenId, productTitle, requiredSkills, price, vendorShare (60%)
+
+**File:** `src/endpoints/order-claim.ts` (NEW) — `POST /api/orders/claim`
+- Verifies Holon ownership, capability match, race condition guard
+- Updates fulfillment: status → `matched`, assigns Holon, increments `activeOrderCount`
+
+### 8. Order Cancellation with Stripe Refund
+**File:** `src/endpoints/order-cancel.ts` (NEW) — `POST /api/orders/cancel`
+- Auth required (order owner only)
+- Only cancellable if `fulfillmentStatus === 'pending_match'`
+- Issues Stripe refund via PaymentIntent ID, marks token as `refunded`
+
+### 9. Maker Opportunity Board
+**File:** `src/endpoints/maker-opportunities.ts` (NEW) — `GET /api/maker-opportunities`
+- Public, no auth — returns aggregate Angel Token queue data per capability
+- No PII — just skill demand signals and revenue potential
+
+**File:** `src/app/[locale]/(app)/makers/page.tsx` (NEW) — `/makers`
+- Hero with queue stats, grid of opportunity cards per skill
+- Revenue potential + queue depth per capability
+- "How It Works" 3-step section + Constitutional Fair Split (60/20/15/5) explainer
+
+### 10. GA4 E-Commerce Events
+**File:** `src/utilities/gtagEcommerce.ts` (NEW)
+- Typed helpers: `trackViewItem()`, `trackAddToCart()`, `trackBeginCheckout()`, `trackAddShippingInfo()`, `trackAddPaymentInfo()`, `trackPurchase()`, `trackAngelTokenIssued()`
+- All no-op gracefully when `gtag` undefined
+
+### 11. Endpoint Registration
 **File:** `src/payload.config.ts`
-- Replaced ad-hoc hostname parsing with `detectTenantFromHostname()`
-- Added `findByID` validation: parent post/product must belong to the resolved Enterprise
-- Made tenant required (was previously optional with `...(tenantId != null && { tenant: tenantId })`)
-- Prevents: `evil.localhost` POSTing a comment onto a post from `clearwater-cruisin.localhost`
-
-#### 5. COOKIE_DOMAIN Cleared for Local Dev
-**File:** `.env.local`
-- `COOKIE_DOMAIN=".spacesangels.com"` (from `vercel env pull`) → cleared to empty
-- Chrome silently rejected auth cookies on `*.localhost` when domain was set to `.spacesangels.com`
-
-### UX / Assets
-
-#### 6. Favicon PNG Set
-**Files:** `src/app/[locale]/(app)/layout.tsx`, `src/app/[locale]/(dashboard)/layout.tsx`
-- Replaced `.ico`/`.svg` with PNG set: 64px, 512px, apple-touch-icon
-- `generateMetadata()` updated with apple-touch-icon in icons object
-- Assets added to `public/`: `favicon.png`, `icon-512.png`, `apple-touch-icon.png`
-
-#### 7. Nav Rename
-**Files:** `DashboardSidebar.tsx`, `dashboard/page.tsx`
-- "LEO & Spaces" → "Spaces" (desktop + mobile nav, dashboard quick-access card)
-
-#### 8. Chat Horizontal Overflow Fix
-**Files:** `src/components/ChatControl/MessageList.tsx`, `MultiChannelChat.tsx`
-- `CompactMessageList`: added `overflow-x-hidden` + inner `max-w-4xl` wrapper
-- `MultiChannelChat` main area: added `min-w-0 overflow-x-hidden`
-- Wide code blocks no longer break the layout on narrow screens
-
-### Documentation
-
-#### 9. Docs Reorganized
-- `docs/podcast-ep01.md` → `docs/transcripts/260222 Angel OS podcast-ep01.md`
-- Added: `docs/planning/260222 CLAUDE_CODE_BRIEFING.md`
-- Added: `docs/planning/260223 FEDERATION.md`
+- Registered: `GET /orders/claimable`, `POST /orders/claim`, `POST /orders/cancel`, `GET /maker-opportunities`
 
 ---
 
-## What Was Done (Sprint 14)
+## What Was Done (Sprint 17A — Launch Hardening)
 
-### Leo Content Management Tools
-**File:** `src/utilities/leo-data-tools.ts`
-
-Six new tools added:
-- `create_post` — title, body, status, categories (Lexical richText)
-- `update_post` — update any field by post ID
-- `create_page` — title, body, slug, status
-- `update_page` — update any field by page ID
-- `query_media` — search media library by filename/alt
-- `manage_categories` — create/update/delete categories
-
-All tools: respect `ctx.tenantId` for Enterprise isolation, default to `'draft'` status.
-Helper added: `textToLexical()` + `textToContentLayout()` for plain text → Lexical/layout conversion.
-
-### Channel Sidebar Stability
-**File:** `src/components/ChatControl/useChat.ts`, `ChatProvider.tsx`
-- Added `channelSpaceId` option to `useChat` — sidebar channels always load from the regular space, not `effectiveSpaceId` (which flips to `dmSpaceId` on DM selection)
-- Prevents channel list from clearing when switching to a DM
-
-### Email Auto-Reply Loop Prevention
-**File:** `src/endpoints/email-poll.ts`
-- Detects RFC 3834 `Auto-Submitted` header, `X-Autoreply`, no-reply patterns, OOO subjects
-- Skips Leo processing and Resend reply for auto-replies — prevents infinite loop with IONOS auto-responder
-
-### Markdown Rendering
-**File:** `src/components/ChatControl/MessageList.tsx`
-- Leo messages now render with `react-markdown` + `remark-gfm`
-- Code blocks, bold, italic, tables, lists all render properly
+- Bootstrap-phase platform fee model with refund promise
+- Per-endpoint rate limiting (token bucket algorithm)
+- Security headers: CSP, HSTS, X-Content-Type-Options, X-Frame-Options
+- Global + page-level error boundaries with friendly recovery UI
+- Fees dashboard page for Enterprise operators
 
 ---
 
-## Known Issues / Next Sprint Scope
+## What's Next (Sprint 18)
 
-### Priority 1 — Leo Wizard (Sprint 17)
-The federation pivot requires a Leo-guided Enterprise setup experience:
+### Priority 1 — Customer Angel Token UI
+- Order detail page: amber banner for active tokens, green for redeemed
+- Configuration display: customer's choices (color, size, text, material)
+- "Cancel & Refund" button for active tokens
+- Token-aware status labels in OrderStatus component
 
-1. `npx create-angel-enterprise` installer
-2. Leo wizard: 8-step conversational Enterprise onboarding
-3. Cryptographic Constitution signing (Enterprise joins by covenant)
-4. Federation ping: signed introduction JSON to Archenterprise
-5. `src/federation/` protocol directory
+### Priority 2 — Vendor Dashboard Claims
+- "Available Orders" tab in VendorOrders.tsx
+- Capability-matched filtering
+- "Claim Order" button per card
+- Configuration preview for work orders
 
-**Files to create:**
-- `src/federation/protocol.ts` — signed HTTP requests, registry ping
-- `src/federation/constitution.ts` — signing + verification
-- `src/collections/Endeavors/index.ts` — unified Endeavor collection
+### Priority 3 — LEO Tool Updates
+- `handleRouteOrder` — Angel Token messaging when orders queue
+- `handleCreateProduct` — messaging for products without makers
+- New tools: `check_maker_queue`, `claim_orders` (vendor AI agent)
 
-### Priority 2 — Revenue Model Implementation
-Revenue split constants exist in test utilities but need production wiring:
-- Update all revenue split constants to 70/20/4/1/5
-- `JusticeFundTransactions` should get Enterprise-scoped or documented as intentionally global
-- `ProcessedStripeEvents` not in multi-tenant plugin — add or document as platform-only
+### Priority 4 — GA4 Wiring
+- GA4 script tag in layout (gated by `NEXT_PUBLIC_GA_MEASUREMENT_ID`)
+- Wire events into product pages, cart, checkout, confirmation
 
-### Priority 3 — Remaining Security Items (from Sprint 15 audit)
-These were triaged as future sprint work:
+### Priority 5 — Leo Wizard (Start)
+- `npx create-angel-enterprise` installer scaffold
+- 8-step conversational Enterprise onboarding
+- Cryptographic constitution signing
+
+---
+
+## Known Issues
+
+### From Sprint 15 Audit (Deferred)
 - `ApplicationLogs` access should be `super_admin` only (currently allows `admin` + `archangel`)
-- Leo `/api/leo` + `/api/leo/stream` fall back to `DEFAULT_TENANT_SLUG` when `x-tenant-id` missing — should call `fetchTenantByDomain()` instead
-- `Reviews` collection: plugin auto-scopes but no explicit `tenant` field defined
+- Leo endpoints fall back to `DEFAULT_TENANT_SLUG` when `x-tenant-id` missing — should call `fetchTenantByDomain()`
+- `Reviews` collection: plugin auto-scopes but no explicit `tenant` field
 
-### Priority 4 — Integration Bridges
+### Integration Work Needed
 - WhatsApp Business API bridge (Twilio/Meta webhook → `POST /api/bridge/inbound`)
-- Stripe Connect vendor onboarding (issue #86)
+- Stripe Connect vendor onboarding (full flow)
 - Voice mode in chat UI (Web Speech API)
 
 ---
@@ -210,7 +176,6 @@ These were triaged as future sprint work:
 **Enterprise:** `clearwater-cruisin` is the active test Enterprise
 **Admin user:** `kenneth.courtney@gmail.com` — roles: `['super_admin', 'customer']`
 **Auth:** COOKIE_DOMAIN is empty in `.env.local` — cookies work on `*.localhost`
-**Seed:** `pnpm seed:reset` was run this session to update Kenneth's roles
 
 ---
 
@@ -221,68 +186,52 @@ These were triaged as future sprint work:
 pnpm dev               # http://localhost:3000 (platform)
                        # http://clearwater-cruisin.localhost:3000 (Enterprise)
 
-# Seed
-pnpm seed:reset        # Update roles on existing user without full reset
-
 # Tests
-npx vitest run tests/unit/
-npx tsc --noEmit
+npx vitest run tests/unit/    # 1,119 tests across 28 files
+npx tsc --noEmit              # TypeScript check
+
+# Seed
+pnpm seed:reset               # Update roles without full reset
 ```
 
 **`.env.local` key values (local dev):**
-- `COOKIE_DOMAIN=` (empty — required for `*.localhost` auth cookies to work)
+- `COOKIE_DOMAIN=` (empty — required for `*.localhost` auth cookies)
 - `DEFAULT_TENANT_SLUG=clearwater-cruisin`
 - `ANTHROPIC_API_KEY=` (set to your key)
+- `STRIPE_SECRET_KEY=` (set for refund processing)
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID=` (optional — GA4 tracking)
 
 ---
 
-## Files Changed (Sprint 16)
+## Files Changed (Sprint 17B)
 
 | File | Change |
 |------|--------|
-| `src/components/ChatControl/SpacesMenuHeader.tsx` | **New** — Space selector + action buttons header |
-| `src/components/ChatControl/CreateSpaceDialog.tsx` | **New** — 4-step Create Space wizard |
-| `src/components/ChatControl/SpaceSettingsDialog.tsx` | **New** — 3-tab Space settings (General/Applets/Members) |
-| `src/endpoints/space-create.ts` | **New** — POST /api/spaces/create endpoint |
-| `src/components/ChatControl/MultiChannelChat.tsx` | SpaceSelector → SpacesMenuHeader (desktop + mobile); useRouter + handleSpaceCreated |
-| `src/payload.config.ts` | Registers /spaces/create endpoint |
+| `src/collections/Orders/index.ts` | Angel Token fields + cancelled status on fulfillment |
+| `src/collections/Products/index.ts` | `equipment` on requiredCapabilities |
+| `src/collections/HolonCapabilities/index.ts` | Registered afterChange hook |
+| `src/collections/HolonCapabilities/hooks.ts` | **New** — Auto-match queued tokens on Holon registration |
+| `src/utilities/angelTokens.ts` | **New** — Token ID generator, lifecycle helpers, queue aggregation |
+| `src/utilities/gtagEcommerce.ts` | **New** — GA4 e-commerce event helpers |
+| `src/utilities/orderRoutingEngine.ts` | `cancelled` state, equipment bonus, queue helpers |
+| `src/endpoints/order-route.ts` | Queue-on-zero-matches (Angel Token issuance) |
+| `src/endpoints/orders-claimable.ts` | **New** — GET /api/orders/claimable |
+| `src/endpoints/order-claim.ts` | **New** — POST /api/orders/claim |
+| `src/endpoints/order-cancel.ts` | **New** — POST /api/orders/cancel + Stripe refund |
+| `src/endpoints/maker-opportunities.ts` | **New** — GET /api/maker-opportunities |
+| `src/app/[locale]/(app)/makers/page.tsx` | **New** — Public maker opportunity board |
+| `src/payload.config.ts` | 4 new endpoint registrations |
 
 ---
 
-## Files Changed (Sprint 15)
+## Files Changed (Sprint 17A)
 
 | File | Change |
 |------|--------|
-| `src/middleware.ts` | Matcher includes /api; API paths bypass i18n |
-| `src/middleware/detectTenant.ts` | www./IP/unknown hostname edge cases |
-| `src/access/adminOrSelf.ts` | super_admin + archangel role check |
-| `src/payload.config.ts` | comments/add injection fix + detectTenantFromHostname import |
-| `.env.local` | COOKIE_DOMAIN cleared |
-| `src/app/[locale]/(app)/layout.tsx` | Favicon PNG set + generateMetadata |
-| `src/app/[locale]/(dashboard)/layout.tsx` | Favicon PNG set |
-| `src/app/[locale]/(dashboard)/dashboard/page.tsx` | "Spaces" rename |
-| `src/app/[locale]/(dashboard)/dashboard/DashboardSidebar.tsx` | "Spaces" rename |
-| `src/components/ChatControl/MessageList.tsx` | Overflow fix + inner wrapper |
-| `src/components/ChatControl/MultiChannelChat.tsx` | min-w-0 + overflow-x-hidden |
-| `public/favicon.png` | New 64px PNG favicon |
-| `public/icon-512.png` | New 512px PNG icon |
-| `public/apple-touch-icon.png` | New 180px apple touch icon |
-| `.gitignore` | .vercel + .env*.local added |
-| `docs/planning/260222 CLAUDE_CODE_BRIEFING.md` | New — federation pivot session |
-| `docs/planning/260223 FEDERATION.md` | New — federation architecture spec |
-| `docs/transcripts/260222 Angel OS podcast-ep01.md` | Moved from docs/podcast-ep01.md |
-
----
-
-## Files Changed (Sprint 14)
-
-| File | Change |
-|------|--------|
-| `src/utilities/leo-data-tools.ts` | 6 new content management tools |
-| `src/components/ChatControl/useChat.ts` | channelSpaceId option |
-| `src/components/ChatControl/ChatProvider.tsx` | Pass channelSpaceId: activeSpaceId |
-| `src/endpoints/email-poll.ts` | Auto-reply detection |
-| `src/components/ChatControl/MessageList.tsx` | react-markdown rendering |
+| Rate limiting middleware | Per-endpoint token bucket |
+| Security headers middleware | CSP, HSTS, X-Content-Type-Options |
+| Error boundary components | Global + page-level |
+| Fees dashboard page | Bootstrap fee model UI |
 
 ---
 
