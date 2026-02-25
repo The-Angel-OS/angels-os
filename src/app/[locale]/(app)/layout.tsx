@@ -16,6 +16,7 @@ import { TenantStyles } from '@/components/TenantStyles'
 import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
@@ -92,6 +93,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
         <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <GoogleAnalytics />
       </head>
       <body>
         <Providers>

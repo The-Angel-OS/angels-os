@@ -25,6 +25,7 @@ import { AddressItem } from '@/components/addresses/AddressItem'
 import { FormItem } from '@/components/forms/FormItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { trackBeginCheckout, trackAddPaymentInfo } from '@/utilities/gtagEcommerce'
 
 const STRIPE_PUBLISHABLE_KEY = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
 
@@ -103,6 +104,21 @@ export const CheckoutPage: React.FC = () => {
 
         if (paymentData) {
           setPaymentData(paymentData)
+
+          // GA4: track checkout initiation
+          const ga4Items = (cart?.items || [])
+            .filter((item) => typeof item.product === 'object' && item.product)
+            .map((item) => {
+              const product = item.product as Record<string, unknown>
+              return {
+                item_id: String(product.id || ''),
+                item_name: (product.title as string) || 'Product',
+                price: (product.priceInUSD as number) || 0,
+                quantity: item.quantity || 1,
+              }
+            })
+          trackBeginCheckout(ga4Items, cart?.subtotal || 0)
+          trackAddPaymentInfo(ga4Items, cart?.subtotal || 0)
         }
       } catch (error) {
         const errorData = error instanceof Error ? JSON.parse(error.message) : {}
