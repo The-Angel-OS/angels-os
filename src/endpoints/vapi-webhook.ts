@@ -76,6 +76,17 @@ async function getActiveTenants(payload: any): Promise<Record<string, any>[]> {
 export const vapiWebhookHandler: PayloadHandler = async (req) => {
   const { payload } = req
 
+  // ─── Optional webhook secret validation ─────────────────────
+  // If VAPI_WEBHOOK_SECRET is set, verify the x-vapi-secret header
+  // to ensure requests are actually from Vapi, not spoofed.
+  const webhookSecret = process.env.VAPI_WEBHOOK_SECRET
+  if (webhookSecret) {
+    const incomingSecret = (req as Request).headers.get('x-vapi-secret')
+    if (incomingSecret !== webhookSecret) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   // Parse request body
   let body: Record<string, unknown>
   try {
