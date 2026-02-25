@@ -6,18 +6,18 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.17.0-dev
-**Tests:** 1,119 passing across 28 unit test files
-**Leo Tools:** 44
-**API Endpoints:** 37 registered routes
-**Collections:** 31
-**Last Updated:** February 24, 2026
+**Version:** v0.18.0-dev
+**Tests:** 1,274 passing across 29 unit test files
+**Leo Tools:** 47
+**API Endpoints:** 42 registered routes
+**Collections:** 32
+**Last Updated:** February 25, 2026
 
 ---
 
-## Current: v0.17.0-dev (Angel Tokens + Federation Fulfillment Queue)
+## Current: v0.18.0-dev (Media Intelligence + Stripe Direct Charges)
 
-### What's Built (Sprints 1-17B)
+### What's Built (Sprints 1-18C)
 
 | Feature | Sprint | Details |
 |---------|--------|---------|
@@ -56,42 +56,68 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Order Cancel + Refund** | **17B** | **POST /orders/cancel with Stripe refund for queued tokens** |
 | **Equipment-Aware Routing** | **17B** | **Equipment as first-class matching dimension (+15 bonus score)** |
 | **GA4 E-Commerce Events** | **17B** | **Typed helpers: view_item through purchase + angel_token_issued** |
+| **Chat Image Lightbox** | **18A** | **Radix Dialog + Embla Carousel, keyboard nav, thumbnails, download** |
+| **LiveKit Voice/Video Applet** | **18A** | **First-class channel tab, env-gated (LIVEKIT_API_KEY required)** |
+| **Edenist Distributed Mesh** | **18A** | **Governance replication, sentinel election, cascading failover (62 new tests)** |
+| **Progressive Media Analysis** | **18B** | **MediaMeta collection, Claude Vision, PDF extraction, RAG chunking (52 tests)** |
+| **3 New Leo Tools** | **18B** | **analyze_image, extract_pdf_pages, query_knowledge** |
+| **Stripe Direct Charges** | **18C** | **Sellers collect directly, appear on receipts, 40% application_fee** |
+| **Revenue Speculation** | **18C** | **3 growth scenarios, break-even analysis, 5 revenue-capturing user journeys** |
 
 ---
 
-## Sprint 18 — Leo Wizard + Customer-Facing Angel Tokens (Next)
+## Sprint 18 — Media Intelligence + Stripe Direct Charges (Done)
 
-**Goal:** Complete the Angel Token user experience and begin the Leo Wizard for federation onboarding.
+### Sprint 18A: Chat Images + LiveKit + Edenist Mesh
+- [x] Chat image persistence (depth=2 on message fetch + media ID fallback)
+- [x] Image lightbox/carousel (Radix Dialog + Embla Carousel, keyboard nav)
+- [x] LiveKit as first-class applet tab (voice/video in channel viewer)
+- [x] Edenist distributed mesh — governance replication, sentinel election (62 tests)
 
-### Priority 1: Angel Token Customer UI
-- [ ] Order detail page: Angel Token status banner (amber=active, green=redeemed)
-- [ ] Configuration display: show customer's choices (color, size, custom text, material)
-- [ ] "Cancel & Refund" button for active Angel Tokens
-- [ ] Order status component: token-aware labels
+### Sprint 18B: Progressive Media Analysis + RAG
+- [x] MediaMeta collection (~20 fields for structured image/PDF metadata)
+- [x] Vision analysis via Anthropic Claude (description, objects, colors, entities)
+- [x] PDF page-by-page extraction and transcription
+- [x] RAG chunking (500 tokens, 100 overlap, sentence boundaries)
+- [x] 3 new Leo tools: analyze_image, extract_pdf_pages, query_knowledge
+- [x] POST /api/media/analyze endpoint
+- [x] autoAnalyzeMedia hook on Messages (fire-and-forget)
+- [x] 52 new tests (mediaAnalysis.test.ts)
 
-### Priority 2: Vendor Dashboard — Available Orders
-- [ ] "Available" tab in vendor dashboard showing claimable orders
-- [ ] Capability-matched filtering (only show orders the vendor can fulfill)
-- [ ] "Claim Order" button per card with configuration preview
-- [ ] Bulk claiming for matching capabilities
+### Sprint 18C: Stripe Direct Charges
+- [x] Refactored from destination charges to direct charges model
+- [x] Sellers collect payments directly, appear on customer receipts
+- [x] Dynamic loadStripe with connected account context
+- [x] Webhook handler updated for Connect account events
+- [x] Revenue speculation document (3 scenarios, break-even analysis)
 
-### Priority 3: LEO Tool Updates
-- [ ] `handleRouteOrder` — Angel Token messaging when orders queue
-- [ ] `handleCreateProduct` — messaging for network products without makers
-- [ ] New tool: `check_maker_queue` — maker opportunity data
-- [ ] New tool: `claim_orders` — vendor AI agent claims matching orders
+---
 
-### Priority 4: GA4 Event Wiring
-- [ ] GA4 script tag in layout (gated by `NEXT_PUBLIC_GA_MEASUREMENT_ID`)
-- [ ] Wire `view_item` on product detail pages
-- [ ] Wire `add_to_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`
-- [ ] Wire `purchase` on order confirmation
-- [ ] Wire `angel_token_issued` on token creation
+## Sprint 19 — Voice AI + Leo Wizard + Customer UX (Next)
 
-### Priority 5: Leo Wizard (Start)
+**Goal:** Phone-based Leo access via Vapi.ai, conversational Enterprise onboarding, and customer-facing Angel Token UI.
+
+### Priority 1: Vapi Voice AI Integration
+- [ ] Phone-based Leo via vapi.ai (1-800 number)
+- [ ] Each Enterprise gets a Vapi number where Leo answers
+- [ ] Wire Leo's 47 tools into Vapi as function calls
+
+### Priority 2: Leo Wizard (8-step Onboarding)
 - [ ] `npx create-angel-enterprise` installer scaffold
-- [ ] Leo wizard: 8-step Enterprise onboarding conversation
+- [ ] 8-step conversational Enterprise onboarding
 - [ ] Cryptographic constitution signing
+
+### Priority 3: Customer Angel Token UI
+- [ ] Order detail page: amber banner for active, green for redeemed
+- [ ] Configuration display: customer's choices
+- [ ] "Cancel & Refund" button for active tokens
+
+### Priority 4: Vendor Dashboard Claims
+- [ ] "Available Orders" tab with capability-matched filtering
+- [ ] "Claim Order" button per card with configuration preview
+
+### Priority 5: GA4 Event Wiring
+- [ ] GA4 script tag in layout + wire events into product pages + checkout
 
 ---
 
@@ -249,6 +275,9 @@ pnpm dev                      # http://localhost:3000
 | 16 | Spaces Management | --- | Create/Settings/Members dialogs |
 | 17A | Launch Hardening | --- | Rate limits, security headers, error boundaries, fees |
 | 17B | Angel Tokens | --- | Fulfillment queue, maker board, claim system, GA4 |
+| 18A | Chat Images + LiveKit + Mesh | --- | Lightbox, voice/video applet, Edenist distributed mesh (62 tests) |
+| 18B | Media Intelligence + RAG | --- | MediaMeta, Claude Vision, PDF extraction, RAG chunking (52 tests) |
+| 18C | Stripe Direct Charges | --- | Sellers collect directly, 40% application_fee, revenue speculation |
 
 ---
 
@@ -260,4 +289,4 @@ pnpm dev                      # http://localhost:3000
 
 ---
 
-**Last Updated:** February 24, 2026
+**Last Updated:** February 25, 2026
