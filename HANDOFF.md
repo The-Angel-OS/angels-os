@@ -1,173 +1,176 @@
-# Angel OS — Session Handoff: Sprint 17B Complete
+# Angel OS — Session Handoff: Sprint 18C Complete
 
-**Date:** February 24, 2026
+**Date:** February 25, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, build passing, 44 Leo tools, v0.17.0-dev
-**Sprint:** Sprint 17B complete (Angel Tokens + Federation Fulfillment Queue) — Sprint 18 next
+**Status:** TypeScript clean, build passing, 47 Leo tools, v0.18.0-dev
+**Sprint:** Sprint 18C complete (Media Analysis + Stripe Direct Charges) — Sprint 19 next
 **Stack:** Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 + Claude Sonnet 4 + Turbopack
 **Last commits:**
-- `2b8cafb` — Angel Tokens: zero-manufacturer launch with federation fulfillment queue
-- `b28cbf5` — Launch hardening: rate limiting, security headers, error boundaries, fees dashboard
-- `9453d46` — Bootstrap-phase platform fee model with refund promise
+- `71a362c` — Stripe Direct Charges + revenue speculation documentation
+- `a921308` — Sprint 18B: progressive media analysis, PDF extraction, RAG knowledge base
+- `8e39838` — Sprint 18A: chat images, lightbox, LiveKit applet, Edenist mesh
 
 ---
 
-## Critical Context: Angel Tokens + Federation
+## Critical Context: Stripe Direct Charges + Media Intelligence
 
-**Read this first.** Sprint 17B implements the zero-manufacturer launch strategy:
+**Read this first.** Sprint 18 delivered three major phases:
 
-- **Angel Tokens** — when a customer pays for a product and no qualified maker exists, they receive a paid claim (Angel Token) on future production. The backlog becomes the incentive for makers to join.
-- **Queue-on-zero-matches** — `order-route.ts` now queues orders instead of failing when no Holon matches
-- **Auto-match on Holon registration** — `HolonCapabilities/hooks.ts` drains the Angel Token queue when new makers register
-- **Equipment as first-class matching** — `+15` scoring bonus in the routing engine
-- **Vendor claim system** — makers can browse and claim queued orders
-- **Public maker opportunity board** — `/makers` page shows demand signals
+### Stripe Direct Charges (Sprint 18C)
+- **Direct Charges model** — payments go directly to the seller's Stripe Connect account
+- Seller appears on customer receipts (Enterprise sovereignty)
+- Seller handles refunds and disputes
+- Platform takes 40% `application_fee_amount` (20% partner + 15% ops + 5% Justice Fund)
+- Frontend dynamically loads `loadStripe(key, { stripeAccount: sellerAccountId })`
+- **Env vars needed on Vercel:** `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOKS_SIGNING_SECRET`
+
+### Progressive Media Analysis (Sprint 18B)
+- Every uploaded image/PDF analyzed by Anthropic Vision, structured into searchable metadata
+- RAG chunking: ~500 tokens, 100 overlap, sentence boundaries
+- Each tenant builds its own knowledge corpus
+- Fire-and-forget hook on Messages (non-blocking)
+
+### LiveKit Voice/Video Applet (Sprint 18A)
+- Promoted from header button to first-class channel applet tab
+- **NOT visible in production** — this is correct behavior when env vars are missing
+- Requires: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL`
+- Code reference: `MultiChannelChat.tsx` line 113 filters voice tab when env vars absent
 
 ### Key Documents
-- `docs/v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md` — the governing vision (three-layer token economy)
+- `docs/planning/REVENUE_SPECULATION.md` — revenue projections (3 scenarios, break-even analysis)
 - `docs/planning/260223 FEDERATION.md` — federation architecture spec
-- `docs/REVENUE.md` — economic model with Toward-53
-
-### Revenue Models
-- **Endeavor revenue:** 70/20/4/1/5 (Endeavor / Enterprise / Protocol / Archenterprise / Justice Fund)
-- **Maker revenue:** 60/20/15/5 (Maker / Platform / Operations / Justice Fund)
-- **The Toward-53 Principle** — split direction is unalterable, asymptotic target 53% to Endeavors
+- `docs/v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md` — token economy vision
 
 ---
 
-## What Was Done (Sprint 17B — Angel Tokens)
+## What Was Done (Sprint 18C — Stripe Direct Charges)
 
-### 1. Order Schema — Angel Token Fields
-**File:** `src/collections/Orders/index.ts`
-- Added to fulfillment array: `angelTokenId`, `tokenStatus` (active/redeemed/refunded), `queuedAt`, `queueReason`, `customerNotifiedAt`, `selectedConfiguration` (JSON)
-- Added `cancelled` status to `fulfillmentStatus` options
-- Angel Token lifecycle: `active` → `redeemed` (maker fulfilled) | `refunded` (customer cancelled)
+### 1. Payment Adapter Refactor
+**File:** `src/lib/angel-os-stripe-adapter.ts` (refactored)
+- Replaced `transfer_data.destination` (destination charges) with `stripeAccount` option (direct charges)
+- PaymentIntent created ON the connected account
+- Customer objects created ON the connected account
+- Returns `stripeAccountId` in response for frontend Elements init
 
-### 2. Angel Token Utility
-**File:** `src/utilities/angelTokens.ts` (NEW)
-- `generateAngelTokenId()` → `"AT-2026-00042"` (year + 5-digit sequence)
-- `createAngelTokenEntry()` — builds fulfillment entry with `pending_match` + `active` token
-- `getActiveTokensForUser(userId)` — customer's unfulfilled tokens
-- `getActiveTokensByCapability()` — aggregates for maker opportunity board
-- `redeemToken()`, `refundToken()` — lifecycle transitions
-- Types exported: `AngelToken`, `MakerOpportunity`
+### 2. Frontend Checkout
+**File:** `src/components/checkout/CheckoutPage.tsx` (updated)
+- Dynamic `useMemo` creates `loadStripe(key, { stripeAccount })` when paymentData includes connected account
+- Falls back to platform default for non-Connect payments
 
-### 3. Equipment on Products
-**File:** `src/collections/Products/index.ts`
-- Added `equipment` text field to `requiredCapabilities` array (alongside `skill` + `materials`)
-- Example: `"Homag Centateq P-110"`, `"CNC router"`, `"Bambu Lab X1C"`
+### 3. Webhook Handler
+**File:** `src/endpoints/stripe-webhooks.ts` (updated)
+- Extracts `connectedAccountId` from Connect webhook events
+- Logs charge model (direct vs platform)
+- Handles `charge.refunded` events
 
-### 4. Routing Engine Updates
-**File:** `src/utilities/orderRoutingEngine.ts`
-- Added `cancelled` to `FulfillmentStatus` union + `FULFILLMENT_STATES`
-- Added `AngelTokenStatus` type, `FulfillmentEntry` interface
-- Updated `VALID_TRANSITIONS`: `pending_match → ['matched', 'cancelled']`, `cancelled → []`
-- New helpers: `isQueuedAngelToken()`, `getQueuePosition()`, `calculateEquipmentBonus()`
-- `findMatchingHolons()` now applies `+15` equipment bonus to total score
+### 4. Config Documentation
+**File:** `src/lib/stripe-connect-config.ts` (updated)
+- Updated docs to describe direct charges architecture
 
-### 5. Queue-on-Zero-Matches
-**File:** `src/endpoints/order-route.ts`
-- The critical behavioral change: when `matches.length === 0`, creates Angel Token entries via `createAngelTokenEntry()` instead of returning failure
-- Collects `equipment` from product `requiredCapabilities`
-- Softened `skills.length === 0` to use `['general-manufacturing']` fallback
-
-### 6. Auto-Match on Holon Registration
-**File:** `src/collections/HolonCapabilities/hooks.ts` (NEW)
-- `afterHolonChange` hook fires on create/update when `acceptingOrders` is true
-- Queries all orders with `pending_match` + `active` tokens
-- Matches against new Holon's capabilities (skills + equipment)
-- Updates matching entries to `matched`, assigns Holon
-- Creates AI Bus messages for visibility
-
-**File:** `src/collections/HolonCapabilities/index.ts` — registered the hook
-
-### 7. Vendor Claim Endpoints
-**File:** `src/endpoints/orders-claimable.ts` (NEW) — `GET /api/orders/claimable`
-- Auth required, returns queued orders matching caller's Holon capabilities
-- Returns: orderId, angelTokenId, productTitle, requiredSkills, price, vendorShare (60%)
-
-**File:** `src/endpoints/order-claim.ts` (NEW) — `POST /api/orders/claim`
-- Verifies Holon ownership, capability match, race condition guard
-- Updates fulfillment: status → `matched`, assigns Holon, increments `activeOrderCount`
-
-### 8. Order Cancellation with Stripe Refund
-**File:** `src/endpoints/order-cancel.ts` (NEW) — `POST /api/orders/cancel`
-- Auth required (order owner only)
-- Only cancellable if `fulfillmentStatus === 'pending_match'`
-- Issues Stripe refund via PaymentIntent ID, marks token as `refunded`
-
-### 9. Maker Opportunity Board
-**File:** `src/endpoints/maker-opportunities.ts` (NEW) — `GET /api/maker-opportunities`
-- Public, no auth — returns aggregate Angel Token queue data per capability
-- No PII — just skill demand signals and revenue potential
-
-**File:** `src/app/[locale]/(app)/makers/page.tsx` (NEW) — `/makers`
-- Hero with queue stats, grid of opportunity cards per skill
-- Revenue potential + queue depth per capability
-- "How It Works" 3-step section + Constitutional Fair Split (60/20/15/5) explainer
-
-### 10. GA4 E-Commerce Events
-**File:** `src/utilities/gtagEcommerce.ts` (NEW)
-- Typed helpers: `trackViewItem()`, `trackAddToCart()`, `trackBeginCheckout()`, `trackAddShippingInfo()`, `trackAddPaymentInfo()`, `trackPurchase()`, `trackAngelTokenIssued()`
-- All no-op gracefully when `gtag` undefined
-
-### 11. Endpoint Registration
-**File:** `src/payload.config.ts`
-- Registered: `GET /orders/claimable`, `POST /orders/claim`, `POST /orders/cancel`, `GET /maker-opportunities`
+### 5. Revenue Speculation
+**File:** `docs/planning/REVENUE_SPECULATION.md` (NEW)
+- 5 user journeys that capture funds
+- 3 growth scenarios: Conservative ($180K Y1), Network Effect ($1.2M Y1), Agent Web ($192M Y2)
+- Break-even: 25 orders/month at $50 avg
 
 ---
 
-## What Was Done (Sprint 17A — Launch Hardening)
+## What Was Done (Sprint 18B — Media Analysis + RAG)
 
-- Bootstrap-phase platform fee model with refund promise
-- Per-endpoint rate limiting (token bucket algorithm)
-- Security headers: CSP, HSTS, X-Content-Type-Options, X-Frame-Options
-- Global + page-level error boundaries with friendly recovery UI
-- Fees dashboard page for Enterprise operators
+### 1. MediaMeta Collection
+**File:** `src/collections/MediaMeta/index.ts` (NEW)
+- ~20 fields: media relationship, status, extractionType, visionAnalysis (JSON), ocrText, documentGroup, pageNumber, totalPages, tags, entities, summary, ragIndexed, ragChunks, embedding, processedAt, processingError
+
+### 2. RAG Index Hook
+**File:** `src/collections/MediaMeta/hooks/ragIndexHook.ts` (NEW)
+- Auto-chunks completed MediaMeta records for RAG retrieval
+- ~500 tokens per chunk, 100 overlap, sentence-boundary breaking
+
+### 3. Media Analysis Engine
+**File:** `src/utilities/mediaAnalysis.ts` (NEW)
+- `analyzeImage()` — Anthropic Vision (claude-sonnet-4-20250514)
+- `extractPdfPages()` — page-by-page PDF extraction via Claude document analysis
+- `buildMediaMeta()` — orchestrator routing to correct analyzer
+
+### 4. Auto-Analyze Hook
+**File:** `src/collections/Messages/hooks/autoAnalyzeMedia.ts` (NEW)
+- Fire-and-forget (`setImmediate`) on Messages afterChange
+- Non-blocking: message saves aren't delayed by analysis
+
+### 5. Media Analyze Endpoint
+**File:** `src/endpoints/media-analyze.ts` (NEW)
+- POST `/api/media/analyze` — trigger analysis of any media item
+
+### 6. Three New Leo Tools
+**File:** `src/utilities/leo-data-tools.ts` (updated)
+- `analyze_image` — Vision analysis of uploaded images
+- `extract_pdf_pages` — PDF page-by-page extraction
+- `query_knowledge` — Search extracted knowledge base
+
+### 7. Tests
+**File:** `tests/unit/utilities/mediaAnalysis.test.ts` (NEW)
+- 52 tests across 10 describe blocks
 
 ---
 
-## What's Next (Sprint 18)
+## What Was Done (Sprint 18A — Chat Images + LiveKit + Edenist Mesh)
 
-### Priority 1 — Customer Angel Token UI
-- Order detail page: amber banner for active tokens, green for redeemed
-- Configuration display: customer's choices (color, size, text, material)
-- "Cancel & Refund" button for active tokens
-- Token-aware status labels in OrderStatus component
+### 1. Chat Image Persistence
+- `useChat.ts` — depth=2 on message fetch + media ID fallback for non-expanded relationships
 
-### Priority 2 — Vendor Dashboard Claims
-- "Available Orders" tab in VendorOrders.tsx
-- Capability-matched filtering
-- "Claim Order" button per card
-- Configuration preview for work orders
+### 2. Image Lightbox/Carousel
+- `src/components/ChatControl/ImageLightbox.tsx` (NEW) — Radix Dialog + Embla Carousel
+- Full-screen viewer, keyboard nav, thumbnails, download, counter
 
-### Priority 3 — LEO Tool Updates
-- `handleRouteOrder` — Angel Token messaging when orders queue
-- `handleCreateProduct` — messaging for products without makers
-- New tools: `check_maker_queue`, `claim_orders` (vendor AI agent)
+### 3. LiveKit Voice/Video Applet
+- `src/components/ChatControl/types.ts` — Voice applet added to DEFAULT_APPLETS
+- `src/components/ChatControl/MultiChannelChat.tsx` — Voice content area, env-gated filtering
+- `src/components/ChatControl/LiveKitButton.tsx` — embedded mode support
 
-### Priority 4 — GA4 Wiring
-- GA4 script tag in layout (gated by `NEXT_PUBLIC_GA_MEASUREMENT_ID`)
-- Wire events into product pages, cart, checkout, confirmation
+### 4. Edenist Distributed Mesh
+- `src/utilities/federationEngine.ts` — sentinel election, governance replication, cascading failover
+- `src/endpoints/federation-governance-sync.ts` (NEW) — governance data sync
+- 62 new federation tests (188 → 250 total)
 
-### Priority 5 — Leo Wizard (Start)
+---
+
+## What's Next (Sprint 19)
+
+### Priority 1 — Vapi Voice AI Integration
+- Phone-based Leo via vapi.ai (1-800 number)
+- Each Enterprise gets a Vapi number where Leo answers
+- Wire Leo's 47 tools into Vapi as function calls
+
+### Priority 2 — Leo Wizard (8-step Enterprise Onboarding)
+- Conversational wizard: identity, infrastructure, constitution signing, federation ping
 - `npx create-angel-enterprise` installer scaffold
-- 8-step conversational Enterprise onboarding
-- Cryptographic constitution signing
+
+### Priority 3 — Customer Angel Token UI
+- Order detail page with token status banner (amber=active, green=redeemed)
+- Configuration display, Cancel & Refund button
+- Backend complete (Sprint 17B), needs frontend UX
+
+### Priority 4 — Vendor Dashboard Claims
+- "Available Orders" tab in vendor dashboard
+- Capability-matched filtering + "Claim Order" button
+
+### Priority 5 — GA4 Wiring
+- GA4 script tag in layout, wire events into product pages + checkout
 
 ---
 
 ## Known Issues
 
-### From Sprint 15 Audit (Deferred)
-- `ApplicationLogs` access should be `super_admin` only (currently allows `admin` + `archangel`)
-- Leo endpoints fall back to `DEFAULT_TENANT_SLUG` when `x-tenant-id` missing — should call `fetchTenantByDomain()`
-- `Reviews` collection: plugin auto-scopes but no explicit `tenant` field
+### LiveKit Voice Tab Not Visible in Production
+**NOT a code bug.** The voice applet is correctly filtered out when `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `NEXT_PUBLIC_LIVEKIT_URL` are not set. Resolution: obtain LiveKit Cloud account, add env vars to Vercel, redeploy.
 
-### Integration Work Needed
-- WhatsApp Business API bridge (Twilio/Meta webhook → `POST /api/bridge/inbound`)
-- Stripe Connect vendor onboarding (full flow)
-- Voice mode in chat UI (Web Speech API)
+### Stripe Webhook Not Yet Configured
+Webhook endpoint needs creation in Stripe Dashboard → `https://www.spacesangels.com/api/stripe/webhooks`. Must check "Listen to events on Connected accounts" for direct charges. `STRIPE_WEBHOOKS_SIGNING_SECRET` still needed on Vercel.
+
+### From Sprint 15 Audit (Deferred)
+- `ApplicationLogs` access should be `super_admin` only
+- Leo endpoints fall back to `DEFAULT_TENANT_SLUG` when `x-tenant-id` missing
+- `Reviews` collection: no explicit `tenant` field
 
 ---
 
@@ -175,7 +178,8 @@
 
 **Enterprise:** `clearwater-cruisin` is the active test Enterprise
 **Admin user:** `kenneth.courtney@gmail.com` — roles: `['super_admin', 'customer']`
-**Auth:** COOKIE_DOMAIN is empty in `.env.local` — cookies work on `*.localhost`
+**Auth:** COOKIE_DOMAIN is `.angelos.local` in `.env`
+**Stripe:** Live keys configured locally, pending Vercel env vars
 
 ---
 
@@ -187,51 +191,19 @@ pnpm dev               # http://localhost:3000 (platform)
                        # http://clearwater-cruisin.localhost:3000 (Enterprise)
 
 # Tests
-npx vitest run tests/unit/    # 1,119 tests across 28 files
+npx vitest run tests/unit/    # 1,274 tests across 29 files
 npx tsc --noEmit              # TypeScript check
 
 # Seed
 pnpm seed:reset               # Update roles without full reset
 ```
 
-**`.env.local` key values (local dev):**
-- `COOKIE_DOMAIN=` (empty — required for `*.localhost` auth cookies)
-- `DEFAULT_TENANT_SLUG=clearwater-cruisin`
-- `ANTHROPIC_API_KEY=` (set to your key)
-- `STRIPE_SECRET_KEY=` (set for refund processing)
-- `NEXT_PUBLIC_GA_MEASUREMENT_ID=` (optional — GA4 tracking)
-
----
-
-## Files Changed (Sprint 17B)
-
-| File | Change |
-|------|--------|
-| `src/collections/Orders/index.ts` | Angel Token fields + cancelled status on fulfillment |
-| `src/collections/Products/index.ts` | `equipment` on requiredCapabilities |
-| `src/collections/HolonCapabilities/index.ts` | Registered afterChange hook |
-| `src/collections/HolonCapabilities/hooks.ts` | **New** — Auto-match queued tokens on Holon registration |
-| `src/utilities/angelTokens.ts` | **New** — Token ID generator, lifecycle helpers, queue aggregation |
-| `src/utilities/gtagEcommerce.ts` | **New** — GA4 e-commerce event helpers |
-| `src/utilities/orderRoutingEngine.ts` | `cancelled` state, equipment bonus, queue helpers |
-| `src/endpoints/order-route.ts` | Queue-on-zero-matches (Angel Token issuance) |
-| `src/endpoints/orders-claimable.ts` | **New** — GET /api/orders/claimable |
-| `src/endpoints/order-claim.ts` | **New** — POST /api/orders/claim |
-| `src/endpoints/order-cancel.ts` | **New** — POST /api/orders/cancel + Stripe refund |
-| `src/endpoints/maker-opportunities.ts` | **New** — GET /api/maker-opportunities |
-| `src/app/[locale]/(app)/makers/page.tsx` | **New** — Public maker opportunity board |
-| `src/payload.config.ts` | 4 new endpoint registrations |
-
----
-
-## Files Changed (Sprint 17A)
-
-| File | Change |
-|------|--------|
-| Rate limiting middleware | Per-endpoint token bucket |
-| Security headers middleware | CSP, HSTS, X-Content-Type-Options |
-| Error boundary components | Global + page-level |
-| Fees dashboard page | Bootstrap fee model UI |
+**Key env vars:**
+- `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — live Stripe keys (set locally)
+- `STRIPE_WEBHOOKS_SIGNING_SECRET` — pending (need webhook endpoint created)
+- `ANTHROPIC_API_KEY` — Claude API for Leo + media analysis
+- `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `NEXT_PUBLIC_LIVEKIT_URL` — optional, enables voice/video
+- `COOKIE_DOMAIN=.angelos.local` — for local subdomain auth
 
 ---
 
