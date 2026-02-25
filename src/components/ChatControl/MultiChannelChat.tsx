@@ -106,9 +106,14 @@ export function MultiChannelChat({
   // A Guardian Angel DM needs LiveKit voice. A vendor DM needs file sharing.
   // Chat is always on; everything else is opt-in but available.
   const enabledApplets = useMemo(() => {
-    const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'files', 'tasks']
-    return DEFAULT_APPLETS.filter((a) => spaceAppletIds.includes(a.id))
-  }, [activeSpace])
+    const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'voice', 'files', 'tasks']
+    return DEFAULT_APPLETS.filter((a) => {
+      if (!spaceAppletIds.includes(a.id)) return false
+      // Voice applet requires LiveKit env vars to be configured
+      if (a.id === 'voice' && !(liveKitEnabled && process.env.NEXT_PUBLIC_LIVEKIT_URL)) return false
+      return true
+    })
+  }, [activeSpace, liveKitEnabled])
 
   // Reset applet to chat when switching channels
   const handleSwitchChannel = useCallback(
@@ -151,8 +156,6 @@ export function MultiChannelChat({
     }
     setIsCreating(false)
   }
-
-  const showLiveKit = !!(liveKitEnabled && process.env.NEXT_PUBLIC_LIVEKIT_URL)
 
   /** Render a DM channel item in the sidebar */
   function renderDMItem(ch: ChatChannel) {
@@ -478,14 +481,8 @@ export function MultiChannelChat({
               onAppletChange={setActiveApplet}
             />
 
-            {/* Right side: LiveKit + Settings + Members */}
+            {/* Right side: Settings + Members */}
             <div className="flex items-center gap-1">
-              {showLiveKit && (
-                <LiveKitButton
-                  spaceId={activeSpaceId}
-                  channelSlug={activeChannel}
-                />
-              )}
               <button
                 onClick={() => setChannelSettingsOpen(true)}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -514,6 +511,14 @@ export function MultiChannelChat({
               }
             />
           </>
+        ) : activeApplet === 'voice' ? (
+          <div className="flex flex-1 flex-col">
+            <LiveKitButton
+              spaceId={activeSpaceId}
+              channelSlug={activeChannel}
+              embedded
+            />
+          </div>
         ) : activeApplet === 'files' ? (
           <FilesBrowser channelId={activeChannelData?.id} spaceId={activeSpaceId} />
         ) : activeApplet === 'tasks' ? (

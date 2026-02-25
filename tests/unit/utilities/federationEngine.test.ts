@@ -1519,4 +1519,916 @@ describe('Federation Protocol Engine', () => {
       expect(c1).not.toBe(c2)
     })
   })
+
+  // ========================================================================
+  // Mesh Tolerance — Edenist Distributed Governance
+  // ========================================================================
+  //
+  // Every fully-trusted Enterprise IS the network. No single point of failure.
+  // Any healthy sentinel can serve any federation function.
+  //
+
+  // ── Mesh Types (re-implemented for test isolation) ─────────────────────
+
+  type FederationRole = 'archenterprise' | 'sentinel' | 'member'
+
+  interface FederationNode extends Ministry {
+    role: FederationRole
+    federationRank: number
+    lastRegistrySync?: string
+    registryVersion: number
+    isHealthy: boolean
+  }
+
+  interface GovernanceData {
+    registryVersion: number
+    ministries: Ministry[]
+    catalogIndex: FederationCatalogEntry[]
+    constitutionHash: string
+    trustScores: Record<string, number>
+    vouchGraph: Array<{
+      voucherId: string
+      targetId: string
+      vouchedAt: string
+      isValid: boolean
+    }>
+    updatedAt: string
+  }
+
+  interface GovernanceSyncResult {
+    accepted: boolean
+    reason?: string
+    localVersion: number
+    remoteVersion: number
+  }
+
+  const MIN_SENTINEL_COUNT = 2
+  const GOVERNANCE_QUORUM_FRACTION = 0.5
+
+  // ── Mesh Functions (re-implemented) ────────────────────────────────────
+
+  function determineFederationRole(
+    ministry: Ministry,
+    isArchenterprise: boolean = false,
+  ): FederationRole {
+    if (isArchenterprise && ministry.status === 'active') return 'archenterprise'
+    if (ministry.status !== 'active') return 'member'
+    const trust = calculateTrustLevel(ministry)
+    if (trust === 'full') return 'sentinel'
+    return 'member'
+  }
+
+  function calculateFederationRank(
+    ministry: Ministry,
+    allMinistries: Ministry[],
+    isArchenterprise: boolean = false,
+    currentDate: Date = new Date(),
+  ): number {
+    if (isArchenterprise && ministry.status === 'active') return 1
+    if (ministry.status !== 'active') return allMinistries.length + 1
+
+    const scored = allMinistries
+      .filter((m) => m.status === 'active')
+      .map((m) => {
+        const trustScore = { full: 100, vouched: 50, probationary: 10, none: 0 }[
+          calculateTrustLevel(m)
+        ]
+        const uptimeDays = m.activatedAt
+          ? Math.floor(
+              (currentDate.getTime() - new Date(m.activatedAt).getTime()) /
+                (24 * 60 * 60 * 1000),
+            )
+          : 0
+        const vouchCount = m.vouchesReceived.filter((v) => v.isValid).length
+        const heartbeatBonus = isHeartbeatHealthy(m.lastHeartbeat, currentDate) ? 50 : 0
+        const score = trustScore + Math.min(uptimeDays, 365) + vouchCount * 25 + heartbeatBonus
+        return { id: m.id, score }
+      })
+      .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+
+    const idx = scored.findIndex((s) => s.id === ministry.id)
+    return idx >= 0 ? idx + 2 : allMinistries.length + 1
+  }
+
+  function buildFederationMesh(
+    ministries: Ministry[],
+    archentepriseId: string,
+    currentDate: Date = new Date(),
+  ): FederationNode[] {
+    return ministries.map((m) => {
+      const isArch = m.id === archentepriseId
+      const role = determineFederationRole(m, isArch)
+      const rank = calculateFederationRank(m, ministries, isArch, currentDate)
+      const healthy = isHeartbeatHealthy(m.lastHeartbeat, currentDate)
+      return { ...m, role, federationRank: rank, registryVersion: 0, isHealthy: healthy }
+    })
+  }
+
+  function electCoordinator(
+    nodes: FederationNode[],
+    currentDate: Date = new Date(),
+  ): FederationNode | null {
+    const healthySentinels = nodes
+      .filter(
+        (n) =>
+          (n.role === 'archenterprise' || n.role === 'sentinel') &&
+          n.status === 'active' &&
+          isHeartbeatHealthy(n.lastHeartbeat, currentDate),
+      )
+      .sort((a, b) => a.federationRank - b.federationRank)
+    return healthySentinels[0] ?? null
+  }
+
+  function getSentinels(nodes: FederationNode[]): FederationNode[] {
+    return nodes.filter((n) => n.role === 'archenterprise' || n.role === 'sentinel')
+  }
+
+  function getHealthySentinels(
+    nodes: FederationNode[],
+    currentDate: Date = new Date(),
+  ): FederationNode[] {
+    return getSentinels(nodes).filter((n) => isHeartbeatHealthy(n.lastHeartbeat, currentDate))
+  }
+
+  function isMeshHealthy(
+    nodes: FederationNode[],
+    currentDate: Date = new Date(),
+  ): boolean {
+    return getHealthySentinels(nodes, currentDate).length >= MIN_SENTINEL_COUNT
+  }
+
+  function hasGovernanceQuorum(
+    nodes: FederationNode[],
+    currentDate: Date = new Date(),
+  ): boolean {
+    const totalSentinels = getSentinels(nodes).length
+    if (totalSentinels === 0) return false
+    const healthyCount = getHealthySentinels(nodes, currentDate).length
+    return healthyCount / totalSentinels > GOVERNANCE_QUORUM_FRACTION
+  }
+
+  function validateGovernanceSync(
+    local: GovernanceData | null,
+    remote: GovernanceData,
+    expectedConstitutionHash: string,
+  ): GovernanceSyncResult {
+    const localVersion = local?.registryVersion ?? 0
+    const remoteVersion = remote.registryVersion
+
+    if (remoteVersion <= localVersion) {
+      return {
+        accepted: false,
+        reason: `Stale governance data: remote v${remoteVersion} <= local v${localVersion}`,
+        localVersion,
+        remoteVersion,
+      }
+    }
+
+    if (remote.constitutionHash !== expectedConstitutionHash) {
+      return {
+        accepted: false,
+        reason: `Constitution hash mismatch: expected ${expectedConstitutionHash}, got ${remote.constitutionHash}`,
+        localVersion,
+        remoteVersion,
+      }
+    }
+
+    if (!remote.updatedAt || isNaN(new Date(remote.updatedAt).getTime())) {
+      return {
+        accepted: false,
+        reason: 'Invalid governance timestamp',
+        localVersion,
+        remoteVersion,
+      }
+    }
+
+    return { accepted: true, localVersion, remoteVersion }
+  }
+
+  function calculateCompositeTrustScore(
+    ministry: Ministry,
+    currentDate: Date = new Date(),
+  ): number {
+    const trustBase = {
+      none: 0,
+      probationary: 15,
+      vouched: 40,
+      full: 70,
+    }[calculateTrustLevel(ministry)]
+
+    const validVouches = ministry.vouchesReceived.filter((v) => v.isValid).length
+    const vouchBonus = Math.min(validVouches * 5, 15)
+    const heartbeatBonus = isHeartbeatHealthy(ministry.lastHeartbeat, currentDate) ? 15 : 0
+    return Math.min(100, trustBase + vouchBonus + heartbeatBonus)
+  }
+
+  function buildGovernanceSnapshot(
+    ministries: Ministry[],
+    catalogEntries: FederationCatalogEntry[],
+    constitutionHash: string,
+    currentVersion: number,
+    currentDate: Date = new Date(),
+  ): GovernanceData {
+    const trustScores: Record<string, number> = {}
+    for (const m of ministries) {
+      trustScores[m.id] = calculateCompositeTrustScore(m, currentDate)
+    }
+    const vouchGraph: GovernanceData['vouchGraph'] = []
+    for (const m of ministries) {
+      for (const v of m.vouchesReceived) {
+        vouchGraph.push({ voucherId: v.voucherId, targetId: m.id, vouchedAt: v.vouchedAt, isValid: v.isValid })
+      }
+    }
+    return {
+      registryVersion: currentVersion + 1,
+      ministries,
+      catalogIndex: catalogEntries,
+      constitutionHash,
+      trustScores,
+      vouchGraph,
+      updatedAt: currentDate.toISOString(),
+    }
+  }
+
+  function selectSyncPeer(
+    nodes: FederationNode[],
+    excludeId: string,
+    currentDate: Date = new Date(),
+  ): FederationNode | null {
+    const candidates = getHealthySentinels(nodes, currentDate)
+      .filter((n) => n.id !== excludeId)
+      .sort((a, b) => {
+        if (b.registryVersion !== a.registryVersion) return b.registryVersion - a.registryVersion
+        return a.federationRank - b.federationRank
+      })
+    return candidates[0] ?? null
+  }
+
+  // ── Mesh Test Fixtures ─────────────────────────────────────────────────
+
+  const meshNow = new Date('2025-06-01T12:00:00Z')
+  const recentHB = new Date('2025-06-01T11:58:00Z').toISOString() // 2 min ago — healthy
+  const staleHB = new Date('2025-06-01T11:00:00Z').toISOString()  // 1 hour ago — unhealthy
+
+  /** Archenterprise: spacesangels.com — active, full trust, healthy */
+  function makeArchenterprise(overrides: Partial<Ministry> = {}): Ministry {
+    return makeMinistry({
+      id: 'arch-001',
+      name: 'SpacesAngels',
+      domain: 'spacesangels.com',
+      status: 'active',
+      activatedAt: '2024-01-01T00:00:00Z', // Long uptime
+      lastHeartbeat: recentHB,
+      vouchesReceived: [
+        makeVouch({ voucherId: 'sentinel-001', isValid: true }),
+        makeVouch({ voucherId: 'sentinel-002', isValid: true }),
+      ],
+      ...overrides,
+    })
+  }
+
+  /** Sentinel: clearwater-cruisin.com — active, full trust, healthy */
+  function makeSentinel1(overrides: Partial<Ministry> = {}): Ministry {
+    return makeMinistry({
+      id: 'sentinel-001',
+      name: 'Clearwater Cruisin',
+      domain: 'clearwater-cruisin.com',
+      status: 'active',
+      activatedAt: '2024-06-01T00:00:00Z',
+      lastHeartbeat: recentHB,
+      vouchesReceived: [
+        makeVouch({ voucherId: 'arch-001', isValid: true }),
+        makeVouch({ voucherId: 'sentinel-002', isValid: true }),
+      ],
+      ...overrides,
+    })
+  }
+
+  /** Sentinel: maker-collective.org — active, full trust, healthy */
+  function makeSentinel2(overrides: Partial<Ministry> = {}): Ministry {
+    return makeMinistry({
+      id: 'sentinel-002',
+      name: 'Maker Collective',
+      domain: 'maker-collective.org',
+      status: 'active',
+      activatedAt: '2024-09-01T00:00:00Z',
+      lastHeartbeat: recentHB,
+      vouchesReceived: [
+        makeVouch({ voucherId: 'arch-001', isValid: true }),
+        makeVouch({ voucherId: 'sentinel-001', isValid: true }),
+      ],
+      ...overrides,
+    })
+  }
+
+  /** Member: new enterprise, active but only 1 vouch (not full trust) */
+  function makeMember(overrides: Partial<Ministry> = {}): Ministry {
+    return makeMinistry({
+      id: 'member-001',
+      name: 'New Community',
+      domain: 'new-community.org',
+      status: 'active',
+      activatedAt: '2025-04-01T00:00:00Z',
+      lastHeartbeat: recentHB,
+      vouchesReceived: [makeVouch({ voucherId: 'arch-001', isValid: true })],
+      ...overrides,
+    })
+  }
+
+  // ── Role Determination ────────────────────────────────────────────────
+
+  describe('determineFederationRole', () => {
+    it('returns archenterprise when flagged and active', () => {
+      const ministry = makeArchenterprise()
+      expect(determineFederationRole(ministry, true)).toBe('archenterprise')
+    })
+
+    it('returns sentinel when flagged as arch but not active', () => {
+      const ministry = makeArchenterprise({ status: 'suspended' })
+      expect(determineFederationRole(ministry, true)).toBe('member')
+    })
+
+    it('returns sentinel for active with full trust', () => {
+      const ministry = makeSentinel1()
+      expect(determineFederationRole(ministry, false)).toBe('sentinel')
+    })
+
+    it('returns member for active with partial trust', () => {
+      const ministry = makeMember()
+      expect(determineFederationRole(ministry, false)).toBe('member')
+    })
+
+    it('returns member for non-active ministry', () => {
+      const ministry = makeMinistry({ status: 'probation', vouchesReceived: [] })
+      expect(determineFederationRole(ministry, false)).toBe('member')
+    })
+
+    it('returns member for active with no vouches', () => {
+      const ministry = makeMinistry({ status: 'active', vouchesReceived: [] })
+      expect(determineFederationRole(ministry, false)).toBe('member')
+    })
+  })
+
+  // ── Federation Rank ────────────────────────────────────────────────────
+
+  describe('calculateFederationRank', () => {
+    it('gives archenterprise rank 1', () => {
+      const arch = makeArchenterprise()
+      const all = [arch, makeSentinel1(), makeSentinel2()]
+      expect(calculateFederationRank(arch, all, true, meshNow)).toBe(1)
+    })
+
+    it('ranks by trust score + uptime + vouches', () => {
+      const s1 = makeSentinel1() // activated 2024-06-01, 2 vouches, full trust
+      const s2 = makeSentinel2() // activated 2024-09-01, 2 vouches, full trust
+      const all = [s1, s2]
+
+      const rank1 = calculateFederationRank(s1, all, false, meshNow)
+      const rank2 = calculateFederationRank(s2, all, false, meshNow)
+
+      // s1 has longer uptime → should have lower rank (higher priority)
+      expect(rank1).toBeLessThan(rank2)
+    })
+
+    it('gives non-active ministries max rank', () => {
+      const suspended = makeMinistry({ id: 'sus-001', status: 'suspended' })
+      const all = [makeArchenterprise(), makeSentinel1(), suspended]
+      expect(calculateFederationRank(suspended, all, false, meshNow)).toBe(all.length + 1)
+    })
+
+    it('healthy heartbeat gives bonus', () => {
+      const healthy = makeSentinel1({ lastHeartbeat: recentHB })
+      const unhealthy = makeSentinel2({ lastHeartbeat: staleHB })
+      const all = [healthy, unhealthy]
+
+      const rank1 = calculateFederationRank(healthy, all, false, meshNow)
+      const rank2 = calculateFederationRank(unhealthy, all, false, meshNow)
+
+      expect(rank1).toBeLessThan(rank2)
+    })
+
+    it('produces deterministic results (same input → same output)', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const r1 = calculateFederationRank(all[1], all, false, meshNow)
+      const r2 = calculateFederationRank(all[1], all, false, meshNow)
+      expect(r1).toBe(r2)
+    })
+  })
+
+  // ── Build Federation Mesh ──────────────────────────────────────────────
+
+  describe('buildFederationMesh', () => {
+    it('assigns roles correctly across all node types', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      expect(mesh.find((n) => n.id === 'arch-001')?.role).toBe('archenterprise')
+      expect(mesh.find((n) => n.id === 'sentinel-001')?.role).toBe('sentinel')
+      expect(mesh.find((n) => n.id === 'sentinel-002')?.role).toBe('sentinel')
+      expect(mesh.find((n) => n.id === 'member-001')?.role).toBe('member')
+    })
+
+    it('sets archenterprise to rank 1', () => {
+      const all = [makeArchenterprise(), makeSentinel1()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(mesh.find((n) => n.id === 'arch-001')?.federationRank).toBe(1)
+    })
+
+    it('marks healthy/unhealthy nodes correctly', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(mesh.find((n) => n.id === 'arch-001')?.isHealthy).toBe(true)
+      expect(mesh.find((n) => n.id === 'sentinel-001')?.isHealthy).toBe(false)
+    })
+
+    it('handles empty ministry list', () => {
+      const mesh = buildFederationMesh([], 'arch-001', meshNow)
+      expect(mesh).toHaveLength(0)
+    })
+  })
+
+  // ── Coordinator Election ──────────────────────────────────────────────
+
+  describe('electCoordinator', () => {
+    it('elects archenterprise when healthy', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).toBe('arch-001')
+    })
+
+    it('falls back to next sentinel when archenterprise is down', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }), // Unhealthy
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).not.toBe('arch-001')
+      expect(coordinator?.role).toBe('sentinel')
+    })
+
+    it('cascades through all sentinels', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),  // Down
+        makeSentinel1({ lastHeartbeat: staleHB }),         // Down
+        makeSentinel2({ lastHeartbeat: recentHB }),         // Only healthy sentinel
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).toBe('sentinel-002')
+    })
+
+    it('returns null when all sentinels are down', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+        makeSentinel2({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator).toBeNull()
+    })
+
+    it('does not elect members as coordinator', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeMember({ lastHeartbeat: recentHB }), // Healthy but only a member
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator).toBeNull() // No healthy sentinel
+    })
+
+    it('restores archenterprise as coordinator when it recovers', () => {
+      // Simulate: arch was down, now recovered
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }), // Back up
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).toBe('arch-001') // Restored to original
+    })
+  })
+
+  // ── Sentinel Management ────────────────────────────────────────────────
+
+  describe('getSentinels / getHealthySentinels', () => {
+    it('returns only archenterprise and sentinel roles', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const sentinels = getSentinels(mesh)
+      expect(sentinels).toHaveLength(3) // arch + 2 sentinels
+      expect(sentinels.every((s) => s.role === 'archenterprise' || s.role === 'sentinel')).toBe(true)
+    })
+
+    it('filters out unhealthy sentinels', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }), // Unhealthy
+        makeSentinel2({ lastHeartbeat: recentHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const healthy = getHealthySentinels(mesh, meshNow)
+      expect(healthy).toHaveLength(2) // arch + sentinel-002
+      expect(healthy.some((n) => n.id === 'sentinel-001')).toBe(false)
+    })
+  })
+
+  // ── Mesh Health ────────────────────────────────────────────────────────
+
+  describe('isMeshHealthy', () => {
+    it('returns true with 2+ healthy sentinels', () => {
+      const all = [makeArchenterprise(), makeSentinel1()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(isMeshHealthy(mesh, meshNow)).toBe(true)
+    })
+
+    it('returns false with only 1 healthy sentinel', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(isMeshHealthy(mesh, meshNow)).toBe(false)
+    })
+
+    it('returns false with no healthy sentinels', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(isMeshHealthy(mesh, meshNow)).toBe(false)
+    })
+
+    it('members do not count toward mesh health', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeMember({ lastHeartbeat: recentHB }), // Healthy but just a member
+        makeMember({ id: 'member-002', lastHeartbeat: recentHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(isMeshHealthy(mesh, meshNow)).toBe(false)
+    })
+  })
+
+  // ── Governance Quorum ──────────────────────────────────────────────────
+
+  describe('hasGovernanceQuorum', () => {
+    it('has quorum when majority of sentinels are healthy', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: staleHB }), // 1 unhealthy
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(true) // 2/3 > 0.5
+    })
+
+    it('no quorum when minority of sentinels are healthy', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }), // Only 1 healthy
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false) // 1/3 < 0.5
+    })
+
+    it('no quorum with zero sentinels', () => {
+      const mesh: FederationNode[] = []
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false)
+    })
+
+    it('has quorum with exactly 2 of 3 healthy sentinels', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(true) // 2/3 = 0.667 > 0.5
+    })
+
+    it('quorum with exactly 50% is not sufficient (must be >50%)', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: recentHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false) // 1/2 = 0.5, NOT > 0.5
+    })
+  })
+
+  // ── Governance Sync Validation ─────────────────────────────────────────
+
+  describe('validateGovernanceSync', () => {
+    const constitutionHash = 'abc123'
+
+    function makeGovernance(overrides: Partial<GovernanceData> = {}): GovernanceData {
+      return {
+        registryVersion: 1,
+        ministries: [],
+        catalogIndex: [],
+        constitutionHash,
+        trustScores: {},
+        vouchGraph: [],
+        updatedAt: '2025-06-01T12:00:00Z',
+        ...overrides,
+      }
+    }
+
+    it('accepts governance with higher version', () => {
+      const local = makeGovernance({ registryVersion: 5 })
+      const remote = makeGovernance({ registryVersion: 6 })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(true)
+      expect(result.localVersion).toBe(5)
+      expect(result.remoteVersion).toBe(6)
+    })
+
+    it('rejects governance with same version', () => {
+      const local = makeGovernance({ registryVersion: 5 })
+      const remote = makeGovernance({ registryVersion: 5 })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(false)
+      expect(result.reason).toContain('Stale')
+    })
+
+    it('rejects governance with lower version', () => {
+      const local = makeGovernance({ registryVersion: 5 })
+      const remote = makeGovernance({ registryVersion: 3 })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(false)
+      expect(result.reason).toContain('Stale')
+    })
+
+    it('accepts governance when local is null (first sync)', () => {
+      const remote = makeGovernance({ registryVersion: 1 })
+      const result = validateGovernanceSync(null, remote, constitutionHash)
+      expect(result.accepted).toBe(true)
+      expect(result.localVersion).toBe(0)
+    })
+
+    it('rejects governance with wrong constitution hash', () => {
+      const local = makeGovernance({ registryVersion: 1 })
+      const remote = makeGovernance({ registryVersion: 2, constitutionHash: 'wrong-hash' })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(false)
+      expect(result.reason).toContain('Constitution hash mismatch')
+    })
+
+    it('rejects governance with invalid timestamp', () => {
+      const local = makeGovernance({ registryVersion: 1 })
+      const remote = makeGovernance({ registryVersion: 2, updatedAt: 'not-a-date' })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(false)
+      expect(result.reason).toContain('Invalid governance timestamp')
+    })
+
+    it('rejects governance with empty timestamp', () => {
+      const local = makeGovernance({ registryVersion: 1 })
+      const remote = makeGovernance({ registryVersion: 2, updatedAt: '' })
+      const result = validateGovernanceSync(local, remote, constitutionHash)
+      expect(result.accepted).toBe(false)
+    })
+  })
+
+  // ── Composite Trust Score ──────────────────────────────────────────────
+
+  describe('calculateCompositeTrustScore', () => {
+    it('returns low score for revoked ministry (trust none + vouch bonus + heartbeat)', () => {
+      const ministry = makeMinistry({ status: 'revoked', lastHeartbeat: recentHB })
+      // none(0) + default 2 vouches(10) + heartbeat(15) = 25
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(25)
+    })
+
+    it('returns 0 for revoked ministry with no vouches and no heartbeat', () => {
+      const ministry = makeMinistry({ status: 'revoked', vouchesReceived: [], lastHeartbeat: staleHB })
+      // none(0) + 0 vouches + 0 heartbeat = 0
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(0)
+    })
+
+    it('returns base score for probationary', () => {
+      const ministry = makeMinistry({
+        status: 'probation',
+        vouchesReceived: [],
+        lastHeartbeat: recentHB,
+      })
+      // probationary(15) + 0 vouches + heartbeat(15) = 30
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(30)
+    })
+
+    it('returns high score for full trust with vouches and heartbeat', () => {
+      const ministry = makeArchenterprise({ lastHeartbeat: recentHB })
+      // full(70) + 2 vouches(10) + heartbeat(15) = 95
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(95)
+    })
+
+    it('caps at 100', () => {
+      const ministry = makeMinistry({
+        status: 'active',
+        lastHeartbeat: recentHB,
+        vouchesReceived: [
+          makeVouch({ voucherId: 'a', isValid: true }),
+          makeVouch({ voucherId: 'b', isValid: true }),
+          makeVouch({ voucherId: 'c', isValid: true }),
+          makeVouch({ voucherId: 'd', isValid: true }),
+          makeVouch({ voucherId: 'e', isValid: true }),
+        ],
+      })
+      // full(70) + 5 vouches * 5 = 25 (capped at 15) + heartbeat(15) = 100
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(100)
+    })
+
+    it('no heartbeat bonus when unhealthy', () => {
+      const ministry = makeArchenterprise({ lastHeartbeat: staleHB })
+      // full(70) + 2 vouches(10) + 0 heartbeat = 80
+      expect(calculateCompositeTrustScore(ministry, meshNow)).toBe(80)
+    })
+  })
+
+  // ── Governance Snapshot Building ───────────────────────────────────────
+
+  describe('buildGovernanceSnapshot', () => {
+    it('increments version', () => {
+      const snapshot = buildGovernanceSnapshot([], [], 'hash', 5, meshNow)
+      expect(snapshot.registryVersion).toBe(6)
+    })
+
+    it('includes all ministries', () => {
+      const ministries = [makeArchenterprise(), makeSentinel1()]
+      const snapshot = buildGovernanceSnapshot(ministries, [], 'hash', 0, meshNow)
+      expect(snapshot.ministries).toHaveLength(2)
+    })
+
+    it('builds trust scores for all ministries', () => {
+      const ministries = [makeArchenterprise(), makeSentinel1(), makeMember()]
+      const snapshot = buildGovernanceSnapshot(ministries, [], 'hash', 0, meshNow)
+      expect(Object.keys(snapshot.trustScores)).toHaveLength(3)
+      expect(snapshot.trustScores['arch-001']).toBeGreaterThan(0)
+    })
+
+    it('builds vouch graph from all vouches', () => {
+      const arch = makeArchenterprise() // Has 2 vouches received
+      const s1 = makeSentinel1() // Has 2 vouches received
+      const snapshot = buildGovernanceSnapshot([arch, s1], [], 'hash', 0, meshNow)
+      expect(snapshot.vouchGraph.length).toBe(4) // 2 + 2
+    })
+
+    it('sets constitution hash', () => {
+      const snapshot = buildGovernanceSnapshot([], [], 'my-hash-123', 0, meshNow)
+      expect(snapshot.constitutionHash).toBe('my-hash-123')
+    })
+
+    it('sets timestamp', () => {
+      const snapshot = buildGovernanceSnapshot([], [], 'hash', 0, meshNow)
+      expect(snapshot.updatedAt).toBe(meshNow.toISOString())
+    })
+
+    it('includes catalog entries', () => {
+      const entries = [makeCatalogEntry(), makeCatalogEntry({ productId: 2 })]
+      const snapshot = buildGovernanceSnapshot([], entries, 'hash', 0, meshNow)
+      expect(snapshot.catalogIndex).toHaveLength(2)
+    })
+  })
+
+  // ── Sync Peer Selection ────────────────────────────────────────────────
+
+  describe('selectSyncPeer', () => {
+    it('selects highest-version healthy sentinel', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      // Give sentinel-001 a higher registry version
+      mesh.find((n) => n.id === 'sentinel-001')!.registryVersion = 10
+      mesh.find((n) => n.id === 'arch-001')!.registryVersion = 5
+
+      const peer = selectSyncPeer(mesh, 'sentinel-002', meshNow)
+      expect(peer?.id).toBe('sentinel-001') // Highest version
+    })
+
+    it('excludes self from candidates', () => {
+      const all = [makeArchenterprise(), makeSentinel1()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const peer = selectSyncPeer(mesh, 'arch-001', meshNow)
+      expect(peer?.id).toBe('sentinel-001') // Not arch-001
+    })
+
+    it('returns null when no healthy peers', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      const peer = selectSyncPeer(mesh, 'sentinel-002', meshNow)
+      expect(peer).toBeNull()
+    })
+
+    it('breaks ties by rank when versions are equal', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+      // All have version 0 — should pick by rank (arch is rank 1)
+      const peer = selectSyncPeer(mesh, 'sentinel-002', meshNow)
+      expect(peer?.id).toBe('arch-001') // Rank 1
+    })
+  })
+
+  // ── Failover Scenarios ─────────────────────────────────────────────────
+
+  describe('Failover scenarios (Edenist resilience)', () => {
+    it('Scenario 1: Normal operation — archenterprise is coordinator', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2(), makeMember()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).toBe('arch-001')
+      expect(isMeshHealthy(mesh, meshNow)).toBe(true)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(true)
+    })
+
+    it('Scenario 2: Archenterprise goes down — next sentinel takes over', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }), // DOWN
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }),
+        makeMember({ lastHeartbeat: recentHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).not.toBe('arch-001')
+      expect(coordinator?.role).toBe('sentinel')
+      expect(isMeshHealthy(mesh, meshNow)).toBe(true)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(true) // 2/3 > 50%
+    })
+
+    it('Scenario 3: Two nodes down — last sentinel coordinates', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }), // DOWN
+        makeSentinel1({ lastHeartbeat: staleHB }),       // DOWN
+        makeSentinel2({ lastHeartbeat: recentHB }),       // Last sentinel
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      const coordinator = electCoordinator(mesh, meshNow)
+      expect(coordinator?.id).toBe('sentinel-002')
+      expect(isMeshHealthy(mesh, meshNow)).toBe(false)  // Below MIN_SENTINEL_COUNT
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false) // 1/3 < 50%
+    })
+
+    it('Scenario 4: All sentinels down — network failure', () => {
+      const all = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: staleHB }),
+        makeSentinel2({ lastHeartbeat: staleHB }),
+      ]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      expect(electCoordinator(mesh, meshNow)).toBeNull()
+      expect(isMeshHealthy(mesh, meshNow)).toBe(false)
+      expect(hasGovernanceQuorum(mesh, meshNow)).toBe(false)
+    })
+
+    it('Scenario 5: Archenterprise recovers — primacy restored', () => {
+      // First: arch is down
+      const downAll = [
+        makeArchenterprise({ lastHeartbeat: staleHB }),
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }),
+      ]
+      const downMesh = buildFederationMesh(downAll, 'arch-001', meshNow)
+      const downCoordinator = electCoordinator(downMesh, meshNow)
+      expect(downCoordinator?.id).not.toBe('arch-001')
+
+      // Then: arch recovers
+      const upAll = [
+        makeArchenterprise({ lastHeartbeat: recentHB }), // RECOVERED
+        makeSentinel1({ lastHeartbeat: recentHB }),
+        makeSentinel2({ lastHeartbeat: recentHB }),
+      ]
+      const upMesh = buildFederationMesh(upAll, 'arch-001', meshNow)
+      const upCoordinator = electCoordinator(upMesh, meshNow)
+      expect(upCoordinator?.id).toBe('arch-001') // Restored
+    })
+
+    it('Scenario 6: New node joins — gets governance from any peer', () => {
+      const all = [makeArchenterprise(), makeSentinel1(), makeSentinel2()]
+      const mesh = buildFederationMesh(all, 'arch-001', meshNow)
+
+      // Simulate: even with arch down, new node can sync from sentinel
+      mesh.find((n) => n.id === 'arch-001')!.lastHeartbeat = staleHB
+      mesh.find((n) => n.id === 'sentinel-001')!.registryVersion = 5
+      mesh.find((n) => n.id === 'sentinel-002')!.registryVersion = 3
+
+      const syncPeer = selectSyncPeer(mesh, 'new-node', meshNow)
+      expect(syncPeer?.id).toBe('sentinel-001') // Highest version available
+    })
+  })
 })

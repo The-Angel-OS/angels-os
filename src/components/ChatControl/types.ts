@@ -74,6 +74,7 @@ export interface Applet {
 /** Registry of built-in applets. Future sprints swap placeholders for real components. */
 export const DEFAULT_APPLETS: Applet[] = [
   { id: 'chat', label: 'Chat', icon: 'MessageSquare', isDefault: true },
+  { id: 'voice', label: 'Voice', icon: 'Headphones' },
   { id: 'files', label: 'Files', icon: 'FolderOpen' },
   { id: 'tasks', label: 'Tasks', icon: 'CheckSquare' },
 ]

@@ -2,15 +2,18 @@
  * Federation Ping Endpoint — POST /api/federation/ping
  *
  * Receives a ping from an Enterprise announcing its presence to the Angel OS
- * federation network. In production this endpoint would be hosted by the
- * central Archenterprise registry and validate signatures before recording
- * the ping. In development / self-hosted mode it acts as a local registry.
+ * federation network. Any sentinel (active + full trust) can receive pings —
+ * the mesh has no single point of entry (Edenist model).
+ *
+ * In the distributed mesh, new Enterprises can ping ANY healthy sentinel.
+ * The sentinel records the ping locally and the next governance sync
+ * propagates the new member to all other sentinels.
  *
  * Request body:
  *   { enterpriseName, domain, endeavorType, publicKey, federationId?, signature }
  *
  * Response:
- *   { success, ministryStatus, federationId, registryUrl, message }
+ *   { success, ministryStatus, federationId, registryUrl, meshPeers?, message }
  *
  * Called by:
  *   - Leo wizard tool `ping_federation` (step 7)
@@ -19,6 +22,7 @@
 
 import type { PayloadHandler } from 'payload'
 import { verifySignature } from '@/federation/protocol'
+import { getCachedGovernance } from './federation-governance-sync'
 
 export const federationPingHandler: PayloadHandler = async (req) => {
   // Parse body
@@ -106,12 +110,29 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     process.env.NEXT_PUBLIC_SERVER_URL ||
     'http://localhost:3000'
 
+  // ── Mesh peer discovery ─────────────────────────────────────
+  // Provide new members with a list of known healthy sentinels so they
+  // can sync governance data from any node (Edenist resilience).
+  let meshPeers: Array<{ domain: string; name: string }> = []
+  try {
+    const governance = getCachedGovernance()
+    if (governance?.ministries) {
+      meshPeers = governance.ministries
+        .filter((m) => m.status === 'active' && m.domain)
+        .map((m) => ({ domain: m.domain, name: m.name }))
+        .slice(0, 10) // Cap at 10 peers for initial discovery
+    }
+  } catch {
+    // Non-fatal — new member can discover peers later via heartbeat
+  }
+
   return Response.json({
     success: true,
     ministryStatus: 'applicant',
     federationId: resolvedFederationId,
     registryUrl,
     signatureValid,
+    meshPeers,
     message: signatureValid
       ? `Welcome to the network, ${enterpriseName}! Your constitution signature is verified. 90-day probation begins now.`
       : `${enterpriseName} registered in the federation network. Signature verification skipped (development mode).`,

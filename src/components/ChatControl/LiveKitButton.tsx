@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { Headphones, PhoneOff, Loader2 } from 'lucide-react'
+import { Headphones, PhoneOff, Loader2, Mic, Video } from 'lucide-react'
 import { LiveKitRoom } from './LiveKitRoom'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
@@ -11,15 +11,18 @@ interface LiveKitButtonProps {
   channelSlug: string
   /** Container element reference for positioning the LiveKit room panel */
   containerRef?: React.RefObject<HTMLDivElement | null>
+  /** Embedded mode — renders as full content area applet instead of header button */
+  embedded?: boolean
 }
 
 /**
  * LiveKitButton — Join/leave voice/video for a channel.
  *
- * Clicking "Voice" fetches a LiveKit token from /api/livekit/token,
- * then renders the LiveKitRoom component in the chat area.
+ * Two modes:
+ * - **Header button** (default): Small "Voice" button in channel header, renders floating panel on join
+ * - **Embedded applet** (embedded=true): Full content area with join CTA and room display
  */
-export function LiveKitButton({ spaceId, channelSlug }: LiveKitButtonProps) {
+export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKitButtonProps) {
   const [isJoined, setIsJoined] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [roomData, setRoomData] = useState<{
@@ -68,6 +71,69 @@ export function LiveKitButton({ spaceId, channelSlug }: LiveKitButtonProps) {
     setRoomData(null)
   }, [])
 
+  // ─── Embedded mode: full content area applet ──────────────────
+  if (embedded) {
+    // Joined — show room filling the content area
+    if (isJoined && roomData) {
+      return (
+        <LiveKitRoom
+          url={roomData.url}
+          token={roomData.token}
+          roomName={roomData.roomName}
+          onLeave={handleLeave}
+          embedded
+        />
+      )
+    }
+
+    // Not joined — show join CTA
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Headphones className="size-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground">Voice Channel</h3>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Join voice to talk with other members in this channel. Camera and screen sharing available.
+          </p>
+        </div>
+
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleJoin}
+            disabled={isConnecting}
+            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isConnecting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Mic size={16} />
+            )}
+            {isConnecting ? 'Connecting...' : 'Join Voice'}
+          </button>
+          <button
+            onClick={handleJoin}
+            disabled={isConnecting}
+            className="flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <Video size={16} />
+            Join with Video
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground/60">
+          You can toggle camera and microphone after joining
+        </p>
+      </div>
+    )
+  }
+
+  // ─── Header button mode (original) ────────────────────────────
   return (
     <>
       {/* Join/Leave button */}
