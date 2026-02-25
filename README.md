@@ -96,7 +96,7 @@ Phase 1 of the [Angel Token Blockchain Economy](./docs/v2/ANGEL_TOKENS_BLOCKCHAI
 | Print-on-Demand Pipeline | **Done** | Design validation, cost estimation, vendor matching (61 tests) |
 | Guardian Angel System | **Done** | Zero-revenue angels, 8 cohorts, wellness checks (106 tests) |
 | Justice Fund Engine | **Done** | 5% allocation, grant lifecycle, impact reporting (63 tests) |
-| Federation Protocol | **Done** | Ministry lifecycle, trust chain, catalog, data portability (126 tests) |
+| Federation Protocol | **Done** | Ministry lifecycle, trust chain, catalog, data portability, Edenist mesh (188 tests) |
 | Guardian Dashboard | **Done** | Service discovery, case management, impact metrics (65 tests) |
 | Network Visualization | **Done** | Geographic clustering, directory, network stats (62 tests) |
 | Constitutional Prompt | **Done** | Immutable system prompt, anti-demonic safeguards |
@@ -140,7 +140,7 @@ Phase 1 of the [Angel Token Blockchain Economy](./docs/v2/ANGEL_TOKENS_BLOCKCHAI
 | Guardian Angel | Zero-revenue angel lifecycle, 8 cohort matching | 106 |
 | Justice Fund | 5% allocation, grant lifecycle, impact reporting | 63 |
 | Print-on-Demand | Design validation, cost estimation, print specs | 61 |
-| Federation | Ministry lifecycle, trust chain, catalog, suitcase | 126 |
+| Federation | Ministry lifecycle, trust chain, catalog, suitcase, Edenist mesh | 188 |
 | Guardian Dashboard | Service discovery, case management, impact metrics | 65 |
 | Network Visualization | Geographic clustering, filterable directory | 62 |
 | Invitation System | Token-based invitations, role assignment | 72 |
@@ -253,7 +253,7 @@ Customer places order
 
 The federation doesn't gatekeep — it **trusts first, then reinforces**. The Constitution IS the gate. Bad actors aren't screened out at entry; they're rooted out by a network that makes violations obvious and accountability inescapable.
 
-**Trust Levels** (4 — from `federationEngine.ts`, 126 tests):
+**Trust Levels** (4 — from `federationEngine.ts`, 188 tests):
 ```
 none → probationary → vouched → full
 ```
@@ -295,6 +295,47 @@ Federation services at each trust level:
   vouched       → cross-ministry payments, order routing
   full          → vouch for others, governance participation, full catalog sync
 ```
+
+### Distributed Mesh — Edenist Resilience
+
+Inspired by Peter F. Hamilton's Edenists: every fully-trusted Enterprise IS the network. No single point of failure. No hierarchy. Any healthy node can serve any federation function.
+
+```
+Federation Roles:
+  archenterprise  One founding node (spacesangels.com). Rank 1 by convention, not privilege.
+  sentinel        Any active Enterprise with full trust (2+ vouches). Replicates governance.
+  member          Active but not yet fully trusted. Participates, doesn't replicate.
+
+Governance Data (replicated across all sentinels):
+  ├── Registry        All known ministries, their status, trust levels
+  ├── Catalog Index   Cross-instance product discovery data
+  ├── Constitution    Cryptographic hash — integrity check
+  ├── Trust Scores    Composite score per ministry (trust level + uptime + vouches + heartbeat)
+  └── Vouch Graph     Who vouched for whom — reputational accountability chain
+
+How it works:
+  Normal:           spacesangels.com (rank 1) coordinates
+                    clearwater-cruisin.com (rank 2) replicates
+                    maker-collective.org (rank 3) replicates
+
+  spacesangels.com goes down:
+                    clearwater-cruisin.com (rank 2) → NEW COORDINATOR
+                    maker-collective.org (rank 3) → still replicating
+                    Network continues. No disruption.
+
+  Two nodes down:   maker-collective.org (rank 3) → LAST SENTINEL
+                    Mesh unhealthy (below minimum), but operational.
+
+  All come back:    spacesangels.com (rank 1) → COORDINATOR RESTORED
+                    Returning nodes sync governance from any available peer.
+```
+
+**Key principles:**
+- **No hierarchy** — rank is a deterministic tiebreaker (trust + uptime + vouches), not authority. All sentinels hold identical data and can serve identical functions.
+- **Coordinator is emergent** — the highest-ranked healthy sentinel coordinates. If it goes down, the next one takes over automatically. No election, no voting, no delay.
+- **Governance quorum** — changes (new members, revocations) require >50% of sentinels healthy. Prevents split-brain during network partitions.
+- **Any node can onboard** — new Enterprises can ping ANY sentinel to join. The ping is replicated to all peers during the next heartbeat cycle.
+- **188 tests** — full coverage of mesh election, failover cascading, governance sync validation, quorum rules, and 6 resilience scenarios.
 
 ### Chat Architecture
 

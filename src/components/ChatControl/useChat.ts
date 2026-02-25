@@ -221,6 +221,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       for (const att of msg.attachments as Array<Record<string, unknown>>) {
         const media = att.media as Record<string, unknown> | number | null
         if (media && typeof media === 'object') {
+          // Media relationship is fully expanded — extract URL directly
           const url = (media.url as string) || `/api/media/file/${media.filename as string}`
           if (url) {
             attachmentImages.push({
@@ -229,6 +230,13 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
               mediaId: media.id as number | undefined,
             })
           }
+        } else if (typeof media === 'number') {
+          // Fallback: media is just an ID (not expanded) — construct URL from ID
+          attachmentImages.push({
+            url: `/api/media/file/${media}`,
+            alt: (att.caption as string) || undefined,
+            mediaId: media,
+          })
         }
       }
     }
@@ -269,7 +277,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     if (!spaceId || !activeChannel || authFailedRef.current) return
     try {
       const res = await fetch(
-        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&sort=-createdAt&limit=50`,
+        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&sort=-createdAt&limit=50&depth=2`,
         { credentials: 'include' },
       )
 
@@ -320,7 +328,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       const cursor = oldestMsg.timestamp.toISOString()
 
       const res = await fetch(
-        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&where[createdAt][less_than]=${encodeURIComponent(cursor)}&sort=-createdAt&limit=30`,
+        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&where[createdAt][less_than]=${encodeURIComponent(cursor)}&sort=-createdAt&limit=30&depth=2`,
         { credentials: 'include' },
       )
 

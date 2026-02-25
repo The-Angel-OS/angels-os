@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from './types'
 import { TOOL_LABELS } from '@/constants/toolLabels'
+import { ImageLightbox } from './ImageLightbox'
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -60,32 +61,61 @@ function ToolCallIndicator({ toolCall }: { toolCall: string }) {
 // ---------------------------------------------------------------------------
 
 function MessageImages({ images }: { images: NonNullable<ChatMessage['images']> }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
   if (images.length === 0) return null
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
+
+  // Layout: single image gets more space, 2 images side-by-side, 3+ grid
+  const gridClass =
+    images.length === 1
+      ? 'grid-cols-1 max-w-sm'
+      : images.length === 2
+        ? 'grid-cols-2 max-w-lg'
+        : 'grid-cols-3 max-w-xl'
+
   return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {images.map((img, i) => (
-        <a
-          key={i}
-          href={img.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative overflow-hidden rounded-lg border border-border/50 transition-shadow hover:shadow-lg"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={img.url}
-            alt={img.alt || 'Generated image'}
-            className="h-auto max-h-64 w-auto max-w-full rounded-lg object-cover"
-            loading="lazy"
-          />
-          {img.mediaId && (
-            <span className="absolute bottom-1 right-1 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-              Media #{img.mediaId}
-            </span>
-          )}
-        </a>
-      ))}
-    </div>
+    <>
+      <div className={`mt-2 grid gap-1.5 ${gridClass}`}>
+        {images.map((img, i) => (
+          <button
+            key={`${img.url}-${i}`}
+            onClick={() => openLightbox(i)}
+            className="group relative overflow-hidden rounded-lg border border-border/50 transition-all hover:shadow-lg hover:border-primary/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.url}
+              alt={img.alt || 'Attached image'}
+              className={`w-full object-cover rounded-lg transition-transform group-hover:scale-[1.02] ${
+                images.length === 1 ? 'max-h-80' : 'h-32 sm:h-40'
+              }`}
+              loading="lazy"
+            />
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg" />
+            {/* Multiple images indicator */}
+            {images.length > 1 && i === 0 && (
+              <span className="absolute top-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                {images.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <ImageLightbox
+        images={images}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+      />
+    </>
   )
 }
 

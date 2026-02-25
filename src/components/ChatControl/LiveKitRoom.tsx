@@ -24,6 +24,8 @@ interface LiveKitRoomProps {
   onLeave: () => void
   /** Start in full-screen overlay mode */
   fullScreen?: boolean
+  /** Embedded mode — fills parent container (for applet content area) */
+  embedded?: boolean
 }
 
 /**
@@ -48,8 +50,10 @@ function ParticipantGrid() {
 /**
  * LiveKitRoom — Wraps the LiveKit React components for voice/video in a channel.
  *
- * Renders in a floating panel (default) or full-screen overlay.
- * Includes audio renderer, participant grid, and control bar.
+ * Three modes:
+ * - **Floating panel** (default): 280px panel at bottom of chat area
+ * - **Full-screen overlay**: fills entire viewport (z-100)
+ * - **Embedded** (embedded=true): fills parent container, used as channel applet
  */
 export function LiveKitRoom({
   url,
@@ -57,6 +61,7 @@ export function LiveKitRoom({
   roomName,
   onLeave,
   fullScreen: initialFullScreen = false,
+  embedded = false,
 }: LiveKitRoomProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen)
   const [isConnected, setIsConnected] = useState(false)
@@ -77,6 +82,107 @@ export function LiveKitRoom({
     return () => document.removeEventListener('keydown', handleKey)
   }, [isFullScreen])
 
+  // ─── Embedded mode: fills parent container (applet content area) ──
+  if (embedded) {
+    return (
+      <div className="flex flex-1 flex-col bg-background">
+        {/* Header bar */}
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+            <span className="text-sm font-medium text-foreground">
+              {isConnected ? roomName : 'Connecting...'}
+            </span>
+            {isConnected && (
+              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:text-green-400">
+                Connected
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsFullScreen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Full-screen"
+            >
+              <Maximize2 size={14} />
+            </button>
+            <button
+              onClick={handleDisconnect}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-500/10 dark:text-red-400 transition-colors"
+              title="Leave call"
+            >
+              <X size={14} />
+              <span>Leave</span>
+            </button>
+          </div>
+        </div>
+
+        {/* LiveKit room — fills remaining space */}
+        <LKRoom
+          serverUrl={url}
+          token={token}
+          onConnected={() => setIsConnected(true)}
+          onDisconnected={handleDisconnect}
+          data-lk-theme="default"
+          className="flex-1 overflow-hidden"
+          style={{ height: '100%' }}
+        >
+          <RoomAudioRenderer />
+          <ParticipantGrid />
+          <ControlBar
+            variation="minimal"
+            controls={{
+              camera: true,
+              microphone: true,
+              screenShare: true,
+              leave: true,
+            }}
+          />
+        </LKRoom>
+
+        {/* Full-screen overlay when toggled */}
+        {isFullScreen && (
+          <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                <span className="text-sm font-medium">{roomName}</span>
+              </div>
+              <button
+                onClick={() => setIsFullScreen(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Exit full-screen (Esc)"
+              >
+                <Minimize2 size={14} />
+              </button>
+            </div>
+            <LKRoom
+              serverUrl={url}
+              token={token}
+              data-lk-theme="default"
+              className="flex-1 overflow-hidden"
+              style={{ height: '100%' }}
+            >
+              <RoomAudioRenderer />
+              <ParticipantGrid />
+              <ControlBar
+                variation="minimal"
+                controls={{
+                  camera: true,
+                  microphone: true,
+                  screenShare: true,
+                  leave: true,
+                }}
+              />
+            </LKRoom>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ─── Floating / fullscreen mode (original) ────────────────────
   const containerClass = isFullScreen
     ? 'fixed inset-0 z-[100] flex flex-col bg-background'
     : 'absolute inset-x-0 bottom-0 z-50 flex flex-col border-t border-border bg-background'

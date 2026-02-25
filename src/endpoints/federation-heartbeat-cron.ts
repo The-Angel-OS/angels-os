@@ -19,7 +19,16 @@ import type { PayloadHandler } from 'payload'
 import { getOrCreateFederationKeyPair } from '@/federation/keyStore'
 import { getActiveConstitution } from '@/federation/constitution'
 import { sendHeartbeat, type FederationIdentity, type HeartbeatPayload } from '@/utilities/federationClient'
-import { MAX_HEARTBEAT_AGE_SECONDS } from '@/utilities/federationEngine'
+import {
+  MAX_HEARTBEAT_AGE_SECONDS,
+  buildGovernanceSnapshot,
+  buildFederationMesh,
+  getSentinels,
+  electCoordinator,
+  type Ministry,
+  type FederationCatalogEntry,
+} from '@/utilities/federationEngine'
+import { getCachedGovernance, setCachedGovernance } from './federation-governance-sync'
 
 export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
   // ── Verify cron authorization ─────────────────────────────────
@@ -194,6 +203,71 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       }
     }
 
+    // ── Governance mesh sync (Edenist replication) ───────────────
+    // Build governance snapshot if we're a sentinel/coordinator.
+    // The mesh ensures every fully-trusted node holds governance data.
+    let governanceSynced = false
+    let governanceVersion = 0
+
+    try {
+      const currentGovernance = getCachedGovernance()
+      const currentVersion = currentGovernance?.registryVersion ?? 0
+      const constitutionHash = constitution.checksum || constitution.version
+
+      // Build minimal ministry records from peer data for governance snapshot
+      // In a full implementation, this would query a FederationRegistry collection
+      const knownMinistries: Ministry[] = peerDocs.map((peer) => {
+        const peerFed = peer.federation as unknown as Record<string, unknown> | undefined
+        return {
+          id: (peerFed?.federationId as string) || String(peer.id),
+          name: String(peer.name || 'Unknown'),
+          domain: String(peerFed?.domain || peer.name || ''),
+          operator: '',
+          status: 'active' as const,
+          appliedAt: String(peer.createdAt || new Date().toISOString()),
+          vouchesReceived: [],
+          constitutionVersion: constitution.version,
+          lastHeartbeat: peerFed?.lastPingAt as string | undefined,
+          capabilities: [],
+        }
+      })
+
+      // Include ourselves
+      knownMinistries.unshift({
+        id: federationId,
+        name: identity.name,
+        domain,
+        operator: '',
+        status: 'active',
+        appliedAt: String(tenant.createdAt || new Date().toISOString()),
+        vouchesReceived: [],
+        constitutionVersion: constitution.version,
+        lastHeartbeat: now.toISOString(),
+        capabilities: ['products'],
+      })
+
+      // Build catalog entries (simplified — full implementation queries Products)
+      const catalogEntries: FederationCatalogEntry[] = []
+
+      // Build and cache governance snapshot
+      const snapshot = buildGovernanceSnapshot(
+        knownMinistries,
+        catalogEntries,
+        constitutionHash,
+        currentVersion,
+        now,
+      )
+      setCachedGovernance(snapshot)
+      governanceVersion = snapshot.registryVersion
+      governanceSynced = true
+
+      console.log(
+        `[Heartbeat Cron] Governance snapshot built: v${governanceVersion}, ${knownMinistries.length} ministries`,
+      )
+    } catch (govErr) {
+      console.warn('[Heartbeat Cron] Governance sync error:', govErr)
+    }
+
     const successful = results.filter((r) => r.success).length
 
     return Response.json({
@@ -202,6 +276,10 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       successful,
       failed: results.length - successful,
       results,
+      governance: {
+        synced: governanceSynced,
+        version: governanceVersion,
+      },
       duration: Date.now() - startTime,
     })
   } catch (err) {

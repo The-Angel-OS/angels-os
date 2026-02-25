@@ -441,6 +441,451 @@ export function generateFederationHealthReport(
 }
 
 // ---------------------------------------------------------------------------
+// Mesh Tolerance — Edenist Distributed Governance
+// ---------------------------------------------------------------------------
+//
+// Inspired by PFH's Edenists: every fully-trusted Enterprise IS the network.
+// No single point of failure. No hierarchy. Any healthy node can serve any
+// federation function. Governance data is replicated across all sentinels
+// (active + full trust). If the Archenterprise goes down, the network
+// continues — any sentinel can answer queries, accept pings, and coordinate.
+//
+// Key principles:
+//   1. Every active+full-trust Enterprise replicates governance data
+//   2. Deterministic ordering (rank) for coordination — not hierarchy
+//   3. Any healthy sentinel can serve as coordinator when needed
+//   4. Governance updates propagate via heartbeat cycle
+//   5. The network heals itself — returning nodes sync from any peer
+//
+
+/** Role in the federation mesh. */
+export type FederationRole =
+  | 'archenterprise' // Original founding node — rank 1 by convention
+  | 'sentinel'       // Active + full trust — replicates governance, can coordinate
+  | 'member'         // Active but not yet fully trusted — participates, doesn't replicate
+
+/** Extended ministry with mesh fields. */
+export interface FederationNode extends Ministry {
+  role: FederationRole
+  federationRank: number            // Deterministic ordering (1 = highest priority coordinator)
+  lastRegistrySync?: string         // When this node last synced governance data
+  registryVersion: number           // Monotonic version of governance data held
+  isHealthy: boolean                // Derived from heartbeat freshness
+}
+
+/** Replicated governance state — held by every sentinel. */
+export interface GovernanceData {
+  registryVersion: number           // Monotonic counter, incremented on every change
+  ministries: Ministry[]            // Full federation registry
+  catalogIndex: FederationCatalogEntry[] // Cross-instance product discovery
+  constitutionHash: string          // Cryptographic integrity check
+  trustScores: Record<string, number>   // Ministry ID → composite trust score
+  vouchGraph: Array<{               // Who vouched for whom — reputational chain
+    voucherId: string
+    targetId: string
+    vouchedAt: string
+    isValid: boolean
+  }>
+  updatedAt: string                 // ISO timestamp of last governance change
+}
+
+/** Result of a governance sync attempt. */
+export interface GovernanceSyncResult {
+  accepted: boolean
+  reason?: string
+  localVersion: number
+  remoteVersion: number
+}
+
+/** Minimum number of sentinels for healthy mesh (including archenterprise). */
+export const MIN_SENTINEL_COUNT = 2
+
+/** Maximum governance data age before a sentinel should re-sync (seconds). */
+export const MAX_GOVERNANCE_AGE_SECONDS = 600 // 10 minutes
+
+/** Quorum fraction for governance actions (>50% of healthy sentinels). */
+export const GOVERNANCE_QUORUM_FRACTION = 0.5
+
+// ── Mesh Functions ─────────────────────────────────────────────────────────
+
+/**
+ * Determine a ministry's role in the federation mesh.
+ *
+ * - archenterprise: explicitly flagged (only one per federation, rank 1)
+ * - sentinel: active status + full trust (2+ valid vouches)
+ * - member: active but not yet fully trusted
+ *
+ * Non-active ministries (applicant, probation, suspended, revoked) have no
+ * mesh role — they don't participate in governance.
+ */
+export function determineFederationRole(
+  ministry: Ministry,
+  isArchenterprise: boolean = false,
+): FederationRole {
+  if (isArchenterprise && ministry.status === 'active') return 'archenterprise'
+
+  if (ministry.status !== 'active') return 'member'
+
+  const trust = calculateTrustLevel(ministry)
+  if (trust === 'full') return 'sentinel'
+
+  return 'member'
+}
+
+/**
+ * Calculate a ministry's federation rank — deterministic ordering for
+ * coordinator selection. Lower rank = higher priority.
+ *
+ * Rank factors (weighted):
+ *   - Archenterprise flag: always rank 1
+ *   - Trust level: full=100, vouched=50, probationary=10
+ *   - Uptime: days since activation (capped at 365)
+ *   - Vouch count: more diverse vouches = higher rank
+ *   - Heartbeat reliability: healthy = +50
+ *
+ * This is NOT a hierarchy — it's a deterministic tiebreaker so all nodes
+ * independently arrive at the same coordinator choice.
+ */
+export function calculateFederationRank(
+  ministry: Ministry,
+  allMinistries: Ministry[],
+  isArchenterprise: boolean = false,
+  currentDate: Date = new Date(),
+): number {
+  // Archenterprise always rank 1 (by convention, not privilege)
+  if (isArchenterprise && ministry.status === 'active') return 1
+
+  // Non-active ministries get max rank (lowest priority)
+  if (ministry.status !== 'active') return allMinistries.length + 1
+
+  // Score all active ministries, sort by score descending, assign ranks
+  const scored = allMinistries
+    .filter((m) => m.status === 'active')
+    .map((m) => {
+      const trustScore = { full: 100, vouched: 50, probationary: 10, none: 0 }[
+        calculateTrustLevel(m)
+      ]
+      const uptimeDays = m.activatedAt
+        ? Math.floor(
+            (currentDate.getTime() - new Date(m.activatedAt).getTime()) /
+              (24 * 60 * 60 * 1000),
+          )
+        : 0
+      const vouchCount = m.vouchesReceived.filter((v) => v.isValid).length
+      const heartbeatBonus = isHeartbeatHealthy(m.lastHeartbeat, currentDate) ? 50 : 0
+
+      const score =
+        trustScore +
+        Math.min(uptimeDays, 365) +
+        vouchCount * 25 +
+        heartbeatBonus
+
+      return { id: m.id, score }
+    })
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)) // Deterministic tiebreak
+
+  const idx = scored.findIndex((s) => s.id === ministry.id)
+  // +2 because rank 1 is reserved for archenterprise
+  return idx >= 0 ? idx + 2 : allMinistries.length + 1
+}
+
+/**
+ * Build the full mesh — convert ministries to FederationNodes with roles and ranks.
+ */
+export function buildFederationMesh(
+  ministries: Ministry[],
+  archentepriseId: string,
+  currentDate: Date = new Date(),
+): FederationNode[] {
+  return ministries.map((m) => {
+    const isArch = m.id === archentepriseId
+    const role = determineFederationRole(m, isArch)
+    const rank = calculateFederationRank(m, ministries, isArch, currentDate)
+    const healthy = isHeartbeatHealthy(m.lastHeartbeat, currentDate)
+
+    return {
+      ...m,
+      role,
+      federationRank: rank,
+      registryVersion: 0,
+      isHealthy: healthy,
+    }
+  })
+}
+
+/**
+ * Elect a coordinator from the mesh — the highest-ranked healthy sentinel.
+ *
+ * This is NOT a "leader" — it's a coordinator for operations that need a
+ * single point of contact (e.g., accepting new members). Any sentinel can
+ * serve this role. If the current coordinator goes down, the next sentinel
+ * in rank order takes over automatically.
+ *
+ * Edenist principle: the coordinator is emergent, not appointed.
+ */
+export function electCoordinator(
+  nodes: FederationNode[],
+  currentDate: Date = new Date(),
+): FederationNode | null {
+  const healthySentinels = nodes
+    .filter(
+      (n) =>
+        (n.role === 'archenterprise' || n.role === 'sentinel') &&
+        n.status === 'active' &&
+        isHeartbeatHealthy(n.lastHeartbeat, currentDate),
+    )
+    .sort((a, b) => a.federationRank - b.federationRank)
+
+  return healthySentinels[0] ?? null
+}
+
+/**
+ * Get all sentinels (nodes eligible for governance replication).
+ * Includes archenterprise + all active nodes with full trust.
+ */
+export function getSentinels(nodes: FederationNode[]): FederationNode[] {
+  return nodes.filter(
+    (n) => n.role === 'archenterprise' || n.role === 'sentinel',
+  )
+}
+
+/**
+ * Get healthy sentinels — nodes that can currently serve governance queries.
+ */
+export function getHealthySentinels(
+  nodes: FederationNode[],
+  currentDate: Date = new Date(),
+): FederationNode[] {
+  return getSentinels(nodes).filter((n) =>
+    isHeartbeatHealthy(n.lastHeartbeat, currentDate),
+  )
+}
+
+/**
+ * Check if the mesh has sufficient redundancy.
+ * Returns true if at least MIN_SENTINEL_COUNT healthy sentinels exist.
+ */
+export function isMeshHealthy(
+  nodes: FederationNode[],
+  currentDate: Date = new Date(),
+): boolean {
+  return getHealthySentinels(nodes, currentDate).length >= MIN_SENTINEL_COUNT
+}
+
+/**
+ * Check if a governance quorum exists — enough healthy sentinels to
+ * authorize governance changes (new member acceptance, revocation, etc.).
+ */
+export function hasGovernanceQuorum(
+  nodes: FederationNode[],
+  currentDate: Date = new Date(),
+): boolean {
+  const totalSentinels = getSentinels(nodes).length
+  if (totalSentinels === 0) return false
+
+  const healthyCount = getHealthySentinels(nodes, currentDate).length
+  return healthyCount / totalSentinels > GOVERNANCE_QUORUM_FRACTION
+}
+
+/**
+ * Validate incoming governance data for acceptance.
+ *
+ * Rules:
+ *   1. Remote version must be higher than local version (monotonic)
+ *   2. Constitution hash must match (same constitutional foundation)
+ *   3. Data must have a valid timestamp
+ */
+export function validateGovernanceSync(
+  local: GovernanceData | null,
+  remote: GovernanceData,
+  expectedConstitutionHash: string,
+): GovernanceSyncResult {
+  const localVersion = local?.registryVersion ?? 0
+  const remoteVersion = remote.registryVersion
+
+  // Version must advance monotonically
+  if (remoteVersion <= localVersion) {
+    return {
+      accepted: false,
+      reason: `Stale governance data: remote v${remoteVersion} <= local v${localVersion}`,
+      localVersion,
+      remoteVersion,
+    }
+  }
+
+  // Constitutional foundation must match — non-negotiable
+  if (remote.constitutionHash !== expectedConstitutionHash) {
+    return {
+      accepted: false,
+      reason: `Constitution hash mismatch: expected ${expectedConstitutionHash}, got ${remote.constitutionHash}`,
+      localVersion,
+      remoteVersion,
+    }
+  }
+
+  // Must have a valid timestamp
+  if (!remote.updatedAt || isNaN(new Date(remote.updatedAt).getTime())) {
+    return {
+      accepted: false,
+      reason: 'Invalid governance timestamp',
+      localVersion,
+      remoteVersion,
+    }
+  }
+
+  return {
+    accepted: true,
+    localVersion,
+    remoteVersion,
+  }
+}
+
+/**
+ * Calculate a composite trust score for a ministry (0-100).
+ * Used in governance data's trustScores map.
+ *
+ * Factors:
+ *   - Trust level: none=0, probationary=15, vouched=40, full=70
+ *   - Vouch count bonus: +5 per valid vouch (max 15)
+ *   - Heartbeat health: +15 if healthy
+ *
+ * This score feeds into federation rank calculations and governance
+ * weighting. It's replicated across the mesh so all nodes agree.
+ */
+export function calculateCompositeTrustScore(
+  ministry: Ministry,
+  currentDate: Date = new Date(),
+): number {
+  const trustBase = {
+    none: 0,
+    probationary: 15,
+    vouched: 40,
+    full: 70,
+  }[calculateTrustLevel(ministry)]
+
+  const validVouches = ministry.vouchesReceived.filter((v) => v.isValid).length
+  const vouchBonus = Math.min(validVouches * 5, 15)
+
+  const heartbeatBonus = isHeartbeatHealthy(ministry.lastHeartbeat, currentDate)
+    ? 15
+    : 0
+
+  return Math.min(100, trustBase + vouchBonus + heartbeatBonus)
+}
+
+/**
+ * Build a governance data snapshot from current federation state.
+ *
+ * Called by the coordinator (or any sentinel) when governance changes occur.
+ * The snapshot is then propagated to all sentinels during heartbeat cycles.
+ */
+export function buildGovernanceSnapshot(
+  ministries: Ministry[],
+  catalogEntries: FederationCatalogEntry[],
+  constitutionHash: string,
+  currentVersion: number,
+  currentDate: Date = new Date(),
+): GovernanceData {
+  // Build trust scores map
+  const trustScores: Record<string, number> = {}
+  for (const m of ministries) {
+    trustScores[m.id] = calculateCompositeTrustScore(m, currentDate)
+  }
+
+  // Build vouch graph from all ministries
+  const vouchGraph: GovernanceData['vouchGraph'] = []
+  for (const m of ministries) {
+    for (const v of m.vouchesReceived) {
+      vouchGraph.push({
+        voucherId: v.voucherId,
+        targetId: m.id,
+        vouchedAt: v.vouchedAt,
+        isValid: v.isValid,
+      })
+    }
+  }
+
+  return {
+    registryVersion: currentVersion + 1,
+    ministries,
+    catalogIndex: catalogEntries,
+    constitutionHash,
+    trustScores,
+    vouchGraph,
+    updatedAt: currentDate.toISOString(),
+  }
+}
+
+/**
+ * Select the best peer to sync governance data from.
+ *
+ * Prefers: highest-ranked healthy sentinel with the newest registryVersion.
+ * Any sentinel can serve as sync source — no dependency on a single node.
+ */
+export function selectSyncPeer(
+  nodes: FederationNode[],
+  excludeId: string,
+  currentDate: Date = new Date(),
+): FederationNode | null {
+  const candidates = getHealthySentinels(nodes, currentDate)
+    .filter((n) => n.id !== excludeId)
+    .sort((a, b) => {
+      // Prefer higher registry version, then lower rank
+      if (b.registryVersion !== a.registryVersion) {
+        return b.registryVersion - a.registryVersion
+      }
+      return a.federationRank - b.federationRank
+    })
+
+  return candidates[0] ?? null
+}
+
+/**
+ * Generate a mesh health report — extends the basic health report with
+ * mesh-specific metrics.
+ */
+export interface MeshHealthReport extends FederationHealthReport {
+  totalSentinels: number
+  healthySentinels: number
+  coordinatorId: string | null
+  coordinatorDomain: string | null
+  meshHealthy: boolean
+  hasQuorum: boolean
+  governanceVersion: number
+}
+
+export function generateMeshHealthReport(
+  nodes: FederationNode[],
+  catalogEntries: FederationCatalogEntry[],
+  crossMinistryOrders: number,
+  governanceVersion: number,
+  currentDate: Date = new Date(),
+): MeshHealthReport {
+  // Get base health report from underlying ministries
+  const baseReport = generateFederationHealthReport(
+    nodes,
+    catalogEntries,
+    crossMinistryOrders,
+    currentDate,
+  )
+
+  const sentinels = getSentinels(nodes)
+  const healthySentinelNodes = getHealthySentinels(nodes, currentDate)
+  const coordinator = electCoordinator(nodes, currentDate)
+
+  return {
+    ...baseReport,
+    totalSentinels: sentinels.length,
+    healthySentinels: healthySentinelNodes.length,
+    coordinatorId: coordinator?.id ?? null,
+    coordinatorDomain: coordinator?.domain ?? null,
+    meshHealthy: isMeshHealthy(nodes, currentDate),
+    hasQuorum: hasGovernanceQuorum(nodes, currentDate),
+    governanceVersion,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Serialization
 // ---------------------------------------------------------------------------
 
