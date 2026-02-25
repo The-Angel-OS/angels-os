@@ -82,6 +82,33 @@ export const Endeavors: CollectionConfig = {
         description: 'The primary operational model of this Enterprise',
       },
     },
+    // ── Holon Types (Sprint 20) ────────────────────────────────────
+    {
+      name: 'holonTypes',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { label: 'Manufacturer', value: 'manufacturer' },
+        { label: 'Retailer', value: 'retailer' },
+        { label: 'Creator', value: 'creator' },
+        { label: 'Community', value: 'community' },
+        { label: 'Guardian Angel', value: 'guardian-angel' },
+      ],
+      admin: {
+        description:
+          'Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.',
+      },
+    },
+    {
+      name: 'missionStatement',
+      type: 'textarea',
+      admin: {
+        description: 'What does this Diocese serve? Set during Leo Wizard step 5.',
+        rows: 3,
+        placeholder: 'e.g., "Connecting Gulf Coast creators with the world"',
+      },
+    },
+
     {
       name: 'status',
       type: 'select',

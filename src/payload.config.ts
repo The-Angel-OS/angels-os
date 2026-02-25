@@ -58,6 +58,7 @@ import { Contacts } from '@/collections/Contacts'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
 import { MediaMeta } from '@/collections/MediaMeta'
+import { StreetSigns } from '@/collections/StreetSigns'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -100,6 +101,8 @@ import { federationGovernanceSyncHandler } from '@/endpoints/federation-governan
 import { mediaAnalyzeHandler } from '@/endpoints/media-analyze'
 import { vapiWebhookHandler } from '@/endpoints/vapi-webhook'
 import { vapiSetupHandler } from '@/endpoints/vapi-setup'
+import { federationElectionHandler } from '@/endpoints/federation-election'
+import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -156,6 +159,7 @@ export default buildConfig({
     FederationAuditLog,
     AgentTransactions,
     MediaMeta,
+    StreetSigns,
   ],
   db: postgresAdapter({
     pool: {
@@ -203,6 +207,9 @@ export default buildConfig({
         footer: {},
         // Sprint 18B: Knowledge extraction (not in generated types yet)
         ...({ 'media-meta': {} } as Record<string, object>),
+        // Sprint 20: Federation — constitutional identity + marketplace discovery
+        ...({ endeavors: {} } as Record<string, object>),
+        ...({ 'street-signs': {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
@@ -606,6 +613,27 @@ export default buildConfig({
       path: '/media/analyze',
       method: 'post',
       handler: mediaAnalyzeHandler,
+    },
+    // ─── Federation Sprint 20: Election, Suitcase, Street Signs ─────
+    {
+      path: '/federation/election',
+      method: 'post',
+      handler: federationElectionHandler,
+    },
+    {
+      path: '/federation/election',
+      method: 'get',
+      handler: federationElectionHandler,
+    },
+    {
+      path: '/federation/suitcase/export',
+      method: 'post',
+      handler: federationSuitcaseExportHandler,
+    },
+    {
+      path: '/federation/suitcase/import',
+      method: 'post',
+      handler: federationSuitcaseImportHandler,
     },
   ],
   globals: [],
