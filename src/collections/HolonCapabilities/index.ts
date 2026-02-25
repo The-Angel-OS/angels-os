@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { afterHolonChange } from './hooks'
 
 /**
  * HolonCapabilities — Constitutional manufacturing network node registration.
@@ -9,10 +10,17 @@ import type { CollectionConfig } from 'payload'
  *
  * Node types: assembly, print, service, product, digital, fulfillment.
  *
+ * When a new Holon registers (or starts accepting orders), the afterChange
+ * hook automatically checks the Angel Token queue and matches waiting orders.
+ *
  * @see docs/planning/PHASE_4_PLAN.md — Holon architecture details
+ * @see src/collections/HolonCapabilities/hooks.ts — auto-match hook
  */
 export const HolonCapabilities: CollectionConfig = {
   slug: 'holon-capabilities',
+  hooks: {
+    afterChange: [afterHolonChange],
+  },
   admin: {
     group: 'Angel OS',
     useAsTitle: 'nodeType',

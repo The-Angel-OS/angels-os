@@ -76,6 +76,10 @@ import { orderAcceptHandler } from '@/endpoints/order-accept'
 import { orderFulfillHandler } from '@/endpoints/order-fulfill'
 import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
+import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
+import { orderClaimHandler } from '@/endpoints/order-claim'
+import { orderCancelHandler } from '@/endpoints/order-cancel'
+import { makerOpportunitiesHandler } from '@/endpoints/maker-opportunities'
 import { stripeConnectOnboardHandler } from '@/endpoints/stripe-connect-onboard'
 import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callback'
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
@@ -458,6 +462,27 @@ export default buildConfig({
       path: '/orders/vendor',
       method: 'get',
       handler: ordersVendorHandler,
+    },
+    // ─── Angel Token & Maker Queue Endpoints ──────────────────────
+    {
+      path: '/orders/claimable',
+      method: 'get',
+      handler: ordersClaimableHandler,
+    },
+    {
+      path: '/orders/claim',
+      method: 'post',
+      handler: orderClaimHandler,
+    },
+    {
+      path: '/orders/cancel',
+      method: 'post',
+      handler: orderCancelHandler,
+    },
+    {
+      path: '/maker-opportunities',
+      method: 'get',
+      handler: makerOpportunitiesHandler,
     },
     // ─── Stripe Connect Endpoints (Sprint 6) ─────────────────────
     {

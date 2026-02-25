@@ -4,9 +4,13 @@
  * Triggers the routing engine to find and assign the best vendor
  * for an order (or a specific item within an order).
  *
+ * When no matching Holon exists, issues an Angel Token — a paid
+ * claim on future production that queues until a maker joins.
+ *
  * Auth: order owner or admin.
  *
  * @see src/utilities/orderRoutingEngine.ts — matching engine
+ * @see src/utilities/angelTokens.ts — token lifecycle
  */
 import type { PayloadHandler } from 'payload'
 import {
@@ -14,6 +18,7 @@ import {
   type HolonNode,
   type OrderRequirement,
 } from '@/utilities/orderRoutingEngine'
+import { createAngelTokenEntry } from '@/utilities/angelTokens'
 
 export const orderRouteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -118,14 +123,16 @@ export const orderRouteHandler: PayloadHandler = async (req) => {
 
   // Auto-route: find matching holons via the routing engine
   try {
-    // Gather required skills from products
+    // Gather required skills, equipment, and materials from products
     const skills: string[] = []
     const materials: string[] = []
+    const equipment: string[] = []
     for (const item of targetItems) {
       const product = item.product as Record<string, unknown> | undefined
       if (product?.requiredCapabilities && Array.isArray(product.requiredCapabilities)) {
         for (const cap of product.requiredCapabilities as any[]) {
           if (cap.skill) skills.push(cap.skill)
+          if (cap.equipment) equipment.push(cap.equipment)
           if (cap.materials && Array.isArray(cap.materials)) {
             materials.push(...cap.materials)
           }
@@ -133,11 +140,9 @@ export const orderRouteHandler: PayloadHandler = async (req) => {
       }
     }
 
-    if (skills.length === 0) {
-      return Response.json({
-        error: 'No required capabilities found on order items. Add requiredCapabilities to products.',
-      }, { status: 400 })
-    }
+    // Products without requiredCapabilities can still queue — they just need
+    // general manufacturing or self-fulfillment capability
+    const effectiveSkills = skills.length > 0 ? skills : ['general-manufacturing']
 
     // Get buyer location (from order or fallback)
     const buyerLocation = { lat: 27.9659, lng: -82.8001 } // Default Clearwater FL
@@ -176,22 +181,61 @@ export const orderRouteHandler: PayloadHandler = async (req) => {
     }))
 
     const requirement: OrderRequirement = {
-      skills,
+      skills: effectiveSkills,
       materials: materials.length > 0 ? materials : undefined,
+      equipment: equipment.length > 0 ? equipment : undefined,
       buyerLocation,
     }
 
     const matches = findMatchingHolons(requirement, holons, { maxResults: 5 })
 
+    // ─── No matches? Issue Angel Tokens — queue for future fulfillment ───
     if (matches.length === 0) {
+      const fulfillment = ((order.fulfillment as any[]) || []).slice()
+      const angelTokenIds: string[] = []
+
+      for (const item of targetItems) {
+        const idx = items.indexOf(item)
+        const existing = fulfillment.findIndex((f: any) => f.orderItemIndex === idx)
+
+        // Extract configuration from order item if available
+        const selectedConfiguration = (item as any).selectedConfiguration ||
+          (item as any).variant || undefined
+
+        const tokenEntry = createAngelTokenEntry({
+          orderItemIndex: idx,
+          requiredSkills: skills,
+          selectedConfiguration,
+        })
+
+        angelTokenIds.push(tokenEntry.angelTokenId)
+
+        if (existing >= 0) {
+          fulfillment[existing] = { ...fulfillment[existing], ...tokenEntry }
+        } else {
+          fulfillment.push(tokenEntry)
+        }
+      }
+
+      await payload.update({
+        collection: 'orders' as any,
+        id: orderId as number,
+        data: { fulfillment } as any,
+        overrideAccess: true,
+      })
+
+      const skillList = skills.length > 0 ? skills.join(', ') : 'general manufacturing'
+
       return Response.json({
-        success: false,
-        message: 'No matching vendors found in the network.',
-        matches: [],
+        success: true,
+        queued: true,
+        message: `Order queued as Angel Token(s). Waiting for a maker with: ${skillList}. You'll be notified when one joins.`,
+        angelTokenIds,
+        queueReason: `Waiting for a maker with: ${skillList}`,
       })
     }
 
-    // Assign best match
+    // ─── Match found — assign best vendor ────────────────────────────
     const best = matches[0]
     const fulfillment = ((order.fulfillment as any[]) || []).slice()
     for (const item of targetItems) {

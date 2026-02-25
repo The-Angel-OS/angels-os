@@ -301,12 +301,19 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
           name: 'skill',
           type: 'text',
           required: true,
-          admin: { description: 'e.g. "screen-printing", "embroidery"' },
+          admin: { description: 'e.g. "screen-printing", "CNC-milling", "embroidery"' },
+        },
+        {
+          name: 'equipment',
+          type: 'text',
+          admin: {
+            description: 'Preferred equipment type (e.g. "CNC router", "Homag Centateq P-110", "UV printer"). Optional — used for bonus matching, not hard requirement.',
+          },
         },
         {
           name: 'materials',
           type: 'json',
-          admin: { description: 'Required materials, e.g. ["cotton", "polyester"]' },
+          admin: { description: 'Required materials, e.g. ["cotton", "polyester", "Baltic birch plywood"]' },
         },
       ],
     },
