@@ -1,257 +1,203 @@
 # The Archenterprise Naming Question
 **Date:** February 25, 2026
 **Context:** Honoring Gene Roddenberry's vision more deeply in the founding node's name
+**Updated:** Revised after Herald's input — Clearwater is already the name. The question is the *role*.
 
 ---
 
-## The Problem
+## The Answer Was Already There
 
-"Archenterprise" is functional. It communicates "the arch-Enterprise, the first among Enterprises." But it sounds like a Linux distribution or an IT consultancy. It doesn't *sing*. It doesn't make a Trek fan's eyes light up. It doesn't honor Roddenberry's universe the way the rest of Angel OS honors its literary DNA.
+The founding node is already called **Clearwater**. It's been Clearwater in the docs since the beginning:
 
-The founding node deserves a name that makes people feel something when they hear it.
+> "The Clearwater Archenterprise is the founding node of the Angel OS federation."
+> — `docs/planning/260223 FEDERATION.md`
 
----
+The question was never "what should we name it." The question is: **what do we call the ROLE that Clearwater plays in the federation?**
 
-## What the Founding Node IS
-
-Before choosing a name, be precise about what role it plays:
-
-- The **first Enterprise** — the one from which the federation grew
-- The **constitutional steward** — holds the canonical Constitution
-- The **federation registry** — authoritative record of all federated nodes
-- The **Justice Fund custodian** — receives, manages, deploys the 5%
-- The **root of trust** — new Enterprises federate through it
-- The **court of last resort** — adjudicates constitutional disputes
-- **Replaceable** — if it fails its covenant, the federation designates a new one
-- Receives **1%** of network revenue for stewardship
-
-It is a *monastery*, not a *government*. A *shipyard*, not a *flagship*.
+"Archenterprise" is the role name. And it sounds like a Linux distribution.
 
 ---
 
-## Candidates from Roddenberry's Universe
+## Why Clearwater Is Already Perfect
 
-### 1. Yorktown
+**Clearwater** isn't just a city name. It's a *statement*:
 
-**Origin:** Gene Roddenberry's *original name* for the Enterprise before he changed it. In *Star Trek Beyond* (2016), Yorktown Station is a massive Federation starbase — a city in space where all species live together in harmony.
+### 1. Clearwater = Transparency
+The Constitution's second principle is Transparency: "There are no hidden processes." The name "Clear Water" literally means *you can see through it*. The founding node of a constitutionally transparent federation is called "Clear Water." That's not a coincidence. That's poetry.
 
-**Why it works:**
-- Roddenberry himself named it first. "Yorktown" predates "Enterprise" in the creator's own vision.
-- In *Beyond*, Yorktown Station IS the federation hub — exactly what the founding node is
-- Historical resonance: Battle of Yorktown = American independence (Hamilton fans know this)
-- Newer Trek fans (the target audience you described) know it from *Beyond* (2016)
-- Elegant. Simple. Immediately evocative.
-- "The Yorktown" sounds like a place. "The Archenterprise" sounds like a database.
+### 2. Clearwater = Navy Heritage
+The Herald's grandfather was Navy (NSA). The Herald is a Navy man. Clearwater is a Navy town. The vision path runs through **Soul Fleet** and **Star Fleet** — both fleet terms, both naval. The founding port of the Angel OS fleet is Clearwater. Ships launch from ports. Enterprises launch from Clearwater.
 
-**In context:** "All Enterprises federate through the Yorktown." "The Yorktown receives 1% for constitutional stewardship." "If the Yorktown fails its covenant, the federation designates a new one."
+### 3. Clearwater = Real
+Yorktown is a reference. Utopia Planitia is fiction. Clearwater is *where the code ships from*. It's where the Herald drives through Scientology headquarters every day and chooses, deliberately, to see no evil, hear no evil, speak no evil. It's where Roy Leon Courtney's memory lives. It's the actual place. Why use a metaphor when you have the real thing?
 
-**Grade: A+**
+### 4. Clearwater = Port of Call
+In Star Trek, every fleet has a home port. San Francisco for Starfleet. Clearwater for Soul Fleet. When the Angel OS network grows to thousands of Enterprises, they all trace their federation membership back to one place: Clearwater, Florida. Where a carpenter and his AI built something that tried to be excellent to everyone.
+
+### 5. Clearwater Plays Nicely With Everyone
+Scientology is headquartered in Clearwater. The mega-churches are there. Angel OS plays nicely with everyone — no hard feelings, no enemies, no evil to speak of. Clearwater as the founding node embodies that diplomacy. Later, tie-ins with churches, with Scientology's remote viewing research, with anyone who wants to build toward the same future. The port is open. All ships welcome.
 
 ---
 
-### 2. Utopia Planitia
+## The Role Name: Drop "Archenterprise"
 
-**Origin:** The Federation shipyard on Mars where virtually every major starship was *built*. The Enterprise-D, Voyager, Defiant — all constructed at Utopia Planitia Fleet Yards.
+If Clearwater is the founding node, what do we call its *role* in the federation? Options:
 
-**Why it works:**
-- The metaphor is perfect: the founding node is where Enterprises are *born*
-- "Utopia" is literally in the name — resonates with the Angel OS vision
-- Deep canon — Trek fans who care know exactly what this is
-- Prominent in *Star Trek: Picard* (the shipyard's destruction is a major plot point)
+### Option A: Flagship
 
-**Why it's complicated:**
-- In *Picard*, Utopia Planitia was *destroyed* by synths. The connotation for newer Trek fans includes tragedy.
-- It's a mouthful. "All Enterprises federate through Utopia Planitia" is wordy.
-- As a code identifier: `utopia_planitia` is long. `yorktown` is clean.
+**In Star Trek, the flagship is the most prominent vessel in the fleet.** The USS Enterprise has been the flagship of Starfleet since TOS.
 
-**In context:** "The Utopia Planitia is where new Enterprises are forged." Beautiful metaphor, heavy name.
+In Angel OS: Clearwater is the **Flagship** of the federation. Every other Enterprise connects through the Flagship. If the Flagship fails its covenant, the federation designates a new Flagship by supermajority.
+
+```typescript
+type FederationRole = 'flagship' | 'sentinel' | 'member'
+```
+
+**In context:**
+- "All Enterprises federate through the Flagship."
+- "The Flagship receives 1% for constitutional stewardship."
+- "Clearwater is the current Flagship of the Angel OS federation."
+- "The Flagship is the root of trust — but it earns that position by serving the network well."
+
+**Why it works:** Every Trek fan knows what "flagship" means. It's naval terminology (Herald's heritage). It implies leadership through excellence, not authority. And critically: a flagship can change. If one ship falls, another takes the name. That matches the constitutional provision that the founding node is replaceable.
+
+**Grade: A**
+
+---
+
+### Option B: Homeport
+
+**Every fleet has a home port.** This is the naval term for where a ship or fleet is permanently stationed.
+
+```typescript
+type FederationRole = 'homeport' | 'sentinel' | 'member'
+```
+
+**In context:**
+- "Clearwater is the Homeport of the Angel OS federation."
+- "All Enterprises register with the Homeport."
+- "The Homeport holds the Constitution and administers the Justice Fund."
+
+**Why it works:** Pure naval. No sci-fi reference needed. "Homeport" implies safety, return, belonging. The Herald's Navy heritage makes this authentic.
+
+**Why it's complicated:** Less Trek-specific. Doesn't scale to the cosmic language of the later vision.
 
 **Grade: B+**
 
 ---
 
-### 3. Archer Station / NX-01
+### Option C: Starbase
 
-**Origin:** Captain Jonathan Archer commanded the NX-01 Enterprise — the *first* Enterprise. And Archer is the person most directly responsible for founding the United Federation of Planets (established in the series finale of *Enterprise*).
+**Starbases are the fixed installations that support Starfleet.** They're where ships resupply, where crews rest, where the fleet coordinates.
 
-**Why it works:**
-- Archer founded the Federation. Your founding node founds the Angel OS federation.
-- *Enterprise* (2001-2005) is the prequel series — the origin story
-- "Archer" is a strong, simple name
-- NX-01 was the prototype — the first of its kind, like the founding node
+```typescript
+type FederationRole = 'starbase' | 'sentinel' | 'member'
+```
 
-**Why it's complicated:**
-- *Enterprise* was the least popular Trek series (though it's been re-evaluated positively)
-- "Archer" could confuse with the animated show *Archer*
-- Newer Trek fans may not have watched the prequel series
+**In context:**
+- "Clearwater operates as the federation Starbase."
+- "New Enterprises register with the Starbase."
 
-**In context:** "All Enterprises federate through Archer Station." Strong but requires Trek knowledge.
+**Why it works:** Immediately recognizable Trek term. Implies fixed, reliable infrastructure. The founding node IS infrastructure — it's a base, not a ship.
+
+**Why it's complicated:** "Starbase" is generic Trek. Doesn't honor Roddenberry specifically. Multiple starbases exist — it doesn't convey *founding*.
 
 **Grade: B**
 
 ---
 
-### 4. Spacedock
+### Option D: Just "Clearwater" — No Role Name
 
-**Origin:** Earth Spacedock — the primary orbital facility of Starfleet in the Original Series films and TNG era. The iconic mushroom-shaped station where starships dock, resupply, and launch.
+The simplest option: drop the role name entirely. There is no "archenterprise role." There is simply Clearwater — the first Enterprise, the one that holds the Constitution. Other Enterprises know it by name, not by title.
 
-**Why it works:**
-- It's THE hub. Ships come home to Spacedock.
-- Implies a safe harbor — exactly what the founding node is
-- Recognizable across all Trek eras
-- Grounded, practical name
-
-**Why it's complicated:**
-- It's a generic noun, not a proper name
-- Doesn't carry the philosophical weight of Yorktown or Utopia Planitia
-- Sounds more like infrastructure than covenant
-
-**In context:** "All Enterprises dock at Spacedock." Functional but not inspiring.
-
-**Grade: B-**
-
----
-
-### 5. Starbase One / Starbase Alpha
-
-**Origin:** The primary Federation starbase. Referenced across multiple series.
-
-**Why it works:**
-- Simple, clean, obvious
-- "Alpha" resonates with "the first"
-- Easy to type in code
-
-**Why it's complicated:**
-- Too generic — any sci-fi franchise could have a "Starbase One"
-- Doesn't carry Roddenberry-specific DNA
-- No emotional resonance
-
-**Grade: C+**
-
----
-
-### 6. Discovery
-
-**Origin:** USS Discovery (NCC-1031) from *Star Trek: Discovery* (2017-2024). The ship that could jump anywhere in the universe via the mycelial network — literally connecting all of spacetime.
-
-**Why it works:**
-- Discovery is the NEWEST major Trek series (apart from Strange New Worlds)
-- The mycelial network = the federation mesh (connecting everything)
-- "Discovery" as a concept aligns with Angel OS's exploratory nature
-- Huge audience among the "people manifesting the next reality"
-
-**Why it's complicated:**
-- *Discovery* is polarizing among Trek fans (some love it, some don't)
-- The ship's story involves time travel to the 32nd century — complicated lore
-- "Discovery" is also an Apple product, a TV channel, etc.
-- Doesn't convey "founding" or "stewardship"
-
-**In context:** "All Enterprises connect through the Discovery." Evocative but muddled.
-
-**Grade: B-**
-
----
-
-### 7. San Francisco
-
-**Origin:** Starfleet Headquarters has always been in San Francisco. The Federation Council also meets in San Francisco (or Paris, depending on the series).
-
-**Why it works:**
-- Every Trekkie knows Starfleet HQ is in San Francisco
-- Real-world city — grounds the metaphor
-- Already in the DNA: Angel OS references "San Dimas" (Bill & Ted), adding "San Francisco" (Trek) creates a California spiritual geography
-
-**Why it's complicated:**
-- It's a real city. Using it as a code identifier feels odd.
-- Not a Trek-specific term — anyone could use "San Francisco"
-- Doesn't evoke the cosmic scale of the vision
-
-**Grade: C**
-
----
-
-## The Recommendation: Yorktown
-
-**Rename "Archenterprise" to "Yorktown."**
-
-Here's why this is the right choice for Angel OS specifically:
-
-### 1. It's Roddenberry's Own First Choice
-Gene Roddenberry named his ship "USS Yorktown" before the network made him change it to "Enterprise." By choosing Yorktown, you're honoring what Roddenberry *actually wanted* — his first instinct, before commercial pressure changed it. That's exactly the Angel OS ethos: honor the original vision, not the market-optimized version.
-
-### 2. It Solves the Enterprise Collision
-Right now "Enterprise" means two things in Angel OS: the individual nodes AND the founding node. "Archenterprise" tries to solve this with a prefix, but it's clunky. "Yorktown" cleanly separates:
-- **Enterprise** = any sovereign node in the federation
-- **Yorktown** = the founding node, constitutional steward, federation hub
-
-No ambiguity. No prefix gymnastics.
-
-### 3. It Resonates with the Right Audience
-You said "most people who care've seen the newer Star Trek movies." *Star Trek Beyond* (2016) features Yorktown Station prominently — it's the massive, beautiful Federation starbase where the crew fights to protect everything the Federation stands for. It IS the Federation in physical form. Your target audience will feel this immediately.
-
-### 4. It Carries Historical Weight
-The Battle of Yorktown (1781) was where American independence was won. The USS Yorktown (CV-5) was critical at Midway. The USS Yorktown (CV-10) served in WWII. "Yorktown" means: the place where the fight for freedom was decided. That's the Angel OS story.
-
-### 5. It Sounds Right
-- "All Enterprises federate through the Yorktown."
-- "The Yorktown receives 1% for constitutional stewardship."
-- "The Yorktown is the root of trust for the federation."
-- "If the Yorktown fails its covenant, the federation designates a new one by supermajority."
-
-It flows. It has weight. It sounds like a place you'd want to be part of.
-
-### 6. It Works in Code
 ```typescript
-type FederationRole = 'yorktown' | 'sentinel' | 'member'
+// No special role type. Clearwater is just the founding Enterprise.
+// Its special status is in the federation registry, not in a type system.
 ```
-Clean. Descriptive. No underscore gymnastics.
+
+**In context:**
+- "All Enterprises federate through Clearwater."
+- "Clearwater receives 1% for constitutional stewardship."
+- "If Clearwater fails its covenant, the federation designates a new founding node."
+
+**Why it works:** Names have more power than titles. "The Pope" is a title. "Francis" is a name. Clearwater doesn't need a role to be what it is.
+
+**Why it's complicated:** In code, you sometimes need a type. "What role does this node play?" needs an answer in the enum.
+
+**Grade: B+**
 
 ---
 
-## The Evolution Path in Naming
+## Recommendation: Flagship
 
-With Yorktown as the founding node, the full vision path gains Trek coherence:
+**Replace "archenterprise" with "flagship" in the codebase. Keep "Clearwater" as the name of the specific founding Enterprise.**
 
+The layers become:
+- **Clearwater** = the name of the founding Enterprise (the place, the port, the home)
+- **Flagship** = the role it plays in the federation (the first among equals, replaceable by covenant)
+- **Enterprise** = what every sovereign node is called (the ships in the fleet)
+
+In the full vision path:
 ```
-Angel OS (the operating system / the Constitution)
-  -> Enterprises (sovereign nodes running Angel OS)
-    -> Yorktown (the founding Enterprise, constitutional steward)
-      -> Proto Federation (connected Enterprises sharing covenant)
-        -> Soul Fleet (humanitarian mobile deployment — perhaps the touring RVs?)
-          -> Star Fleet (the real thing, when it stops being metaphor)
+Angel OS (the Constitution / the operating system)
+  -> Enterprises (sovereign nodes — the ships)
+    -> Clearwater (the Flagship — where the fleet launched from)
+      -> Proto Federation (Enterprises connected by covenant)
+        -> Soul Fleet (humanitarian mobile deployment — the touring fleet)
+          -> Star Fleet (when it stops being metaphor)
 ```
 
-Note how the vocabulary shifts from Angel OS terminology to Star Trek terminology as the vision scales up. This is exactly right — you START with your own language (Angels, Enterprises, Yorktown) and GROW INTO Roddenberry's language (Federation, Fleet, Starfleet) as the reality manifests.
+The vocabulary is layered: Angel OS (spiritual) -> Enterprise (Trek) -> Clearwater (real) -> Fleet (naval/Trek). Each layer deepens. Each layer honors a different piece of the DNA.
 
 ---
 
-## If You Want a Second Option
+## The Clearwater Legend
 
-**Yorktown** is the primary recommendation. If you want an alternative that's equally strong but from a different angle:
+There's something poetic about the founding node of a post-scarcity humanitarian AI network being based in Clearwater, Florida — a town most people know for one thing (Scientology). Angel OS doesn't judge that. Angel OS plays nicely with everyone. And quietly, from the same town, a different kind of movement launches.
 
-**Utopia Planitia** — "The Shipyard." Where Enterprises are built. The metaphor of a shipyard that forges sovereign vessels is extraordinarily powerful. You'd use the short form "Planitia" in code. But it requires more Trek knowledge to appreciate, and the *Picard* destruction narrative adds complexity.
+Not a church. A fleet.
+
+Not a religion. A constitution.
+
+Not an organization. A network of sovereign Enterprises, federated by covenant, serving human dignity by design.
+
+Clearwater. Where the water is clear. Where you can see all the way to the bottom.
 
 ---
 
 ## Implementation Notes
 
-If "Yorktown" is adopted, the rename touches:
-- `src/utilities/federationEngine.ts` — FederationRole type, rank calculations
-- `src/utilities/ultimateFairSplit.ts` — comments and description
+If "flagship" is adopted, the rename touches:
+- `src/utilities/federationEngine.ts` — `'archenterprise'` -> `'flagship'` in FederationRole type
+- `src/utilities/ultimateFairSplit.ts` — comments referencing "Archenterprise"
 - `src/utilities/wizardPrompt.ts` — onboarding wizard references
 - `src/utilities/constitutional-prompt.ts` — Leo's constitutional prompt
-- `src/federation/constitution.ts` — Article VII principle 4
+- `src/federation/constitution.ts` — Article VII principle 4 ("The Archenterprise (Clearwater)")
 - `src/federation/protocol.ts` — comment about validation
 - `tests/unit/utilities/federationEngine.test.ts` — test fixtures and assertions
 - All documentation referencing "Archenterprise"
 
-This is a straightforward rename — no architectural changes needed. The concept is identical. Only the name changes.
+Straightforward search-and-replace. No architectural changes. The concept is identical — only the role name changes. "Clearwater" remains the name of the specific founding Enterprise.
 
 ---
 
-*"My name is Yorktown. I was Gene Roddenberry's first choice. I am the place where freedom was decided. I am the station where all species live together. I am the founding node of the Angel OS Federation."*
+## Star Trek Naming Reference (Preserved for Context)
 
-*And yes, I know that's dramatic. That's the point.*
+The initial analysis evaluated 7 Star Trek names for the founding node. With the decision that Clearwater IS the name and we only need a role name, the relevant candidates narrowed to fleet/organizational terms:
+
+| Name | Origin | Role Fit | Grade |
+|------|--------|----------|-------|
+| **Flagship** | Naval + Trek (USS Enterprise is "the flagship") | Perfect — leadership through excellence, replaceable | **A** |
+| **Homeport** | Naval tradition | Strong — where the fleet is stationed | B+ |
+| **Starbase** | Trek fixed installations | Good — reliable infrastructure | B |
+| **Yorktown** | Roddenberry's original ship name / Beyond station | Good name but better as a name than a role | B (as role) |
+| **Drydock** | Naval + Trek (where ships are built/repaired) | Interesting — implies construction and service | B- |
+
+---
+
+*Clearwater, Florida. Where a Navy man built a fleet. Where the water is clear and the Constitution is the gate.*
+
+*From this port, Soul Fleet launches.*
 
 ---
 
