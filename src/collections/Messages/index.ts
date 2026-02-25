@@ -4,6 +4,7 @@ import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
 import { setTenantFromSpace } from './hooks/setTenantFromSpace'
 import { broadcastToSubscribers } from '@/endpoints/ai-bus-stream'
+import { autoAnalyzeMedia } from './hooks/autoAnalyzeMedia'
 
 /**
  * Messages Collection — Universal Message Structure (UMS)
@@ -288,6 +289,8 @@ export const Messages: CollectionConfig = {
         }
         return doc
       },
+      // Auto-analyze media attachments (images, PDFs → MediaMeta records)
+      autoAnalyzeMedia,
     ],
   },
   timestamps: true,

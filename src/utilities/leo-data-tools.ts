@@ -1002,6 +1002,88 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['enterpriseName'],
     },
   },
+  // ─── Sprint 18B: Media Analysis & Knowledge Extraction Tools ────────
+  {
+    name: 'analyze_image',
+    description:
+      'Analyze an uploaded image to extract structured metadata: visual description, detected objects, colors, visible text (OCR), entities (people, places, dates), and tags. Use when a user uploads images and wants to understand or catalog them, for inventory analysis, document scanning, or building a knowledge base. Creates a MediaMeta record for RAG retrieval.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaId: {
+          type: 'number',
+          description: 'The Media ID of the image to analyze',
+        },
+        messageId: {
+          type: 'number',
+          description: 'Optional: the Message ID that contained this image (for linking)',
+        },
+        inventoryMode: {
+          type: 'boolean',
+          description:
+            'Set to true for inventory/shelf photos — will detect individual items with counts and locations',
+        },
+        customPrompt: {
+          type: 'string',
+          description:
+            'Additional context for the analysis (e.g., "focus on product labels", "this is a receipt", "look for serial numbers")',
+        },
+      },
+      required: ['mediaId'],
+    },
+  },
+  {
+    name: 'extract_pdf_pages',
+    description:
+      'Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaId: {
+          type: 'number',
+          description: 'The Media ID of the PDF to analyze',
+        },
+        messageId: {
+          type: 'number',
+          description: 'Optional: the Message ID that contained this PDF',
+        },
+        customPrompt: {
+          type: 'string',
+          description:
+            'Additional context for the analysis (e.g., "this is a prison journal — focus on dates, names, and events", "this is an invoice — extract line items and totals")',
+        },
+      },
+      required: ['mediaId'],
+    },
+  },
+  {
+    name: 'query_knowledge',
+    description:
+      'Search the extracted knowledge base (MediaMeta records) for information from previously analyzed images and documents. Use when a user asks questions about uploaded content, wants to find information from scanned documents, or needs to retrieve data from their visual knowledge base. Searches across vision analysis, OCR text, entities, and tags.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search text — matches against OCR text, vision descriptions, tags, entities, and summaries',
+        },
+        documentGroup: {
+          type: 'string',
+          description: 'Optional: filter to a specific document group (for multi-page document queries)',
+        },
+        extractionType: {
+          type: 'string',
+          enum: ['image_vision', 'pdf_page', 'ocr', 'manual'],
+          description: 'Optional: filter by extraction type',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results to return (default 5, max 20)',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1119,6 +1201,13 @@ export async function executeToolCall(
         return await handleSignConstitution(payload, toolInput, ctx)
       case 'ping_federation':
         return await handlePingFederation(payload, toolInput, ctx)
+      // ─── Sprint 18B: Media Analysis & Knowledge ────────────────
+      case 'analyze_image':
+        return await handleAnalyzeImage(payload, toolInput, ctx)
+      case 'extract_pdf_pages':
+        return await handleExtractPdfPages(payload, toolInput, ctx)
+      case 'query_knowledge':
+        return await handleQueryKnowledge(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -3962,6 +4051,347 @@ async function handlePingFederation(
       `🎉 Your Enterprise setup is complete! The wizard is done.`,
       `You'll be redirected to your dashboard.`,
     ].join('\n')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 18B: Media Analysis & Knowledge Extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * analyze_image — Analyze an uploaded image with Anthropic Vision.
+ * Creates a MediaMeta record with structured metadata for RAG retrieval.
+ */
+async function handleAnalyzeImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const mediaId = input.mediaId as number | undefined
+  if (!mediaId) return 'Error: mediaId is required to analyze an image.'
+
+  try {
+    const { buildMediaMeta, resolveMediaUrl, isAnalyzableImage } = await import(
+      './mediaAnalysis'
+    )
+
+    // Fetch the media document
+    const mediaDoc = (await payload.findByID({
+      collection: 'media',
+      id: mediaId,
+      depth: 0,
+      overrideAccess: true,
+    })) as unknown as Record<string, unknown>
+
+    if (!isAnalyzableImage(mediaDoc)) {
+      return `Media ${mediaId} is not an analyzable image type (${mediaDoc.mimeType || 'unknown'}). Use extract_pdf_pages for PDFs.`
+    }
+
+    const url = resolveMediaUrl(mediaDoc)
+    if (!url) return 'Error: Could not resolve media URL for analysis.'
+
+    const result = await buildMediaMeta(payload, {
+      mediaDoc,
+      tenantId: ctx.tenantId,
+      sourceMessageId: input.messageId as number | undefined,
+      customPrompt: input.customPrompt as string | undefined,
+      inventoryMode: Boolean(input.inventoryMode),
+    })
+
+    if (!result.success) {
+      return `Analysis failed: ${result.error || 'Unknown error'}`
+    }
+
+    // Fetch the created metadata to return a summary
+    if (result.metaIds.length > 0) {
+      const meta = (await payload.findByID({
+        collection: 'media-meta' as any,
+        id: result.metaIds[0],
+        depth: 0,
+        overrideAccess: true,
+      })) as unknown as Record<string, unknown>
+
+      const vision = meta.visionAnalysis as Record<string, unknown> | undefined
+      const lines: string[] = [
+        `Image analyzed successfully! MediaMeta ID: ${meta.id}`,
+        '',
+      ]
+
+      if (meta.summary) lines.push(`**Summary:** ${meta.summary}`)
+      if (vision?.description) lines.push(`**Description:** ${String(vision.description).slice(0, 300)}`)
+      if (vision?.sceneType) lines.push(`**Scene type:** ${vision.sceneType}`)
+      if (Array.isArray(meta.tags) && meta.tags.length > 0)
+        lines.push(`**Tags:** ${(meta.tags as string[]).join(', ')}`)
+      if (vision?.textContent && String(vision.textContent).length > 0)
+        lines.push(`**Visible text:** "${String(vision.textContent).slice(0, 200)}"`)
+
+      const entities = meta.entities as Record<string, string[]> | undefined
+      if (entities) {
+        const parts: string[] = []
+        if (entities.people?.length) parts.push(`People: ${entities.people.join(', ')}`)
+        if (entities.places?.length) parts.push(`Places: ${entities.places.join(', ')}`)
+        if (entities.organizations?.length)
+          parts.push(`Orgs: ${entities.organizations.join(', ')}`)
+        if (parts.length > 0) lines.push(`**Entities:** ${parts.join(' | ')}`)
+      }
+
+      if (vision?.inventoryItems && Array.isArray(vision.inventoryItems)) {
+        lines.push(`\n**Inventory items detected:**`)
+        for (const item of vision.inventoryItems as Array<Record<string, unknown>>) {
+          const qty = item.quantity ? ` (×${item.quantity})` : ''
+          const loc = item.location ? ` — ${item.location}` : ''
+          lines.push(`  - ${item.item}${qty}${loc}`)
+        }
+      }
+
+      lines.push(`\nThis analysis is now searchable via query_knowledge.`)
+      return lines.join('\n')
+    }
+
+    return 'Analysis completed but no metadata was generated.'
+  } catch (err) {
+    console.error('[LEO Tools] analyze_image error:', err)
+    return `Error analyzing image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * extract_pdf_pages — Extract and analyze a PDF document page by page.
+ */
+async function handleExtractPdfPages(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const mediaId = input.mediaId as number | undefined
+  if (!mediaId) return 'Error: mediaId is required to extract PDF pages.'
+
+  try {
+    const { buildMediaMeta, isPdf } = await import('./mediaAnalysis')
+
+    const mediaDoc = (await payload.findByID({
+      collection: 'media',
+      id: mediaId,
+      depth: 0,
+      overrideAccess: true,
+    })) as unknown as Record<string, unknown>
+
+    if (!isPdf(mediaDoc)) {
+      return `Media ${mediaId} is not a PDF (${mediaDoc.mimeType || 'unknown'}). Use analyze_image for images.`
+    }
+
+    const result = await buildMediaMeta(payload, {
+      mediaDoc,
+      tenantId: ctx.tenantId,
+      sourceMessageId: input.messageId as number | undefined,
+      customPrompt: input.customPrompt as string | undefined,
+    })
+
+    if (!result.success) {
+      return `PDF extraction failed: ${result.error || 'Unknown error'}`
+    }
+
+    // Summarize the extracted pages
+    const pages = await payload.find({
+      collection: 'media-meta' as any,
+      where: {
+        media: { equals: mediaId },
+        extractionType: { equals: 'pdf_page' },
+      },
+      sort: 'pageNumber',
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const lines: string[] = [
+      `PDF analyzed! ${pages.docs.length} page(s) extracted.`,
+      '',
+    ]
+
+    // Get document group from first page
+    const firstPage = pages.docs[0] as unknown as Record<string, unknown> | undefined
+    if (firstPage?.documentGroup) {
+      lines.push(`**Document group:** ${firstPage.documentGroup}`)
+    }
+
+    lines.push(`\n**Page summaries:**`)
+    for (const page of pages.docs.slice(0, 10) as unknown as Array<Record<string, unknown>>) {
+      const num = page.pageNumber || '?'
+      const summary = page.summary || 'No summary'
+      const status = page.status === 'error' ? ' ⚠️ (error)' : ''
+      lines.push(`  - p${num}: ${String(summary).slice(0, 100)}${status}`)
+    }
+
+    if (pages.docs.length > 10) {
+      lines.push(`  ... and ${pages.docs.length - 10} more pages`)
+    }
+
+    lines.push(`\nAll pages are now searchable via query_knowledge.`)
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] extract_pdf_pages error:', err)
+    return `Error extracting PDF: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * query_knowledge — Search the extracted knowledge base (MediaMeta records).
+ */
+async function handleQueryKnowledge(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const query = (input.query as string)?.trim()
+  if (!query) return 'Error: query text is required to search the knowledge base.'
+
+  const limit = Math.min(Math.max(Number(input.limit) || 5, 1), 20)
+  const documentGroup = input.documentGroup as string | undefined
+  const extractionType = input.extractionType as string | undefined
+
+  try {
+    // Build where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = [
+      { status: { equals: 'complete' } },
+    ]
+
+    // Add tenant filter if available
+    if (ctx.tenantId) {
+      conditions.push({ tenant: { equals: ctx.tenantId } })
+    }
+
+    if (documentGroup) {
+      conditions.push({ documentGroup: { equals: documentGroup } })
+    }
+
+    if (extractionType) {
+      conditions.push({ extractionType: { equals: extractionType } })
+    }
+
+    // Text search across multiple fields
+    // Payload doesn't have full-text search natively, so we search key fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textConditions: any[] = [
+      { summary: { like: query } },
+      { ocrText: { like: query } },
+    ]
+
+    // Search — first try summary+OCR, then fall back to broader search
+    let results = await payload.find({
+      collection: 'media-meta' as any,
+      where: {
+        and: [
+          ...conditions,
+          { or: textConditions },
+        ],
+      } as any,
+      sort: '-processedAt',
+      limit,
+      depth: 1, // Expand media relationship for context
+      overrideAccess: true,
+    })
+
+    // If no results from text search, try tag-based search
+    if (results.docs.length === 0) {
+      // Search by tags — Payload JSON fields can use 'like'
+      results = await payload.find({
+        collection: 'media-meta' as any,
+        where: {
+          and: conditions,
+        } as any,
+        sort: '-processedAt',
+        limit: limit * 2, // Fetch more, filter client-side
+        depth: 1,
+        overrideAccess: true,
+      })
+
+      // Client-side filter: check if any text field contains the query
+      const queryLower = query.toLowerCase()
+      results.docs = results.docs.filter((doc) => {
+        const d = doc as unknown as Record<string, unknown>
+        const searchable = [
+          d.summary,
+          d.ocrText,
+          JSON.stringify(d.tags),
+          JSON.stringify(d.entities),
+          JSON.stringify(d.visionAnalysis),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return searchable.includes(queryLower)
+      }).slice(0, limit)
+    }
+
+    if (results.docs.length === 0) {
+      return `No knowledge found matching "${query}". Try uploading and analyzing images or documents first, then they become searchable.`
+    }
+
+    const lines: string[] = [
+      `Found ${results.docs.length} result(s) for "${query}":`,
+      '',
+    ]
+
+    for (const doc of results.docs as unknown as Array<Record<string, unknown>>) {
+      const media = doc.media as Record<string, unknown> | undefined
+      const mediaName = media?.filename || media?.alt || `media-${doc.media}`
+
+      lines.push(`**[${doc.extractionType}] ${doc.summary || 'Untitled'}**`)
+      lines.push(`  Media: ${mediaName}`)
+
+      if (doc.pageNumber) {
+        lines.push(`  Page: ${doc.pageNumber}${doc.totalPages ? `/${doc.totalPages}` : ''}`)
+      }
+
+      if (doc.documentGroup) {
+        lines.push(`  Document: ${doc.documentGroup}`)
+      }
+
+      // Include relevant text content
+      const vision = doc.visionAnalysis as Record<string, unknown> | undefined
+      if (vision?.description) {
+        lines.push(`  Description: ${String(vision.description).slice(0, 200)}`)
+      }
+
+      if (doc.ocrText && String(doc.ocrText).length > 0) {
+        const ocrPreview = String(doc.ocrText).slice(0, 300)
+        lines.push(`  Text content: "${ocrPreview}${String(doc.ocrText).length > 300 ? '...' : ''}"`)
+      }
+
+      const entities = doc.entities as Record<string, string[]> | undefined
+      if (entities) {
+        const parts: string[] = []
+        if (entities.people?.length) parts.push(`People: ${entities.people.join(', ')}`)
+        if (entities.places?.length) parts.push(`Places: ${entities.places.join(', ')}`)
+        if (entities.dates?.length) parts.push(`Dates: ${entities.dates.join(', ')}`)
+        if (parts.length > 0) lines.push(`  Entities: ${parts.join(' | ')}`)
+      }
+
+      if (Array.isArray(doc.tags) && doc.tags.length > 0) {
+        lines.push(`  Tags: ${(doc.tags as string[]).slice(0, 8).join(', ')}`)
+      }
+
+      lines.push('') // Blank line between results
+    }
+
+    // Add RAG chunks if available for most relevant result
+    const topDoc = results.docs[0] as unknown as Record<string, unknown>
+    if (topDoc.ragChunks && Array.isArray(topDoc.ragChunks) && topDoc.ragChunks.length > 0) {
+      const relevantChunk = (topDoc.ragChunks as Array<{ text: string }>).find(
+        (c) => c.text.toLowerCase().includes(query.toLowerCase()),
+      )
+      if (relevantChunk) {
+        lines.push(`**Most relevant chunk:**`)
+        lines.push(relevantChunk.text.slice(0, 500))
+      }
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] query_knowledge error:', err)
+    return `Error searching knowledge base: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
