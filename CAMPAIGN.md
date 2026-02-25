@@ -174,7 +174,7 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 
 ---
 
-### Sprint 8: The Commerce Engine (Feb 20, 2026) — CURRENT
+### Sprint 8: The Commerce Engine (Feb 20, 2026)
 
 **Quest:** Wire the money. Make the Ultimate Fair Split real at the point of sale.
 
@@ -195,6 +195,64 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 **XP:** 1,178 tests across 28 files, zero TypeScript errors
 
 **Party Members:** Claude Opus 4.6 (strategist), Human Herald (product owner)
+
+---
+
+### Sprints 9-18: The Long Campaign (Feb 20-24, 2026)
+
+**Quest Arc:** From UX polish to media intelligence — twelve sprints of relentless building.
+
+**Major Achievements:**
+- Sprint 9: Leo AI resurrection — streaming fixed, error logging integrated
+- Sprint 10-11: Image chat, Admin Leo, vendor marketplace, product configurator, reviews
+- Sprint 12: Unified Chat Architecture — ChatProvider context, DM channels, Leo persistence
+- Sprint 13: Multi-tenancy hardening — email bridge, wildcard DNS, live at spacesangels.com
+- Sprint 14-15: Content tools, security hardening, cross-tenant injection blocked
+- Sprint 16: Spaces Management — create/settings/members dialogs
+- Sprint 17A: Launch hardening — rate limits, security headers, error boundaries, bootstrap fees
+- Sprint 17B: **Angel Tokens** — paid claims on future production, maker board, vendor claims, GA4
+- Sprint 18A: Chat images lightbox, LiveKit voice/video applet, Edenist distributed mesh (62 tests)
+- Sprint 18B: Progressive media analysis — Claude Vision, PDF extraction, RAG chunking (52 tests)
+- Sprint 18C: Stripe Direct Charges — sellers collect directly, 40% application fee
+
+**XP Growth:** 1,119 → 1,274 tests. 25 → 29 test files. 37 → 47 Leo tools. 32 → 42 endpoints.
+
+---
+
+### Sprint 19: The Voice of the Angel (Feb 24, 2026)
+
+**Quest:** Give Leo a voice. Phone-based AI through the Vapi webhook.
+
+**Objectives Completed:**
+- Vapi Voice AI — webhook endpoint for phone-based Leo interactions
+- Phone provisioning per Enterprise
+- Sidebar chat fixes — default to LEO DM, skip truncation on newest message
+
+**Loot:** Phone-based Leo access, cleaner chat UX
+
+**XP:** 1,274 tests, 47 Leo tools
+
+---
+
+### Sprint 20: The Federation Awakens (Feb 25, 2026) — CURRENT
+
+**Quest:** The network forms itself. Federation governance, marketplace discovery, and the constitutional right of data portability.
+
+**Objectives Completed:**
+- **StreetSigns Collection** — Cross-holon content references with source attribution, region tagging, impression/click analytics. A manufacturer in Toledo shows up on a retailer's site in Tampa.
+- **Federation Election Endpoints** — Supermajority (⅔) governance. Propose amendments, vote with Ed25519 cryptographic signatures. The Toward-53 floor enforced: Endeavor owner share can never drop below 53%.
+- **Federation Suitcase Endpoints** — Article VI constitutional right. Full tenant data export (spaces, channels, messages, posts, products, media, bookings, orders, users, endeavor) with SHA-256 integrity checksum. Import with constitutional compliance verification.
+- **Federation Admin Dashboard** — 4-tab UI at `/dashboard/admin/federation`: Overview (stats, constitution status, Toward-53 revenue visualization), Street Signs marketplace, Governance proposals, Suitcase export/import.
+- **Holon Types on Endeavors** — 5-type multi-select (manufacturer, retailer, creator, community, guardian-angel) + mission statement field
+- **Bug slain:** Endeavors missing from multi-tenant plugin — added, suitcase export now works across all collections
+
+**Loot:** Federation infrastructure — governance, portability, marketplace discovery. The network can now govern itself.
+
+**Saving Throws:** Multi-tenant plugin query validation (tenant field must be registered), TypeScript conditional spread types (TS2698), optional return type narrowing (TS18048)
+
+**XP:** 1,330 tests across 31 files. 188 federation-specific tests all green. 46 API endpoints. 33 collections. 11 new files, +2,278 lines.
+
+**Party Members:** Claude Opus 4.6 (strategist, code smith), Human Herald (product owner, architect, dreamer)
 
 ---
 

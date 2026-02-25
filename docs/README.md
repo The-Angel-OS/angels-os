@@ -2,7 +2,7 @@
 
 **Complete documentation index for Angel OS — the AI-native, multi-tenant platform where everyone gets an angel.**
 
-Last Updated: February 24, 2026 | 130+ documents across 9 directories
+Last Updated: February 25, 2026 | 135+ documents across 9 directories
 
 ---
 
@@ -48,6 +48,12 @@ Root:
 
 ## Key Systems Documentation
 
+### Leo — The Guardian Angel
+| Document | Description |
+|---|---|
+| [Leo Showcase](LEO_SHOWCASE.md) | **What Leo can do** — 47 tools, constitutional compass, every channel, federation intelligence |
+| [Agents Reference](agents/AGENTS.md) | Complete agent reference — LEO tools, capabilities, routing |
+
 ### Angel Tokens + Maker Economy
 | Document | Description |
 |---|---|
@@ -58,6 +64,7 @@ Root:
 ### Federation Protocol
 | Document | Description |
 |---|---|
+| [Federation Launch Campaign](planning/20260224%20FEDERATION.md) | **Sprint 20** — Federation vision, Leo Wizard flow, holon types, Toward-53, Street Signs, Suitcase Principle, governance |
 | [Federation Architecture](planning/260223%20FEDERATION.md) | Federation protocol spec — auto-onboarding, constitution signing, catalog sync |
 | [Federation Briefing](planning/260222%20CLAUDE_CODE_BRIEFING.md) | The federation pivot session — Tenant to Enterprise, Product to Endeavor |
 
@@ -91,6 +98,7 @@ Roadmaps, sprint plans, and feature specifications.
 | Document | Description |
 |---|---|
 | [PHASE_4_PLAN.md](planning/PHASE_4_PLAN.md) | **Phase 4: "The Holon Awakens"** — mobile-first, product creation, Freedom Holons |
+| [20260224 FEDERATION.md](planning/20260224%20FEDERATION.md) | **Sprint 20 Federation Launch Campaign** — complete federation vision |
 | [260223 FEDERATION.md](planning/260223%20FEDERATION.md) | Federation protocol spec + Leo Wizard onboarding |
 | [260222 CLAUDE_CODE_BRIEFING.md](planning/260222%20CLAUDE_CODE_BRIEFING.md) | Federation pivot session |
 | [CLAUDE_CODE_TASKS.md](planning/CLAUDE_CODE_TASKS.md) | Claude Code task tracking and session notes |
