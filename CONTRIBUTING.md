@@ -89,27 +89,25 @@ Please include in your PR:
 
 See [ROADMAP.md](ROADMAP.md) for the complete vision.
 
-**Current Sprint (MVP Foundation):**
-1. **Core Infrastructure** - Two-tier Angel system (Archangels & Angels)
-2. **OpenClaw Integration** - Chat formatting, skills sync, conversation engine
-3. **Channel Widgets** - Multi-channel architecture with widget tabs
-4. **Tenant Provisioning** - Sub-30s provisioning with Genesis Breath
+**Current:** Sprint 20 complete — Federation Launch Campaign. v0.20.0-dev.
 
-**Near-Term (Post-MVP):**
-- Booking & Scheduling Engine
-- CRM (structured data for relationships & pipeline)
-- LEO Chat Widget (site-wide)
-- Ultimate Fair payment splits
-- Spaces operational (invitations, onboarding)
+**What's Built (20 sprints):**
+- Multi-tenant architecture with subdomain routing, 33 Payload CMS collections
+- LEO AI Agent with 47 tools (Claude Sonnet 4), SSE streaming, vision
+- Full e-commerce: products, cart, orders, Stripe Direct Charges, Angel Token queue
+- Federation protocol: trust chain, governance elections, suitcase export/import, distributed mesh
+- StreetSigns marketplace, 5 holon types, constitutional governance
+- Spaces & Channels (Discord-style), LiveKit voice/video, image lightbox
+- Progressive media analysis (Claude Vision + RAG), email bridge
+- 1,330 tests across 31 files, 46 API endpoints
 
-**Long-Term Vision:**
-- Angel Tokens (network economics)
-- Federation & Confederation (enterprise network)
-- AI Bus & Morphic Resonance (distributed learning)
-- Prison Ministry & Justice Fund
-- Clearwater Cruisin' (serving the forgotten)
+**Next Sprint:**
+- `npx create-angel-enterprise` — one-command Diocese deployment
+- Leo Wizard 8-step conversational onboarding
+- Customer Angel Token UI
+- Street Signs gossip sync protocol
 
-Check the [GitHub Issues](https://github.com/The-Angel-OS/angels-os/issues) for "good first issue" labels!
+Check the [GitHub Issues](https://github.com/The-Angel-OS/angels-os/issues) for contribution opportunities!
 
 ## Project Structure
 
