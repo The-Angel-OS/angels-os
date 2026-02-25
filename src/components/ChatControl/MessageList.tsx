@@ -207,13 +207,16 @@ function TruncatedMessage({
   content,
   isStreaming,
   useMarkdown = false,
+  isNewest = false,
 }: {
   content: string
   isStreaming?: boolean
   useMarkdown?: boolean
+  /** When true the message is always fully expanded (no "More" button) */
+  isNewest?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
-  const shouldTruncate = !isStreaming && content.length > TRUNCATE_THRESHOLD
+  const shouldTruncate = !isStreaming && !isNewest && content.length > TRUNCATE_THRESHOLD
 
   const body = useMarkdown ? (
     <div className={`prose prose-sm prose-invert max-w-none break-words ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
@@ -363,7 +366,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
 
       {/* Spacer pushes messages toward the bottom when few messages exist */}
       <div className="flex-1" />
-      {messages.map((msg) => (
+      {messages.map((msg, index) => (
         <div
           key={msg.id}
           className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -381,7 +384,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
               <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
             )}
             {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
-            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} />
+            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
             {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
             {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
             <div className="mt-1 text-[10px] opacity-50">
@@ -556,7 +559,7 @@ function FullPageMessageList({
           </div>
         )}
 
-        {groups.map((item, idx) => {
+        {groups.map((item, idx, allGroups) => {
           if (item.type === 'date') {
             return (
               <div key={`date-${idx}`} className="my-4 flex items-center gap-3">
@@ -573,6 +576,7 @@ function FullPageMessageList({
           const isUser = group.role === 'user'
           const isSystem = group.role === 'system'
           const isLeo = group.role === 'leo'
+          const isLastGroup = idx === allGroups.length - 1
 
           return (
             <div
@@ -645,7 +649,7 @@ function FullPageMessageList({
                           </span>
                         </div>
                       ) : (
-                        <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={isLeo} />
+                        <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={isLeo} isNewest={isLastGroup && isLast} />
                       )}
                         {msg.isStreaming && msg.lastDeltaAt && (
                           <div className="mt-1">
