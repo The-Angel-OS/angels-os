@@ -57,6 +57,7 @@ import { Endeavors } from '@/collections/Endeavors'
 import { Contacts } from '@/collections/Contacts'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
+import { MediaMeta } from '@/collections/MediaMeta'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -95,6 +96,8 @@ import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat
 import { federationCatalogHandler } from '@/endpoints/federation-catalog'
 import { federationSkillsListHandler, federationSkillsInvokeHandler } from '@/endpoints/federation-skills'
 import { federationVouchHandler } from '@/endpoints/federation-vouch'
+import { federationGovernanceSyncHandler } from '@/endpoints/federation-governance-sync'
+import { mediaAnalyzeHandler } from '@/endpoints/media-analyze'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -150,6 +153,7 @@ export default buildConfig({
     Contacts,
     FederationAuditLog,
     AgentTransactions,
+    MediaMeta,
   ],
   db: postgresAdapter({
     pool: {
@@ -195,6 +199,8 @@ export default buildConfig({
         contacts: {},
         header: {},
         footer: {},
+        // Sprint 18B: Knowledge extraction (not in generated types yet)
+        ...({ 'media-meta': {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
@@ -571,6 +577,22 @@ export default buildConfig({
       path: '/federation/vouch',
       method: 'post',
       handler: federationVouchHandler,
+    },
+    {
+      path: '/federation/governance-sync',
+      method: 'post',
+      handler: federationGovernanceSyncHandler,
+    },
+    {
+      path: '/federation/governance-sync',
+      method: 'get',
+      handler: federationGovernanceSyncHandler,
+    },
+    // ─── Media Analysis Endpoints (Sprint 18B) ─────────────────────
+    {
+      path: '/media/analyze',
+      method: 'post',
+      handler: mediaAnalyzeHandler,
     },
   ],
   globals: [],

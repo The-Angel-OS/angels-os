@@ -102,6 +102,7 @@ export interface Config {
     contacts: Contact;
     'federation-audit-log': FederationAuditLog;
     'agent-transactions': AgentTransaction;
+    'media-meta': MediaMeta;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -161,6 +162,7 @@ export interface Config {
     contacts: ContactsSelect<false> | ContactsSelect<true>;
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
+    'media-meta': MediaMetaSelect<false> | MediaMetaSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -785,7 +787,40 @@ export interface Order {
           | 'in_production'
           | 'shipped'
           | 'delivered'
-          | 'rejected';
+          | 'rejected'
+          | 'cancelled';
+        /**
+         * Angel Token identifier (e.g. AT-2026-00042). Issued when order queues with no available maker.
+         */
+        angelTokenId?: string | null;
+        /**
+         * Angel Token lifecycle status — active tokens represent paid claims on future production.
+         */
+        tokenStatus?: ('active' | 'redeemed' | 'refunded') | null;
+        /**
+         * When the Angel Token was issued (no Holon available at payment time)
+         */
+        queuedAt?: string | null;
+        /**
+         * Human-readable reason: "Waiting for a maker with: CNC-milling, plywood"
+         */
+        queueReason?: string | null;
+        /**
+         * Last time customer was notified of queue status change
+         */
+        customerNotifiedAt?: string | null;
+        /**
+         * Customer selections from ProductConfigurator (colors, sizes, custom text, materials). This becomes the work order for the maker.
+         */
+        selectedConfiguration?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
         /**
          * Routing engine match score (0-100)
          */
@@ -917,11 +952,15 @@ export interface Product {
   requiredCapabilities?:
     | {
         /**
-         * e.g. "screen-printing", "embroidery"
+         * e.g. "screen-printing", "CNC-milling", "embroidery"
          */
         skill: string;
         /**
-         * Required materials, e.g. ["cotton", "polyester"]
+         * Preferred equipment type (e.g. "CNC router", "Homag Centateq P-110", "UV printer"). Optional — used for bonus matching, not hard requirement.
+         */
+        equipment?: string | null;
+        /**
+         * Required materials, e.g. ["cotton", "polyester", "Baltic birch plywood"]
          */
         materials?:
           | {
@@ -3449,6 +3488,134 @@ export interface AgentTransaction {
   createdAt: string;
 }
 /**
+ * Progressive metadata extracted from uploaded media — vision analysis, OCR, document pages, RAG chunks.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-meta".
+ */
+export interface MediaMeta {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The media item being analyzed
+   */
+  media: number | Media;
+  /**
+   * The chat message that contained this media (if applicable)
+   */
+  sourceMessage?: (number | null) | Message;
+  /**
+   * Current processing status of this analysis
+   */
+  status: 'pending' | 'processing' | 'complete' | 'error';
+  /**
+   * How metadata was extracted
+   */
+  extractionType: 'image_vision' | 'pdf_page' | 'ocr' | 'manual';
+  /**
+   * AI-extracted visual analysis — description, detected objects, colors, composition, text visible in image, scene understanding. Schema: { description, objects[], colors[], sceneType, textContent, confidence }
+   */
+  visionAnalysis?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Extracted text from OCR or transcription (full text of page/image)
+   */
+  ocrText?: string | null;
+  /**
+   * Group ID linking pages of the same document (e.g., PDF split into pages, journal photo set). Format: "doc_{mediaId}_{timestamp}"
+   */
+  documentGroup?: string | null;
+  /**
+   * Page position within a document group (1-based)
+   */
+  pageNumber?: number | null;
+  /**
+   * Total pages in the document group
+   */
+  totalPages?: number | null;
+  /**
+   * Auto-extracted tags (string array). E.g., ["invoice", "receipt", "2024", "office supplies"]
+   */
+  tags?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Named entities extracted from the content. Schema: { people: string[], places: string[], organizations: string[], dates: string[], amounts: string[] }
+   */
+  entities?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * AI-generated one-line summary of the content (used as admin title)
+   */
+  summary?: string | null;
+  /**
+   * Whether this record has been chunked and indexed for RAG retrieval
+   */
+  ragIndexed?: boolean | null;
+  /**
+   * Pre-split text chunks for RAG retrieval. Array of { text, chunkIndex, tokenEstimate }. Generated from ocrText + visionAnalysis + summary.
+   */
+  ragChunks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Vector embedding of the combined text content. Float32 array. Will migrate to pgvector column when RAG scales.
+   */
+  embedding?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * When processing completed
+   */
+  processedAt?: string | null;
+  /**
+   * Model or service that performed the analysis (e.g., "claude-sonnet-4-20250514", "tesseract-5")
+   */
+  processedBy?: string | null;
+  /**
+   * Error message if processing failed
+   */
+  processingError?: string | null;
+  /**
+   * How long processing took in milliseconds
+   */
+  processingDurationMs?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -3799,6 +3966,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'agent-transactions';
         value: number | AgentTransaction;
+      } | null)
+    | ({
+        relationTo: 'media-meta';
+        value: number | MediaMeta;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5081,6 +5252,34 @@ export interface AgentTransactionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-meta_select".
+ */
+export interface MediaMetaSelect<T extends boolean = true> {
+  tenant?: T;
+  media?: T;
+  sourceMessage?: T;
+  status?: T;
+  extractionType?: T;
+  visionAnalysis?: T;
+  ocrText?: T;
+  documentGroup?: T;
+  pageNumber?: T;
+  totalPages?: T;
+  tags?: T;
+  entities?: T;
+  summary?: T;
+  ragIndexed?: T;
+  ragChunks?: T;
+  embedding?: T;
+  processedAt?: T;
+  processedBy?: T;
+  processingError?: T;
+  processingDurationMs?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -5339,6 +5538,7 @@ export interface ProductsSelect<T extends boolean = true> {
     | T
     | {
         skill?: T;
+        equipment?: T;
         materials?: T;
         id?: T;
       };
@@ -5413,6 +5613,12 @@ export interface OrdersSelect<T extends boolean = true> {
         assignedHolon?: T;
         sourceTenant?: T;
         fulfillmentStatus?: T;
+        angelTokenId?: T;
+        tokenStatus?: T;
+        queuedAt?: T;
+        queueReason?: T;
+        customerNotifiedAt?: T;
+        selectedConfiguration?: T;
         matchScore?: T;
         matchedAt?: T;
         acceptedAt?: T;
