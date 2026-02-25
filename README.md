@@ -249,13 +249,51 @@ Customer places order
   → if 0 matches: Angel Token issued, order queued until maker joins
 ```
 
-### Federation Trust Chain
+### Federation Trust Chain — Self-Reinforcing Network
+
+The federation doesn't gatekeep — it **trusts first, then reinforces**. The Constitution IS the gate. Bad actors aren't screened out at entry; they're rooted out by a network that makes violations obvious and accountability inescapable.
+
+**Trust Levels** (4 — from `federationEngine.ts`, 126 tests):
+```
+none → probationary → vouched → full
+```
+
+**Ministry Lifecycle** (how an Enterprise joins the federation):
+```
+1. APPLICANT     Sign the Constitution (cryptographic). Send federation-ping.
+                 Trust: 'none' → 'probationary'
+
+2. PROBATION     90-day observation period. Heartbeat monitored (5-min timeout).
+   (90 days)     Live and operational, but cannot vouch for others.
+                 Network watches behavior against Constitutional principles.
+
+3. VOUCHED       Receive 1+ vouches from active members.
+   (1+ vouches)  Trust: 'probationary' → 'vouched'
+                 Vouching members accept REPUTATIONAL ACCOUNTABILITY —
+                 if you vouch for a bad actor, your reputation is on the line.
+
+4. ACTIVE        90 days elapsed + 2 valid vouches → auto-promoted.
+   (2 vouches)   Trust: 'full'. Can now vouch for others.
+                 Full federation access: cross-ministry payments, catalog sync,
+                 Angel Token queue visibility, order routing across the network.
+
+   SUSPENDED     Federation can suspend for investigation. Reversible.
+   REVOKED       Supermajority vote. TERMINAL — no return. Products delisted,
+                 but data sovereignty preserved (Suitcase Principle).
+```
+
+**How the network self-reinforces:**
+- **Reputational vouching** — active members stake their reputation on who they vouch for. Vouch for a bad actor, lose trust yourself. The network's immune system is peer accountability.
+- **Constitutional immutability** — every AI agent runs the same constitutional prompt. A compromised ministry attempting dark patterns, surveillance capitalism, or social credit systems will violate constraints that are detectably obvious to the federation.
+- **Heartbeat monitoring** — 5-minute timeout. Nodes that go silent are automatically marked unhealthy. No human intervention needed.
+- **Terminal revocation** — `revoked` is a one-way door. Bad actors can never return to the same federation identity. Start over, earn trust again, or leave.
+- **Suitcase Principle** — even revoked ministries keep their data and infrastructure. You lose the network, never the sovereignty. This isn't punishment — it's the Constitution keeping its promise.
 
 ```
-visitor → probation (90 days) → member → vouched (2 vouches) → steward → elder
-  ↓ heartbeat monitoring (5-min timeout)
-  ↓ federation catalog (cross-instance product discovery)
-  ↓ suitcase export (data portability — your data, your sovereignty)
+Federation services at each trust level:
+  probationary  → catalog listing, heartbeat, basic federation
+  vouched       → cross-ministry payments, order routing
+  full          → vouch for others, governance participation, full catalog sync
 ```
 
 ### Chat Architecture
