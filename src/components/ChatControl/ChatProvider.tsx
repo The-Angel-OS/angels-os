@@ -136,6 +136,11 @@ export function ChatProvider({
             members: data.channel.members,
           }
           setLeoDMChannel(ch)
+          // Auto-switch to LEO DM if no channel is currently active
+          if (!activeChannelSlugLocal) {
+            setActiveChannelSlugLocal(ch.slug)
+            chat.switchChannel(ch.slug)
+          }
           setDmChannels((prev) => {
             if (prev.find((c) => c.id === ch.id)) return prev
             return [ch, ...prev]

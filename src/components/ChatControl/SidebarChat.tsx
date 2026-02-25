@@ -5,6 +5,7 @@ import { Hash, ChevronDown } from 'lucide-react'
 import { Backdrop } from '@/components/Backdrop'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
+import { SpaceSelector } from './SpaceSelector'
 import { useChat } from './useChat'
 import { useChatContext } from './ChatProvider'
 import { useIsMobile } from '@/utilities/useMediaQuery'
@@ -58,6 +59,11 @@ export function SidebarChat({
   const switchChannel = hasProvider ? chatCtx!.switchChannel : directChat.switchChannel
   const loadMoreMessages = hasProvider ? chatCtx!.loadMoreMessages : directChat.loadMoreMessages
 
+  // Space switching (for SpaceSelector dropdown)
+  const spaces = hasProvider ? chatCtx!.spaces : []
+  const setActiveSpace = hasProvider ? chatCtx!.setActiveSpace : () => {}
+  const activeSpaceId = hasProvider ? chatCtx!.activeSpaceId : spaceId
+
   // Lock body scroll when mobile overlay is open
   useEffect(() => {
     if (isMobile && isExpanded) {
@@ -104,66 +110,100 @@ export function SidebarChat({
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
-                <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground">LEO Assistant</h3>
-                {/* Channel selector — show DM badge or channel name */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowChannelMenu(!showChannelMenu)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {leoDM ? (
-                      <span className="truncate max-w-[120px]">Persistent DM</span>
-                    ) : (
-                      <>
-                        <Hash size={10} />
-                        <span className="truncate max-w-[120px]">{displayName}</span>
-                      </>
-                    )}
-                    {!leoDM && <ChevronDown size={10} />}
-                  </button>
-                  {showChannelMenu && !isLoadingChannels && channels.length > 1 && !leoDM && (
-                    <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
-                      {channels.map((ch) => (
-                        <button
-                          key={ch.id}
-                          onClick={() => {
-                            switchChannel(ch.slug)
-                            setShowChannelMenu(false)
-                          }}
-                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
-                            ch.slug === activeChannel
-                              ? 'bg-primary/10 text-primary font-medium'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                          }`}
-                        >
-                          <Hash size={10} />
-                          {ch.name}
-                        </button>
-                      ))}
+          <div className="shrink-0 border-b border-border">
+            {/* Top row: Space selector + close button */}
+            <div className="flex items-center justify-between px-2 pt-2">
+              <div className="min-w-0 flex-1">
+                {spaces.length > 0 && activeSpaceId ? (
+                  <SpaceSelector
+                    spaces={spaces}
+                    activeSpaceId={activeSpaceId}
+                    onSelect={setActiveSpace}
+                    compact
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                      <svg className="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
                     </div>
+                    <span className="text-sm font-semibold text-foreground">LEO</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className={`shrink-0 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
+                  isMobile ? 'h-8 w-8' : 'h-6 w-6'
+                }`}
+                title="Close"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Bottom row: Channel selector */}
+            <div className="px-4 pb-2">
+              <div className="relative">
+                <button
+                  onClick={() => setShowChannelMenu(!showChannelMenu)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {leoDM ? (
+                    <span className="truncate max-w-[180px]">LEO DM</span>
+                  ) : (
+                    <>
+                      <Hash size={10} />
+                      <span className="truncate max-w-[180px]">{displayName}</span>
+                    </>
                   )}
-                </div>
+                  {channels.length > 1 && <ChevronDown size={10} />}
+                </button>
+                {showChannelMenu && !isLoadingChannels && channels.length > 1 && (
+                  <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
+                    {/* Show LEO DM at the top if available */}
+                    {leoDM && (
+                      <button
+                        onClick={() => {
+                          switchChannel(leoDM.slug)
+                          setShowChannelMenu(false)
+                        }}
+                        className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+                          leoDM.slug === activeChannel
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" />
+                        </svg>
+                        LEO DM
+                      </button>
+                    )}
+                    {channels.map((ch) => (
+                      <button
+                        key={ch.id}
+                        onClick={() => {
+                          switchChannel(ch.slug)
+                          setShowChannelMenu(false)
+                        }}
+                        className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+                          ch.slug === activeChannel
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <Hash size={10} />
+                        {ch.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <button
-              onClick={() => setIsExpanded(false)}
-              className={`flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
-                isMobile ? 'h-8 w-8' : 'h-6 w-6'
-              }`}
-              title="Close"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           {/* Messages */}
