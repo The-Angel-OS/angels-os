@@ -99,6 +99,7 @@ import { federationVouchHandler } from '@/endpoints/federation-vouch'
 import { federationGovernanceSyncHandler } from '@/endpoints/federation-governance-sync'
 import { mediaAnalyzeHandler } from '@/endpoints/media-analyze'
 import { vapiWebhookHandler } from '@/endpoints/vapi-webhook'
+import { vapiSetupHandler } from '@/endpoints/vapi-setup'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -512,11 +513,16 @@ export default buildConfig({
       method: 'post',
       handler: stripeWebhooksHandler,
     },
-    // ─── Vapi Voice AI Webhook (Sprint 19) ────────────────────────
+    // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {
       path: '/vapi/webhook',
       method: 'post',
       handler: vapiWebhookHandler,
+    },
+    {
+      path: '/vapi/setup',
+      method: 'post',
+      handler: vapiSetupHandler,
     },
     {
       path: '/livekit/token',
