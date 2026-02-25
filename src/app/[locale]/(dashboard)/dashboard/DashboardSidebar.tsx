@@ -219,6 +219,14 @@ export function DashboardSidebar({
             Spaces
           </NavLink>
           <NavLink
+            href={`${prefix}/dashboard/my-orders`}
+            icon={<ShoppingBagIcon />}
+            collapsed={isCollapsed}
+            active={pathname.includes('/dashboard/my-orders')}
+          >
+            My Orders
+          </NavLink>
+          <NavLink
             href={`${prefix}/dashboard/docs`}
             icon={<BookOpenIcon />}
             collapsed={isCollapsed}
@@ -470,6 +478,14 @@ function MobileNavContent({
           active={pathname.includes('/dashboard/spaces')}
         >
           Spaces
+        </NavLink>
+        <NavLink
+          href={`${prefix}/dashboard/my-orders`}
+          icon={<ShoppingBagIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/my-orders')}
+        >
+          My Orders
         </NavLink>
         <NavLink
           href={`${prefix}/dashboard/docs`}
@@ -748,6 +764,14 @@ function HomeIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  )
+}
+
+function ShoppingBagIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
     </svg>
   )
 }

@@ -42,7 +42,7 @@
  */
 export interface UMSContent {
   /** Content type discriminator */
-  type: 'text' | 'rich_text' | 'blocks' | 'widget' | 'system_action' | 'form_submission' | 'transaction' | 'bi_insight'
+  type: 'text' | 'rich_text' | 'blocks' | 'widget' | 'system_action' | 'form_submission' | 'transaction' | 'bi_insight' | 'voice_call'
   /** Primary text content (always present — even for non-text types, serves as summary/description) */
   text: string
   /** Payload CMS blocks (product displays, booking widgets, etc.) */
@@ -217,5 +217,31 @@ export function createBIInsightContent(
     type: 'bi_insight',
     text,
     metrics,
+  }
+}
+
+/**
+ * Creates a voice call message content envelope.
+ * Used for persisting Vapi voice call transcripts to the AI Bus.
+ *
+ * @param text - Transcript text or call summary
+ * @param callData - Voice call metadata (caller, duration, status, recording URL, etc.)
+ */
+export function createVoiceCallContent(
+  text: string,
+  callData: {
+    role: 'caller' | 'assistant' | 'system'
+    callerPhone?: string
+    callId?: string
+    recordingUrl?: string
+    endedReason?: string
+    duration?: number
+    [key: string]: unknown
+  },
+): UMSContent {
+  return {
+    type: 'voice_call',
+    text,
+    data: { ...callData, timestamp: new Date().toISOString() },
   }
 }

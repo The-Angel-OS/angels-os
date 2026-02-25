@@ -408,6 +408,31 @@ export interface Tenant {
     openrouterApiKey?: string | null;
   };
   /**
+   * Vapi Voice AI configuration — phone-based LEO access for this Enterprise
+   */
+  vapi?: {
+    /**
+     * Enable Vapi voice AI for this tenant
+     */
+    enabled?: boolean | null;
+    /**
+     * Vapi phone number assigned to this tenant (E.164 format, e.g. +17274408797). Used to route inbound calls to the correct Enterprise.
+     */
+    phoneNumber?: string | null;
+    /**
+     * Optional: Vapi Assistant ID override. If blank, the default LEO voice config is used.
+     */
+    assistantId?: string | null;
+    /**
+     * Optional: ElevenLabs voice ID override. Default: Adam (pNInz6obpgDQGcFmaJgB)
+     */
+    voiceId?: string | null;
+    /**
+     * Custom first message when the phone is answered. Leave blank for default LEO greeting.
+     */
+    greeting?: string | null;
+  };
+  /**
    * LEO agent wallet for federation skill spending/earning. Structural guardrails the agent CANNOT override.
    */
   agentWallet?: {
@@ -2021,6 +2046,7 @@ export interface Message {
         | 'transaction'
         | 'widget'
         | 'ethical_assessment'
+        | 'voice_call'
       )
     | null;
   /**
@@ -4148,6 +4174,15 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         anthropicApiKey?: T;
         openrouterApiKey?: T;
+      };
+  vapi?:
+    | T
+    | {
+        enabled?: T;
+        phoneNumber?: T;
+        assistantId?: T;
+        voiceId?: T;
+        greeting?: T;
       };
   agentWallet?:
     | T

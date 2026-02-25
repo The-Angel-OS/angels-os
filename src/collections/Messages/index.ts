@@ -166,6 +166,7 @@ export const Messages: CollectionConfig = {
         { label: 'Transaction', value: 'transaction' },
         { label: 'Widget', value: 'widget' },
         { label: 'Ethical Assessment', value: 'ethical_assessment' },
+        { label: 'Voice Call', value: 'voice_call' },
       ],
       admin: {
         description: 'Message classification — determines rendering, routing, and workflow triggers',
