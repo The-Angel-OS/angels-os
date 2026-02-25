@@ -1,16 +1,29 @@
 /**
  * Stripe Webhook Handler — POST /api/stripe/webhooks
  *
- * Handles Stripe events for Connect and payment processing.
+ * Handles Stripe events for Connect Direct Charges and payment processing.
  * Idempotent: stores processed event IDs to prevent duplicate handling.
  *
+ * Direct Charges model:
+ * - Payments are created ON the seller's connected account
+ * - Platform receives application_fee as an automatic transfer
+ * - Connect webhook events include an `account` field identifying the seller
+ * - payment_intent.succeeded fires for BOTH direct and platform charges
+ *
  * Events handled:
- * - payment_intent.succeeded — record transaction, trigger fulfillment
- * - account.updated — sync Connect account status to tenant
- * - payout.paid — record payout to tenant
+ * - payment_intent.succeeded — record Justice Fund allocation, update order status
+ * - account.updated — sync Connect account onboarding status to tenant
+ *
+ * Webhook setup:
+ * - In Stripe Dashboard → Webhooks → Add endpoint
+ * - URL: https://www.spacesangels.com/api/stripe/webhooks
+ * - IMPORTANT: Check "Listen to events on Connected accounts" for direct charges
+ * - Events: payment_intent.succeeded, payment_intent.payment_failed,
+ *           account.updated, charge.refunded
  *
  * @see src/lib/ultimate-fair-split.ts — split calculation
  * @see src/lib/stripe-connect-config.ts — fee configuration
+ * @see src/lib/angel-os-stripe-adapter.ts — direct charges implementation
  */
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
@@ -20,7 +33,7 @@ let _stripe: Stripe | null = null
 function getStripe(): Stripe {
   if (!_stripe) {
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2025-08-27.basil',
+      apiVersion: '2025-08-27.basil' as any,
     })
   }
   return _stripe
@@ -52,6 +65,10 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
     return Response.json({ error: message }, { status: 400 })
   }
 
+  // For direct charges, the event includes `account` identifying the connected account.
+  // This lets us know which seller the payment belongs to.
+  const connectedAccountId = (event as any).account as string | undefined
+
   // Idempotency check — DB-persisted (survives deploys)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pse = payload as any // ProcessedStripeEvents not yet in generated types
@@ -78,6 +95,7 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
       data: {
         eventId: event.id,
         eventType: event.type,
+        connectedAccountId: connectedAccountId || null,
         processedAt: new Date().toISOString(),
       },
       overrideAccess: true,
@@ -93,11 +111,21 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
   try {
     switch (event.type) {
       case 'payment_intent.succeeded': {
-        await handlePaymentIntentSucceeded(payload, event.data.object as Stripe.PaymentIntent)
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        await handlePaymentIntentSucceeded(payload, paymentIntent, connectedAccountId)
         break
       }
       case 'account.updated': {
         await handleAccountUpdated(payload, event.data.object as Stripe.Account)
+        break
+      }
+      case 'charge.refunded': {
+        // Refund processed on connected account — log for audit trail
+        const charge = event.data.object as Stripe.Charge
+        console.log(
+          `[Stripe Webhook] Refund processed on ${connectedAccountId || 'platform'}: ` +
+          `charge ${charge.id}, amount refunded: ${charge.amount_refunded}`,
+        )
         break
       }
       default: {
@@ -118,10 +146,23 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
 async function handlePaymentIntentSucceeded(
   payload: Parameters<PayloadHandler>[0]['payload'],
   paymentIntent: Stripe.PaymentIntent,
+  connectedAccountId?: string,
 ) {
   const amountCents = paymentIntent.amount
-  const splits = calculateUltimateFairSplit(amountCents)
+  const isDirectCharge = Boolean(connectedAccountId)
+  const chargeModel = paymentIntent.metadata?.angelOs_chargeModel || (isDirectCharge ? 'direct' : 'platform')
 
+  console.log(
+    `[Stripe Webhook] Payment succeeded: ${paymentIntent.id} ` +
+    `(${chargeModel} charge, $${(amountCents / 100).toFixed(2)})` +
+    (connectedAccountId ? ` on account ${connectedAccountId}` : ''),
+  )
+
+  // For direct charges, the application_fee has already been split by Stripe.
+  // The connected account received (amount - application_fee).
+  // The platform received the application_fee.
+  // We still need to record the Justice Fund allocation for our internal accounting.
+  const splits = calculateUltimateFairSplit(amountCents)
   const justiceFundAmount = splits.find((s) => s.recipient === 'JUSTICE_FUND')?.amount || 0
 
   // Record Justice Fund allocation
@@ -136,7 +177,7 @@ async function handlePaymentIntentSucceeded(
           sourcePaymentIntentId: paymentIntent.id,
           sourceTotalCents: amountCents,
           percentage: ULTIMATE_FAIR_SPLIT.JUSTICE_FUND * 100,
-          description: `5% allocation from payment ${paymentIntent.id}`,
+          description: `5% allocation from ${chargeModel} charge ${paymentIntent.id}${connectedAccountId ? ` (seller: ${connectedAccountId})` : ''}`,
           status: 'completed',
           processedAt: new Date().toISOString(),
         },
@@ -201,4 +242,10 @@ async function handleAccountUpdated(
     },
     overrideAccess: true,
   })
+
+  console.log(
+    `[Stripe Webhook] Account updated: ${account.id} → ` +
+    `charges=${account.charges_enabled}, payouts=${account.payouts_enabled}, ` +
+    `details_submitted=${account.details_submitted}`,
+  )
 }
