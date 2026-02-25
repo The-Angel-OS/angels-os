@@ -12,7 +12,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { Suspense, useCallback, useEffect, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { cssVariables } from '@/cssVariables'
 import { CheckoutForm } from '@/components/forms/CheckoutForm'
@@ -26,8 +26,10 @@ import { FormItem } from '@/components/forms/FormItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
-const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
-const stripe = loadStripe(apiKey)
+const STRIPE_PUBLISHABLE_KEY = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
+
+// Default Stripe instance (platform account — used when no Connect account)
+const defaultStripe = loadStripe(STRIPE_PUBLISHABLE_KEY)
 
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuth()
@@ -47,6 +49,18 @@ export const CheckoutPage: React.FC = () => {
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
   const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
+
+  // Direct charges: when paymentData includes stripeAccountId, load Stripe
+  // with the connected account context so Elements targets the seller's account.
+  // Falls back to defaultStripe (platform account) for non-Connect payments.
+  const stripePromise = useMemo(() => {
+    if (!paymentData) return defaultStripe
+    const connectedAccountId = paymentData['stripeAccountId'] as string | undefined
+    if (connectedAccountId) {
+      return loadStripe(STRIPE_PUBLISHABLE_KEY, { stripeAccount: connectedAccountId })
+    }
+    return defaultStripe
+  }, [paymentData])
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
 
@@ -105,7 +119,7 @@ export const CheckoutPage: React.FC = () => {
     [billingAddress, billingAddressSameAsShipping, shippingAddress],
   )
 
-  if (!stripe) return null
+  if (!stripePromise) return null
 
   if (cartIsEmpty && isProcessingPayment) {
     return (
@@ -329,7 +343,7 @@ export const CheckoutPage: React.FC = () => {
                   },
                   clientSecret: paymentData['clientSecret'] as string,
                 }}
-                stripe={stripe}
+                stripe={stripePromise}
               >
                 <div className="flex flex-col gap-8">
                   <CheckoutForm

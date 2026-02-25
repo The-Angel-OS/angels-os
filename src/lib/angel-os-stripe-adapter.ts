@@ -1,14 +1,21 @@
 /**
- * Angel OS Stripe Connect Payment Adapter
+ * Angel OS Stripe Connect Payment Adapter — Direct Charges
  *
- * Wraps the default Payload ecommerce Stripe adapter to inject:
- * - transfer_data.destination → tenant's connected Stripe account
- * - application_fee_amount → 40% platform fee (Ultimate Fair Split)
+ * Uses Stripe Connect DIRECT CHARGES model:
+ * - Payment goes directly to the seller's connected account
+ * - Platform takes application_fee_amount (40% via Ultimate Fair Split)
+ * - Seller appears on customer's receipt (Enterprise sovereignty)
+ * - Seller handles refunds and disputes (owner accountability)
+ * - Buyers may be unaware of the platform (white-label)
  *
  * When a tenant has Stripe Connect enabled (stripeChargesEnabled: true),
- * payments are split at the point of sale: 60% to provider, 40% retained.
- * When Connect is not enabled, standard payment processing applies.
+ * the PaymentIntent is created ON the connected account with an
+ * application_fee_amount. The platform receives the fee as an automatic transfer.
  *
+ * When Connect is not enabled, standard payment processing applies
+ * (payment goes to the platform account directly).
+ *
+ * @see https://docs.stripe.com/connect/direct-charges
  * @see src/lib/stripe-connect-config.ts — fee calculation
  * @see src/lib/ultimate-fair-split.ts — split constants
  */
@@ -74,18 +81,22 @@ async function resolveTenantStripeAccount(
 }
 
 /**
- * Custom Stripe adapter with Connect split payments.
+ * Custom Stripe adapter with Direct Charges for Connect.
  *
- * Mirrors the default stripeAdapter interface but injects transfer_data
- * and application_fee_amount on PaymentIntents when the tenant has
- * a connected Stripe account with charges enabled.
+ * Direct charges: PaymentIntent is created ON the connected account.
+ * The seller collects payment directly. Platform takes application_fee_amount.
+ * Seller appears on receipt. Seller handles refunds/disputes.
+ *
+ * Returns stripeAccountId in initiatePayment response so the frontend
+ * can initialize Stripe Elements with { stripeAccount: id } for the
+ * correct connected account context.
  */
 export function angelOsStripeAdapter(
   props: AngelOsStripeAdapterArgs,
 ): PaymentAdapter {
   const { secretKey, publishableKey, webhookSecret } = props
 
-  // Lazy Stripe instance
+  // Lazy Stripe instance (platform account)
   let _stripe: Stripe | null = null
   function getStripe(): Stripe {
     if (!_stripe) {
@@ -142,7 +153,14 @@ export function angelOsStripeAdapter(
     },
 
     /**
-     * Initiate payment with Connect split when tenant is connected.
+     * Initiate payment using Direct Charges when tenant has Connect enabled.
+     *
+     * Direct charges flow:
+     * 1. Find/create customer ON the connected account
+     * 2. Create PaymentIntent ON the connected account with application_fee_amount
+     * 3. Return clientSecret + stripeAccountId for frontend Elements init
+     *
+     * Fallback (no Connect): standard charge to platform account.
      */
     initiatePayment: async ({
       data,
@@ -173,16 +191,9 @@ export function angelOsStripeAdapter(
 
       // Resolve tenant's Stripe Connect status
       const connectAccount = await resolveTenantStripeAccount(req)
+      const useDirectCharges = connectAccount?.chargesEnabled && connectAccount.stripeAccountId
 
       try {
-        // Find or create Stripe customer
-        let customer = (
-          await stripe.customers.list({ email: customerEmail })
-        ).data[0]
-        if (!customer?.id) {
-          customer = await stripe.customers.create({ email: customerEmail })
-        }
-
         // Flatten cart items for metadata
         const flattenedCart = cart.items.map((item: any) => {
           const productID =
@@ -201,21 +212,26 @@ export function angelOsStripeAdapter(
           }
         })
 
-        // Build PaymentIntent params
-        const intentParams: Stripe.PaymentIntentCreateParams = {
-          amount,
-          automatic_payment_methods: { enabled: true },
-          currency,
-          customer: customer.id,
-          metadata: {
-            cartID: String(cart.id),
-            cartItemsSnapshot: JSON.stringify(flattenedCart),
-            shippingAddress: JSON.stringify(data.shippingAddress || {}),
-          },
-        }
+        // --- Direct charges: customer + PaymentIntent on the connected account ---
+        if (useDirectCharges) {
+          const connectedAccountId = connectAccount.stripeAccountId
 
-        // Inject Connect split if tenant has charges enabled
-        if (connectAccount?.chargesEnabled && connectAccount.stripeAccountId) {
+          // Find or create customer ON the connected account
+          // (direct charges require customers to exist on the connected account)
+          let customer = (
+            await stripe.customers.list(
+              { email: customerEmail, limit: 1 },
+              { stripeAccount: connectedAccountId },
+            )
+          ).data[0]
+          if (!customer?.id) {
+            customer = await stripe.customers.create(
+              { email: customerEmail },
+              { stripeAccount: connectedAccountId },
+            )
+          }
+
+          // Calculate platform application fee
           const applicationFee = getStripeApplicationFeeCents(amount)
 
           // Calculate bootstrap fee (may be 0 if in free tier or standard)
@@ -231,29 +247,87 @@ export function angelOsStripeAdapter(
 
           const totalApplicationFee = applicationFee + bootstrapFeeCents
 
-          intentParams.transfer_data = {
-            destination: connectAccount.stripeAccountId,
+          // Build PaymentIntent params for DIRECT CHARGE
+          // No transfer_data — the charge IS on the connected account
+          const intentParams: Stripe.PaymentIntentCreateParams = {
+            amount,
+            application_fee_amount: totalApplicationFee,
+            automatic_payment_methods: { enabled: true },
+            currency,
+            customer: customer.id,
+            metadata: {
+              cartID: String(cart.id),
+              cartItemsSnapshot: JSON.stringify(flattenedCart),
+              shippingAddress: JSON.stringify(data.shippingAddress || {}),
+              angelOs_splitEnabled: 'true',
+              angelOs_chargeModel: 'direct',
+              angelOs_platformAccount: 'self',
+              angelOs_providerAccount: connectedAccountId,
+              angelOs_applicationFee: String(applicationFee),
+              angelOs_bootstrapFee: String(bootstrapFeeCents),
+              angelOs_bootstrapTier: bootstrapTier,
+              angelOs_totalPlatformFee: String(totalApplicationFee),
+              angelOs_providerAmount: String(amount - totalApplicationFee),
+            },
           }
-          intentParams.application_fee_amount = totalApplicationFee
 
-          // Add split metadata for webhook reconciliation
-          intentParams.metadata = {
-            ...intentParams.metadata,
-            angelOs_splitEnabled: 'true',
-            angelOs_providerAccount: connectAccount.stripeAccountId,
-            angelOs_applicationFee: String(applicationFee),
-            angelOs_bootstrapFee: String(bootstrapFeeCents),
-            angelOs_bootstrapTier: bootstrapTier,
-            angelOs_totalPlatformFee: String(totalApplicationFee),
-            angelOs_providerAmount: String(amount - totalApplicationFee),
+          // Create PaymentIntent ON the connected account (direct charge)
+          const paymentIntent = await stripe.paymentIntents.create(
+            intentParams,
+            { stripeAccount: connectedAccountId },
+          )
+
+          // Create transaction record
+          await payload.create({
+            collection: transactionsSlug as any,
+            data: {
+              ...(req.user ? { customer: req.user.id } : { customerEmail }),
+              amount: paymentIntent.amount,
+              billingAddress: data.billingAddress,
+              cart: cart.id,
+              currency: paymentIntent.currency.toUpperCase(),
+              items: flattenedCart,
+              paymentMethod: 'stripe',
+              status: 'pending',
+              stripe: {
+                customerID: customer.id,
+                paymentIntentID: paymentIntent.id,
+              },
+            } as any,
+          })
+
+          return {
+            clientSecret: paymentIntent.client_secret || '',
+            message: 'Payment initiated with Direct Charges (seller collects)',
+            paymentIntentID: paymentIntent.id,
+            // Frontend needs this to initialize Stripe Elements with the right account
+            stripeAccountId: connectedAccountId,
           }
-        } else if (connectAccount && !connectAccount.chargesEnabled) {
-          // Connected but charges not yet enabled — note in metadata
-          intentParams.metadata = {
-            ...intentParams.metadata,
+        }
+
+        // --- Fallback: standard charge to platform account (no Connect) ---
+        let customer = (
+          await stripe.customers.list({ email: customerEmail })
+        ).data[0]
+        if (!customer?.id) {
+          customer = await stripe.customers.create({ email: customerEmail })
+        }
+
+        const intentParams: Stripe.PaymentIntentCreateParams = {
+          amount,
+          automatic_payment_methods: { enabled: true },
+          currency,
+          customer: customer.id,
+          metadata: {
+            cartID: String(cart.id),
+            cartItemsSnapshot: JSON.stringify(flattenedCart),
+            shippingAddress: JSON.stringify(data.shippingAddress || {}),
             angelOs_splitEnabled: 'false',
-            angelOs_splitReason: 'charges_not_enabled',
-          }
+            angelOs_chargeModel: 'platform',
+            angelOs_splitReason: connectAccount
+              ? 'charges_not_enabled'
+              : 'no_connect_account',
+          },
         }
 
         const paymentIntent = await stripe.paymentIntents.create(intentParams)
@@ -279,10 +353,9 @@ export function angelOsStripeAdapter(
 
         return {
           clientSecret: paymentIntent.client_secret || '',
-          message: connectAccount?.chargesEnabled
-            ? 'Payment initiated with Connect split'
-            : 'Payment initiated successfully',
+          message: 'Payment initiated (platform account)',
           paymentIntentID: paymentIntent.id,
+          // No stripeAccountId — frontend uses platform's default
         }
       } catch (error) {
         payload.logger.error(error, 'Error initiating payment with Angel OS Stripe adapter')
