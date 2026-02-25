@@ -42,6 +42,7 @@ export interface HolonNode {
 export interface OrderRequirement {
   skills: string[]
   materials?: string[]
+  equipment?: string[]
   buyerLocation: { lat: number; lng: number }
   maxDistance?: number
 }
@@ -64,6 +65,23 @@ export type FulfillmentStatus =
   | 'shipped'
   | 'delivered'
   | 'rejected'
+  | 'cancelled'
+
+export type AngelTokenStatus = 'active' | 'redeemed' | 'refunded'
+
+export interface FulfillmentEntry {
+  orderItemIndex: number
+  fulfillmentStatus: FulfillmentStatus
+  angelTokenId?: string
+  tokenStatus?: AngelTokenStatus
+  queuedAt?: string
+  queueReason?: string
+  assignedHolon?: number
+  sourceTenant?: number
+  matchScore?: number
+  matchedAt?: string
+  selectedConfiguration?: Record<string, unknown>
+}
 
 export interface FulfillmentUpdate {
   status: FulfillmentStatus
@@ -90,16 +108,18 @@ export const FULFILLMENT_STATES: FulfillmentStatus[] = [
   'shipped',
   'delivered',
   'rejected',
+  'cancelled',
 ]
 
 export const VALID_TRANSITIONS: Record<FulfillmentStatus, FulfillmentStatus[]> = {
-  pending_match: ['matched'],
+  pending_match: ['matched', 'cancelled'],
   matched: ['accepted', 'rejected'],
   accepted: ['in_production', 'rejected'],
   in_production: ['shipped', 'rejected'],
   shipped: ['delivered'],
   delivered: [],
   rejected: ['pending_match'],
+  cancelled: [], // Terminal — refund issued
 }
 
 // ---------------------------------------------------------------------------
@@ -256,12 +276,17 @@ export function findMatchingHolons(
       holon.activeOrderCount,
       holon.rating,
     )
+    const equipmentBonus = calculateEquipmentBonus(
+      requirement.equipment,
+      holon.capabilities,
+    )
+
     const totalScore = calculateMatchScore(
       capabilityScore,
       proximityScore,
       ratingScore,
       fairnessScore,
-    )
+    ) + equipmentBonus
 
     matches.push({
       holon,
@@ -350,4 +375,60 @@ export function serializeMatch(match: HolonMatch): string {
     `Rating: ${match.holon.rating}/5`,
   ]
   return parts.join(' | ')
+}
+
+// ---------------------------------------------------------------------------
+// Angel Token Queue Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a fulfillment entry represents a queued Angel Token.
+ * Queued = pending_match + has a queuedAt timestamp.
+ */
+export function isQueuedAngelToken(entry: FulfillmentEntry): boolean {
+  return (
+    entry.fulfillmentStatus === 'pending_match' &&
+    entry.tokenStatus === 'active' &&
+    Boolean(entry.queuedAt)
+  )
+}
+
+/**
+ * Calculate queue position for an item based on queuedAt ordering.
+ * Position 1 = longest-waiting (first in, first served).
+ */
+export function getQueuePosition(
+  queuedAt: string,
+  allQueuedEntries: FulfillmentEntry[],
+): number {
+  const sorted = allQueuedEntries
+    .filter(isQueuedAngelToken)
+    .sort((a, b) => (a.queuedAt || '').localeCompare(b.queuedAt || ''))
+
+  const idx = sorted.findIndex((e) => e.queuedAt === queuedAt)
+  return idx >= 0 ? idx + 1 : sorted.length + 1
+}
+
+/**
+ * Calculate equipment match bonus score.
+ * If the order requires specific equipment and the holon has it, +15 bonus.
+ * This is a bonus on top of capability score, not a gate.
+ */
+export function calculateEquipmentBonus(
+  requiredEquipment: string[] | undefined,
+  holonCaps: HolonCapability[],
+): number {
+  if (!requiredEquipment || requiredEquipment.length === 0) return 0
+
+  const holonEquipment = holonCaps
+    .map((c) => (c.equipment || '').toLowerCase().trim())
+    .filter(Boolean)
+
+  if (holonEquipment.length === 0) return 0
+
+  const matched = requiredEquipment.filter((req) =>
+    holonEquipment.some((eq) => eq.includes(req.toLowerCase().trim())),
+  )
+
+  return matched.length > 0 ? 15 : 0 // +15 bonus for equipment match
 }
