@@ -178,6 +178,11 @@ export function ChatProvider({
               if (!deduped.find((c) => c.id === leoCh.id)) {
                 deduped.unshift(leoCh)
               }
+              // Auto-switch to LEO DM if no channel is currently active
+              if (!activeChannelSlugLocal) {
+                setActiveChannelSlugLocal(leoCh.slug)
+                chat.switchChannel(leoCh.slug)
+              }
             }
           } catch (err) {
             console.warn('[ChatProvider] Failed to resolve LEO DM:', err)

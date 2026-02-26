@@ -393,6 +393,60 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
+    // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
+    {
+      name: 'vapi',
+      type: 'group',
+      admin: {
+        description: 'Vapi Voice AI configuration — phone-based LEO access for this Enterprise',
+      },
+      fields: [
+        {
+          name: 'enabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Enable Vapi voice AI for this tenant',
+          },
+        },
+        {
+          name: 'phoneNumber',
+          type: 'text',
+          admin: {
+            description:
+              'Vapi phone number assigned to this tenant (E.164 format, e.g. +17274408797). Used to route inbound calls to the correct Enterprise.',
+            condition: (_, siblingData) => siblingData?.enabled === true,
+          },
+        },
+        {
+          name: 'assistantId',
+          type: 'text',
+          admin: {
+            description:
+              'Optional: Vapi Assistant ID override. If blank, the default LEO voice config is used.',
+            condition: (_, siblingData) => siblingData?.enabled === true,
+          },
+        },
+        {
+          name: 'voiceId',
+          type: 'text',
+          admin: {
+            description:
+              'Optional: ElevenLabs voice ID override. Default: Adam (pNInz6obpgDQGcFmaJgB)',
+            condition: (_, siblingData) => siblingData?.enabled === true,
+          },
+        },
+        {
+          name: 'greeting',
+          type: 'textarea',
+          admin: {
+            description:
+              'Custom first message when the phone is answered. Leave blank for default LEO greeting.',
+            condition: (_, siblingData) => siblingData?.enabled === true,
+          },
+        },
+      ],
+    },
     // ─── Agent Wallet (Federation Sprint) ──────────────────────────
     {
       name: 'agentWallet',
