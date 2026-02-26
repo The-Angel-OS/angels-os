@@ -99,6 +99,7 @@ import { federationSkillsListHandler, federationSkillsInvokeHandler } from '@/en
 import { federationVouchHandler } from '@/endpoints/federation-vouch'
 import { federationGovernanceSyncHandler } from '@/endpoints/federation-governance-sync'
 import { mediaAnalyzeHandler } from '@/endpoints/media-analyze'
+import { suitcaseApplyHandler } from '@/endpoints/suitcase-apply'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -595,6 +596,12 @@ export default buildConfig({
       path: '/media/analyze',
       method: 'post',
       handler: mediaAnalyzeHandler,
+    },
+    // ─── Suitcase Apply (portable Endeavor import) ──────────────
+    {
+      path: '/suitcase/apply',
+      method: 'post',
+      handler: suitcaseApplyHandler,
     },
   ],
   globals: [],

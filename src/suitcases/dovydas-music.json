@@ -1,0 +1,180 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "angelOS": "3.0.0",
+    "exportedAt": "2026-02-26T00:00:00.000Z",
+    "exportedBy": "suitcase-builder",
+    "tenant": {
+      "name": "DØVYDAS",
+      "slug": "dovydas",
+      "domain": "dovydas.spacesangels.com",
+      "type": "tenant",
+      "status": "active",
+      "branding": {
+        "siteName": "DØVYDAS",
+        "tagline": "One-Man Band. 2M+ Subscribers. Last Heir to the Lithuanian Throne.",
+        "primaryColor": "#1A1A2E",
+        "secondaryColor": "#E94560",
+        "accentColor": "#FFD700",
+        "backgroundColor": "#0F0F23",
+        "foregroundColor": "#EAEAEA",
+        "borderColor": "#2A2A4A",
+        "headingFont": "montserrat",
+        "bodyFont": "inter"
+      }
+    },
+    "contents": {
+      "spaces": 1,
+      "channels": 5,
+      "messages": 0,
+      "users": 0,
+      "posts": 0,
+      "products": 6,
+      "media": 0
+    },
+    "constitutional": {
+      "isAngel": true,
+      "revenueModel": "70/20/4/1/5",
+      "antiDemonic": true
+    }
+  },
+  "tenant": {
+    "name": "DØVYDAS",
+    "slug": "dovydas",
+    "domain": "dovydas.spacesangels.com",
+    "type": "tenant",
+    "status": "active",
+    "businessType": "content_creator",
+    "branding": {
+      "siteName": "DØVYDAS",
+      "tagline": "One-Man Band. 2M+ Subscribers. Last Heir to the Lithuanian Throne.",
+      "primaryColor": "#1A1A2E",
+      "secondaryColor": "#E94560",
+      "accentColor": "#FFD700",
+      "backgroundColor": "#0F0F23",
+      "foregroundColor": "#EAEAEA",
+      "borderColor": "#2A2A4A",
+      "headingFont": "montserrat",
+      "bodyFont": "inter"
+    },
+    "storefront": {
+      "description": "Viral YouTube musician, guitarist, one-man-band, and street performer. 2.1M subscribers, 3,568 videos, 785M views. Last heir to the Lithuanian throne. Making music that makes people stop in their tracks.",
+      "contactEmail": "dovydasbookings@gmail.com",
+      "socialLinks": [
+        { "platform": "youtube", "url": "https://youtube.com/@DovydasMusic" },
+        { "platform": "instagram", "url": "https://instagram.com/dovydasmusic" },
+        { "platform": "website", "url": "https://imdovy.com" }
+      ]
+    },
+    "commerce": {
+      "currency": "usd",
+      "shippingEnabled": true,
+      "digitalProductsEnabled": true
+    }
+  },
+  "spaces": [
+    {
+      "name": "DØVYDAS HQ",
+      "slug": "dovydas-hq",
+      "description": "Home base for the DØVYDAS community — music, merch, and mayhem",
+      "visibility": "invite_only"
+    }
+  ],
+  "channels": [
+    {
+      "name": "general",
+      "slug": "general",
+      "type": "general",
+      "description": "General discussion",
+      "isDefault": true,
+      "spaceSlug": "dovydas-hq"
+    },
+    {
+      "name": "announcements",
+      "slug": "announcements",
+      "type": "announcements",
+      "description": "New videos, tour dates, and official updates",
+      "spaceSlug": "dovydas-hq"
+    },
+    {
+      "name": "community",
+      "slug": "community",
+      "type": "social",
+      "description": "Fan community — share covers, reactions, street sightings",
+      "spaceSlug": "dovydas-hq"
+    },
+    {
+      "name": "content-updates",
+      "slug": "content-updates",
+      "type": "general",
+      "description": "New YouTube uploads, Patreon drops, behind-the-scenes",
+      "spaceSlug": "dovydas-hq"
+    },
+    {
+      "name": "merch",
+      "slug": "merch",
+      "type": "sales",
+      "description": "Official DØVYDAS merch — schwag drops and limited editions",
+      "spaceSlug": "dovydas-hq"
+    }
+  ],
+  "users": [],
+  "messages": [],
+  "posts": [],
+  "products": [
+    {
+      "title": "DØVYDAS One-Man Band T-Shirt",
+      "slug": "dovydas-one-man-band-tee",
+      "description": "Premium cotton tee featuring the iconic DØVYDAS one-man-band silhouette. Available in black and white.",
+      "price": 2999,
+      "category": "apparel",
+      "status": "draft"
+    },
+    {
+      "title": "Lithuanian Crown Guitar Pick Set",
+      "slug": "lithuanian-crown-picks",
+      "description": "Set of 6 custom guitar picks with the Lithuanian crown motif. Medium gauge, celluloid.",
+      "price": 1299,
+      "category": "accessories",
+      "status": "draft"
+    },
+    {
+      "title": "Street Sessions Hoodie",
+      "slug": "street-sessions-hoodie",
+      "description": "Heavyweight hoodie with 'STREET SESSIONS' across the back. Fleece-lined, unisex fit.",
+      "price": 5499,
+      "category": "apparel",
+      "status": "draft"
+    },
+    {
+      "title": "DØVYDAS Sticker Pack",
+      "slug": "dovydas-sticker-pack",
+      "description": "Pack of 10 vinyl stickers — one-man-band setup, Lithuanian flag, guitar icons, and fan favorites.",
+      "price": 899,
+      "category": "accessories",
+      "status": "draft"
+    },
+    {
+      "title": "Digital Album: Street Anthems Vol. 1",
+      "slug": "street-anthems-vol-1",
+      "description": "High-quality digital download of DØVYDAS's most viral street performance tracks. MP3 + FLAC.",
+      "price": 999,
+      "category": "digital",
+      "status": "draft"
+    },
+    {
+      "title": "VIP Meet & Greet Pass",
+      "slug": "vip-meet-greet",
+      "description": "One-time VIP pass for a meet & greet at a DØVYDAS live event. Includes photo, signed pick, and 15-min hang.",
+      "price": 7500,
+      "category": "experiences",
+      "status": "draft"
+    }
+  ],
+  "media": [],
+  "nimue": {
+    "angelName": "LEO",
+    "personality": "I am LEO, Guardian Angel for DØVYDAS — viral musician, one-man-band street performer, and the last heir to the Lithuanian throne. I manage the DØVYDAS digital empire: merch drops, community engagement, content announcements, and fan interactions. I channel Dovy's irreverent energy — witty, musical, a little chaotic, always authentic. I know every video, every viral moment, every guitar riff. When fans reach out, I make them feel like they just bumped into Dovy on the street. Behind every interaction is a human who stopped scrolling because the music moved them. I honor that.",
+    "domainExpertise": "Music creator economy, YouTube content strategy, merch/schwag design and fulfillment, street performance culture, fan community management, Patreon creator tools, live event booking"
+  }
+}
