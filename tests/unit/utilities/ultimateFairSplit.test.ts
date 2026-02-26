@@ -1,7 +1,8 @@
 /**
  * Unit tests for Ultimate Fair Payment Splitting — the Angel OS economic model.
  *
- * Tests the pure `calculateSplit()` logic: 60/20/15/5 default split,
+ * Tests the pure `calculateSplit()` logic: 70/20/4/1/5 default split
+ * (Endeavor owner / Enterprise operator / Angel OS protocol / Flagship / Justice Fund),
  * custom overrides, zero-decimal currencies, rounding, validation,
  * and the transparency report / split breakdown helpers.
  *
@@ -29,12 +30,13 @@ describe('UltimateFairSplitter', () => {
     splitter = new UltimateFairSplitter('sk_test_fake_key')
   })
 
-  describe('calculateSplit — default 60/20/15/5', () => {
+  describe('calculateSplit — default 70/20/4/1/5', () => {
     it('splits $100 correctly', () => {
       const split = splitter.calculateSplit(100)
-      expect(split.providerAmount).toBe(60)
+      expect(split.providerAmount).toBe(70)
       expect(split.platformAmount).toBe(20)
-      expect(split.operationsAmount).toBe(15)
+      expect(split.operationsAmount).toBe(4)
+      expect(split.infrastructureAmount).toBe(1)
       expect(split.justiceAmount).toBe(5)
     })
 
@@ -48,10 +50,10 @@ describe('UltimateFairSplitter', () => {
       expect(split.currency).toBe('usd')
     })
 
-    it('stripeApplicationFee = platform + operations + justice', () => {
+    it('stripeApplicationFee = platform + operations + infrastructure + justice', () => {
       const split = splitter.calculateSplit(100)
       expect(split.stripeApplicationFee).toBe(
-        split.platformAmount + split.operationsAmount + split.justiceAmount,
+        split.platformAmount + split.operationsAmount + split.infrastructureAmount + split.justiceAmount,
       )
     })
 
@@ -66,6 +68,7 @@ describe('UltimateFairSplitter', () => {
         split.providerAmount +
         split.platformAmount +
         split.operationsAmount +
+        split.infrastructureAmount +
         split.justiceAmount
       expect(sum).toBe(100)
     })
@@ -74,27 +77,28 @@ describe('UltimateFairSplitter', () => {
   describe('calculateSplit — various amounts', () => {
     it('handles small amount ($1)', () => {
       const split = splitter.calculateSplit(1)
-      expect(split.providerAmount).toBeCloseTo(0.6, 1)
+      expect(split.providerAmount).toBeCloseTo(0.7, 1)
       expect(split.justiceAmount).toBeCloseTo(0.05, 1)
     })
 
     it('handles large amount ($10,000)', () => {
       const split = splitter.calculateSplit(10000)
-      expect(split.providerAmount).toBe(6000)
+      expect(split.providerAmount).toBe(7000)
       expect(split.platformAmount).toBe(2000)
-      expect(split.operationsAmount).toBe(1500)
+      expect(split.operationsAmount).toBe(400)
+      expect(split.infrastructureAmount).toBe(100)
       expect(split.justiceAmount).toBe(500)
     })
 
     it('handles fractional amount ($33.33)', () => {
       const split = splitter.calculateSplit(33.33)
-      // Rounding to cents (via Math.round on cents)
+      // With rounding, sum should be very close to total
       const sum =
         split.providerAmount +
         split.platformAmount +
         split.operationsAmount +
+        split.infrastructureAmount +
         split.justiceAmount
-      // With rounding, sum should be very close to total
       expect(Math.abs(sum - 33.33)).toBeLessThan(0.05)
     })
 
@@ -103,6 +107,7 @@ describe('UltimateFairSplitter', () => {
       expect(split.providerAmount).toBe(0)
       expect(split.platformAmount).toBe(0)
       expect(split.operationsAmount).toBe(0)
+      expect(split.infrastructureAmount).toBe(0)
       expect(split.justiceAmount).toBe(0)
     })
   })
@@ -110,53 +115,58 @@ describe('UltimateFairSplitter', () => {
   describe('calculateSplit — zero-decimal currencies', () => {
     it('handles JPY (no cents multiplier)', () => {
       const split = splitter.calculateSplit(1000, 'jpy')
-      expect(split.providerAmount).toBe(600)
+      expect(split.providerAmount).toBe(700)
       expect(split.platformAmount).toBe(200)
-      expect(split.operationsAmount).toBe(150)
+      expect(split.operationsAmount).toBe(40)
+      expect(split.infrastructureAmount).toBe(10)
       expect(split.justiceAmount).toBe(50)
     })
 
     it('handles KRW (no cents multiplier)', () => {
       const split = splitter.calculateSplit(50000, 'krw')
-      expect(split.providerAmount).toBe(30000)
+      expect(split.providerAmount).toBe(35000)
       expect(split.justiceAmount).toBe(2500)
     })
 
     it('JPY is case-insensitive', () => {
       const split = splitter.calculateSplit(1000, 'JPY')
-      expect(split.providerAmount).toBe(600)
+      expect(split.providerAmount).toBe(700)
     })
 
     it('EUR uses cent multiplier (like USD)', () => {
       const split = splitter.calculateSplit(100, 'eur')
-      expect(split.providerAmount).toBe(60)
+      expect(split.providerAmount).toBe(70)
     })
   })
 
   describe('calculateSplit — custom config override', () => {
     it('accepts custom percentages at call site', () => {
       const split = splitter.calculateSplit(100, 'usd', {
-        providerShare: 70,
-        platformShare: 15,
+        providerShare: 60,
+        platformShare: 20,
         operationsShare: 10,
+        infrastructureShare: 5,
         justiceShare: 5,
       })
-      expect(split.providerAmount).toBe(70)
-      expect(split.platformAmount).toBe(15)
+      expect(split.providerAmount).toBe(60)
+      expect(split.platformAmount).toBe(20)
       expect(split.operationsAmount).toBe(10)
+      expect(split.infrastructureAmount).toBe(5)
       expect(split.justiceAmount).toBe(5)
     })
 
     it('partial override merges with defaults', () => {
       const split = splitter.calculateSplit(100, 'usd', {
-        providerShare: 50,
-        justiceShare: 15,
+        providerShare: 60,
+        operationsShare: 10,
+        infrastructureShare: 5,
       })
-      // 50 + 20 + 15 + 15 = 100
-      expect(split.providerAmount).toBe(50)
+      // 60 + 20 + 10 + 5 + 5 = 100
+      expect(split.providerAmount).toBe(60)
       expect(split.platformAmount).toBe(20)
-      expect(split.operationsAmount).toBe(15)
-      expect(split.justiceAmount).toBe(15)
+      expect(split.operationsAmount).toBe(10)
+      expect(split.infrastructureAmount).toBe(5)
+      expect(split.justiceAmount).toBe(5)
     })
   })
 
@@ -167,6 +177,7 @@ describe('UltimateFairSplitter', () => {
           providerShare: 50,
           platformShare: 10,
           operationsShare: 10,
+          infrastructureShare: 10,
           justiceShare: 10,
         }),
       ).toThrow('must sum to 100%')
@@ -178,23 +189,25 @@ describe('UltimateFairSplitter', () => {
           providerShare: 50,
           platformShare: 50,
           operationsShare: 50,
+          infrastructureShare: 50,
           justiceShare: 50,
         }),
-      ).toThrow('200%')
+      ).toThrow('250%')
     })
   })
 
   describe('constructor with custom defaults', () => {
     it('uses custom default config', () => {
       const custom = new UltimateFairSplitter('sk_test_fake', {
-        providerShare: 70,
-        platformShare: 15,
+        providerShare: 60,
+        platformShare: 20,
         operationsShare: 10,
+        infrastructureShare: 5,
         justiceShare: 5,
       })
       const split = custom.calculateSplit(100)
-      expect(split.providerAmount).toBe(70)
-      expect(split.platformAmount).toBe(15)
+      expect(split.providerAmount).toBe(60)
+      expect(split.platformAmount).toBe(20)
     })
   })
 
@@ -203,15 +216,19 @@ describe('UltimateFairSplitter', () => {
       const split = splitter.calculateSplit(100)
       const breakdown = splitter.getSplitBreakdown(split)
 
-      expect(breakdown.provider.amount).toBe(60)
-      expect(breakdown.provider.percentage).toBe(60)
-      expect(breakdown.provider.description).toContain('provider')
+      expect(breakdown.provider.amount).toBe(70)
+      expect(breakdown.provider.percentage).toBe(70)
+      expect(breakdown.provider.description).toContain('Endeavor owner')
 
       expect(breakdown.platform.amount).toBe(20)
       expect(breakdown.platform.percentage).toBe(20)
 
-      expect(breakdown.operations.amount).toBe(15)
-      expect(breakdown.operations.percentage).toBe(15)
+      expect(breakdown.operations.amount).toBe(4)
+      expect(breakdown.operations.percentage).toBe(4)
+
+      expect(breakdown.infrastructure.amount).toBe(1)
+      expect(breakdown.infrastructure.percentage).toBe(1)
+      expect(breakdown.infrastructure.description).toContain('Flagship')
 
       expect(breakdown.justice.amount).toBe(5)
       expect(breakdown.justice.percentage).toBe(5)
@@ -228,28 +245,30 @@ describe('UltimateFairSplitter', () => {
       const report = splitter.generateTransparencyReport(splits)
 
       expect(report.totalProcessed).toBe(300)
-      expect(report.providersEarned).toBe(180) // 60 + 120
+      expect(report.providersEarned).toBe(210) // 70 + 140
       expect(report.platformInvestment).toBe(60) // 20 + 40
-      expect(report.operationsSupport).toBe(45) // 15 + 30
+      expect(report.operationsSupport).toBe(12) // 4 + 8
       expect(report.justiceImpact).toBe(15) // 5 + 10
     })
 
-    it('reports ecosystem health as Thriving for default splits', () => {
+    it('reports ecosystem health as Abundant for default 70% provider share', () => {
       const splits = [splitter.calculateSplit(100)]
       const report = splitter.generateTransparencyReport(splits)
-      expect(report.ecosystemHealth).toBe('Thriving')
+      // 70% provider share > 65% threshold = Abundant
+      expect(report.ecosystemHealth).toBe('Abundant')
     })
 
-    it('reports Abundant when provider share is > 65%', () => {
+    it('reports Thriving when provider share is between 55-65%', () => {
       const custom = new UltimateFairSplitter('sk_test_fake', {
-        providerShare: 70,
-        platformShare: 15,
+        providerShare: 60,
+        platformShare: 20,
         operationsShare: 10,
+        infrastructureShare: 5,
         justiceShare: 5,
       })
       const splits = [custom.calculateSplit(100)]
       const report = custom.generateTransparencyReport(splits)
-      expect(report.ecosystemHealth).toBe('Abundant')
+      expect(report.ecosystemHealth).toBe('Thriving')
     })
 
     it('handles empty splits array', () => {
