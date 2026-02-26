@@ -25,11 +25,11 @@
     },
     "contents": {
       "spaces": 1,
-      "channels": 5,
+      "channels": 6,
       "messages": 0,
       "users": 0,
       "posts": 0,
-      "products": 6,
+      "products": 15,
       "media": 0
     },
     "constitutional": {
@@ -116,6 +116,13 @@
       "type": "sales",
       "description": "Official DØVYDAS merch — schwag drops and limited editions",
       "spaceSlug": "dovydas-hq"
+    },
+    {
+      "name": "tour",
+      "slug": "tour",
+      "type": "general",
+      "description": "Live shows, tour dates, and venue updates",
+      "spaceSlug": "dovydas-hq"
     }
   ],
   "users": [],
@@ -168,6 +175,78 @@
       "description": "One-time VIP pass for a meet & greet at a DØVYDAS live event. Includes photo, signed pick, and 15-min hang.",
       "price": 7500,
       "category": "experiences",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Cleveland OH — Grog Shop (Mar 14)",
+      "slug": "tour-2026-cleveland-grog-shop",
+      "description": "DØVYDAS live at The Grog Shop, Cleveland OH. March 14, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Columbus OH — The King of Clubs (Mar 16)",
+      "slug": "tour-2026-columbus-king-of-clubs",
+      "description": "DØVYDAS live at The King of Clubs, Columbus OH. March 16, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Grand Rapids MI — The Intersection (Mar 18)",
+      "slug": "tour-2026-grand-rapids-intersection",
+      "description": "DØVYDAS live at The Intersection, Grand Rapids MI. March 18, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Madison WI — The Annex (Mar 19)",
+      "slug": "tour-2026-madison-annex",
+      "description": "DØVYDAS live at The Annex, Madison WI. March 19, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Chicago — WC Social Club (Mar 20)",
+      "slug": "tour-2026-chicago-wc-social",
+      "description": "DØVYDAS live at WC Social Club, Chicago. March 20, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Minneapolis MN — Underground (Mar 21)",
+      "slug": "tour-2026-minneapolis-underground",
+      "description": "DØVYDAS live at Underground, Minneapolis MN. March 21, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Iowa City IA — Wildwood (Mar 22)",
+      "slug": "tour-2026-iowa-city-wildwood",
+      "description": "DØVYDAS live at Wildwood, Iowa City IA. March 22, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: St Louis MO — Red Flag (Mar 24)",
+      "slug": "tour-2026-st-louis-red-flag",
+      "description": "DØVYDAS live at Red Flag, St Louis MO. March 24, 2026.",
+      "price": 2500,
+      "category": "events",
+      "status": "draft"
+    },
+    {
+      "title": "LIVE: Indianapolis IN — Black Circle (Mar 25)",
+      "slug": "tour-2026-indianapolis-black-circle",
+      "description": "DØVYDAS live at Black Circle, Indianapolis IN. March 25, 2026.",
+      "price": 2500,
+      "category": "events",
       "status": "draft"
     }
   ],

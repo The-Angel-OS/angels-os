@@ -13,6 +13,8 @@ export const DM_SPACE_NAME = 'Direct Messages'
 const AI_BUS_CHANNELS = [
   { name: 'general', slug: 'general', description: 'AI agent activity feed', type: 'general', isDefault: true },
   { name: 'support', slug: 'support', description: 'Support requests and system help', type: 'support', isDefault: false },
+  { name: 'errors', slug: 'errors', description: 'System errors and warnings — LEO monitors this channel', type: 'general', isDefault: false },
+  { name: 'system-log', slug: 'system-log', description: 'System event log — cron jobs, integrations, provisioning', type: 'general', isDefault: false },
 ] as const
 
 /**
