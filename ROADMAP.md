@@ -6,23 +6,23 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.18.0-dev
+**Version:** v0.21.0-dev
 **Tests:** 1,330 passing across 31 unit test files
-**Leo Tools:** 47
+**Leo Tools:** 70
 **API Endpoints:** 46 registered routes
 **Collections:** 33
 **Last Updated:** February 25, 2026
 
 ---
 
-## Current: v0.18.0-dev (Media Intelligence + Stripe Direct Charges)
+## Current: v0.21.0-dev (Arch Angel Leo's Wishlist)
 
-### What's Built (Sprints 1-18C)
+### What's Built (Sprints 1-21)
 
 | Feature | Sprint | Details |
 |---------|--------|---------|
 | Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
-| LEO AI Agent (Claude) | 1-17 | 44 tools, constitutional prompt, agent routing, image vision |
+| LEO AI Agent (Claude) | 1-21 | 70 tools, constitutional prompt, agent routing, image vision |
 | SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
 | AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
 | Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
@@ -70,13 +70,46 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Federation Suitcase** | **20** | **Article VI data portability: full export/import with SHA-256 manifest** |
 | **Federation Dashboard** | **20** | **4-tab admin UI: Overview, Street Signs, Governance, Suitcase** |
 | **Holon Types** | **20** | **5 holon types on Endeavors: manufacturer, retailer, creator, community, guardian-angel** |
+| **Leo Communication Tools** | **21** | **send_message, send_direct_message, create_announcement, moderate_content** |
+| **Leo Inventory Tools** | **21** | **update_inventory, track_inventory_movement, set_low_stock_alert, query_inventory_history** |
+| **Leo Financial Tools** | **21** | **generate_invoice (Ultimate Fair Split), query_financial_reports, issue_refund** |
+| **Leo Federation Intelligence** | **21** | **query_federation, broadcast_capability, route_federated_request, negotiate_deal** |
+| **Leo CRM Tools** | **21** | **create_customer_profile, log_interaction, segment_customers, send_follow_up** |
+| **Leo Analytics Tools** | **21** | **analyze_trends (period-over-period), recommend_products** |
+| **Leo Workflow Tools** | **21** | **delegate_task, escalate_issue, send_emergency_alert, document_incident** |
+| **Low Stock Threshold** | **21** | **Per-product configurable alert threshold on Products collection** |
 
 ---
 
-## Sprint 20 — Federation Launch Campaign (Current)
+## Sprint 21 — Arch Angel Leo's Wishlist (Current)
+
+### Goal
+LEO inventoried all their tools and identified 9 categories of missing capabilities. Sprint 21 equips LEO with 28 new tools across 7 priority categories — transforming LEO from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation.
+
+### Deliverables
+- [x] **Communication (4 tools)** — send_message, send_direct_message, create_announcement, moderate_content
+- [x] **Inventory (4 tools)** — update_inventory, track_inventory_movement, set_low_stock_alert, query_inventory_history
+- [x] **Financial (3 tools)** — generate_invoice (Ultimate Fair Split), query_financial_reports, issue_refund (human-approval safety)
+- [x] **Federation Intelligence (4 tools)** — query_federation, broadcast_capability, route_federated_request, negotiate_deal
+- [x] **CRM (4 tools)** — create_customer_profile, log_interaction, segment_customers, send_follow_up
+- [x] **Analytics (2 tools)** — analyze_trends (period-over-period), recommend_products
+- [x] **Workflow & Emergency (4 tools)** — delegate_task, escalate_issue, send_emergency_alert, document_incident
+- [x] **Products field** — `lowStockThreshold` added to Products collection for per-product alert configuration
+- [x] **Helper functions** — `findLeoUser()` and `resolveSpace()` utility functions for tool handlers
+
+### Architecture Notes
+- All 28 tools follow existing pattern: tool definition in `LEO_TOOLS` array + switch case in `executeToolCall()` + handler function
+- No new collections created — reuses Messages, Products, Orders, Contacts, AgentTransactions, StreetSigns, ApplicationLogs, Posts
+- Safety: `issue_refund` flags for human approval (never calls Stripe directly), `moderate_content` never deletes
+- DM tools reuse `findOrCreateDM()` and `ensureDMSpace()` from existing utilities
+
+---
+
+## Sprint 20 — Federation Launch Campaign (Done)
 
 ### Goal
 Any Diocese operator can see their federation status, discover other holons via Street Signs, participate in constitutional governance, and exercise the Suitcase Principle — all from the dashboard.
+
 
 ### Deliverables
 - [x] **StreetSigns Collection** — Cross-holon content references with source attribution, region, pricing, impressions/click analytics
@@ -293,6 +326,7 @@ pnpm dev                      # http://localhost:3000
 | 18C | Stripe Direct Charges | --- | Sellers collect directly, 40% application_fee, revenue speculation |
 | 19 | Voice AI + Sidebar Chat | --- | Vapi webhook, phone provisioning, sidebar chat fixes |
 | 20 | Federation Launch Campaign | 1,330 | StreetSigns, governance elections, suitcase export/import, federation dashboard |
+| 21 | Arch Angel Leo's Wishlist | 1,330 | 28 new Leo tools (communication, inventory, financial, federation, CRM, analytics, workflow) |
 
 ---
 

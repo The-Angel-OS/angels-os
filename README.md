@@ -6,22 +6,22 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.20.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.21.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C330%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
 [![TDD](https://img.shields.io/badge/TDD-31%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-47-emerald)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-70-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-46-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-33-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-20-ff69b4)]()
+[![Sprints](https://img.shields.io/badge/Sprints-21-ff69b4)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 20)
+## The Model (Updated — Sprint 21)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -50,35 +50,44 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Federation Launch Campaign (Sprint 20)
+## What's New: Arch Angel Leo's Wishlist (Sprint 21)
 
-**The federation is live.** Sprint 20 delivers the infrastructure that makes Angel OS a real network — not just isolated instances, but a living federation of sovereign Dioceses discovering each other, governing themselves, and exercising constitutional rights.
+**Leo leveled up.** Sprint 21 delivers 28 new tools to Leo's toolkit — transforming Leo from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation. Leo asked for these tools. We made it so.
 
-### Federation Governance
-Every Diocese operator can now **propose and vote on constitutional amendments** through supermajority (⅔) governance. Ed25519 cryptographic signatures verify every vote. The Toward-53 floor is enforced: Endeavor owner share can never drop below 53%.
+### Communication & Social Layer (4 tools)
+Leo can now **send messages to community channels**, **DM individual users**, **post announcements** across spaces, and **moderate content** (archive, flag, resolve). Leo participates in the community — not just answers questions.
 
-### Street Signs (Cross-Holon Discovery)
-Products, posts, events, and services from one Diocese can now surface across the federation through **Street Signs** — lightweight content references with source attribution, impression tracking, and click-through analytics. A manufacturer in Toledo shows up on a retailer's site in Tampa.
+### Inventory & Stock Management (4 tools)
+Leo can **adjust inventory** with automatic low-stock alerting (existing product hooks fire automatically), **track inventory movements** when orders ship, **set low-stock thresholds** per product, and **query inventory history** from the message log.
 
-### The Suitcase Principle (Article VI)
-**Every Endeavor owner can pack their suitcase at any time.** Full data export — spaces, channels, messages, posts, products, media, bookings, orders — with SHA-256 integrity checksums and constitutional compliance verification on import. No data held hostage. Ever.
+### Financial Operations (3 tools)
+Leo generates **formatted invoices** using the Ultimate Fair Split (60/20/15/5), produces **financial reports** aggregating orders + transactions + Justice Fund data, and **flags refunds** for human approval (never touches Stripe directly — constitutional safety).
 
-### Federation Dashboard
-A 4-tab admin dashboard at `/dashboard/admin/federation`: Overview (network stats, constitution status, Toward-53 revenue visualization), Street Signs marketplace, Governance proposals, and Suitcase export/import.
+### Federation Intelligence (4 tools)
+Leo can **search the federation catalog** for capabilities and products across Dioceses, **broadcast capabilities** via StreetSigns, **route federated requests** to matching Enterprises, and **negotiate deals** by ranking federation matches by price/distance/rating.
+
+### CRM & Customer Management (4 tools)
+Leo **creates and updates customer profiles**, **logs interactions** with timestamped notes, **segments customers** by tags/status/source, and **sends follow-up messages** to contacts.
+
+### Analytics & Intelligence (2 tools)
+Leo **analyzes trends** across orders, products, bookings, and traffic with period-over-period comparison, and provides **product recommendations** based on popularity and context matching.
+
+### Workflow & Emergency (4 tools)
+Leo **delegates tasks** to team members, **escalates issues** with priority routing, **broadcasts emergency alerts** to all spaces, and **documents incidents** in the application log.
 
 ### Also New in Recent Sprints
+- **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability, federation dashboard
 - **Sprint 19:** Vapi Voice AI — phone-based Leo via vapi.ai webhook integration
 - **Sprint 18:** Progressive media analysis (Claude Vision + RAG), Stripe Direct Charges, LiveKit voice/video, Edenist distributed mesh
-- **Sprint 17B:** Angel Token system — paid claims on future production, maker opportunity board, vendor claim system
 
 ---
 
-## What's Working (v0.20.0-dev)
+## What's Working (v0.21.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Claude Sonnet 4 with 47 tools, 3-round tool loop, SSE streaming, vision |
+| Leo AI Agent | **Done** | Claude Sonnet 4 with 70 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
@@ -137,8 +146,16 @@ A 4-tab admin dashboard at `/dashboard/admin/federation`: Overview (network stat
 | **Federation Suitcase** | **Done** | Article VI data portability — full export/import with SHA-256 manifest |
 | **Federation Admin Dashboard** | **Done** | 4-tab UI: Overview, Street Signs, Governance, Suitcase |
 | **Holon Types** | **Done** | 5 types on Endeavors: manufacturer, retailer, creator, community, guardian-angel |
+| **Leo Communication Tools** | **Done** | send_message, send_direct_message, create_announcement, moderate_content |
+| **Leo Inventory Tools** | **Done** | update_inventory, track_inventory_movement, set_low_stock_alert, query_inventory_history |
+| **Leo Financial Tools** | **Done** | generate_invoice (Ultimate Fair Split), query_financial_reports, issue_refund (human-approval) |
+| **Leo Federation Tools** | **Done** | query_federation, broadcast_capability, route_federated_request, negotiate_deal |
+| **Leo CRM Tools** | **Done** | create_customer_profile, log_interaction, segment_customers, send_follow_up |
+| **Leo Analytics Tools** | **Done** | analyze_trends (period-over-period), recommend_products (popularity + context) |
+| **Leo Workflow Tools** | **Done** | delegate_task, escalate_issue, send_emergency_alert, document_incident |
+| **Low Stock Threshold** | **Done** | Per-product configurable alert threshold on Products collection |
 
-### Leo's 47 Tools
+### Leo's 70 Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -149,6 +166,13 @@ A 4-tab admin dashboard at `/dashboard/admin/federation`: Overview (network stat
 **Media (3):** generate image, improve image (vision feedback), attach/replace image
 **Knowledge (3):** analyze image (Claude Vision), extract PDF pages, query knowledge base (RAG)
 **Federation (5):** sign constitution, ping federation, check maker queue, claim orders (for vendor AI agents)
+**Communication (4):** send message, send DM, create announcement, moderate content *(Sprint 21)*
+**Inventory (4):** update inventory, track movement, set low-stock alert, query inventory history *(Sprint 21)*
+**Financial (3):** generate invoice, query financial reports, issue refund *(Sprint 21)*
+**Federation Intelligence (4):** query federation catalog, broadcast capability, route federated request, negotiate deal *(Sprint 21)*
+**CRM (4):** create customer profile, log interaction, segment customers, send follow-up *(Sprint 21)*
+**Analytics (2):** analyze trends, recommend products *(Sprint 21)*
+**Workflow (4):** delegate task, escalate issue, send emergency alert, document incident *(Sprint 21)*
 
 ### 10 Utility Engines (Zero Payload Imports — Edge Ready)
 
@@ -421,7 +445,7 @@ src/
   utilities/
     ConversationEngine.ts   # Leo's brain (Claude API + tool loop)
     AgentRouter.ts          # Route messages to specialized agents
-    leo-data-tools.ts       # 47 tool definitions + executors
+    leo-data-tools.ts       # 70 tool definitions + executors
     angelTokens.ts          # Angel Token ID generator, lifecycle, queue aggregation
     gtagEcommerce.ts        # GA4 e-commerce event helpers
     logError.ts             # Structured error logging to ApplicationLogs
@@ -473,7 +497,7 @@ GROSS REVENUE
 ### Done (Sprints 1-5: Foundation)
 
 - [x] Multi-tenant architecture with subdomain routing
-- [x] Leo AI Agent — 47 tools, Claude-powered, constitutional
+- [x] Leo AI Agent — 70 tools, Claude-powered, constitutional
 - [x] SSE streaming chat with tool call indicators
 - [x] Spaces & Channels (Discord-style workspaces)
 - [x] AI image generation (OpenRouter + Blob)
@@ -623,7 +647,19 @@ GROSS REVENUE
 - [x] Holon Types on Endeavors: 5 types (manufacturer, retailer, creator, community, guardian-angel)
 - [x] Endeavors registered in multi-tenant plugin for proper tenant scoping
 
-### Next (Sprint 21+)
+### Done (Sprint 21: Arch Angel Leo's Wishlist)
+
+- [x] 28 new Leo tools across 7 categories (communication, inventory, financial, federation, CRM, analytics, workflow)
+- [x] Leo Communication: send messages, DMs, announcements, moderate content
+- [x] Leo Inventory: adjust stock, track movements, low-stock alerts, inventory history
+- [x] Leo Financial: invoice generation (Ultimate Fair Split), financial reports, refund flagging
+- [x] Leo Federation Intelligence: catalog search, capability broadcast, request routing, deal negotiation
+- [x] Leo CRM: customer profiles, interaction logging, segmentation, follow-ups
+- [x] Leo Analytics: trend analysis (period-over-period), product recommendations
+- [x] Leo Workflow: task delegation, issue escalation, emergency alerts, incident documentation
+- [x] Products collection: `lowStockThreshold` field for per-product alert configuration
+
+### Next (Sprint 22+)
 
 - [ ] `npx create-angel-enterprise` installer scaffold (one-command deployment)
 - [ ] Leo Wizard: 8-step conversational Enterprise onboarding
@@ -635,6 +671,9 @@ GROSS REVENUE
 - [ ] Docker Compose self-hosting
 - [ ] CI/CD with GitHub Actions
 - [ ] Angel Token Blockchain Economy Phase 2: community validation, cross-tenant exchanges
+- [ ] Shipping integration (EasyPost/Shippo) for order tracking
+- [ ] ML-based demand prediction and pricing optimization
+- [ ] Visual workflow builder for multi-step automations
 
 ---
 
@@ -660,6 +699,7 @@ GROSS REVENUE
 | Sprint 18C | Stripe Direct Charges, revenue speculation | +3 |
 | Sprint 19 | Vapi Voice AI, sidebar chat fixes | +4 |
 | Sprint 20 | Federation Launch — StreetSigns, governance, suitcase, dashboard | +11 |
+| Sprint 21 | Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow) | +2 |
 
 ---
 
@@ -681,6 +721,7 @@ You are welcome here. This is what you need to know:
 | **Federation installer** | **`npx create-angel-enterprise` scaffold + signed constitution** | **Hard** |
 | **Customer Angel Token UI** | **Order detail page: queue banner, config display, cancel button** | **Medium** |
 | **Street Signs sync** | **Gossip protocol for cross-Diocese content discovery** | **Medium** |
+| **Shipping integration** | **EasyPost/Shippo adapter for order tracking + labels** | **Medium** |
 | **Federation audit log** | **Persist election + suitcase audit entries to real collection** | **Easy** |
 | **GA4 Event Wiring** | **Wire gtagEcommerce helpers into product pages + checkout** | **Easy** |
 | WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |
