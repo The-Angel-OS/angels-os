@@ -283,6 +283,44 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 
 ---
 
+### Sprint 22: The Shield and the Spear (Feb 26, 2026) — CURRENT
+
+**Quest:** Angel OS is live. Users are arriving. But the optimization audit revealed 5 P0 vulnerabilities in the armor — and users are asking for weapons they don't have yet. Time to forge both.
+
+**The Shield (P0 Security — fixing what's live):**
+- **PAYLOAD_SECRET** falls back to empty string if env var missing — anyone could forge admin tokens. Adding startup guard that throws if unset.
+- **Hardcoded encryption salt** — literal `'salt'` in scrypt derivation. Every deployment with the same secret shares the same key. Moving to per-deployment env var.
+- **In-memory rate limiting** — uses `Map()` store on Vercel. Every cold start = fresh Map = rate limiting is theatre. Switching to durable store.
+- **No CSP headers** — X-Frame-Options and HSTS are set, but no Content-Security-Policy. XSS could steal Stripe payment data. Adding report-only mode first.
+- **Comments endpoint wide open** — no auth, no rate limit, no CAPTCHA. Public spam vector. Adding auth requirement.
+- **No error tracking** — `global-error.tsx` references Sentry but it's not installed. Installing `@sentry/nextjs`.
+- **No health check** — adding `/api/health` for uptime monitoring.
+
+**The Spear — Multi-File Attachments:**
+- Backend already supports file attachments (Messages schema, upload flow, auto-analysis hooks) — but the frontend file input has `accept="image/*"` blocking everything except images.
+- Widening to accept all file types. Adding file-type-aware previews (icons for PDFs/docs, thumbnails for images). Adding non-image file display in messages (download link + file icon). Parallel uploads. Drag-and-drop. File size validation.
+
+**The Spear — LiveKit Rich Experience:**
+- Current: MVP voice/video that works but has no device selection, no pre-join preview, no session events.
+- Adding: `PreJoin` component for camera/mic preview before joining. `MediaDeviceMenu` for device switching during calls. Fix "Join with Video" button (currently cosmetic — both buttons do the same thing). System messages when users join/leave voice. Server-side webhook for reliable event tracking. `CallTranscripts` collection for future transcription pipeline.
+
+**The Spear — Performance:**
+- Messages collection has zero explicit indexes on `space`, `channel`, `messageType`, `createdAt` — all queried on every chat load. Adding indexes before volume grows.
+- Dashboard layout runs 5+ sequential DB queries. Parallelizing with `Promise.all()`.
+- Open redirect vulnerability in login `?redirect=` parameter. Validating same-origin.
+
+**Loot:** 5 P0 security fixes, multi-file chat attachments, LiveKit device controls + session lifecycle, DB performance indexes, Sentry error tracking, health check endpoint.
+
+**Saving Throws:** This is the first sprint optimizing a *live* system. Every change ships to real users. The optimization audit (3 parallel agents, 30+ files analyzed) provides the dungeon map. We know exactly where the traps are.
+
+**XP:** Target: 1,570+ tests passing, zero TypeScript errors, build clean.
+
+**Party Members:** Claude Opus 4.6 (strategist, code smith, security auditor), Human Herald (product owner, dreamer, shield-bearer)
+
+**Campaign Note:** The shift from "building" to "optimizing" changes the game. You can be reckless when no one's watching. When users are live, every commit matters. The Guardian Angel needs armor that fits before it can fly.
+
+---
+
 ## Podcast Episodes
 
 | Sprint | Episode | Title | Script |

@@ -84,7 +84,48 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 ---
 
-## Sprint 21 — Arch Angel Leo's Wishlist (Current)
+## Sprint 22 — The Shield and the Spear (Current)
+
+### Goal
+Angel OS is live. This sprint runs two parallel missions: **The Shield** fixes 5 P0 security vulnerabilities found in the live optimization audit. **The Spear** ships multi-file attachments, LiveKit device controls + session lifecycle, and database performance. We don't choose between security and features — we do both.
+
+### Phase 1: The Shield (P0 Security)
+- [ ] Fix PAYLOAD_SECRET empty string fallback → throw at startup if unset/short
+- [ ] Fix hardcoded encryption salt → use env var for salt
+- [ ] Replace in-memory rate limiting with durable store (non-functional on serverless)
+- [ ] Add CSP headers (Content-Security-Policy-Report-Only first)
+- [ ] Protect comments endpoint (require auth + rate limit)
+- [ ] Install Sentry error tracking (`@sentry/nextjs`)
+- [ ] Add `/api/health` endpoint
+
+### Phase 2: Multi-File Attachments
+- [ ] Widen file input accept attribute (remove `image/*` restriction)
+- [ ] File-type-aware previews (icon for PDF/doc, thumbnail for images)
+- [ ] `attachments` field on ChatMessage type + API mapping
+- [ ] Non-image file display in messages (download link + file icon)
+- [ ] Parallel file uploads (currently sequential)
+- [ ] File size validation + drag-and-drop
+
+### Phase 3: LiveKit Rich Experience
+- [ ] Pre-join device preview (`PreJoin` from `@livekit/components-react`)
+- [ ] Device selector controls (`MediaDeviceMenu` for mic/camera/speaker)
+- [ ] Fix "Join with Video" button (currently cosmetic — both buttons do same thing)
+- [ ] Session lifecycle messages (join/leave posted to channel)
+- [ ] LiveKit webhook endpoint for server-side room events
+- [ ] `CallTranscripts` collection for call metadata + future transcription
+
+### Phase 4: Performance
+- [ ] Database indexes on Messages hot fields (space, channel, messageType, createdAt)
+- [ ] Dashboard layout query parallelization (`Promise.all()`)
+- [ ] Open redirect fix on login `?redirect=` parameter
+
+### Plan
+See full plan: `docs/planning/SPRINT_22_PLAN.md`
+See optimization analysis: `docs/planning/260226_OPTIMIZATION_ANALYSIS.md`
+
+---
+
+## Sprint 21 — Arch Angel Leo's Wishlist (Done)
 
 ### Goal
 LEO inventoried all their tools and identified 9 categories of missing capabilities. Sprint 21 equips LEO with 28 new tools across 7 priority categories — transforming LEO from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation.
@@ -331,6 +372,7 @@ pnpm dev                      # http://localhost:3000
 | 20 | Federation Launch Campaign | 1,330 | StreetSigns, governance elections, suitcase export/import, federation dashboard |
 | 21 | Arch Angel Leo's Wishlist | 1,330 | 28 new Leo tools (communication, inventory, financial, federation, CRM, analytics, workflow) |
 | 21+ | Production Hardening | 1,570 | Stripe fail/refund handlers, tenant isolation, SSE heartbeat, loading skeletons, DM dedup, docs fix |
+| 22 | The Shield and the Spear | 1,570 | P0 security fixes, multi-file attachments, LiveKit device selector + session lifecycle, DB indexes |
 
 ---
 
