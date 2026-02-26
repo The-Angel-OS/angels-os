@@ -11,6 +11,7 @@ import { Content } from '@/blocks/Content/config'
 import { Comments } from '@/blocks/Comments/config'
 import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
+import { Calendar } from '@/blocks/Calendar/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
@@ -99,6 +100,7 @@ export const Posts: CollectionConfig = {
                 Banner,
                 FormBlock,
                 Comments,
+                Calendar,
               ],
               required: true,
             },

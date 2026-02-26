@@ -897,6 +897,50 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'add_calendar_to_page',
+    description:
+      'Add a Calendar block to an existing page or post layout. Shows events in a visual calendar with list and month views. Use when the user wants tour dates, events, or schedules displayed on their site.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        targetId: { type: 'number', description: 'Numeric ID of the page or post to add the calendar to' },
+        collection: {
+          type: 'string',
+          enum: ['pages', 'posts'],
+          description: 'Which collection the target belongs to (default: pages)',
+        },
+        heading: { type: 'string', description: 'Calendar heading (e.g., "Tour Dates", "Upcoming Events")' },
+        defaultView: {
+          type: 'string',
+          enum: ['list', 'month'],
+          description: 'Default display mode (default: list)',
+        },
+        showPastEvents: { type: 'boolean', description: 'Whether to show past events (default: false)' },
+        accentColor: { type: 'string', description: 'Accent color hex (e.g., "#E94560"). Falls back to tenant branding.' },
+        events: {
+          type: 'array',
+          description: 'Array of event objects to display',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Event title' },
+              date: { type: 'string', description: 'ISO date (YYYY-MM-DD)' },
+              time: { type: 'string', description: 'Event time (e.g., "8:00 PM")' },
+              venue: { type: 'string', description: 'Venue name' },
+              location: { type: 'string', description: 'City, State' },
+              description: { type: 'string', description: 'Short description' },
+              ticketUrl: { type: 'string', description: 'URL to buy tickets' },
+              soldOut: { type: 'boolean', description: 'Mark as sold out' },
+              featured: { type: 'boolean', description: 'Highlight this event' },
+            },
+            required: ['title', 'date'],
+          },
+        },
+      },
+      required: ['targetId', 'events'],
+    },
+  },
+  {
     name: 'query_media',
     description:
       'Search the media library for images and files. Use before attaching images to content, or when the user asks what images are available.',
@@ -1396,6 +1440,8 @@ export async function executeToolCall(
         return await createPage(payload, toolInput, ctx)
       case 'update_page':
         return await updatePage(payload, toolInput, ctx)
+      case 'add_calendar_to_page':
+        return await addCalendarToPage(payload, toolInput)
       case 'query_media':
         return await queryMedia(payload, toolInput)
       case 'manage_categories':
@@ -5341,4 +5387,81 @@ async function handleTrackSoul(
   } catch (err) {
     return `Error tracking soul: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+// ─── Calendar Block Tool ──────────────────────────────────────────────────────
+
+/**
+ * add_calendar_to_page — Appends a Calendar block to a page or post's layout.
+ */
+async function addCalendarToPage(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const targetId = Number(input.targetId)
+  if (!targetId) return 'Error: targetId is required.'
+
+  const collection = (input.collection as string) || 'pages'
+  if (!['pages', 'posts'].includes(collection)) {
+    return 'Error: collection must be "pages" or "posts".'
+  }
+
+  const events = input.events as Array<Record<string, unknown>> | undefined
+  if (!events?.length) return 'Error: At least one event is required.'
+
+  // Fetch existing document to get current layout
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = await (payload.findByID as any)({
+    collection,
+    id: targetId,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if (!existing) return `Error: ${collection} #${targetId} not found.`
+
+  // Build calendar block
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const calendarBlock: Record<string, any> = {
+    blockType: 'calendar',
+    sourceType: 'manual',
+    heading: (input.heading as string) || 'Upcoming Events',
+    defaultView: (input.defaultView as string) || 'list',
+    showPastEvents: Boolean(input.showPastEvents),
+    accentColor: (input.accentColor as string) || undefined,
+    maxEvents: 50,
+    events: events.map((e) => ({
+      title: String(e.title || ''),
+      date: String(e.date || ''),
+      time: e.time ? String(e.time) : undefined,
+      venue: e.venue ? String(e.venue) : undefined,
+      location: e.location ? String(e.location) : undefined,
+      description: e.description ? String(e.description) : undefined,
+      ticketUrl: e.ticketUrl ? String(e.ticketUrl) : undefined,
+      soldOut: Boolean(e.soldOut),
+      featured: Boolean(e.featured),
+    })),
+  }
+
+  // Append to existing layout
+  const currentLayout = Array.isArray(existing.layout) ? [...existing.layout] : []
+  currentLayout.push(calendarBlock)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (payload.update as any)({
+    collection,
+    id: targetId,
+    data: { layout: currentLayout },
+    overrideAccess: true,
+  })
+
+  const title = str(existing, 'title') || `#${targetId}`
+  return [
+    `Calendar block added to ${collection === 'pages' ? 'page' : 'post'} "${title}"!`,
+    `- ${events.length} event${events.length === 1 ? '' : 's'} added`,
+    `- Default view: ${(input.defaultView as string) || 'list'}`,
+    `- Heading: "${(input.heading as string) || 'Upcoming Events'}"`,
+    '',
+    `The calendar is now part of the page layout. View it at the page URL.`,
+  ].join('\n')
 }

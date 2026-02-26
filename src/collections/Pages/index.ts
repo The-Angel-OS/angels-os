@@ -10,6 +10,7 @@ import { CallToAction } from '@/blocks/CallToAction/config'
 import { Content } from '@/blocks/Content/config'
 import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
+import { Calendar } from '@/blocks/Calendar/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
@@ -96,6 +97,7 @@ export const Pages: CollectionConfig = {
                 ThreeItemGrid,
                 Banner,
                 FormBlock,
+                Calendar,
               ],
               required: true,
             },
