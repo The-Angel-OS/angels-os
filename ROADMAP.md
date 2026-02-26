@@ -152,7 +152,7 @@ LEO inventoried all their tools and identified 9 categories of missing capabilit
 ## Sprint 20 — Federation Launch Campaign (Done)
 
 ### Goal
-Any Diocese operator can see their federation status, discover other holons via Street Signs, participate in constitutional governance, and exercise the Suitcase Principle — all from the dashboard.
+Any Enterprise operator can see their federation status, discover other holons via Street Signs, participate in constitutional governance, and exercise the Suitcase Principle — all from the dashboard.
 
 
 ### Deliverables

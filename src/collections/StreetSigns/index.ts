@@ -2,16 +2,16 @@
  * StreetSigns Collection — Federation Marketplace Discovery
  *
  * Street Signs are lightweight cross-holon content references.
- * When a product, post, or event resonates within one Diocese,
+ * When a product, post, or event resonates within one Enterprise,
  * it can be surfaced across the federation via a Street Sign —
  * always crediting and compensating the source.
  *
- * Constitutional Reference: "Popular content within one Diocese
+ * Constitutional Reference: "Popular content within one Enterprise
  * becomes discoverable across the federation through street signs —
  * lightweight references that point to the source holon."
  *
  * A Street Sign is NOT a copy. It is a pointer with attribution.
- * The source Diocese retains sovereignty over the content.
+ * The source Enterprise retains sovereignty over the content.
  *
  * @see docs/planning/20260224 FEDERATION.md — Street Signs architecture
  */
@@ -23,7 +23,7 @@ export const StreetSigns: CollectionConfig = {
   admin: {
     group: 'Angel OS',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'contentType', 'sourceDiocese', 'status', 'impressions'],
+    defaultColumns: ['title', 'contentType', 'sourceEnterprise', 'status', 'impressions'],
     description:
       'Cross-holon content references — lightweight pointers that surface content across the federation.',
   },
@@ -88,7 +88,7 @@ export const StreetSigns: CollectionConfig = {
           type: 'text',
           required: true,
           admin: {
-            description: 'Name of the source Diocese (e.g., "Clearwater Cruisin")',
+            description: 'Name of the source Enterprise (e.g., "Clearwater Cruisin")',
           },
         },
         {
@@ -96,7 +96,7 @@ export const StreetSigns: CollectionConfig = {
           type: 'text',
           required: true,
           admin: {
-            description: 'Domain of the source Diocese (e.g., "clearwatercruisin.com")',
+            description: 'Domain of the source Enterprise (e.g., "clearwatercruisin.com")',
           },
         },
         {
@@ -104,7 +104,7 @@ export const StreetSigns: CollectionConfig = {
           type: 'text',
           required: true,
           admin: {
-            description: 'Federation UUID of the source Diocese',
+            description: 'Federation UUID of the source Enterprise',
           },
         },
         {
@@ -112,14 +112,14 @@ export const StreetSigns: CollectionConfig = {
           type: 'text',
           required: true,
           admin: {
-            description: 'ID of the content at the source Diocese',
+            description: 'ID of the content at the source Enterprise',
           },
         },
         {
           name: 'contentUrl',
           type: 'text',
           admin: {
-            description: 'Direct URL to the content at the source Diocese',
+            description: 'Direct URL to the content at the source Enterprise',
           },
         },
         {
@@ -210,7 +210,7 @@ export const StreetSigns: CollectionConfig = {
         { label: 'Revoked', value: 'revoked' },
       ],
       admin: {
-        description: 'Active signs appear in federation search. Revoked = source Diocese removed content.',
+        description: 'Active signs appear in federation search. Revoked = source Enterprise removed content.',
       },
     },
     {
@@ -235,7 +235,7 @@ export const StreetSigns: CollectionConfig = {
       name: 'lastSyncedAt',
       type: 'date',
       admin: {
-        description: 'When this street sign was last verified against the source Diocese',
+        description: 'When this street sign was last verified against the source Enterprise',
         readOnly: true,
       },
     },

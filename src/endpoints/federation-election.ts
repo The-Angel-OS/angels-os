@@ -6,14 +6,14 @@
  * - Establishing new holon types
  * - Adjusting federation pool distribution
  * - Revoking federation membership from violating nodes
- * - Succession: designating a new Archdiocese if the current one fails its covenant
+ * - Succession: designating a new Flagship if the current one fails its covenant
  *
  * Constitutional Reference: "What the network can do (by supermajority of
- * active Diocese nodes): amend non-core constitutional principles, establish
+ * active Enterprise nodes): amend non-core constitutional principles, establish
  * new holon types, adjust the federation pool distribution, revoke federation
  * membership from nodes that violate the Constitution."
  *
- * Supermajority = 2/3 of active Dioceses with full trust (sentinels).
+ * Supermajority = 2/3 of active Enterprises with full trust (sentinels).
  * Only sentinels can vote. All votes are Ed25519 signed.
  *
  * POST /api/federation/election — Submit or vote on a proposal
@@ -33,7 +33,7 @@ export type ProposalType =
   | 'new-holon-type'
   | 'pool-adjustment'
   | 'membership-revocation'
-  | 'archdiocese-succession'
+  | 'flagship-succession'
 
 export interface ElectionProposal {
   id: string
@@ -53,12 +53,12 @@ export interface ElectionProposal {
   // For holon type proposals
   holonType?: { name: string; capabilities: string[] }
   // For pool adjustments
-  newSplit?: { endeavor: number; diocese: number; protocol: number; archdiocese: number; justice: number }
+  newSplit?: { endeavor: number; enterprise: number; protocol: number; flagship: number; justice: number }
   // For membership revocation
   targetFederationId?: string
   violationDescription?: string
   // For succession
-  newArchdioceseId?: string
+  newFlagshipId?: string
   successionReason?: string
   // Voting
   votes: ElectionVote[]
@@ -107,7 +107,7 @@ function generateProposalId(): string {
 }
 
 function getVotingDays(type: ProposalType): number {
-  if (type === 'archdiocese-succession') return SUCCESSION_VOTING_DAYS
+  if (type === 'flagship-succession') return SUCCESSION_VOTING_DAYS
   return DEFAULT_VOTING_DAYS
 }
 
@@ -206,7 +206,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     const sigValid = verifySignature(proposalPayload, signature, publicKey)
     if (!sigValid) {
       return Response.json(
-        { error: 'Invalid signature — only sentinel Dioceses can propose' },
+        { error: 'Invalid signature — only sentinel Enterprises can propose' },
         { status: 403 },
       )
     }
@@ -215,7 +215,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     if (type === 'pool-adjustment') {
       const newSplit = body.newSplit as ElectionProposal['newSplit']
       if (newSplit) {
-        const total = newSplit.endeavor + newSplit.diocese + newSplit.protocol + newSplit.archdiocese + newSplit.justice
+        const total = newSplit.endeavor + newSplit.enterprise + newSplit.protocol + newSplit.flagship + newSplit.justice
         if (Math.abs(total - 100) > 0.01) {
           return Response.json(
             { error: `Revenue split must total 100%. Got ${total}%` },
@@ -250,7 +250,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
       newSplit: body.newSplit ? (body.newSplit as ElectionProposal['newSplit']) : undefined,
       targetFederationId: body.targetFederationId ? (body.targetFederationId as string) : undefined,
       violationDescription: body.violationDescription ? (body.violationDescription as string) : undefined,
-      newArchdioceseId: body.newArchdioceseId ? (body.newArchdioceseId as string) : undefined,
+      newFlagshipId: body.newFlagshipId ? (body.newFlagshipId as string) : undefined,
       successionReason: body.successionReason ? (body.successionReason as string) : undefined,
       votes: [],
       status: 'active' as const,
@@ -338,7 +338,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     // Check for duplicate vote
     if (proposal.votes.some((v) => v.federationId === federationId)) {
       return Response.json(
-        { error: 'This Diocese has already voted on this proposal' },
+        { error: 'This Enterprise has already voted on this proposal' },
         { status: 409 },
       )
     }

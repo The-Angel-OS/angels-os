@@ -5,7 +5,7 @@ import FederationDashboard from './FederationDashboard'
  * Federation Admin Dashboard — /dashboard/admin/federation
  *
  * Surfaces federation health, active proposals, street signs,
- * and suitcase operations for Diocese operators.
+ * and suitcase operations for Enterprise operators.
  *
  * Sprint 20: Federation Launch Campaign
  */

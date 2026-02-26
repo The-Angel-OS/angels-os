@@ -4,13 +4,13 @@
  * Implements the constitutional right of data portability (Article VI):
  * "Every Endeavor owner can pack their suitcase at any time."
  *
- * If a Diocese operator raises fees, changes terms, moderates unfairly,
+ * If a Enterprise operator raises fees, changes terms, moderates unfairly,
  * or simply isn't a good fit — the Endeavor owner takes their content,
  * their following, their transaction history, and their identity and
- * moves to another Diocese. Instantly. Completely. No data held hostage.
+ * moves to another Enterprise. Instantly. Completely. No data held hostage.
  *
  * POST /api/federation/suitcase/export — Export an Endeavor's full data
- * POST /api/federation/suitcase/import — Import a suitcase into this Diocese
+ * POST /api/federation/suitcase/import — Import a suitcase into this Enterprise
  *
  * @see src/utilities/federationEngine.ts — SuitcaseManifest type
  * @see docs/planning/20260224 FEDERATION.md — Suitcase Principle
@@ -411,7 +411,7 @@ export const federationSuitcaseImportHandler: PayloadHandler = async (req) => {
     return Response.json({
       success: true,
       imported,
-      message: `Suitcase unpacked into ${targetTenantSlug}. Welcome to your new Diocese.`,
+      message: `Suitcase unpacked into ${targetTenantSlug}. Welcome to your new Enterprise.`,
     })
   } catch (err) {
     console.error('[federation-suitcase] Import error:', err)

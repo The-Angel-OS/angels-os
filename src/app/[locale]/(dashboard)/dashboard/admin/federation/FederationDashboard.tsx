@@ -1,10 +1,10 @@
 'use client'
 
 /**
- * FederationDashboard — Diocese Operator Federation Control Panel
+ * FederationDashboard — Enterprise Operator Federation Control Panel
  *
  * Four tabs:
- *   1. Overview — Federation health, this Diocese's status, constitution info
+ *   1. Overview — Federation health, this Enterprise's status, constitution info
  *   2. Street Signs — Manage cross-holon content references
  *   3. Governance — Active proposals, voting, election history
  *   4. Suitcase — Export/import Endeavor data (constitutional portability)
@@ -211,7 +211,7 @@ function OverviewTab({ health, loading }: { health: FederationHealth | null; loa
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Dioceses" value={health?.totalMinistries || 0} icon={Globe} />
+        <StatCard label="Enterprises" value={health?.totalMinistries || 0} icon={Globe} />
         <StatCard label="Active" value={health?.activeMinistries || 0} icon={Check} color="text-green-600" />
         <StatCard label="Probationary" value={health?.probationaryMinistries || 0} icon={AlertCircle} color="text-amber-600" />
         <StatCard label="Catalog Entries" value={health?.catalogEntries || 0} icon={Signpost} />
@@ -241,10 +241,10 @@ function OverviewTab({ health, loading }: { health: FederationHealth | null; loa
         <div className="mt-4 space-y-2">
           {[
             { label: 'Endeavor Owner', pct: 70, color: 'bg-green-500' },
-            { label: 'Diocese Operator', pct: 20, color: 'bg-blue-500' },
+            { label: 'Enterprise Operator', pct: 20, color: 'bg-blue-500' },
             { label: 'Justice Fund', pct: 5, color: 'bg-purple-500' },
             { label: 'Angel OS Protocol', pct: 4, color: 'bg-amber-500' },
-            { label: 'Archdiocese', pct: 1, color: 'bg-rose-500' },
+            { label: 'Flagship (Clearwater)', pct: 1, color: 'bg-rose-500' },
           ].map(({ label, pct, color }) => (
             <div key={label} className="flex items-center gap-3">
               <div className="w-24 text-right text-sm font-medium">{pct}%</div>
@@ -427,7 +427,7 @@ function SuitcaseTab() {
       <div>
         <h2 className="text-lg font-semibold">Suitcase — Endeavor Portability</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Constitutional right (Article VI): Pack your data and move to any Diocese. Instantly. Completely.
+          Constitutional right (Article VI): Pack your data and move to any Enterprise. Instantly. Completely.
         </p>
       </div>
 
@@ -470,11 +470,11 @@ function SuitcaseTab() {
             </div>
             <div>
               <h3 className="font-semibold">Import Suitcase</h3>
-              <p className="text-sm text-muted-foreground">Welcome an Endeavor from another Diocese</p>
+              <p className="text-sm text-muted-foreground">Welcome an Endeavor from another Enterprise</p>
             </div>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Contact the source Diocese operator to initiate a suitcase transfer.
+            Contact the source Enterprise operator to initiate a suitcase transfer.
             The import will preserve all content, products, and federation identity.
           </p>
         </div>

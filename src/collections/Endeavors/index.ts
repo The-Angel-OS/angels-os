@@ -103,7 +103,7 @@ export const Endeavors: CollectionConfig = {
       name: 'missionStatement',
       type: 'textarea',
       admin: {
-        description: 'What does this Diocese serve? Set during Leo Wizard step 5.',
+        description: 'What does this Enterprise serve? Set during Leo Wizard step 5.',
         rows: 3,
         placeholder: 'e.g., "Connecting Gulf Coast creators with the world"',
       },

@@ -151,9 +151,9 @@ Every transaction in the federation executes the constitutional split automatica
 ```
 GROSS REVENUE
 ├── 70% → Endeavor owner (the creator, business, or cause generating value)
-├── 20% → Diocese operator (the platform instance serving the Endeavor)
+├── 20% → Enterprise operator (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Archdiocese (Clearwater — federation stewardship and ministry)
+├──  1% → Flagship (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund (Guardian Angel provisioning)
 ```
 
@@ -161,45 +161,45 @@ GROSS REVENUE
 
 **Angel OS core** (4%) is the protocol, the infrastructure, Leo. Open source, maintained, distributed. It does not own the platform — it IS the protocol that makes the platform possible.
 
-**The Diocese IS the platform.** The Diocese operator is not a customer of Angel OS. They are Angel OS in their territory. They run the instance, serve the tenants, bear the infrastructure costs, and are rewarded accordingly with 20% of all Endeavor revenue on their node.
+**The Enterprise IS the platform.** The Enterprise operator is not a customer of Angel OS. They are Angel OS in their territory. They run the instance, serve the tenants, bear the infrastructure costs, and are rewarded accordingly with 20% of all Endeavor revenue on their node.
 
 **The Endeavor owner** is the value creator — the business, the cause, the creator, the community. They keep the lion's share because they generate the value. This is why creators leave YouTube, leave Patreon, leave OnlyFans. We start fair and get fairer.
 
-**The Archdiocese** (1%) is the Clearwater Diocese — the founding node, the constitutional steward, the root of trust for the entire federation. Its slice funds real ministry: Guardian Angel provisioning, federation infrastructure, constitutional governance, and the actual human work of running the network. This is not a toll booth. It is the monastery that keeps the lights on for everyone. At federation scale, 1% becomes a significant economic engine — enough to fund the mission properly without extracting from anyone.
+**The Flagship** (1%) is the Clearwater Enterprise — the founding node, the constitutional steward, the root of trust for the entire federation. Its slice funds real ministry: Guardian Angel provisioning, federation infrastructure, constitutional governance, and the actual human work of running the network. This is not a toll booth. It is the lighthouse that keeps the lights on for everyone. At federation scale, 1% becomes a significant economic engine — enough to fund the mission properly without extracting from anyone.
 
-**The Justice Fund** (5%) is the covenant's social contract — administered by the Archdiocese, deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
+**The Justice Fund** (5%) is the covenant's social contract — administered by the Flagship, deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
 
-### The Archdiocese — Strong, Distributed, Trusted
+### The Flagship — Strong, Distributed, Trusted
 
-The Clearwater Archdiocese is the founding node of the Angel OS federation. It holds authority by covenant, not by technical lock-in.
+The Clearwater Flagship is the founding node of the Angel OS federation. It holds authority by covenant, not by technical lock-in.
 
-**What the Archdiocese is:**
-- The first Diocese — the founding node from which the federation grew
+**What the Flagship is:**
+- The first Enterprise — the founding node from which the federation grew
 - The constitutional steward — maintains the canonical Constitution, holds the living document
 - The federation registry — authoritative record of federated nodes, signatures, revocations
 - The Justice Fund custodian — receives, manages, and deploys the 5% toward Guardian Angels
 - The court of last resort — adjudicates constitutional disputes the network cannot resolve
-- The root of trust — new Dioceses receive federation acknowledgment through the Archdiocese
+- The root of trust — new Enterprises receive federation acknowledgment through the Flagship
 
-**What the Archdiocese is not:**
+**What the Flagship is not:**
 - A central server that the network depends on technically
-- A gatekeeper with veto power over individual Dioceses
+- A gatekeeper with veto power over individual Enterprises
 - An owner of the protocol or the Constitution
-- Irreplaceable — if the Archdiocese fails its covenant, the federation designates a new one by supermajority
+- Irreplaceable — if the Flagship fails its covenant, the federation designates a new one by supermajority
 
-**Distributed strength.** Any Diocese can verify the federation registry independently. The Constitution is public. The Justice Fund accounting is transparent. The Archdiocese earns its position every day by serving the network well.
+**Distributed strength.** Any Enterprise can verify the federation registry independently. The Constitution is public. The Justice Fund accounting is transparent. The Flagship earns its position every day by serving the network well.
 
-**Economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Archdiocese receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
+**Economic engine for real ministry.** At $10M annual Endeavor revenue across the federation, the Flagship receives $100,000. At $100M, $1M. This funds Leo development, federation infrastructure, Guardian Angel provisioning, Clearwater Cruisin Ministries, and the humans who do the actual work of keeping the covenant alive.
 
 ### The Ultimate Fair Split — Toward 53
 
 The split is not static. It is constitutionally directional.
 
-As the network matures, as Diocese operators compete for Endeavors by offering better terms, as Angel OS core becomes more efficient, the natural gravity of the system pulls value toward the creator. Always.
+As the network matures, as Enterprise operators compete for Endeavors by offering better terms, as Angel OS core becomes more efficient, the natural gravity of the system pulls value toward the creator. Always.
 
-The asymptotic target is **53** — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Diocese and Endeavor.
+The asymptotic target is **53** — the Endeavor owner keeping 53% as a floor, with everything above negotiated locally between Enterprise and Endeavor.
 
-**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Diocese slice (20%) compresses as competition drives operators to offer better terms. The Archdiocese (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
+**What compresses first:** The protocol fee (4%) shrinks as infrastructure becomes more efficient. The Enterprise slice (20%) compresses as competition drives operators to offer better terms. The Flagship (1%) and Justice Fund (5%) compress last — they represent the mission, not the margin.
 
 Not locked. Not arbitrary. **Constitutionally directional.**
 
