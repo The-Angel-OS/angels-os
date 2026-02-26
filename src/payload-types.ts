@@ -1002,6 +1002,10 @@ export interface Product {
       }[]
     | null;
   /**
+   * Alert when inventory drops below this number
+   */
+  lowStockThreshold?: number | null;
+  /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
@@ -5735,6 +5739,7 @@ export interface ProductsSelect<T extends boolean = true> {
         materials?: T;
         id?: T;
       };
+  lowStockThreshold?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
