@@ -1084,6 +1084,131 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['query'],
     },
   },
+  // ─── Sprint 19: Theme Management & Image Placement ────────────────
+  {
+    name: 'get_theme_settings',
+    description:
+      'Read the current tenant\'s branding configuration — colors, fonts, logo, tagline, and cover image. Call this before generating images so you can match the brand palette. Returns a contrast analysis for the primary color to help determine readability on light vs dark backgrounds.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'update_theme_settings',
+    description:
+      'Update the tenant\'s branding settings. You can change any combination of: primaryColor, secondaryColor, accentColor, backgroundColor, foregroundColor, borderColor (all hex), headingFont, bodyFont, siteName, tagline. Reads existing branding first and merges to avoid overwriting other fields. Use when users want to adjust their brand colors, fix contrast issues, or change fonts.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        primaryColor: {
+          type: 'string',
+          description: 'Brand primary color as hex (e.g. #10B981)',
+        },
+        secondaryColor: {
+          type: 'string',
+          description: 'Secondary brand color as hex (e.g. #0078D4)',
+        },
+        accentColor: {
+          type: 'string',
+          description: 'Accent color as hex (e.g. #FF6B35)',
+        },
+        backgroundColor: {
+          type: 'string',
+          description: 'Site background color as hex (e.g. #FFFFFF)',
+        },
+        foregroundColor: {
+          type: 'string',
+          description: 'Text/foreground color as hex (e.g. #1A1A1A)',
+        },
+        borderColor: {
+          type: 'string',
+          description: 'Border color as hex (e.g. #E5E7EB)',
+        },
+        headingFont: {
+          type: 'string',
+          enum: ['inter', 'playfair-display', 'montserrat', 'raleway', 'poppins'],
+          description: 'Font for headings',
+        },
+        bodyFont: {
+          type: 'string',
+          enum: ['inter', 'open-sans', 'lato', 'roboto', 'source-sans-3'],
+          description: 'Font for body text',
+        },
+        siteName: {
+          type: 'string',
+          description: 'The site/brand name displayed on the storefront',
+        },
+        tagline: {
+          type: 'string',
+          description: 'Short business tagline',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'set_page_hero',
+    description:
+      'Set or update a page\'s hero section — change the hero type (highImpact, mediumImpact, lowImpact, none) and/or assign a hero image by Media ID. Can find pages by pageId or slug. Automatically promotes to highImpact if an image is assigned to a lowImpact or none hero. Use after generating a banner image to place it on the homepage or any page.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: {
+          type: 'number',
+          description: 'The ID of the page to update (use this OR slug)',
+        },
+        slug: {
+          type: 'string',
+          description: 'The slug of the page to update (e.g. "home", "about") — used if pageId not provided',
+        },
+        heroType: {
+          type: 'string',
+          enum: ['highImpact', 'mediumImpact', 'lowImpact', 'none'],
+          description: 'The hero display type',
+        },
+        mediaId: {
+          type: 'number',
+          description: 'Media ID to set as the hero image',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'generate_theme_aware_image',
+    description:
+      'Smart image generation that reads the tenant\'s branding first and incorporates brand colors, dark mode handling, and text overlay contrast zones into the prompt. Use this instead of generate_image when you want the output to match the site\'s visual identity. Supports placement presets (hero_banner, cover_image, card_thumbnail, product_photo, background) and text overlay zones (top, bottom, left, center) that tell the generator to create dark gradient areas for readable typography.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'Description of the image to generate',
+        },
+        placement: {
+          type: 'string',
+          enum: ['hero_banner', 'cover_image', 'card_thumbnail', 'product_photo', 'background'],
+          description: 'Where the image will be used — determines aspect ratio and composition guidance',
+        },
+        textOverlayZone: {
+          type: 'string',
+          enum: ['top', 'bottom', 'left', 'center'],
+          description: 'Where text will be overlaid — the generator creates a dark gradient/vignette in that area for readability',
+        },
+        darkMode: {
+          type: 'boolean',
+          description: 'If true, produce an image with dark edges that blends into dark backgrounds',
+        },
+        autoSave: {
+          type: 'boolean',
+          description: 'Save to media library automatically (default true)',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1208,6 +1333,15 @@ export async function executeToolCall(
         return await handleExtractPdfPages(payload, toolInput, ctx)
       case 'query_knowledge':
         return await handleQueryKnowledge(payload, toolInput, ctx)
+      // ─── Sprint 19: Theme Management & Image Placement ─────────
+      case 'get_theme_settings':
+        return await handleGetThemeSettings(payload, ctx)
+      case 'update_theme_settings':
+        return await handleUpdateThemeSettings(payload, toolInput, ctx)
+      case 'set_page_hero':
+        return await handleSetPageHero(payload, toolInput, ctx)
+      case 'generate_theme_aware_image':
+        return await handleGenerateThemeAwareImage(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -4459,5 +4593,421 @@ async function handleCheckFees(
   } catch (err) {
     console.error('[LEO Tools] Error checking fees:', err)
     return 'Unable to retrieve fee status. Please try again later.'
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 19: Theme Management & Image Placement
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculates relative luminance of a hex color (0 = black, 1 = white).
+ * Used to advise LEO on contrast suitability.
+ */
+function hexLuminance(hex: string): number {
+  const clean = hex.replace('#', '')
+  if (clean.length !== 6) return -1
+  const r = parseInt(clean.substring(0, 2), 16) / 255
+  const g = parseInt(clean.substring(2, 4), 16) / 255
+  const b = parseInt(clean.substring(4, 6), 16) / 255
+  // sRGB -> linear
+  const lr = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
+  const lg = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
+  const lb = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+}
+
+/**
+ * get_theme_settings — Reads the tenant's branding configuration and returns
+ * a contrast analysis to help LEO make informed image generation decisions.
+ */
+async function handleGetThemeSettings(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.tenantId) {
+    return 'Unable to read theme — no Enterprise context available. Please select an Enterprise first.'
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = await payload.findByID({ collection: 'tenants', id: ctx.tenantId, depth: 1, overrideAccess: true }) as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const b: Record<string, any> = tenant?.branding || {}
+
+    const lines = [
+      `## Theme Settings`,
+      ``,
+      `**Site Name:** ${b.siteName || '(not set)'}`,
+      `**Tagline:** ${b.tagline || '(not set)'}`,
+      ``,
+      `### Colors`,
+      `- **Primary:** ${b.primaryColor || '#10B981'}`,
+      `- **Secondary:** ${b.secondaryColor || '(not set)'}`,
+      `- **Accent:** ${b.accentColor || '(not set)'}`,
+      `- **Background:** ${b.backgroundColor || '#FFFFFF'}`,
+      `- **Foreground:** ${b.foregroundColor || '#1A1A1A'}`,
+      `- **Border:** ${b.borderColor || '#E5E7EB'}`,
+      ``,
+      `### Fonts`,
+      `- **Heading font:** ${b.headingFont || 'inter'}`,
+      `- **Body font:** ${b.bodyFont || 'inter'}`,
+      ``,
+      `### Media`,
+      `- **Logo:** ${b.logo ? `Media ID ${typeof b.logo === 'object' ? b.logo.id : b.logo}` : '(not set)'}`,
+      `- **Cover Image:** ${b.coverImage ? `Media ID ${typeof b.coverImage === 'object' ? b.coverImage.id : b.coverImage}` : '(not set)'}`,
+    ]
+
+    // Contrast analysis for the primary color
+    const primary = b.primaryColor || '#10B981'
+    const lum = hexLuminance(primary)
+    if (lum >= 0) {
+      lines.push(``)
+      lines.push(`### Contrast Analysis`)
+      lines.push(`- **Primary luminance:** ${lum.toFixed(3)} (0=black, 1=white)`)
+      if (lum > 0.4) {
+        lines.push(`- **Advisory:** Primary color is **light** — works well on dark backgrounds but may be hard to read on white/light backgrounds. Consider a darker variant for text or navigation links over light hero images.`)
+      } else if (lum > 0.15) {
+        lines.push(`- **Advisory:** Primary color has **medium** luminance — should work on both light and dark backgrounds with adequate contrast.`)
+      } else {
+        lines.push(`- **Advisory:** Primary color is **dark** — works well on light backgrounds. May need a lighter variant for dark-mode or overlay text.`)
+      }
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error reading theme settings:', err)
+    return `Error reading theme settings: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * update_theme_settings — Merges provided branding fields into the tenant's
+ * existing branding without overwriting unspecified fields.
+ */
+async function handleUpdateThemeSettings(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.tenantId) {
+    return 'Unable to update theme — no Enterprise context available. Please select an Enterprise first.'
+  }
+
+  // Validate hex colors
+  const hexFields = ['primaryColor', 'secondaryColor', 'accentColor', 'backgroundColor', 'foregroundColor', 'borderColor'] as const
+  for (const field of hexFields) {
+    const val = input[field]
+    if (val && typeof val === 'string' && !/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      return `Invalid hex color for ${field}: "${val}". Expected format: #RRGGBB (e.g. #10B981).`
+    }
+  }
+
+  // Validate fonts
+  const headingFonts = ['inter', 'playfair-display', 'montserrat', 'raleway', 'poppins']
+  const bodyFonts = ['inter', 'open-sans', 'lato', 'roboto', 'source-sans-3']
+  if (input.headingFont && !headingFonts.includes(input.headingFont as string)) {
+    return `Invalid heading font: "${input.headingFont}". Options: ${headingFonts.join(', ')}.`
+  }
+  if (input.bodyFont && !bodyFonts.includes(input.bodyFont as string)) {
+    return `Invalid body font: "${input.bodyFont}". Options: ${bodyFonts.join(', ')}.`
+  }
+
+  try {
+    // Read existing branding to merge
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = await payload.findByID({ collection: 'tenants', id: ctx.tenantId, depth: 0, overrideAccess: true }) as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing: Record<string, any> = tenant?.branding || {}
+
+    // Build merged branding — only overwrite fields that were provided
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const merged: Record<string, any> = { ...existing }
+    const updatableFields = [...hexFields, 'headingFont', 'bodyFont', 'siteName', 'tagline'] as const
+    const changed: string[] = []
+
+    for (const field of updatableFields) {
+      if (input[field] !== undefined && input[field] !== null) {
+        const oldVal = existing[field] || '(not set)'
+        merged[field] = input[field]
+        changed.push(`- **${field}:** ${oldVal} → ${input[field]}`)
+      }
+    }
+
+    if (changed.length === 0) {
+      return 'No changes specified. Provide at least one branding field to update (e.g. primaryColor, headingFont, siteName).'
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'tenants',
+      id: ctx.tenantId,
+      data: { branding: merged },
+      overrideAccess: true,
+    })
+
+    const lines = [
+      `## Theme Updated`,
+      ``,
+      `${changed.length} field(s) changed:`,
+      ...changed,
+    ]
+
+    // If primary color was changed, include contrast advisory
+    if (input.primaryColor) {
+      const lum = hexLuminance(input.primaryColor as string)
+      if (lum >= 0 && lum > 0.4) {
+        lines.push(``, `**Note:** New primary color is light (luminance ${lum.toFixed(3)}). Check that nav links and buttons remain readable over light backgrounds.`)
+      }
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error updating theme settings:', err)
+    return `Error updating theme settings: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * set_page_hero — Sets or updates a page's hero type and/or image.
+ * Auto-promotes to highImpact if an image is assigned to a lowImpact/none hero.
+ */
+async function handleSetPageHero(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const pageId = input.pageId as number | undefined
+  const slug = input.slug as string | undefined
+  const heroType = input.heroType as string | undefined
+  const mediaId = input.mediaId as number | undefined
+
+  if (!pageId && !slug) {
+    return 'Error: Provide either a pageId or slug to identify the page.'
+  }
+
+  if (!heroType && mediaId === undefined) {
+    return 'Error: Provide at least one of heroType or mediaId to update the hero.'
+  }
+
+  try {
+    // Resolve page
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let page: any
+
+    if (pageId) {
+      page = await payload.findByID({
+        collection: 'pages',
+        id: pageId,
+        depth: 0,
+        overrideAccess: true,
+      })
+    } else {
+      const result = await payload.find({
+        collection: 'pages',
+        where: { slug: { equals: slug } } as Where,
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      page = result.docs[0]
+    }
+
+    if (!page) {
+      return `Error: Page not found${slug ? ` with slug "${slug}"` : ` with ID ${pageId}`}.`
+    }
+
+    // If mediaId provided, verify it exists
+    if (mediaId !== undefined) {
+      try {
+        await payload.findByID({ collection: 'media', id: mediaId, depth: 0, overrideAccess: true })
+      } catch {
+        return `Error: Media ID ${mediaId} not found. Please provide a valid media ID.`
+      }
+    }
+
+    // Build hero update
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const heroUpdate: Record<string, any> = { ...(page.hero || {}) }
+    const changes: string[] = []
+
+    // Determine hero type
+    let newType = heroType || heroUpdate.type || 'lowImpact'
+    if (mediaId !== undefined && (newType === 'lowImpact' || newType === 'none')) {
+      // Auto-promote: assigning an image to a lowImpact/none hero makes it highImpact
+      newType = 'highImpact'
+      changes.push(`- **Hero type:** auto-promoted to highImpact (image assigned)`)
+    } else if (heroType && heroType !== heroUpdate.type) {
+      changes.push(`- **Hero type:** ${heroUpdate.type || '(not set)'} → ${heroType}`)
+    }
+    heroUpdate.type = newType
+
+    if (mediaId !== undefined) {
+      heroUpdate.media = mediaId
+      changes.push(`- **Hero image:** set to Media ID ${mediaId}`)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'pages',
+      id: page.id,
+      data: { hero: heroUpdate },
+      overrideAccess: true,
+    })
+
+    if (changes.length === 0) {
+      return `Page hero unchanged — already set to the requested values.`
+    }
+
+    const pageTitle = page.title || page.slug || `ID ${page.id}`
+    return [`## Hero Updated — "${pageTitle}"`, ``, ...changes].join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error setting page hero:', err)
+    return `Error setting page hero: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * generate_theme_aware_image — Reads tenant branding then generates an image
+ * that incorporates brand colors, placement dimensions, and text overlay zones.
+ */
+async function handleGenerateThemeAwareImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!isImageGenerationAvailable()) {
+    return 'Image generation is not available — OPENROUTER_API_KEY is not configured.'
+  }
+
+  const userPrompt = input.prompt as string
+  if (!userPrompt) {
+    return 'Error: A prompt describing the image is required.'
+  }
+
+  const placement = input.placement as string | undefined
+  const textOverlayZone = input.textOverlayZone as string | undefined
+  const darkMode = input.darkMode === true
+  const autoSave = input.autoSave !== false
+
+  // Step 1: Read tenant branding (if available)
+  let brandContext = ''
+  if (ctx.tenantId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tenant = await payload.findByID({ collection: 'tenants', id: ctx.tenantId, depth: 0, overrideAccess: true }) as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const b: Record<string, any> = tenant?.branding || {}
+      const colors: string[] = []
+      if (b.primaryColor) colors.push(`primary brand color ${b.primaryColor}`)
+      if (b.secondaryColor) colors.push(`secondary ${b.secondaryColor}`)
+      if (b.accentColor) colors.push(`accent ${b.accentColor}`)
+      if (colors.length > 0) {
+        brandContext = `Brand palette: ${colors.join(', ')}. Incorporate these colors subtly into the composition.`
+      }
+      if (b.backgroundColor && b.backgroundColor !== '#FFFFFF') {
+        brandContext += ` Site background is ${b.backgroundColor}.`
+      }
+    } catch {
+      // No tenant or error — proceed without brand context
+    }
+  }
+
+  // Step 2: Determine dimensions and composition guidance from placement
+  const placementConfig: Record<string, { guidance: string; brandStyle?: string }> = {
+    hero_banner: {
+      guidance: 'Wide panoramic composition (16:3 ratio, ~1920x600). Leave visual breathing room for overlaid text. Strong horizontal flow.',
+      brandStyle: 'website hero banner',
+    },
+    cover_image: {
+      guidance: 'Wide cinematic composition (12:5 ratio, ~1920x800). Epic, atmospheric. Suitable as a full-width cover.',
+      brandStyle: 'cover image',
+    },
+    card_thumbnail: {
+      guidance: 'Compact composition (3:2 ratio, ~600x400). Clear focal point, works at small sizes. No fine text.',
+      brandStyle: 'card thumbnail',
+    },
+    product_photo: {
+      guidance: 'Square composition (1:1 ratio, ~1024x1024). Clean product photography. Professional lighting.',
+      brandStyle: 'product photo',
+    },
+    background: {
+      guidance: 'Full HD composition (16:9 ratio, ~1920x1080). Subtle, non-distracting. Works as a background layer behind content.',
+      brandStyle: 'background texture',
+    },
+  }
+
+  const pConfig = placement ? placementConfig[placement] : undefined
+
+  // Step 3: Build text overlay zone instructions
+  let overlayGuidance = ''
+  if (textOverlayZone) {
+    const zoneMap: Record<string, string> = {
+      top: 'Create a dark-to-transparent gradient at the TOP of the image so white text will be readable there. Keep visual interest in the lower half.',
+      bottom: 'Create a dark-to-transparent gradient at the BOTTOM of the image so white text will be readable there. Keep visual interest in the upper half.',
+      left: 'Create a dark-to-transparent gradient on the LEFT side of the image so white text will be readable there. Keep visual interest on the right.',
+      center: 'Create a dark vignette or overlay zone in the CENTER of the image so white text will be readable there. Place visual interest around the edges.',
+    }
+    overlayGuidance = zoneMap[textOverlayZone] || ''
+  }
+
+  // Step 4: Dark mode handling
+  let darkModeGuidance = ''
+  if (darkMode) {
+    darkModeGuidance = 'The image will be displayed on a DARK background. Use dark, moody edges that blend seamlessly into black or near-black surrounds. Avoid bright edges.'
+  }
+
+  // Step 5: Compose the enhanced prompt
+  const promptParts = [userPrompt]
+  if (brandContext) promptParts.push(brandContext)
+  if (pConfig?.guidance) promptParts.push(pConfig.guidance)
+  if (overlayGuidance) promptParts.push(overlayGuidance)
+  if (darkModeGuidance) promptParts.push(darkModeGuidance)
+
+  const composedPrompt = promptParts.join(' | ')
+
+  try {
+    const result = await generateImage(
+      {
+        prompt: composedPrompt,
+        enhancementContext: {
+          brandStyle: pConfig?.brandStyle,
+        },
+        autoUpload: autoSave,
+        tenantId: ctx.tenantId,
+      },
+      autoSave ? payload : undefined,
+    )
+
+    if (!result.success) {
+      return `Theme-aware image generation failed: ${result.error}`
+    }
+
+    const parts: string[] = ['Theme-aware image generated successfully! 🎨']
+
+    if (placement) parts.push(`Placement: ${placement}`)
+    if (result.modelUsed) parts.push(`Model: ${result.modelUsed}`)
+    if (result.mediaId) parts.push(`Saved to media library (Media ID: ${result.mediaId})`)
+    if (result.permanentUrl) parts.push(`URL: ${result.permanentUrl}`)
+
+    if (result.imageDataUrl && !result.permanentUrl) {
+      parts.push('Image available for preview (not yet saved to media library).')
+    }
+
+    if (result.uploadWarning) {
+      parts.push(`\n⚠️ ${result.uploadWarning}`)
+    }
+
+    // Suggest next steps based on placement
+    if (result.mediaId && placement === 'hero_banner') {
+      parts.push(`\nWould you like me to set this as the hero image on a page? I can use set_page_hero to place it.`)
+    } else if (result.mediaId) {
+      parts.push(`\nImage ready. You can ask me to place it on a page hero, attach it to a product, or use it as a cover image.`)
+    }
+
+    return parts.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error generating theme-aware image:', err)
+    return `Error generating theme-aware image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

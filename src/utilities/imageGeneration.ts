@@ -710,8 +710,8 @@ export async function replaceMediaOnContent(
       return { success: true, updatedDocuments: updatedCount }
     }
 
-    // Otherwise, search and replace across products, posts
-    for (const collection of ['products', 'posts'] as const) {
+    // Otherwise, search and replace across products, posts, pages, tenants
+    for (const collection of ['products', 'posts', 'pages', 'tenants'] as const) {
       try {
         const results = await payload.find({
           collection,
