@@ -89,9 +89,11 @@ export function extractRateLimitKey(req: {
   if (req.user?.id) {
     return `user:${req.user.id}`
   }
-  // Vercel forwards the real IP via x-forwarded-for
+  // Prefer CF-Connecting-IP (Cloudflare — cannot be spoofed through proxy),
+  // then x-forwarded-for (Vercel), then x-real-ip fallback
+  const cfIp = req.headers.get('cf-connecting-ip')
   const forwarded = req.headers.get('x-forwarded-for')
-  const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
+  const ip = cfIp || forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
   return `ip:${ip}`
 }
 

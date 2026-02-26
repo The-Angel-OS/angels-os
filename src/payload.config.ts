@@ -54,6 +54,7 @@ import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
+import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
@@ -150,6 +151,7 @@ export default buildConfig({
     ApplicationLogs,
     Reviews,
     Endeavors,
+    Connectors,
     Contacts,
     FederationAuditLog,
     AgentTransactions,
@@ -199,8 +201,8 @@ export default buildConfig({
         contacts: {},
         header: {},
         footer: {},
-        // Sprint 18B: Knowledge extraction (not in generated types yet)
-        ...({ 'media-meta': {} } as Record<string, object>),
+        // Sprint 18B/19: not in generated types yet — cast to bypass strict check
+        ...({ 'media-meta': {}, connectors: {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {

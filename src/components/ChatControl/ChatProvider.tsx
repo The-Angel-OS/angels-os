@@ -112,74 +112,86 @@ export function ChatProvider({
     { tenantId, channelSpaceId: activeSpaceId || undefined },
   )
 
-  // ─── LEO DM Resolution ─────────────────────────────────────
+  // ─── Load DM channels + resolve LEO DM (sequential to prevent race) ───
   useEffect(() => {
-    if (!dmSpaceId || !tenantId || !userId || leoResolvedRef.current) return
-    leoResolvedRef.current = true
+    if (!tenantId || !dmSpaceId || !userId) return
 
-    fetch(`${SERVER_URL}/api/dm/find-or-create`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetUserId: 'leo', tenantId }),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.channel) {
-          const ch: ChatChannel = {
-            id: data.channel.id,
-            name: data.channel.name || 'LEO',
-            slug: data.channel.slug,
-            type: 'dm',
-            spaceId: dmSpaceId,
-            source: data.channel.source || 'native',
-            members: data.channel.members,
+    // Load all DM channels first, then resolve LEO DM and merge.
+    // This eliminates the race condition where two concurrent effects
+    // could clobber each other's state updates.
+    const loadDMs = async () => {
+      try {
+        // Step 1: Load all existing DM channels (with tenant filter)
+        const res = await fetch(
+          `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&sort=-updatedAt&limit=50`,
+          { credentials: 'include' },
+        )
+        const data = res.ok ? await res.json() : null
+        const mapped: ChatChannel[] = (data?.docs || []).map((ch: any) => ({
+          id: String(ch.id),
+          name: ch.name || 'DM',
+          slug: ch.slug,
+          type: 'dm' as const,
+          spaceId: String(typeof ch.space === 'object' ? ch.space?.id : ch.space),
+          source: ch.source || 'native',
+          members: Array.isArray(ch.members)
+            ? ch.members.map((m: any) =>
+                typeof m === 'object'
+                  ? { id: String(m.id), name: m.name, email: m.email }
+                  : { id: String(m) },
+              )
+            : [],
+        }))
+
+        // Deduplicate by slug (keep first occurrence — most recently updated)
+        const seen = new Set<string>()
+        const deduped = mapped.filter((ch) => {
+          if (seen.has(ch.slug)) return false
+          seen.add(ch.slug)
+          return true
+        })
+
+        // Step 2: Resolve LEO DM (find-or-create)
+        if (!leoResolvedRef.current) {
+          leoResolvedRef.current = true
+          try {
+            const leoRes = await fetch(`${SERVER_URL}/api/dm/find-or-create`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ targetUserId: 'leo', tenantId }),
+            })
+            const leoData = leoRes.ok ? await leoRes.json() : null
+            if (leoData?.channel) {
+              const leoCh: ChatChannel = {
+                id: String(leoData.channel.id),
+                name: leoData.channel.name || 'LEO',
+                slug: leoData.channel.slug,
+                type: 'dm',
+                spaceId: dmSpaceId,
+                source: leoData.channel.source || 'native',
+                members: leoData.channel.members,
+              }
+              setLeoDMChannel(leoCh)
+
+              // Merge LEO DM into list if not already present
+              if (!deduped.find((c) => c.id === leoCh.id)) {
+                deduped.unshift(leoCh)
+              }
+            }
+          } catch (err) {
+            console.warn('[ChatProvider] Failed to resolve LEO DM:', err)
           }
-          setLeoDMChannel(ch)
-          setDmChannels((prev) => {
-            if (prev.find((c) => c.id === ch.id)) return prev
-            return [ch, ...prev]
-          })
         }
-      })
-      .catch((err) => {
-        console.warn('[ChatProvider] Failed to resolve LEO DM:', err)
-      })
-  }, [dmSpaceId, tenantId, userId])
 
-  // ─── Load DM channels for tenant ───────────────────────────
-  useEffect(() => {
-    if (!tenantId || !dmSpaceId) return
-
-    fetch(
-      `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&sort=-updatedAt&limit=50`,
-      { credentials: 'include' },
-    )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.docs) {
-          const mapped: ChatChannel[] = data.docs.map((ch: any) => ({
-            id: String(ch.id),
-            name: ch.name || 'DM',
-            slug: ch.slug,
-            type: 'dm',
-            spaceId: String(typeof ch.space === 'object' ? ch.space?.id : ch.space),
-            source: ch.source || 'native',
-            members: Array.isArray(ch.members)
-              ? ch.members.map((m: any) =>
-                  typeof m === 'object'
-                    ? { id: String(m.id), name: m.name, email: m.email }
-                    : { id: String(m) },
-                )
-              : [],
-          }))
-          setDmChannels(mapped)
-        }
-      })
-      .catch((err) => {
+        setDmChannels(deduped)
+      } catch (err) {
         console.warn('[ChatProvider] Failed to load DM channels:', err)
-      })
-  }, [tenantId, dmSpaceId])
+      }
+    }
+
+    loadDMs()
+  }, [tenantId, dmSpaceId, userId])
 
   // ─── Navigation helpers ─────────────────────────────────────
 

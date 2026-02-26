@@ -88,7 +88,8 @@ export const getTenantAwareURLFromHeaders = (request?: Request) => {
 
   if (request) {
     const host = request.headers.get('host') || request.headers.get('x-forwarded-host')
-    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    // Cloudflare/proxies may chain proto values (e.g. "https, http") — take the first
+    const protocol = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https'
     
     if (host) {
       return `${protocol}://${host}`

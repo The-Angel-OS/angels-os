@@ -29,6 +29,12 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set(TENANT_HEADER, tenantId)
   }
 
+  // Propagate real client IP from Cloudflare for downstream rate limiting
+  const cfIp = request.headers.get('cf-connecting-ip')
+  if (cfIp) {
+    requestHeaders.set('x-real-ip', cfIp)
+  }
+
   // For /api routes: inject tenant header and pass through — do NOT run i18n
   // routing, which would incorrectly locale-redirect API requests.
   if (request.nextUrl.pathname.startsWith('/api')) {
