@@ -119,6 +119,41 @@ function MessageImages({ images }: { images: NonNullable<ChatMessage['images']> 
   )
 }
 
+function MessageAttachments({ attachments }: { attachments: NonNullable<ChatMessage['attachments']> }) {
+  if (attachments.length === 0) return null
+
+  const formatSize = (bytes?: number) => {
+    if (!bytes) return ''
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      {attachments.map((att, i) => (
+        <a
+          key={`${att.url}-${i}`}
+          href={att.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm transition-colors hover:bg-muted/60 hover:border-primary/30"
+        >
+          <span className="text-muted-foreground">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </span>
+          <span className="flex-1 truncate font-medium">{att.filename}</span>
+          {att.filesize && (
+            <span className="shrink-0 text-xs text-muted-foreground">{formatSize(att.filesize)}</span>
+          )}
+        </a>
+      ))}
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Streaming cursor (blinking bar)
 // ---------------------------------------------------------------------------
@@ -387,6 +422,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
             <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
             {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
             {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
+            {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
             <div className="mt-1 text-[10px] opacity-50">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>

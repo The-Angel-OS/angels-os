@@ -22,6 +22,14 @@ export interface ChatMessage {
     alt?: string
     mediaId?: number
   }>
+  /** File attachments (non-image files) */
+  attachments?: Array<{
+    url: string
+    filename: string
+    mimeType?: string
+    filesize?: number
+    mediaId?: number
+  }>
   metadata?: {
     agentName?: string
     agentType?: string

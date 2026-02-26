@@ -17,7 +17,6 @@ export async function GET() {
     // Quick DB check — count tenants (lightweight query)
     await payload.count({
       collection: 'tenants',
-      limit: 1,
       overrideAccess: true,
     })
 

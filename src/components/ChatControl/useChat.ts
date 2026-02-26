@@ -215,23 +215,31 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       ? (msg.metadata as Record<string, unknown>)
       : undefined
 
-    // Extract images from attachments array (relationship to media)
+    // Extract images and file attachments from the attachments array
     const attachmentImages: ChatMessage['images'] = []
+    const fileAttachments: NonNullable<ChatMessage['attachments']> = []
     if (Array.isArray(msg.attachments)) {
       for (const att of msg.attachments as Array<Record<string, unknown>>) {
         const media = att.media as Record<string, unknown> | number | null
         if (media && typeof media === 'object') {
-          // Media relationship is fully expanded — extract URL directly
           const url = (media.url as string) || `/api/media/file/${media.filename as string}`
-          if (url) {
+          const mimeType = (media.mimeType as string) || ''
+          if (url && mimeType.startsWith('image/')) {
             attachmentImages.push({
               url,
               alt: (att.caption as string) || (media.alt as string) || undefined,
               mediaId: media.id as number | undefined,
             })
+          } else if (url) {
+            fileAttachments.push({
+              url,
+              filename: (media.filename as string) || 'file',
+              mimeType,
+              filesize: media.filesize as number | undefined,
+              mediaId: media.id as number | undefined,
+            })
           }
         } else if (typeof media === 'number') {
-          // Fallback: media is just an ID (not expanded) — construct URL from ID
           attachmentImages.push({
             url: `/api/media/file/${media}`,
             alt: (att.caption as string) || undefined,
@@ -263,6 +271,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       timestamp: new Date(String(msg.createdAt)),
       authorName,
       ...(allImages.length > 0 ? { images: allImages } : {}),
+      ...(fileAttachments.length > 0 ? { attachments: fileAttachments } : {}),
       metadata: {
         messageType: String(msg.messageType || 'user'),
         agentName: msgMeta?.agentName as string | undefined,
@@ -602,11 +611,19 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       // Reset poll to fast interval on user activity
       resetPollInterval()
 
-      // Optimistic UI update — show images immediately from File objects
+      // Optimistic UI update — show image/file previews immediately
       const tempId = `temp_${Date.now()}`
-      const previewImages = files?.map((f) => ({
+      const imageFiles = files?.filter((f) => f.type.startsWith('image/'))
+      const nonImageFiles = files?.filter((f) => !f.type.startsWith('image/'))
+      const previewImages = imageFiles?.map((f) => ({
         url: URL.createObjectURL(f),
         alt: f.name,
+      }))
+      const previewAttachments = nonImageFiles?.map((f) => ({
+        url: '#',
+        filename: f.name,
+        mimeType: f.type,
+        filesize: f.size,
       }))
       const optimistic: ChatMessage = {
         id: tempId,
@@ -615,6 +632,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         timestamp: new Date(),
         authorName: 'You',
         ...(previewImages && previewImages.length > 0 ? { images: previewImages } : {}),
+        ...(previewAttachments && previewAttachments.length > 0 ? { attachments: previewAttachments } : {}),
       }
       setMessages((prev) => [...prev, optimistic])
       setIsLoading(true)
@@ -626,22 +644,28 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
         if (files && files.length > 0) {
           attachments = []
-          for (const file of files) {
-            const formData = new FormData()
-            formData.append('file', file)
-            formData.append('alt', file.name)
-            const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
-              method: 'POST',
-              credentials: 'include',
-              body: formData,
-            })
-            if (uploadRes.ok) {
-              const mediaDoc = await uploadRes.json()
+          // Upload files in parallel for better performance
+          const uploadResults = await Promise.allSettled(
+            files.map(async (file) => {
+              const formData = new FormData()
+              formData.append('file', file)
+              formData.append('alt', file.name)
+              const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData,
+              })
+              if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.statusText}`)
+              return uploadRes.json()
+            }),
+          )
+          for (const result of uploadResults) {
+            if (result.status === 'fulfilled') {
+              const mediaDoc = result.value
               const mediaId = mediaDoc.doc?.id || mediaDoc.id
-              attachments.push({ media: mediaId, caption: file.name })
-              // Collect URLs for LEO vision
+              attachments.push({ media: mediaId, caption: mediaDoc.doc?.filename || mediaDoc.filename })
               const mediaUrl = mediaDoc.doc?.url || mediaDoc.url || `/api/media/file/${mediaDoc.doc?.filename || mediaDoc.filename}`
-              uploadedImageUrls.push({ url: mediaUrl, mediaId, alt: file.name })
+              uploadedImageUrls.push({ url: mediaUrl, mediaId, alt: mediaDoc.doc?.filename || mediaDoc.filename })
             }
           }
         }
