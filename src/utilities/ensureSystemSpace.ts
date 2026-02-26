@@ -9,12 +9,20 @@ export const AI_BUS_SPACE_NAME = 'AI Bus'
 export const DM_SPACE_SLUG = 'direct-messages'
 export const DM_SPACE_NAME = 'Direct Messages'
 
-/** Default channels every AI Bus space should have */
+/** Default channels every AI Bus space should have.
+ *
+ * Architecture: one channel per integration/concern. The channel owns its messages.
+ * - `leo` is the single LEO AI assistant channel (prevents duplicates)
+ * - Integration channels (email, whatsapp, sms) are provisioned when integrations are enabled
+ * - System channels (errors, system-log) capture operational events
+ */
 const AI_BUS_CHANNELS = [
-  { name: 'general', slug: 'general', description: 'AI agent activity feed', type: 'general', isDefault: true },
+  { name: 'LEO', slug: 'leo', description: 'LEO AI assistant — your primary AI interface', type: 'leo', isDefault: true },
+  { name: 'general', slug: 'general', description: 'AI agent activity feed', type: 'general', isDefault: false },
   { name: 'support', slug: 'support', description: 'Support requests and system help', type: 'support', isDefault: false },
   { name: 'errors', slug: 'errors', description: 'System errors and warnings — LEO monitors this channel', type: 'general', isDefault: false },
   { name: 'system-log', slug: 'system-log', description: 'System event log — cron jobs, integrations, provisioning', type: 'general', isDefault: false },
+  { name: 'Email', slug: 'email-inbox', description: 'Inbound email threads — messages arrive here from connected email accounts', type: 'email', isDefault: false },
 ] as const
 
 /**

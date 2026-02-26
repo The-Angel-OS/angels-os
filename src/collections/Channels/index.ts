@@ -51,6 +51,7 @@ export const Channels: CollectionConfig = {
       defaultValue: 'general',
       options: [
         { label: 'General', value: 'general' },
+        { label: 'LEO (AI Assistant)', value: 'leo' },
         { label: 'Announcements', value: 'announcements' },
         { label: 'Support', value: 'support' },
         { label: 'Sales', value: 'sales' },
@@ -59,6 +60,9 @@ export const Channels: CollectionConfig = {
         { label: 'Video', value: 'video' },
         { label: 'Team', value: 'team' },
         { label: 'Social', value: 'social' },
+        { label: 'Email', value: 'email' },
+        { label: 'WhatsApp', value: 'whatsapp' },
+        { label: 'SMS', value: 'sms' },
         { label: 'Direct Message', value: 'dm' },
       ],
     },
