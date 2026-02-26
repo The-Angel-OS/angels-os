@@ -1,12 +1,12 @@
 /**
  * Documentation Endpoint — GET /api/docs
  *
- * Serves markdown files from the `docs/` directory for the
+ * Serves markdown and text files from the `docs/` directory for the
  * Documentation Center page.
  *
  * Query params:
- *   ?action=list          — List all markdown files with metadata
- *   ?action=read&file=X   — Read a specific markdown file
+ *   ?action=list          — List all .md and .txt files with metadata
+ *   ?action=read&file=X   — Read a specific document file
  */
 
 import type { PayloadHandler } from 'payload'
@@ -99,7 +99,7 @@ async function scanDirectory(
           const subFiles = await scanDirectory(fullPath, baseDir)
           files.push(...subFiles)
         }
-      } else if (extname(entry) === '.md') {
+      } else if (['.md', '.txt'].includes(extname(entry).toLowerCase())) {
         const content = await readFile(fullPath, 'utf-8')
         const metadata = extractMarkdownMetadata(content)
 
@@ -110,7 +110,7 @@ async function scanDirectory(
           isDirectory: false,
           size: stats.size,
           lastModified: stats.mtime,
-          content: metadata.title || entry.replace('.md', ''),
+          content: metadata.title || entry.replace(/\.(md|txt)$/, ''),
           metadata,
         })
       }
@@ -160,9 +160,9 @@ export const docsHandler: PayloadHandler = async (req) => {
         }
 
         const stats = await stat(fullPath)
-        if (!stats.isFile() || extname(fullPath) !== '.md') {
+        if (!stats.isFile() || !['.md', '.txt'].includes(extname(fullPath).toLowerCase())) {
           return Response.json(
-            { error: 'File not found or not a markdown file' },
+            { error: 'File not found or not a supported document' },
             { status: 404 },
           )
         }

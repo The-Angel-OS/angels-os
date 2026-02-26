@@ -7,15 +7,15 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 **Live:** [spacesangels.com](https://spacesangels.com)
 
 [![Status](https://img.shields.io/badge/version-v0.21.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C330%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C570%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-31%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-36%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-70-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-46-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-33-orange)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-77-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-49-purple)]()
+[![Collections](https://img.shields.io/badge/Collections-34-orange)]()
 [![Sprints](https://img.shields.io/badge/Sprints-21-ff69b4)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
@@ -87,10 +87,10 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Claude Sonnet 4 with 70 tools, 3-round tool loop, SSE streaming, vision |
+| Leo AI Agent | **Done** | Claude Sonnet 4 with 77 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
-| Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
+| Spaces & Channels | **Done** | Discord-style workspaces, 14 channel types (general, leo, dm, email, whatsapp, sms, etc.) |
 | Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT) |
 | E-commerce + Cart | **Done** | Products, cart, orders, Leo-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
@@ -154,8 +154,12 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 | **Leo Analytics Tools** | **Done** | analyze_trends (period-over-period), recommend_products (popularity + context) |
 | **Leo Workflow Tools** | **Done** | delegate_task, escalate_issue, send_emergency_alert, document_incident |
 | **Low Stock Threshold** | **Done** | Per-product configurable alert threshold on Products collection |
+| **Production Hardening** | **Done** | Stripe payment_failed + refund handlers, chat-send tenant isolation, SSE heartbeat, loading skeletons, auth guards |
+| **Channel-per-Integration** | **Done** | Dedicated channel types: leo, email, whatsapp, sms — each integration routes to its own channel |
+| **DM Dedup** | **Done** | Race-condition-safe findOrCreateDM with auto-cleanup of duplicate channels |
+| **Documentation Center** | **Done** | Indexes both .md and .txt files, 156+ docs searchable in dashboard |
 
-### Leo's 70 Tools
+### Leo's 77 Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -165,6 +169,9 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 **Reviews (1):** draft review response
 **Media (3):** generate image, improve image (vision feedback), attach/replace image
 **Knowledge (3):** analyze image (Claude Vision), extract PDF pages, query knowledge base (RAG)
+**Theme & Pages (4):** get theme settings, update theme settings, set page hero, generate theme-aware image *(Sprint 19)*
+**Calendar (1):** add calendar block to page *(Sprint 19)*
+**Provisioning (2):** research and provision (full Enterprise setup), track soul (soul journey tracking) *(Sprint 19)*
 **Federation (5):** sign constitution, ping federation, check maker queue, claim orders (for vendor AI agents)
 **Communication (4):** send message, send DM, create announcement, moderate content *(Sprint 21)*
 **Inventory (4):** update inventory, track movement, set low-stock alert, query inventory history *(Sprint 21)*
@@ -189,7 +196,7 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
 | Booking Engine | Availability, slot management, booking lifecycle | 22 |
 
-### 46 API Endpoints
+### 49 API Endpoints
 
 **AI & Chat (5):** Leo chat, Leo stream, chat send, AI Bus poll, AI Bus stream
 **Orders (8):** route, accept, fulfill, ship, vendor list, claimable, claim, cancel

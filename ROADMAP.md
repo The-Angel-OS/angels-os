@@ -7,11 +7,11 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
 **Version:** v0.21.0-dev
-**Tests:** 1,330 passing across 31 unit test files
-**Leo Tools:** 70
-**API Endpoints:** 46 registered routes
-**Collections:** 33
-**Last Updated:** February 25, 2026
+**Tests:** 1,570 passing across 36 unit test files
+**Leo Tools:** 77
+**API Endpoints:** 49 registered routes
+**Collections:** 34
+**Last Updated:** February 26, 2026
 
 ---
 
@@ -22,7 +22,7 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | Feature | Sprint | Details |
 |---------|--------|---------|
 | Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
-| LEO AI Agent (Claude) | 1-21 | 70 tools, constitutional prompt, agent routing, image vision |
+| LEO AI Agent (Claude) | 1-21 | 77 tools, constitutional prompt, agent routing, image vision |
 | SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
 | AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
 | Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
@@ -78,6 +78,9 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Leo Analytics Tools** | **21** | **analyze_trends (period-over-period), recommend_products** |
 | **Leo Workflow Tools** | **21** | **delegate_task, escalate_issue, send_emergency_alert, document_incident** |
 | **Low Stock Threshold** | **21** | **Per-product configurable alert threshold on Products collection** |
+| **Production Hardening** | **21+** | **Stripe payment_failed/refund handlers, chat-send tenant isolation, SSE heartbeat, loading skeletons, auth guards, form error handling** |
+| **Channel-per-Integration** | **21+** | **Dedicated leo/email/whatsapp/sms channel types; DM dedup with race-condition safety** |
+| **Docs Viewer Fix** | **21+** | **Documentation center now indexes .md + .txt files (transcripts were previously invisible)** |
 
 ---
 
@@ -327,6 +330,7 @@ pnpm dev                      # http://localhost:3000
 | 19 | Voice AI + Sidebar Chat | --- | Vapi webhook, phone provisioning, sidebar chat fixes |
 | 20 | Federation Launch Campaign | 1,330 | StreetSigns, governance elections, suitcase export/import, federation dashboard |
 | 21 | Arch Angel Leo's Wishlist | 1,330 | 28 new Leo tools (communication, inventory, financial, federation, CRM, analytics, workflow) |
+| 21+ | Production Hardening | 1,570 | Stripe fail/refund handlers, tenant isolation, SSE heartbeat, loading skeletons, DM dedup, docs fix |
 
 ---
 

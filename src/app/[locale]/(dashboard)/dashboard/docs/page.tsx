@@ -341,7 +341,7 @@ export default function DocsViewer() {
                       <span className="text-lg">{getDocIcon(doc.name)}</span>
                       <div className="min-w-0 flex-1">
                         <CardTitle className="text-base truncate">
-                          {doc.metadata?.title || doc.name.replace('.md', '')}
+                          {doc.metadata?.title || doc.name.replace(/\.(md|txt)$/, '')}
                         </CardTitle>
                         <div className="text-xs text-primary mt-1">
                           {getDocCategory(doc.name, doc.relativePath)}
@@ -399,7 +399,7 @@ export default function DocsViewer() {
                   <div>
                     <h1 className="text-2xl font-bold mb-2">
                       {selectedDoc.metadata?.title ||
-                        selectedDoc.name.replace('.md', '')}
+                        selectedDoc.name.replace(/\.(md|txt)$/, '')}
                     </h1>
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <span className="flex items-center space-x-1">
