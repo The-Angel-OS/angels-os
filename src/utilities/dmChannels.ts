@@ -26,7 +26,7 @@ export async function findOrCreateDM(
       : [String(userA), String(userB)].sort()
   const slug = `dm-${parts.join('-')}`
 
-  // Look for existing channel
+  // Look for existing channel(s) — fetch up to 5 to detect & clean duplicates
   const existing = await payload.find({
     collection: 'channels',
     where: {
@@ -36,14 +36,33 @@ export async function findOrCreateDM(
         { type: { equals: 'dm' } },
       ],
     },
-    limit: 1,
+    limit: 5,
     depth: 0,
     overrideAccess: true,
   })
 
-  if (existing.docs?.[0]) {
+  if (existing.docs?.length > 0) {
+    // Keep the first (oldest/canonical) and delete any duplicates
+    const canonical = existing.docs[0]
+    if (existing.docs.length > 1) {
+      console.warn(
+        `[findOrCreateDM] Found ${existing.docs.length} duplicate channels for slug "${slug}" — cleaning up`,
+      )
+      for (let i = 1; i < existing.docs.length; i++) {
+        try {
+          await payload.delete({
+            collection: 'channels',
+            id: existing.docs[i].id,
+            overrideAccess: true,
+          })
+        } catch {
+          // Non-critical — dedup cleanup is best-effort
+        }
+      }
+    }
+
     return {
-      channelId: String(existing.docs[0].id),
+      channelId: String(canonical.id),
       channelSlug: slug,
       isNew: false,
     }
@@ -85,22 +104,53 @@ export async function findOrCreateDM(
     ? [Number(userA)]
     : [Number(userA), Number(userB)]
 
-  // Create the DM channel
-  const channel = await payload.create({
-    collection: 'channels',
-    data: {
-      name: displayName,
-      slug,
-      description: isLeo ? 'Conversation with LEO AI assistant' : 'Direct message',
-      type: 'dm',
-      space: Number(dmSpaceId),
-      members,
-      source: 'native',
-      isDefault: false,
-      tenant: Number(tenantId),
-    } as any,
-    overrideAccess: true,
-  })
+  // Create the DM channel — race-condition safe: if a concurrent request
+  // already created a channel with this slug, re-query instead of failing.
+  let channel: Awaited<ReturnType<typeof payload.create>>
+  try {
+    channel = await payload.create({
+      collection: 'channels',
+      data: {
+        name: displayName,
+        slug,
+        description: isLeo ? 'Conversation with LEO AI assistant' : 'Direct message',
+        type: 'dm',
+        space: Number(dmSpaceId),
+        members,
+        source: 'native',
+        isDefault: false,
+        tenant: Number(tenantId),
+      } as any,
+      overrideAccess: true,
+    })
+  } catch (createErr) {
+    // If creation failed (likely due to race condition), re-query for the
+    // channel that the other concurrent request created.
+    const retry = await payload.find({
+      collection: 'channels',
+      where: {
+        and: [
+          { slug: { equals: slug } },
+          { tenant: { equals: tenantId } },
+          { type: { equals: 'dm' } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (retry.docs?.[0]) {
+      return {
+        channelId: String(retry.docs[0].id),
+        channelSlug: slug,
+        isNew: false,
+      }
+    }
+
+    // If still nothing found, throw the original error
+    throw createErr
+  }
 
   // Ensure SpaceMembership for human users
   await ensureDMSpaceMembership(userA, dmSpaceId, tenantId)

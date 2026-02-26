@@ -161,7 +161,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     setIsLoadingChannels(true)
     try {
       const res = await fetch(
-        `${SERVER_URL}/api/channels?where[space][equals]=${channelSpaceId}&sort=name&limit=50`,
+        `${SERVER_URL}/api/channels?where[space][equals]=${channelSpaceId}&where[type][not_equals]=dm&sort=name&limit=50`,
         { credentials: 'include' },
       )
       if (res.status === 401 || res.status === 403) {

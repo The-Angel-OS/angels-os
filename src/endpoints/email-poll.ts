@@ -401,6 +401,7 @@ async function findOrCreateEmailChannel(
       and: [
         { slug: { equals: slug } },
         { tenant: { equals: tenantId } },
+        { type: { equals: 'dm' } },
       ],
     },
     limit: 1,
