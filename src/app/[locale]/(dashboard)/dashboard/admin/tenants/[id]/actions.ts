@@ -104,8 +104,8 @@ export async function getTenantDetail(
 
     if (!tenant) return { error: 'Tenant not found' }
 
-    // Parallel counts
-    const [spacesResult, membersResult, messagesCount, productsCount, ordersCount] =
+    // Parallel counts + recent message (all in one batch)
+    const [spacesResult, membersResult, messagesCount, productsCount, ordersCount, recentMsg] =
       await Promise.all([
         payload.find({
           collection: 'spaces',
@@ -136,6 +136,14 @@ export async function getTenantDetail(
           where: { tenant: { equals: tenant.id } },
           overrideAccess: true,
         }).catch(() => ({ totalDocs: 0 })),
+        payload.find({
+          collection: 'messages',
+          where: { tenant: { equals: tenant.id } },
+          sort: '-createdAt',
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        }),
       ])
 
     // Fetch channel counts per space
@@ -167,16 +175,6 @@ export async function getTenantDetail(
         roles: m.roles || [],
         status: m.status || 'active',
       }
-    })
-
-    // Find most recent message for last activity
-    const recentMsg = await payload.find({
-      collection: 'messages',
-      where: { tenant: { equals: tenant.id } },
-      sort: '-createdAt',
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
     })
 
     const t = tenant as any

@@ -44,11 +44,13 @@ export const Channels: CollectionConfig = {
       type: 'relationship',
       relationTo: 'spaces',
       required: true,
+      index: true,
     },
     {
       name: 'type',
       type: 'select',
       defaultValue: 'general',
+      index: true,
       options: [
         { label: 'General', value: 'general' },
         { label: 'LEO (AI Assistant)', value: 'leo' },

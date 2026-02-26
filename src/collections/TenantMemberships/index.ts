@@ -29,6 +29,7 @@ export const TenantMemberships: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
       admin: { description: 'User who belongs to this tenant' },
     },
     {
@@ -36,6 +37,7 @@ export const TenantMemberships: CollectionConfig = {
       type: 'relationship',
       relationTo: 'tenants',
       required: true,
+      index: true,
       admin: { description: 'Tenant this membership applies to' },
     },
     {
@@ -70,6 +72,7 @@ export const TenantMemberships: CollectionConfig = {
       name: 'status',
       type: 'select',
       defaultValue: 'active',
+      index: true,
       options: [
         { label: 'Active', value: 'active' },
         { label: 'Pending', value: 'pending' },

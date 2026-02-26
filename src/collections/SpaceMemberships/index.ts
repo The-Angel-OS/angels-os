@@ -22,12 +22,14 @@ export const SpaceMemberships: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
     },
     {
       name: 'space',
       type: 'relationship',
       relationTo: 'spaces',
       required: true,
+      index: true,
     },
     {
       name: 'role',
@@ -44,6 +46,7 @@ export const SpaceMemberships: CollectionConfig = {
       name: 'status',
       type: 'select',
       defaultValue: 'active',
+      index: true,
       options: [
         { label: 'Active', value: 'active' },
         { label: 'Pending', value: 'pending' },

@@ -120,6 +120,7 @@ export const Messages: CollectionConfig = {
       name: 'author',
       type: 'relationship',
       relationTo: 'users',
+      index: true,
       // Not required at API level — setAuthor beforeChange hook auto-populates
       // from req.user. Payload validates required fields before hooks run,
       // so leaving this required would cause 400s on POST.
@@ -129,11 +130,13 @@ export const Messages: CollectionConfig = {
       type: 'relationship',
       relationTo: 'spaces',
       required: true,
+      index: true,
     },
     {
       name: 'channel',
       type: 'text',
       required: true,
+      index: true,
       admin: { description: 'Channel name (e.g. welcome, general, support)' },
     },
 
@@ -153,6 +156,7 @@ export const Messages: CollectionConfig = {
       name: 'messageType',
       type: 'select',
       defaultValue: 'user',
+      index: true,
       options: [
         { label: 'User', value: 'user' },
         { label: 'System', value: 'system' },

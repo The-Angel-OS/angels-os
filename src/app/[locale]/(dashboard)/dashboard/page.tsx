@@ -170,31 +170,21 @@ export default async function DashboardPage({
       projects: projects.totalDocs,
     }
 
-    // Fetch bootstrap fee status for current tenant
-    if (currentTenant?.id) {
-      try {
-        feeStatus = await getBootstrapFeeStatus(currentTenant.id as number)
-      } catch {
-        // Non-critical — fee widget just won't show
-      }
-    }
-
-    // Fetch platform-wide liability for super admins
-    if (isSuperAdmin) {
-      try {
-        platformLiability = await getTotalBootstrapLiability()
-      } catch {
-        // Non-critical
-      }
-    }
-
-    // Fetch chart data in parallel (all non-critical)
-    const [revData, ordData, fedData, jfData] = await Promise.all([
+    // Fetch fee status, liability, and chart data in parallel (all non-critical)
+    const [feeResult, liabilityResult, revData, ordData, fedData, jfData] = await Promise.all([
+      currentTenant?.id
+        ? getBootstrapFeeStatus(currentTenant.id as number).catch(() => null)
+        : Promise.resolve(null),
+      isSuperAdmin
+        ? getTotalBootstrapLiability().catch(() => null)
+        : Promise.resolve(null),
       getRevenueTimeSeries(payload, 30, tenantFilter).catch(() => []),
       getOrderVolume(payload, 30, tenantFilter).catch(() => []),
       isAdmin ? getFederationActivity(payload, 14).catch(() => []) : Promise.resolve([]),
       isAdmin ? getJusticeFundGrowth(payload, 30).catch(() => []) : Promise.resolve([]),
     ])
+    feeStatus = feeResult
+    platformLiability = liabilityResult
     revenueData = revData
     orderData = ordData
     federationData = fedData

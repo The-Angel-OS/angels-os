@@ -50,42 +50,39 @@ export async function getTenantsList(): Promise<{
       sort: '-createdAt',
     })
 
-    const tenants: TenantSummary[] = await Promise.all(
-      result.docs.map(async (tenant: any) => {
-        // Count spaces for this tenant
-        const spaces = await payload.count({
-          collection: 'spaces',
-          where: { tenant: { equals: tenant.id } },
-          overrideAccess: true,
-        })
-
-        // Count tenant memberships (= users)
-        const members = await payload.count({
-          collection: 'tenant-memberships',
-          where: { tenant: { equals: tenant.id } },
-          overrideAccess: true,
-        })
-
-        return {
-          id: tenant.id,
-          name: tenant.name,
-          slug: tenant.slug,
-          domain: tenant.domain,
-          status: tenant.status || 'active',
-          type: tenant.type || 'tenant',
-          branding: tenant.branding
-            ? {
-                siteName: tenant.branding.siteName,
-                tagline: tenant.branding.tagline,
-                primaryColor: tenant.branding.primaryColor,
-              }
-            : undefined,
-          spacesCount: spaces.totalDocs,
-          usersCount: members.totalDocs,
-          createdAt: tenant.createdAt,
-        }
+    // Batch all count queries in parallel (2 per tenant, flattened)
+    const countQueries = result.docs.flatMap((tenant: any) => [
+      payload.count({
+        collection: 'spaces',
+        where: { tenant: { equals: tenant.id } },
+        overrideAccess: true,
       }),
-    )
+      payload.count({
+        collection: 'tenant-memberships',
+        where: { tenant: { equals: tenant.id } },
+        overrideAccess: true,
+      }),
+    ])
+    const counts = await Promise.all(countQueries)
+
+    const tenants: TenantSummary[] = result.docs.map((tenant: any, i: number) => ({
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      domain: tenant.domain,
+      status: tenant.status || 'active',
+      type: tenant.type || 'tenant',
+      branding: tenant.branding
+        ? {
+            siteName: tenant.branding.siteName,
+            tagline: tenant.branding.tagline,
+            primaryColor: tenant.branding.primaryColor,
+          }
+        : undefined,
+      spacesCount: counts[i * 2].totalDocs,
+      usersCount: counts[i * 2 + 1].totalDocs,
+      createdAt: tenant.createdAt,
+    }))
 
     return { tenants }
   } catch (err) {
