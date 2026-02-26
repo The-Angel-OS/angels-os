@@ -31,9 +31,11 @@ export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKi
     roomName: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [videoEnabled, setVideoEnabled] = useState(false)
 
-  const handleJoin = useCallback(async () => {
+  const handleJoin = useCallback(async (withVideo = false) => {
     if (isConnecting || isJoined) return
+    setVideoEnabled(withVideo)
     setIsConnecting(true)
     setError(null)
 
@@ -59,17 +61,42 @@ export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKi
         roomName: data.roomName,
       })
       setIsJoined(true)
+
+      // Post a system message for channel activity tracking
+      fetch(`${SERVER_URL}/api/chat/send`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: { type: 'text', text: `📞 Joined the voice channel${withVideo ? ' with video' : ''}` },
+          space: spaceId,
+          channel: channelSlug,
+          messageType: 'system',
+        }),
+      }).catch(() => {}) // Non-critical
     } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsConnecting(false)
     }
-  }, [spaceId, channelSlug, isConnecting, isJoined])
+  }, [spaceId, channelSlug, isConnecting, isJoined]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLeave = useCallback(() => {
     setIsJoined(false)
     setRoomData(null)
-  }, [])
+    // Post a system message for channel activity tracking
+    fetch(`${SERVER_URL}/api/chat/send`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: { type: 'text', text: '📞 Left the voice channel' },
+        space: spaceId,
+        channel: channelSlug,
+        messageType: 'system',
+      }),
+    }).catch(() => {}) // Non-critical
+  }, [spaceId, channelSlug])
 
   // ─── Embedded mode: full content area applet ──────────────────
   if (embedded) {
@@ -82,6 +109,7 @@ export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKi
           roomName={roomData.roomName}
           onLeave={handleLeave}
           embedded
+          initialVideo={videoEnabled}
         />
       )
     }
@@ -105,24 +133,28 @@ export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKi
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleJoin}
+            onClick={() => handleJoin(false)}
             disabled={isConnecting}
             className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            {isConnecting ? (
+            {isConnecting && !videoEnabled ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <Mic size={16} />
             )}
-            {isConnecting ? 'Connecting...' : 'Join Voice'}
+            {isConnecting && !videoEnabled ? 'Connecting...' : 'Join Voice'}
           </button>
           <button
-            onClick={handleJoin}
+            onClick={() => handleJoin(true)}
             disabled={isConnecting}
             className="flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
-            <Video size={16} />
-            Join with Video
+            {isConnecting && videoEnabled ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Video size={16} />
+            )}
+            {isConnecting && videoEnabled ? 'Connecting...' : 'Join with Video'}
           </button>
         </div>
 
@@ -138,7 +170,7 @@ export function LiveKitButton({ spaceId, channelSlug, embedded = false }: LiveKi
     <>
       {/* Join/Leave button */}
       <button
-        onClick={isJoined ? handleLeave : handleJoin}
+        onClick={isJoined ? handleLeave : () => handleJoin(false)}
         disabled={isConnecting}
         className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors ${
           isJoined

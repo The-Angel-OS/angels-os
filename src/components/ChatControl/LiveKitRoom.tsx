@@ -8,10 +8,11 @@ import {
   GridLayout,
   ParticipantTile,
   useTracks,
+  MediaDeviceMenu,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Track } from 'livekit-client'
-import { X, Maximize2, Minimize2 } from 'lucide-react'
+import { X, Maximize2, Minimize2, Settings2 } from 'lucide-react'
 
 interface LiveKitRoomProps {
   /** LiveKit server URL (wss://) */
@@ -26,6 +27,8 @@ interface LiveKitRoomProps {
   fullScreen?: boolean
   /** Embedded mode — fills parent container (for applet content area) */
   embedded?: boolean
+  /** Start with video enabled */
+  initialVideo?: boolean
 }
 
 /**
@@ -62,9 +65,11 @@ export function LiveKitRoom({
   onLeave,
   fullScreen: initialFullScreen = false,
   embedded = false,
+  initialVideo = false,
 }: LiveKitRoomProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen)
   const [isConnected, setIsConnected] = useState(false)
+  const [showDeviceSettings, setShowDeviceSettings] = useState(false)
 
   const handleDisconnect = useCallback(() => {
     setIsConnected(false)
@@ -101,6 +106,13 @@ export function LiveKitRoom({
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={() => setShowDeviceSettings(!showDeviceSettings)}
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${showDeviceSettings ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+              title="Device settings"
+            >
+              <Settings2 size={14} />
+            </button>
+            <button
               onClick={() => setIsFullScreen(true)}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               title="Full-screen"
@@ -122,6 +134,8 @@ export function LiveKitRoom({
         <LKRoom
           serverUrl={url}
           token={token}
+          video={initialVideo}
+          audio={true}
           onConnected={() => setIsConnected(true)}
           onDisconnected={handleDisconnect}
           data-lk-theme="default"
@@ -129,6 +143,25 @@ export function LiveKitRoom({
           style={{ height: '100%' }}
         >
           <RoomAudioRenderer />
+          {/* Device selector panel */}
+          {showDeviceSettings && (
+            <div className="border-b border-border bg-muted/30 px-4 py-3">
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Mic:</span>
+                  <MediaDeviceMenu kind="audioinput" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Speaker:</span>
+                  <MediaDeviceMenu kind="audiooutput" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Camera:</span>
+                  <MediaDeviceMenu kind="videoinput" />
+                </div>
+              </div>
+            </div>
+          )}
           <ParticipantGrid />
           <ControlBar
             variation="minimal"
@@ -137,6 +170,7 @@ export function LiveKitRoom({
               microphone: true,
               screenShare: true,
               leave: true,
+              settings: false,
             }}
           />
         </LKRoom>
