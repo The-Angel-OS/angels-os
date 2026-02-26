@@ -3368,15 +3368,15 @@ export interface FederationAuditLog {
    */
   direction: 'inbound' | 'outbound';
   /**
-   * Federation UUID of the diocese that initiated this action
+   * Federation UUID of the Enterprise that initiated this action
    */
   sourceFederationId: string;
   /**
-   * Domain of the source diocese (if known)
+   * Domain of the source Enterprise (if known)
    */
   sourceDomain?: string | null;
   /**
-   * Name of the source diocese (if known)
+   * Name of the source Enterprise (if known)
    */
   sourceName?: string | null;
   /**
@@ -3384,7 +3384,7 @@ export interface FederationAuditLog {
    */
   targetAction?: string | null;
   /**
-   * Trust level of the source diocese at the time of the request
+   * Trust level of the source Enterprise at the time of the request
    */
   trustLevel?: ('none' | 'probationary' | 'vouched' | 'full') | null;
   /**
@@ -3423,7 +3423,7 @@ export interface FederationAuditLog {
 export interface AgentTransaction {
   id: number;
   /**
-   * The diocese this transaction belongs to
+   * The Enterprise this transaction belongs to
    */
   tenant: number | Tenant;
   /**
@@ -3443,15 +3443,15 @@ export interface AgentTransaction {
    */
   description: string;
   /**
-   * Federation UUID of the other diocese in this transaction
+   * Federation UUID of the other Enterprise in this transaction
    */
   counterpartyFederationId?: string | null;
   /**
-   * Domain of the other diocese
+   * Domain of the other Enterprise
    */
   counterpartyDomain?: string | null;
   /**
-   * Name of the other diocese
+   * Name of the other Enterprise
    */
   counterpartyName?: string | null;
   /**

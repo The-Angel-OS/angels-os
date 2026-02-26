@@ -1,7 +1,7 @@
 /**
  * Federation Catalog Endpoint — GET /api/federation/catalog
  *
- * Returns products/services visible to the federation from this diocese.
+ * Returns products/services visible to the federation from this Enterprise.
  * Other Angel OS instances call this to discover what we offer.
  *
  * Query params:
@@ -115,7 +115,7 @@ export const federationCatalogHandler: PayloadHandler = async (req) => {
       entries: result,
       total: filtered.length,
       federationId,
-      diocese: (tenant?.name as string) || 'Angel OS Instance',
+      enterprise: (tenant?.name as string) || 'Angel OS Instance',
       domain: (() => {
         const d = tenant?.domain as string | undefined
         return d && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/.test(d) ? d : (req.headers?.get('host')?.replace(/:\d+$/, '') || 'localhost')

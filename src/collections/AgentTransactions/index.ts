@@ -6,7 +6,7 @@
  *
  * Every transaction records:
  *   - What was purchased/sold
- *   - Which diocese was on the other side
+ *   - Which Enterprise was on the other side
  *   - Which skill triggered it
  *   - The amount and status
  *
@@ -46,7 +46,7 @@ export const AgentTransactions: CollectionConfig = {
       relationTo: 'tenants',
       required: true,
       admin: {
-        description: 'The diocese this transaction belongs to',
+        description: 'The Enterprise this transaction belongs to',
       },
     },
 
@@ -98,21 +98,21 @@ export const AgentTransactions: CollectionConfig = {
       name: 'counterpartyFederationId',
       type: 'text',
       admin: {
-        description: 'Federation UUID of the other diocese in this transaction',
+        description: 'Federation UUID of the other Enterprise in this transaction',
       },
     },
     {
       name: 'counterpartyDomain',
       type: 'text',
       admin: {
-        description: 'Domain of the other diocese',
+        description: 'Domain of the other Enterprise',
       },
     },
     {
       name: 'counterpartyName',
       type: 'text',
       admin: {
-        description: 'Name of the other diocese',
+        description: 'Name of the other Enterprise',
       },
     },
 

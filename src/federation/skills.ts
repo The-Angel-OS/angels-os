@@ -1,7 +1,7 @@
 /**
  * Federation Skills Protocol — Type Definitions & Registry
  *
- * Skills are versioned, invocable capabilities that one diocese
+ * Skills are versioned, invocable capabilities that one Enterprise
  * publishes for other agents to call across the federation.
  *
  * Think of a skill as a "tool for agents" — like an MCP tool,
@@ -41,7 +41,7 @@ export interface FederationSkill {
   /** Price per invocation in cents (0 = free) */
   costCents: number
 
-  /** Maximum invocations per hour per calling diocese */
+  /** Maximum invocations per hour per calling Enterprise */
   rateLimit: number
 
   /** Minimum trust level required to invoke this skill */
@@ -154,7 +154,7 @@ export interface SkillInvocationResponse {
 /**
  * Agent wallet spending rules — structural limits the agent CANNOT override.
  *
- * These are set by the diocese operator, not by LEO itself.
+ * These are set by the Enterprise operator, not by LEO itself.
  * "The agent cannot adjust its own guardrails."
  *
  * Constitutional Reference:

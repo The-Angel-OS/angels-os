@@ -7,7 +7,7 @@
  *
  * This is the behavioral monitoring layer. Patterns like
  * "100 skill invocations in 2 minutes" or "payment attempts
- * from a probationary diocese" become visible and queryable.
+ * from a probationary Enterprise" become visible and queryable.
  *
  * Constitutional Reference: Article II (Anti-Demonic Safeguards) —
  * "All actions observable." This collection makes that real.
@@ -77,21 +77,21 @@ export const FederationAuditLog: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        description: 'Federation UUID of the diocese that initiated this action',
+        description: 'Federation UUID of the Enterprise that initiated this action',
       },
     },
     {
       name: 'sourceDomain',
       type: 'text',
       admin: {
-        description: 'Domain of the source diocese (if known)',
+        description: 'Domain of the source Enterprise (if known)',
       },
     },
     {
       name: 'sourceName',
       type: 'text',
       admin: {
-        description: 'Name of the source diocese (if known)',
+        description: 'Name of the source Enterprise (if known)',
       },
     },
 
@@ -115,7 +115,7 @@ export const FederationAuditLog: CollectionConfig = {
         { label: 'Full', value: 'full' },
       ],
       admin: {
-        description: 'Trust level of the source diocese at the time of the request',
+        description: 'Trust level of the source Enterprise at the time of the request',
       },
     },
 

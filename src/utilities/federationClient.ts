@@ -1,19 +1,19 @@
 /**
- * Federation Client — Outbound HTTP for Cross-Diocese Communication
+ * Federation Client — Outbound HTTP for Cross-Enterprise Communication
  *
- * Every outbound request is signed with the diocese's Ed25519 private key.
+ * Every outbound request is signed with the Enterprise's Ed25519 private key.
  * Every inbound request is verified by the trust guard (Phase 6).
  *
  * Functions:
- *   - discoverDiocese(domain) — fetch /.well-known/angel-os.json
+ *   - discoverEnterprise(domain) — fetch /.well-known/angel-os.json
  *   - sendHeartbeat(targetDomain) — signed POST to target's heartbeat endpoint
- *   - fetchCatalog(targetDomain, query) — browse another diocese's products
- *   - invokeSkill(targetDomain, skillName, params) — call a skill on another diocese
+ *   - fetchCatalog(targetDomain, query) — browse another Enterprise's products
+ *   - invokeSkill(targetDomain, skillName, params) — call a skill on another Enterprise
  *
  * All requests include:
- *   X-Federation-Id: this diocese's federation ID
+ *   X-Federation-Id: this Enterprise's federation ID
  *   X-Federation-Signature: Ed25519 signature of the request body
- *   X-Federation-Key: this diocese's public key (so target can verify)
+ *   X-Federation-Key: this Enterprise's public key (so target can verify)
  *   X-Federation-Timestamp: ISO timestamp (for replay prevention)
  *
  * Constitutional Reference: Article VII — Federation protocol
@@ -118,10 +118,10 @@ function createSignedHeaders(
 // ── Discovery ──────────────────────────────────────────────────────────────
 
 /**
- * Discover another diocese by fetching its /.well-known/angel-os.json
+ * Discover another Enterprise by fetching its /.well-known/angel-os.json
  * No signing needed — this is a public endpoint.
  */
-export async function discoverDiocese(
+export async function discoverEnterprise(
   domain: string,
   options: FederationRequestOptions = {},
 ): Promise<DiscoveryResult | null> {
@@ -162,7 +162,7 @@ export async function discoverDiocese(
 // ── Heartbeat ──────────────────────────────────────────────────────────────
 
 /**
- * Send a signed heartbeat to another diocese.
+ * Send a signed heartbeat to another Enterprise.
  */
 export async function sendHeartbeat(
   targetDomain: string,
@@ -173,7 +173,7 @@ export async function sendHeartbeat(
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
   // Discover target to get heartbeat endpoint
-  const discovery = await discoverDiocese(targetDomain, { timeout })
+  const discovery = await discoverEnterprise(targetDomain, { timeout })
   if (!discovery) return null
 
   const body = JSON.stringify(heartbeat)
@@ -205,7 +205,7 @@ export async function sendHeartbeat(
 // ── Catalog ────────────────────────────────────────────────────────────────
 
 /**
- * Fetch products/services from another diocese's federation catalog.
+ * Fetch products/services from another Enterprise's federation catalog.
  */
 export async function fetchCatalog(
   targetDomain: string,
@@ -215,7 +215,7 @@ export async function fetchCatalog(
 ): Promise<{ entries: unknown[]; total: number } | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
-  const discovery = await discoverDiocese(targetDomain, { timeout })
+  const discovery = await discoverEnterprise(targetDomain, { timeout })
   if (!discovery) return null
 
   // Build query string
@@ -261,7 +261,7 @@ export async function fetchCatalog(
 // ── Skills ─────────────────────────────────────────────────────────────────
 
 /**
- * List available skills on another diocese.
+ * List available skills on another Enterprise.
  */
 export async function listSkills(
   targetDomain: string,
@@ -269,7 +269,7 @@ export async function listSkills(
 ): Promise<unknown[] | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
-  const discovery = await discoverDiocese(targetDomain, { timeout })
+  const discovery = await discoverEnterprise(targetDomain, { timeout })
   if (!discovery) return null
 
   try {
@@ -291,7 +291,7 @@ export async function listSkills(
 }
 
 /**
- * Invoke a skill on another diocese. Requires signing + budget check on caller side.
+ * Invoke a skill on another Enterprise. Requires signing + budget check on caller side.
  */
 export async function invokeSkill(
   targetDomain: string,
@@ -302,7 +302,7 @@ export async function invokeSkill(
 ): Promise<{ result: unknown; costCents: number } | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
-  const discovery = await discoverDiocese(targetDomain, { timeout })
+  const discovery = await discoverEnterprise(targetDomain, { timeout })
   if (!discovery) return null
 
   const payload = {
@@ -342,7 +342,7 @@ export async function invokeSkill(
 // ── Vouch ──────────────────────────────────────────────────────────────────
 
 /**
- * Send a vouch for another diocese.
+ * Send a vouch for another Enterprise.
  */
 export async function sendVouch(
   targetDomain: string,
@@ -352,7 +352,7 @@ export async function sendVouch(
 ): Promise<{ accepted: boolean; message: string } | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
 
-  const discovery = await discoverDiocese(targetDomain, { timeout })
+  const discovery = await discoverEnterprise(targetDomain, { timeout })
   if (!discovery) return null
 
   const payload = {

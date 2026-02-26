@@ -1,9 +1,9 @@
 /**
  * Federation Heartbeat Endpoint — POST /api/federation/heartbeat
  *
- * Receives heartbeats from other dioceses in the Angel OS federation.
+ * Receives heartbeats from other Enterprises in the Angel OS federation.
  * Verifies Ed25519 signature, updates the sender's last heartbeat timestamp,
- * and returns this diocese's health summary.
+ * and returns this Enterprise's health summary.
  *
  * This is the pulse of the federation — every 5 minutes, healthy nodes
  * exchange heartbeats. If a node goes silent for > 300 seconds, it's marked
@@ -133,7 +133,7 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
       await req.payload.create({
         collection: 'endeavors',
         data: {
-          name: (senderName as string) || 'Unknown Diocese',
+          name: (senderName as string) || 'Unknown Enterprise',
           endeavorType: 'custom',
           status: 'active',
           federation: {

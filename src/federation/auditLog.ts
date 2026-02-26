@@ -129,7 +129,7 @@ export async function logOutboundAction(
     responseTimeMs: opts.responseTimeMs,
     metadata: {
       ...opts.metadata,
-      direction_note: 'source fields contain TARGET diocese info for outbound actions',
+      direction_note: 'source fields contain TARGET Enterprise info for outbound actions',
     },
   })
 }

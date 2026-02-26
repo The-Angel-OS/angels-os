@@ -1,7 +1,7 @@
 /**
  * Federation Discovery Endpoint — /.well-known/angel-os.json
  *
- * Returns this diocese's federation identity, capabilities, and available endpoints.
+ * Returns this Enterprise's federation identity, capabilities, and available endpoints.
  * Any Angel OS instance can discover another by fetching this URL.
  *
  * Public endpoint — no auth required. This is how the network finds you.
@@ -20,7 +20,7 @@ export async function GET() {
     const payload = await getPayload({ config })
     const constitution = getActiveConstitution()
 
-    // Find the primary tenant (the diocese running this instance)
+    // Find the primary tenant (the Enterprise running this instance)
     const tenants = await payload.find({
       collection: 'tenants',
       limit: 1,

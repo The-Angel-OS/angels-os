@@ -1,7 +1,7 @@
 /**
  * Federation Vouch Endpoint — POST /api/federation/vouch
  *
- * An active diocese vouches for a probationary one.
+ * An active Enterprise vouches for a probationary one.
  * After 2 valid vouches + 90 days probation, the target auto-promotes to active.
  *
  * Request body (signed with federation headers):
@@ -88,7 +88,7 @@ export const federationVouchHandler: PayloadHandler = async (req) => {
 
     if (targetEndeavors.docs.length === 0) {
       return Response.json(
-        { accepted: false, error: `Target diocese ${targetFederationId} not found` },
+        { accepted: false, error: `Target Enterprise ${targetFederationId} not found` },
         { status: 404 },
       )
     }
@@ -139,7 +139,7 @@ export const federationVouchHandler: PayloadHandler = async (req) => {
     // Record the vouch
     const newVouch: Vouch = {
       voucherId: voucherFederationId as string,
-      voucherName: (voucherName as string) || 'Unknown Diocese',
+      voucherName: (voucherName as string) || 'Unknown Enterprise',
       vouchedAt: new Date().toISOString(),
       reason: reason as string,
       isValid: true,

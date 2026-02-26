@@ -1,14 +1,14 @@
 /**
  * Federation Rate Limiter — Blast Radius Containment
  *
- * Per-diocese sliding window rate limits on all federation actions.
- * A compromised diocese can only spam at its rate limit — cannot flood the network.
+ * Per-Enterprise sliding window rate limits on all federation actions.
+ * A compromised Enterprise can only spam at its rate limit — cannot flood the network.
  *
  * Implementation: In-memory Map with TTL cleanup (no Redis needed at this scale).
- * Each diocese gets independent counters per action type.
+ * Each Enterprise gets independent counters per action type.
  *
  * Constitutional Reference: Article II (Anti-Demonic Safeguards) — structural protection
- * against automated abuse. No agent or diocese can overwhelm another.
+ * against automated abuse. No agent or Enterprise can overwhelm another.
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ interface RateLimitEntry {
 
 // ── Configuration ──────────────────────────────────────────────────────────
 
-/** Default rate limits per hour per diocese, per action type */
+/** Default rate limits per hour per Enterprise, per action type */
 const DEFAULT_LIMITS: Record<RateLimitAction, number> = {
   heartbeat: 15,       // Expected: 12/hour (every 5 min). Buffer: 15
   catalog_browse: 60,  // Generous for active browsing
@@ -100,7 +100,7 @@ startCleanup()
  * If allowed, the request is counted against the limit.
  * If denied, returns retry-after information.
  *
- * @param federationId - The requesting diocese's federation UUID
+ * @param federationId - The requesting Enterprise's federation UUID
  * @param action - The type of federation action being performed
  * @param customLimits - Optional override for default limits
  * @returns RateLimitResult with allowed status and remaining budget
@@ -156,7 +156,7 @@ export function checkRateLimit(
 // ── Query ──────────────────────────────────────────────────────────────────
 
 /**
- * Get current rate limit status for a diocese without consuming a slot.
+ * Get current rate limit status for an Enterprise without consuming a slot.
  * Useful for the federation dashboard.
  */
 export function getRateLimitStatus(
@@ -185,7 +185,7 @@ export function getRateLimitStatus(
 }
 
 /**
- * Get all rate limit status for a diocese across all actions.
+ * Get all rate limit status for an Enterprise across all actions.
  * Used by the federation dashboard.
  */
 export function getAllRateLimits(
@@ -206,7 +206,7 @@ export function getAllRateLimits(
 }
 
 /**
- * Reset rate limits for a specific diocese (admin action).
+ * Reset rate limits for a specific Enterprise (admin action).
  */
 export function resetRateLimits(federationId: string): void {
   for (const [key] of store.entries()) {
@@ -221,16 +221,16 @@ export function resetRateLimits(federationId: string): void {
  */
 export function getRateLimiterStats(): {
   totalEntries: number
-  uniqueDioceses: number
+  uniqueEnterprises: number
 } {
-  const dioceses = new Set<string>()
+  const enterprises = new Set<string>()
   for (const key of store.keys()) {
     const federationId = key.split(':')[0]
-    dioceses.add(federationId)
+    enterprises.add(federationId)
   }
 
   return {
     totalEntries: store.size,
-    uniqueDioceses: dioceses.size,
+    uniqueEnterprises: enterprises.size,
   }
 }

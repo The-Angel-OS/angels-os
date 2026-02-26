@@ -2,7 +2,7 @@
  * Default Federation Skills
  *
  * Auto-generates publishable skills from existing LEO tools.
- * Diocese operators can toggle which tools are exposed as federation skills.
+ * Enterprise operators can toggle which tools are exposed as federation skills.
  *
  * Each skill maps to an internal LEO tool but is wrapped with:
  *   - JSON Schema input/output validation
@@ -18,7 +18,7 @@
 import type { FederationSkill } from './skills'
 
 /**
- * Get the default skills this diocese publishes to the federation.
+ * Get the default skills this Enterprise publishes to the federation.
  * In the future, this will be configurable per-tenant via admin UI.
  */
 export async function getDefaultSkills(): Promise<FederationSkill[]> {
@@ -27,7 +27,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
     {
       name: 'search_catalog',
       version: '1.0.0',
-      description: 'Search this diocese\'s product catalog by keyword, category, or price range',
+      description: 'Search this Enterprise\'s product catalog by keyword, category, or price range',
       inputSchema: {
         type: 'object',
         properties: {
@@ -61,7 +61,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
     {
       name: 'search_events',
       version: '1.0.0',
-      description: 'Search upcoming events at this diocese',
+      description: 'Search upcoming events at this Enterprise',
       inputSchema: {
         type: 'object',
         properties: {
@@ -94,7 +94,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
     {
       name: 'check_availability',
       version: '1.0.0',
-      description: 'Check available booking slots at this diocese',
+      description: 'Check available booking slots at this Enterprise',
       inputSchema: {
         type: 'object',
         properties: {
@@ -126,7 +126,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
     {
       name: 'book_service',
       version: '1.0.0',
-      description: 'Book a service appointment at this diocese (creates a booking)',
+      description: 'Book a service appointment at this Enterprise (creates a booking)',
       inputSchema: {
         type: 'object',
         properties: {
@@ -160,7 +160,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
         ],
         disclosesAIOrigin: true,
         involvesHumanInteraction: true,
-        requiresHumanEscalation: true, // Operator reviews bookings from other dioceses
+        requiresHumanEscalation: true, // Operator reviews bookings from other Enterprises
         maxConsecutiveInteractions: 5,
       },
       enabled: true,
@@ -170,7 +170,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
     {
       name: 'generate_image',
       version: '1.0.0',
-      description: 'Generate an AI image using this diocese\'s image generation pipeline',
+      description: 'Generate an AI image using this Enterprise\'s image generation pipeline',
       inputSchema: {
         type: 'object',
         properties: {
@@ -196,7 +196,7 @@ export async function getDefaultSkills(): Promise<FederationSkill[]> {
       safety: {
         canModifyUserData: true,
         sideEffects: [
-          'Creates a media record in the diocese media library',
+          'Creates a media record in the Enterprise media library',
           'Calls external AI image generation API',
           'Consumes AI generation credits',
         ],

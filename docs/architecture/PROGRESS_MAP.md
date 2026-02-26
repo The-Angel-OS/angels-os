@@ -482,7 +482,7 @@ Each node only needs simple local rules -- the mesh creates emergent behavior.
 | 2026-02-23 | Sprint 19: CRM Contacts + Bulk Invite | Contacts collection, CSV/JSON import, bulk invite pipeline, admin UI |
 | 2026-02-23 | AI Gateway multi-model architecture | Dual-path routing: AI Gateway preferred, Anthropic SDK fallback, BYOAI passthrough |
 | 2026-02-23 | Vercel Analytics + Speed Insights | Pro plan metrics in both app and dashboard layouts |
-| 2026-02-23 | Diocese → Enterprise rename | System-wide rename to match federation terminology |
+| 2026-02-23 | Diocese → Enterprise rename | System-wide rename: diocese/archdiocese → Enterprise/Flagship |
 | 2026-02-22 | Sprint 11.5: Documentation Center + chat UX | Smart scroll, truncation, infinite scroll, tenant chooser, code quality extractions |
 | 2026-02-22 | Federation architecture: platform IS the mesh | AI Bus as protocol, HTTPS as transport, Constitution as ACL -- no Tailscale needed |
 | 2026-02-22 | Extracted TOOL_LABELS, useClickOutside, Backdrop | Single source of truth pattern, reduced ~90 lines of duplication |

@@ -2,11 +2,11 @@
  * Agent Wallet Service
  *
  * Core wallet operations for LEO as an economic actor in the federation.
- * The wallet is scoped to a tenant (diocese) and tracks spending/earning
+ * The wallet is scoped to a tenant (Enterprise) and tracks spending/earning
  * across federation skill invocations.
  *
  * STRUCTURAL GUARDRAILS: The agent CANNOT override its own spending limits.
- * All limits are set by the diocese operator and enforced by this service.
+ * All limits are set by the Enterprise operator and enforced by this service.
  *
  * Constitutional Reference:
  *   Article I — "Sovereignty: Users own their data" (operator controls the wallet)
@@ -57,7 +57,7 @@ export async function canSpend(
   const wallet = await getWalletStatus(payload, tenantId)
 
   if (!wallet.enabled) {
-    return { allowed: false, reason: 'Agent wallet is not enabled for this diocese' }
+    return { allowed: false, reason: 'Agent wallet is not enabled for this Enterprise' }
   }
 
   // Get today's spend for daily limit check

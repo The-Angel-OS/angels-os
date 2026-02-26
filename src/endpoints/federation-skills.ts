@@ -5,7 +5,7 @@
  *   GET  /api/federation/skills         — list available skills (public discovery)
  *   POST /api/federation/skills/invoke  — execute a skill (requires signing + trust)
  *
- * Skills are versioned, invocable capabilities that this diocese publishes
+ * Skills are versioned, invocable capabilities that this Enterprise publishes
  * to the federation. Other agents call them via the federation client.
  *
  * Constitutional Reference:
@@ -47,7 +47,7 @@ export const federationSkillsListHandler: PayloadHandler = async (req) => {
 
   return Response.json({
     skills: publicSkills,
-    diocese: 'Angel OS Instance',
+    enterprise: 'Angel OS Instance',
     count: publicSkills.length,
   })
 }
