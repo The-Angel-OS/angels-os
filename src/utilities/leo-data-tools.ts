@@ -36,6 +36,9 @@ import {
   isValidEmail,
   generateInviteUrl,
 } from './invitationSystem'
+import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
+import { findOrCreateDM } from './dmChannels'
+import { ensureDMSpace } from './ensureSystemSpace'
 import {
   findMatchingHolons,
   calculateVendorShare,
@@ -1334,6 +1337,607 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['name', 'situation'],
     },
   },
+
+  // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
+
+  // ── Phase 1: Communication & Social Layer ──────────────────────────────
+  {
+    name: 'send_message',
+    description:
+      'Send a message to a community channel. Use when the user asks you to post, announce, or say something in a specific channel or space. You must confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        spaceId: {
+          type: 'number',
+          description: 'The space ID to send the message to (use current space if not specified)',
+        },
+        channel: {
+          type: 'string',
+          description: 'Channel slug to post in (e.g., "general", "announcements", "support")',
+        },
+        content: {
+          type: 'string',
+          description: 'The message text to send',
+        },
+      },
+      required: ['channel', 'content'],
+    },
+  },
+  {
+    name: 'send_direct_message',
+    description:
+      'Send a direct message to a specific user. Use when LEO needs to privately communicate with someone. Confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        targetUserId: {
+          type: 'number',
+          description: 'The user ID to send the DM to',
+        },
+        content: {
+          type: 'string',
+          description: 'The message text to send',
+        },
+      },
+      required: ['targetUserId', 'content'],
+    },
+  },
+  {
+    name: 'create_announcement',
+    description:
+      'Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Announcement title/headline',
+        },
+        content: {
+          type: 'string',
+          description: 'Full announcement text',
+        },
+        targetSpaces: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Optional: specific space IDs to announce in (defaults to all tenant spaces)',
+        },
+      },
+      required: ['title', 'content'],
+    },
+  },
+  {
+    name: 'moderate_content',
+    description:
+      'Moderate a message by archiving, flagging for review, or resolving it. Use when content needs moderation action. Never deletes — only changes status.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        messageId: {
+          type: 'number',
+          description: 'The message ID to moderate',
+        },
+        action: {
+          type: 'string',
+          enum: ['archive', 'flag', 'resolve'],
+          description: 'Moderation action: archive (hide), flag (mark for review), resolve (mark as handled)',
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for the moderation action',
+        },
+      },
+      required: ['messageId', 'action', 'reason'],
+    },
+  },
+
+  // ── Phase 2: Inventory & Stock Management ──────────────────────────────
+  {
+    name: 'update_inventory',
+    description:
+      'Adjust product inventory by a positive or negative amount. Use when stock needs to be added (restock) or removed (sale, damage, etc.). Confirm adjustment with user before executing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productId: {
+          type: 'number',
+          description: 'Product ID to adjust inventory for',
+        },
+        adjustment: {
+          type: 'number',
+          description: 'Amount to adjust: positive to add stock, negative to remove',
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for the adjustment (e.g., "restock shipment", "damaged goods", "order fulfillment")',
+        },
+      },
+      required: ['productId', 'adjustment', 'reason'],
+    },
+  },
+  {
+    name: 'track_inventory_movement',
+    description:
+      'Process an order by decrementing inventory for each item. Use after an order is paid to ensure stock levels reflect the sale. Links order to inventory changes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: {
+          type: 'number',
+          description: 'The order ID to process inventory for',
+        },
+      },
+      required: ['orderId'],
+    },
+  },
+  {
+    name: 'set_low_stock_alert',
+    description:
+      'Set or update the low stock alert threshold for a product. When inventory drops below this threshold, automatic alerts are generated.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productId: {
+          type: 'number',
+          description: 'Product ID to set threshold for',
+        },
+        threshold: {
+          type: 'number',
+          description: 'Inventory count at which to trigger low-stock alert (e.g., 10)',
+        },
+      },
+      required: ['productId', 'threshold'],
+    },
+  },
+  {
+    name: 'query_inventory_history',
+    description:
+      'View inventory change history from the AI Bus. Shows stock movements with timestamps and reasons. Use when someone asks about inventory trends or recent changes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        productTitle: {
+          type: 'string',
+          description: 'Optional: filter by product name in inventory messages',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max records to return (default 10, max 50)',
+        },
+      },
+      required: [],
+    },
+  },
+
+  // ── Phase 3: Financial Operations ──────────────────────────────────────
+  {
+    name: 'generate_invoice',
+    description:
+      'Generate an invoice summary for an order, including line items, totals, and the Ultimate Fair Split breakdown. Returns formatted data for display or PDF export.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: {
+          type: 'number',
+          description: 'The order ID to generate an invoice for',
+        },
+        notes: {
+          type: 'string',
+          description: 'Optional notes to include on the invoice',
+        },
+      },
+      required: ['orderId'],
+    },
+  },
+  {
+    name: 'query_financial_reports',
+    description:
+      'Get financial summary reports including revenue, order counts, federation transactions, and Justice Fund contributions. Use when someone asks about business performance or financials.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        startDate: {
+          type: 'string',
+          description: 'Start date (ISO format, e.g., "2026-01-01")',
+        },
+        endDate: {
+          type: 'string',
+          description: 'End date (ISO format, e.g., "2026-02-25")',
+        },
+        metrics: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional: specific metrics to include (revenue, orders, federation, justice_fund)',
+        },
+      },
+      required: ['startDate', 'endDate'],
+    },
+  },
+  {
+    name: 'issue_refund',
+    description:
+      'Flag an order for refund processing. Records the refund intent in the transaction ledger. Does NOT execute the Stripe refund directly — flags for human approval. Confirm with user before executing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        orderId: {
+          type: 'number',
+          description: 'The order ID to refund',
+        },
+        amountCents: {
+          type: 'number',
+          description: 'Optional: partial refund amount in cents (omit for full refund)',
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for the refund',
+        },
+      },
+      required: ['orderId', 'reason'],
+    },
+  },
+
+  // ── Phase 4: Federation & Network Intelligence ─────────────────────────
+  {
+    name: 'query_federation',
+    description:
+      'Search the federation network for products, services, skills, or Enterprises. Combines catalog search, street signs, and holon discovery into one unified federation search. Use when looking for capabilities across the network.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        search: {
+          type: 'string',
+          description: 'Text search across federation catalog',
+        },
+        capability: {
+          type: 'string',
+          description: 'Specific capability to search for (e.g., "screen-printing", "CNC-milling")',
+        },
+        region: {
+          type: 'string',
+          description: 'Geographic region filter',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 10, max 25)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'broadcast_capability',
+    description:
+      'Advertise a capability or offering to the federation network by creating/updating a Street Sign. Makes this Enterprise discoverable for specific skills, products, or services. Confirm with user before broadcasting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Title of the capability being advertised',
+        },
+        description: {
+          type: 'string',
+          description: 'Detailed description of the offering',
+        },
+        contentType: {
+          type: 'string',
+          enum: ['product', 'service', 'event', 'skill'],
+          description: 'Type of capability',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags for discovery (e.g., ["woodworking", "custom-cabinets", "commercial"])',
+        },
+        region: {
+          type: 'string',
+          description: 'Service region (e.g., "Tampa Bay", "Florida", "US-Southeast")',
+        },
+      },
+      required: ['title', 'description', 'contentType'],
+    },
+  },
+  {
+    name: 'route_federated_request',
+    description:
+      'Route a request through the federation to find an Enterprise that can fulfill it. Searches catalog, logs the intent, and returns matching Enterprises for human to initiate contact.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        request: {
+          type: 'string',
+          description: 'Description of what is needed',
+        },
+        targetCapability: {
+          type: 'string',
+          description: 'Specific capability required',
+        },
+        targetRegion: {
+          type: 'string',
+          description: 'Preferred geographic region',
+        },
+      },
+      required: ['request'],
+    },
+  },
+  {
+    name: 'negotiate_deal',
+    description:
+      'Search the federation for matching capabilities and prepare a deal proposal. Creates a pending transaction record. Returns matches ranked by relevance for human approval before proceeding.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        requirement: {
+          type: 'string',
+          description: 'What is needed (e.g., "CNC-milling 50 cabinet doors from plywood")',
+        },
+        maxBudgetCents: {
+          type: 'number',
+          description: 'Maximum budget in cents (optional)',
+        },
+        preferredRegion: {
+          type: 'string',
+          description: 'Preferred geographic region',
+        },
+      },
+      required: ['requirement'],
+    },
+  },
+
+  // ── Phase 5: CRM ──────────────────────────────────────────────────────
+  {
+    name: 'create_customer_profile',
+    description:
+      'Create or update a customer contact profile. If a contact with the same email already exists for this tenant, updates it. Use for CRM, tracking relationships, and segmentation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Contact email address (required)',
+        },
+        name: {
+          type: 'string',
+          description: 'Contact display name',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags for segmentation (e.g., ["vip", "wholesale", "repeat-customer"])',
+        },
+        notes: {
+          type: 'string',
+          description: 'Notes about this contact',
+        },
+        source: {
+          type: 'string',
+          enum: ['manual', 'signup', 'referral', 'api'],
+          description: 'How this contact was acquired (default: "manual")',
+        },
+      },
+      required: ['email'],
+    },
+  },
+  {
+    name: 'log_interaction',
+    description:
+      'Log a customer interaction (call, email, visit, purchase, support request, etc.) against a contact record. Builds relationship history over time.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: {
+          type: 'number',
+          description: 'Contact ID to log interaction for',
+        },
+        interactionType: {
+          type: 'string',
+          description: 'Type of interaction (e.g., "phone call", "email", "in-store visit", "support ticket", "purchase")',
+        },
+        notes: {
+          type: 'string',
+          description: 'Details about the interaction',
+        },
+      },
+      required: ['contactId', 'interactionType', 'notes'],
+    },
+  },
+  {
+    name: 'segment_customers',
+    description:
+      'Query and segment customer contacts by tags, status, source, or other criteria. Use for targeted communications, marketing lists, or customer analysis.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter contacts that have ANY of these tags',
+        },
+        status: {
+          type: 'string',
+          enum: ['lead', 'invited', 'accepted', 'bounced', 'unsubscribed'],
+          description: 'Filter by contact status',
+        },
+        source: {
+          type: 'string',
+          description: 'Filter by acquisition source',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 20, max 100)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'send_follow_up',
+    description:
+      'Send a follow-up message to a contact. Creates a system notification and logs the interaction. Confirm with user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: {
+          type: 'number',
+          description: 'Contact ID to follow up with',
+        },
+        subject: {
+          type: 'string',
+          description: 'Subject line for the follow-up',
+        },
+        message: {
+          type: 'string',
+          description: 'Follow-up message content',
+        },
+      },
+      required: ['contactId', 'subject', 'message'],
+    },
+  },
+
+  // ── Phase 6: Analytics & Intelligence ──────────────────────────────────
+  {
+    name: 'analyze_trends',
+    description:
+      'Analyze business trends from existing data. Computes basic statistics like totals, averages, and period-over-period growth. Use when someone asks about business performance, trends, or insights.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        dataType: {
+          type: 'string',
+          enum: ['orders', 'products', 'bookings', 'contacts'],
+          description: 'What data to analyze',
+        },
+        timeframe: {
+          type: 'string',
+          enum: ['week', 'month', 'quarter'],
+          description: 'Time period to analyze',
+        },
+      },
+      required: ['dataType', 'timeframe'],
+    },
+  },
+  {
+    name: 'recommend_products',
+    description:
+      'Get product recommendations based on popularity, recency, or contextual relevance. Use when someone asks for product suggestions or popular items.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        context: {
+          type: 'string',
+          description: 'Optional context for recommendations (e.g., "kitchen cabinets", "outdoor furniture")',
+        },
+        limit: {
+          type: 'number',
+          description: 'Number of recommendations (default 5, max 10)',
+        },
+      },
+      required: [],
+    },
+  },
+
+  // ── Phase 7: Workflow & Emergency ──────────────────────────────────────
+  {
+    name: 'delegate_task',
+    description:
+      'Create a task assignment message in the team channel, optionally notifying a specific person. Use for task delegation and team coordination. Confirm with user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        task: {
+          type: 'string',
+          description: 'Description of the task to delegate',
+        },
+        assigneeEmail: {
+          type: 'string',
+          description: 'Email of the person to assign the task to',
+        },
+        priority: {
+          type: 'string',
+          enum: ['low', 'normal', 'high', 'urgent'],
+          description: 'Task priority (default: normal)',
+        },
+        deadline: {
+          type: 'string',
+          description: 'Optional deadline (ISO date or human-readable)',
+        },
+      },
+      required: ['task'],
+    },
+  },
+  {
+    name: 'escalate_issue',
+    description:
+      'Escalate an issue by creating a high-priority message in the support channel and logging it. Use when something needs immediate attention.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        issue: {
+          type: 'string',
+          description: 'Description of the issue',
+        },
+        priority: {
+          type: 'string',
+          enum: ['high', 'urgent'],
+          description: 'Escalation priority level',
+        },
+        context: {
+          type: 'string',
+          description: 'Additional context or background',
+        },
+      },
+      required: ['issue', 'priority'],
+    },
+  },
+  {
+    name: 'send_emergency_alert',
+    description:
+      'Broadcast an urgent emergency alert to ALL spaces in the tenant. Use only for genuine emergencies (outages, security issues, critical business events). Confirm with user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        message: {
+          type: 'string',
+          description: 'The emergency alert message',
+        },
+        priority: {
+          type: 'string',
+          enum: ['high', 'urgent'],
+          description: 'Alert priority (default: urgent)',
+        },
+      },
+      required: ['message'],
+    },
+  },
+  {
+    name: 'document_incident',
+    description:
+      'Document an incident for the record, creating both an application log entry and a draft post for internal documentation. Use after resolving an issue to capture what happened.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Incident title',
+        },
+        details: {
+          type: 'string',
+          description: 'What happened — detailed description',
+        },
+        impact: {
+          type: 'string',
+          description: 'What was affected and how',
+        },
+        response: {
+          type: 'string',
+          description: 'How it was resolved or mitigated',
+        },
+      },
+      required: ['title', 'details', 'impact', 'response'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1440,8 +2044,6 @@ export async function executeToolCall(
         return await createPage(payload, toolInput, ctx)
       case 'update_page':
         return await updatePage(payload, toolInput, ctx)
-      case 'add_calendar_to_page':
-        return await addCalendarToPage(payload, toolInput)
       case 'query_media':
         return await queryMedia(payload, toolInput)
       case 'manage_categories':
@@ -1461,6 +2063,8 @@ export async function executeToolCall(
       case 'query_knowledge':
         return await handleQueryKnowledge(payload, toolInput, ctx)
       // ─── Sprint 19: Theme Management & Image Placement ─────────
+      case 'add_calendar_to_page':
+        return await addCalendarToPage(payload, toolInput)
       case 'get_theme_settings':
         return await handleGetThemeSettings(payload, ctx)
       case 'update_theme_settings':
@@ -1474,6 +2078,64 @@ export async function executeToolCall(
         return await handleResearchAndProvision(payload, toolInput, ctx)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
+      // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
+      // Phase 1: Communication & Social Layer
+      case 'send_message':
+        return await handleSendMessage(payload, toolInput, ctx)
+      case 'send_direct_message':
+        return await handleSendDirectMessage(payload, toolInput, ctx)
+      case 'create_announcement':
+        return await handleCreateAnnouncement(payload, toolInput, ctx)
+      case 'moderate_content':
+        return await handleModerateContent(payload, toolInput, ctx)
+      // Phase 2: Inventory & Stock Management
+      case 'update_inventory':
+        return await handleUpdateInventory(payload, toolInput, ctx)
+      case 'track_inventory_movement':
+        return await handleTrackInventoryMovement(payload, toolInput, ctx)
+      case 'set_low_stock_alert':
+        return await handleSetLowStockAlert(payload, toolInput)
+      case 'query_inventory_history':
+        return await handleQueryInventoryHistory(payload, toolInput, ctx)
+      // Phase 3: Financial Operations
+      case 'generate_invoice':
+        return await handleGenerateInvoice(payload, toolInput, ctx)
+      case 'query_financial_reports':
+        return await handleQueryFinancialReports(payload, toolInput, ctx)
+      case 'issue_refund':
+        return await handleIssueRefund(payload, toolInput, ctx)
+      // Phase 4: Federation & Network Intelligence
+      case 'query_federation':
+        return await handleQueryFederation(payload, toolInput, ctx)
+      case 'broadcast_capability':
+        return await handleBroadcastCapability(payload, toolInput, ctx)
+      case 'route_federated_request':
+        return await handleRouteFederatedRequest(payload, toolInput, ctx)
+      case 'negotiate_deal':
+        return await handleNegotiateDeal(payload, toolInput, ctx)
+      // Phase 5: CRM
+      case 'create_customer_profile':
+        return await handleCreateCustomerProfile(payload, toolInput, ctx)
+      case 'log_interaction':
+        return await handleLogInteraction(payload, toolInput, ctx)
+      case 'segment_customers':
+        return await handleSegmentCustomers(payload, toolInput, ctx)
+      case 'send_follow_up':
+        return await handleSendFollowUp(payload, toolInput, ctx)
+      // Phase 6: Analytics & Intelligence
+      case 'analyze_trends':
+        return await handleAnalyzeTrends(payload, toolInput, ctx)
+      case 'recommend_products':
+        return await handleRecommendProducts(payload, toolInput, ctx)
+      // Phase 7: Workflow & Emergency
+      case 'delegate_task':
+        return await handleDelegateTask(payload, toolInput, ctx)
+      case 'escalate_issue':
+        return await handleEscalateIssue(payload, toolInput, ctx)
+      case 'send_emergency_alert':
+        return await handleSendEmergencyAlert(payload, toolInput, ctx)
+      case 'document_incident':
+        return await handleDocumentIncident(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -4728,31 +5390,10 @@ async function handleCheckFees(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sprint 19: Theme Management & Image Placement
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Sprint 19 — Theme Management, Image Placement, Calendar, Research & Provision
+// ===========================================================================
 
-/**
- * Calculates relative luminance of a hex color (0 = black, 1 = white).
- * Used to advise LEO on contrast suitability.
- */
-function hexLuminance(hex: string): number {
-  const clean = hex.replace('#', '')
-  if (clean.length !== 6) return -1
-  const r = parseInt(clean.substring(0, 2), 16) / 255
-  const g = parseInt(clean.substring(2, 4), 16) / 255
-  const b = parseInt(clean.substring(4, 6), 16) / 255
-  // sRGB -> linear
-  const lr = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
-  const lg = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
-  const lb = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
-  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
-}
-
-/**
- * get_theme_settings — Reads the tenant's branding configuration and returns
- * a contrast analysis to help LEO make informed image generation decisions.
- */
 async function handleGetThemeSettings(
   payload: Payload,
   ctx: ToolExecutorContext,
@@ -5464,4 +6105,1593 @@ async function addCalendarToPage(
     '',
     `The calendar is now part of the page layout. View it at the page URL.`,
   ].join('\n')
+}
+
+
+// ===========================================================================
+// Sprint 21 — Arch Angel LEO's Wishlist: Handler Functions
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Phase 1: Communication & Social Layer
+// ---------------------------------------------------------------------------
+
+/** Helper: Find LEO system user for this tenant */
+async function findLeoUser(payload: Payload, tenantId?: number): Promise<number | undefined> {
+  if (!tenantId) return undefined
+  try {
+    // Look for any system user serving this tenant with agent config
+    const result = await payload.find({
+      collection: 'users',
+      where: {
+        and: [
+          { servesTenant: { equals: tenantId } },
+          { 'agentConfig.agentType': { equals: 'leo' } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return result.docs[0]?.id as number | undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Helper: Find a space for the tenant (defaults to first space if no spaceId given) */
+async function resolveSpace(
+  payload: Payload,
+  tenantId: number,
+  spaceId?: number,
+): Promise<{ id: number; tenant: number } | null> {
+  if (spaceId) {
+    try {
+      const doc = await payload.findByID({
+        collection: 'spaces',
+        id: spaceId,
+        depth: 0,
+        overrideAccess: true,
+      })
+      return doc ? { id: doc.id as number, tenant: tenantId } : null
+    } catch {
+      return null
+    }
+  }
+  // Find first space for tenant
+  const spaces = await payload.find({
+    collection: 'spaces',
+    where: { tenant: { equals: tenantId } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const first = spaces.docs[0]
+  return first ? { id: first.id as number, tenant: tenantId } : null
+}
+
+async function handleSendMessage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId, spaceId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const channel = (input.channel as string)?.trim()
+  const content = (input.content as string)?.trim()
+  if (!channel) return 'Error: channel slug is required.'
+  if (!content) return 'Error: message content is required.'
+
+  const targetSpaceId = (input.spaceId as number) || spaceId
+  const space = await resolveSpace(payload, tenantId, targetSpaceId)
+  if (!space) return 'Error: Could not find a space to send the message to.'
+
+  const leoUserId = await findLeoUser(payload, tenantId)
+
+  try {
+    const msg = await payload.create({
+      collection: 'messages',
+      data: {
+        content,
+        space: space.id,
+        channel,
+        messageType: 'ai_agent',
+        author: leoUserId || (ctx.userId as number) || 1,
+        tenant: tenantId,
+        visibility: 'tenant',
+      } as any,
+      overrideAccess: true,
+    })
+    return `Message sent to #${channel} (message ID: ${msg.id}). Content: "${content.slice(0, 100)}${content.length > 100 ? '...' : ''}"`
+  } catch (err) {
+    console.error('[LEO Tools] send_message error:', err)
+    return `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSendDirectMessage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const targetUserId = input.targetUserId as number
+  const content = (input.content as string)?.trim()
+  if (!targetUserId) return 'Error: targetUserId is required.'
+  if (!content) return 'Error: message content is required.'
+
+  const leoUserId = await findLeoUser(payload, tenantId)
+  const senderId = leoUserId || ctx.userId
+  if (!senderId) return 'Error: No sender identity available.'
+
+  try {
+    // Ensure DM space exists
+    const dmSpaceId = await ensureDMSpace(String(tenantId))
+    if (!dmSpaceId) return 'Error: Failed to provision DM space.'
+
+    // Find or create DM channel
+    const dm = await findOrCreateDM(tenantId, dmSpaceId, senderId, targetUserId)
+
+    // Send the message
+    const msg = await payload.create({
+      collection: 'messages',
+      data: {
+        content,
+        space: Number(dmSpaceId),
+        channel: dm.channelSlug,
+        messageType: 'ai_agent',
+        author: senderId,
+        tenant: tenantId,
+        visibility: 'private',
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Direct message sent to user ${targetUserId} (message ID: ${msg.id}, channel: ${dm.channelSlug}${dm.isNew ? ' — new DM created' : ''}).`
+  } catch (err) {
+    console.error('[LEO Tools] send_direct_message error:', err)
+    return `Error sending DM: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleCreateAnnouncement(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const title = (input.title as string)?.trim()
+  const content = (input.content as string)?.trim()
+  if (!title) return 'Error: announcement title is required.'
+  if (!content) return 'Error: announcement content is required.'
+
+  const targetSpaces = input.targetSpaces as number[] | undefined
+  const leoUserId = await findLeoUser(payload, tenantId)
+
+  try {
+    // Get target spaces
+    let spaceIds: number[]
+    if (targetSpaces && targetSpaces.length > 0) {
+      spaceIds = targetSpaces
+    } else {
+      // All spaces for this tenant
+      const spaces = await payload.find({
+        collection: 'spaces',
+        where: { tenant: { equals: tenantId } },
+        limit: 50,
+        depth: 0,
+        overrideAccess: true,
+      })
+      spaceIds = spaces.docs.map((s) => s.id as number)
+    }
+
+    if (spaceIds.length === 0) return 'Error: No spaces found to announce to.'
+
+    const fullContent = `**${title}**\n\n${content}`
+    let sent = 0
+
+    for (const sid of spaceIds) {
+      try {
+        await payload.create({
+          collection: 'messages',
+          data: {
+            content: fullContent,
+            space: sid,
+            channel: 'announcements',
+            messageType: 'announcement',
+            priority: 'high',
+            author: leoUserId || (ctx.userId as number) || 1,
+            tenant: tenantId,
+            visibility: 'tenant',
+          } as any,
+          overrideAccess: true,
+        })
+        sent++
+      } catch {
+        // Some spaces may not have an announcements channel — skip
+      }
+    }
+
+    return `Announcement "${title}" posted to ${sent} space(s).`
+  } catch (err) {
+    console.error('[LEO Tools] create_announcement error:', err)
+    return `Error creating announcement: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleModerateContent(
+  payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  const messageId = input.messageId as number
+  const action = input.action as string
+  const reason = (input.reason as string)?.trim()
+
+  if (!messageId) return 'Error: messageId is required.'
+  if (!action || !['archive', 'flag', 'resolve'].includes(action)) {
+    return 'Error: action must be one of: archive, flag, resolve.'
+  }
+  if (!reason) return 'Error: reason is required for moderation actions.'
+
+  try {
+    const updates: Record<string, unknown> = {}
+    if (action === 'archive') {
+      updates.status = 'archived'
+    } else if (action === 'flag') {
+      updates.status = 'pending'
+      updates.priority = 'urgent'
+    } else if (action === 'resolve') {
+      updates.status = 'resolved'
+    }
+
+    await payload.update({
+      collection: 'messages',
+      id: messageId,
+      data: updates as any,
+      overrideAccess: true,
+    })
+
+    return `Message ${messageId} moderated: action="${action}", reason="${reason}". Status updated to ${updates.status}.`
+  } catch (err) {
+    console.error('[LEO Tools] moderate_content error:', err)
+    return `Error moderating message: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Inventory & Stock Management
+// ---------------------------------------------------------------------------
+
+async function handleUpdateInventory(
+  payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  const productId = input.productId as number
+  const adjustment = input.adjustment as number
+  const reason = (input.reason as string)?.trim()
+
+  if (!productId) return 'Error: productId is required.'
+  if (typeof adjustment !== 'number') return 'Error: adjustment must be a number.'
+  if (!reason) return 'Error: reason is required for inventory adjustments.'
+
+  try {
+    const product = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const currentInventory = (product as any).inventory || 0
+    const newInventory = currentInventory + adjustment
+
+    if (newInventory < 0) {
+      return `Error: Adjustment would result in negative inventory (current: ${currentInventory}, adjustment: ${adjustment}). Cannot go below 0.`
+    }
+
+    await payload.update({
+      collection: 'products',
+      id: productId,
+      data: { inventory: newInventory } as any,
+      overrideAccess: true,
+    })
+
+    // The afterProductChange hook automatically creates AI Bus messages
+    return `Inventory updated for "${(product as any).title}": ${currentInventory} → ${newInventory} (${adjustment > 0 ? '+' : ''}${adjustment}). Reason: ${reason}`
+  } catch (err) {
+    console.error('[LEO Tools] update_inventory error:', err)
+    return `Error updating inventory: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleTrackInventoryMovement(
+  payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = input.orderId as number
+  if (!orderId) return 'Error: orderId is required.'
+
+  try {
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+      overrideAccess: true,
+    }) as any
+
+    if (!order) return `Error: Order ${orderId} not found.`
+
+    const items = order.items || []
+    if (items.length === 0) return `Order ${orderId} has no items to process.`
+
+    const results: string[] = []
+
+    for (const item of items) {
+      const product = typeof item.product === 'object' ? item.product : null
+      const qty = item.quantity || 1
+
+      if (!product?.id) {
+        results.push(`Skipped item (no product reference)`)
+        continue
+      }
+
+      const currentInventory = product.inventory || 0
+      const newInventory = Math.max(0, currentInventory - qty)
+
+      await payload.update({
+        collection: 'products',
+        id: product.id,
+        data: { inventory: newInventory } as any,
+        overrideAccess: true,
+      })
+
+      results.push(`${product.title}: ${currentInventory} → ${newInventory} (-${qty})`)
+    }
+
+    return `Inventory processed for order #${orderId}:\n${results.map((r) => `  - ${r}`).join('\n')}`
+  } catch (err) {
+    console.error('[LEO Tools] track_inventory_movement error:', err)
+    return `Error processing inventory: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSetLowStockAlert(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const productId = input.productId as number
+  const threshold = input.threshold as number
+
+  if (!productId) return 'Error: productId is required.'
+  if (typeof threshold !== 'number' || threshold < 0) {
+    return 'Error: threshold must be a non-negative number.'
+  }
+
+  try {
+    const product = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+
+    await payload.update({
+      collection: 'products',
+      id: productId,
+      data: { lowStockThreshold: threshold } as any,
+      overrideAccess: true,
+    })
+
+    const currentInventory = product.inventory || 0
+    const status = currentInventory <= threshold ? ' (currently at or below threshold!)' : ''
+
+    return `Low stock alert threshold set for "${product.title}": alert when inventory drops below ${threshold} units. Current inventory: ${currentInventory}${status}`
+  } catch (err) {
+    console.error('[LEO Tools] set_low_stock_alert error:', err)
+    return `Error setting alert: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleQueryInventoryHistory(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const limit = Math.min(Number(input.limit) || 10, 50)
+  const productTitle = input.productTitle as string | undefined
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = [{ messageType: { equals: 'inventory' } }]
+  if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
+  if (productTitle) conditions.push({ content: { like: productTitle } })
+
+  try {
+    const messages = await payload.find({
+      collection: 'messages',
+      where: { and: conditions } as any,
+      sort: '-createdAt',
+      limit,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (messages.docs.length === 0) {
+      return 'No inventory history found.' + (productTitle ? ` No movements recorded for "${productTitle}".` : '')
+    }
+
+    const lines = [`## Inventory History (${messages.docs.length} records)`, '']
+    for (const doc of messages.docs as any[]) {
+      const date = new Date(doc.createdAt).toLocaleString()
+      const text = typeof doc.content === 'string' ? doc.content : JSON.stringify(doc.content)
+      lines.push(`- **${date}:** ${text}`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] query_inventory_history error:', err)
+    return `Error querying inventory history: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Financial Operations
+// ---------------------------------------------------------------------------
+
+async function handleGenerateInvoice(
+  payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = input.orderId as number
+  const notes = (input.notes as string) || ''
+
+  if (!orderId) return 'Error: orderId is required.'
+
+  try {
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+      overrideAccess: true,
+    }) as any
+
+    if (!order) return `Error: Order ${orderId} not found.`
+
+    const items = order.items || []
+    const lines: string[] = [
+      `## Invoice — Order #${orderId}`,
+      `**Date:** ${new Date(order.createdAt).toLocaleDateString()}`,
+      `**Status:** ${order.status || 'pending'}`,
+      '',
+      `### Line Items`,
+    ]
+
+    let subtotalCents = 0
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      const product = typeof item.product === 'object' ? item.product : null
+      const title = product?.title || `Item ${i + 1}`
+      const qty = item.quantity || 1
+      const priceCents = (item.priceJSON ? JSON.parse(item.priceJSON)?.amount : product?.price) || 0
+      const lineTotalCents = priceCents * qty
+      subtotalCents += lineTotalCents
+
+      lines.push(`${i + 1}. **${title}** × ${qty} — $${(lineTotalCents / 100).toFixed(2)}`)
+    }
+
+    lines.push('', `**Subtotal:** $${(subtotalCents / 100).toFixed(2)}`)
+
+    // Calculate fair split
+    if (subtotalCents > 0) {
+      const split = calculateUltimateFairSplit(subtotalCents)
+      lines.push('', `### Ultimate Fair Split`)
+      for (const s of split) {
+        lines.push(`- ${s.recipient}: $${(s.amount / 100).toFixed(2)} (${(s.percentage * 100).toFixed(0)}%)`)
+      }
+    }
+
+    if (notes) lines.push('', `### Notes`, notes)
+
+    // Add fulfillment status
+    const fulfillment = order.fulfillment || []
+    if (fulfillment.length > 0) {
+      lines.push('', `### Fulfillment Status`)
+      for (const f of fulfillment) {
+        lines.push(`- Item ${(f.orderItemIndex || 0) + 1}: ${f.fulfillmentStatus || 'pending'}`)
+      }
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] generate_invoice error:', err)
+    return `Error generating invoice: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleQueryFinancialReports(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const startDate = input.startDate as string
+  const endDate = input.endDate as string
+
+  if (!startDate || !endDate) return 'Error: startDate and endDate are required.'
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Error: Invalid date format. Use ISO format (YYYY-MM-DD).'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tenantFilter: any = ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}
+
+  try {
+    // Query orders
+    const orders = await payload.find({
+      collection: 'orders',
+      where: {
+        and: [
+          tenantFilter,
+          { createdAt: { greater_than_equal: start.toISOString() } },
+          { createdAt: { less_than_equal: end.toISOString() } },
+        ].filter((c) => Object.keys(c).length > 0),
+      } as any,
+      limit: 500,
+      depth: 1,
+      overrideAccess: true,
+    })
+
+    // Query agent transactions
+    const transactions = await payload.find({
+      collection: 'agent-transactions',
+      where: {
+        and: [
+          tenantFilter,
+          { createdAt: { greater_than_equal: start.toISOString() } },
+          { createdAt: { less_than_equal: end.toISOString() } },
+        ].filter((c) => Object.keys(c).length > 0),
+      } as any,
+      limit: 500,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Query justice fund
+    const justiceFund = await payload.find({
+      collection: 'justice-fund-transactions',
+      where: {
+        and: [
+          { createdAt: { greater_than_equal: start.toISOString() } },
+          { createdAt: { less_than_equal: end.toISOString() } },
+        ],
+      } as any,
+      limit: 500,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Compute metrics
+    let totalRevenueCents = 0
+    for (const o of orders.docs as any[]) {
+      totalRevenueCents += o.total || 0
+    }
+
+    let federationSpend = 0
+    let federationEarn = 0
+    for (const t of transactions.docs as any[]) {
+      if (t.type === 'spend') federationSpend += t.amountCents || 0
+      if (t.type === 'earn') federationEarn += t.amountCents || 0
+    }
+
+    let justiceTotal = 0
+    for (const j of justiceFund.docs as any[]) {
+      justiceTotal += j.amountCents || 0
+    }
+
+    const lines = [
+      `## Financial Report`,
+      `**Period:** ${start.toLocaleDateString()} — ${end.toLocaleDateString()}`,
+      '',
+      `### Revenue`,
+      `- **Total orders:** ${orders.docs.length}`,
+      `- **Total revenue:** $${(totalRevenueCents / 100).toFixed(2)}`,
+      `- **Average order value:** $${orders.docs.length > 0 ? ((totalRevenueCents / orders.docs.length) / 100).toFixed(2) : '0.00'}`,
+      '',
+      `### Federation Transactions`,
+      `- **Total transactions:** ${transactions.docs.length}`,
+      `- **Federation spend:** $${(federationSpend / 100).toFixed(2)}`,
+      `- **Federation earnings:** $${(federationEarn / 100).toFixed(2)}`,
+      `- **Net:** $${((federationEarn - federationSpend) / 100).toFixed(2)}`,
+      '',
+      `### Justice Fund`,
+      `- **Contributions:** ${justiceFund.docs.length}`,
+      `- **Total contributed:** $${(justiceTotal / 100).toFixed(2)}`,
+    ]
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] query_financial_reports error:', err)
+    return `Error generating report: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleIssueRefund(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const orderId = input.orderId as number
+  const reason = (input.reason as string)?.trim()
+  const amountCents = input.amountCents as number | undefined
+
+  if (!orderId) return 'Error: orderId is required.'
+  if (!reason) return 'Error: reason is required for refunds.'
+
+  try {
+    const order = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 1,
+      overrideAccess: true,
+    }) as any
+
+    if (!order) return `Error: Order ${orderId} not found.`
+
+    const orderTotal = order.total || 0
+    const refundAmount = amountCents || orderTotal
+
+    // Record refund intent in agent transactions
+    await payload.create({
+      collection: 'agent-transactions',
+      data: {
+        tenant: ctx.tenantId,
+        type: 'refund',
+        amountCents: refundAmount,
+        currency: 'USD',
+        description: `Refund for order #${orderId}: ${reason}`,
+        status: 'pending',
+        metadata: {
+          orderId,
+          reason,
+          isPartialRefund: amountCents !== undefined && amountCents < orderTotal,
+          stripePaymentIntentId: order.stripePaymentIntentId || null,
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    const isPartial = amountCents !== undefined && amountCents < orderTotal
+    const lines = [
+      `## Refund Flagged for Processing`,
+      `- **Order:** #${orderId}`,
+      `- **Refund amount:** $${(refundAmount / 100).toFixed(2)}${isPartial ? ' (partial)' : ' (full)'}`,
+      `- **Reason:** ${reason}`,
+      `- **Status:** Pending human approval`,
+    ]
+
+    if (order.stripePaymentIntentId) {
+      lines.push(`- **Stripe Payment Intent:** ${order.stripePaymentIntentId}`)
+      lines.push(``, `Note: The actual Stripe refund must be processed by a human admin for safety. This record flags the intent.`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] issue_refund error:', err)
+    return `Error issuing refund: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Federation & Network Intelligence
+// ---------------------------------------------------------------------------
+
+async function handleQueryFederation(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const search = (input.search as string) || ''
+  const capability = (input.capability as string) || ''
+  const region = (input.region as string) || ''
+  const limit = Math.min(Number(input.limit) || 10, 25)
+
+  try {
+    const results: string[] = []
+
+    // 1. Search Street Signs (federation-wide discovery)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const signConditions: any[] = []
+    if (search) signConditions.push({ or: [{ title: { like: search } }, { description: { like: search } }] })
+    if (region) signConditions.push({ region: { like: region } })
+
+    const streetSigns = await payload.find({
+      collection: 'street-signs' as any,
+      where: signConditions.length > 0 ? { and: signConditions } : {} as any,
+      limit,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (streetSigns.docs.length > 0) {
+      results.push(`### Federation Street Signs (${streetSigns.docs.length})`)
+      for (const sign of streetSigns.docs as any[]) {
+        results.push(`- **${sign.title}** (${sign.contentType}) — ${sign.sourceMinistry || 'unknown ministry'}`)
+        if (sign.description) results.push(`  ${String(sign.description).slice(0, 100)}`)
+        if (sign.region) results.push(`  Region: ${sign.region}`)
+      }
+      results.push('')
+    }
+
+    // 2. Search network-listed products
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prodConditions: any[] = [
+      { networkListing: { equals: true } },
+      { _status: { equals: 'published' } },
+    ]
+    if (search) prodConditions.push({ title: { like: search } })
+    if (capability) prodConditions.push({ 'requiredCapabilities.skill': { like: capability } })
+
+    const products = await payload.find({
+      collection: 'products',
+      where: { and: prodConditions } as any,
+      limit,
+      depth: 1,
+      overrideAccess: true,
+    })
+
+    if (products.docs.length > 0) {
+      results.push(`### Network Products (${products.docs.length})`)
+      for (const p of products.docs as any[]) {
+        const vendor = typeof p.vendor === 'object' ? p.vendor?.name || p.vendor?.slug : p.vendor
+        const price = p.price ? `$${(p.price / 100).toFixed(2)}` : 'Price TBD'
+        results.push(`- **${p.title}** — ${price} (vendor: ${vendor || 'unknown'})`)
+      }
+      results.push('')
+    }
+
+    // 3. Search Holon capabilities
+    if (capability) {
+      const holons = await payload.find({
+        collection: 'holon-capabilities' as any,
+        where: {
+          and: [
+            { acceptingOrders: { equals: true } },
+            { constitutionalCompliance: { equals: true } },
+            {
+              or: [
+                { 'capabilities.skill': { like: capability } },
+                { 'capabilities.equipment': { like: capability } },
+              ],
+            },
+          ],
+        } as any,
+        limit: 10,
+        depth: 1,
+        overrideAccess: true,
+      })
+
+      if (holons.docs.length > 0) {
+        results.push(`### Capable Holons (${holons.docs.length})`)
+        for (const h of holons.docs as any[]) {
+          results.push(`- **${h.businessName || 'Unnamed'}** — Rating: ${h.rating || 'N/A'}/5, Active orders: ${h.activeOrderCount || 0}`)
+          if (h.location?.city) results.push(`  Location: ${h.location.city}, ${h.location.region || ''}`)
+        }
+        results.push('')
+      }
+    }
+
+    if (results.length === 0) {
+      return `No federation results found for search="${search}", capability="${capability}", region="${region}". The federation may still be growing!`
+    }
+
+    return [`## Federation Search Results`, '', ...results].join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] query_federation error:', err)
+    return `Error searching federation: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleBroadcastCapability(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const title = (input.title as string)?.trim()
+  const description = (input.description as string)?.trim()
+  const contentType = (input.contentType as string) || 'service'
+
+  if (!title) return 'Error: title is required.'
+  if (!description) return 'Error: description is required.'
+
+  try {
+    // Get tenant info for source attribution
+    const tenant = await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+
+    const sign = await payload.create({
+      collection: 'street-signs' as any,
+      data: {
+        title,
+        description,
+        contentType,
+        tags: (input.tags as string[]) || [],
+        region: (input.region as string) || '',
+        sourceMinistry: tenant?.name || tenant?.slug || 'unknown',
+        sourceDomain: tenant?.domains?.[0]?.domain || '',
+        sourceCreator: String(ctx.userId || ''),
+        tenant: tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Capability broadcasted to federation!\n- **Title:** ${title}\n- **Type:** ${contentType}\n- **Street Sign ID:** ${sign.id}\n- **Source:** ${tenant?.name || 'your Enterprise'}\n\nOther Enterprises in the federation can now discover this offering.`
+  } catch (err) {
+    console.error('[LEO Tools] broadcast_capability error:', err)
+    return `Error broadcasting: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleRouteFederatedRequest(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const request = (input.request as string)?.trim()
+  if (!request) return 'Error: request description is required.'
+
+  const targetCapability = (input.targetCapability as string) || ''
+  const targetRegion = (input.targetRegion as string) || ''
+
+  try {
+    // Search federation for matches
+    const searchResult = await handleQueryFederation(
+      payload,
+      { search: request, capability: targetCapability, region: targetRegion, limit: 5 },
+      ctx,
+    )
+
+    // Log intent in federation audit log
+    await payload.create({
+      collection: 'federation-audit-log' as any,
+      data: {
+        eventType: 'federated_request',
+        description: `Federated request: ${request}`,
+        details: {
+          request,
+          targetCapability,
+          targetRegion,
+          sourceTenant: ctx.tenantId,
+        },
+        tenant: ctx.tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `## Federated Request Routed\n\n**Request:** ${request}\n\n${searchResult}\n\n_Request logged in federation audit trail._`
+  } catch (err) {
+    console.error('[LEO Tools] route_federated_request error:', err)
+    return `Error routing request: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleNegotiateDeal(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const requirement = (input.requirement as string)?.trim()
+  if (!requirement) return 'Error: requirement description is required.'
+
+  const maxBudgetCents = input.maxBudgetCents as number | undefined
+  const preferredRegion = (input.preferredRegion as string) || ''
+
+  try {
+    // Search for matching capabilities
+    const searchResult = await handleQueryFederation(
+      payload,
+      { search: requirement, region: preferredRegion, limit: 5 },
+      ctx,
+    )
+
+    // Create pending transaction record
+    const tx = await payload.create({
+      collection: 'agent-transactions',
+      data: {
+        tenant: tenantId,
+        type: 'spend',
+        amountCents: maxBudgetCents || 0,
+        currency: 'USD',
+        description: `Deal negotiation: ${requirement}`,
+        status: 'pending',
+        skillCategory: 'catalog',
+        metadata: {
+          requirement,
+          maxBudgetCents,
+          preferredRegion,
+          negotiationPhase: 'discovery',
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    const lines = [
+      `## Deal Negotiation — Discovery Phase`,
+      `**Requirement:** ${requirement}`,
+      maxBudgetCents ? `**Budget:** up to $${(maxBudgetCents / 100).toFixed(2)}` : '',
+      preferredRegion ? `**Preferred Region:** ${preferredRegion}` : '',
+      `**Transaction ID:** ${tx.id} (status: pending)`,
+      '',
+      searchResult,
+      '',
+      `_Next step: Human approves a match, and LEO can proceed to brokering._`,
+    ]
+
+    return lines.filter(Boolean).join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] negotiate_deal error:', err)
+    return `Error negotiating deal: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5: CRM
+// ---------------------------------------------------------------------------
+
+async function handleCreateCustomerProfile(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const email = (input.email as string)?.trim()?.toLowerCase()
+  if (!email) return 'Error: email is required.'
+
+  if (!isValidEmail(email)) return 'Error: Invalid email format.'
+
+  const name = (input.name as string)?.trim() || ''
+  const tags = (input.tags as string[]) || []
+  const notes = (input.notes as string) || ''
+  const source = (input.source as string) || 'manual'
+
+  try {
+    // Check if contact already exists for this tenant
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const whereClause: any = { email: { equals: email } }
+    if (tenantId) whereClause.tenant = { equals: tenantId }
+
+    const existing = await payload.find({
+      collection: 'contacts',
+      where: whereClause,
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (existing.docs[0]) {
+      // Update existing contact
+      const updates: Record<string, unknown> = {}
+      if (name) updates.name = name
+      if (tags.length > 0) updates.tags = tags
+      if (notes) updates.notes = `${(existing.docs[0] as any).notes || ''}\n\n[${new Date().toISOString()}] ${notes}`.trim()
+
+      await payload.update({
+        collection: 'contacts',
+        id: existing.docs[0].id,
+        data: updates as any,
+        overrideAccess: true,
+      })
+
+      return `Customer profile updated for ${email} (contact ID: ${existing.docs[0].id}).${name ? ` Name: ${name}.` : ''}${tags.length > 0 ? ` Tags: ${tags.join(', ')}.` : ''}`
+    }
+
+    // Create new contact
+    const contact = await payload.create({
+      collection: 'contacts',
+      data: {
+        email,
+        name,
+        tags,
+        notes,
+        source,
+        contactStatus: 'lead',
+        inviteStatus: 'not-invited',
+        inviteCount: 0,
+        ...(tenantId ? { tenant: tenantId } : {}),
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Customer profile created for ${email} (contact ID: ${contact.id}). Status: lead, source: ${source}.${tags.length > 0 ? ` Tags: ${tags.join(', ')}.` : ''}`
+  } catch (err) {
+    console.error('[LEO Tools] create_customer_profile error:', err)
+    return `Error creating profile: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleLogInteraction(
+  payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  const contactId = input.contactId as number
+  const interactionType = (input.interactionType as string)?.trim()
+  const notes = (input.notes as string)?.trim()
+
+  if (!contactId) return 'Error: contactId is required.'
+  if (!interactionType) return 'Error: interactionType is required.'
+  if (!notes) return 'Error: notes are required.'
+
+  try {
+    const contact = await payload.findByID({
+      collection: 'contacts',
+      id: contactId,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+
+    if (!contact) return `Error: Contact ${contactId} not found.`
+
+    // Append timestamped interaction to notes
+    const timestamp = new Date().toISOString()
+    const existingNotes = contact.notes || ''
+    const newEntry = `[${timestamp}] ${interactionType}: ${notes}`
+    const updatedNotes = existingNotes ? `${existingNotes}\n${newEntry}` : newEntry
+
+    await payload.update({
+      collection: 'contacts',
+      id: contactId,
+      data: { notes: updatedNotes } as any,
+      overrideAccess: true,
+    })
+
+    return `Interaction logged for ${contact.name || contact.email} (ID: ${contactId}):\n- **Type:** ${interactionType}\n- **Notes:** ${notes}\n- **Timestamp:** ${timestamp}`
+  } catch (err) {
+    console.error('[LEO Tools] log_interaction error:', err)
+    return `Error logging interaction: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSegmentCustomers(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const limit = Math.min(Number(input.limit) || 20, 100)
+  const tags = input.tags as string[] | undefined
+  const status = input.status as string | undefined
+  const source = input.source as string | undefined
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+  if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
+  if (status) conditions.push({ contactStatus: { equals: status } })
+  if (source) conditions.push({ source: { equals: source } })
+  if (tags && tags.length > 0) {
+    // Match contacts that have ANY of the given tags
+    conditions.push({ or: tags.map((t) => ({ tags: { contains: t } })) })
+  }
+
+  try {
+    const contacts = await payload.find({
+      collection: 'contacts',
+      where: conditions.length > 0 ? { and: conditions } : ({} as any),
+      limit,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (contacts.docs.length === 0) {
+      return 'No contacts found matching the specified criteria.'
+    }
+
+    const lines = [
+      `## Customer Segment (${contacts.totalDocs} total, showing ${contacts.docs.length})`,
+      '',
+    ]
+
+    // Group by status
+    const byStatus: Record<string, number> = {}
+    for (const c of contacts.docs as any[]) {
+      const s = c.contactStatus || 'unknown'
+      byStatus[s] = (byStatus[s] || 0) + 1
+    }
+    lines.push(`### Status Breakdown`)
+    for (const [s, count] of Object.entries(byStatus)) {
+      lines.push(`- ${s}: ${count}`)
+    }
+    lines.push('')
+
+    lines.push(`### Contacts`)
+    for (const c of contacts.docs as any[]) {
+      const tagsStr = c.tags?.length > 0 ? ` [${c.tags.join(', ')}]` : ''
+      lines.push(`- **${c.name || c.email}** (${c.contactStatus}) — source: ${c.source}${tagsStr}`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] segment_customers error:', err)
+    return `Error segmenting customers: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSendFollowUp(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const contactId = input.contactId as number
+  const subject = (input.subject as string)?.trim()
+  const message = (input.message as string)?.trim()
+
+  if (!contactId) return 'Error: contactId is required.'
+  if (!subject) return 'Error: subject is required.'
+  if (!message) return 'Error: message is required.'
+
+  try {
+    const contact = await payload.findByID({
+      collection: 'contacts',
+      id: contactId,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+
+    if (!contact) return `Error: Contact ${contactId} not found.`
+    if (!contact.email) return `Error: Contact ${contactId} has no email address.`
+
+    // Log the follow-up interaction
+    const timestamp = new Date().toISOString()
+    const existingNotes = contact.notes || ''
+    const newEntry = `[${timestamp}] follow-up: Subject: "${subject}" — ${message.slice(0, 100)}`
+    await payload.update({
+      collection: 'contacts',
+      id: contactId,
+      data: {
+        notes: existingNotes ? `${existingNotes}\n${newEntry}` : newEntry,
+        lastInvitedAt: timestamp,
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create system message to track the follow-up
+    if (ctx.tenantId) {
+      const space = await resolveSpace(payload, ctx.tenantId)
+      if (space) {
+        await payload.create({
+          collection: 'messages',
+          data: {
+            content: `Follow-up sent to ${contact.name || contact.email}: "${subject}"`,
+            space: space.id,
+            channel: 'team',
+            messageType: 'system',
+            author: ctx.userId || 1,
+            tenant: ctx.tenantId,
+            visibility: 'tenant',
+          } as any,
+          overrideAccess: true,
+        })
+      }
+    }
+
+    return `Follow-up queued for ${contact.name || contact.email} (${contact.email}):\n- **Subject:** ${subject}\n- **Message:** ${message.slice(0, 200)}${message.length > 200 ? '...' : ''}\n- **Logged at:** ${timestamp}\n\n_Note: Email delivery depends on the platform's email adapter (Resend). The interaction has been logged to the contact record._`
+  } catch (err) {
+    console.error('[LEO Tools] send_follow_up error:', err)
+    return `Error sending follow-up: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Analytics & Intelligence
+// ---------------------------------------------------------------------------
+
+async function handleAnalyzeTrends(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const dataType = input.dataType as string
+  const timeframe = input.timeframe as string
+
+  if (!dataType) return 'Error: dataType is required (orders, products, bookings, contacts).'
+  if (!timeframe) return 'Error: timeframe is required (week, month, quarter).'
+
+  // Calculate date range
+  const now = new Date()
+  const periodDays = timeframe === 'week' ? 7 : timeframe === 'month' ? 30 : 90
+  const currentStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000)
+  const previousStart = new Date(currentStart.getTime() - periodDays * 24 * 60 * 60 * 1000)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tenantFilter: any = ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}
+
+  try {
+    const collectionMap: Record<string, string> = {
+      orders: 'orders',
+      products: 'products',
+      bookings: 'bookings',
+      contacts: 'contacts',
+    }
+
+    const collection = collectionMap[dataType]
+    if (!collection) return `Error: Unknown data type "${dataType}".`
+
+    // Current period
+    const current = await payload.find({
+      collection: collection as any,
+      where: {
+        and: [
+          tenantFilter,
+          { createdAt: { greater_than_equal: currentStart.toISOString() } },
+        ].filter((c) => Object.keys(c).length > 0),
+      } as any,
+      limit: 1000,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Previous period
+    const previous = await payload.find({
+      collection: collection as any,
+      where: {
+        and: [
+          tenantFilter,
+          { createdAt: { greater_than_equal: previousStart.toISOString() } },
+          { createdAt: { less_than: currentStart.toISOString() } },
+        ].filter((c) => Object.keys(c).length > 0),
+      } as any,
+      limit: 1000,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const currentCount = current.totalDocs
+    const previousCount = previous.totalDocs
+    const growth = previousCount > 0 ? ((currentCount - previousCount) / previousCount * 100).toFixed(1) : 'N/A'
+
+    const lines = [
+      `## ${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Trends — Last ${timeframe}`,
+      '',
+      `**Current period:** ${currentCount} ${dataType}`,
+      `**Previous period:** ${previousCount} ${dataType}`,
+      `**Growth:** ${growth}%`,
+    ]
+
+    // Data-type specific metrics
+    if (dataType === 'orders') {
+      let totalCents = 0
+      for (const o of current.docs as any[]) {
+        totalCents += o.total || 0
+      }
+      lines.push(
+        '',
+        `### Revenue`,
+        `- **Total this ${timeframe}:** $${(totalCents / 100).toFixed(2)}`,
+        `- **Average order value:** $${currentCount > 0 ? ((totalCents / currentCount) / 100).toFixed(2) : '0.00'}`,
+      )
+    }
+
+    if (dataType === 'products') {
+      let totalInventory = 0
+      let lowStock = 0
+      for (const p of current.docs as any[]) {
+        totalInventory += p.inventory || 0
+        if (p.inventory !== undefined && p.lowStockThreshold && p.inventory <= p.lowStockThreshold) lowStock++
+      }
+      lines.push(
+        '',
+        `### Inventory Overview`,
+        `- **Total inventory units:** ${totalInventory}`,
+        `- **Low stock items:** ${lowStock}`,
+      )
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] analyze_trends error:', err)
+    return `Error analyzing trends: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleRecommendProducts(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const context = (input.context as string) || ''
+  const limit = Math.min(Number(input.limit) || 5, 10)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = [{ _status: { equals: 'published' } }]
+  if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
+  if (context) conditions.push({ or: [{ title: { like: context } }, { description: { like: context } }] })
+
+  try {
+    const products = await payload.find({
+      collection: 'products',
+      where: { and: conditions } as any,
+      sort: '-createdAt',
+      limit,
+      depth: 1,
+      overrideAccess: true,
+    })
+
+    if (products.docs.length === 0) {
+      return context
+        ? `No products found matching "${context}". Try a broader search or check the full catalog.`
+        : 'No published products found in the catalog.'
+    }
+
+    const lines = [`## Product Recommendations${context ? ` for "${context}"` : ''}`, '']
+    for (const p of products.docs as any[]) {
+      const price = p.price ? `$${(p.price / 100).toFixed(2)}` : 'Price TBD'
+      const stock = p.inventory !== undefined ? ` (${p.inventory} in stock)` : ''
+      lines.push(`- **${p.title}** — ${price}${stock}`)
+      if (p.description) lines.push(`  ${String(p.description).slice(0, 80)}`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] recommend_products error:', err)
+    return `Error getting recommendations: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7: Workflow & Emergency
+// ---------------------------------------------------------------------------
+
+async function handleDelegateTask(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const task = (input.task as string)?.trim()
+  if (!task) return 'Error: task description is required.'
+
+  const assigneeEmail = (input.assigneeEmail as string) || ''
+  const priority = (input.priority as string) || 'normal'
+  const deadline = (input.deadline as string) || ''
+
+  const leoUserId = await findLeoUser(payload, tenantId)
+  const space = await resolveSpace(payload, tenantId, ctx.spaceId)
+  if (!space) return 'Error: No space found to post the task.'
+
+  try {
+    const taskContent = [
+      `**Task Assignment** (Priority: ${priority.toUpperCase()})`,
+      '',
+      task,
+      assigneeEmail ? `\nAssigned to: ${assigneeEmail}` : '',
+      deadline ? `Deadline: ${deadline}` : '',
+    ].filter(Boolean).join('\n')
+
+    await payload.create({
+      collection: 'messages',
+      data: {
+        content: taskContent,
+        space: space.id,
+        channel: 'team',
+        messageType: 'system',
+        priority,
+        author: leoUserId || ctx.userId || 1,
+        tenant: tenantId,
+        visibility: 'tenant',
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Task delegated in #team channel:\n- **Task:** ${task}\n- **Assigned to:** ${assigneeEmail || 'team'}\n- **Priority:** ${priority}${deadline ? `\n- **Deadline:** ${deadline}` : ''}`
+  } catch (err) {
+    console.error('[LEO Tools] delegate_task error:', err)
+    return `Error delegating task: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleEscalateIssue(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const issue = (input.issue as string)?.trim()
+  const priority = (input.priority as string) || 'high'
+  const issueContext = (input.context as string) || ''
+
+  if (!issue) return 'Error: issue description is required.'
+
+  const leoUserId = await findLeoUser(payload, tenantId)
+  const space = await resolveSpace(payload, tenantId, ctx.spaceId)
+
+  try {
+    // Post to support channel
+    if (space) {
+      const content = [
+        `**ESCALATION** (${priority.toUpperCase()})`,
+        '',
+        issue,
+        issueContext ? `\n**Context:** ${issueContext}` : '',
+      ].filter(Boolean).join('\n')
+
+      await payload.create({
+        collection: 'messages',
+        data: {
+          content,
+          space: space.id,
+          channel: 'support',
+          messageType: 'system',
+          priority,
+          author: leoUserId || ctx.userId || 1,
+          tenant: tenantId,
+          visibility: 'tenant',
+        } as any,
+        overrideAccess: true,
+      })
+    }
+
+    // Log to application logs
+    await payload.create({
+      collection: 'application-logs' as any,
+      data: {
+        level: priority === 'urgent' ? 'error' : 'warn',
+        message: `Escalation: ${issue}`,
+        context: issueContext,
+        tenant: tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Issue escalated (${priority}):\n- **Issue:** ${issue}${issueContext ? `\n- **Context:** ${issueContext}` : ''}\n- Posted to #support channel and logged to application logs.`
+  } catch (err) {
+    console.error('[LEO Tools] escalate_issue error:', err)
+    return `Error escalating issue: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSendEmergencyAlert(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const message = (input.message as string)?.trim()
+  if (!message) return 'Error: emergency message is required.'
+
+  const priority = (input.priority as string) || 'urgent'
+  const leoUserId = await findLeoUser(payload, tenantId)
+
+  try {
+    // Get ALL spaces for this tenant
+    const spaces = await payload.find({
+      collection: 'spaces',
+      where: { tenant: { equals: tenantId } },
+      limit: 50,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    let sent = 0
+    const alertContent = `**EMERGENCY ALERT**\n\n${message}`
+
+    for (const space of spaces.docs) {
+      try {
+        await payload.create({
+          collection: 'messages',
+          data: {
+            content: alertContent,
+            space: space.id,
+            channel: 'announcements',
+            messageType: 'announcement',
+            priority: 'urgent',
+            author: leoUserId || ctx.userId || 1,
+            tenant: tenantId,
+            visibility: 'tenant',
+          } as any,
+          overrideAccess: true,
+        })
+        sent++
+      } catch {
+        // Some spaces may not have announcements channel
+      }
+    }
+
+    // Also log to application logs
+    await payload.create({
+      collection: 'application-logs' as any,
+      data: {
+        level: 'error',
+        message: `EMERGENCY ALERT: ${message}`,
+        tenant: tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Emergency alert broadcast to ${sent} space(s):\n"${message}"\n\nPriority: ${priority}. Logged to application logs.`
+  } catch (err) {
+    console.error('[LEO Tools] send_emergency_alert error:', err)
+    return `Error sending alert: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleDocumentIncident(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = (input.title as string)?.trim()
+  const details = (input.details as string)?.trim()
+  const impact = (input.impact as string)?.trim()
+  const response = (input.response as string)?.trim()
+
+  if (!title) return 'Error: title is required.'
+  if (!details) return 'Error: details are required.'
+  if (!impact) return 'Error: impact description is required.'
+  if (!response) return 'Error: response/resolution is required.'
+
+  try {
+    // Log to application logs
+    await payload.create({
+      collection: 'application-logs' as any,
+      data: {
+        level: 'warn',
+        message: `INCIDENT: ${title}`,
+        context: JSON.stringify({ details, impact, response }),
+        tenant: ctx.tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Create draft post for internal documentation
+    const postContent = [
+      { type: 'paragraph', children: [{ text: `Incident Report: ${title}`, bold: true }] },
+      { type: 'paragraph', children: [{ text: '' }] },
+      { type: 'paragraph', children: [{ text: 'What Happened', bold: true }] },
+      { type: 'paragraph', children: [{ text: details }] },
+      { type: 'paragraph', children: [{ text: '' }] },
+      { type: 'paragraph', children: [{ text: 'Impact', bold: true }] },
+      { type: 'paragraph', children: [{ text: impact }] },
+      { type: 'paragraph', children: [{ text: '' }] },
+      { type: 'paragraph', children: [{ text: 'Response & Resolution', bold: true }] },
+      { type: 'paragraph', children: [{ text: response }] },
+    ]
+
+    const post = await payload.create({
+      collection: 'posts',
+      data: {
+        title: `Incident Report: ${title}`,
+        content: { root: { type: 'root', children: postContent, direction: null, format: '', indent: 0, version: 1 } },
+        _status: 'draft',
+        ...(ctx.tenantId ? { tenant: ctx.tenantId } : {}),
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Incident documented:\n- **Title:** ${title}\n- **Application log:** created\n- **Draft post:** ID ${post.id} (status: draft)\n\nThe incident report is saved as a draft post for review before publishing.`
+  } catch (err) {
+    console.error('[LEO Tools] document_incident error:', err)
+    return `Error documenting incident: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
 }

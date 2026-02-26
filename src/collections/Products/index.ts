@@ -318,6 +318,16 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
         },
       ],
     },
+    // ─── Sprint 21: Inventory Management ─────────────────────
+    {
+      name: 'lowStockThreshold',
+      type: 'number',
+      defaultValue: 10,
+      admin: {
+        position: 'sidebar',
+        description: 'Alert when inventory drops below this number',
+      },
+    },
     simpleSlugField,
   ],
 })

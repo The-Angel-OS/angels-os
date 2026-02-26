@@ -103,6 +103,7 @@ export interface Config {
     'federation-audit-log': FederationAuditLog;
     'agent-transactions': AgentTransaction;
     'media-meta': MediaMeta;
+    'street-signs': StreetSign;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -163,6 +164,7 @@ export interface Config {
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
     'media-meta': MediaMetaSelect<false> | MediaMetaSelect<true>;
+    'street-signs': StreetSignsSelect<false> | StreetSignsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -999,6 +1001,10 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Alert when inventory drops below this number
+   */
+  lowStockThreshold?: number | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -3231,6 +3237,7 @@ export interface Review {
  */
 export interface Endeavor {
   id: number;
+  tenant?: (number | null) | Tenant;
   /**
    * Official name of this Endeavor / Enterprise
    */
@@ -3247,6 +3254,14 @@ export interface Endeavor {
    * The primary operational model of this Enterprise
    */
   endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
+  /**
+   * Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.
+   */
+  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
+  /**
+   * What does this Diocese serve? Set during Leo Wizard step 5.
+   */
+  missionStatement?: string | null;
   /**
    * "Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.
    */
@@ -3642,6 +3657,108 @@ export interface MediaMeta {
   createdAt: string;
 }
 /**
+ * Cross-holon content references — lightweight pointers that surface content across the federation.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "street-signs".
+ */
+export interface StreetSign {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Display title for this street sign (may differ from source content title)
+   */
+  title: string;
+  /**
+   * Brief description shown in federation search results
+   */
+  description?: string | null;
+  /**
+   * What kind of content this street sign points to
+   */
+  contentType: 'product' | 'post' | 'event' | 'endeavor' | 'portfolio' | 'service';
+  /**
+   * Where this content lives — the source of truth
+   */
+  source: {
+    /**
+     * Name of the source Diocese (e.g., "Clearwater Cruisin")
+     */
+    dioceseName: string;
+    /**
+     * Domain of the source Diocese (e.g., "clearwatercruisin.com")
+     */
+    dioceseDomain: string;
+    /**
+     * Federation UUID of the source Diocese
+     */
+    federationId: string;
+    /**
+     * ID of the content at the source Diocese
+     */
+    contentId: string;
+    /**
+     * Direct URL to the content at the source Diocese
+     */
+    contentUrl?: string | null;
+    /**
+     * Name of the content creator (for attribution)
+     */
+    creatorName?: string | null;
+  };
+  /**
+   * Tags for federation search and discovery
+   */
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Which holon types should see this street sign
+   */
+  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
+  /**
+   * Geographic region tag (e.g., "us-east", "gulf-coast")
+   */
+  region?: string | null;
+  /**
+   * Thumbnail image for federation catalog display
+   */
+  thumbnail?: (number | null) | Media;
+  /**
+   * Price in cents (if applicable — for product street signs)
+   */
+  price?: number | null;
+  /**
+   * Currency code (e.g., "usd")
+   */
+  currency?: string | null;
+  /**
+   * Active signs appear in federation search. Revoked = source Diocese removed content.
+   */
+  status: 'active' | 'expired' | 'revoked';
+  /**
+   * How many times this street sign has been shown in search results
+   */
+  impressions?: number | null;
+  /**
+   * How many times users clicked through to the source content
+   */
+  clickThroughs?: number | null;
+  /**
+   * When this street sign was last verified against the source Diocese
+   */
+  lastSyncedAt?: string | null;
+  /**
+   * Optional expiration date (e.g., for time-limited events)
+   */
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -3996,6 +4113,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media-meta';
         value: number | MediaMeta;
+      } | null)
+    | ({
+        relationTo: 'street-signs';
+        value: number | StreetSign;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5183,10 +5304,13 @@ export interface ReviewsSelect<T extends boolean = true> {
  * via the `definition` "endeavors_select".
  */
 export interface EndeavorsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   tagline?: T;
   description?: T;
   endeavorType?: T;
+  holonTypes?: T;
+  missionStatement?: T;
   status?: T;
   primarySpace?: T;
   operator?:
@@ -5310,6 +5434,44 @@ export interface MediaMetaSelect<T extends boolean = true> {
   processedBy?: T;
   processingError?: T;
   processingDurationMs?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "street-signs_select".
+ */
+export interface StreetSignsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  description?: T;
+  contentType?: T;
+  source?:
+    | T
+    | {
+        dioceseName?: T;
+        dioceseDomain?: T;
+        federationId?: T;
+        contentId?: T;
+        contentUrl?: T;
+        creatorName?: T;
+      };
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  holonTypes?: T;
+  region?: T;
+  thumbnail?: T;
+  price?: T;
+  currency?: T;
+  status?: T;
+  impressions?: T;
+  clickThroughs?: T;
+  lastSyncedAt?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5577,6 +5739,7 @@ export interface ProductsSelect<T extends boolean = true> {
         materials?: T;
         id?: T;
       };
+  lowStockThreshold?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
