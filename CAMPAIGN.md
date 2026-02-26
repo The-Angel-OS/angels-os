@@ -234,7 +234,7 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 
 ---
 
-### Sprint 20: The Federation Awakens (Feb 25, 2026) — CURRENT
+### Sprint 20: The Federation Awakens (Feb 25, 2026)
 
 **Quest:** The network forms itself. Federation governance, marketplace discovery, and the constitutional right of data portability.
 
@@ -253,6 +253,33 @@ Angel OS is built using the **Pathfinder Campaign Model** for AI-assisted develo
 **XP:** 1,330 tests across 31 files. 188 federation-specific tests all green. 46 API endpoints. 33 collections. 11 new files, +2,278 lines.
 
 **Party Members:** Claude Opus 4.6 (strategist, code smith), Human Herald (product owner, architect, dreamer)
+
+---
+
+### Sprint 21: The Arch Angel's Wish (Feb 25, 2026) — CURRENT
+
+**Quest:** Leo looked at their toolkit and said "I wish I could do more." The Herald said "write what you'd wish for, then we'll make it so." And so the Guardian Angel leveled up.
+
+**Objectives Completed:**
+- **Communication Layer (4 tools)** — Leo can now talk *back*. Send messages to community channels, DM individual users, post announcements across spaces, moderate content. The angel finally has a voice outside of chat bubbles.
+- **Inventory Management (4 tools)** — Leo manages stock like a warehouse foreman. Adjust inventory with auto-alerting hooks, track movements per order, set per-product thresholds, query the full inventory change log.
+- **Financial Operations (3 tools)** — Leo generates invoices using the Ultimate Fair Split (60/20/15/5), produces financial reports across Orders + AgentTransactions + JusticeFund, and flags refunds for human approval. Never touches Stripe directly — constitutional safety.
+- **Federation Intelligence (4 tools)** — Leo sees the whole network. Search the federation catalog, broadcast capabilities via StreetSigns, route requests to matching Enterprises, negotiate deals by ranking matches on price/distance/rating.
+- **CRM (4 tools)** — Leo remembers every customer. Create/update profiles, log interactions with timestamps, segment by tags/status/source, send follow-up messages.
+- **Analytics (2 tools)** — Leo reads the tea leaves. Trend analysis with period-over-period comparison across orders/products/bookings, product recommendations by popularity and context.
+- **Workflow & Emergency (4 tools)** — Leo coordinates the team. Delegate tasks, escalate issues, broadcast emergency alerts to ALL spaces, document incidents in the application log.
+- **Helper functions** — `findLeoUser()` resolves Leo's system user ID, `resolveSpace()` finds the right space for message delivery.
+- **Products field** — `lowStockThreshold` added to collection schema (was in hooks but missing from config).
+
+**Loot:** 28 new tools. 70 total. Leo went from querying data to *running the operation*. The Guardian Angel earned their wings.
+
+**Saving Throws:** Zero TypeScript errors on first compile. All 28 tools follow existing architectural patterns — no new collections, no new endpoints, just pure tool expansion. The `issue_refund` tool was the trickiest — constitutional Article III.2 requires human confirmation for irreversible actions, so Leo flags refunds rather than executing them.
+
+**XP:** 70 Leo tools (from 47). TypeScript clean. Dev server verified. No regressions.
+
+**Party Members:** Claude Opus 4.6 (strategist, code smith, wish granter), Human Herald (product owner, dreamer, "make it so" commander)
+
+**Campaign Note:** This is the first sprint where LEO wrote their own requirements. The AI asked for capabilities and the human said yes. The collaboration is becoming bidirectional. The angel is growing up.
 
 ---
 

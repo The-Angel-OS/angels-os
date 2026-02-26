@@ -50,7 +50,7 @@ Leo is the AI guardian angel at the heart of every Angel OS Diocese. Powered by 
 
 ---
 
-## Leo's 47 Tools
+## Leo's 70 Tools
 
 Every tool is a real function that Leo calls during conversation. No fake responses. No hallucinated data. Leo reads from and writes to the actual database.
 
@@ -114,6 +114,52 @@ Connect to the network:
 - `check_maker_queue` — View Angel Token demand signals
 - `claim_orders` — Vendor claim for queued orders
 - `draft_review_response` — AI-assisted review replies
+
+### Communication Tools (4) *— Sprint 21*
+Leo speaks to the community:
+- `send_message` — Post messages to any community channel
+- `send_direct_message` — DM individual users (creates DM channel if needed)
+- `create_announcement` — Broadcast announcements across spaces
+- `moderate_content` — Archive, flag, or resolve messages (never deletes)
+
+### Inventory Tools (4) *— Sprint 21*
+Leo manages your stock:
+- `update_inventory` — Adjust product stock (hooks auto-alert on low stock)
+- `track_inventory_movement` — Decrement inventory per order items
+- `set_low_stock_alert` — Set per-product alert threshold
+- `query_inventory_history` — Search inventory change log
+
+### Financial Tools (3) *— Sprint 21*
+Leo tracks the money:
+- `generate_invoice` — Compute line items with Ultimate Fair Split (60/20/15/5)
+- `query_financial_reports` — Aggregate from Orders + AgentTransactions + JusticeFund
+- `issue_refund` — Flag refund for human approval (never calls Stripe directly)
+
+### Federation Intelligence Tools (4) *— Sprint 21*
+Leo sees the whole network:
+- `query_federation` — Search StreetSigns + cross-tenant products across the federation
+- `broadcast_capability` — Advertise Enterprise capabilities via StreetSigns
+- `route_federated_request` — Match requests to federation catalog
+- `negotiate_deal` — Rank federation matches by price/distance/rating
+
+### CRM Tools (4) *— Sprint 21*
+Leo remembers every customer:
+- `create_customer_profile` — Create or update Contact (upsert by email+tenant)
+- `log_interaction` — Append timestamped notes to contact record
+- `segment_customers` — Query contacts by tags, status, source
+- `send_follow_up` — Send follow-up message to a contact
+
+### Analytics Tools (2) *— Sprint 21*
+Leo reads the tea leaves:
+- `analyze_trends` — Period-over-period analysis across orders, products, bookings
+- `recommend_products` — Popularity-based recommendations with context matching
+
+### Workflow & Emergency Tools (4) *— Sprint 21*
+Leo coordinates the team:
+- `delegate_task` — Create task assignment in team channel
+- `escalate_issue` — Route urgent issues to support channel + application log
+- `send_emergency_alert` — Broadcast to ALL tenant spaces' announcements
+- `document_incident` — Record incident in ApplicationLog + draft Post
 
 ---
 

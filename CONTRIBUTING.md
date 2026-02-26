@@ -89,23 +89,24 @@ Please include in your PR:
 
 See [ROADMAP.md](ROADMAP.md) for the complete vision.
 
-**Current:** Sprint 20 complete — Federation Launch Campaign. v0.20.0-dev.
+**Current:** Sprint 21 complete — Arch Angel Leo's Wishlist. v0.21.0-dev.
 
-**What's Built (20 sprints):**
+**What's Built (21 sprints):**
 - Multi-tenant architecture with subdomain routing, 33 Payload CMS collections
-- LEO AI Agent with 47 tools (Claude Sonnet 4), SSE streaming, vision
+- LEO AI Agent with 70 tools (Claude Sonnet 4), SSE streaming, vision
 - Full e-commerce: products, cart, orders, Stripe Direct Charges, Angel Token queue
 - Federation protocol: trust chain, governance elections, suitcase export/import, distributed mesh
 - StreetSigns marketplace, 5 holon types, constitutional governance
 - Spaces & Channels (Discord-style), LiveKit voice/video, image lightbox
 - Progressive media analysis (Claude Vision + RAG), email bridge
+- Leo Communication, Inventory, Financial, Federation, CRM, Analytics, Workflow tools (Sprint 21)
 - 1,330 tests across 31 files, 46 API endpoints
 
 **Next Sprint:**
 - `npx create-angel-enterprise` — one-command Diocese deployment
 - Leo Wizard 8-step conversational onboarding
 - Customer Angel Token UI
-- Street Signs gossip sync protocol
+- Shipping integration (EasyPost/Shippo)
 
 Check the [GitHub Issues](https://github.com/The-Angel-OS/angels-os/issues) for contribution opportunities!
 

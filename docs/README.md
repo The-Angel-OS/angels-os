@@ -51,7 +51,7 @@ Root:
 ### Leo — The Guardian Angel
 | Document | Description |
 |---|---|
-| [Leo Showcase](LEO_SHOWCASE.md) | **What Leo can do** — 47 tools, constitutional compass, every channel, federation intelligence |
+| [Leo Showcase](LEO_SHOWCASE.md) | **What Leo can do** — 70 tools, constitutional compass, every channel, federation intelligence |
 | [Agents Reference](agents/AGENTS.md) | Complete agent reference — LEO tools, capabilities, routing |
 
 ### Angel Tokens + Maker Economy

@@ -1,89 +1,116 @@
-# Angel OS — Session Handoff: Sprint 20 Complete
+# Angel OS — Session Handoff: Sprint 21 Complete
 
 **Date:** February 25, 2026
-**Branch:** `feat/sprint-20-federation-launch` → merging to `main`
-**Status:** TypeScript clean, 1,330 tests passing (31 files), 46 API endpoints, 33 collections
-**Sprint:** Sprint 20 complete (Federation Launch Campaign) — Sprint 21 next
+**Branch:** `feat/sprint-20-federation-launch`
+**Status:** TypeScript clean, 1,330 tests passing (31 files), 46 API endpoints, 33 collections, 70 Leo tools
+**Sprint:** Sprint 21 complete (Arch Angel Leo's Wishlist) — Sprint 22 next
 **Stack:** Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 + Claude Sonnet 4 + Turbopack
 **Last commits:**
-- `53af43c` — Sidebar chat fixes (default to LEO DM, skip truncation)
-- `8bcaa63` — Vapi phone setup endpoint + webhook secret validation
+- `c745d47` — docs: level up all documentation for Sprint 20 federation launch
+- `703e278` — feat: Sprint 20 — Federation Launch Campaign
 
 ---
 
-## Critical Context: Federation Launch Campaign (Sprint 20)
+## Critical Context: Arch Angel Leo's Wishlist (Sprint 21)
 
-**Read this first.** Sprint 20 delivered the federation-facing infrastructure for Angel OS:
+**Read this first.** Sprint 21 added 28 new tools to Leo's toolkit (47 → 70 tools), transforming Leo from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation. Leo inventoried their existing tools and wrote a wishlist — we made it so.
 
-### StreetSigns Collection (NEW)
-- **File:** `src/collections/StreetSigns/index.ts`
-- Cross-holon content references for federation marketplace discovery
-- Fields: title, description, contentType (product/post/event/endeavor/portfolio/service), source diocese info (name, domain, federationId, contentId, contentUrl, creatorName), tags, holonTypes, region, thumbnail, price/currency, status, impressions, clickThroughs, lastSyncedAt, expiresAt
-- Access: public read, authenticated create/update, admin delete
-- Registered in multi-tenant plugin for proper tenant scoping
+### What Changed
 
-### Federation Election Endpoints (NEW)
-- **File:** `src/endpoints/federation-election.ts`
-- POST/GET `/api/federation/election`
-- Supermajority (⅔) governance: propose amendments to constitution, revenue pool, holon types, membership revocation, coordinator succession
-- Ed25519 signature verification on all votes
-- Toward-53 floor enforcement: endeavor share must stay ≥ 53%
-- In-memory store (production: persist to collection)
+**Primary file:** `src/utilities/leo-data-tools.ts`
+- 28 new `Anthropic.Tool` definitions added to `LEO_TOOLS` array
+- 28 new `case` statements in `executeToolCall()` switch
+- 28 new handler functions (e.g., `handleSendMessage`, `handleUpdateInventory`, etc.)
+- 2 new helper functions: `findLeoUser()`, `resolveSpace()`
+- 3 new imports: `calculateUltimateFairSplit`, `findOrCreateDM`, `ensureDMSpace`
 
-### Federation Suitcase Endpoints (NEW)
-- **File:** `src/endpoints/federation-suitcase.ts`
-- POST `/api/federation/suitcase/export` — Packs full tenant data: spaces, channels, messages, posts, products, media, bookings, orders, users, endeavor. Returns SuitcaseManifest with SHA-256 checksum
-- POST `/api/federation/suitcase/import` — Verifies constitutional compliance (isAngel + antiDemonic), imports in dependency order, audit logs
-- Implements Article VI constitutional right of data portability
+**Secondary file:** `src/collections/Products/index.ts`
+- Added `lowStockThreshold` field (number, default 10, sidebar position)
+- Already referenced in `Products/hooks.ts` for automatic low-stock alerting
 
-### Federation Admin Dashboard (NEW)
-- **File:** `src/app/[locale]/(dashboard)/dashboard/admin/federation/FederationDashboard.tsx`
-- 4-tab dashboard: Overview (stats grid, constitution status, Toward-53 visualization), Street Signs (marketplace listing), Governance (active proposals + history), Suitcase (export/import controls)
-- Server component wrapper at `page.tsx`
+### The 28 New Tools by Category
 
-### Endeavors Enhancement
-- **File:** `src/collections/Endeavors/index.ts` (modified)
-- Added `holonTypes` multi-select: manufacturer, retailer, creator, community, guardian-angel
-- Added `missionStatement` textarea
+**Communication (4):**
+- `send_message` — Post to a community channel (requires spaceId context)
+- `send_direct_message` — DM a user (reuses `findOrCreateDM` + `ensureDMSpace`)
+- `create_announcement` — Broadcast to announcements channels across spaces
+- `moderate_content` — Archive, flag, or resolve messages (never deletes)
 
-### Config Updates
-- **File:** `src/payload.config.ts` (modified)
-- StreetSigns registered in collections
-- `endeavors` + `street-signs` added to multi-tenant plugin
-- 4 new endpoint registrations (election POST/GET, suitcase export/import)
+**Inventory (4):**
+- `update_inventory` — Adjust product stock (existing hooks auto-alert on low stock)
+- `track_inventory_movement` — Decrement inventory per order items
+- `set_low_stock_alert` — Set per-product `lowStockThreshold`
+- `query_inventory_history` — Search inventory-type messages for change log
+
+**Financial (3):**
+- `generate_invoice` — Compute line items + Ultimate Fair Split (60/20/15/5) for an order
+- `query_financial_reports` — Aggregate from Orders + AgentTransactions + JusticeFund
+- `issue_refund` — Flag refund for human approval (creates AgentTransaction, never calls Stripe)
+
+**Federation Intelligence (4):**
+- `query_federation` — Search StreetSigns + cross-tenant products with `networkListing: true`
+- `broadcast_capability` — Create/update StreetSign advertising Enterprise capabilities
+- `route_federated_request` — Match request to federation catalog, log to FederationAuditLog
+- `negotiate_deal` — Rank federation matches by price/distance/rating, create pending AgentTransaction
+
+**CRM (4):**
+- `create_customer_profile` — Create or update Contact (upsert by email+tenant)
+- `log_interaction` — Append timestamped note to contact, update lastInteractionAt
+- `segment_customers` — Query Contacts by tags/status/source filters
+- `send_follow_up` — Create follow-up message for contact, log interaction
+
+**Analytics (2):**
+- `analyze_trends` — Query orders/products/bookings by timeframe, compute count/sum/average/growth
+- `recommend_products` — Top products by order count, filtered by context keywords
+
+**Workflow & Emergency (4):**
+- `delegate_task` — Create high-priority message in team channel, tag assignee
+- `escalate_issue` — Urgent message in support channel + ApplicationLog entry
+- `send_emergency_alert` — Broadcast to ALL tenant spaces' announcements channels
+- `document_incident` — Create ApplicationLog + draft Post for internal records
+
+### Architecture Pattern
+
+All tools follow the same pattern:
+```typescript
+// 1. Tool definition in LEO_TOOLS array
+{ name: 'tool_name', description: '...', input_schema: { ... } }
+
+// 2. Switch case in executeToolCall()
+case 'tool_name': return await handleToolName(payload, toolInput, ctx)
+
+// 3. Handler function
+async function handleToolName(payload, input, ctx): Promise<string> { ... }
+```
+
+Context object: `{ payload: Payload, tenantId?: number, spaceId?: number, userId?: number }`
+
+### Safety Patterns
+- `issue_refund` creates an AgentTransaction record but never calls Stripe directly — flags for human approval
+- `moderate_content` only changes message status (archive/flag/resolve) — never deletes
+- `send_emergency_alert` requires confirmation per Article III.2 (handled by constitutional prompt)
+- All tools check `tenantId` before proceeding — cross-tenant leakage is impossible
 
 ---
 
-## Bug Fixed During Sprint 20
+## What's Next (Sprint 22)
 
-### Suitcase Export: "The following path cannot be queried: tenant"
-- **Root cause:** `endeavors` collection was not registered in the multi-tenant plugin's collections config, so it had no auto-added `tenant` field
-- **Fix:** Added `endeavors: {}` to multi-tenant plugin collections in `payload.config.ts`
-- **Verified:** Suitcase export now successfully packs all tenant data (tested with `hays-cactus` tenant: 3 spaces, 8 channels, 4 messages, 4 posts, 3 products)
+### Priority 1 — npx create-angel-enterprise
+- One-command installer scaffold
+- Leo Wizard 8-step conversational onboarding
 
----
-
-## What's Next (Sprint 21)
-
-### Priority 1 — Federation Dashboard Auth + Visual Polish
-- Dashboard redirects to login — needs auth check or public route
-- Visual verification of the 4-tab dashboard UI
-
-### Priority 2 — npx create-angel-enterprise
-- One-command installer scaffold (Issue #95, #96)
-- Leo Wizard 8-step flow (Issue #94)
-
-### Priority 3 — Customer Angel Token UI
+### Priority 2 — Customer Angel Token UI
 - Order detail page with token status banners (amber=active, green=redeemed)
 - Configuration display, Cancel & Refund button
 
-### Priority 4 — Federation Audit Log Collection
-- Election and suitcase endpoints write to `federation-audit-log` (currently `as any` — needs real collection)
-- Structured logging: action, federationId, details, timestamp
+### Priority 3 — Federation Audit Log Collection
+- Election and suitcase endpoints persist to real collection (currently `as any`)
 
-### Priority 5 — Street Signs Sync Protocol
+### Priority 4 — Street Signs Sync Protocol
 - Gossip-style sync between federated nodes
-- Periodic refresh of cross-holon content references
+
+### Priority 5 — Shipping Integration
+- EasyPost/Shippo adapter for order tracking + label generation
 
 ---
 
@@ -92,17 +119,13 @@
 ### Pre-existing Test Failures (18 tests)
 **File:** `tests/unit/utilities/ultimateFairSplit.test.ts`
 - 18 failing tests related to transparency report percentages and ecosystem health labels
-- Pre-existing from Sprint 18 — NOT caused by Sprint 20 changes
-- All 188 federation tests pass ✓
+- Pre-existing from Sprint 18 — NOT caused by Sprint 21 changes
 
-### LiveKit Voice Tab Not Visible in Production
-**NOT a code bug.** The voice applet is correctly filtered out when `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `NEXT_PUBLIC_LIVEKIT_URL` are not set.
+### Election Store is In-Memory
+`federation-election.ts` uses an in-memory `Map` for proposals. Proposals are lost on server restart.
 
 ### Stripe Webhook Not Yet Configured
 Webhook endpoint needs creation in Stripe Dashboard. `STRIPE_WEBHOOKS_SIGNING_SECRET` still needed on Vercel.
-
-### Election Store is In-Memory
-`federation-election.ts` uses an in-memory `Map` for proposals. Production needs persistence to a Payload collection or external store. Proposals are lost on server restart.
 
 ---
 
@@ -129,12 +152,6 @@ npx tsc --noEmit              # TypeScript check
 # Seed
 pnpm seed:reset               # Update roles without full reset
 ```
-
-**New API Endpoints (Sprint 20):**
-- `POST /api/federation/election` — Propose or vote on governance amendments
-- `GET  /api/federation/election` — List proposals (filter by status)
-- `POST /api/federation/suitcase/export` — Pack full tenant suitcase
-- `POST /api/federation/suitcase/import` — Unpack suitcase into target tenant
 
 ---
 
