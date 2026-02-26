@@ -12,13 +12,29 @@ export const Comments: CollectionConfig = {
     description: 'Comments and reviews on Posts and Products. Product comments include star ratings.',
   },
   access: {
-    create: () => true,
+    // Authenticated users can create comments; anonymous users blocked
+    create: ({ req: { user } }) => Boolean(user),
     read: ({ req: { user } }) => {
       if (user && checkRole(['super_admin', 'admin'], user)) return true
       return { isApproved: { equals: true } }
     },
     update: adminOnly,
     delete: adminOnly,
+  },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        // Sanitize: strip HTML tags from content to prevent XSS
+        if (data?.content && typeof data.content === 'string') {
+          data.content = data.content.replace(/<[^>]*>/g, '')
+        }
+        // Limit content length to prevent abuse
+        if (data?.content && data.content.length > 5000) {
+          data.content = data.content.slice(0, 5000)
+        }
+        return data
+      },
+    ],
   },
   fields: [
     {
