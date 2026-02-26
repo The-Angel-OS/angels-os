@@ -99,6 +99,7 @@ export interface Config {
     'application-logs': ApplicationLog;
     reviews: Review;
     endeavors: Endeavor;
+    connectors: Connector;
     contacts: Contact;
     'federation-audit-log': FederationAuditLog;
     'agent-transactions': AgentTransaction;
@@ -160,6 +161,7 @@ export interface Config {
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
+    connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
@@ -912,7 +914,7 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
-  layout?: (CallToActionBlock | ContentBlock | MediaBlock | CommentsBlock)[] | null;
+  layout?: (CallToActionBlock | ContentBlock | MediaBlock | CommentsBlock | CalendarBlock)[] | null;
   inventory?: number | null;
   enableVariants?: boolean | null;
   variantTypes?: (number | VariantType)[] | null;
@@ -1148,6 +1150,7 @@ export interface Page {
     | ThreeItemGridBlock
     | BannerBlock
     | FormBlock
+    | CalendarBlock
   )[];
   meta?: {
     title?: string | null;
@@ -1540,6 +1543,105 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CalendarBlock".
+ */
+export interface CalendarBlock {
+  /**
+   * Optional heading above the calendar (e.g., "Tour Dates", "Upcoming Events")
+   */
+  heading?: string | null;
+  /**
+   * Optional description text below the heading
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Where to pull events from
+   */
+  sourceType: 'manual' | 'products';
+  /**
+   * Define events manually
+   */
+  events?:
+    | {
+        /**
+         * Event title (e.g., "LIVE: Cleveland OH — Grog Shop")
+         */
+        title: string;
+        /**
+         * Event date
+         */
+        date: string;
+        /**
+         * Event time (e.g., "8:00 PM", "Doors at 7")
+         */
+        time?: string | null;
+        /**
+         * Venue name
+         */
+        venue?: string | null;
+        /**
+         * City, State (e.g., "Cleveland, OH")
+         */
+        location?: string | null;
+        /**
+         * Short description or notes
+         */
+        description?: string | null;
+        /**
+         * Link to buy tickets (external URL or product slug)
+         */
+        ticketUrl?: string | null;
+        /**
+         * Mark as sold out
+         */
+        soldOut?: boolean | null;
+        /**
+         * Highlight this event
+         */
+        featured?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Product category to pull events from (matches product slug prefix or category field)
+   */
+  productCategory?: string | null;
+  /**
+   * Maximum number of events to display
+   */
+  maxEvents?: number | null;
+  /**
+   * Default calendar view
+   */
+  defaultView?: ('list' | 'month') | null;
+  /**
+   * Show events that have already passed
+   */
+  showPastEvents?: boolean | null;
+  /**
+   * Accent color for event highlights (hex, e.g., #E94560). Falls back to tenant branding.
+   */
+  accentColor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'calendar';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "CommentsBlock".
  */
 export interface CommentsBlock {
@@ -1905,7 +2007,22 @@ export interface Channel {
   description?: string | null;
   space: number | Space;
   type?:
-    | ('general' | 'announcements' | 'support' | 'sales' | 'inventory' | 'pdf' | 'video' | 'team' | 'social' | 'dm')
+    | (
+        | 'general'
+        | 'leo'
+        | 'announcements'
+        | 'support'
+        | 'sales'
+        | 'inventory'
+        | 'pdf'
+        | 'video'
+        | 'team'
+        | 'social'
+        | 'email'
+        | 'whatsapp'
+        | 'sms'
+        | 'dm'
+      )
     | null;
   /**
    * Explicit channel members (required for DMs, optional for regular channels)
@@ -2764,6 +2881,7 @@ export interface Post {
     | BannerBlock
     | FormBlock
     | CommentsBlock
+    | CalendarBlock
   )[];
   meta?: {
     title?: string | null;
@@ -3259,7 +3377,7 @@ export interface Endeavor {
    */
   holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
   /**
-   * What does this Diocese serve? Set during Leo Wizard step 5.
+   * What does this Enterprise serve? Set during Leo Wizard step 5.
    */
   missionStatement?: string | null;
   /**
@@ -3340,6 +3458,78 @@ export interface Endeavor {
     state?: string | null;
     country?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "connectors".
+ */
+export interface Connector {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Human-readable name (e.g., "Support Email", "Sales WhatsApp")
+   */
+  name: string;
+  /**
+   * Integration type. Multiple connectors of the same type are allowed.
+   */
+  type:
+    | 'email_inbound'
+    | 'email_outbound'
+    | 'cloudflare_worker'
+    | 'stripe'
+    | 'whatsapp'
+    | 'google_chat'
+    | 'sms'
+    | 'webhook'
+    | 'livekit';
+  /**
+   * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
+   */
+  space?: (number | null) | Space;
+  /**
+   * Toggle connector on/off without deleting configuration
+   */
+  enabled?: boolean | null;
+  /**
+   * Ordering priority (higher = preferred). Used when multiple connectors match.
+   */
+  priority?: number | null;
+  /**
+   * Type-specific JSON config. Examples:
+   * • email_inbound: { "imapHost": "imap.ionos.com", "imapPort": 993, "emailAddress": "hello@...", "pollIntervalMinutes": 2 }
+   * • cloudflare_worker: { "workerName": "angel-os-image-gen", "workerUrl": "https://...", "kvNamespace": "TENANT_CACHE" }
+   * • stripe: { "accountId": "acct_xxx", "mode": "direct" }
+   * • webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
+   */
+  config?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Channel that receives messages from this connector. Each connector routes to ONE channel.
+   */
+  routingChannel?: (number | null) | Channel;
+  /**
+   * Bot/system user for this connector (e.g., LEO agent user)
+   */
+  systemUser?: (number | null) | User;
+  status?: ('active' | 'paused' | 'error' | 'provisioning') | null;
+  /**
+   * Last time this connector processed an event
+   */
+  lastActivity?: string | null;
+  /**
+   * Last error message (cleared on successful activity)
+   */
+  errorMessage?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3682,23 +3872,23 @@ export interface StreetSign {
    */
   source: {
     /**
-     * Name of the source Diocese (e.g., "Clearwater Cruisin")
+     * Name of the source Enterprise (e.g., "Clearwater Cruisin")
      */
     dioceseName: string;
     /**
-     * Domain of the source Diocese (e.g., "clearwatercruisin.com")
+     * Domain of the source Enterprise (e.g., "clearwatercruisin.com")
      */
     dioceseDomain: string;
     /**
-     * Federation UUID of the source Diocese
+     * Federation UUID of the source Enterprise
      */
     federationId: string;
     /**
-     * ID of the content at the source Diocese
+     * ID of the content at the source Enterprise
      */
     contentId: string;
     /**
-     * Direct URL to the content at the source Diocese
+     * Direct URL to the content at the source Enterprise
      */
     contentUrl?: string | null;
     /**
@@ -3736,7 +3926,7 @@ export interface StreetSign {
    */
   currency?: string | null;
   /**
-   * Active signs appear in federation search. Revoked = source Diocese removed content.
+   * Active signs appear in federation search. Revoked = source Enterprise removed content.
    */
   status: 'active' | 'expired' | 'revoked';
   /**
@@ -3748,7 +3938,7 @@ export interface StreetSign {
    */
   clickThroughs?: number | null;
   /**
-   * When this street sign was last verified against the source Diocese
+   * When this street sign was last verified against the source Enterprise
    */
   lastSyncedAt?: string | null;
   /**
@@ -4097,6 +4287,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'endeavors';
         value: number | Endeavor;
+      } | null)
+    | ({
+        relationTo: 'connectors';
+        value: number | Connector;
       } | null)
     | ({
         relationTo: 'contacts';
@@ -4856,6 +5050,7 @@ export interface PagesSelect<T extends boolean = true> {
         threeItemGrid?: T | ThreeItemGridBlockSelect<T>;
         banner?: T | BannerBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
+        calendar?: T | CalendarBlockSelect<T>;
       };
   meta?:
     | T
@@ -4990,6 +5185,36 @@ export interface FormBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CalendarBlock_select".
+ */
+export interface CalendarBlockSelect<T extends boolean = true> {
+  heading?: T;
+  description?: T;
+  sourceType?: T;
+  events?:
+    | T
+    | {
+        title?: T;
+        date?: T;
+        time?: T;
+        venue?: T;
+        location?: T;
+        description?: T;
+        ticketUrl?: T;
+        soldOut?: T;
+        featured?: T;
+        id?: T;
+      };
+  productCategory?: T;
+  maxEvents?: T;
+  defaultView?: T;
+  showPastEvents?: T;
+  accentColor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
@@ -5030,6 +5255,7 @@ export interface PostsSelect<T extends boolean = true> {
         banner?: T | BannerBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         comments?: T | CommentsBlockSelect<T>;
+        calendar?: T | CalendarBlockSelect<T>;
       };
   meta?:
     | T
@@ -5347,6 +5573,26 @@ export interface EndeavorsSelect<T extends boolean = true> {
         state?: T;
         country?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "connectors_select".
+ */
+export interface ConnectorsSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  type?: T;
+  space?: T;
+  enabled?: T;
+  priority?: T;
+  config?: T;
+  routingChannel?: T;
+  systemUser?: T;
+  status?: T;
+  lastActivity?: T;
+  errorMessage?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5707,6 +5953,7 @@ export interface ProductsSelect<T extends boolean = true> {
         content?: T | ContentBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
         comments?: T | CommentsBlockSelect<T>;
+        calendar?: T | CalendarBlockSelect<T>;
       };
   inventory?: T;
   enableVariants?: T;
