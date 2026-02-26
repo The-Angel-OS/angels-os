@@ -1145,7 +1145,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_theme_settings',
     description:
-      'Update the tenant\'s branding settings. You can change any combination of: primaryColor, secondaryColor, accentColor, backgroundColor, foregroundColor, borderColor (all hex), headingFont, bodyFont, siteName, tagline. Reads existing branding first and merges to avoid overwriting other fields. Use when users want to adjust their brand colors, fix contrast issues, or change fonts.',
+      'Update the tenant\'s branding settings. You can change any combination of: primaryColor, secondaryColor, accentColor, backgroundColor, foregroundColor, borderColor (all hex), headingFont, bodyFont, siteName, tagline, logoMediaId. Reads existing branding first and merges to avoid overwriting other fields. Use when users want to adjust their brand colors, fix contrast issues, change fonts, or set a logo. To set a logo, first upload or generate an image, then pass its Media ID as logoMediaId.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1190,6 +1190,10 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         tagline: {
           type: 'string',
           description: 'Short business tagline',
+        },
+        logoMediaId: {
+          type: 'number',
+          description: 'Media ID of the logo image to set. Use generate_image or generate_theme_aware_image first, then pass the resulting Media ID here.',
         },
       },
       required: [],
@@ -1795,6 +1799,33 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['contactId', 'subject', 'message'],
     },
   },
+  {
+    name: 'send_email',
+    description:
+      'Send an email to a specified recipient. Uses the platform\'s configured email adapter (Resend or SMTP). Always confirm with the user before sending — show them the recipient, subject, and message preview. Supports plain text and HTML content.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        to: {
+          type: 'string',
+          description: 'Recipient email address',
+        },
+        subject: {
+          type: 'string',
+          description: 'Email subject line',
+        },
+        body: {
+          type: 'string',
+          description: 'Email body content (plain text). Will be wrapped in a styled HTML template automatically.',
+        },
+        replyTo: {
+          type: 'string',
+          description: 'Optional reply-to email address. Defaults to the tenant contact email if available.',
+        },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
 
   // ── Phase 6: Analytics & Intelligence ──────────────────────────────────
   {
@@ -2122,6 +2153,8 @@ export async function executeToolCall(
         return await handleSegmentCustomers(payload, toolInput, ctx)
       case 'send_follow_up':
         return await handleSendFollowUp(payload, toolInput, ctx)
+      case 'send_email':
+        return await handleSendEmail(payload, toolInput, ctx)
       // Phase 6: Analytics & Intelligence
       case 'analyze_trends':
         return await handleAnalyzeTrends(payload, toolInput, ctx)
@@ -5520,8 +5553,22 @@ async function handleUpdateThemeSettings(
       }
     }
 
+    // Handle logo assignment via Media ID
+    if (input.logoMediaId !== undefined && input.logoMediaId !== null) {
+      const logoId = input.logoMediaId as number
+      // Verify the media exists
+      try {
+        await payload.findByID({ collection: 'media', id: logoId, depth: 0, overrideAccess: true })
+      } catch {
+        return `Error: Media ID ${logoId} not found. Please provide a valid Media ID for the logo.`
+      }
+      const oldLogo = existing.logo ? `Media #${typeof existing.logo === 'object' ? existing.logo.id : existing.logo}` : '(not set)'
+      merged.logo = logoId
+      changed.push(`- **logo:** ${oldLogo} → Media #${logoId}`)
+    }
+
     if (changed.length === 0) {
-      return 'No changes specified. Provide at least one branding field to update (e.g. primaryColor, headingFont, siteName).'
+      return 'No changes specified. Provide at least one branding field to update (e.g. primaryColor, headingFont, siteName, logoMediaId).'
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7307,6 +7354,96 @@ async function handleSendFollowUp(
   } catch (err) {
     console.error('[LEO Tools] send_follow_up error:', err)
     return `Error sending follow-up: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+async function handleSendEmail(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const to = (input.to as string)?.trim()
+  const subject = (input.subject as string)?.trim()
+  const body = (input.body as string)?.trim()
+  const replyTo = (input.replyTo as string)?.trim() || undefined
+
+  if (!to) return 'Error: recipient email address (to) is required.'
+  if (!subject) return 'Error: subject is required.'
+  if (!body) return 'Error: body is required.'
+
+  // Basic email format validation
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return `Error: "${to}" does not look like a valid email address.`
+  }
+
+  try {
+    // Resolve tenant name for branding
+    let tenantName = 'Angel OS'
+    if (ctx.tenantId) {
+      try {
+        const tenant = await payload.findByID({
+          collection: 'tenants',
+          id: ctx.tenantId,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (tenant?.name) tenantName = tenant.name as string
+      } catch {
+        // Use default
+      }
+    }
+
+    // Escape user-supplied values for safe HTML interpolation
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+    // Convert line breaks to <br> for the HTML version
+    const htmlBody = esc(body).replace(/\n/g, '<br>')
+
+    const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
+  <div style="margin-bottom: 24px;">${htmlBody}</div>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
+  <p style="font-size: 12px; color: #999; text-align: center;">Sent via ${esc(tenantName)}</p>
+</body>
+</html>`
+
+    await payload.sendEmail({
+      to,
+      subject,
+      html,
+      text: body,
+      ...(replyTo ? { replyTo } : {}),
+    } as any)
+
+    // Log the email in application-logs if available
+    if (ctx.tenantId) {
+      try {
+        await payload.create({
+          collection: 'application-logs',
+          data: {
+            level: 'info',
+            source: 'leo',
+            message: `Email sent to ${to}: "${subject}"`,
+            tenant: ctx.tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+      } catch {
+        // Logging failure is not critical
+      }
+    }
+
+    return `Email sent successfully!\n- **To:** ${to}\n- **Subject:** ${subject}\n- **Preview:** ${body.slice(0, 150)}${body.length > 150 ? '...' : ''}`
+  } catch (err) {
+    console.error('[LEO Tools] send_email error:', err)
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    if (msg.includes('No email transport') || msg.includes('sendEmail')) {
+      return 'Error: Email transport is not configured. Please set up RESEND_API_KEY or SMTP settings in your environment.'
+    }
+    return `Error sending email: ${msg}`
   }
 }
 

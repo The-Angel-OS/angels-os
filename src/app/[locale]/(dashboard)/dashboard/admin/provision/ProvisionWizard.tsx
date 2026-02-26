@@ -155,10 +155,18 @@ export function ProvisionWizard() {
           Tenant slug: {result.tenantSlug}
         </p>
         <button
-          onClick={() => router.push('/dashboard/admin')}
+          onClick={() => {
+            // If tenant has a domain, navigate there; otherwise go to dashboard
+            const domain = state.identity.domain
+            if (domain && !domain.includes('localhost')) {
+              window.location.href = `https://${domain}/dashboard`
+            } else {
+              router.push('/dashboard')
+            }
+          }}
           className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
         >
-          Go to Admin Panel
+          Go to Dashboard
         </button>
       </div>
     )

@@ -137,6 +137,34 @@ export async function provisionTenant(state: WizardState): Promise<{
       role: 'tenant_admin',
     })
 
+    // 4b. Add tenant to user's tenants array (multi-tenant plugin field)
+    const currentUser = await payload.findByID({
+      collection: 'users',
+      id: user.id,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+    const existingTenants = currentUser?.tenants || []
+    const alreadyLinked = existingTenants.some(
+      (t: any) => (typeof t.tenant === 'object' ? t.tenant?.id : t.tenant) === tenant.id,
+    )
+    if (!alreadyLinked) {
+      // Also ensure user has admin role so they can manage their endeavor
+      const currentRoles: string[] = currentUser?.roles || ['customer']
+      const updatedRoles = currentRoles.includes('admin')
+        ? currentRoles
+        : [...currentRoles, 'admin']
+      await payload.update({
+        collection: 'users',
+        id: user.id,
+        data: {
+          tenants: [...existingTenants, { tenant: tenant.id }],
+          roles: updatedRoles,
+        } as any,
+        overrideAccess: true,
+      })
+    }
+
     // 5. Link current user as space_admin
     await findOrCreateSpaceMembership(payload, req, {
       userId: user.id,

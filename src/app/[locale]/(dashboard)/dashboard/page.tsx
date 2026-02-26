@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import type { Where } from 'payload'
 import config from '@payload-config'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner } from '@/components/WelcomeBanner'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
@@ -93,6 +94,23 @@ export default async function DashboardPage({
       isAdmin = Boolean(
         isSuperAdmin || roles?.includes('admin') || roles?.includes('archangel'),
       )
+
+      // New users with no tenant memberships → redirect to endeavor creation
+      if (!isSuperAdmin) {
+        const memberships = await payload.find({
+          collection: 'tenant-memberships',
+          where: {
+            user: { equals: user.id },
+            status: { equals: 'active' },
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (memberships.totalDocs === 0) {
+          redirect(`${prefix}/dashboard/new-endeavor`)
+        }
+      }
     }
 
     // Use current tenant for header display
