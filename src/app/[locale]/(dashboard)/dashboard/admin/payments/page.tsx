@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { PaymentsAdmin } from './PaymentsAdmin'
+import { getJusticeFundGrowth, getRevenueTimeSeries } from '@/utilities/chartData'
+import { SplitDonutChart, JusticeFundChart, RevenueChart } from '@/components/charts/DashboardCharts'
 
 export default async function DashboardPaymentsPage({
   params,
@@ -98,18 +100,33 @@ export default async function DashboardPaymentsPage({
     // Transactions collection may not exist yet
   }
 
+  // Fetch chart data
+  const [jfGrowth, revData] = await Promise.all([
+    getJusticeFundGrowth(payload, 30).catch(() => []),
+    getRevenueTimeSeries(payload, 30).catch(() => []),
+  ])
+
   return (
-    <PaymentsAdmin
-      tenantId={tenantId || 0}
-      tenantName={tenant?.name || 'Unknown'}
-      stripeAccountId={stripeConnect.stripeAccountId || null}
-      onboardingComplete={stripeConnect.stripeOnboardingComplete || false}
-      chargesEnabled={stripeConnect.stripeChargesEnabled || false}
-      payoutsEnabled={stripeConnect.stripePayoutsEnabled || false}
-      connectedAt={stripeConnect.connectedAt || null}
-      justiceFundTotalCents={justiceFundTotal}
-      justiceFundTransactionCount={justiceFundCount}
-      recentTransactions={recentTransactions}
-    />
+    <div className="space-y-8">
+      <PaymentsAdmin
+        tenantId={tenantId || 0}
+        tenantName={tenant?.name || 'Unknown'}
+        stripeAccountId={stripeConnect.stripeAccountId || null}
+        onboardingComplete={stripeConnect.stripeOnboardingComplete || false}
+        chargesEnabled={stripeConnect.stripeChargesEnabled || false}
+        payoutsEnabled={stripeConnect.stripePayoutsEnabled || false}
+        connectedAt={stripeConnect.connectedAt || null}
+        justiceFundTotalCents={justiceFundTotal}
+        justiceFundTransactionCount={justiceFundCount}
+        recentTransactions={recentTransactions}
+      />
+
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <SplitDonutChart />
+        <JusticeFundChart data={jfGrowth} />
+      </div>
+      <RevenueChart data={revData} />
+    </div>
   )
 }

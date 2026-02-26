@@ -8,6 +8,18 @@ import { WelcomeBanner } from '@/components/WelcomeBanner'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
+import {
+  getRevenueTimeSeries,
+  getOrderVolume,
+  getFederationActivity,
+  getJusticeFundGrowth,
+} from '@/utilities/chartData'
+import {
+  RevenueChart,
+  OrderVolumeChart,
+  FederationActivityChart,
+  JusticeFundChart,
+} from '@/components/charts/DashboardCharts'
 
 /**
  * Dashboard Overview – Rev 2 style stat cards + quick access.
@@ -38,6 +50,12 @@ export default async function DashboardPage({
   let tenantStatus = 'active'
   let isSuperAdmin = false
   let isAdmin = false
+  // Chart data
+  let revenueData: Awaited<ReturnType<typeof getRevenueTimeSeries>> = []
+  let orderData: Awaited<ReturnType<typeof getOrderVolume>> = []
+  let federationData: Awaited<ReturnType<typeof getFederationActivity>> = []
+  let justiceFundData: Awaited<ReturnType<typeof getJusticeFundGrowth>> = []
+
   let feeStatus: {
     tier: string
     freeTransactionsUsed: number
@@ -151,6 +169,18 @@ export default async function DashboardPage({
         // Non-critical
       }
     }
+
+    // Fetch chart data in parallel (all non-critical)
+    const [revData, ordData, fedData, jfData] = await Promise.all([
+      getRevenueTimeSeries(payload, 30, tenantFilter).catch(() => []),
+      getOrderVolume(payload, 30, tenantFilter).catch(() => []),
+      isAdmin ? getFederationActivity(payload, 14).catch(() => []) : Promise.resolve([]),
+      isAdmin ? getJusticeFundGrowth(payload, 30).catch(() => []) : Promise.resolve([]),
+    ])
+    revenueData = revData
+    orderData = ordData
+    federationData = fedData
+    justiceFundData = jfData
   } catch {
     // Not authenticated or DB not ready — show defaults
   }
@@ -191,6 +221,20 @@ export default async function DashboardPage({
       {/* Bootstrap Fee Status */}
       {feeStatus && (
         <BootstrapFeeCard feeStatus={feeStatus} platformLiability={platformLiability} isSuperAdmin={isSuperAdmin} />
+      )}
+
+      {/* Charts — Revenue + Order Volume side by side */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <RevenueChart data={revenueData} />
+        <OrderVolumeChart data={orderData} />
+      </div>
+
+      {/* Admin-only charts — Federation + Justice Fund */}
+      {isAdmin && (federationData.length > 0 || justiceFundData.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <FederationActivityChart data={federationData} />
+          <JusticeFundChart data={justiceFundData} />
+        </div>
       )}
 
       {/* Quick Access – 3 primary cards like Rev 2 */}

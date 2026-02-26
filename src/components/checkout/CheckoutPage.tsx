@@ -119,6 +119,13 @@ export const CheckoutPage: React.FC = () => {
     [billingAddress, billingAddressSameAsShipping, shippingAddress],
   )
 
+  // Derive current checkout step for progress indicator
+  const checkoutStep: 'contact' | 'address' | 'payment' = paymentData?.['clientSecret']
+    ? 'payment'
+    : billingAddress
+      ? 'address'
+      : 'contact'
+
   if (!stripePromise) return null
 
   if (cartIsEmpty && isProcessingPayment) {
@@ -134,9 +141,27 @@ export const CheckoutPage: React.FC = () => {
 
   if (cartIsEmpty) {
     return (
-      <div className="prose dark:prose-invert py-12 w-full items-center">
-        <p>Your cart is empty.</p>
-        <Link href="/search">Continue shopping?</Link>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <svg
+          className="mb-4 h-16 w-16 text-muted-foreground/40"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
+          />
+        </svg>
+        <h3 className="mb-2 text-xl font-semibold">Your cart is empty</h3>
+        <p className="mb-6 text-sm text-muted-foreground">
+          Add some items to your cart to get started.
+        </p>
+        <Button asChild>
+          <Link href="/shop">Browse products</Link>
+        </Button>
       </div>
     )
   }
@@ -144,6 +169,9 @@ export const CheckoutPage: React.FC = () => {
   return (
     <div className="flex flex-col items-stretch justify-stretch my-8 md:flex-row grow gap-10 md:gap-6 lg:gap-8">
       <div className="basis-full lg:basis-2/3 flex flex-col gap-8 justify-stretch">
+        {/* Progress Steps */}
+        <CheckoutSteps currentStep={checkoutStep} />
+
         <h2 className="font-medium text-3xl">Contact</h2>
         {!user && (
           <div className=" bg-accent dark:bg-black rounded-lg p-4 w-full flex items-center">
@@ -454,6 +482,65 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Checkout Progress Steps ─────────────────────────────────────────────
+
+const STEPS = [
+  { key: 'contact', label: 'Contact', number: 1 },
+  { key: 'address', label: 'Address', number: 2 },
+  { key: 'payment', label: 'Payment', number: 3 },
+] as const
+
+function CheckoutSteps({ currentStep }: { currentStep: 'contact' | 'address' | 'payment' }) {
+  const currentIndex = STEPS.findIndex((s) => s.key === currentStep)
+
+  return (
+    <div className="flex items-center gap-2">
+      {STEPS.map((step, index) => {
+        const isCompleted = index < currentIndex
+        const isCurrent = index === currentIndex
+
+        return (
+          <React.Fragment key={step.key}>
+            {index > 0 && (
+              <div
+                className={`h-px flex-1 transition-colors ${
+                  isCompleted ? 'bg-emerald-500' : 'bg-border'
+                }`}
+              />
+            )}
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                  isCompleted
+                    ? 'bg-emerald-500 text-white'
+                    : isCurrent
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {isCompleted ? (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  step.number
+                )}
+              </span>
+              <span
+                className={`hidden text-sm font-medium sm:inline ${
+                  isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          </React.Fragment>
+        )
+      })}
     </div>
   )
 }
