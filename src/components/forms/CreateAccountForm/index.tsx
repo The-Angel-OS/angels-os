@@ -40,10 +40,12 @@ export const CreateAccountForm: React.FC = () => {
   const onSubmit = useCallback(
     async (data: FormData) => {
       setError(null)
+      setLoading(true)
 
       try {
         const response = await fetch(`${getClientSideURL()}/api/users`, {
           body: JSON.stringify(data),
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -53,29 +55,32 @@ export const CreateAccountForm: React.FC = () => {
         if (!response.ok) {
           const body = await response.json().catch(() => ({}))
           const message =
-            body?.errors?.[0]?.message || response.statusText || 'There was an error creating the account.'
+            body?.errors?.[0]?.message || body?.message || response.statusText || 'There was an error creating the account.'
           setError(message)
+          setLoading(false)
           return
         }
       } catch {
         setError('Unable to reach the server. Please check your connection and try again.')
+        setLoading(false)
         return
       }
 
-      const redirect = searchParams.get('redirect')
-
-      const timer = setTimeout(() => {
-        setLoading(true)
-      }, 1000)
-
+      // Account created — now log in
       try {
         await login(data)
-        clearTimeout(timer)
-        if (redirect) router.push(redirect)
-        else router.push(`/account?success=${encodeURIComponent('Account created successfully')}`)
+
+        // Validate redirect is same-origin (prevents open redirect)
+        const redirect = searchParams.get('redirect')
+        if (redirect && redirect.startsWith('/')) {
+          router.push(redirect)
+        } else {
+          router.push('/dashboard')
+        }
       } catch (_) {
-        clearTimeout(timer)
-        setError('There was an error with the credentials provided. Please try again.')
+        // Account was created but auto-login failed — send to login page
+        setLoading(false)
+        router.push(`/login?success=${encodeURIComponent('Account created! Please sign in.')}`)
       }
     },
     [login, router, searchParams],
@@ -84,10 +89,7 @@ export const CreateAccountForm: React.FC = () => {
   return (
     <form className="max-w-lg py-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="prose dark:prose-invert mb-6">
-        <p>
-          {`This is where new customers can signup and create a new account. To manage all users, `}
-          <Link href="/admin/collections/users">login to the admin dashboard</Link>.
-        </p>
+        <p>Create your account to get started with Angel OS.</p>
       </div>
 
       <Message error={error} />

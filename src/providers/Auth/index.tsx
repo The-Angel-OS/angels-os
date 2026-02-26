@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [status, setStatus] = useState<'loggedIn' | 'loggedOut' | undefined>()
   const create = useCallback<Create>(async (args) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/create`, {
+      const res = await fetch(`${API_URL}/api/users`, {
         body: JSON.stringify({
           email: args.email,
           password: args.password,
@@ -56,16 +56,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
       })
 
-      if (res.ok) {
-        const { data, errors } = await res.json()
-        if (errors) throw new Error(errors[0].message)
-        setUser(data?.loginUser?.user)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.errors?.[0]?.message || body?.message || 'Account creation failed.')
+      }
+
+      // Account created — now log in
+      const loginRes = await fetch(`${API_URL}/api/users/login`, {
+        body: JSON.stringify({ email: args.email, password: args.password }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+
+      if (loginRes.ok) {
+        const { user: loggedInUser } = await loginRes.json()
+        setUser(loggedInUser)
         setStatus('loggedIn')
       } else {
-        throw new Error('Invalid login')
+        // Account was created but login failed — still throw so caller knows
+        throw new Error('Account created but auto-login failed. Please sign in manually.')
       }
     } catch (e) {
-      throw new Error('An error occurred while attempting to login.')
+      throw e instanceof Error ? e : new Error('An error occurred while creating your account.')
     }
   }, [])
 
