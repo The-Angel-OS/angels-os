@@ -85,15 +85,17 @@ export const CheckoutForm: React.FC<Props> = ({
                 router.push(redirectUrl)
               }
             } catch (err) {
-              console.log({ err })
+              console.error('[CheckoutForm] confirmOrder error:', err)
               const msg = err instanceof Error ? err.message : 'Something went wrong.'
               setError(`Error while confirming order: ${msg}`)
               setIsLoading(false)
+              setProcessingPayment(false)
             }
           }
           if (stripeError?.message) {
             setError(stripeError.message)
             setIsLoading(false)
+            setProcessingPayment(false)
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'Something went wrong.'

@@ -18,6 +18,7 @@ type FormData = {
 export const ForgotPasswordForm: React.FC = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     formState: { errors },
@@ -26,24 +27,33 @@ export const ForgotPasswordForm: React.FC = () => {
   } = useForm<FormData>()
 
   const onSubmit = useCallback(async (data: FormData) => {
-    const response = await fetch(
-      `${getClientSideURL()}/api/users/forgot-password`,
-      {
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      },
-    )
+    setIsSubmitting(true)
+    setError('')
 
-    if (response.ok) {
-      setSuccess(true)
-      setError('')
-    } else {
-      setError(
-        'There was a problem while attempting to send you a password reset email. Please try again.',
+    try {
+      const response = await fetch(
+        `${getClientSideURL()}/api/users/forgot-password`,
+        {
+          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        },
       )
+
+      if (response.ok) {
+        setSuccess(true)
+        setError('')
+      } else {
+        setError(
+          'There was a problem while attempting to send you a password reset email. Please try again.',
+        )
+      }
+    } catch {
+      setError('Unable to reach the server. Please check your connection and try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }, [])
 
@@ -74,8 +84,8 @@ export const ForgotPasswordForm: React.FC = () => {
               {errors.email && <FormError message={errors.email.message} />}
             </FormItem>
 
-            <Button type="submit" variant="default">
-              Forgot Password
+            <Button disabled={isSubmitting} type="submit" variant="default">
+              {isSubmitting ? 'Sending...' : 'Forgot Password'}
             </Button>
           </form>
         </React.Fragment>

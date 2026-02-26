@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { getLocale } from 'next-intl/server'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
@@ -82,9 +83,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         .join('')
         .slice(0, 2)
         .toUpperCase()
+    } else {
+      redirect(`${prefix}/login?redirect=${encodeURIComponent(`${prefix}/dashboard`)}`)
     }
   } catch {
-    // Not authenticated
+    // Auth system unavailable — redirect to login
+    redirect(`${prefix}/login?redirect=${encodeURIComponent(`${prefix}/dashboard`)}`)
   }
 
   // Fetch all spaces the user belongs to for dashboard context

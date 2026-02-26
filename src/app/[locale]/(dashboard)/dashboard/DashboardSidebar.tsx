@@ -346,6 +346,9 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/error-logs')}>
               Error Logs
             </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/federation`} icon={<FederationIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/federation')}>
+              Federation
+            </NavLink>
           </NavSection>
         )}
       </div>
@@ -588,6 +591,9 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/error-logs')}>
             Error Logs
           </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/federation`} icon={<FederationIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/federation')}>
+            Federation
+          </NavLink>
         </NavSection>
       )}
     </div>
@@ -780,6 +786,14 @@ function AlertIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  )
+}
+
+function FederationIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
     </svg>
   )
 }

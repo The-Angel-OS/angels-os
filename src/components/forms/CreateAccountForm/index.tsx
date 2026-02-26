@@ -39,17 +39,26 @@ export const CreateAccountForm: React.FC = () => {
 
   const onSubmit = useCallback(
     async (data: FormData) => {
-      const response = await fetch(`${getClientSideURL()}/api/users`, {
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      })
+      setError(null)
 
-      if (!response.ok) {
-        const message = response.statusText || 'There was an error creating the account.'
-        setError(message)
+      try {
+        const response = await fetch(`${getClientSideURL()}/api/users`, {
+          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        })
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          const message =
+            body?.errors?.[0]?.message || response.statusText || 'There was an error creating the account.'
+          setError(message)
+          return
+        }
+      } catch {
+        setError('Unable to reach the server. Please check your connection and try again.')
         return
       }
 

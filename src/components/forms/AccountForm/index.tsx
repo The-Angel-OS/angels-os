@@ -41,29 +41,33 @@ export const AccountForm: React.FC = () => {
   const onSubmit = useCallback(
     async (data: FormData) => {
       if (user) {
-        const response = await fetch(`${getClientSideURL()}/api/users/${user.id}`, {
-          // Make sure to include cookies with fetch
-          body: JSON.stringify(data),
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'PATCH',
-        })
-
-        if (response.ok) {
-          const json = await response.json()
-          setUser(json.doc)
-          toast.success('Successfully updated account.')
-          setChangePassword(false)
-          reset({
-            name: json.doc.name,
-            email: json.doc.email,
-            password: '',
-            passwordConfirm: '',
+        try {
+          const response = await fetch(`${getClientSideURL()}/api/users/${user.id}`, {
+            // Make sure to include cookies with fetch
+            body: JSON.stringify(data),
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            method: 'PATCH',
           })
-        } else {
-          toast.error('There was a problem updating your account.')
+
+          if (response.ok) {
+            const json = await response.json()
+            setUser(json.doc)
+            toast.success('Successfully updated account.')
+            setChangePassword(false)
+            reset({
+              name: json.doc.name,
+              email: json.doc.email,
+              password: '',
+              passwordConfirm: '',
+            })
+          } else {
+            toast.error('There was a problem updating your account.')
+          }
+        } catch {
+          toast.error('Unable to reach the server. Please check your connection and try again.')
         }
       }
     },
