@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
+import { TenantInviteAcceptButton } from './TenantInviteAcceptButton'
 
 /**
  * Tenant Invitation Landing Page — /tenant-invite/[token]
@@ -141,20 +142,12 @@ export default async function TenantInviteLandingPage({
           )}
         </div>
 
-        {/* Accept form — calls the API */}
-        <form action="/api/tenant-invite/accept" method="POST">
-          <input type="hidden" name="token" value={token} />
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Accept Invitation
-          </button>
-        </form>
+        {/* Accept button — client-side fetch with JSON + redirect */}
+        <TenantInviteAcceptButton token={token} locale={locale} />
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
           You may need to{' '}
-          <Link href={`/${locale}/login`} className="text-primary hover:underline">
+          <Link href={`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/tenant-invite/${token}`)}`} className="text-primary hover:underline">
             sign in
           </Link>{' '}
           or create an account first.

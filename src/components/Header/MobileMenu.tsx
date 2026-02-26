@@ -20,9 +20,10 @@ import React, { useEffect, useState } from 'react'
 
 interface Props {
   menu: Header['navItems']
+  siteName?: string
 }
 
-export function MobileMenu({ menu }: Props) {
+export function MobileMenu({ menu, siteName }: Props) {
   const { user } = useAuth()
 
   const pathname = usePathname()
@@ -53,7 +54,7 @@ export function MobileMenu({ menu }: Props) {
 
       <SheetContent side="left" className="px-4">
         <SheetHeader className="px-0 pt-4 pb-0">
-          <SheetTitle>My Store</SheetTitle>
+          <SheetTitle>{siteName || 'Angel OS'}</SheetTitle>
 
           <SheetDescription />
         </SheetHeader>

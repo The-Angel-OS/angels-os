@@ -114,44 +114,52 @@ export function ChatProvider({
 
   // ─── Load DM channels + resolve LEO DM (sequential to prevent race) ───
   useEffect(() => {
-    if (!tenantId || !dmSpaceId || !userId) return
+    if (!tenantId || !userId) return
 
     // Load all DM channels first, then resolve LEO DM and merge.
     // This eliminates the race condition where two concurrent effects
     // could clobber each other's state updates.
+    //
+    // If dmSpaceId is not available (new account, ensureDMSpace failed server-side),
+    // we skip the DM channel list but still attempt LEO DM resolution — the
+    // find-or-create endpoint internally calls ensureDMSpace.
     const loadDMs = async () => {
       try {
         // Step 1: Load all existing DM channels (with tenant filter)
-        const res = await fetch(
-          `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&sort=-updatedAt&limit=50`,
-          { credentials: 'include' },
-        )
-        const data = res.ok ? await res.json() : null
-        const mapped: ChatChannel[] = (data?.docs || []).map((ch: any) => ({
-          id: String(ch.id),
-          name: ch.name || 'DM',
-          slug: ch.slug,
-          type: 'dm' as const,
-          spaceId: String(typeof ch.space === 'object' ? ch.space?.id : ch.space),
-          source: ch.source || 'native',
-          members: Array.isArray(ch.members)
-            ? ch.members.map((m: any) =>
-                typeof m === 'object'
-                  ? { id: String(m.id), name: m.name, email: m.email }
-                  : { id: String(m) },
-              )
-            : [],
-        }))
+        let deduped: ChatChannel[] = []
+        if (dmSpaceId) {
+          const res = await fetch(
+            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&sort=-updatedAt&limit=50`,
+            { credentials: 'include' },
+          )
+          const data = res.ok ? await res.json() : null
+          const mapped: ChatChannel[] = (data?.docs || []).map((ch: any) => ({
+            id: String(ch.id),
+            name: ch.name || 'DM',
+            slug: ch.slug,
+            type: 'dm' as const,
+            spaceId: String(typeof ch.space === 'object' ? ch.space?.id : ch.space),
+            source: ch.source || 'native',
+            members: Array.isArray(ch.members)
+              ? ch.members.map((m: any) =>
+                  typeof m === 'object'
+                    ? { id: String(m.id), name: m.name, email: m.email }
+                    : { id: String(m) },
+                )
+              : [],
+          }))
 
-        // Deduplicate by slug (keep first occurrence — most recently updated)
-        const seen = new Set<string>()
-        const deduped = mapped.filter((ch) => {
-          if (seen.has(ch.slug)) return false
-          seen.add(ch.slug)
-          return true
-        })
+          // Deduplicate by slug (keep first occurrence — most recently updated)
+          const seen = new Set<string>()
+          deduped = mapped.filter((ch) => {
+            if (seen.has(ch.slug)) return false
+            seen.add(ch.slug)
+            return true
+          })
+        }
 
         // Step 2: Resolve LEO DM (find-or-create)
+        // This works even without dmSpaceId — the endpoint internally provisions the DM space
         if (!leoResolvedRef.current) {
           leoResolvedRef.current = true
           try {
@@ -163,12 +171,17 @@ export function ChatProvider({
             })
             const leoData = leoRes.ok ? await leoRes.json() : null
             if (leoData?.channel) {
+              const leoSpaceId = dmSpaceId || String(
+                typeof leoData.channel.space === 'object'
+                  ? leoData.channel.space?.id
+                  : leoData.channel.space,
+              )
               const leoCh: ChatChannel = {
                 id: String(leoData.channel.id),
                 name: leoData.channel.name || 'LEO',
                 slug: leoData.channel.slug,
                 type: 'dm',
-                spaceId: dmSpaceId,
+                spaceId: leoSpaceId,
                 source: leoData.channel.source || 'native',
                 members: leoData.channel.members,
               }

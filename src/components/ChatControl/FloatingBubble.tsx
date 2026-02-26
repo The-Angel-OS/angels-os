@@ -22,7 +22,9 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   const chatCtx = useChatContext()
   const [resolvedSpaceId, setResolvedSpaceId] = useState(spaceId || '')
 
-  // If no spaceId prop and user is logged in, resolve from API
+  const [retryCount, setRetryCount] = useState(0)
+
+  // If no spaceId prop and user is logged in, resolve from API (with retry)
   useEffect(() => {
     if (spaceId || status !== 'loggedIn' || resolvedSpaceId) return
 
@@ -32,12 +34,20 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
         const firstSpace = data?.docs?.[0]
         if (firstSpace?.id) {
           setResolvedSpaceId(String(firstSpace.id))
+        } else if (retryCount < 2) {
+          // Spaces may not exist yet for new accounts — retry after delay
+          const timer = setTimeout(() => setRetryCount((c) => c + 1), 3000)
+          return () => clearTimeout(timer)
         }
       })
       .catch(() => {
-        // Non-critical — will fallback
+        // Retry on network failure (up to 2 retries)
+        if (retryCount < 2) {
+          const timer = setTimeout(() => setRetryCount((c) => c + 1), 3000)
+          return () => clearTimeout(timer)
+        }
       })
-  }, [spaceId, status, resolvedSpaceId])
+  }, [spaceId, status, resolvedSpaceId, retryCount])
 
   // Full chat for authenticated users
   if (status === 'loggedIn') {
@@ -46,8 +56,22 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
       ? chatCtx.leoDMChannel.spaceId
       : resolvedSpaceId
 
-    // Wait for space resolution before rendering chat
-    if (!effectiveSpaceId) return null
+    // If no space resolved yet, show a placeholder bubble that links to dashboard
+    // instead of returning null (which leaves user with no chat access)
+    if (!effectiveSpaceId) {
+      return (
+        <Link
+          href="/dashboard"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 transition-transform"
+          title="Go to Dashboard to chat with LEO"
+          aria-label="Go to Dashboard to chat with LEO"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+          </svg>
+        </Link>
+      )
+    }
 
     return (
       <ChatControl

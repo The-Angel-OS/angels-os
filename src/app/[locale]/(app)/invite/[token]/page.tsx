@@ -1,8 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers } from 'next/headers'
 import Link from 'next/link'
+import { InviteAcceptButton } from './InviteAcceptButton'
 
 /**
  * Invitation Landing Page — /invite/[token]
@@ -114,11 +114,6 @@ export default async function InviteLandingPage({
     )
   }
 
-  // Check if user is logged in
-  const headersList = await headers()
-  // In Payload, the user is on the req — but this is a server component.
-  // We'll use a client-side accept flow via the API endpoint.
-
   // Valid pending invitation — show accept UI
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -146,20 +141,12 @@ export default async function InviteLandingPage({
           )}
         </div>
 
-        {/* Accept form — calls the API */}
-        <form action={`/api/invite/accept`} method="POST">
-          <input type="hidden" name="token" value={token} />
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Accept Invitation
-          </button>
-        </form>
+        {/* Accept button — client-side fetch with JSON + redirect */}
+        <InviteAcceptButton token={token} locale={locale} />
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
           You may need to{' '}
-          <Link href={`/${locale}/login`} className="text-primary hover:underline">
+          <Link href={`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/invite/${token}`)}`} className="text-primary hover:underline">
             sign in
           </Link>{' '}
           first.

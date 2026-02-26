@@ -18,6 +18,16 @@ export interface SendTenantInvitationEmailOptions {
   message?: string
 }
 
+/** Escape user-supplied values for safe HTML interpolation */
+function esc(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function sendTenantInvitationEmail(
   opts: SendTenantInvitationEmailOptions,
 ): Promise<boolean> {
@@ -37,6 +47,13 @@ export async function sendTenantInvitationEmail(
   const roleLabel = role.replace('tenant_', '').replace('_', ' ')
   const subject = `${inviterName} invited you to join ${enterpriseName}`
 
+  // Escape all user-supplied values before HTML interpolation
+  const safeInviterName = esc(inviterName)
+  const safeEnterpriseName = esc(enterpriseName)
+  const safeRoleLabel = esc(roleLabel)
+  const safeMessage = message ? esc(message) : ''
+  const safeInviteUrl = esc(fullInviteUrl)
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -47,29 +64,29 @@ export async function sendTenantInvitationEmail(
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
         <div style="text-align: center; margin-bottom: 32px;">
           <div style="display: inline-block; background: #10B981; color: white; width: 48px; height: 48px; border-radius: 12px; line-height: 48px; font-size: 20px; font-weight: bold;">A</div>
-          <p style="margin: 8px 0 0; font-size: 14px; color: #666;">${enterpriseName}</p>
+          <p style="margin: 8px 0 0; font-size: 14px; color: #666;">${safeEnterpriseName}</p>
         </div>
 
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">You're invited!</h1>
 
         <p style="font-size: 16px; line-height: 1.5; color: #333;">
-          <strong>${inviterName}</strong> has invited you to join
-          <strong>${enterpriseName}</strong> as a <strong>${roleLabel}</strong>.
+          <strong>${safeInviterName}</strong> has invited you to join
+          <strong>${safeEnterpriseName}</strong> as a <strong>${safeRoleLabel}</strong>.
         </p>
 
         ${
-          message
+          safeMessage
             ? `
           <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 24px 0;">
             <p style="font-size: 14px; color: #666; margin: 0 0 4px;">Personal message:</p>
-            <p style="font-size: 15px; color: #333; margin: 0; font-style: italic;">"${message}"</p>
+            <p style="font-size: 15px; color: #333; margin: 0; font-style: italic;">"${safeMessage}"</p>
           </div>
         `
             : ''
         }
 
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${fullInviteUrl}"
+          <a href="${safeInviteUrl}"
              style="display: inline-block; background: #10B981; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
             Accept Invitation
           </a>

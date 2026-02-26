@@ -78,8 +78,8 @@ export function HeaderClient({ header, tenant }: Props) {
     }
     return items
   }, [navItems, user])
-  const logoUrl =
-    (tenant?.branding?.logo as Media | null)?.url ?? defaultLogoUrl
+  const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
+  const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
 
   return (
@@ -87,14 +87,14 @@ export function HeaderClient({ header, tenant }: Props) {
       <nav className="flex items-center md:items-end justify-between container pt-2">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
-            <MobileMenu menu={menu} />
+            <MobileMenu menu={menu} siteName={tenant?.branding?.siteName || tenant?.name || undefined} />
           </Suspense>
         </div>
         <div className="flex w-full items-end justify-between">
           <div className="flex w-full items-end gap-6 md:w-auto md:flex-1 min-w-0">
             <Link className="flex items-center justify-center pt-4 pb-4 flex-shrink-0" href="/">
-              {logoUrl ? (
-                <img src={logoUrl} alt="" className="h-6 w-auto object-contain" />
+              {tenantLogoUrl ? (
+                <img src={tenantLogoUrl} alt={tenant?.branding?.siteName || tenant?.name || 'Home'} className="h-6 w-auto object-contain" />
               ) : (
                 <LogoIcon className="w-6 h-auto" />
               )}
