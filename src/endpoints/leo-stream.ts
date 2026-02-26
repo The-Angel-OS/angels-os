@@ -598,6 +598,17 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       let fullText = ''
       let hadError = false
 
+      // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
+      // Sends a comment line every 15s, which SSE clients silently ignore.
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': heartbeat\n\n'))
+        } catch {
+          // Stream already closed — clean up
+          clearInterval(heartbeat)
+        }
+      }, 15_000)
+
       try {
         controller.enqueue(encoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
 
@@ -731,6 +742,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         )
       }
 
+      clearInterval(heartbeat)
       controller.close()
     },
   })

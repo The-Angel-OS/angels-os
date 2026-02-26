@@ -134,11 +134,11 @@ async function ensureChannels(
             name: template.name,
             slug: template.slug,
             description: template.description,
-            type: template.type,
+            type: template.type as string,
             space: spaceId as number,
             isDefault: template.isDefault,
             tenant: tenantId as number,
-          },
+          } as any,
           overrideAccess: true,
         })
       } catch {

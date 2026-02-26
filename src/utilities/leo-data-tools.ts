@@ -5394,6 +5394,19 @@ async function handleCheckFees(
 // Sprint 19 — Theme Management, Image Placement, Calendar, Research & Provision
 // ===========================================================================
 
+/** Compute relative luminance of a hex color (WCAG formula) */
+function hexLuminance(hex: string): number {
+  const clean = hex.replace('#', '')
+  if (clean.length !== 6) return -1
+  const r = parseInt(clean.substring(0, 2), 16) / 255
+  const g = parseInt(clean.substring(2, 4), 16) / 255
+  const b = parseInt(clean.substring(4, 6), 16) / 255
+  const lr = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4)
+  const lg = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4)
+  const lb = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4)
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+}
+
 async function handleGetThemeSettings(
   payload: Payload,
   ctx: ToolExecutorContext,

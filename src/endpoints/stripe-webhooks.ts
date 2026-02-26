@@ -115,17 +115,18 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
         await handlePaymentIntentSucceeded(payload, paymentIntent, connectedAccountId)
         break
       }
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        await handlePaymentIntentFailed(payload, paymentIntent, connectedAccountId)
+        break
+      }
       case 'account.updated': {
         await handleAccountUpdated(payload, event.data.object as Stripe.Account)
         break
       }
       case 'charge.refunded': {
-        // Refund processed on connected account — log for audit trail
         const charge = event.data.object as Stripe.Charge
-        console.log(
-          `[Stripe Webhook] Refund processed on ${connectedAccountId || 'platform'}: ` +
-          `charge ${charge.id}, amount refunded: ${charge.amount_refunded}`,
-        )
+        await handleChargeRefunded(payload, charge, connectedAccountId)
         break
       }
       default: {
@@ -228,24 +229,125 @@ async function handleAccountUpdated(
   const tenant = tenants.docs[0]
 
   // Sync account status
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (payload.update as any)({
-    collection: 'tenants',
-    id: tenant.id,
-    data: {
-      stripeConnect: {
-        stripeAccountId: account.id,
-        stripeOnboardingComplete: Boolean(account.details_submitted),
-        stripeChargesEnabled: Boolean(account.charges_enabled),
-        stripePayoutsEnabled: Boolean(account.payouts_enabled),
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'tenants',
+      id: tenant.id,
+      data: {
+        stripeConnect: {
+          stripeAccountId: account.id,
+          stripeOnboardingComplete: Boolean(account.details_submitted),
+          stripeChargesEnabled: Boolean(account.charges_enabled),
+          stripePayoutsEnabled: Boolean(account.payouts_enabled),
+        },
       },
-    },
-    overrideAccess: true,
-  })
+      overrideAccess: true,
+    })
+
+    console.log(
+      `[Stripe Webhook] Account updated: ${account.id} → ` +
+      `charges=${account.charges_enabled}, payouts=${account.payouts_enabled}, ` +
+      `details_submitted=${account.details_submitted}`,
+    )
+  } catch (err) {
+    console.error(`[Stripe Webhook] Failed to sync account ${account.id}:`, err)
+  }
+}
+
+// ─── Payment Failed Handler ──────────────────────────────────────────
+
+async function handlePaymentIntentFailed(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  paymentIntent: Stripe.PaymentIntent,
+  connectedAccountId?: string,
+) {
+  const failureMessage = paymentIntent.last_payment_error?.message || 'Unknown error'
+  const chargeModel = paymentIntent.metadata?.angelOs_chargeModel || (connectedAccountId ? 'direct' : 'platform')
+
+  console.error(
+    `[Stripe Webhook] Payment FAILED: ${paymentIntent.id} ` +
+    `(${chargeModel} charge, $${(paymentIntent.amount / 100).toFixed(2)}) — ${failureMessage}` +
+    (connectedAccountId ? ` on account ${connectedAccountId}` : ''),
+  )
+
+  // Update order status to failed if orderId exists in metadata
+  const orderId = paymentIntent.metadata?.orderId
+  if (orderId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = await (payload.findByID as any)({
+        collection: 'orders',
+        id: orderId,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      // Only update if order is still in a pending/processing state
+      const currentStatus = order?.status
+      if (currentStatus && !['paid', 'fulfilled', 'cancelled'].includes(currentStatus)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (payload.update as any)({
+          collection: 'orders',
+          id: orderId,
+          data: { status: 'cancelled' },
+          overrideAccess: true,
+        })
+        console.log(`[Stripe Webhook] Order ${orderId} marked as cancelled due to payment failure`)
+      }
+    } catch (err) {
+      console.error(`[Stripe Webhook] Failed to update order ${orderId} after payment failure:`, err)
+    }
+  }
+}
+
+// ─── Charge Refunded Handler ──────────────────────────────────────────
+
+async function handleChargeRefunded(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  charge: Stripe.Charge,
+  connectedAccountId?: string,
+) {
+  const isFullRefund = charge.refunded
+  const amountRefunded = charge.amount_refunded
 
   console.log(
-    `[Stripe Webhook] Account updated: ${account.id} → ` +
-    `charges=${account.charges_enabled}, payouts=${account.payouts_enabled}, ` +
-    `details_submitted=${account.details_submitted}`,
+    `[Stripe Webhook] Refund processed on ${connectedAccountId || 'platform'}: ` +
+    `charge ${charge.id}, amount refunded: $${(amountRefunded / 100).toFixed(2)}` +
+    (isFullRefund ? ' (FULL REFUND)' : ' (partial)'),
   )
+
+  // Find and update the related order if payment_intent metadata has orderId
+  const paymentIntentId = typeof charge.payment_intent === 'string'
+    ? charge.payment_intent
+    : charge.payment_intent?.id
+
+  if (!paymentIntentId) return
+
+  try {
+    // Look up the order via the payment intent
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stripe = getStripe()
+    const pi = connectedAccountId
+      ? await stripe.paymentIntents.retrieve(paymentIntentId, undefined, { stripeAccount: connectedAccountId })
+      : await stripe.paymentIntents.retrieve(paymentIntentId)
+
+    const orderId = pi.metadata?.orderId
+    if (orderId && isFullRefund) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (payload.update as any)({
+          collection: 'orders',
+          id: orderId,
+          data: { status: 'cancelled' },
+          overrideAccess: true,
+        })
+        console.log(`[Stripe Webhook] Order ${orderId} marked as cancelled after full refund`)
+      } catch (err) {
+        console.error(`[Stripe Webhook] Failed to update order ${orderId} after refund:`, err)
+      }
+    }
+  } catch (err) {
+    console.error(`[Stripe Webhook] Failed to process refund for charge ${charge.id}:`, err)
+  }
 }

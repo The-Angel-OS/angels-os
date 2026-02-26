@@ -68,6 +68,35 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     return Response.json({ message: `Space ${spaceId} not found` }, { status: 404 })
   }
 
+  // Verify the user has access to this space (tenant isolation + membership)
+  try {
+    const userId = (req.user as { id: number }).id
+    const membership = await req.payload.find({
+      collection: 'space-memberships',
+      where: {
+        and: [
+          { user: { equals: userId } },
+          { space: { equals: spaceId } },
+          { status: { equals: 'active' } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Allow if user has membership, or if user is an admin/super_admin
+    const roles = ((req.user as any).roles as string[]) || []
+    const isAdmin = roles.includes('super_admin') || roles.includes('admin') || roles.includes('archangel')
+
+    if (!membership.docs?.length && !isAdmin) {
+      return Response.json({ message: 'You do not have access to this space' }, { status: 403 })
+    }
+  } catch (err) {
+    console.error('[chat-send] Failed to verify space membership:', err)
+    return Response.json({ message: 'Failed to verify access' }, { status: 500 })
+  }
+
   // Create the message via local API — overrideAccess bypasses
   // the multi-tenant plugin's filterOptions validation on relationships
   try {
