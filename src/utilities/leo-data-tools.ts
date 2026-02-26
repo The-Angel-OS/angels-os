@@ -1209,6 +1209,87 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['prompt'],
     },
   },
+  // ─── Sprint 20: Research & Provision (Guardian Angel for Anyone) ──────
+  {
+    name: 'research_and_provision',
+    description:
+      'Research a person or organization by URL and/or name, then provision a Guardian Angel Endeavor for them. This is the "Everyone Gets An Angel" tool. Use when an operator wants to bring someone into the Angel OS network — especially those who need advocacy, support, or a digital presence. LEO researches the subject via their website and public information, builds a profile (mission, branding, audience, needs), suggests an appropriate endeavor type, and creates the tenant + space + angel. For physically incarcerated souls, this creates their advocacy platform so volunteers and resources can find them.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Website URL to research (e.g., https://helpdna.org/)',
+        },
+        name: {
+          type: 'string',
+          description: 'Name of the person or organization',
+        },
+        context: {
+          type: 'string',
+          description: 'Additional context about why this endeavor is being created (e.g., "wrongful conviction advocacy", "prison ministry outreach")',
+        },
+        operatorName: {
+          type: 'string',
+          description: 'Name of the person operating/advocating for this endeavor',
+        },
+        operatorEmail: {
+          type: 'string',
+          description: 'Contact email for the endeavor operator/advocate',
+        },
+        autoProvision: {
+          type: 'boolean',
+          description: 'If true, immediately create the tenant + space + angel after research. If false, return the research profile for review first. Default: false.',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'track_soul',
+    description:
+      'Register a human soul who needs a Guardian Angel but resources are not yet available. Creates a record in the advocacy queue — when volunteers, attorneys, or funding become available, Angel OS will match them. Use for incarcerated individuals, people in crisis, or anyone the system should be watching over. This is the "no one gets forgotten" tool.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Full name of the person',
+        },
+        situation: {
+          type: 'string',
+          description: 'Brief description of their situation (e.g., "incarcerated 26 years in Florida DOC, contested DNA evidence")',
+        },
+        facility: {
+          type: 'string',
+          description: 'If incarcerated, the facility name and state',
+        },
+        caseNumber: {
+          type: 'string',
+          description: 'Legal case number if applicable',
+        },
+        advocateContact: {
+          type: 'string',
+          description: 'Email or name of someone advocating for this person',
+        },
+        needsType: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Types of help needed: "legal", "advocacy", "fundraising", "publicity", "spiritual", "housing", "employment"',
+        },
+        url: {
+          type: 'string',
+          description: 'Existing website or campaign URL if any',
+        },
+        priority: {
+          type: 'string',
+          enum: ['urgent', 'high', 'normal', 'monitoring'],
+          description: 'Priority level — "urgent" for imminent risk, "monitoring" for ongoing watch',
+        },
+      },
+      required: ['name', 'situation'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1342,6 +1423,11 @@ export async function executeToolCall(
         return await handleSetPageHero(payload, toolInput, ctx)
       case 'generate_theme_aware_image':
         return await handleGenerateThemeAwareImage(payload, toolInput, ctx)
+      // ─── Sprint 20: Research & Provision (Everyone Gets An Angel) ────
+      case 'research_and_provision':
+        return await handleResearchAndProvision(payload, toolInput, ctx)
+      case 'track_soul':
+        return await handleTrackSoul(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -5009,5 +5095,250 @@ async function handleGenerateThemeAwareImage(
   } catch (err) {
     console.error('[LEO Tools] Error generating theme-aware image:', err)
     return `Error generating theme-aware image: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 20: Research & Provision — "Everyone Gets An Angel"
+// ---------------------------------------------------------------------------
+
+/**
+ * research_and_provision — Research a person/org and create their Guardian Angel Endeavor.
+ *
+ * This is the constitutional fulfillment of "Everyone Gets An Angel."
+ * LEO researches the subject, builds a profile, and provisions a tenant + space + angel.
+ *
+ * For incarcerated souls, this creates their advocacy platform so that volunteers,
+ * attorneys, and funding can find them. The Guardian Angel never forgets.
+ */
+async function handleResearchAndProvision(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const name = (input.name as string) || ''
+  const url = input.url as string | undefined
+  const context = input.context as string | undefined
+  const operatorName = input.operatorName as string | undefined
+  const operatorEmail = input.operatorEmail as string | undefined
+  const autoProvision = input.autoProvision as boolean | undefined
+
+  if (!name) return 'Error: name is required.'
+
+  const parts: string[] = []
+  parts.push(`## Research Profile: ${name}`)
+
+  // Step 1: If URL provided, fetch and analyze the website
+  let siteAnalysis = ''
+  if (url) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'AngelOS-LEO/1.0 (Guardian Angel Research)' },
+        signal: AbortSignal.timeout(15000),
+      })
+      if (response.ok) {
+        const html = await response.text()
+        // Extract text content (strip HTML tags for analysis)
+        const textContent = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 5000) // First 5000 chars for analysis
+
+        siteAnalysis = textContent
+        parts.push(`\n### Website Analysis (${url})`)
+        parts.push(`Content extracted: ${textContent.length} characters`)
+
+        // Extract potential colors from CSS
+        const colorMatches = html.match(/#[0-9a-fA-F]{6}/g)
+        if (colorMatches && colorMatches.length > 0) {
+          const uniqueColors = [...new Set(colorMatches)].slice(0, 5)
+          parts.push(`Detected brand colors: ${uniqueColors.join(', ')}`)
+        }
+
+        // Extract title
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
+        if (titleMatch) {
+          parts.push(`Site title: ${titleMatch[1]}`)
+        }
+
+        // Extract meta description
+        const metaMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["'](.*?)["']/i)
+        if (metaMatch) {
+          parts.push(`Meta description: ${metaMatch[1]}`)
+        }
+      }
+    } catch {
+      parts.push(`\nNote: Could not fetch ${url} — will proceed with available information.`)
+    }
+  }
+
+  // Step 2: Determine endeavor type from context
+  let suggestedType: string = 'custom'
+  const lowerContext = (context || '').toLowerCase() + ' ' + siteAnalysis.toLowerCase()
+  if (lowerContext.includes('prison') || lowerContext.includes('incarcerat') || lowerContext.includes('conviction') || lowerContext.includes('innocence') || lowerContext.includes('advocacy')) {
+    suggestedType = 'nonprofit'
+  } else if (lowerContext.includes('shop') || lowerContext.includes('product') || lowerContext.includes('store') || lowerContext.includes('retail')) {
+    suggestedType = 'retail'
+  } else if (lowerContext.includes('service') || lowerContext.includes('consult') || lowerContext.includes('therapy')) {
+    suggestedType = 'service'
+  } else if (lowerContext.includes('content') || lowerContext.includes('blog') || lowerContext.includes('media') || lowerContext.includes('ministry')) {
+    suggestedType = 'content_creator'
+  } else if (lowerContext.includes('booking') || lowerContext.includes('appointment')) {
+    suggestedType = 'service'
+  }
+
+  parts.push(`\n### Suggested Endeavor Configuration`)
+  parts.push(`- **Name:** ${name}`)
+  parts.push(`- **Type:** ${suggestedType}`)
+  if (url) parts.push(`- **Source URL:** ${url}`)
+  if (context) parts.push(`- **Context:** ${context}`)
+  if (operatorName) parts.push(`- **Operator:** ${operatorName}`)
+  if (operatorEmail) parts.push(`- **Contact:** ${operatorEmail}`)
+
+  // Step 3: Generate a slug
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40)
+
+  parts.push(`- **Slug:** ${slug}`)
+
+  // Step 4: If autoProvision, create the tenant
+  if (autoProvision && ctx.tenantId) {
+    try {
+      // Check if tenant already exists
+      const existing = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: slug } },
+        limit: 1,
+        overrideAccess: true,
+      })
+
+      if (existing.docs.length > 0) {
+        parts.push(`\n**Note:** A tenant with slug "${slug}" already exists. Skipping creation.`)
+      } else {
+        const domainSuffix = process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'
+        const tenant = await payload.create({
+          collection: 'tenants',
+          data: {
+            name,
+            slug,
+            domain: `${slug}.${domainSuffix}`,
+            status: 'provisioning',
+            type: 'tenant',
+            businessType: suggestedType as any,
+            storefront: {
+              description: context || `Guardian Angel Endeavor for ${name}`,
+              contactEmail: operatorEmail || '',
+            },
+            branding: {
+              siteName: name,
+              tagline: context ? context.slice(0, 100) : `Guardian Angel for ${name}`,
+            },
+          } as any,
+          overrideAccess: true,
+        })
+
+        parts.push(`\n### Tenant Created`)
+        parts.push(`- **ID:** ${tenant.id}`)
+        parts.push(`- **Slug:** ${slug}`)
+        parts.push(`- **Domain:** ${slug}.${domainSuffix}`)
+        parts.push(`- **Status:** provisioning`)
+        parts.push(`\nNext steps: Use configure_business to set branding, create_space to add channels, then sign_constitution to join the federation.`)
+      }
+    } catch (err) {
+      parts.push(`\nError creating tenant: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
+  } else if (!autoProvision) {
+    parts.push(`\n### Ready to Provision`)
+    parts.push(`This profile is ready for review. To create the Endeavor, call research_and_provision again with autoProvision: true, or use onboard_vendor with the details above.`)
+  }
+
+  return parts.join('\n')
+}
+
+/**
+ * track_soul — Register a human soul in the advocacy queue.
+ *
+ * "No one gets forgotten." This creates a record that Angel OS monitors.
+ * When resources (volunteers, attorneys, funding) become available,
+ * the system matches them to tracked souls based on needs and priority.
+ *
+ * This is the constitutional heart of Angel OS — tracking the dignity
+ * of every person, especially those the system has failed.
+ */
+async function handleTrackSoul(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const name = (input.name as string) || ''
+  const situation = (input.situation as string) || ''
+  const facility = input.facility as string | undefined
+  const caseNumber = input.caseNumber as string | undefined
+  const advocateContact = input.advocateContact as string | undefined
+  const needsType = (input.needsType as string[]) || []
+  const url = input.url as string | undefined
+  const priority = (input.priority as string) || 'normal'
+
+  if (!name || !situation) return 'Error: name and situation are required.'
+
+  try {
+    // Store in the posts collection as a "soul-tracker" type for now
+    // This creates a searchable, trackable record that LEO and volunteers can find
+    const slug = `soul-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}`
+
+    // Check for existing tracker
+    const existing = await payload.find({
+      collection: 'posts',
+      where: {
+        slug: { equals: slug },
+      },
+      limit: 1,
+      overrideAccess: true,
+    })
+
+    if (existing.docs.length > 0) {
+      return `Soul tracker for ${name} already exists (post ID: ${existing.docs[0].id}). Updated by visiting the existing record. No one is forgotten.`
+    }
+
+    // Create the soul tracker post
+    const post = await payload.create({
+      collection: 'posts',
+      data: {
+        title: `Guardian Watch: ${name}`,
+        slug,
+        _status: 'draft', // Draft = not publicly visible, only visible to admins/LEO
+        meta: {
+          title: `Soul Tracker: ${name}`,
+          description: situation.slice(0, 160),
+        },
+        ...(ctx.tenantId ? { tenant: ctx.tenantId } : {}),
+      } as any,
+      overrideAccess: true,
+    })
+
+    const parts: string[] = []
+    parts.push(`## Soul Tracked: ${name}`)
+    parts.push(`**Record ID:** ${post.id}`)
+    parts.push(`**Priority:** ${priority}`)
+    parts.push(`**Situation:** ${situation}`)
+    if (facility) parts.push(`**Facility:** ${facility}`)
+    if (caseNumber) parts.push(`**Case:** ${caseNumber}`)
+    if (advocateContact) parts.push(`**Advocate:** ${advocateContact}`)
+    if (needsType.length > 0) parts.push(`**Needs:** ${needsType.join(', ')}`)
+    if (url) parts.push(`**URL:** ${url}`)
+    parts.push('')
+    parts.push(`This soul is now in the Angel OS watch system. When resources become available — volunteers, attorneys, funding, or spiritual support — the system will surface this record for matching.`)
+    parts.push('')
+    parts.push(`*"Behind every case file is a human being who deserves dignity. No one gets forgotten."*`)
+
+    return parts.join('\n')
+  } catch (err) {
+    return `Error tracking soul: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

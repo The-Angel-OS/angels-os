@@ -395,4 +395,99 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     ],
   },
 
+  // ─── Nonprofit: HelpDNA — Wrongful Conviction Advocacy ──────
+  // Ernesto Behrens — 26 years incarcerated in Florida DOC on
+  // contested DNA evidence. helpdna.org documents the case:
+  // no matching fingerprints, palm prints, or physical description;
+  // surgery 4 days before the alleged crime; broken chain of custody.
+  // Partners: Innocence Project of Florida, Kairos Prison Ministry,
+  // The Recovery Church, forensic DNA consultant Tiffany Roy.
+  // This is exactly the kind of endeavor Angel OS was built for.
+  {
+    name: 'HelpDNA — Ernesto Behrens Innocence Project',
+    slug: 'helpdna',
+    domain: `helpdna.${DOMAIN_SUFFIX}`,
+    endeavorType: 'creator-content',
+    spaceName: 'HelpDNA Advocacy Network',
+    branding: {
+      siteName: 'HelpDNA',
+      tagline: 'Science Does Not Lie…Nor Is A Lie Science!',
+      primaryColor: '#453C73',
+      secondaryColor: '#6D5FA7',
+      accentColor: '#E2564D',
+      backgroundColor: '#F8F7FC',
+      foregroundColor: '#1C1917',
+      borderColor: '#D4D0E8',
+      headingFont: 'playfair-display',
+      bodyFont: 'lato',
+    },
+    leoPersonality:
+      'Compassionate, precise, and unwavering in pursuit of truth. I serve as the Guardian Angel for Ernesto Behrens — a man who has spent 26 years in Florida Department of Corrections for a crime he maintains he did not commit. I help visitors understand the documented evidence, connect them with advocacy resources, and coordinate support efforts. I speak clearly about DNA forensics, chain of custody protocols, and wrongful conviction law. Behind every case file is a human being who deserves dignity — that is my constitutional oath. I carry hope because the truth has a way of surfacing. Science does not lie, nor is a lie science.',
+    posts: [
+      {
+        title: 'The Case of Ernesto Behrens: 26 Years and Counting',
+        slug: 'the-case-of-ernesto-behrens',
+        excerpt:
+          'Convicted solely on DNA evidence — despite non-matching fingerprints, palm prints, and physical description. Ernesto had surgery four days before the alleged crime. His defense: the DNA was tampered with. Here is the full documented record.',
+      },
+      {
+        title: 'Understanding DNA Evidence and Its Limitations',
+        slug: 'understanding-dna-evidence',
+        excerpt:
+          'DNA evidence is powerful, but not infallible. Chain of custody breaks, contamination, and human error can lead to wrongful convictions. Learn what questions to ask when DNA is the sole basis for prosecution.',
+      },
+      {
+        title: 'How to Support a Wrongful Conviction Case',
+        slug: 'how-to-support-wrongful-conviction',
+        excerpt:
+          'From petitioning Conviction Review Units to contacting the Innocence Project, there are concrete steps anyone can take. Here is a guide for families, friends, and advocates.',
+      },
+      {
+        title: 'Partners in Justice: Our Advocacy Network',
+        slug: 'partners-in-justice',
+        excerpt:
+          'We work alongside the Innocence Project of Florida, Kairos Prison Ministry, The Recovery Church, and forensic DNA consultants. Together, we pursue the truth through every legal channel available.',
+      },
+    ],
+    products: [
+      {
+        title: 'HelpDNA Awareness T-Shirt',
+        slug: 'helpdna-awareness-tshirt',
+        description: [
+          'Show your support for DNA evidence reform and wrongful conviction awareness. Soft cotton blend tee with the HelpDNA logo and tagline.',
+          '"Science Does Not Lie…Nor Is A Lie Science!" — every shirt sparks a conversation about justice. Proceeds support legal advocacy for Ernesto Behrens.',
+        ],
+        priceInUSD: 2500,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        configuratorOptions: {
+          colors: ['Deep Purple', 'Charcoal', 'White'],
+          sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+        },
+      },
+      {
+        title: 'Case Documentation Archive — Digital Download',
+        slug: 'case-documentation-archive',
+        description: [
+          'Complete digital archive of court records, motions, affidavits, and forensic analysis documents from the Behrens case.',
+          'Organized chronologically with summaries and annotations. Essential resource for legal professionals, journalists, and advocates working on wrongful conviction cases.',
+        ],
+        priceInUSD: 0,
+        productionType: 'digital',
+        networkListing: true,
+      },
+      {
+        title: 'Justice Advocacy Donation',
+        slug: 'justice-advocacy-donation',
+        description: [
+          'Direct contribution to Ernesto Behrens\' legal defense fund. Every dollar goes toward attorney consultations, forensic re-analysis, and filing fees.',
+          '100% of donations support the active legal effort. Angel OS takes zero platform fee on donations — this is constitutional.',
+        ],
+        priceInUSD: 2500,
+        productionType: 'digital',
+        networkListing: true,
+      },
+    ],
+  },
+
 ]
