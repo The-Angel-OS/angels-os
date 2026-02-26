@@ -10,7 +10,10 @@ function getEncryptionKey(): Buffer {
   if (!secret) {
     throw new Error('ENCRYPTION_SECRET environment variable is required for token encryption')
   }
-  return crypto.scryptSync(secret, 'salt', 32)
+  // Use per-deployment salt from env var. Falls back to a fixed salt for
+  // backward compatibility with data encrypted before this change.
+  const salt = process.env.ENCRYPTION_SALT || 'angel-os-v1'
+  return crypto.scryptSync(secret, salt, 32)
 }
 
 /**
