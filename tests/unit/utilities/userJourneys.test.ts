@@ -7,7 +7,7 @@
  *
  * @see src/utilities/
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // 1. Invitation Journey
@@ -67,8 +67,9 @@ describe('Invitation Journey', () => {
 
     it('custom expiry days work', () => {
       const expiry = calculateExpiration(30)
+      // setDate is DST-aware; allow 2h tolerance for DST transitions in the window
       const thirtyDaysFromNow = Date.now() + 30 * 24 * 60 * 60 * 1000
-      expect(Math.abs(expiry.getTime() - thirtyDaysFromNow)).toBeLessThan(60000)
+      expect(Math.abs(expiry.getTime() - thirtyDaysFromNow)).toBeLessThan(7200000)
     })
   })
 
@@ -365,8 +366,14 @@ describe('Image Generation Availability', () => {
   })
 
   it('returns false when OPENROUTER_API_KEY is not set', () => {
-    const available = isImageGenerationAvailable()
-    expect(available).toBe(false)
+    const orig = process.env.OPENROUTER_API_KEY
+    delete process.env.OPENROUTER_API_KEY
+    try {
+      const available = isImageGenerationAvailable()
+      expect(available).toBe(false)
+    } finally {
+      if (orig !== undefined) process.env.OPENROUTER_API_KEY = orig
+    }
   })
 })
 

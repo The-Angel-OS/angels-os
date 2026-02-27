@@ -24,5 +24,6 @@ export default defineConfig({
     },
     // Timeout for integration tests that boot Payload
     testTimeout: 30_000,
+    hookTimeout: 60_000,
   },
 })

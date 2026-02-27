@@ -105,6 +105,8 @@ export interface Config {
     'agent-transactions': AgentTransaction;
     'media-meta': MediaMeta;
     'street-signs': StreetSign;
+    quests: Quest;
+    'quest-participations': QuestParticipation;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -167,6 +169,8 @@ export interface Config {
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
     'media-meta': MediaMetaSelect<false> | MediaMetaSelect<true>;
     'street-signs': StreetSignsSelect<false> | StreetSignsSelect<true>;
+    quests: QuestsSelect<false> | QuestsSelect<true>;
+    'quest-participations': QuestParticipationsSelect<false> | QuestParticipationsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -718,6 +722,23 @@ export interface User {
     };
   };
   roles?: ('super_admin' | 'archangel' | 'admin' | 'producer' | 'customer')[] | null;
+  /**
+   * Linked social login providers (Google, GitHub, etc.). Affects suitcase portability.
+   */
+  socialProviders?:
+    | {
+        provider: 'google' | 'github' | 'apple' | 'discord';
+        /**
+         * Unique user ID from the provider
+         */
+        providerId: string;
+        email?: string | null;
+        displayName?: string | null;
+        avatarUrl?: string | null;
+        linkedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   orders?: {
     docs?: (number | Order)[];
     hasNextPage?: boolean;
@@ -1000,6 +1021,38 @@ export interface Product {
           | number
           | boolean
           | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Revenue split participants — designer, manufacturer, licensor, etc. Percentages must sum to ≤100.
+   */
+  participants?:
+    | {
+        /**
+         * Participant role in revenue split
+         */
+        role: 'designer' | 'manufacturer' | 'licensor' | 'affiliate' | 'contributor';
+        /**
+         * User or tenant who receives this share
+         */
+        entity:
+          | {
+              relationTo: 'users';
+              value: number | User;
+            }
+          | {
+              relationTo: 'tenants';
+              value: number | Tenant;
+            };
+        /**
+         * Share of the provider portion (e.g. 60% provider split gets divided among participants)
+         */
+        percentage: number;
+        /**
+         * Human-readable label (e.g. "Sarah — Original Design")
+         */
+        label?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -3950,6 +4003,211 @@ export interface StreetSign {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quests".
+ */
+export interface Quest {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  status: 'draft' | 'posted' | 'active' | 'paused' | 'completed' | 'expired' | 'cancelled';
+  /**
+   * Freeform type — tenants define their own (e.g. "mystery-shop", "challenge", "scavenger-hunt", "field-research")
+   */
+  questType?: string | null;
+  featuredImage?: (number | null) | Media;
+  /**
+   * What participants must accomplish
+   */
+  objectives?:
+    | {
+        description: string;
+        required?: boolean | null;
+        verificationMethod?: ('photo' | 'video' | 'gps' | 'receipt' | 'manual' | 'auto') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * What participants must submit as proof
+   */
+  evidenceRequirements?:
+    | {
+        type: 'photo' | 'video' | 'document' | 'gps_checkin' | 'text_report' | 'receipt' | 'link';
+        /**
+         * What specifically to submit
+         */
+        description?: string | null;
+        required?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Compensation for quest completion
+   */
+  payout?: {
+    type?: ('fixed' | 'per_objective' | 'bounty' | 'tip') | null;
+    /**
+     * Payout amount (in minor units / cents)
+     */
+    amount?: number | null;
+    currency?: string | null;
+    paymentMethod?: ('stripe' | 'angel_token' | 'platform_credit') | null;
+  };
+  requirements?: {
+    minParticipants?: number | null;
+    /**
+     * Leave empty for unlimited
+     */
+    maxParticipants?: number | null;
+    /**
+     * If set, participants form teams of this size
+     */
+    teamSize?: number | null;
+    startsAt?: string | null;
+    expiresAt?: string | null;
+    /**
+     * Minutes to complete once accepted (0 = no limit)
+     */
+    timeLimit?: number | null;
+    /**
+     * JSON prerequisites (e.g. completed quests, minimum reputation)
+     */
+    prerequisites?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  /**
+   * Physical location requirements (optional)
+   */
+  location?: {
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    /**
+     * Geofence radius in meters
+     */
+    radius?: number | null;
+    /**
+     * Can be completed from anywhere
+     */
+    isRemote?: boolean | null;
+  };
+  postedBy?: (number | null) | User;
+  categories?: (number | Category)[] | null;
+  /**
+   * Tenant-defined custom metadata (extensible — any JSON)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  difficulty?: ('easy' | 'medium' | 'hard' | 'expert') | null;
+  /**
+   * Reputation points earned on completion
+   */
+  reputationReward?: number | null;
+  /**
+   * List on Angel OS network for cross-tenant discovery
+   */
+  networkListing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quest-participations".
+ */
+export interface QuestParticipation {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  quest: number | Quest;
+  participant: number | User;
+  status: 'accepted' | 'in_progress' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'paid' | 'abandoned';
+  /**
+   * Proof of quest completion
+   */
+  evidence?:
+    | {
+        type: 'photo' | 'video' | 'document' | 'gps_checkin' | 'text_report' | 'receipt' | 'link';
+        media?: (number | null) | Media;
+        text?: string | null;
+        url?: string | null;
+        latitude?: number | null;
+        longitude?: number | null;
+        submittedAt?: string | null;
+        /**
+         * Participant notes about this evidence
+         */
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Map of objective index → completion status { "0": true, "1": false, "2": true }
+   */
+  objectivesCompleted?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reviewedBy?: (number | null) | User;
+  reviewNotes?: string | null;
+  /**
+   * Quest poster rates the participant (1-5)
+   */
+  rating?: number | null;
+  payoutStatus?: ('pending' | 'processing' | 'paid' | 'failed') | null;
+  /**
+   * Actual payout amount in minor units / cents
+   */
+  payoutAmount?: number | null;
+  acceptedAt?: string | null;
+  startedAt?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  completedAt?: string | null;
+  /**
+   * Team identifier for group quests
+   */
+  teamId?: string | null;
+  /**
+   * Other team members (for group quests)
+   */
+  teamMembers?: (number | User)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -4313,6 +4571,14 @@ export interface PayloadLockedDocument {
         value: number | StreetSign;
       } | null)
     | ({
+        relationTo: 'quests';
+        value: number | Quest;
+      } | null)
+    | ({
+        relationTo: 'quest-participations';
+        value: number | QuestParticipation;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -4581,6 +4847,17 @@ export interface UsersSelect<T extends boolean = true> {
             };
       };
   roles?: T;
+  socialProviders?:
+    | T
+    | {
+        provider?: T;
+        providerId?: T;
+        email?: T;
+        displayName?: T;
+        avatarUrl?: T;
+        linkedAt?: T;
+        id?: T;
+      };
   orders?: T;
   cart?: T;
   addresses?: T;
@@ -5723,6 +6000,108 @@ export interface StreetSignsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quests_select".
+ */
+export interface QuestsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  description?: T;
+  status?: T;
+  questType?: T;
+  featuredImage?: T;
+  objectives?:
+    | T
+    | {
+        description?: T;
+        required?: T;
+        verificationMethod?: T;
+        id?: T;
+      };
+  evidenceRequirements?:
+    | T
+    | {
+        type?: T;
+        description?: T;
+        required?: T;
+        id?: T;
+      };
+  payout?:
+    | T
+    | {
+        type?: T;
+        amount?: T;
+        currency?: T;
+        paymentMethod?: T;
+      };
+  requirements?:
+    | T
+    | {
+        minParticipants?: T;
+        maxParticipants?: T;
+        teamSize?: T;
+        startsAt?: T;
+        expiresAt?: T;
+        timeLimit?: T;
+        prerequisites?: T;
+      };
+  location?:
+    | T
+    | {
+        address?: T;
+        latitude?: T;
+        longitude?: T;
+        radius?: T;
+        isRemote?: T;
+      };
+  postedBy?: T;
+  categories?: T;
+  metadata?: T;
+  difficulty?: T;
+  reputationReward?: T;
+  networkListing?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quest-participations_select".
+ */
+export interface QuestParticipationsSelect<T extends boolean = true> {
+  tenant?: T;
+  quest?: T;
+  participant?: T;
+  status?: T;
+  evidence?:
+    | T
+    | {
+        type?: T;
+        media?: T;
+        text?: T;
+        url?: T;
+        latitude?: T;
+        longitude?: T;
+        submittedAt?: T;
+        notes?: T;
+        id?: T;
+      };
+  objectivesCompleted?: T;
+  reviewedBy?: T;
+  reviewNotes?: T;
+  rating?: T;
+  payoutStatus?: T;
+  payoutAmount?: T;
+  acceptedAt?: T;
+  startedAt?: T;
+  submittedAt?: T;
+  reviewedAt?: T;
+  completedAt?: T;
+  teamId?: T;
+  teamMembers?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -5984,6 +6363,15 @@ export interface ProductsSelect<T extends boolean = true> {
         skill?: T;
         equipment?: T;
         materials?: T;
+        id?: T;
+      };
+  participants?:
+    | T
+    | {
+        role?: T;
+        entity?: T;
+        percentage?: T;
+        label?: T;
         id?: T;
       };
   lowStockThreshold?: T;
