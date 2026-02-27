@@ -2,7 +2,7 @@
  * Playwright Global Setup
  *
  * Runs once before ALL test projects. Seeds the dev database with:
- * - Admin user (dev-admin@angelos.local / devdev123) with roles: ['admin']
+ * - Admin user (dev-admin@spacesangels.com / devdev123) with roles: ['admin']
  * - Test tenant, spaces, channels, projects, messages
  *
  * This ensures auth.setup.ts can log in as admin on the first try,
@@ -29,7 +29,7 @@ export default async function globalSetup() {
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
     console.log(`[global-setup] Dev seed complete in ${elapsed}s`)
-    console.log('[global-setup] Admin: dev-admin@angelos.local / devdev123\n')
+    console.log('[global-setup] Admin: dev-admin@spacesangels.com / devdev123\n')
   } catch (err: unknown) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
     const message = err instanceof Error ? err.message : String(err)

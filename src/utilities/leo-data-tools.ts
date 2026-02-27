@@ -4172,7 +4172,7 @@ async function handleOnboardVendor(
       data: {
         name: businessName,
         slug,
-        domain: `${slug}.angelos.local`,
+        domain: `${slug}.${process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'}`,
         type: 'tenant',
         status: 'active',
         businessType,
@@ -4855,7 +4855,7 @@ async function handleSignConstitution(
     const signingEvent = createSigningPayload({
       enterpriseName,
       operatorName,
-      domain: process.env.NEXT_PUBLIC_SERVER_URL || `${tenantId}.angelos.local`,
+      domain: process.env.NEXT_PUBLIC_SERVER_URL || `${tenantId}.${process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'}`,
       constitutionVersion: constitution.version,
     })
 
@@ -4904,7 +4904,7 @@ async function handlePingFederation(
   const { tenantId } = ctx
 
   const enterpriseName = (input.enterpriseName as string)?.trim()
-  const domain = (input.domain as string) || `${tenantId}.angelos.local`
+  const domain = (input.domain as string) || `${tenantId}.${process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'}`
   const endeavorType = (input.endeavorType as string) || 'custom'
 
   if (!enterpriseName) return 'Error: Enterprise name is required to ping the federation.'

@@ -6,18 +6,21 @@ import type { Payload, PayloadRequest } from 'payload'
 
 export const INITIAL_USER_EMAILS = {
   admin: 'kenneth.courtney@gmail.com',
-  devAdmin: 'admin@angelos.local',
-  customer: 'customer@angelos.local',
-  vendor: 'vendor@angelos.local',
-  guardian: 'guardian@angelos.local',
+  devAdmin: 'admin@spacesangels.com',
+  customer: 'customer@spacesangels.com',
+  vendor: 'vendor@spacesangels.com',
+  guardian: 'guardian@spacesangels.com',
 } as const
 
 export const DEFAULT_TENANT_SLUG = 'default'
 export const PLATFORM_TENANT_ID = 'platform'
 
+/** Email domain for system agents/users. Routable in production. */
+const SYSTEM_EMAIL_DOMAIN = 'system.spacesangels.com'
+
 /** Email pattern for LEO system users (one per tenant). */
 export function leoSystemUserEmail(tenantSlug: string): string {
-  return `leo-${tenantSlug}@system.angelos.local`
+  return `leo-${tenantSlug}@${SYSTEM_EMAIL_DOMAIN}`
 }
 
 /** Find tenant by slug; create if not exists. Returns tenant with id. */
@@ -191,11 +194,11 @@ export async function findOrCreateSystemAgent(
   },
 ): Promise<{ id: number | string; email: string }> {
   const agentType = data.agentType ?? 'leo'
-  const email = data.email ?? `${agentType}-${data.tenantSlug}@system.angelos.local`
+  const email = data.email ?? `${agentType}-${data.tenantSlug}@${SYSTEM_EMAIL_DOMAIN}`
   
   const existing = await payload.find({
     collection: 'users',
-    where: { 
+    where: {
       and: [
         { email: { equals: email } },
         { isSystemUser: { equals: true } },
@@ -205,10 +208,40 @@ export async function findOrCreateSystemAgent(
     depth: 0,
     overrideAccess: true,
   })
-  
+
   if (existing.docs?.[0]) {
     const u = existing.docs[0] as { id: number | string; email: string }
     return { id: u.id, email: u.email }
+  }
+
+  // Migration: check for legacy @system.angelos.local email and migrate if found
+  const legacyEmail = `${agentType}-${data.tenantSlug}@system.angelos.local`
+  if (legacyEmail !== email) {
+    const legacy = await payload.find({
+      collection: 'users',
+      where: {
+        and: [
+          { email: { equals: legacyEmail } },
+          { isSystemUser: { equals: true } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (legacy.docs?.[0]) {
+      // Migrate: update email to new domain
+      const u = legacy.docs[0] as { id: number | string; email: string }
+      await payload.update({
+        collection: 'users',
+        id: u.id as number,
+        data: { email } as any,
+        req,
+        overrideAccess: true,
+      })
+      console.log(`   🔄 Migrated agent email: ${legacyEmail} → ${email}`)
+      return { id: u.id, email }
+    }
   }
   
   const angelName = data.displayName ?? agentType.toUpperCase()

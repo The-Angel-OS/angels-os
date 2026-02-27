@@ -125,11 +125,11 @@ export function ChatProvider({
     // find-or-create endpoint internally calls ensureDMSpace.
     const loadDMs = async () => {
       try {
-        // Step 1: Load all existing DM channels (with tenant filter)
+        // Step 1: Load only MY DM channels (filtered by membership + tenant)
         let deduped: ChatChannel[] = []
         if (dmSpaceId) {
           const res = await fetch(
-            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&sort=-updatedAt&limit=50`,
+            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&where[members][in]=${userId}&sort=-updatedAt&limit=50`,
             { credentials: 'include' },
           )
           const data = res.ok ? await res.json() : null

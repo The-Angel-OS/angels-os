@@ -8,7 +8,7 @@
  * Self-healing: If no admin exists, creates one via the API.
  *
  * Credential priority:
- * 1. Dev seed user (pnpm seed:dev): dev-admin@angelos.local / devdev123
+ * 1. Dev seed user (pnpm seed:dev): dev-admin@spacesangels.com / devdev123
  * 2. Env vars: PLAYWRIGHT_ADMIN_EMAIL / PLAYWRIGHT_ADMIN_PASSWORD
  * 3. Auto-created test admin: e2e-admin-{timestamp}@test.local / E2eTestAdmin123!
  */
@@ -23,7 +23,7 @@ const autoCreatePassword = 'E2eTestAdmin123!'
 // Credential sets to try in order
 const credentialSets = [
   {
-    email: 'dev-admin@angelos.local',
+    email: 'dev-admin@spacesangels.com',
     password: 'devdev123',
     label: 'dev-seed',
   },

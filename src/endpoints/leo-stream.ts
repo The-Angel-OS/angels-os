@@ -675,7 +675,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   if (resolvedSpaceId) {
     try {
       if (tenantSlug) {
-        const leoEmail = `leo-${tenantSlug}@system.angelos.local`
+        const { leoSystemUserEmail } = await import('./seed/seed-helpers.js')
+        const leoEmail = leoSystemUserEmail(tenantSlug)
         const leoUsers = await req.payload.find({
           collection: 'users',
           where: { and: [{ email: { equals: leoEmail } }, { isSystemUser: { equals: true } }] },
@@ -684,6 +685,16 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           overrideAccess: true,
         })
         leoUserId = leoUsers.docs?.[0]?.id
+        // Fallback: try legacy email pattern during migration
+        if (!leoUserId) {
+          const legacyEmail = `leo-${tenantSlug}@system.angelos.local`
+          const legacyLeo = await req.payload.find({
+            collection: 'users',
+            where: { and: [{ email: { equals: legacyEmail } }, { isSystemUser: { equals: true } }] },
+            limit: 1, depth: 0, overrideAccess: true,
+          })
+          leoUserId = legacyLeo.docs?.[0]?.id
+        }
       }
 
       const placeholder = await req.payload.create({

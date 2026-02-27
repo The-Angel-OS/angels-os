@@ -367,7 +367,8 @@ async function findOrCreateLeo(
   tenantSlug: string,
   nimue: { angelName?: string; personality?: string; domainExpertise?: string },
 ): Promise<string> {
-  const email = `leo-${tenantSlug}@system.angelos.local`
+  const { leoSystemUserEmail } = await import('./seed/seed-helpers.js')
+  const email = leoSystemUserEmail(tenantSlug)
 
   const existing = await payload.find({
     collection: 'users',
@@ -384,6 +385,19 @@ async function findOrCreateLeo(
 
   if (existing.docs?.[0]) {
     return 'exists'
+  }
+
+  // Check legacy email pattern for migration
+  const legacyEmail = `leo-${tenantSlug}@system.angelos.local`
+  if (legacyEmail !== email) {
+    const legacy = await payload.find({
+      collection: 'users',
+      where: { and: [{ email: { equals: legacyEmail } }, { isSystemUser: { equals: true } }] },
+      limit: 1, depth: 0, overrideAccess: true,
+    })
+    if (legacy.docs?.[0]) {
+      return 'exists'
+    }
   }
 
   const personality = nimue.domainExpertise

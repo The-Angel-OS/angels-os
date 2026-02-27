@@ -102,7 +102,7 @@ function simulateRouting(
 
 const leoAgent = mapToAgentContext({
   id: 1,
-  email: 'leo@system.angelos.local',
+  email: 'leo@system.spacesangels.com',
   name: 'LEO',
   agentConfig: {
     agentType: 'leo',
@@ -119,7 +119,7 @@ const leoAgent = mapToAgentContext({
 
 const supportAgent = mapToAgentContext({
   id: 2,
-  email: 'support@system.angelos.local',
+  email: 'support@system.spacesangels.com',
   name: 'Support Angel',
   agentConfig: {
     agentType: 'support',

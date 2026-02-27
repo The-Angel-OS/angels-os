@@ -75,7 +75,7 @@ async function main() {
   const devPassword = 'devdev123'
 
   const admin = await findOrCreateUser(payload, req, {
-    email: 'dev-admin@angelos.local',
+    email: 'dev-admin@spacesangels.com',
     name: 'Dev Admin',
     password: devPassword,
     roles: ['admin'],
@@ -84,7 +84,7 @@ async function main() {
   console.log(`   ✅ Admin: ${admin.email}`)
 
   const mod = await findOrCreateUser(payload, req, {
-    email: 'dev-mod@angelos.local',
+    email: 'dev-mod@spacesangels.com',
     name: 'Dev Moderator',
     password: devPassword,
     roles: ['admin'], // admin role but will be moderator in spaces
@@ -93,7 +93,7 @@ async function main() {
   console.log(`   ✅ Moderator: ${mod.email}`)
 
   const member = await findOrCreateUser(payload, req, {
-    email: 'dev-member@angelos.local',
+    email: 'dev-member@spacesangels.com',
     name: 'Dev Member',
     password: devPassword,
     roles: ['customer'],
@@ -102,7 +102,7 @@ async function main() {
   console.log(`   ✅ Member: ${member.email}`)
 
   const guest = await findOrCreateUser(payload, req, {
-    email: 'dev-guest@angelos.local',
+    email: 'dev-guest@spacesangels.com',
     name: 'Dev Guest',
     password: devPassword,
     roles: ['customer'],
@@ -473,6 +473,60 @@ async function main() {
   )
   console.log('   ✅ Welcome messages seeded')
 
+  // ─── Step 9: Clean up duplicate DM channels ────────────────────────
+  console.log('🧹 Step 9/9: Cleaning duplicate DM channels...')
+  try {
+    const allDmChannels = await payload.find({
+      collection: 'channels',
+      where: {
+        and: [
+          { type: { equals: 'dm' } },
+          { tenant: { equals: tenantId } },
+        ],
+      },
+      limit: 200,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (allDmChannels.docs.length > 0) {
+      const slugMap = new Map<string, Array<{ id: number | string }>>()
+      for (const ch of allDmChannels.docs) {
+        const slug = (ch as any).slug as string
+        if (!slugMap.has(slug)) slugMap.set(slug, [])
+        slugMap.get(slug)!.push({ id: ch.id })
+      }
+
+      let deletedCount = 0
+      for (const [slug, channels] of slugMap) {
+        if (channels.length > 1) {
+          // Keep the first (oldest), delete the rest
+          for (let i = 1; i < channels.length; i++) {
+            try {
+              await payload.delete({
+                collection: 'channels',
+                id: channels[i].id as number,
+                overrideAccess: true,
+              })
+              deletedCount++
+            } catch {
+              // Non-critical
+            }
+          }
+        }
+      }
+      console.log(
+        deletedCount > 0
+          ? `   ✅ Removed ${deletedCount} duplicate DM channel(s)`
+          : '   ✅ No duplicate DM channels found',
+      )
+    } else {
+      console.log('   ✅ No DM channels to clean up')
+    }
+  } catch (err) {
+    console.warn('   ⚠️ DM cleanup failed (non-critical):', err)
+  }
+
   // ─── Summary ──────────────────────────────────────────────────────
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   console.log('\n' + '═'.repeat(50))
@@ -485,7 +539,7 @@ async function main() {
   console.log(`   Projects:   3 sample projects`)
   console.log(`   Messages:   3 welcome messages`)
   console.log(`   Time:       ${elapsed}s`)
-  console.log(`\n   Login: dev-admin@angelos.local / devdev123`)
+  console.log(`\n   Login: dev-admin@spacesangels.com / devdev123`)
   console.log('═'.repeat(50) + '\n')
 
   process.exit(0)
