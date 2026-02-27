@@ -24,6 +24,12 @@ import type { PayloadHandler } from 'payload'
 import { verifySignature } from '@/federation/protocol'
 import { getCachedGovernance } from './federation-governance-sync'
 
+/**
+ * Allow unsigned pings only when explicitly enabled via environment variable.
+ * In production, all pings must be cryptographically signed.
+ */
+const ALLOW_UNSIGNED_PINGS = process.env.FEDERATION_ALLOW_UNSIGNED_PINGS === 'true'
+
 export const federationPingHandler: PayloadHandler = async (req) => {
   // Parse body
   let body: Record<string, unknown>
@@ -49,7 +55,10 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     )
   }
 
-  // Verify the Ed25519 signature if provided (non-fatal — development pings may lack it)
+  // ── Signature verification ────────────────────────────────────────
+  // SECURITY: Signature is REQUIRED in production to prevent registry
+  // pollution and unauthenticated federation joins. Only skip verification
+  // when FEDERATION_ALLOW_UNSIGNED_PINGS=true (local dev mode).
   let signatureValid = false
   if (
     signature &&
@@ -61,44 +70,59 @@ export const federationPingHandler: PayloadHandler = async (req) => {
       const payload = JSON.stringify({ enterpriseName, domain, endeavorType, publicKey })
       signatureValid = verifySignature(payload, signature, publicKey)
     } catch {
-      // Non-fatal — log and continue
       console.warn('[Federation Ping] Signature verification failed for:', enterpriseName)
     }
   }
 
-  // Record the ping in the Endeavors collection if a matching endeavor is found
-  try {
-    const existingEndeavors = await req.payload.find({
-      collection: 'endeavors',
-      where: {
-        and: [
-          { name: { equals: enterpriseName } },
-          ...(federationId ? [{ 'federation.federationId': { equals: federationId } }] : []),
-        ],
+  // Reject unsigned pings in production mode
+  if (!signatureValid && !ALLOW_UNSIGNED_PINGS) {
+    return Response.json(
+      {
+        success: false,
+        error: 'Ed25519 signature required. Provide signature and publicKey fields.',
+        hint: 'Use your federation key pair to sign JSON.stringify({ enterpriseName, domain, endeavorType, publicKey })',
       },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
+      { status: 401 },
+    )
+  }
 
-    if (existingEndeavors.docs.length > 0) {
-      const endeavor = existingEndeavors.docs[0]
-      await req.payload.update({
+  // ── Record the ping ───────────────────────────────────────────────
+  // Only update endeavor records for SIGNED pings to prevent registry
+  // pollution from unsigned dev-mode pings.
+  if (signatureValid) {
+    try {
+      const existingEndeavors = await req.payload.find({
         collection: 'endeavors',
-        id: endeavor.id,
-        data: {
-          federation: {
-            lastPingAt: new Date().toISOString(),
-            networkVisible: true,
-            ministryStatus: 'applicant',
-          },
-        } as any,
+        where: {
+          and: [
+            { name: { equals: enterpriseName } },
+            ...(federationId ? [{ 'federation.federationId': { equals: federationId } }] : []),
+          ],
+        },
+        limit: 1,
+        depth: 0,
         overrideAccess: true,
       })
+
+      if (existingEndeavors.docs.length > 0) {
+        const endeavor = existingEndeavors.docs[0]
+        await req.payload.update({
+          collection: 'endeavors',
+          id: endeavor.id,
+          data: {
+            federation: {
+              lastPingAt: new Date().toISOString(),
+              networkVisible: true,
+              ministryStatus: 'applicant',
+            },
+          } as any,
+          overrideAccess: true,
+        })
+      }
+    } catch (recordErr) {
+      // Non-fatal — don't fail the ping over a record error
+      console.warn('[Federation Ping] Failed to record ping:', recordErr)
     }
-  } catch (recordErr) {
-    // Non-fatal — don't fail the ping over a record error
-    console.warn('[Federation Ping] Failed to record ping:', recordErr)
   }
 
   // Issue the response
@@ -111,19 +135,21 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     'http://localhost:3000'
 
   // ── Mesh peer discovery ─────────────────────────────────────
-  // Provide new members with a list of known healthy sentinels so they
-  // can sync governance data from any node (Edenist resilience).
+  // Only provide mesh peers to signed pings — unsigned dev-mode pings
+  // don't need (and shouldn't receive) the peer list.
   let meshPeers: Array<{ domain: string; name: string }> = []
-  try {
-    const governance = getCachedGovernance()
-    if (governance?.ministries) {
-      meshPeers = governance.ministries
-        .filter((m) => m.status === 'active' && m.domain)
-        .map((m) => ({ domain: m.domain, name: m.name }))
-        .slice(0, 10) // Cap at 10 peers for initial discovery
+  if (signatureValid) {
+    try {
+      const governance = getCachedGovernance()
+      if (governance?.ministries) {
+        meshPeers = governance.ministries
+          .filter((m) => m.status === 'active' && m.domain)
+          .map((m) => ({ domain: m.domain, name: m.name }))
+          .slice(0, 10) // Cap at 10 peers for initial discovery
+      }
+    } catch {
+      // Non-fatal — new member can discover peers later via heartbeat
     }
-  } catch {
-    // Non-fatal — new member can discover peers later via heartbeat
   }
 
   return Response.json({
@@ -135,6 +161,6 @@ export const federationPingHandler: PayloadHandler = async (req) => {
     meshPeers,
     message: signatureValid
       ? `Welcome to the network, ${enterpriseName}! Your constitution signature is verified. 90-day probation begins now.`
-      : `${enterpriseName} registered in the federation network. Signature verification skipped (development mode).`,
+      : `${enterpriseName} received (unsigned dev-mode ping). No registry updates applied.`,
   })
 }

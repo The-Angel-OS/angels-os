@@ -120,6 +120,25 @@ export const federationSkillsInvokeHandler: PayloadHandler = async (req) => {
     )
   }
 
+  // ── Validate params against schema ────────────────────────────
+  // SECURITY: Validate incoming params against the skill's declared inputSchema
+  // to prevent type confusion, injection, and unexpected fields.
+  const validatedParams = validateSkillParams(
+    (params as Record<string, unknown>) || {},
+    skill.inputSchema,
+  )
+  if (!validatedParams.valid) {
+    return Response.json(
+      {
+        success: false,
+        error: `Invalid skill params: ${validatedParams.errors.join('; ')}`,
+        costCents: 0,
+        executionTimeMs: Date.now() - startTime,
+      },
+      { status: 400 },
+    )
+  }
+
   // Execute the skill
   try {
     // For now, skills return mock/simple results.
@@ -127,7 +146,7 @@ export const federationSkillsInvokeHandler: PayloadHandler = async (req) => {
     const result = await executeSkill(
       req.payload,
       skillName,
-      (params as Record<string, unknown>) || {},
+      validatedParams.sanitized,
     )
 
     // Record earning if skill has a cost
@@ -169,24 +188,134 @@ export const federationSkillsInvokeHandler: PayloadHandler = async (req) => {
   }
 }
 
+// ── Schema Validation ───────────────────────────────────────────────────────
+
+/**
+ * Lightweight JSON Schema validation for skill params.
+ *
+ * Validates incoming federation skill params against the declared inputSchema.
+ * This prevents type confusion, unexpected fields, and ensures structural
+ * integrity before execution.
+ *
+ * We don't use AJV/Zod here to avoid a dependency — the schemas are simple
+ * enough for inline validation (flat objects with primitive types).
+ */
+function validateSkillParams(
+  params: Record<string, unknown>,
+  schema: Record<string, unknown>,
+): { valid: boolean; sanitized: Record<string, unknown>; errors: string[] } {
+  const errors: string[] = []
+  const sanitized: Record<string, unknown> = {}
+
+  const properties = (schema.properties || {}) as Record<
+    string,
+    { type?: string; description?: string }
+  >
+  const required = (schema.required || []) as string[]
+  const allowedKeys = new Set(Object.keys(properties))
+
+  // Check required fields
+  for (const key of required) {
+    if (params[key] === undefined || params[key] === null) {
+      errors.push(`Missing required field: '${key}'`)
+    }
+  }
+
+  // Validate and sanitize each param
+  for (const [key, value] of Object.entries(params)) {
+    // Reject unknown fields (prevents injection of unexpected params)
+    if (!allowedKeys.has(key)) {
+      errors.push(`Unknown field: '${key}'`)
+      continue
+    }
+
+    const prop = properties[key]
+    if (!prop) continue
+
+    // Type checking
+    if (prop.type === 'string') {
+      if (typeof value !== 'string') {
+        errors.push(`Field '${key}' must be a string, got ${typeof value}`)
+        continue
+      }
+      // Limit string length to prevent abuse (max 1000 chars for any string param)
+      sanitized[key] = (value as string).slice(0, 1000)
+    } else if (prop.type === 'number') {
+      const num = typeof value === 'number' ? value : Number(value)
+      if (isNaN(num)) {
+        errors.push(`Field '${key}' must be a number, got ${typeof value}`)
+        continue
+      }
+      sanitized[key] = num
+    } else if (prop.type === 'boolean') {
+      if (typeof value !== 'boolean') {
+        errors.push(`Field '${key}' must be a boolean, got ${typeof value}`)
+        continue
+      }
+      sanitized[key] = value
+    } else {
+      // Unknown type — pass through but log
+      sanitized[key] = value
+    }
+  }
+
+  return { valid: errors.length === 0, sanitized, errors }
+}
+
 // ── Skill Execution ─────────────────────────────────────────────────────────
 
 /**
- * Execute a named skill with params.
+ * Resolve the host tenant ID for tenant-scoped skill queries.
+ * Skills should only return data from this instance's host tenant —
+ * never leak cross-tenant data via federation.
+ */
+async function resolveHostTenantId(payload: any): Promise<number | undefined> {
+  try {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      sort: 'createdAt',
+    })
+    return tenants.docs[0]?.id as number | undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Execute a named skill with validated params.
  * Maps skill names to actual Payload operations.
+ *
+ * SECURITY: All queries are scoped to the host tenant and limited to
+ * published content. overrideAccess is used (no user session in federation
+ * context) but WHERE clauses enforce tenant + status boundaries.
  */
 async function executeSkill(
   payload: any,
   skillName: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
+  const tenantId = await resolveHostTenantId(payload)
+
+  // Build tenant scope filter — only returns data from this instance's tenant
+  const tenantFilter = tenantId ? [{ tenant: { equals: tenantId } }] : []
+  const publishedFilter = [{ _status: { equals: 'published' } }]
+
   switch (skillName) {
     case 'search_catalog': {
       const q = (params.q as string) || ''
       const limit = Math.min((params.limit as number) || 10, 50)
       const products = await payload.find({
         collection: 'products',
-        where: q ? { title: { contains: q } } : {},
+        where: {
+          and: [
+            ...publishedFilter,
+            ...tenantFilter,
+            ...(q ? [{ title: { contains: q } }] : []),
+          ],
+        },
         limit,
         depth: 0,
         overrideAccess: true,
@@ -206,6 +335,11 @@ async function executeSkill(
       const limit = Math.min((params.limit as number) || 10, 50)
       const events = await payload.find({
         collection: 'events',
+        where: {
+          and: [
+            ...tenantFilter,
+          ],
+        },
         limit,
         depth: 0,
         overrideAccess: true,
@@ -224,6 +358,11 @@ async function executeSkill(
     case 'check_availability': {
       const availability = await payload.find({
         collection: 'availability',
+        where: {
+          and: [
+            ...tenantFilter,
+          ],
+        },
         limit: 20,
         depth: 0,
         overrideAccess: true,

@@ -16,17 +16,23 @@
  * @see src/utilities/federationEngine.ts — mesh tolerance types and functions
  */
 
-import type { PayloadHandler } from 'payload'
+import type { PayloadHandler, Payload } from 'payload'
 import { validateGovernanceSync, type GovernanceData } from '@/utilities/federationEngine'
 import { getActiveConstitution } from '@/federation/constitution'
 
 /**
- * In-memory governance cache. In production this would be persisted to a
- * dedicated Payload collection (federation-governance), but for the initial
- * implementation we keep it in memory with heartbeat-cron responsible for
- * periodic persistence.
+ * Governance cache — in-memory for fast reads, persisted to the tenants
+ * collection for crash recovery and cross-instance consistency.
+ *
+ * Flow:
+ *   1. On first read/write, load from DB into memory (lazy hydration)
+ *   2. Every accepted update writes through to both memory AND DB
+ *   3. On process restart, the cache is hydrated from DB on first access
+ *
+ * Persistence key: tenants[0].setup.governanceData (JSON field)
  */
 let governanceCache: GovernanceData | null = null
+let cacheHydrated = false
 
 /** Get the current cached governance data (used by heartbeat-cron). */
 export function getCachedGovernance(): GovernanceData | null {
@@ -38,8 +44,86 @@ export function setCachedGovernance(data: GovernanceData): void {
   governanceCache = data
 }
 
+/**
+ * Set governance data and persist to database.
+ * Use this variant from cron/heartbeat where a Payload instance is available.
+ */
+export function setCachedGovernanceWithPersist(data: GovernanceData, payload: Payload): void {
+  governanceCache = data
+  persistGovernance(payload, data).catch(() => {})
+}
+
+/**
+ * Hydrate governance cache from database on first access.
+ * This ensures governance data survives process restarts (Vercel cold starts,
+ * deploys, crashes).
+ */
+async function hydrateGovernanceCache(payload: Payload): Promise<void> {
+  if (cacheHydrated) return
+  cacheHydrated = true
+
+  try {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      sort: 'createdAt',
+    })
+    const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
+    const setup = tenant?.setup as Record<string, unknown> | undefined
+    const stored = setup?.governanceData as GovernanceData | undefined
+
+    if (stored && typeof stored.registryVersion === 'number') {
+      governanceCache = stored
+      console.log(
+        `[Federation Governance] Hydrated from DB: v${stored.registryVersion} (${stored.ministries?.length || 0} ministries)`,
+      )
+    }
+  } catch (err) {
+    console.warn('[Federation Governance] Failed to hydrate from DB:', err)
+  }
+}
+
+/**
+ * Persist governance data to the tenant record.
+ * Fire-and-forget — failures are logged but don't block the sync response.
+ */
+async function persistGovernance(payload: Payload, data: GovernanceData): Promise<void> {
+  try {
+    const tenants = await payload.find({
+      collection: 'tenants',
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      sort: 'createdAt',
+    })
+    const tenant = tenants.docs[0]
+    if (!tenant) return
+
+    const existingSetup = (tenant as unknown as Record<string, unknown>).setup as Record<string, unknown> | undefined
+
+    await payload.update({
+      collection: 'tenants',
+      id: tenant.id,
+      data: {
+        setup: {
+          ...(existingSetup || {}),
+          governanceData: data,
+        },
+      } as any,
+      overrideAccess: true,
+    })
+  } catch (err) {
+    console.warn('[Federation Governance] Failed to persist to DB:', err)
+  }
+}
+
 export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
   const method = req.method?.toUpperCase() ?? (req as Request).method?.toUpperCase()
+
+  // Hydrate cache from DB on first access (survives cold starts)
+  await hydrateGovernanceCache(req.payload)
 
   // ── GET: Serve governance data ─────────────────────────────────
   if (method === 'GET') {
@@ -95,8 +179,9 @@ export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
       }, { status: 409 }) // Conflict
     }
 
-    // Accept the governance update
+    // Accept the governance update — write through to memory AND database
     governanceCache = remoteGovernance
+    persistGovernance(req.payload, remoteGovernance).catch(() => {})
 
     return Response.json({
       success: true,

@@ -28,7 +28,7 @@ import {
   type Ministry,
   type FederationCatalogEntry,
 } from '@/utilities/federationEngine'
-import { getCachedGovernance, setCachedGovernance } from './federation-governance-sync'
+import { getCachedGovernance, setCachedGovernanceWithPersist } from './federation-governance-sync'
 
 export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
   // ── Verify cron authorization ─────────────────────────────────
@@ -257,7 +257,7 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
         currentVersion,
         now,
       )
-      setCachedGovernance(snapshot)
+      setCachedGovernanceWithPersist(snapshot, req.payload)
       governanceVersion = snapshot.registryVersion
       governanceSynced = true
 
