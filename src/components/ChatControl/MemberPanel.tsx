@@ -285,7 +285,7 @@ export function MemberPanelTrigger({ onClick, memberCount }: { onClick: () => vo
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:bg-muted hover:text-foreground transition-colors"
       title="View members"
     >
       <Users size={14} />

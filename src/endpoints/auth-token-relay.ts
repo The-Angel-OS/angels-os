@@ -17,6 +17,7 @@
  * before setting the cookie.
  */
 import type { PayloadHandler } from 'payload'
+import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
@@ -53,26 +54,31 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     // Validate redirect is relative path (prevent open redirect)
     const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-    // Set the cookie on this domain (no Domain attribute = current host only)
+    // Set the cookie on this domain via NextResponse
     const isProduction = process.env.NODE_ENV === 'production'
-    const cookieStr = [
-      `payload-token=${token}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      isProduction ? 'Secure' : '',
-      'Max-Age=1209600',
-    ]
-      .filter(Boolean)
-      .join('; ')
+    // Build absolute URL for NextResponse.redirect
+    const hostHeader = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || ''
+    const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
+    const baseUrl = hostHeader
+      ? `${protoHeader}://${hostHeader}`
+      : (process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000')
+    const absoluteRedirect = new URL(safeRedirect, baseUrl).toString()
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: safeRedirect,
-        'Set-Cookie': cookieStr,
-      },
+    console.log('[Token Relay] Setting cookie and redirecting:', {
+      safeRedirect,
+      absoluteRedirect,
+      isProduction,
     })
+
+    const response = NextResponse.redirect(absoluteRedirect, 302)
+    response.cookies.set('payload-token', token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction,
+      maxAge: 1209600,
+    })
+    return response
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Token relay failed'
     return Response.json({ error: message }, { status: 500 })

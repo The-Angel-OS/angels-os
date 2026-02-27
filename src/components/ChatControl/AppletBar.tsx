@@ -38,14 +38,14 @@ export function AppletBar({ applets, activeApplet, onAppletChange }: AppletBarPr
           <button
             key={applet.id}
             onClick={() => onAppletChange(applet.id)}
-            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+            className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
               isActive
                 ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'text-muted-foreground hover:bg-muted active:bg-muted hover:text-foreground'
             }`}
             title={applet.label}
           >
-            {Icon ? <Icon size={14} /> : <span className="text-xs">{applet.label[0]}</span>}
+            {Icon ? <Icon size={16} /> : <span className="text-xs">{applet.label[0]}</span>}
           </button>
         )
       })}

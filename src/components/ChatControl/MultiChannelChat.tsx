@@ -255,6 +255,27 @@ export function MultiChannelChat({
             </button>
           </div>
 
+          {/* Mobile action bar — applet icons + settings */}
+          {enabledApplets.length > 1 && (
+            <div className="flex items-center gap-1 border-t border-border/50 px-2 py-1.5">
+              <AppletBar
+                applets={enabledApplets}
+                activeApplet={activeApplet}
+                onAppletChange={setActiveApplet}
+              />
+              <div className="ml-auto flex items-center gap-1">
+                <button
+                  onClick={() => setChannelSettingsOpen(true)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground active:bg-muted transition-colors"
+                  title="Channel settings"
+                >
+                  <Settings size={14} />
+                </button>
+                <MemberPanelTrigger onClick={() => setMemberPanelOpen(true)} />
+              </div>
+            </div>
+          )}
+
           {/* Inline create form (mobile) */}
           {showCreateForm && (
             <div className="flex items-center gap-2 border-t border-border px-3 py-2">

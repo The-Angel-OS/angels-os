@@ -18,6 +18,7 @@
  *    through /api/auth/token-relay on the origin domain to set the cookie.
  */
 import type { PayloadHandler } from 'payload'
+import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
@@ -67,8 +68,12 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     statePayload.redirect = redirectParam
   }
 
-  // If the user is on a different domain than canonical, record it
-  const currentOrigin = url.origin
+  // If the user is on a different domain than canonical, record it.
+  // NOTE: url.origin is unreliable in serverless (resolves to 'http://localhost').
+  // Use forwarded headers to detect the actual request origin.
+  const hostHeader = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || ''
+  const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
+  const currentOrigin = hostHeader ? `${protoHeader}://${hostHeader}` : canonicalUrl
   if (getHostname(currentOrigin) !== getHostname(canonicalUrl)) {
     statePayload.origin = currentOrigin
   }
@@ -105,6 +110,12 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
 
     const code = url.searchParams.get('code')
     const stateRaw = url.searchParams.get('state')
+
+    console.log('[Google OAuth] Callback received:', {
+      hasCode: Boolean(code),
+      hasState: Boolean(stateRaw),
+      canonicalUrl,
+    })
 
     if (!code) {
       return Response.json(
@@ -241,6 +252,13 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       })
     }
 
+    console.log('[Google OAuth] User resolved:', {
+      userId: user.id,
+      email: user.email,
+      isNew: existing.docs.length === 0,
+      roles: user.roles,
+    })
+
     // ----- Generate Payload-compatible JWT -----
     const payloadToken = jwt.sign(
       { id: user.id, email: user.email, collection: 'users' },
@@ -318,28 +336,30 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // ----- Same-domain: set cookie directly -----
+    // ----- Same-domain: set cookie via NextResponse -----
     const cookieDomain = process.env.COOKIE_DOMAIN || ''
     const isProduction = process.env.NODE_ENV === 'production'
-    const cookieStr = [
-      `payload-token=${payloadToken}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      isProduction ? 'Secure' : '',
-      cookieDomain ? `Domain=${cookieDomain}` : '',
-      'Max-Age=1209600',
-    ]
-      .filter(Boolean)
-      .join('; ')
+    const absoluteRedirect = new URL(redirectPath, canonicalUrl).toString()
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: redirectPath,
-        'Set-Cookie': cookieStr,
-      },
+    console.log('[Google OAuth] Setting cookie and redirecting:', {
+      userId: user.id,
+      email: user.email,
+      redirectPath,
+      absoluteRedirect,
+      cookieDomain: cookieDomain || '(current host)',
+      isProduction,
     })
+
+    const response = NextResponse.redirect(absoluteRedirect, 302)
+    response.cookies.set('payload-token', payloadToken, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction,
+      maxAge: 1209600,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    })
+    return response
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'An unexpected error occurred'
