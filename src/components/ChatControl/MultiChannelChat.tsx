@@ -50,7 +50,6 @@ export function MultiChannelChat({
   spaces: initialSpaces,
   channelSlug,
   onSpaceChange,
-  liveKitEnabled,
   className = '',
 }: ChatControlProps) {
   // Try ChatProvider context
@@ -107,13 +106,8 @@ export function MultiChannelChat({
   // Chat is always on; everything else is opt-in but available.
   const enabledApplets = useMemo(() => {
     const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'voice', 'files', 'tasks']
-    return DEFAULT_APPLETS.filter((a) => {
-      if (!spaceAppletIds.includes(a.id)) return false
-      // Voice applet requires LiveKit env vars to be configured
-      if (a.id === 'voice' && !(liveKitEnabled && process.env.NEXT_PUBLIC_LIVEKIT_URL)) return false
-      return true
-    })
-  }, [activeSpace, liveKitEnabled])
+    return DEFAULT_APPLETS.filter((a) => spaceAppletIds.includes(a.id))
+  }, [activeSpace])
 
   // Reset applet to chat when switching channels
   const handleSwitchChannel = useCallback(
