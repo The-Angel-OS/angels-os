@@ -42,19 +42,31 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
-      testMatch: /(?:dashboard|launch-journeys|admin-journeys)\.e2e\.spec\.ts/,
+      testMatch: /(?:dashboard|launch-journeys|admin-journeys|tenant-isolation|chat-messaging|federation-api|producer-workflow|content-management|setup-wizard)\.e2e\.spec\.ts/,
     },
     // User journey tests — self-contained auth, creates its own users
     {
       name: 'user-journeys',
       use: { ...devices['Desktop Chrome'], channel: 'chromium' },
-      testMatch: /user-journeys\.e2e\.spec\.ts/,
+      testMatch: /(?:user-journeys|checkout)\.e2e\.spec\.ts/,
     },
     // Legacy frontend tests — unchanged, their own auth handling
     {
       name: 'legacy',
       use: { ...devices['Desktop Chrome'], channel: 'chromium' },
       testMatch: /frontend\.e2e\.spec\.ts/,
+    },
+    // Mobile responsive tests — public pages at iPhone 13 viewport, no auth needed
+    {
+      name: 'mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chromium',
+        viewport: { width: 375, height: 812 },
+        isMobile: true,
+        hasTouch: true,
+      },
+      testMatch: /mobile-responsive\.e2e\.spec\.ts/,
     },
   ],
   webServer: {
