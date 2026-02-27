@@ -3350,6 +3350,7 @@ export interface ApplicationLog {
  */
 export interface Review {
   id: number;
+  tenant?: (number | null) | Tenant;
   /**
    * Reviewer display name
    */
@@ -5783,6 +5784,7 @@ export interface ApplicationLogsSelect<T extends boolean = true> {
  * via the `definition` "reviews_select".
  */
 export interface ReviewsSelect<T extends boolean = true> {
+  tenant?: T;
   author?: T;
   authorEmail?: T;
   rating?: T;

@@ -1,10 +1,11 @@
 import { simpleSlugField } from '@/fields/simpleSlugField'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 import type { CollectionConfig } from 'payload'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
   access: {
-    read: () => true,
+    read: publicWithTenantScope,
   },
   admin: {
     useAsTitle: 'title',

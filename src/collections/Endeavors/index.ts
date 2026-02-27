@@ -18,6 +18,7 @@
  */
 
 import type { CollectionConfig } from 'payload'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 export const Endeavors: CollectionConfig = {
   slug: 'endeavors',
@@ -29,8 +30,8 @@ export const Endeavors: CollectionConfig = {
       'The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.',
   },
   access: {
-    // Network-visible for federation catalog (filter by federation.networkVisible)
-    read: () => true,
+    // Network-visible for federation catalog, scoped to current tenant for REST API
+    read: publicWithTenantScope,
     create: ({ req: { user } }) => Boolean(user),
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => {

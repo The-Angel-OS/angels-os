@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -10,9 +11,8 @@ export const Projects: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    // Projects are portfolio items — publicly readable for showcase purposes.
-    // No _status field (no Payload drafts), so can't use authenticatedOrPublished.
-    read: () => true,
+    // Projects are portfolio items — publicly readable, scoped to current tenant.
+    read: publicWithTenantScope,
     update: authenticated,
     delete: authenticated,
   },

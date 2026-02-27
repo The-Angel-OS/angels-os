@@ -14,7 +14,7 @@ import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
-import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
+import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
 import {
   MetaDescriptionField,
   MetaImageField,
@@ -29,7 +29,7 @@ export const Posts: CollectionConfig = {
   access: {
     create: adminOnly,
     delete: adminOnly,
-    read: adminOrPublishedStatus,
+    read: adminOrPublishedWithTenantScope,
     update: adminOnly,
   },
   admin: {

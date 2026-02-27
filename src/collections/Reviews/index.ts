@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 /**
  * Reviews collection — customer feedback and ratings.
@@ -14,7 +15,7 @@ export const Reviews: CollectionConfig = {
     defaultColumns: ['author', 'rating', 'source', 'isVerified', 'publishedAt'],
   },
   access: {
-    read: () => true,
+    read: publicWithTenantScope,
     create: ({ req: { user } }) => Boolean(user),
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) =>

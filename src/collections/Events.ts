@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 
 export const Events: CollectionConfig = {
@@ -12,12 +13,14 @@ export const Events: CollectionConfig = {
   access: {
     create: authenticated,
     // Events don't use Payload drafts (_status) — they have their own status field.
-    // Authenticated users see all; public sees non-draft events.
-    read: ({ req: { user } }) => {
-      if (user) return true
-      return {
-        status: { not_equals: 'draft' },
-      }
+    // Authenticated users see all; public sees non-draft events scoped to tenant.
+    read: async ({ req }) => {
+      if (req.user) return true
+
+      const nonDraft = { status: { not_equals: 'draft' as const } }
+      const tenantWhere = await buildTenantWhere(req)
+      if (tenantWhere) return mergeWithTenantScope(nonDraft, tenantWhere)
+      return nonDraft
     },
     update: authenticated,
     delete: authenticated,

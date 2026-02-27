@@ -198,6 +198,7 @@ export default buildConfig({
         media: {},
         products: {},
         orders: {},
+        reviews: {},
         // ─── Soul Data (atomic per-tenant) ───────────────────
         spaces: {},
         'space-memberships': {},
