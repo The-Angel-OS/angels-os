@@ -54,11 +54,18 @@ export const federationCatalogHandler: PayloadHandler = async (req) => {
     const setup = tenant?.setup as Record<string, unknown> | undefined
     const federationId = (setup?.federationId as string) || 'unknown'
 
-    // Query products with federation visibility
+    // Query products with federation visibility — scoped to this instance's tenant.
+    // overrideAccess is needed because this is a server-to-server endpoint (no user session),
+    // but we MUST scope to the host tenant to prevent cross-tenant data leakage.
+    const tenantId = tenant?.id as number | undefined
     const products = await req.payload.find({
       collection: 'products' as any,
       where: {
-        ...(q ? { title: { contains: q } } : {}),
+        and: [
+          { _status: { equals: 'published' } },
+          ...(tenantId ? [{ tenant: { equals: tenantId } }] : []),
+          ...(q ? [{ title: { contains: q } }] : []),
+        ],
       },
       limit: limit * 2, // Fetch extra for filtering
       depth: 1,

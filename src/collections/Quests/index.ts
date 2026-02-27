@@ -2,7 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
-import { publicAccess } from '@/access/publicAccess'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 export const Quests: CollectionConfig = {
   slug: 'quests',
@@ -13,7 +13,10 @@ export const Quests: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: publicAccess,
+    // Tenant-scoped: publicly readable within tenant boundary.
+    // Quests with networkListing=true are intentionally cross-tenant
+    // (handled by federation catalog, not collection-level access).
+    read: publicWithTenantScope,
     update: authenticated,
     delete: adminOnly,
   },

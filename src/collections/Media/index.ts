@@ -7,6 +7,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -17,7 +18,9 @@ export const Media: CollectionConfig = {
   },
   slug: 'media',
   access: {
-    read: () => true,
+    // Tenant-scoped: authenticated users filtered by multiTenantPlugin,
+    // unauthenticated users scoped to current tenant via x-tenant-id header.
+    read: publicWithTenantScope,
   },
   fields: [
     {

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { link } from '@/fields/link'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 export const Header: CollectionConfig = {
   slug: 'header',
@@ -9,7 +10,8 @@ export const Header: CollectionConfig = {
     useAsTitle: 'id',
   },
   access: {
-    read: () => true,
+    // Each tenant has its own header — scope to current tenant.
+    read: publicWithTenantScope,
   },
   fields: [
     {

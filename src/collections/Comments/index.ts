@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly } from '@/access/adminOnly'
 import { checkRole } from '@/access/utilities'
+import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
 
 export const Comments: CollectionConfig = {
   slug: 'comments',
@@ -14,9 +15,19 @@ export const Comments: CollectionConfig = {
   access: {
     // Authenticated users can create comments; anonymous users blocked
     create: ({ req: { user } }) => Boolean(user),
-    read: ({ req: { user } }) => {
+    read: async ({ req }) => {
+      const { user } = req
+      // Admins: full access (multiTenantPlugin handles tenant scoping)
       if (user && checkRole(['super_admin', 'admin'], user)) return true
-      return { isApproved: { equals: true } }
+      // Authenticated non-admin: approved only (multiTenantPlugin adds tenant filter)
+      if (user) return { isApproved: { equals: true } }
+      // Unauthenticated: approved + tenant scoped
+      const approvedOnly = { isApproved: { equals: true as const } }
+      const tenantWhere = await buildTenantWhere(req)
+      if (tenantWhere) {
+        return mergeWithTenantScope(approvedOnly, tenantWhere)
+      }
+      return approvedOnly
     },
     update: adminOnly,
     delete: adminOnly,

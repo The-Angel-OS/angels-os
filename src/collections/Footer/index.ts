@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { link } from '@/fields/link'
+import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 
 export const Footer: CollectionConfig = {
   slug: 'footer',
@@ -9,7 +10,8 @@ export const Footer: CollectionConfig = {
     useAsTitle: 'id',
   },
   access: {
-    read: () => true,
+    // Each tenant has its own footer — scope to current tenant.
+    read: publicWithTenantScope,
   },
   fields: [
     {
