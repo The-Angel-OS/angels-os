@@ -109,6 +109,7 @@ import { federationElectionHandler } from '@/endpoints/federation-election'
 import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
+import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -667,6 +668,11 @@ export default buildConfig({
       path: '/auth/token-relay',
       method: 'get',
       handler: authTokenRelayHandler,
+    },
+    {
+      path: '/auth/social-unlink',
+      method: 'post',
+      handler: authSocialUnlinkHandler,
     },
   ],
   globals: [],

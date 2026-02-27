@@ -61,11 +61,30 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
 
   // Build state: preserve caller's redirect + the origin domain for
   // cross-domain relay (custom domain tenants).
-  const statePayload: { redirect?: string; origin?: string } = {}
+  // mode=link: linking Google to an existing logged-in user (vs sign-in)
+  const statePayload: { redirect?: string; origin?: string; mode?: string; userId?: string | number } = {}
 
   const redirectParam = url.searchParams.get('redirect')
   if (redirectParam) {
     statePayload.redirect = redirectParam
+  }
+
+  // Link mode: attach Google to an existing user account
+  const mode = url.searchParams.get('mode')
+  if (mode === 'link') {
+    // Require authentication — we need to know which user to link to
+    if (!req.user) {
+      return Response.json(
+        { error: 'Authentication required to link a social provider.' },
+        { status: 401 },
+      )
+    }
+    statePayload.mode = 'link'
+    statePayload.userId = req.user.id
+    // Default redirect back to account page after linking
+    if (!statePayload.redirect) {
+      statePayload.redirect = '/account'
+    }
   }
 
   // If the user is on a different domain than canonical, record it.
@@ -266,20 +285,72 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       { expiresIn: '14d' },
     )
 
-    // ----- Parse state to determine redirect + origin domain -----
+    // ----- Parse state to determine redirect + origin domain + link mode -----
     let stateRedirect: string | undefined
     let stateOrigin: string | undefined
+    let stateMode: string | undefined
+    let stateLinkUserId: string | number | undefined
 
     if (stateRaw) {
       try {
         const stateObj = JSON.parse(decodeURIComponent(stateRaw)) as {
           redirect?: string
           origin?: string
+          mode?: string
+          userId?: string | number
         }
         stateRedirect = stateObj.redirect
         stateOrigin = stateObj.origin
+        stateMode = stateObj.mode
+        stateLinkUserId = stateObj.userId
       } catch {
         // state was not valid JSON — ignore
+      }
+    }
+
+    // ----- Link mode: attach Google to existing user instead of sign-in -----
+    if (stateMode === 'link' && stateLinkUserId) {
+      const linkUser = await req.payload.findByID({
+        collection: 'users',
+        id: stateLinkUserId,
+        overrideAccess: true,
+      })
+
+      if (linkUser) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const existingProviders: any[] = Array.isArray((linkUser as any).socialProviders)
+          ? (linkUser as any).socialProviders
+          : []
+
+        const alreadyLinked = existingProviders.some(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (p: any) => p.provider === 'google' && p.providerId === sub,
+        )
+
+        if (!alreadyLinked) {
+          await req.payload.update({
+            collection: 'users',
+            id: linkUser.id,
+            data: {
+              socialProviders: [...existingProviders, socialEntry],
+            } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            overrideAccess: true,
+          })
+        }
+
+        console.log('[Google OAuth] Linked Google to existing user:', {
+          userId: linkUser.id,
+          email: linkUser.email,
+          googleEmail: email,
+        })
+
+        // Redirect back — user is already authenticated, no new JWT needed
+        const redirectPath = stateRedirect || '/account'
+        const canonicalRedirect = new URL(redirectPath, canonicalUrl).toString()
+        return new Response(null, {
+          status: 302,
+          headers: { Location: canonicalRedirect },
+        })
       }
     }
 
