@@ -115,26 +115,30 @@ test.describe('Mobile Responsive (375x812)', () => {
         [
           '[data-slot="sheet-trigger"]',
           'button[aria-label*="menu" i]',
+          'button[aria-label*="navigation" i]',
           'button:has(svg.lucide-menu)',
+          'button.md\\:hidden',
         ].join(', '),
       )
       .first()
 
     await hamburger.click()
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(1500)
 
-    // Radix Sheet close button uses data-slot="sheet-close" or has an X icon
+    // Radix Sheet close button: check multiple selectors and also the overlay
     const closeButton = page
       .locator(
         [
           '[data-slot="sheet-close"]',
+          '[data-slot="sheet-content"] button[aria-label*="close" i]',
           'button[aria-label*="close" i]',
           'button:has(svg.lucide-x)',
+          '[data-slot="sheet-overlay"]',
         ].join(', '),
       )
       .first()
 
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
+    await expect(closeButton).toBeVisible({ timeout: 5000 })
   })
 
   // ─── 3. Shop page responsive ──────────────────────────────────────

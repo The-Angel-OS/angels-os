@@ -62,9 +62,9 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    // Page header should show "Enterprise Setup"
-    const heading = page.locator('h1')
-    await expect(heading).toHaveText('Enterprise Setup')
+    // Page header should show "Enterprise Setup" (inside main, not the dashboard banner h1)
+    const heading = page.locator('main h1').first()
+    await expect(heading).toContainText('Enterprise Setup')
 
     // Subtitle mentioning Leo and ~17 minutes
     const subtitle = page.locator('text=Leo will guide you')
@@ -84,8 +84,8 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    // Left aside panel should be visible (step indicator)
-    const aside = page.locator('aside').first()
+    // Left aside panel should be visible (step indicator — inside main, not the dashboard sidebar)
+    const aside = page.locator('main aside').first()
     await expect(aside).toBeVisible()
 
     // Panel header should show "Enterprise Setup" and step counter
@@ -104,7 +104,7 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    const aside = page.locator('aside').first()
+    const aside = page.locator('main aside').first()
 
     // Each of the 8 wizard steps should appear in the step indicator
     for (const stepName of WIZARD_STEPS) {
@@ -120,7 +120,7 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    const aside = page.locator('aside').first()
+    const aside = page.locator('main aside').first()
 
     // The current step should have the primary highlight class
     // Look for a step item with the active styling (bg-primary/10)
@@ -145,8 +145,8 @@ test.describe('Enterprise Setup Wizard', () => {
     const leoLabel = page.locator('text=Leo').first()
     await expect(leoLabel).toBeVisible()
 
-    // Chat input area should be present with placeholder
-    const textarea = page.locator('textarea')
+    // Chat input area should be present with placeholder (inside main, not LEO panel)
+    const textarea = page.locator('main textarea').first()
     await expect(textarea).toBeVisible()
 
     // Placeholder text should reference Leo
@@ -210,12 +210,12 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    // Left panel: aside with step indicator (w-64 class)
-    const aside = page.locator('aside').first()
+    // Left panel: aside with step indicator (inside main, not the dashboard sidebar)
+    const aside = page.locator('main aside').first()
     await expect(aside).toBeVisible()
 
     // Right panel: chat area with messages and input
-    const textarea = page.locator('textarea')
+    const textarea = page.locator('main textarea').first()
     await expect(textarea).toBeVisible()
 
     // Both panels should be side by side (flex layout)
@@ -237,7 +237,7 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    const textarea = page.locator('textarea')
+    const textarea = page.locator('main textarea').first()
     await expect(textarea).toBeVisible()
 
     // Type a test message (but do NOT submit — avoid wizard side effects)
@@ -309,7 +309,7 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    const aside = page.locator('aside').first()
+    const aside = page.locator('main aside').first()
 
     // Step counter text should match "Step N of 8"
     const stepText = await aside.locator('text=/Step \\d+ of \\d+/').textContent()
@@ -336,7 +336,7 @@ test.describe('Enterprise Setup Wizard', () => {
     }
 
     // Record the initial step
-    const aside = page.locator('aside').first()
+    const aside = page.locator('main aside').first()
     const initialStepText = await aside.locator('text=/Step \\d+ of \\d+/').textContent()
 
     // Wait a few seconds without interacting

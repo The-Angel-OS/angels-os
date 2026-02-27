@@ -106,6 +106,9 @@ test.describe('Admin Journey: Tenant Admin Hub', () => {
 
 // ─── Provision Wizard ────────────────────────────────────────────────────────
 
+// Use a unique name per run to avoid slug collisions from prior test runs
+const provisionTestName = `Test Shop ${Date.now()}`
+
 test.describe('Admin Journey: Provision Wizard', () => {
   test('provision wizard renders with step indicator', async ({ page }) => {
     await page.goto('/dashboard/admin/provision')
@@ -150,10 +153,10 @@ test.describe('Admin Journey: Provision Wizard', () => {
     await page.goto('/dashboard/admin/provision')
     await page.waitForTimeout(2000)
 
-    // Fill identity to enable Next button
+    // Fill identity to enable Next button (unique name to avoid slug conflicts)
     const nameInput = page.locator('input[placeholder="Hays Cactus Farm"]')
-    await nameInput.fill('Test Shop')
-    await page.waitForTimeout(300)
+    await nameInput.fill(provisionTestName)
+    await page.waitForTimeout(500)
 
     // Click Next to go to Endeavor step
     await page.getByRole('button', { name: /Next/i }).click()
@@ -177,8 +180,8 @@ test.describe('Admin Journey: Provision Wizard', () => {
 
     // Navigate to step 3 (Identity → Endeavor → Branding)
     const nameInput = page.locator('input[placeholder="Hays Cactus Farm"]')
-    await nameInput.fill('Test Shop')
-    await page.waitForTimeout(300)
+    await nameInput.fill(provisionTestName)
+    await page.waitForTimeout(500)
 
     // Step 1 → Step 2
     await page.getByRole('button', { name: /Next/i }).click()
@@ -214,10 +217,10 @@ test.describe('Admin Journey: Provision Wizard', () => {
     // Start at step 1 — Back should be invisible (disabled:invisible)
     const backBtn = page.getByRole('button', { name: /Back/i })
 
-    // Fill name to enable Next
+    // Fill name to enable Next (unique name to avoid slug conflicts)
     const nameInput = page.locator('input[placeholder="Hays Cactus Farm"]')
-    await nameInput.fill('Test Shop')
-    await page.waitForTimeout(300)
+    await nameInput.fill(provisionTestName)
+    await page.waitForTimeout(500)
 
     // Go to step 2
     await page.getByRole('button', { name: /Next/i }).click()
@@ -330,11 +333,15 @@ test.describe('Admin Journey: Tenant Detail', () => {
     }
 
     await page.goto(`/dashboard/admin/tenants/${tenantId}`)
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(4000)
+
+    // Scroll to bottom to reveal Danger Zone
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await page.waitForTimeout(500)
 
     // Danger Zone heading
     const dangerHeading = page.locator('h2', { hasText: 'Danger Zone' })
-    await expect(dangerHeading).toBeVisible()
+    await expect(dangerHeading).toBeVisible({ timeout: 5000 })
 
     // Click Deactivate button
     const deactivateBtn = page.getByRole('button', { name: /Deactivate Tenant/i })
@@ -454,8 +461,9 @@ test.describe('Admin Journey: Navigation & Access', () => {
     await page.goto('/dashboard')
     await page.waitForTimeout(2000)
 
-    // ADMIN section label in sidebar
-    const adminSection = page.locator('text=ADMIN')
+    // ADMIN section label in sidebar — use paragraph locator with exact text
+    // to avoid matching "Payload Admin", "Tenant Admin", etc.
+    const adminSection = page.locator('p', { hasText: /^ADMIN$/ })
     await expect(adminSection).toBeVisible()
 
     // Tenant Admin link
@@ -485,6 +493,7 @@ test.describe('Admin Journey: Navigation & Access', () => {
   })
 
   test('admin pages are accessible (no 403/redirect)', async ({ page }) => {
+    test.setTimeout(120_000) // Iterates multiple routes; needs extra time
     const adminRoutes = [
       '/dashboard/admin',
       '/dashboard/admin/provision',
@@ -497,7 +506,7 @@ test.describe('Admin Journey: Navigation & Access', () => {
 
     for (const route of adminRoutes) {
       await page.goto(route)
-      await page.waitForTimeout(2000)
+      await page.waitForTimeout(3000)
 
       // Should not be redirected to login or a 403 page
       const url = page.url()

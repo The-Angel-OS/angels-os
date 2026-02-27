@@ -35,10 +35,16 @@ test.describe('Producer Workflow', () => {
 
     test('makers page contains "Fair Split" section', async ({ page }) => {
       await page.goto(`${baseURL}/makers`)
+      await page.waitForTimeout(2000)
+
+      // The Constitutional Fair Split explainer section may be below the fold
+      // Scroll down to reveal it
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+      await page.waitForTimeout(500)
 
       // The Constitutional Fair Split explainer section
       const fairSplitHeading = page.getByText('Constitutional Fair Split', { exact: false })
-      await expect(fairSplitHeading).toBeVisible()
+      await expect(fairSplitHeading).toBeVisible({ timeout: 5000 })
 
       // Should show the 60% maker share
       const makerShare = page.getByText('60%')

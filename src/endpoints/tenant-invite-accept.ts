@@ -117,6 +117,56 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
       }
     }
 
+    // Auto-join user to the tenant's main space
+    if (tenantId) {
+      try {
+        const spaces = await payload.find({
+          collection: 'spaces',
+          where: { tenant: { equals: tenantId } },
+          sort: 'createdAt',
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+
+        if (spaces.totalDocs > 0) {
+          const mainSpace = spaces.docs[0]
+
+          // Check if already a member (idempotent)
+          const existingMembership = await payload.find({
+            collection: 'space-memberships',
+            where: {
+              user: { equals: user.id },
+              space: { equals: mainSpace.id },
+            },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
+
+          if (existingMembership.totalDocs === 0) {
+            await payload.create({
+              collection: 'space-memberships',
+              data: {
+                user: user.id as number,
+                space: mainSpace.id as number,
+                role: 'member',
+                status: 'active',
+                joinedAt: new Date().toISOString(),
+                tenant: tenantId as number,
+              },
+              overrideAccess: true,
+            })
+            payload.logger.info(
+              `[tenant-invite-accept] User ${(user as any).email} auto-joined space "${mainSpace.name}" (tenant ${tenantId})`,
+            )
+          }
+        }
+      } catch {
+        // Non-critical — user joined the tenant even if space auto-join fails
+      }
+    }
+
     // Extract tenant info for response
     const tenant = typeof membership.tenant === 'object' ? membership.tenant : null
 

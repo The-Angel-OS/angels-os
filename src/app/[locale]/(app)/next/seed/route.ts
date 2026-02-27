@@ -39,6 +39,20 @@ export async function POST(): Promise<Response> {
         return Response.json({ success: false, error: 'Not authenticated' }, { status: 403 })
       }
       payload.logger.info('Bootstrap mode: seeding without auth (no pages exist)')
+    } else {
+      // Authenticated user: only super_admin, admin, or archangel can seed
+      const roles = (user as any).roles as string[] | undefined
+      const canSeed =
+        roles?.includes('super_admin') ||
+        roles?.includes('admin') ||
+        roles?.includes('archangel')
+
+      if (!canSeed) {
+        return Response.json(
+          { success: false, error: 'Insufficient permissions — only admins can seed the database' },
+          { status: 403 },
+        )
+      }
     }
 
     // Create a system-level request (no user context) so seed operations

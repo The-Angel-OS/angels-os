@@ -5,7 +5,7 @@ import config from '@payload-config'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
-import { WelcomeBanner } from '@/components/WelcomeBanner'
+import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
@@ -51,6 +51,8 @@ export default async function DashboardPage({
   let tenantStatus = 'active'
   let isSuperAdmin = false
   let isAdmin = false
+  let userRole: UserRole = 'user'
+  let userName: string | undefined
   // Chart data
   let revenueData: Awaited<ReturnType<typeof getRevenueTimeSeries>> = []
   let orderData: Awaited<ReturnType<typeof getOrderVolume>> = []
@@ -94,6 +96,8 @@ export default async function DashboardPage({
       isAdmin = Boolean(
         isSuperAdmin || roles?.includes('admin') || roles?.includes('archangel'),
       )
+      userRole = isSuperAdmin ? 'super_admin' : isAdmin ? 'admin' : 'user'
+      userName = (user as any).name || undefined
 
       // New users with no tenant memberships → redirect to endeavor creation
       if (!isSuperAdmin) {
@@ -198,8 +202,8 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
-      {/* Welcome Banner — shows when DB is unseeded, dismissible */}
-      <WelcomeBanner isSeeded={isSeeded} />
+      {/* Welcome Banner — role-based onboarding, dismissible */}
+      <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
 
       {/* Platform Header */}
       <div className="text-center">

@@ -5,25 +5,32 @@ import { toast } from 'sonner'
 
 const DISMISS_KEY = 'angelOS_welcome_dismissed'
 
+export type UserRole = 'super_admin' | 'admin' | 'user'
+
 interface WelcomeBannerProps {
   /** Whether the database has been seeded (spaces > 0 or products > 0) */
   isSeeded: boolean
+  /** User's effective role for showing role-appropriate content */
+  userRole?: UserRole
+  /** User's display name */
+  userName?: string
 }
 
 /**
- * WelcomeBanner — Platform Home onboarding card.
+ * WelcomeBanner — Role-based onboarding card.
  *
- * Shows when the database is unseeded (0 spaces, 0 products).
- * Includes: Angel OS introduction, documentation links, seed button,
- * and a dismiss option (persisted to localStorage).
+ * Shows different content depending on user role:
+ * - super_admin: Platform admin view with seed (danger zone), explore, configure
+ * - admin: Business owner view with products, content, branding setup
+ * - user: Member view with shop, chat, orders
  *
- * Users can re-show the banner by clicking "Show Welcome Guide"
- * that appears after dismissal.
+ * Seed button is only shown to super_admin, behind a danger zone confirmation.
  */
-export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
+export function WelcomeBanner({ isSeeded, userRole = 'user', userName }: WelcomeBannerProps) {
   const [dismissed, setDismissed] = useState(true) // Start hidden, check on mount
   const [seeding, setSeeding] = useState(false)
   const [seeded, setSeeded] = useState(isSeeded)
+  const [seedConfirmStep, setSeedConfirmStep] = useState(0) // 0=none, 1=first confirm, 2=really sure
 
   // Check localStorage on mount
   useEffect(() => {
@@ -45,6 +52,7 @@ export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
     if (seeding || seeded) return
 
     setSeeding(true)
+    setSeedConfirmStep(0)
 
     const seedPromise = fetch('/next/seed', {
       method: 'POST',
@@ -82,11 +90,15 @@ export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
     })
   }, [seeding, seeded])
 
+  const isSuperAdmin = userRole === 'super_admin'
+  const isAdminRole = userRole === 'super_admin' || userRole === 'admin'
+
   // Already seeded and dismissed? Show nothing
   if (seeded && dismissed) return null
 
-  // Dismissed but not seeded? Show a small reminder
+  // Dismissed but not seeded? Show a small reminder (only for super_admins)
   if (dismissed && !seeded) {
+    if (!isSuperAdmin) return null // Regular users don't need seed reminders
     return (
       <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
         <div className="flex items-center gap-2">
@@ -99,7 +111,7 @@ export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSeed}
+            onClick={() => setSeedConfirmStep(1)}
             disabled={seeding}
             className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
           >
@@ -112,11 +124,26 @@ export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
             Show Guide
           </button>
         </div>
+        {seedConfirmStep > 0 && (
+          <SeedDangerZone
+            step={seedConfirmStep}
+            seeding={seeding}
+            onConfirm={() => {
+              if (seedConfirmStep === 1) setSeedConfirmStep(2)
+              else handleSeed()
+            }}
+            onCancel={() => setSeedConfirmStep(0)}
+          />
+        )}
       </div>
     )
   }
 
-  // Full welcome banner
+  // ── Role-based welcome banners ──
+
+  // Get role-specific config
+  const bannerConfig = getRoleBannerConfig(userRole, userName)
+
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-muted/30">
       {/* Dismiss button */}
@@ -135,74 +162,248 @@ export function WelcomeBanner({ isSeeded }: WelcomeBannerProps) {
             <AngelIcon />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Welcome to Angel OS</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Constitutional AI platform where everyone gets an Angel.
-              Multi-tenant commerce, collaboration spaces, and LEO AI agents — all in one stack.
-            </p>
+            <h2 className="text-xl font-bold tracking-tight">{bannerConfig.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{bannerConfig.subtitle}</p>
           </div>
         </div>
 
-        {/* Quick Start Steps */}
+        {/* Quick Start Steps — role-specific */}
         <div className="mb-6 grid gap-3 md:grid-cols-3">
-          <StepCard
-            number={1}
-            title="Seed Your Database"
-            description="Load sample tenants, products, spaces, and pages to explore the platform."
-            action={
-              seeded ? (
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                  <CheckIcon /> Seeded
-                </span>
-              ) : (
-                <button
-                  onClick={handleSeed}
-                  disabled={seeding}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {seeding ? (
-                    <>
-                      <SpinnerIcon /> Seeding...
-                    </>
-                  ) : (
-                    <>
-                      <DatabaseIcon /> Seed Now
-                    </>
-                  )}
-                </button>
-              )
-            }
-          />
-          <StepCard
-            number={2}
-            title="Explore the Dashboard"
-            description="View spaces, chat with LEO, manage tenants, and browse the product catalog."
-          />
-          <StepCard
-            number={3}
-            title="Configure Your Platform"
-            description="Set up tenant branding, Stripe Connect, AI models, and Guardian Angel personas."
-          />
+          {bannerConfig.steps.map((step, i) => (
+            <StepCard
+              key={i}
+              number={i + 1}
+              title={step.title}
+              description={step.description}
+              action={step.action}
+            />
+          ))}
         </div>
 
-        {/* Documentation Links */}
+        {/* Seed Danger Zone — super_admin only, separate from steps */}
+        {isSuperAdmin && !seeded && (
+          <div className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+            <div className="flex items-center gap-2 mb-2">
+              <WarningIcon />
+              <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Danger Zone</h3>
+            </div>
+            <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+              Seeding the database will load sample tenants, products, spaces, and pages.
+              This overwrites existing sample data. Only do this on fresh installs or dev environments.
+            </p>
+            {seedConfirmStep === 0 && (
+              <button
+                onClick={() => setSeedConfirmStep(1)}
+                disabled={seeding}
+                className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-700 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900 disabled:opacity-50"
+              >
+                <DatabaseIcon /> Seed Database
+              </button>
+            )}
+            {seedConfirmStep > 0 && (
+              <SeedDangerZone
+                step={seedConfirmStep}
+                seeding={seeding}
+                onConfirm={() => {
+                  if (seedConfirmStep === 1) setSeedConfirmStep(2)
+                  else handleSeed()
+                }}
+                onCancel={() => setSeedConfirmStep(0)}
+              />
+            )}
+          </div>
+        )}
+
+        {isSuperAdmin && seeded && (
+          <div className="mb-6 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950/20">
+            <CheckIcon />
+            <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              Database seeded successfully
+            </span>
+          </div>
+        )}
+
+        {/* Documentation Links — role-appropriate */}
         <div className="flex flex-wrap gap-3">
-          <DocLink
-            href="https://github.com/KennyStanleyJr/angels-os"
-            icon={<GitHubIcon />}
-            label="GitHub"
-          />
-          <DocLink href="/admin" icon={<AdminIcon />} label="Payload Admin" />
-          <DocLink href="/" icon={<GlobeIcon />} label="Visit Site" />
-          <DocLink
-            href="/admin/collections/tenants"
-            icon={<TenantIcon />}
-            label="Manage Tenants"
-          />
+          {bannerConfig.links.map((link, i) => (
+            <DocLink key={i} href={link.href} icon={link.icon} label={link.label} />
+          ))}
         </div>
       </div>
     </div>
   )
+}
+
+// ─── Seed Danger Zone Confirmation ──────────────────────────────
+
+function SeedDangerZone({
+  step,
+  seeding,
+  onConfirm,
+  onCancel,
+}: {
+  step: number
+  seeding: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      {step === 1 && (
+        <>
+          <span className="text-xs font-medium text-red-600 dark:text-red-400">
+            Are you sure? This will overwrite sample data.
+          </span>
+          <button
+            onClick={onConfirm}
+            className="rounded-md bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700"
+          >
+            Yes, I&apos;m sure
+          </button>
+          <button
+            onClick={onCancel}
+            className="rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+          >
+            Cancel
+          </button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <span className="text-xs font-bold text-red-700 dark:text-red-400">
+            ⚠️ Really really sure? This cannot be undone.
+          </span>
+          <button
+            onClick={onConfirm}
+            disabled={seeding}
+            className="rounded-md bg-red-700 px-3 py-1 text-xs font-bold text-white hover:bg-red-800 disabled:opacity-50"
+          >
+            {seeding ? (
+              <span className="inline-flex items-center gap-1">
+                <SpinnerIcon /> Seeding...
+              </span>
+            ) : (
+              'Yes, seed the database!'
+            )}
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={seeding}
+            className="rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Role-based banner config ──────────────────────────────────
+
+interface StepConfig {
+  title: string
+  description: string
+  action?: React.ReactNode
+}
+
+interface LinkConfig {
+  href: string
+  icon: React.ReactNode
+  label: string
+}
+
+function getRoleBannerConfig(
+  role: UserRole,
+  userName?: string,
+): {
+  title: string
+  subtitle: string
+  steps: StepConfig[]
+  links: LinkConfig[]
+} {
+  const greeting = userName ? `Welcome, ${userName}!` : 'Welcome to Angel OS'
+
+  switch (role) {
+    case 'super_admin':
+      return {
+        title: 'Welcome to Angel OS',
+        subtitle:
+          'Constitutional AI platform where everyone gets an Angel. Multi-tenant commerce, collaboration spaces, and LEO AI agents — all in one stack.',
+        steps: [
+          {
+            title: 'Manage Tenants',
+            description: 'Provision new enterprises, view federation stats, and manage platform operations.',
+          },
+          {
+            title: 'Explore the Dashboard',
+            description: 'View spaces, chat with LEO, manage tenants, and browse the product catalog.',
+          },
+          {
+            title: 'Configure Your Platform',
+            description: 'Set up tenant branding, Stripe Connect, AI models, and Guardian Angel personas.',
+          },
+        ],
+        links: [
+          { href: 'https://github.com/KennyStanleyJr/angels-os', icon: <GitHubIcon />, label: 'GitHub' },
+          { href: '/admin', icon: <AdminIcon />, label: 'Payload Admin' },
+          { href: '/', icon: <GlobeIcon />, label: 'Visit Site' },
+          { href: '/admin/collections/tenants', icon: <TenantIcon />, label: 'Manage Tenants' },
+        ],
+      }
+
+    case 'admin':
+      return {
+        title: greeting,
+        subtitle:
+          'You\'re a business admin. Set up your products, manage your team, and configure your storefront.',
+        steps: [
+          {
+            title: 'Add Your Products',
+            description: 'List products in your shop with pricing, images, and inventory management.',
+          },
+          {
+            title: 'Invite Your Team',
+            description: 'Add team members to your spaces and assign roles for collaboration.',
+          },
+          {
+            title: 'Customize Your Brand',
+            description: 'Set your logo, colors, and site name in the Enterprise Setup wizard.',
+          },
+        ],
+        links: [
+          { href: '/dashboard/spaces', icon: <ChatIconSmall />, label: 'Spaces' },
+          { href: '/shop', icon: <GlobeIcon />, label: 'Visit Shop' },
+          { href: '/dashboard/setup', icon: <AdminIcon />, label: 'Enterprise Setup' },
+        ],
+      }
+
+    default: // 'user' / customer
+      return {
+        title: greeting,
+        subtitle:
+          'Browse products, join community spaces, and chat with LEO — your Constitutional AI assistant.',
+        steps: [
+          {
+            title: 'Browse the Shop',
+            description: 'Discover products from makers in our community marketplace.',
+          },
+          {
+            title: 'Join the Conversation',
+            description: 'Chat with LEO and connect with the community in collaboration spaces.',
+          },
+          {
+            title: 'Track Your Orders',
+            description: 'View your order history, track shipments, and manage your account.',
+          },
+        ],
+        links: [
+          { href: '/shop', icon: <GlobeIcon />, label: 'Browse Shop' },
+          { href: '/dashboard/spaces', icon: <ChatIconSmall />, label: 'Spaces' },
+          { href: '/account', icon: <AdminIcon />, label: 'My Account' },
+        ],
+      }
+  }
 }
 
 // ─── Sub-components ──────────────────────────────────────────────
@@ -372,6 +573,32 @@ function TenantIcon() {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+      />
+    </svg>
+  )
+}
+
+function WarningIcon() {
+  return (
+    <svg className="h-4 w-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+      />
+    </svg>
+  )
+}
+
+function ChatIconSmall() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
       />
     </svg>
   )

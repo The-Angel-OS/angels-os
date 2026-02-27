@@ -226,16 +226,18 @@ test.describe('User Journey: Dashboard Access', () => {
     await page.goto(`${baseURL}/dashboard`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
-    // Look for LEO chat elements — the sidebar chat or chat trigger
-    const leoChatTrigger = page.locator('[data-testid="leo-chat"], [class*="chat"], button:has-text("LEO")')
-    const chatPanel = page.locator('[class*="sidebar-chat"], [data-testid="sidebar-chat"]')
+    // Look for LEO chat elements — the floating "Open LEO panel" button
+    // or the LEO chat panel itself with "Ask LEO anything..." input
+    const leoButton = page.getByRole('button', { name: /LEO/i }).first()
+    const leoInput = page.locator('input[placeholder*="LEO"], textarea[placeholder*="LEO"]').first()
+    const chatPanel = page.locator('text=Ask LEO anything').first()
 
-    // At least one LEO-related element should be present
-    const hasTrigger = await leoChatTrigger.first().isVisible().catch(() => false)
-    const hasPanel = await chatPanel.first().isVisible().catch(() => false)
+    const hasButton = await leoButton.isVisible().catch(() => false)
+    const hasInput = await leoInput.isVisible().catch(() => false)
+    const hasPanel = await chatPanel.isVisible().catch(() => false)
 
     // LEO is integrated into the dashboard — verify some chat-related UI exists
-    expect(hasTrigger || hasPanel).toBeTruthy()
+    expect(hasButton || hasInput || hasPanel).toBeTruthy()
   })
 })
 

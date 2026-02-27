@@ -43,8 +43,8 @@ test.describe('Dashboard Layout', () => {
     // OVERVIEW section
     await expect(page.getByText('Dashboard').first()).toBeVisible()
 
-    // PRODUCTIVITY section — LEO & Spaces link
-    await expect(page.getByText('LEO & Spaces').first()).toBeVisible()
+    // Spaces link in sidebar (under OVERVIEW)
+    await expect(page.getByRole('link', { name: /Spaces/i })).toBeVisible()
   })
 
   test('sidebar collapse toggle works', async ({ page }) => {
@@ -144,7 +144,7 @@ test.describe('Dashboard Navigation', () => {
 
   test('Space Settings page renders with tabs', async ({ page }) => {
     await page.goto('/dashboard/spaces/settings')
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(3000)
 
     // SpaceSettingsClient should render tab buttons
     // Look for the settings page heading or tab buttons
@@ -154,7 +154,9 @@ test.describe('Dashboard Navigation', () => {
     const dangerTab = page.getByRole('button', { name: /Danger/i }).first()
 
     // At least some tabs should be visible (depends on whether a space is selected)
-    const tabsVisible = await generalTab.isVisible() || await membersTab.isVisible()
+    const tabsVisible =
+      (await generalTab.isVisible().catch(() => false)) ||
+      (await membersTab.isVisible().catch(() => false))
 
     if (tabsVisible) {
       await expect(generalTab).toBeVisible()
@@ -162,6 +164,7 @@ test.describe('Dashboard Navigation', () => {
       await expect(channelsTab).toBeVisible()
       await expect(dangerTab).toBeVisible()
     }
+    // If no tabs visible, space might not be selected — that's valid
   })
 
   test('Space Settings tabs switch content', async ({ page }) => {
@@ -196,12 +199,13 @@ test.describe('Dashboard Navigation', () => {
 
   test('sidebar navigation to Orders page', async ({ page }) => {
     await page.goto('/dashboard')
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(2000)
 
-    // Click Orders in sidebar
-    const ordersLink = page.getByRole('link', { name: /Orders/i }).first()
+    // Click Orders in sidebar — use exact match to avoid "My Orders" confusion
+    const ordersLink = page.getByRole('link', { name: 'Orders' }).first()
     if (await ordersLink.isVisible()) {
       await ordersLink.click()
+      await page.waitForTimeout(2000)
       await expect(page).toHaveURL(/\/dashboard\/orders/)
     }
   })

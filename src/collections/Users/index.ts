@@ -7,9 +7,13 @@ import { adminOrSelf } from '@/access/adminOrSelf'
 import { checkRole } from '@/access/utilities'
 
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
+import { autoJoinTenantSpaces } from './hooks/autoJoinTenantSpaces'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  hooks: {
+    afterChange: [autoJoinTenantSpaces],
+  },
   access: {
     // super_admin: full platform access
     // admin: tenant admin, can access Payload panel and manage tenant data
