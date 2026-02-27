@@ -536,7 +536,8 @@ test.describe('Frontend', () => {
     await emailInput.fill(email)
     await passwordInput.fill(password)
     await submitButton.click()
-    await page.waitForURL(/\/account/)
+    // Role-based routing: admins → /admin, customers → /dashboard
+    await page.waitForURL(/\/(account|dashboard|admin)/)
   }
 
   async function addToCartAndConfirm(

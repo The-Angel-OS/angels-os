@@ -42,7 +42,13 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
-      testMatch: /dashboard\.e2e\.spec\.ts/,
+      testMatch: /(?:dashboard|launch-journeys|admin-journeys)\.e2e\.spec\.ts/,
+    },
+    // User journey tests — self-contained auth, creates its own users
+    {
+      name: 'user-journeys',
+      use: { ...devices['Desktop Chrome'], channel: 'chromium' },
+      testMatch: /user-journeys\.e2e\.spec\.ts/,
     },
     // Legacy frontend tests — unchanged, their own auth handling
     {

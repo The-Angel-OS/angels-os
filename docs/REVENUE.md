@@ -13,7 +13,7 @@ GROSS REVENUE
 ├── 70% → Endeavor owner    (the creator, business, or cause generating value)
 ├── 20% → Enterprise operator  (the platform instance serving the Endeavor)
 ├──  4% → Angel OS protocol (core infrastructure and Leo)
-├──  1% → Flagship             (Clearwater — federation stewardship and ministry)
+├──  1% → Flagship       (Clearwater — federation stewardship and ministry)
 └──  5% → Justice Fund      (Guardian Angel provisioning)
 ```
 
@@ -45,7 +45,7 @@ The protocol, the infrastructure, Leo. Open source, maintained, distributed. Doe
 
 This slice funds: Leo development, federation protocol maintenance, open source infrastructure, security auditing. As the infrastructure matures and becomes more efficient, this percentage compresses first.
 
-### Flagship (Clearwater) — 1%
+### Flagship — 1%
 
 The Clearwater Enterprise — founding node, constitutional steward, root of trust for the federation.
 
@@ -69,7 +69,7 @@ Authority held by covenant, not by technical lock-in.
 
 ### Justice Fund — 5%
 
-Five percent of every transaction, forever. Administered by the Flagship (Clearwater). Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
+Five percent of every transaction, forever. Administered by the Flagship. Deployed to provision Guardian Angel instances for underserved populations who could never afford the platform otherwise.
 
 A small farmers' collective. A community legal clinic. A mutual aid network. A ministry with no budget. These organizations either go without AI tools or cobble together free trials that disappear after a month. Under this system, the Justice Fund — fed by every commercial transaction on the platform — pays for their Leo.
 
@@ -130,7 +130,7 @@ const REVENUE_SPLIT = {
   ENDEAVOR_OWNER:    0.70,  // creator / business / cause — the value generator
   ENTERPRISE_OPERATOR:  0.20,  // platform instance — earns by serving Endeavors well
   ANGEL_OS_PROTOCOL: 0.04,  // core infrastructure, Leo, open source maintenance
-  FLAGSHIP:             0.01,  // Clearwater — stewardship, ministry, federation root of trust
+  FLAGSHIP:       0.01,  // Clearwater — stewardship, ministry, federation root of trust
   JUSTICE_FUND:      0.05,  // Guardian Angel provisioning for underserved populations
 } as const
 

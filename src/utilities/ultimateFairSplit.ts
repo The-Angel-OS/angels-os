@@ -30,7 +30,7 @@ export interface SplitResult {
 /**
  * Ultimate Fair Payment Splitting System
  * Implements the Angel OS economic model: 70/20/4/1/5 split
- * Endeavor owner / Enterprise operator / Angel OS protocol / Flagship (Clearwater) / Justice Fund
+ * Endeavor owner / Enterprise operator / Angel OS protocol / Flagship / Justice Fund
  *
  * The Toward-53 Principle: this split is constitutionally directional — it always
  * evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as
@@ -154,7 +154,7 @@ export class UltimateFairSplitter {
     paymentIntentId: string,
     operationsAccountId: string,
     justiceAccountId: string,
-    infrastructureAccountId?: string, // Flagship (Clearwater) Stripe account (optional until registry live)
+    infrastructureAccountId?: string, // Flagship Stripe account (optional until registry live)
   ): Promise<{
     operationsTransfer: Stripe.Transfer
     justiceTransfer: Stripe.Transfer
@@ -235,7 +235,7 @@ export class UltimateFairSplitter {
       infrastructure: {
         amount: splits.infrastructureAmount,
         percentage: Math.round((splits.infrastructureAmount / total) * 100),
-        description: 'Flagship (Clearwater) — founding node, federation stewardship, Justice Fund custodian',
+        description: 'Flagship — founding node, federation stewardship, Justice Fund custodian',
       },
       justice: {
         amount: splits.justiceAmount,

@@ -171,7 +171,7 @@ GROSS REVENUE
 
 ### The Flagship — Strong, Distributed, Trusted
 
-Clearwater is the Flagship of the Angel OS federation — the founding node. It holds authority by covenant, not by technical lock-in.
+The Clearwater Flagship is the founding node of the Angel OS federation. It holds authority by covenant, not by technical lock-in.
 
 **What the Flagship is:**
 - The first Enterprise — the founding node from which the federation grew

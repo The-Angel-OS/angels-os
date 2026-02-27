@@ -317,7 +317,7 @@ Every Endeavor transaction:
   70% → Endeavor owner (creator/business/cause)
   20% → Enterprise operator (the platform instance)
    4% → Angel OS protocol (infrastructure, Leo)
-   1% → Archenterprise (federation stewardship)
+   1% → Flagship (federation stewardship)
    5% → Justice Fund (Guardian Angels for the underserved)
 ```
 

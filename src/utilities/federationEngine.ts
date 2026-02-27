@@ -460,7 +460,7 @@ export function generateFederationHealthReport(
 
 /** Role in the federation mesh. */
 export type FederationRole =
-  | 'flagship'       // Original founding node — rank 1 by convention
+  | 'flagship' // Original founding node — rank 1 by convention
   | 'sentinel'       // Active + full trust — replicates governance, can coordinate
   | 'member'         // Active but not yet fully trusted — participates, doesn't replicate
 
@@ -594,11 +594,11 @@ export function calculateFederationRank(
  */
 export function buildFederationMesh(
   ministries: Ministry[],
-  flagshipId: string,
+  archentepriseId: string,
   currentDate: Date = new Date(),
 ): FederationNode[] {
   return ministries.map((m) => {
-    const isArch = m.id === flagshipId
+    const isArch = m.id === archentepriseId
     const role = determineFederationRole(m, isArch)
     const rank = calculateFederationRank(m, ministries, isArch, currentDate)
     const healthy = isHeartbeatHealthy(m.lastHeartbeat, currentDate)

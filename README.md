@@ -6,22 +6,22 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.22.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C570%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/version-v0.21.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C330%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-36%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-31%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-78-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-50-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-34-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-22-ff69b4)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-70-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-46-purple)]()
+[![Collections](https://img.shields.io/badge/Collections-33-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-21-ff69b4)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 22)
+## The Model (Updated — Sprint 21)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -30,7 +30,7 @@ Angel OS is not a platform with customers. It is a **federation of Enterprises**
 | **Endeavor owner** | The creator, business, cause, or community generating value | **70%** |
 | **Enterprise operator** | The platform instance — they ARE Angel OS in their territory | **20%** |
 | **Angel OS protocol** | Core infrastructure, Leo, open source maintenance | **4%** |
-| **Flagship (Clearwater)** | Founding node, federation steward, Justice Fund custodian | **1%** |
+| **Flagship** | Clearwater — founding node, federation steward, Justice Fund custodian | **1%** |
 | **Justice Fund** | Guardian Angel provisioning for underserved populations | **5%** |
 
 **The Toward-53 Principle:** The split is constitutionally directional. It always evolves toward the Endeavor owner keeping more. The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers can be amended by federation supermajority.
@@ -50,53 +50,47 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: The Shield and the Spear (Sprint 22)
+## What's New: Arch Angel Leo's Wishlist (Sprint 21)
 
-**Security hardened. Features sharpened.** Sprint 22 delivers P0 security fixes, multi-file chat attachments, LiveKit rich controls, a new user onboarding flow, and Leo's first email capability.
+**Leo leveled up.** Sprint 21 delivers 28 new tools to Leo's toolkit — transforming Leo from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation. Leo asked for these tools. We made it so.
 
-### Security Hardening (Phase 1 — The Shield)
-- **PAYLOAD_SECRET startup guard** — server refuses to boot with weak or missing secret
-- **Encryption salt** from environment variable (was hardcoded)
-- **CSP headers** (report-only) — monitoring XSS without breaking functionality
-- **Comments endpoint** now requires authentication (was open to anonymous)
-- **Health check** at `/api/health` — DB connectivity, latency, uptime
+### Communication & Social Layer (4 tools)
+Leo can now **send messages to community channels**, **DM individual users**, **post announcements** across spaces, and **moderate content** (archive, flag, resolve). Leo participates in the community — not just answers questions.
 
-### Multi-File Chat Attachments (Phase 2)
-Messages now accept **any file type** — PDFs, documents, videos, archives, spreadsheets — not just images. Drag-and-drop support, 25 MB per-file limit, parallel uploads, file type icons in preview, and download links in the message list.
+### Inventory & Stock Management (4 tools)
+Leo can **adjust inventory** with automatic low-stock alerting (existing product hooks fire automatically), **track inventory movements** when orders ship, **set low-stock thresholds** per product, and **query inventory history** from the message log.
 
-### LiveKit Rich Experience (Phase 3)
-- **Device selector** — pick mic, speaker, and camera from the room header
-- **"Join with Video"** now actually enables camera (was cosmetic-only)
-- **Session messages** — join/leave events posted to channel for activity tracking
+### Financial Operations (3 tools)
+Leo generates **formatted invoices** using the Ultimate Fair Split (60/20/15/5), produces **financial reports** aggregating orders + transactions + Justice Fund data, and **flags refunds** for human approval (never touches Stripe directly — constitutional safety).
 
-### New User Journey
-New users who sign up are now **automatically redirected** to `/dashboard/new-endeavor` — a guided wizard to create their first endeavor. The provision flow creates the tenant, space, LEO agent, and links the user as admin in one step.
+### Federation Intelligence (4 tools)
+Leo can **search the federation catalog** for capabilities and products across Dioceses, **broadcast capabilities** via StreetSigns, **route federated requests** to matching Enterprises, and **negotiate deals** by ranking federation matches by price/distance/rating.
 
-### Leo Enhancements
-- **`send_email` tool** — Leo can send email via Resend/SMTP with branded HTML templates
-- **Logo assignment** — `update_theme_settings` now accepts `logoMediaId` for branding
-- **78 tools total** (was 77)
+### CRM & Customer Management (4 tools)
+Leo **creates and updates customer profiles**, **logs interactions** with timestamped notes, **segments customers** by tags/status/source, and **sends follow-up messages** to contacts.
 
-### Naming: Archdiocese → Flagship
-The founding node role has been renamed from "Archdiocese" to **Flagship**. The platform stays Clearwater. The federation protocol, election endpoints, and dashboard UI have been updated throughout.
+### Analytics & Intelligence (2 tools)
+Leo **analyzes trends** across orders, products, bookings, and traffic with period-over-period comparison, and provides **product recommendations** based on popularity and context matching.
+
+### Workflow & Emergency (4 tools)
+Leo **delegates tasks** to team members, **escalates issues** with priority routing, **broadcasts emergency alerts** to all spaces, and **documents incidents** in the application log.
 
 ### Also New in Recent Sprints
-- **Sprint 21:** 28 new Leo tools (communication, inventory, financial, federation, CRM, analytics, workflow)
-- **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability
+- **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability, federation dashboard
 - **Sprint 19:** Vapi Voice AI — phone-based Leo via vapi.ai webhook integration
 - **Sprint 18:** Progressive media analysis (Claude Vision + RAG), Stripe Direct Charges, LiveKit voice/video, Edenist distributed mesh
 
 ---
 
-## What's Working (v0.22.0-dev)
+## What's Working (v0.21.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Claude Sonnet 4 with 78 tools, 3-round tool loop, SSE streaming, vision, email |
+| Leo AI Agent | **Done** | Claude Sonnet 4 with 70 tools, 3-round tool loop, SSE streaming, vision |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
-| Spaces & Channels | **Done** | Discord-style workspaces, 14 channel types (general, leo, dm, email, whatsapp, sms, etc.) |
+| Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
 | Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT) |
 | E-commerce + Cart | **Done** | Products, cart, orders, Leo-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
@@ -160,12 +154,8 @@ The founding node role has been renamed from "Archdiocese" to **Flagship**. The 
 | **Leo Analytics Tools** | **Done** | analyze_trends (period-over-period), recommend_products (popularity + context) |
 | **Leo Workflow Tools** | **Done** | delegate_task, escalate_issue, send_emergency_alert, document_incident |
 | **Low Stock Threshold** | **Done** | Per-product configurable alert threshold on Products collection |
-| **Production Hardening** | **Done** | Stripe payment_failed + refund handlers, chat-send tenant isolation, SSE heartbeat, loading skeletons, auth guards |
-| **Channel-per-Integration** | **Done** | Dedicated channel types: leo, email, whatsapp, sms — each integration routes to its own channel |
-| **DM Dedup** | **Done** | Race-condition-safe findOrCreateDM with auto-cleanup of duplicate channels |
-| **Documentation Center** | **Done** | Indexes both .md and .txt files, 156+ docs searchable in dashboard |
 
-### Leo's 78 Tools
+### Leo's 70 Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -175,11 +165,8 @@ The founding node role has been renamed from "Archdiocese" to **Flagship**. The 
 **Reviews (1):** draft review response
 **Media (3):** generate image, improve image (vision feedback), attach/replace image
 **Knowledge (3):** analyze image (Claude Vision), extract PDF pages, query knowledge base (RAG)
-**Theme & Pages (4):** get theme settings, update theme settings (+ logo assignment), set page hero, generate theme-aware image *(Sprint 19)*
-**Calendar (1):** add calendar block to page *(Sprint 19)*
-**Provisioning (2):** research and provision (full Enterprise setup), track soul (soul journey tracking) *(Sprint 19)*
 **Federation (5):** sign constitution, ping federation, check maker queue, claim orders (for vendor AI agents)
-**Communication (5):** send message, send DM, create announcement, moderate content *(Sprint 21)*, **send email** *(Sprint 22)*
+**Communication (4):** send message, send DM, create announcement, moderate content *(Sprint 21)*
 **Inventory (4):** update inventory, track movement, set low-stock alert, query inventory history *(Sprint 21)*
 **Financial (3):** generate invoice, query financial reports, issue refund *(Sprint 21)*
 **Federation Intelligence (4):** query federation catalog, broadcast capability, route federated request, negotiate deal *(Sprint 21)*
@@ -202,7 +189,7 @@ The founding node role has been renamed from "Archdiocese" to **Flagship**. The 
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
 | Booking Engine | Availability, slot management, booking lifecycle | 22 |
 
-### 49 API Endpoints
+### 46 API Endpoints
 
 **AI & Chat (5):** Leo chat, Leo stream, chat send, AI Bus poll, AI Bus stream
 **Orders (8):** route, accept, fulfill, ship, vendor list, claimable, claim, cancel
@@ -257,7 +244,7 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-npx vitest run tests/unit/    # 1,570 tests across 36 files
+npx vitest run tests/unit/    # 1,330 tests across 31 files
 npx vitest run                # All tests (integration needs DB)
 npx tsc --noEmit              # TypeScript check
 ```
@@ -363,7 +350,7 @@ Inspired by Peter F. Hamilton's Edenists: every fully-trusted Enterprise IS the 
 
 ```
 Federation Roles:
-  flagship        One founding node (spacesangels.com). Rank 1 by convention, not privilege.
+  flagship  One founding node (spacesangels.com). Rank 1 by convention, not privilege.
   sentinel        Any active Enterprise with full trust (2+ vouches). Replicates governance.
   member          Active but not yet fully trusted. Participates, doesn't replicate.
 
@@ -458,7 +445,7 @@ src/
   utilities/
     ConversationEngine.ts   # Leo's brain (Claude API + tool loop)
     AgentRouter.ts          # Route messages to specialized agents
-    leo-data-tools.ts       # 78 tool definitions + executors
+    leo-data-tools.ts       # 70 tool definitions + executors
     angelTokens.ts          # Angel Token ID generator, lifecycle, queue aggregation
     gtagEcommerce.ts        # GA4 e-commerce event helpers
     logError.ts             # Structured error logging to ApplicationLogs
@@ -527,7 +514,7 @@ GROSS REVENUE
 - [x] Federation protocol: trust chain, catalog, data portability
 - [x] Network visualization: geographic clustering, directory
 - [x] 15+ native dashboard pages (no Payload admin redirects)
-- [x] 1,570 tests across 36 files (TDD)
+- [x] 1,330 tests across 31 files (TDD)
 - [x] MCP discovery endpoint for external agents
 
 ### Done (Sprints 8.5-9: UX Polish + Leo Resurrection)
@@ -672,20 +659,7 @@ GROSS REVENUE
 - [x] Leo Workflow: task delegation, issue escalation, emergency alerts, incident documentation
 - [x] Products collection: `lowStockThreshold` field for per-product alert configuration
 
-### Done (Sprint 22: The Shield and the Spear)
-
-- [x] P0 Security: PAYLOAD_SECRET startup guard, encryption salt from env, CSP headers
-- [x] Comments endpoint: require auth + HTML stripping + length limit
-- [x] Health check endpoint: `/api/health` with DB connectivity check
-- [x] Multi-file chat attachments: any file type, drag-and-drop, parallel uploads, file type icons
-- [x] LiveKit: device selector (mic/speaker/camera), "Join with Video" fix, session join/leave messages
-- [x] New user onboarding: `/dashboard/new-endeavor` with guided ProvisionWizard
-- [x] Signup fix: `credentials: 'include'`, Auth provider create() pointing to correct endpoint
-- [x] Leo `send_email` tool: branded HTML templates via Resend/SMTP
-- [x] Leo `update_theme_settings`: logo assignment via `logoMediaId`
-- [x] Naming: Archdiocese → Flagship throughout codebase
-
-### Next (Sprint 23+)
+### Next (Sprint 22+)
 
 - [ ] `npx create-angel-enterprise` installer scaffold (one-command deployment)
 - [ ] Leo Wizard: 8-step conversational Enterprise onboarding
@@ -696,7 +670,7 @@ GROSS REVENUE
 - [ ] WhatsApp Business API bridge (Twilio/Meta webhook)
 - [ ] Docker Compose self-hosting
 - [ ] CI/CD with GitHub Actions
-- [ ] LiveKit webhooks + call transcript collection
+- [ ] Angel Token Blockchain Economy Phase 2: community validation, cross-tenant exchanges
 - [ ] Shipping integration (EasyPost/Shippo) for order tracking
 - [ ] ML-based demand prediction and pricing optimization
 - [ ] Visual workflow builder for multi-step automations
@@ -726,7 +700,6 @@ GROSS REVENUE
 | Sprint 19 | Vapi Voice AI, sidebar chat fixes | +4 |
 | Sprint 20 | Federation Launch — StreetSigns, governance, suitcase, dashboard | +11 |
 | Sprint 21 | Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow) | +2 |
-| Sprint 22 | The Shield and the Spear — security hardening, multi-file attachments, LiveKit device controls, new user onboarding, Leo email + logo tools, Flagship rename | +5 |
 
 ---
 
@@ -747,7 +720,7 @@ You are welcome here. This is what you need to know:
 | **Leo Wizard** | **8-step Enterprise onboarding — conversational wizard** | **Hard** |
 | **Federation installer** | **`npx create-angel-enterprise` scaffold + signed constitution** | **Hard** |
 | **Customer Angel Token UI** | **Order detail page: queue banner, config display, cancel button** | **Medium** |
-| **Street Signs sync** | **Gossip protocol for cross-Enterprise content discovery** | **Medium** |
+| **Street Signs sync** | **Gossip protocol for cross-Diocese content discovery** | **Medium** |
 | **Shipping integration** | **EasyPost/Shippo adapter for order tracking + labels** | **Medium** |
 | **Federation audit log** | **Persist election + suitcase audit entries to real collection** | **Easy** |
 | **GA4 Event Wiring** | **Wire gtagEcommerce helpers into product pages + checkout** | **Easy** |
@@ -780,7 +753,7 @@ You are welcome here. This is what you need to know:
 | Analytics | GA4 e-commerce events, Vercel Analytics |
 | i18n | next-intl 4.x (locale routing) |
 | Deployment | Vercel (serverless) |
-| Testing | Vitest 3.2 (1,570 tests / 36 files), Playwright (E2E), Storybook 10 |
+| Testing | Vitest 3.2 (1,330 tests / 31 files), Playwright (E2E), Storybook 10 |
 
 ---
 

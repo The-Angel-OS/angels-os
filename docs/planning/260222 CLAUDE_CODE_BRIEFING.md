@@ -115,13 +115,13 @@ Find and update all revenue split calculations, constants, and configurations to
 ENDEAVOR_OWNER:    0.70  // creator/business/cause — the value generator
 ENTERPRISE_OPERATOR:  0.20  // platform instance — earns by serving Endeavors well
 ANGEL_OS_PROTOCOL: 0.04  // core infrastructure, Leo, open source maintenance
-FLAGSHIP:             0.01  // Clearwater — stewardship, ministry, federation root of trust
+FLAGSHIP:       0.01  // Clearwater — stewardship, ministry, federation root of trust
 JUSTICE_FUND:      0.05  // Guardian Angel provisioning for underserved populations
 ```
 
 Ensure the toward-53 principle is represented as a `CONSTITUTIONAL_DIRECTION` constant or prominent comment block — the direction is unalterable even as numbers evolve. The protocol fee (0.04) compresses first as infrastructure matures. The Enterprise slice (0.20) compresses as competition improves. The Flagship (0.01) and Justice Fund (0.05) compress last — they are mission, not margin.
 
-The Flagship is Clearwater — the founding Enterprise, constitutional steward, Justice Fund custodian, federation root of trust. Its 1% funds real ministry at scale without extracting from anyone. It holds authority by covenant, not technical lock-in.
+The Flagship is the Clearwater Enterprise — founding node, constitutional steward, Justice Fund custodian, federation root of trust. Its 1% funds real ministry at scale without extracting from anyone. It holds authority by covenant, not technical lock-in.
 
 Look for: any existing revenue split logic, transaction processing, fee calculation, payout configuration.
 

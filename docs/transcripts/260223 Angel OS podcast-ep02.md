@@ -166,7 +166,7 @@ The protocol fee compresses first, as infrastructure becomes more efficient. The
 
 ---
 
-### SEGMENT 7: THE ARCHENTERPRISE — THE MONASTERY
+### SEGMENT 7: THE FLAGSHIP — THE MONASTERY
 **[9:45]**
 
 I need to explain that 1%.
