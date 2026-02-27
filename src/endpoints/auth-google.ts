@@ -8,10 +8,36 @@
  *    Handles the OAuth2 callback, exchanges the code for tokens,
  *    finds or creates the user, sets the Payload auth cookie,
  *    and redirects to the appropriate dashboard.
+ *
+ * Cross-domain support:
+ *    When a user on a custom domain (kendev.co) initiates OAuth, the
+ *    callback always lands on the canonical domain (NEXT_PUBLIC_SERVER_URL)
+ *    because only one redirect URI is registered with Google. The origin
+ *    domain is encoded in the OAuth `state` parameter. If it differs from
+ *    the canonical domain (and isn't covered by COOKIE_DOMAIN), we redirect
+ *    through /api/auth/token-relay on the origin domain to set the cookie.
  */
 import type { PayloadHandler } from 'payload'
 import { sign } from 'jsonwebtoken'
 import crypto from 'crypto'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Extract hostname from a URL string, stripping port */
+function getHostname(urlStr: string): string {
+  try {
+    return new URL(urlStr).hostname
+  } catch {
+    return ''
+  }
+}
+
+/** Check if a hostname is a subdomain of another (or equal) */
+function isSubdomainOf(hostname: string, parent: string): boolean {
+  return hostname === parent || hostname.endsWith(`.${parent}`)
+}
 
 // ---------------------------------------------------------------------------
 // 1. Initiate Google OAuth2 flow
@@ -28,16 +54,24 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
   }
 
   const url = new URL(req.url || '', 'http://localhost')
-  const origin = url.origin
+  const canonicalUrl = process.env.NEXT_PUBLIC_SERVER_URL || url.origin
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_SERVER_URL || origin}/api/auth/google/callback`
+  const redirectUri = `${canonicalUrl}/api/auth/google/callback`
 
-  // Preserve the caller-supplied `redirect` query param so we can restore it
-  // after Google sends the user back.
+  // Build state: preserve caller's redirect + the origin domain for
+  // cross-domain relay (custom domain tenants).
+  const statePayload: { redirect?: string; origin?: string } = {}
+
   const redirectParam = url.searchParams.get('redirect')
-  const state = redirectParam
-    ? encodeURIComponent(JSON.stringify({ redirect: redirectParam }))
-    : undefined
+  if (redirectParam) {
+    statePayload.redirect = redirectParam
+  }
+
+  // If the user is on a different domain than canonical, record it
+  const currentOrigin = url.origin
+  if (getHostname(currentOrigin) !== getHostname(canonicalUrl)) {
+    statePayload.origin = currentOrigin
+  }
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -48,8 +82,8 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     prompt: 'consent',
   })
 
-  if (state) {
-    params.set('state', state)
+  if (Object.keys(statePayload).length > 0) {
+    params.set('state', encodeURIComponent(JSON.stringify(statePayload)))
   }
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
@@ -67,7 +101,7 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
 export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
   try {
     const url = new URL(req.url || '', 'http://localhost')
-    const origin = url.origin
+    const canonicalUrl = process.env.NEXT_PUBLIC_SERVER_URL || url.origin
 
     const code = url.searchParams.get('code')
     const stateRaw = url.searchParams.get('state')
@@ -89,7 +123,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    const redirectUri = `${process.env.NEXT_PUBLIC_SERVER_URL || origin}/api/auth/google/callback`
+    const redirectUri = `${canonicalUrl}/api/auth/google/callback`
 
     // ----- Exchange code for tokens -----
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -121,7 +155,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // ----- Decode the id_token (JWT payload — no verification needed) -----
+    // ----- Decode the id_token (JWT — Google-signed, not secret) -----
     const payloadSegment = tokenData.id_token.split('.')[1]
     if (!payloadSegment) {
       return Response.json(
@@ -214,7 +248,77 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       { expiresIn: '14d' },
     )
 
-    // ----- Build Set-Cookie header -----
+    // ----- Parse state to determine redirect + origin domain -----
+    let stateRedirect: string | undefined
+    let stateOrigin: string | undefined
+
+    if (stateRaw) {
+      try {
+        const stateObj = JSON.parse(decodeURIComponent(stateRaw)) as {
+          redirect?: string
+          origin?: string
+        }
+        stateRedirect = stateObj.redirect
+        stateOrigin = stateObj.origin
+      } catch {
+        // state was not valid JSON — ignore
+      }
+    }
+
+    // Determine final in-app redirect path
+    let redirectPath: string
+    if (stateRedirect && stateRedirect.startsWith('/')) {
+      redirectPath = stateRedirect
+    } else {
+      const roles: string[] = Array.isArray(user.roles) ? user.roles : []
+      const isAdminUser =
+        roles.includes('admin') ||
+        roles.includes('super_admin') ||
+        roles.includes('archangel')
+      redirectPath = isAdminUser ? '/admin' : '/dashboard'
+    }
+
+    // ----- Cross-domain relay for custom domain tenants -----
+    // If the user initiated OAuth from a different domain, relay the token
+    // back to that domain so the cookie gets set on the correct host.
+    if (stateOrigin) {
+      const originHostname = getHostname(stateOrigin)
+      const canonicalHostname = getHostname(canonicalUrl)
+      const cookieDomain = process.env.COOKIE_DOMAIN || ''
+      const cookieBase = cookieDomain.startsWith('.') ? cookieDomain.slice(1) : cookieDomain
+
+      // If the origin is a subdomain of COOKIE_DOMAIN, the cookie set on
+      // the canonical domain already covers it — no relay needed.
+      const coveredByCookie = cookieBase && isSubdomainOf(originHostname, cookieBase)
+
+      if (!coveredByCookie && originHostname !== canonicalHostname) {
+        // Validate the origin is a known tenant domain (prevents open redirect)
+        const tenantCheck = await req.payload.find({
+          collection: 'tenants',
+          where: {
+            or: [
+              { domains: { contains: originHostname } },
+              { slug: { equals: originHostname.split('.')[0] } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+
+        if (tenantCheck.docs.length > 0) {
+          // Relay token to the custom domain
+          const relayUrl = `${stateOrigin}/api/auth/token-relay?t=${encodeURIComponent(payloadToken)}&r=${encodeURIComponent(redirectPath)}`
+          return new Response(null, {
+            status: 302,
+            headers: { Location: relayUrl },
+          })
+        }
+        // Unknown domain — fall through to canonical cookie (safe default)
+      }
+    }
+
+    // ----- Same-domain: set cookie directly -----
     const cookieDomain = process.env.COOKIE_DOMAIN || ''
     const isProduction = process.env.NODE_ENV === 'production'
     const cookieStr = [
@@ -229,35 +333,10 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       .filter(Boolean)
       .join('; ')
 
-    // ----- Determine redirect destination -----
-    let redirectTo: string | undefined
-
-    if (stateRaw) {
-      try {
-        const stateObj = JSON.parse(decodeURIComponent(stateRaw)) as {
-          redirect?: string
-        }
-        if (stateObj.redirect) {
-          redirectTo = stateObj.redirect
-        }
-      } catch {
-        // state was not valid JSON — ignore
-      }
-    }
-
-    if (!redirectTo) {
-      const roles: string[] = Array.isArray(user.roles) ? user.roles : []
-      const isAdminUser =
-        roles.includes('admin') ||
-        roles.includes('super_admin') ||
-        roles.includes('archangel')
-      redirectTo = isAdminUser ? '/admin' : '/dashboard'
-    }
-
     return new Response(null, {
       status: 302,
       headers: {
-        Location: redirectTo,
+        Location: redirectPath,
         'Set-Cookie': cookieStr,
       },
     })

@@ -108,6 +108,7 @@ import { vapiSetupHandler } from '@/endpoints/vapi-setup'
 import { federationElectionHandler } from '@/endpoints/federation-election'
 import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
+import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -661,6 +662,11 @@ export default buildConfig({
       path: '/auth/google/callback',
       method: 'get',
       handler: authGoogleCallbackHandler,
+    },
+    {
+      path: '/auth/token-relay',
+      method: 'get',
+      handler: authTokenRelayHandler,
     },
   ],
   globals: [],
