@@ -32,7 +32,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -42,6 +42,63 @@ const MAX_HISTORY_TURNS = 8
 const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 3
 const LLM_MODEL = 'claude-sonnet-4-20250514'
+
+// ---------------------------------------------------------------------------
+// Slash command handler
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle /commands typed in chat. Returns response text or null if not a command.
+ */
+function handleSlashCommand(msg: string): string | null {
+  const parts = msg.split(/\s+/)
+  const cmd = parts[0]?.toLowerCase()
+
+  if (cmd === '/model' || cmd === '/models') {
+    const subCmd = parts[1]?.toLowerCase()
+
+    if (!subCmd || subCmd === 'list') {
+      const current = resolveModelId()
+      const lines = ['**Available Models**\n']
+      for (const [alias, id] of Object.entries(MODEL_CATALOG)) {
+        const marker = id === current ? ' ← **active**' : ''
+        lines.push(`• \`${alias}\` → \`${id}\`${marker}`)
+      }
+      lines.push(`\n**Default:** \`${DEFAULT_MODEL}\``)
+      lines.push(`**Fallback:** \`${FALLBACK_MODEL}\``)
+      lines.push(`\nSwitch with: \`/model <alias>\` (e.g. \`/model gemini-pro\`)`)
+      lines.push(`Or set \`LLM_MODEL\` env var for a persistent override.`)
+      return lines.join('\n')
+    }
+
+    // /model <alias> — switch
+    const alias = subCmd
+    if (alias in MODEL_CATALOG) {
+      process.env.LLM_MODEL = alias
+      const resolved = resolveModelId(alias)
+      return `✅ Switched model to **${alias}** (\`${resolved}\`).\n\nThis applies for the current server session. Set \`LLM_MODEL=${alias}\` in \`.env.local\` to persist.`
+    }
+
+    // Check if it's a full model ID
+    if (alias.includes('/')) {
+      process.env.LLM_MODEL = alias
+      return `✅ Switched model to \`${alias}\`.\n\nThis applies for the current server session.`
+    }
+
+    return `❌ Unknown model: \`${alias}\`\n\nAvailable aliases: ${Object.keys(MODEL_CATALOG).map(k => `\`${k}\``).join(', ')}`
+  }
+
+  if (cmd === '/help') {
+    return [
+      '**LEO Commands**\n',
+      '• `/model` or `/models` — List available AI models',
+      '• `/model <alias>` — Switch to a different model',
+      '• `/help` — Show this help',
+    ].join('\n')
+  }
+
+  return null // Not a recognized command
+}
 
 // ---------------------------------------------------------------------------
 // Minimal env-file parser
@@ -512,6 +569,27 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     }
   }
 
+  // ─── Slash Commands ──────────────────────────────────────────────────────
+  const trimmedMsg = message.trim()
+  if (trimmedMsg.startsWith('/')) {
+    const cmdResult = handleSlashCommand(trimmedMsg)
+    if (cmdResult) {
+      // Return slash command response as a quick SSE stream
+      const cmdEncoder = new TextEncoder()
+      const cmdStream = new ReadableStream({
+        start(ctrl) {
+          ctrl.enqueue(cmdEncoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
+          ctrl.enqueue(cmdEncoder.encode(sseEvent('delta', { text: cmdResult })))
+          ctrl.enqueue(cmdEncoder.encode(sseEvent('done', { text: cmdResult, agentName: 'System' })))
+          ctrl.close()
+        },
+      })
+      return new Response(cmdStream, {
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+      })
+    }
+  }
+
   // Check if we have any LLM backend available
   const useGateway = isGatewayAvailable()
   const client = useGateway ? null : getAnthropicClient()
@@ -589,6 +667,44 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     ? await fetchConversationHistory(req.payload, resolvedSpaceId, resolvedChannel)
     : []
 
+  // ─── Pre-create LEO response message (empty) ────────────────────────
+  // Create the message record BEFORE streaming so partial responses survive
+  // connection drops, timeouts, or unexpected stream termination.
+  let preCreatedMsgId: number | undefined
+  let leoUserId: number | undefined
+  if (resolvedSpaceId) {
+    try {
+      if (tenantSlug) {
+        const leoEmail = `leo-${tenantSlug}@system.angelos.local`
+        const leoUsers = await req.payload.find({
+          collection: 'users',
+          where: { and: [{ email: { equals: leoEmail } }, { isSystemUser: { equals: true } }] },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        leoUserId = leoUsers.docs?.[0]?.id
+      }
+
+      const placeholder = await req.payload.create({
+        collection: 'messages',
+        data: {
+          content: wrapTextContent('...'),
+          space: resolvedSpaceId,
+          channel: resolvedChannel,
+          messageType: 'ai_agent',
+          ...(leoUserId ? { author: leoUserId } : {}),
+          metadata: { streaming: true, model: resolveModelId() },
+        } as any,
+        overrideAccess: true,
+      })
+      preCreatedMsgId = placeholder.id as number
+    } catch (preCreateErr) {
+      console.warn('[LEO Stream] Failed to pre-create message:', preCreateErr)
+      // Non-fatal — fall back to save-on-end
+    }
+  }
+
   // Create SSE stream
   const encoder = new TextEncoder()
 
@@ -610,7 +726,10 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       }, 15_000)
 
       try {
-        controller.enqueue(encoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
+        controller.enqueue(encoder.encode(sseEvent('start', {
+          conversationId: resolvedConversationId,
+          ...(preCreatedMsgId ? { messageId: preCreatedMsgId } : {}),
+        })))
 
         if (useGateway) {
           // ─── Path 1: Vercel AI Gateway via AI SDK ───────────────────
@@ -703,42 +822,65 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         }).catch(() => {})
       }
 
-      // Always persist whatever text was accumulated (even partial on error)
-      let savedMessageId: number | undefined
+      // ─── Persist: update pre-created message or create new one ──────
+      let savedMessageId: number | undefined = preCreatedMsgId
       if (resolvedSpaceId && fullText.trim()) {
         try {
-          let leoUserId: number | undefined
-          if (tenantSlug) {
-            const leoEmail = `leo-${tenantSlug}@system.angelos.local`
-            const leoUsers = await req.payload.find({
-              collection: 'users',
-              where: {
-                and: [
-                  { email: { equals: leoEmail } },
-                  { isSystemUser: { equals: true } },
-                ],
-              },
-              limit: 1,
-              depth: 0,
+          if (preCreatedMsgId) {
+            // Update the pre-created placeholder with final content
+            await req.payload.update({
+              collection: 'messages',
+              id: preCreatedMsgId,
+              data: {
+                content: wrapTextContent(fullText),
+                metadata: { streaming: false, model: resolveModelId(), partial: hadError },
+              } as any,
               overrideAccess: true,
             })
-            leoUserId = leoUsers.docs?.[0]?.id
+          } else {
+            // Fallback: pre-create failed, save now
+            const saved = await req.payload.create({
+              collection: 'messages',
+              data: {
+                content: wrapTextContent(fullText),
+                space: resolvedSpaceId,
+                channel: resolvedChannel,
+                messageType: 'ai_agent',
+                ...(leoUserId ? { author: leoUserId } : {}),
+              } as any,
+              overrideAccess: true,
+            })
+            savedMessageId = saved.id as number
           }
-
-          const saved = await req.payload.create({
+        } catch (saveErr) {
+          console.warn('[LEO Stream] Failed to persist response:', saveErr)
+          // Log the lost response so it can be recovered
+          logError({
+            source: 'leo-stream.persist',
+            message: `Failed to save LEO response (${fullText.length} chars lost)`,
+            details: `Response text: ${fullText.slice(0, 500)}...\nSave error: ${saveErr instanceof Error ? saveErr.message : String(saveErr)}`,
+            tenantId: tenantId ? String(tenantId) : undefined,
+            userId: req.user?.id as number | undefined,
+          }).catch(() => {})
+        }
+      } else if (preCreatedMsgId && !fullText.trim()) {
+        // Pre-created but no response generated — clean up the placeholder
+        // or mark it as an error so it's visible
+        try {
+          const errContent = hadError
+            ? 'LEO encountered an error processing this request.'
+            : 'LEO was unable to generate a response.'
+          await req.payload.update({
             collection: 'messages',
+            id: preCreatedMsgId,
             data: {
-              content: wrapTextContent(fullText),
-              space: resolvedSpaceId,
-              channel: resolvedChannel,
-              messageType: 'ai_agent',
-              ...(leoUserId ? { author: leoUserId } : {}),
+              content: wrapTextContent(errContent),
+              metadata: { streaming: false, error: true, model: resolveModelId() },
             } as any,
             overrideAccess: true,
           })
-          savedMessageId = saved.id as number
-        } catch (saveErr) {
-          console.warn('[LEO Stream] Failed to persist response:', saveErr)
+        } catch {
+          // Best-effort cleanup
         }
       }
 
