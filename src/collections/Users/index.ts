@@ -86,7 +86,6 @@ export const Users: CollectionConfig = {
         {
           name: 'angelName',
           type: 'text',
-          required: true,
           defaultValue: 'LEO',
           admin: {
             description: 'Custom name for this Angel (e.g., "LEO", "Gabriel", "Seraph")',

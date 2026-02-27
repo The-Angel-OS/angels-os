@@ -623,7 +623,7 @@ export interface User {
     /**
      * Custom name for this Angel (e.g., "LEO", "Gabriel", "Seraph")
      */
-    angelName: string;
+    angelName?: string | null;
     /**
      * Name shown in chat (e.g., "LEO", "Alex from Support")
      */

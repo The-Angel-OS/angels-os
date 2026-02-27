@@ -5,7 +5,7 @@ import type { Tenant } from '@/payload-types'
 /**
  * Fetches tenant by request host/domain.
  * Strip port from host (e.g. localhost:3000 → localhost).
- * Falls back to the "default" tenant if no domain match found,
+ * Falls back to the DEFAULT_TENANT_SLUG tenant if no domain match found,
  * ensuring the site always works regardless of access domain.
  */
 export async function fetchTenantByDomain(host: string): Promise<Tenant | null> {
@@ -42,10 +42,11 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
       if (bySlug.docs?.[0]) return bySlug.docs[0]
     }
 
-    // Final fallback: return the "default" tenant so the site always has context
+    // Final fallback: return the default tenant so the site always has context
+    const fallbackSlug = process.env.DEFAULT_TENANT_SLUG || 'default'
     const defaults = await payload.find({
       collection: 'tenants',
-      where: { slug: { equals: 'default' } },
+      where: { slug: { equals: fallbackSlug } },
       limit: 1,
       depth: 2,
     })

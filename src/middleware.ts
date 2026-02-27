@@ -21,6 +21,15 @@ const handleI18nRouting = createMiddleware(routing)
 
 export default async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host')?.split(':')[0] ?? 'localhost'
+
+  // Redirect legacy default. subdomain to www.
+  if (hostname === 'default.spacesangels.com' || hostname.startsWith('default.')) {
+    const wwwHost = hostname.replace(/^default\./, 'www.')
+    const url = request.nextUrl.clone()
+    url.host = wwwHost
+    return NextResponse.redirect(url, 301)
+  }
+
   const tenantId = detectTenantFromHostname(hostname)
 
   const requestHeaders = new Headers(request.headers)

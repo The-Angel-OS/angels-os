@@ -38,7 +38,8 @@ export function detectTenantFromHostname(hostname: string): string | null {
 
   // Main platform domains return null (no tenant prefix)
   const mainPlatformDomains = [
-    'spacesangels.com', 'www.spacesangels.com',
+    'spacesangels.com', 'www.spacesangels.com', 'default.spacesangels.com',
+    'kendev.co', 'www.kendev.co', 'discordant.kendev.co',
     'angels-os.kendev.co', 'angel-os.kendev.co', 'angels-os.vercel.app',
   ]
   if (mainPlatformDomains.includes(hostname)) {

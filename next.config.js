@@ -11,6 +11,9 @@ const nextConfig = {
     remotePatterns: [
       // ── Production: all *.spacesangels.com subdomains ──────────────────────
       { protocol: 'https', hostname: '**.spacesangels.com' },
+      // ── kendev.co: development + federation partner domains ────────────────
+      { protocol: 'https', hostname: '**.kendev.co' },
+      { protocol: 'https', hostname: 'kendev.co' },
       // ── Vercel preview deployments ─────────────────────────────────────────
       { protocol: 'https', hostname: '**.vercel.app' },
       // ── Local dev: *.angelos.local subdomains + plain localhost ────────────
