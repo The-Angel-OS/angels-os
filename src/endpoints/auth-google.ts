@@ -222,7 +222,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           id: user.id,
           data: {
             socialProviders: [...providers, socialEntry],
-          },
+          } as any, // socialProviders not yet in generated types
           overrideAccess: true,
         })
       }
@@ -236,7 +236,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           password: crypto.randomUUID() + crypto.randomUUID(),
           roles: ['customer'],
           socialProviders: [socialEntry],
-        },
+        } as any, // socialProviders not yet in generated types
         overrideAccess: true,
       })
     }

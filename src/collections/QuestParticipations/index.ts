@@ -20,7 +20,7 @@ export const QuestParticipations: CollectionConfig = {
     {
       name: 'quest',
       type: 'relationship',
-      relationTo: 'quests',
+      relationTo: 'quests' as any, // Not yet in generated types — regenerate after migration
       required: true,
       admin: { position: 'sidebar' },
     },
