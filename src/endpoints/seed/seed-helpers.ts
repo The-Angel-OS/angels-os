@@ -4,6 +4,11 @@
  */
 import type { Payload, PayloadRequest } from 'payload'
 
+import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
+
+/** Re-export for backward compatibility */
+export { leoSystemUserEmail, leoLegacyEmail }
+
 export const INITIAL_USER_EMAILS = {
   admin: 'kenneth.courtney@gmail.com',
   devAdmin: 'admin@spacesangels.com',
@@ -17,11 +22,6 @@ export const PLATFORM_TENANT_ID = 'platform'
 
 /** Email domain for system agents/users. Routable in production. */
 const SYSTEM_EMAIL_DOMAIN = 'system.spacesangels.com'
-
-/** Email pattern for LEO system users (one per tenant). */
-export function leoSystemUserEmail(tenantSlug: string): string {
-  return `leo-${tenantSlug}@${SYSTEM_EMAIL_DOMAIN}`
-}
 
 /** Find tenant by slug; create if not exists. Returns tenant with id. */
 export async function findOrCreateTenant(

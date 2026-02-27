@@ -182,8 +182,8 @@ test.describe('User Journey: Login', () => {
 
     await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded' })
 
-    // Server-side redirect: customers → /dashboard, admins → /admin
-    await page.waitForURL(/\/(dashboard|admin)/, { timeout: 10000 })
+    // Server-side redirect: all users → /dashboard
+    await page.waitForURL(/\/dashboard/, { timeout: 10000 })
   })
 })
 

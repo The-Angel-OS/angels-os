@@ -25,6 +25,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { buildMinimalConstitutionalPrompt } from '@/utilities/constitutional-prompt'
+import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
 import { routeToAgent } from '@/utilities/AgentRouter'
@@ -675,7 +676,6 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   if (resolvedSpaceId) {
     try {
       if (tenantSlug) {
-        const { leoSystemUserEmail } = await import('./seed/seed-helpers.js')
         const leoEmail = leoSystemUserEmail(tenantSlug)
         const leoUsers = await req.payload.find({
           collection: 'users',
@@ -687,10 +687,9 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         leoUserId = leoUsers.docs?.[0]?.id
         // Fallback: try legacy email pattern during migration
         if (!leoUserId) {
-          const legacyEmail = `leo-${tenantSlug}@system.angelos.local`
           const legacyLeo = await req.payload.find({
             collection: 'users',
-            where: { and: [{ email: { equals: legacyEmail } }, { isSystemUser: { equals: true } }] },
+            where: { and: [{ email: { equals: leoLegacyEmail(tenantSlug) } }, { isSystemUser: { equals: true } }] },
             limit: 1, depth: 0, overrideAccess: true,
           })
           leoUserId = legacyLeo.docs?.[0]?.id

@@ -16,11 +16,9 @@ export default async function Login() {
   const { user } = await payload.auth({ headers })
 
   if (user) {
-    // Route already-logged-in users by role
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const roles: string[] = Array.isArray((user as any)?.roles) ? (user as any).roles : []
-    const isAdmin = roles.some((r) => ['super_admin', 'admin', 'archangel'].includes(r))
-    redirect(isAdmin ? '/admin' : '/dashboard')
+    // Route already-logged-in users to dashboard (admins and customers alike)
+    // Note: /admin is Payload CMS — we always want the frontend /dashboard
+    redirect('/dashboard')
   }
 
   return (

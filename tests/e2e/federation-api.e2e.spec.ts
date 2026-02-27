@@ -26,7 +26,7 @@ test.describe('Federation API', () => {
   // ─────────────────────────────────────────────────────────────
 
   test.describe('Core endpoints', () => {
-    test('POST /api/federation/ping returns success with federationId', async ({ page }) => {
+    test('POST /api/federation/ping requires Ed25519 signature', async ({ page }) => {
       const res = await page.request.post(`${baseURL}/api/federation/ping`, {
         data: {
           enterpriseName: 'e2e-test-enterprise',
@@ -35,14 +35,13 @@ test.describe('Federation API', () => {
         },
       })
 
-      expect(res.status()).toBe(200)
+      // Since Sprint 23 security hardening, ping requires Ed25519 signatures.
+      // Without a valid signature, we expect 401 with a helpful hint.
+      expect(res.status()).toBe(401)
       const data = await res.json()
-      expect(data.success).toBe(true)
-      expect(data.federationId).toBeDefined()
-      expect(typeof data.federationId).toBe('string')
-      expect(data.ministryStatus).toBe('applicant')
-      expect(data.registryUrl).toBeDefined()
-      expect(data.message).toBeDefined()
+      expect(data.success).toBe(false)
+      expect(data.error).toContain('Ed25519 signature required')
+      expect(data.hint).toBeDefined()
     })
 
     test('POST /api/federation/heartbeat requires federation auth headers', async ({ page }) => {

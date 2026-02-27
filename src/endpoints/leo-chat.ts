@@ -17,6 +17,7 @@
 
 import type { PayloadHandler } from 'payload'
 
+import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
@@ -97,7 +98,6 @@ export const leoChatHandler: PayloadHandler = async (req) => {
         // Find the LEO system user for this tenant to use as author
         let leoUserId: number | undefined
         if (tenantSlug) {
-          const { leoSystemUserEmail } = await import('./seed/seed-helpers.js')
           const leoEmail = leoSystemUserEmail(tenantSlug)
           const leoUsers = await req.payload.find({
             collection: 'users',
@@ -114,10 +114,9 @@ export const leoChatHandler: PayloadHandler = async (req) => {
           leoUserId = leoUsers.docs?.[0]?.id
           // Fallback: try legacy email pattern during migration
           if (!leoUserId) {
-            const legacyEmail = `leo-${tenantSlug}@system.angelos.local`
             const legacyUsers = await req.payload.find({
               collection: 'users',
-              where: { and: [{ email: { equals: legacyEmail } }, { isSystemUser: { equals: true } }] },
+              where: { and: [{ email: { equals: leoLegacyEmail(tenantSlug) } }, { isSystemUser: { equals: true } }] },
               limit: 1, depth: 0, overrideAccess: true,
             })
             leoUserId = legacyUsers.docs?.[0]?.id

@@ -28,6 +28,7 @@
 
 import type { PayloadHandler, Payload } from 'payload'
 
+import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { logError } from '@/utilities/logError'
 
 // ─── Built-in suitcases ────────────────────────────────────────────────────────
@@ -367,7 +368,6 @@ async function findOrCreateLeo(
   tenantSlug: string,
   nimue: { angelName?: string; personality?: string; domainExpertise?: string },
 ): Promise<string> {
-  const { leoSystemUserEmail } = await import('./seed/seed-helpers.js')
   const email = leoSystemUserEmail(tenantSlug)
 
   const existing = await payload.find({
@@ -388,7 +388,7 @@ async function findOrCreateLeo(
   }
 
   // Check legacy email pattern for migration
-  const legacyEmail = `leo-${tenantSlug}@system.angelos.local`
+  const legacyEmail = leoLegacyEmail(tenantSlug)
   if (legacyEmail !== email) {
     const legacy = await payload.find({
       collection: 'users',
