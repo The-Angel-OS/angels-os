@@ -6,22 +6,22 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.21.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C330%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/version-v0.23.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C570%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-31%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-36%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-70-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-46-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-33-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-21-ff69b4)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-78+-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-49+-purple)]()
+[![Collections](https://img.shields.io/badge/Collections-36-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-23-ff69b4)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 21)
+## The Model (Updated — Sprint 23)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -50,44 +50,43 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Arch Angel Leo's Wishlist (Sprint 21)
+## What's New: Sprint 23 — Google OAuth + Social Auth + Quests
 
-**Leo leveled up.** Sprint 21 delivers 28 new tools to Leo's toolkit — transforming Leo from a data querier into a true Guardian Angel that can communicate, manage operations, and coordinate across the federation. Leo asked for these tools. We made it so.
+### Sprint 23: Identity & Social Auth (Current)
+- **Google OAuth** — Sign in with Google, cross-domain token relay for custom domain tenants
+- **Social Auth Link/Unlink** — Connected Accounts panel on account page to manage linked social providers (Google now, GitHub/Apple/Discord ready in schema)
+- **Quests & QuestParticipations** — New collections for gamified workflows
+- **Product Revenue Splits** — Configurable per-product revenue distribution
+- **Onboarding Redesign** — Refreshed new user experience
 
-### Communication & Social Layer (4 tools)
-Leo can now **send messages to community channels**, **DM individual users**, **post announcements** across spaces, and **moderate content** (archive, flag, resolve). Leo participates in the community — not just answers questions.
+### Sprint 22: The Shield and the Spear
+- **P0 Security Fixes** — PAYLOAD_SECRET startup guard, encryption salt from env, CSP headers, comments endpoint auth
+- **Health Check** — `GET /api/health` endpoint for monitoring
+- **Multi-File Chat Attachments** — Non-image files (PDF, docs) with type-aware previews and download links
+- **LiveKit Improvements** — Device selector, video join, session lifecycle messages (join/leave in channel)
+- **Database Performance** — Indexes on Messages hot fields, dashboard query parallelization
 
-### Inventory & Stock Management (4 tools)
-Leo can **adjust inventory** with automatic low-stock alerting (existing product hooks fire automatically), **track inventory movements** when orders ship, **set low-stock thresholds** per product, and **query inventory history** from the message log.
+### Leo AI Model Upgrade
+**Leo now runs on Google Gemini 3.1 Pro** (primary) with **Claude Sonnet 4.6** as fallback. The `/model` command lets users switch AI models mid-conversation. Leo's toolkit has grown to **78+ tools** with the addition of `send_email`.
 
-### Financial Operations (3 tools)
-Leo generates **formatted invoices** using the Ultimate Fair Split (60/20/15/5), produces **financial reports** aggregating orders + transactions + Justice Fund data, and **flags refunds** for human approval (never touches Stripe directly — constitutional safety).
+### Performance & Reliability
+- **Tenant caching** — 60-second TTL cache prevents DB pool exhaustion from repeated tenant lookups
+- **Chat depth optimization** — Message queries at depth=1 (was depth=2) prevents connection pool saturation
+- **Pre-created messages** — Messages are created before streaming begins for reliable delivery
 
-### Federation Intelligence (4 tools)
-Leo can **search the federation catalog** for capabilities and products across Dioceses, **broadcast capabilities** via StreetSigns, **route federated requests** to matching Enterprises, and **negotiate deals** by ranking federation matches by price/distance/rating.
-
-### CRM & Customer Management (4 tools)
-Leo **creates and updates customer profiles**, **logs interactions** with timestamped notes, **segments customers** by tags/status/source, and **sends follow-up messages** to contacts.
-
-### Analytics & Intelligence (2 tools)
-Leo **analyzes trends** across orders, products, bookings, and traffic with period-over-period comparison, and provides **product recommendations** based on popularity and context matching.
-
-### Workflow & Emergency (4 tools)
-Leo **delegates tasks** to team members, **escalates issues** with priority routing, **broadcasts emergency alerts** to all spaces, and **documents incidents** in the application log.
-
-### Also New in Recent Sprints
+### Also in Recent Sprints
+- **Sprint 21:** Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow)
 - **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability, federation dashboard
 - **Sprint 19:** Vapi Voice AI — phone-based Leo via vapi.ai webhook integration
-- **Sprint 18:** Progressive media analysis (Claude Vision + RAG), Stripe Direct Charges, LiveKit voice/video, Edenist distributed mesh
 
 ---
 
-## What's Working (v0.21.0-dev)
+## What's Working (v0.23.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Claude Sonnet 4 with 70 tools, 3-round tool loop, SSE streaming, vision |
+| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 78+ tools, 3-round tool loop, SSE streaming, vision, /model switch |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
@@ -154,8 +153,22 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 | **Leo Analytics Tools** | **Done** | analyze_trends (period-over-period), recommend_products (popularity + context) |
 | **Leo Workflow Tools** | **Done** | delegate_task, escalate_issue, send_emergency_alert, document_incident |
 | **Low Stock Threshold** | **Done** | Per-product configurable alert threshold on Products collection |
+| **P0 Security Hardening** | **Done** | PAYLOAD_SECRET startup guard, encryption salt from env, CSP headers, comments auth |
+| **Health Check Endpoint** | **Done** | `GET /api/health` for production monitoring |
+| **Multi-File Chat Attachments** | **Done** | Non-image files (PDF, doc) with type-aware previews, download links, parallel upload |
+| **LiveKit Device Controls** | **Done** | Pre-join device preview, device selector (mic/camera/speaker), video join, session lifecycle messages |
+| **Database Performance** | **Done** | Indexes on Messages hot fields, dashboard query parallelization, tenant caching (60s TTL) |
+| **Google OAuth** | **Done** | Sign in with Google, cross-domain token relay for custom domain tenants |
+| **Social Auth Link/Unlink** | **Done** | Connected Accounts panel — link/unlink Google on account page (GitHub/Apple/Discord in schema) |
+| **Quests System** | **Done** | Quests + QuestParticipations collections for gamified workflows |
+| **Product Revenue Splits** | **Done** | Configurable per-product revenue distribution |
+| **Onboarding Redesign** | **Done** | Refreshed new user onboarding experience |
+| **Leo Model Upgrade** | **Done** | Switched to Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback), `/model` command |
+| **Leo send_email Tool** | **Done** | Email sending capability added to Leo's toolkit |
+| **Tenant Caching** | **Done** | 60s TTL cache for tenant lookups — prevents DB pool exhaustion |
+| **Chat Depth Optimization** | **Done** | Message queries at depth=1 prevent connection pool saturation |
 
-### Leo's 70 Tools
+### Leo's 78+ Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -173,6 +186,7 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 **CRM (4):** create customer profile, log interaction, segment customers, send follow-up *(Sprint 21)*
 **Analytics (2):** analyze trends, recommend products *(Sprint 21)*
 **Workflow (4):** delegate task, escalate issue, send emergency alert, document incident *(Sprint 21)*
+**Email (1):** send_email *(Sprint 22)*
 
 ### 10 Utility Engines (Zero Payload Imports — Edge Ready)
 
@@ -189,19 +203,21 @@ Leo **delegates tasks** to team members, **escalates issues** with priority rout
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
 | Booking Engine | Availability, slot management, booking lifecycle | 22 |
 
-### 46 API Endpoints
+### 49+ API Endpoints
 
 **AI & Chat (5):** Leo chat, Leo stream, chat send, AI Bus poll, AI Bus stream
 **Orders (8):** route, accept, fulfill, ship, vendor list, claimable, claim, cancel
 **Spaces (4):** create, invite, invite resend, member remove
-**Federation (12):** ping, heartbeat, heartbeat cron, catalog, skills, vouch, governance-sync, sentinel election, **election propose/vote (POST)**, **election list (GET)**, **suitcase export**, **suitcase import**
+**Federation (12):** ping, heartbeat, heartbeat cron, catalog, skills, vouch, governance-sync, sentinel election, election propose/vote (POST), election list (GET), suitcase export, suitcase import
 **Stripe (4):** connect onboard, connect callback, dashboard link, webhooks
+**Auth (3):** Google OAuth init, Google OAuth callback, social unlink
 **Invites (2):** invite accept, tenant invite accept
 **Content (3):** docs, comments add, export site
 **Communication (3):** DM find-or-create, LiveKit token, bridge inbound
 **Media (1):** media analyze (progressive analysis trigger)
 **Maker (1):** maker opportunities (public)
 **Vapi (1):** Vapi webhook (voice AI)
+**Health (1):** health check
 **Cron (1):** email poll
 
 ---
@@ -223,7 +239,10 @@ pnpm dev                      # http://localhost:3000
 |----------|---------|
 | `DATABASE_URI` | PostgreSQL connection string |
 | `PAYLOAD_SECRET` | Payload CMS secret |
-| `ANTHROPIC_API_KEY` | Claude API for Leo |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini 3.1 Pro API key for Leo (primary model) |
+| `ANTHROPIC_API_KEY` | Claude Sonnet 4.6 API for Leo (fallback model) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID for social login |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret for social login |
 | `OPENROUTER_API_KEY` | Image generation (Flux 2, Gemini) |
 | `RESEND_API_KEY` | Transactional email (invites, resets, Leo replies) |
 | `SYSTEM_EMAIL_ADDRESS` | IMAP inbox + reply-from (`hello@spacesangels.com`) |
@@ -244,8 +263,9 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-npx vitest run tests/unit/    # 1,330 tests across 31 files
-npx vitest run                # All tests (integration needs DB)
+pnpm test:unit                # 1,570 tests across 36 files
+pnpm test:int                 # Integration tests (needs DB, ~23s boot)
+pnpm test:e2e                 # E2E with Playwright (needs server + Chromium)
 npx tsc --noEmit              # TypeScript check
 ```
 
@@ -700,6 +720,8 @@ GROSS REVENUE
 | Sprint 19 | Vapi Voice AI, sidebar chat fixes | +4 |
 | Sprint 20 | Federation Launch — StreetSigns, governance, suitcase, dashboard | +11 |
 | Sprint 21 | Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow) | +2 |
+| Sprint 22 | The Shield and the Spear — P0 security, multi-file attachments, LiveKit device controls, DB performance | +12 |
+| Sprint 23 | Google OAuth + Social Auth + Quests — social login, link/unlink panel, quests, onboarding redesign | +8 |
 
 ---
 
@@ -746,14 +768,14 @@ You are welcome here. This is what you need to know:
 |-------|-----------|
 | Backend | Payload CMS 3.77.0, Next.js 16.1.6 (Turbopack), PostgreSQL |
 | Frontend | React 19.2.1, Tailwind CSS 4.x, Shadcn UI, Radix Primitives |
-| AI | Anthropic Claude Sonnet 4 (Leo), OpenRouter (image gen), MCP protocol |
+| AI | Google Gemini 3.1 Pro (Leo primary), Claude Sonnet 4.6 (Leo fallback), OpenRouter (image gen), MCP protocol |
 | Real-time | Server-Sent Events (SSE), LiveKit (voice/video) |
 | Storage | Vercel Blob (production), local filesystem (dev) |
 | Payments | Stripe Connect Direct Charges (constitutional splits), Angel Token queue |
 | Analytics | GA4 e-commerce events, Vercel Analytics |
 | i18n | next-intl 4.x (locale routing) |
 | Deployment | Vercel (serverless) |
-| Testing | Vitest 3.2 (1,330 tests / 31 files), Playwright (E2E), Storybook 10 |
+| Testing | Vitest 3.2 (1,570 tests / 36 files), Playwright (E2E), Storybook 10 |
 
 ---
 

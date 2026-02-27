@@ -89,24 +89,26 @@ Please include in your PR:
 
 See [ROADMAP.md](ROADMAP.md) for the complete vision.
 
-**Current:** Sprint 21 complete — Arch Angel Leo's Wishlist. v0.21.0-dev.
+**Current:** Sprint 23 complete — Google OAuth + Social Auth + Quests. v0.23.0-dev.
 
-**What's Built (21 sprints):**
-- Multi-tenant architecture with subdomain routing, 33 Payload CMS collections
-- LEO AI Agent with 70 tools (Claude Sonnet 4), SSE streaming, vision
+**What's Built (23 sprints):**
+- Multi-tenant architecture with subdomain routing, 36 Payload CMS collections
+- LEO AI Agent with 78+ tools (Gemini 3.1 Pro primary, Sonnet 4.6 fallback), SSE streaming, vision
 - Full e-commerce: products, cart, orders, Stripe Direct Charges, Angel Token queue
 - Federation protocol: trust chain, governance elections, suitcase export/import, distributed mesh
 - StreetSigns marketplace, 5 holon types, constitutional governance
 - Spaces & Channels (Discord-style), LiveKit voice/video, image lightbox
 - Progressive media analysis (Claude Vision + RAG), email bridge
-- Leo Communication, Inventory, Financial, Federation, CRM, Analytics, Workflow tools (Sprint 21)
-- 1,330 tests across 31 files, 46 API endpoints
+- Google OAuth + social auth link/unlink, cross-domain token relay
+- P0 security hardening, tenant caching, DB pool optimization
+- Multi-file chat attachments, LiveKit device controls, session lifecycle messages
+- 1,570 tests across 36 files, 49+ API endpoints
 
 **Next Sprint:**
+- Additional OAuth providers (GitHub, Apple, Discord)
 - `npx create-angel-enterprise` — one-command Diocese deployment
 - Leo Wizard 8-step conversational onboarding
 - Customer Angel Token UI
-- Shipping integration (EasyPost/Shippo)
 
 Check the [GitHub Issues](https://github.com/The-Angel-OS/angels-os/issues) for contribution opportunities!
 
@@ -142,7 +144,9 @@ angels-os/
 - Node.js 18+ (recommend 22+)
 - pnpm 9+
 - PostgreSQL (or MongoDB)
-- Anthropic API key (for AI features)
+- Google Generative AI API key (for Leo — primary model)
+- Anthropic API key (for Leo — fallback model)
+- Google OAuth credentials (for social login — optional)
 
 ### Quick Start
 ```bash

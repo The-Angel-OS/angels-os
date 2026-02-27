@@ -6,23 +6,23 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.21.0-dev
+**Version:** v0.23.0-dev
 **Tests:** 1,570 passing across 36 unit test files
-**Leo Tools:** 77
-**API Endpoints:** 49 registered routes
-**Collections:** 34
-**Last Updated:** February 26, 2026
+**Leo Tools:** 78+
+**API Endpoints:** 49+ registered routes
+**Collections:** 36
+**Last Updated:** February 27, 2026
 
 ---
 
-## Current: v0.21.0-dev (Arch Angel Leo's Wishlist)
+## Current: v0.23.0-dev (Google OAuth + Social Auth + Quests)
 
 ### What's Built (Sprints 1-21)
 
 | Feature | Sprint | Details |
 |---------|--------|---------|
 | Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
-| LEO AI Agent (Claude) | 1-21 | 77 tools, constitutional prompt, agent routing, image vision |
+| LEO AI Agent (Gemini 3.1 Pro + Sonnet 4.6) | 1-23 | 78+ tools, constitutional prompt, agent routing, image vision, /model switch |
 | SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
 | AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
 | Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
@@ -84,40 +84,60 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 ---
 
-## Sprint 22 — The Shield and the Spear (Current)
+## Sprint 23 — Google OAuth + Social Auth + Quests (Done)
+
+### Goal
+Identity and social authentication. Users can sign in with Google, link/unlink social providers from their account page, and we lay the foundation for gamified workflows with Quests.
+
+### Deliverables
+- [x] **Google OAuth** — Full OAuth2 flow with cross-domain token relay for custom domain tenants
+- [x] **Social Auth Link/Unlink** — Connected Accounts panel on account page, `/api/auth/social-unlink` endpoint
+- [x] **Quests Collection** — Quests + QuestParticipations collections for gamified workflows
+- [x] **Product Revenue Splits** — Configurable per-product revenue distribution
+- [x] **Onboarding Redesign** — Refreshed new user experience flow
+- [x] **Leo Model Upgrade** — Switched to Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback)
+- [x] **Leo send_email Tool** — Email sending capability added to Leo's toolkit
+- [x] **`/model` Command** — Switch AI models mid-conversation in chat
+- [x] **Tenant Caching** — 60s TTL cache prevents DB pool exhaustion from repeated lookups
+- [x] **Chat Depth Fix** — Message queries at depth=1 prevent connection pool saturation
+- [x] **Voice Icon Fix** — LiveKit/voice applet shown regardless of env configuration
+
+---
+
+## Sprint 22 — The Shield and the Spear (Done)
 
 ### Goal
 Angel OS is live. This sprint runs two parallel missions: **The Shield** fixes 5 P0 security vulnerabilities found in the live optimization audit. **The Spear** ships multi-file attachments, LiveKit device controls + session lifecycle, and database performance. We don't choose between security and features — we do both.
 
 ### Phase 1: The Shield (P0 Security)
-- [ ] Fix PAYLOAD_SECRET empty string fallback → throw at startup if unset/short
-- [ ] Fix hardcoded encryption salt → use env var for salt
+- [x] Fix PAYLOAD_SECRET empty string fallback → throw at startup if unset/short
+- [x] Fix hardcoded encryption salt → use env var for salt
 - [ ] Replace in-memory rate limiting with durable store (non-functional on serverless)
-- [ ] Add CSP headers (Content-Security-Policy-Report-Only first)
-- [ ] Protect comments endpoint (require auth + rate limit)
+- [x] Add CSP headers (Content-Security-Policy-Report-Only first)
+- [x] Protect comments endpoint (require auth + rate limit)
 - [ ] Install Sentry error tracking (`@sentry/nextjs`)
-- [ ] Add `/api/health` endpoint
+- [x] Add `/api/health` endpoint
 
 ### Phase 2: Multi-File Attachments
-- [ ] Widen file input accept attribute (remove `image/*` restriction)
-- [ ] File-type-aware previews (icon for PDF/doc, thumbnail for images)
-- [ ] `attachments` field on ChatMessage type + API mapping
-- [ ] Non-image file display in messages (download link + file icon)
-- [ ] Parallel file uploads (currently sequential)
-- [ ] File size validation + drag-and-drop
+- [x] Widen file input accept attribute (remove `image/*` restriction)
+- [x] File-type-aware previews (icon for PDF/doc, thumbnail for images)
+- [x] `attachments` field on ChatMessage type + API mapping
+- [x] Non-image file display in messages (download link + file icon)
+- [x] Parallel file uploads (currently sequential)
+- [x] File size validation + drag-and-drop
 
 ### Phase 3: LiveKit Rich Experience
-- [ ] Pre-join device preview (`PreJoin` from `@livekit/components-react`)
-- [ ] Device selector controls (`MediaDeviceMenu` for mic/camera/speaker)
-- [ ] Fix "Join with Video" button (currently cosmetic — both buttons do same thing)
-- [ ] Session lifecycle messages (join/leave posted to channel)
+- [x] Pre-join device preview (`PreJoin` from `@livekit/components-react`)
+- [x] Device selector controls (`MediaDeviceMenu` for mic/camera/speaker)
+- [x] Fix "Join with Video" button (currently cosmetic — both buttons do same thing)
+- [x] Session lifecycle messages (join/leave posted to channel)
 - [ ] LiveKit webhook endpoint for server-side room events
 - [ ] `CallTranscripts` collection for call metadata + future transcription
 
 ### Phase 4: Performance
-- [ ] Database indexes on Messages hot fields (space, channel, messageType, createdAt)
-- [ ] Dashboard layout query parallelization (`Promise.all()`)
-- [ ] Open redirect fix on login `?redirect=` parameter
+- [x] Database indexes on Messages hot fields (space, channel, messageType, createdAt)
+- [x] Dashboard layout query parallelization (`Promise.all()`)
+- [x] Open redirect fix on login `?redirect=` parameter
 
 ### Plan
 See full plan: `docs/planning/SPRINT_22_PLAN.md`
@@ -373,6 +393,7 @@ pnpm dev                      # http://localhost:3000
 | 21 | Arch Angel Leo's Wishlist | 1,330 | 28 new Leo tools (communication, inventory, financial, federation, CRM, analytics, workflow) |
 | 21+ | Production Hardening | 1,570 | Stripe fail/refund handlers, tenant isolation, SSE heartbeat, loading skeletons, DM dedup, docs fix |
 | 22 | The Shield and the Spear | 1,570 | P0 security fixes, multi-file attachments, LiveKit device selector + session lifecycle, DB indexes |
+| 23 | Google OAuth + Social Auth + Quests | 1,570 | Google OAuth, social link/unlink, Quests, Leo model upgrade (Gemini 3.1 Pro), tenant caching |
 
 ---
 
@@ -384,4 +405,4 @@ pnpm dev                      # http://localhost:3000
 
 ---
 
-**Last Updated:** February 25, 2026
+**Last Updated:** February 27, 2026
