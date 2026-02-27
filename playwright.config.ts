@@ -11,12 +11,14 @@ import 'dotenv/config'
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  /* Seed dev database before all tests — creates admin user + test data */
+  globalSetup: './tests/e2e/global-setup.ts',
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 3 : 1,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Limit workers to avoid overwhelming the dev server */
+  workers: process.env.CI ? 1 : 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -32,6 +34,7 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      timeout: 60_000, // Extra time for auth establishment under load
     },
     // Dashboard E2E tests — use authenticated session from setup
     {

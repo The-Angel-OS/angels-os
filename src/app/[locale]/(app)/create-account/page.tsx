@@ -79,13 +79,13 @@ export default async function CreateAccount({
           {/* ─── Left Column: Value Proposition ─────────────── */}
           <div className="hidden lg:flex flex-col justify-center py-8">
             <div className="mb-8">
-              <h1 className="text-4xl font-bold tracking-tight mb-4">
+              <p className="text-4xl font-bold tracking-tight mb-4" role="heading" aria-level={1}>
                 {inviteContext?.spaceName
                   ? `You're invited to ${inviteContext.spaceName}`
                   : inviteContext?.tenantName
                     ? `Join ${inviteContext.tenantName}`
                     : 'Join Angel OS'}
-              </h1>
+              </p>
               {inviteContext?.inviterName ? (
                 <p className="text-lg text-muted-foreground">
                   {inviteContext.inviterName} invited you as a <strong>{inviteContext.role}</strong>.

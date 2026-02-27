@@ -5,7 +5,11 @@ import { fileURLToPath } from 'url'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-test.describe('Frontend', () => {
+// Legacy test suite from Payload Ecommerce Template.
+// Superseded by checkout.e2e.spec.ts, user-journeys.e2e.spec.ts, and content-management.e2e.spec.ts.
+// Uses hardcoded credentials (admin@test.com / admin) and page titles (Payload Ecommerce Template)
+// that no longer match the Angel OS platform.
+test.describe.skip('Frontend (Legacy — superseded by Sprint 21+ test suites)', () => {
   let page: Page
   const baseURL = 'http://localhost:3000'
   const mediaURL = `${baseURL}/admin/collections/media`

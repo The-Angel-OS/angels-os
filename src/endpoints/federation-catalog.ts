@@ -24,6 +24,72 @@ import { searchCatalog, rankCatalogEntries } from '@/utilities/federationEngine'
 import type { FederationCatalogEntry } from '@/utilities/federationEngine'
 import { logFederationAction } from '@/federation/auditLog'
 
+/**
+ * Resolve the host tenant for this request.
+ *
+ * Strategy (in order):
+ *   1. Match tenant by request Host header (exact domain match)
+ *   2. Match tenant by subdomain slug (e.g. "shop.angelos.local" → slug "shop")
+ *   3. Match tenant by DEFAULT_TENANT_SLUG env var (default: "default")
+ *   4. Fallback: first non-platform tenant sorted by id
+ *
+ * This mirrors the frontend tenant resolution in fetchTenantByDomain.ts
+ * but operates within a PayloadHandler context (no separate Payload import needed).
+ */
+async function resolveHostTenant(
+  req: Parameters<PayloadHandler>[0],
+): Promise<Record<string, unknown> | undefined> {
+  const host = (req.headers?.get('host') || 'localhost').split(':')[0].toLowerCase()
+
+  // 1. Exact domain match
+  const byDomain = await req.payload.find({
+    collection: 'tenants',
+    where: { domain: { equals: host } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (byDomain.docs[0]) return byDomain.docs[0] as unknown as Record<string, unknown>
+
+  // 2. Subdomain slug match (e.g. "shop.angelos.local" → "shop")
+  const hostParts = host.split('.')
+  if (hostParts.length >= 2) {
+    const subSlug = hostParts[0]
+    if (subSlug !== 'www' && subSlug !== 'api') {
+      const bySlug = await req.payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: subSlug } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (bySlug.docs[0]) return bySlug.docs[0] as unknown as Record<string, unknown>
+    }
+  }
+
+  // 3. Default tenant slug
+  const defaultSlug = process.env.DEFAULT_TENANT_SLUG || 'default'
+  const byDefault = await req.payload.find({
+    collection: 'tenants',
+    where: { slug: { equals: defaultSlug } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (byDefault.docs[0]) return byDefault.docs[0] as unknown as Record<string, unknown>
+
+  // 4. Fallback — first non-platform tenant
+  const fallback = await req.payload.find({
+    collection: 'tenants',
+    where: { type: { not_equals: 'platform' } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+    sort: 'id',
+  })
+  return (fallback.docs[0] as unknown as Record<string, unknown>) || undefined
+}
+
 export const federationCatalogHandler: PayloadHandler = async (req) => {
   const startTime = Date.now()
   const url = new URL(req.url || 'http://localhost', 'http://localhost')
@@ -42,15 +108,9 @@ export const federationCatalogHandler: PayloadHandler = async (req) => {
   const sortBy = (url.searchParams.get('sort') || 'rating') as 'rating' | 'price' | 'name'
 
   try {
-    // Get our federation identity for source info
-    const tenants = await req.payload.find({
-      collection: 'tenants',
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-      sort: 'createdAt',
-    })
-    const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
+    // Resolve the host tenant for this request — determines which products to expose.
+    // Uses the same resolution chain as the frontend (domain → subdomain → default → fallback).
+    const tenant = await resolveHostTenant(req)
     const setup = tenant?.setup as Record<string, unknown> | undefined
     const federationId = (setup?.federationId as string) || 'unknown'
 

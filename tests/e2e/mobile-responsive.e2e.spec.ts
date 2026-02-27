@@ -22,7 +22,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 1. Homepage mobile layout ─────────────────────────────────────
 
   test('homepage renders without horizontal overflow', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const hasOverflow = await page.evaluate(
@@ -32,7 +32,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('homepage shows hamburger menu button on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // MobileMenu uses Radix Sheet — trigger has data-slot="sheet-trigger"
@@ -53,7 +53,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('homepage hero text is visible on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const heroText = page.locator('text=Everyone Gets an Angel').first()
@@ -61,7 +61,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('homepage has no horizontal scrollbar', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const scrollInfo = await page.evaluate(() => ({
@@ -75,7 +75,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 2. Hamburger navigation opens ─────────────────────────────────
 
   test('hamburger menu opens navigation overlay with links', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // MobileMenu uses Radix Sheet — trigger has data-slot="sheet-trigger"
@@ -106,7 +106,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('hamburger menu has a close button', async ({ page }) => {
-    await page.goto(`${baseURL}/`)
+    await page.goto(`${baseURL}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // Open the hamburger menu via Radix Sheet trigger
@@ -140,7 +140,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 3. Shop page responsive ──────────────────────────────────────
 
   test('shop page renders responsive grid on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/shop`)
+    await page.goto(`${baseURL}/shop`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // No horizontal overflow
@@ -172,7 +172,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('shop page search bar is visible on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/shop`)
+    await page.goto(`${baseURL}/shop`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const searchBar = page
@@ -190,7 +190,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('shop page has product browsing capability on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/shop`)
+    await page.goto(`${baseURL}/shop`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // On mobile, categories may show as FilterItemDropdown (a div with border and chevron)
@@ -213,7 +213,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 4. Posts page responsive ─────────────────────────────────────
 
   test('posts page renders full-width blog cards on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/posts`)
+    await page.goto(`${baseURL}/posts`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // No horizontal overflow
@@ -245,7 +245,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('posts page shows post titles on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/posts`)
+    await page.goto(`${baseURL}/posts`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // Look for headings or link text within post listings
@@ -256,7 +256,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 5. Events page responsive ────────────────────────────────────
 
   test('events page renders without overflow on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/events`)
+    await page.goto(`${baseURL}/events`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const hasOverflow = await page.evaluate(
@@ -266,7 +266,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   })
 
   test('events page renders event cards properly on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/events`)
+    await page.goto(`${baseURL}/events`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     const eventCards = page
@@ -293,7 +293,7 @@ test.describe('Mobile Responsive (375x812)', () => {
   // ─── 6. Checkout page mobile ──────────────────────────────────────
 
   test('checkout page is usable on mobile', async ({ page }) => {
-    await page.goto(`${baseURL}/checkout`)
+    await page.goto(`${baseURL}/checkout`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // No horizontal overflow
@@ -326,7 +326,7 @@ test.describe('Mobile Responsive (375x812)', () => {
 
   for (const path of corePages) {
     test(`no horizontal overflow on ${path}`, async ({ page }) => {
-      await page.goto(`${baseURL}${path}`)
+      await page.goto(`${baseURL}${path}`, { waitUntil: 'domcontentloaded' })
       await page.waitForTimeout(2000)
 
       const hasOverflow = await page.evaluate(
