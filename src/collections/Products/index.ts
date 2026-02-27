@@ -318,6 +318,51 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
         },
       ],
     },
+    // ─── Revenue Split Participants ──────────────────────────
+    // Designer gets design cut, manufacturer gets manufacturing cut.
+    // Ultimate Fair — minimum extraction, maximum enablement.
+    {
+      name: 'participants',
+      type: 'array',
+      admin: {
+        description: 'Revenue split participants — designer, manufacturer, licensor, etc. Percentages must sum to ≤100.',
+      },
+      fields: [
+        {
+          name: 'role',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'Designer', value: 'designer' },
+            { label: 'Manufacturer', value: 'manufacturer' },
+            { label: 'Licensor', value: 'licensor' },
+            { label: 'Affiliate', value: 'affiliate' },
+            { label: 'Contributor', value: 'contributor' },
+          ],
+          admin: { description: 'Participant role in revenue split' },
+        },
+        {
+          name: 'entity',
+          type: 'relationship',
+          relationTo: ['users', 'tenants'],
+          required: true,
+          admin: { description: 'User or tenant who receives this share' },
+        },
+        {
+          name: 'percentage',
+          type: 'number',
+          required: true,
+          min: 0,
+          max: 100,
+          admin: { description: 'Share of the provider portion (e.g. 60% provider split gets divided among participants)' },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          admin: { description: 'Human-readable label (e.g. "Sarah — Original Design")' },
+        },
+      ],
+    },
     // ─── Sprint 21: Inventory Management ─────────────────────
     {
       name: 'lowStockThreshold',

@@ -263,6 +263,50 @@ export const Users: CollectionConfig = {
         },
       ],
     },
+    // ─── Social Auth Providers (multi-provider linking) ──────
+    {
+      name: 'socialProviders',
+      type: 'array',
+      admin: {
+        description: 'Linked social login providers (Google, GitHub, etc.). Affects suitcase portability.',
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: 'provider',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'Google', value: 'google' },
+            { label: 'GitHub', value: 'github' },
+            { label: 'Apple', value: 'apple' },
+            { label: 'Discord', value: 'discord' },
+          ],
+        },
+        {
+          name: 'providerId',
+          type: 'text',
+          required: true,
+          admin: { description: 'Unique user ID from the provider' },
+        },
+        {
+          name: 'email',
+          type: 'email',
+        },
+        {
+          name: 'displayName',
+          type: 'text',
+        },
+        {
+          name: 'avatarUrl',
+          type: 'text',
+        },
+        {
+          name: 'linkedAt',
+          type: 'date',
+        },
+      ],
+    },
     {
       name: 'orders',
       type: 'join',

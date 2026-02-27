@@ -60,6 +60,8 @@ import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
 import { MediaMeta } from '@/collections/MediaMeta'
 import { StreetSigns } from '@/collections/StreetSigns'
+import { Quests } from '@/collections/Quests'
+import { QuestParticipations } from '@/collections/QuestParticipations'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -105,6 +107,7 @@ import { vapiWebhookHandler } from '@/endpoints/vapi-webhook'
 import { vapiSetupHandler } from '@/endpoints/vapi-setup'
 import { federationElectionHandler } from '@/endpoints/federation-election'
 import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
+import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -163,6 +166,8 @@ export default buildConfig({
     AgentTransactions,
     MediaMeta,
     StreetSigns,
+    Quests,
+    QuestParticipations,
   ],
   db: postgresAdapter({
     pool: {
@@ -213,6 +218,8 @@ export default buildConfig({
         // Sprint 20: Federation — constitutional identity + marketplace discovery
         ...({ endeavors: {} } as Record<string, object>),
         ...({ 'street-signs': {} } as Record<string, object>),
+        // Sprint 23: Quests — universal gamification primitive
+        ...({ quests: {}, 'quest-participations': {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
@@ -643,6 +650,17 @@ export default buildConfig({
       path: '/federation/suitcase/import',
       method: 'post',
       handler: federationSuitcaseImportHandler,
+    },
+    // ─── Social Auth Endpoints (Sprint 23) ──────────────────────
+    {
+      path: '/auth/google',
+      method: 'get',
+      handler: authGoogleInitHandler,
+    },
+    {
+      path: '/auth/google/callback',
+      method: 'get',
+      handler: authGoogleCallbackHandler,
     },
   ],
   globals: [],
