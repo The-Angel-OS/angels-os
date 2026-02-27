@@ -32,7 +32,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, isGatewayAvailable, convertToolsForAISDK } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -630,10 +630,20 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               wizardStep: wizardStep as number,
             })
           } catch (gwErr) {
-            // Gateway failed — try Anthropic fallback
+            // Gateway failed — log to AI Bus then try Anthropic fallback
+            const gwErrMsg = gwErr instanceof Error ? gwErr.message : String(gwErr)
+            logError({
+              level: 'warning',
+              source: 'leo-stream.gateway',
+              message: `AI Gateway primary model failed, falling back to Sonnet: ${gwErrMsg}`,
+              details: gwErr instanceof Error ? gwErr.stack : String(gwErr),
+              statusCode: (gwErr as { status?: number })?.status,
+              tenantId: tenantId ? String(tenantId) : undefined,
+              userId: req.user?.id as number | undefined,
+            }).catch(() => {})
             const fallbackClient = getAnthropicClient()
             if (fallbackClient) {
-              console.warn('[LEO Stream] Gateway failed, falling back to Anthropic:', gwErr instanceof Error ? gwErr.message : gwErr)
+              console.warn('[LEO Stream] Gateway failed, falling back to Anthropic:', gwErrMsg)
               const result = await streamViaAnthropic({
                 controller,
                 encoder,
@@ -678,13 +688,18 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       } catch (error) {
         hadError = true
         const errMsg = error instanceof Error ? error.message : 'Unknown error'
-        console.error('[LEO Stream] Error:', errMsg)
-        controller.enqueue(encoder.encode(sseEvent('error', { message: errMsg })))
+        console.error('[LEO Stream] Error (all providers exhausted):', errMsg)
+        controller.enqueue(encoder.encode(sseEvent('error', {
+          message: `LEO encountered an error: ${errMsg}. Please try again.`,
+          provider: 'gateway+fallback',
+        })))
         logError({
           source: 'leo-stream',
-          message: `Streaming LLM call failed: ${errMsg}`,
+          message: `Streaming LLM call failed (all providers exhausted): ${errMsg}`,
           details: error instanceof Error ? error.stack : String(error),
           statusCode: (error as { status?: number })?.status,
+          tenantId: tenantId ? String(tenantId) : undefined,
+          userId: req.user?.id as number | undefined,
         }).catch(() => {})
       }
 
@@ -781,7 +796,7 @@ async function streamViaGateway(opts: {
     isWizardMode, wizardStep,
   } = opts
 
-  const model = getModel()
+  const model = getModel() ?? getFallbackModel()
   if (!model) throw new Error('AI Gateway model could not be created')
 
   // Convert history to AI SDK format
@@ -867,11 +882,31 @@ async function streamViaGateway(opts: {
       }
     }
   } catch (streamErr) {
-    // Partial text already captured — rethrow so caller can handle
     console.error('[LEO Stream] Gateway stream interrupted:', streamErr instanceof Error ? streamErr.message : streamErr)
     if (fullText.trim()) {
       // Return partial text instead of losing it
       return fullText
+    }
+    // Retry with fallback model (Sonnet 4.6) if primary produced no output
+    const fallback = getFallbackModel()
+    if (fallback) {
+      console.warn('[LEO Stream] Retrying with fallback model (Sonnet 4.6)')
+      controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
+      const retryResult = streamText({
+        model: fallback,
+        system: systemPrompt,
+        messages,
+        tools,
+        stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+        maxOutputTokens: MAX_RESPONSE_TOKENS,
+      })
+      for await (const part of retryResult.fullStream) {
+        if (part.type === 'text-delta') {
+          fullText += part.text
+          controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+        }
+      }
+      if (fullText.trim()) return fullText
     }
     throw streamErr
   }

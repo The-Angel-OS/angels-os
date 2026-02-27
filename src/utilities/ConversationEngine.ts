@@ -30,7 +30,7 @@ import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
-import { getModel, isGatewayAvailable, convertToolsForAISDK } from './ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Minimal env-file parser — avoids dotenv import issues with bundler resolution.
@@ -215,14 +215,33 @@ export class ConversationEngine {
         ? convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
         : undefined
 
-      const result = await generateText({
-        model,
-        system: systemPrompt,
-        messages,
-        tools,
-        stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
-        maxOutputTokens: MAX_RESPONSE_TOKENS,
-      })
+      let result
+      try {
+        result = await generateText({
+          model,
+          system: systemPrompt,
+          messages,
+          tools,
+          stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+          maxOutputTokens: MAX_RESPONSE_TOKENS,
+        })
+      } catch (primaryErr) {
+        // Fallback to Sonnet 4.6 if primary model (Gemini) fails
+        const fallback = getFallbackModel()
+        if (fallback) {
+          console.warn('[ConversationEngine] Primary model failed, falling back to Sonnet 4.6:', primaryErr)
+          result = await generateText({
+            model: fallback,
+            system: systemPrompt,
+            messages,
+            tools,
+            stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+            maxOutputTokens: MAX_RESPONSE_TOKENS,
+          })
+        } else {
+          throw primaryErr
+        }
+      }
 
       const responseText = result.text
       if (!responseText) return this.buildFallbackResponse(userMessage)
@@ -383,17 +402,18 @@ export class ConversationEngine {
         },
       }
     } catch (error) {
-      console.error('[ConversationEngine] LLM call failed:', error)
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.error('[ConversationEngine] LLM call failed:', errMsg)
       logError({
         source: 'ConversationEngine.generateResponse',
-        message: `LLM call failed: ${error instanceof Error ? error.message : String(error)}`,
+        message: `LLM call failed (all providers exhausted): ${errMsg}`,
         details: error instanceof Error ? error.stack : String(error),
         statusCode: (error as { status?: number })?.status,
         tenantId: this.context.sessionMemory?.tenantId
           ? String(this.context.sessionMemory.tenantId)
           : undefined,
       }).catch(() => {})
-      return this.buildFallbackResponse(userMessage)
+      return this.buildFallbackResponse(userMessage, errMsg)
     }
   }
 
@@ -610,11 +630,17 @@ Tailor your responses to their access level. Administrators can see all data and
   // Fallback (no API key or LLM failure)
   // -----------------------------------------------------------------------
 
-  private buildFallbackResponse(originalMessage: MessageContent): MessageContent {
+  private buildFallbackResponse(
+    originalMessage: MessageContent,
+    errorDetail?: string,
+  ): MessageContent {
     const agentName = this.context.agent?.displayName || 'LEO'
+    const userFacingMsg = errorDetail
+      ? `${agentName}: I wasn't able to process that — the AI service returned an error. Our team has been notified and this has been logged. Please try again in a moment.`
+      : `${agentName}: I'm here to help! My AI capabilities are currently warming up. In the meantime, feel free to explore the platform — I'll be fully online shortly.`
     return {
       type: 'text',
-      text: `${agentName}: I'm here to help! My AI capabilities are currently warming up. In the meantime, feel free to explore the platform — I'll be fully online shortly. 🔮`,
+      text: userFacingMsg,
       metadata: {
         conversationId: this.context.conversationId,
         intent: {
@@ -626,6 +652,7 @@ Tailor your responses to their access level. Administrators can see all data and
           sourceType: 'agent_suggestion',
           isPrimary: true,
         },
+        ...(errorDetail ? { errorDetail } : {}),
       },
     }
   }

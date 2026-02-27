@@ -27,7 +27,7 @@ export const MODEL_CATALOG = {
   'claude-haiku': 'anthropic/claude-haiku-4-5-20251001',
 
   // Google Gemini
-  'gemini-pro': 'google/gemini-3-pro',
+  'gemini-pro': 'google/gemini-3.1-pro',
   'gemini-flash': 'google/gemini-2.5-flash',
 
   // OpenAI
@@ -37,8 +37,11 @@ export const MODEL_CATALOG = {
 
 export type ModelAlias = keyof typeof MODEL_CATALOG
 
-/** Default model when nothing is configured */
-export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4-20250514'
+/** Default model — Gemini 3.1 Pro (7x cheaper than Opus, 30% cheaper than Sonnet) */
+export const DEFAULT_MODEL = 'google/gemini-3.1-pro'
+
+/** Fallback model when Gemini is unavailable */
+export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-20250514'
 
 // ---------------------------------------------------------------------------
 // Env helper — reads AI_GATEWAY_API_KEY from .env.local/.env
@@ -142,6 +145,17 @@ export function getModel(modelId?: string): LanguageModel | null {
 }
 
 /**
+ * Returns a fallback model (Claude Sonnet 4.6) for when the primary model errors.
+ * Use in try/catch blocks around generateText/streamText calls.
+ */
+export function getFallbackModel(): LanguageModel | null {
+  const apiKey = resolveGatewayKey()
+  if (!apiKey) return null
+  const provider = createGateway({ apiKey })
+  return provider.languageModel(FALLBACK_MODEL)
+}
+
+/**
  * Returns true if the AI Gateway is configured and available.
  */
 export function isGatewayAvailable(): boolean {
@@ -162,7 +176,7 @@ export function getConfiguredModelId(): string {
 /** Image models available through the AI Gateway */
 export const IMAGE_MODEL_CATALOG = {
   'gemini-flash-image': 'google/gemini-2.5-flash',
-  'gemini-pro-image': 'google/gemini-3-pro-image-preview',
+  'gemini-pro-image': 'google/gemini-3.1-pro',
   'gpt-image': 'openai/gpt-5-image',
   'gpt-image-mini': 'openai/gpt-5-image-mini',
 } as const
