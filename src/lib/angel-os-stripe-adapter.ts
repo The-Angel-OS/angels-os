@@ -252,7 +252,7 @@ export function angelOsStripeAdapter(
           const intentParams: Stripe.PaymentIntentCreateParams = {
             amount,
             application_fee_amount: totalApplicationFee,
-            automatic_payment_methods: { enabled: true },
+            payment_method_types: ['card'],
             currency,
             customer: customer.id,
             metadata: {
@@ -315,7 +315,7 @@ export function angelOsStripeAdapter(
 
         const intentParams: Stripe.PaymentIntentCreateParams = {
           amount,
-          automatic_payment_methods: { enabled: true },
+          payment_method_types: ['card'],
           currency,
           customer: customer.id,
           metadata: {

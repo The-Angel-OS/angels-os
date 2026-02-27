@@ -9,7 +9,7 @@ import { checkRole } from '@/access/utilities'
  */
 export const isAdmin: Access = ({ req }) => {
   if (req.user) {
-    return checkRole(['admin'], req.user)
+    return checkRole(['super_admin', 'admin'], req.user)
   }
 
   return false
