@@ -18,7 +18,7 @@
  *    through /api/auth/token-relay on the origin domain to set the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import { sign } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
 // ---------------------------------------------------------------------------
@@ -242,7 +242,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     }
 
     // ----- Generate Payload-compatible JWT -----
-    const payloadToken = sign(
+    const payloadToken = jwt.sign(
       { id: user.id, email: user.email, collection: 'users' },
       process.env.PAYLOAD_SECRET!,
       { expiresIn: '14d' },

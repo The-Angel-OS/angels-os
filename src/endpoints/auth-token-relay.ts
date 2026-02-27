@@ -17,7 +17,7 @@
  * before setting the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import { verify } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
   try {
@@ -42,7 +42,7 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     }
 
     try {
-      verify(token, secret)
+      jwt.verify(token, secret)
     } catch {
       return Response.json(
         { error: 'Invalid or expired token.' },
