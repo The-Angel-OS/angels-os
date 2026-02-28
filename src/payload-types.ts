@@ -2566,6 +2566,44 @@ export interface Booking {
     };
   };
   status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+  /**
+   * Details about the cancellation
+   */
+  cancellation?: {
+    /**
+     * Why this booking was cancelled
+     */
+    reason?: string | null;
+    /**
+     * Who initiated the cancellation
+     */
+    cancelledBy?: ('client' | 'provider' | 'system') | null;
+    /**
+     * When the cancellation occurred
+     */
+    cancelledAt?: string | null;
+  };
+  /**
+   * Rescheduling history for this booking
+   */
+  rescheduling?: {
+    /**
+     * Previous time slot before rescheduling
+     */
+    rescheduledFrom?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Number of times this booking has been rescheduled
+     */
+    rescheduleCount?: number | null;
+  };
   location: {
     type: 'provider' | 'client' | 'remote' | 'custom';
     /**
@@ -5697,6 +5735,19 @@ export interface BookingsSelect<T extends boolean = true> {
             };
       };
   status?: T;
+  cancellation?:
+    | T
+    | {
+        reason?: T;
+        cancelledBy?: T;
+        cancelledAt?: T;
+      };
+  rescheduling?:
+    | T
+    | {
+        rescheduledFrom?: T;
+        rescheduleCount?: T;
+      };
   location?:
     | T
     | {

@@ -55,6 +55,8 @@ export const Connectors: CollectionConfig = {
         { label: 'SMS', value: 'sms' },
         { label: 'Webhook', value: 'webhook' },
         { label: 'LiveKit', value: 'livekit' },
+        { label: 'Discord', value: 'discord' },
+        { label: 'Telegram', value: 'telegram' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',
@@ -97,7 +99,9 @@ export const Connectors: CollectionConfig = {
 • email_inbound: { "imapHost": "imap.ionos.com", "imapPort": 993, "emailAddress": "hello@...", "pollIntervalMinutes": 2 }
 • cloudflare_worker: { "workerName": "angel-os-image-gen", "workerUrl": "https://...", "kvNamespace": "TENANT_CACHE" }
 • stripe: { "accountId": "acct_xxx", "mode": "direct" }
-• webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }`,
+• webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
+• discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
+• telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }`,
       },
     },
     // ─── Routing ───────────────────────────────────────────────

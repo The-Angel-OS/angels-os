@@ -117,6 +117,8 @@ import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
+import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
+import { discordWebhookHandler } from '@/endpoints/discord-webhook'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -723,6 +725,22 @@ export default buildConfig({
       path: '/federation/pulse',
       method: 'get',
       handler: federationPulseHandler,
+    },
+    // ─── Sprint 33: Discord Integration ───────────────────────
+    {
+      path: '/auth/discord',
+      method: 'get',
+      handler: authDiscordInitHandler,
+    },
+    {
+      path: '/auth/discord/callback',
+      method: 'get',
+      handler: authDiscordCallbackHandler,
+    },
+    {
+      path: '/discord/webhook',
+      method: 'post',
+      handler: discordWebhookHandler,
     },
   ],
   globals: [],

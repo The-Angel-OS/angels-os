@@ -77,7 +77,7 @@ const PROVIDER_META: Record<
 }
 
 // Providers that have actual OAuth endpoints implemented
-const AVAILABLE_PROVIDERS = ['google']
+const AVAILABLE_PROVIDERS = ['google', 'discord']
 
 interface LinkedProvider {
   id: string
