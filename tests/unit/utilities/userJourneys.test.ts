@@ -385,8 +385,8 @@ import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import { getActiveConstitution } from '@/federation/constitution'
 
 describe('Cross-Module Journey: Wizard → Constitution → Federation', () => {
-  it('wizard step 7 references constitution, which is signable', () => {
-    const wizardSuffix = buildWizardSystemPromptSuffix(7)
+  it('wizard step 8 references constitution, which is signable', () => {
+    const wizardSuffix = buildWizardSystemPromptSuffix(8)
     expect(wizardSuffix).toContain('sign_constitution')
 
     const constitution = getActiveConstitution()
