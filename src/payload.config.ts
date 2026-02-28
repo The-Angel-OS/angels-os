@@ -116,6 +116,7 @@ import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
+import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -716,6 +717,12 @@ export default buildConfig({
       path: '/federation/dispatch-work',
       method: 'post',
       handler: federationDispatchWorkHandler,
+    },
+    // ─── Sprint 32: Federation Pulse ────────────────────────────
+    {
+      path: '/federation/pulse',
+      method: 'get',
+      handler: federationPulseHandler,
     },
   ],
   globals: [],

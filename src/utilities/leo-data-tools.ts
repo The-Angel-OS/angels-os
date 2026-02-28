@@ -25,6 +25,12 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { BookingEngine } from './bookingEngine'
 import {
+  findUserSynchronicities,
+  buildActivityProfile,
+  generateNudges,
+  type UserActivityProfile,
+} from './synchronicity-engine'
+import {
   generateImage,
   uploadGeneratedImage,
   attachImageToProduct,
@@ -2170,6 +2176,46 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Sprint 32: Federation Pulse & Synchronicity ──────────────
+  {
+    name: 'federation_pulse',
+    description:
+      'Get the live vital signs of the federation organism. Returns real-time data on active nodes, flowing work units, active quests, pheromone trail health, and overall pulse strength. Use when users ask "what\'s happening in the federation?", "how\'s the network?", "is anyone out there?", or want to feel the organism\'s heartbeat.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'my_place',
+    description:
+      'Show the user their place in the federation organism. Returns their trust level, quest activity, work unit contributions, node memberships, and reputation summary. Use when users ask "where do I stand?", "what\'s my status?", "how am I doing?", or want to see their impact on the network.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'find_synchronicities',
+    description:
+      'Discover meaningful connections between the user and other federation members. Uses pattern detection across skills, activity timing, shared spaces, pheromone trails, and complementary abilities to surface synchronicities — invisible connections made visible. Use when users ask "who am I connected to?", "find me collaborators", "who should I work with?", or are looking for community.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        minScore: {
+          type: 'number',
+          description: 'Minimum synchronicity score (0-100) to include. Default: 40.',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'Maximum number of matches to return. Default: 5.',
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -2385,6 +2431,13 @@ export async function executeToolCall(
         return await handleGetEnterpriseStage(payload, ctx)
       case 'query_board_members':
         return await handleQueryBoardMembers(payload, toolInput)
+      // ─── Sprint 32: Federation Pulse & Synchronicity ──────────────
+      case 'federation_pulse':
+        return await handleFederationPulse(payload, ctx)
+      case 'my_place':
+        return await handleMyPlace(payload, ctx)
+      case 'find_synchronicities':
+        return await handleFindSynchronicities(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -8765,5 +8818,445 @@ async function handleQueryBoardMembers(
   } catch (err) {
     console.error('[LEO Tools] query_board_members error:', err)
     return `Error querying board members: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 32: Federation Pulse & Synchronicity — Handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * federation_pulse — Live vital signs of the federation organism
+ */
+async function handleFederationPulse(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    const now = new Date()
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const MAX_HEARTBEAT_AGE = 300 // seconds
+
+    const [endeavors, activeWork, completedWork, activeQuests, completedQuests, pheromones] =
+      await Promise.all([
+        payload.find({
+          collection: 'endeavors' as any,
+          where: { 'federation.federationId': { exists: true } } as any,
+          depth: 0,
+          limit: 200,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'work-units' as any,
+          where: { status: { in: ['pending', 'claimed', 'executing'] } } as any,
+          depth: 0,
+          limit: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'work-units' as any,
+          where: {
+            and: [
+              { status: { equals: 'completed' } },
+              { completedAt: { greater_than_equal: twentyFourHoursAgo.toISOString() } },
+            ],
+          } as any,
+          depth: 0,
+          limit: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'quest-participations' as any,
+          where: { status: { in: ['accepted', 'in_progress', 'submitted', 'under_review'] } } as any,
+          depth: 0,
+          limit: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'quest-participations' as any,
+          where: {
+            and: [
+              { status: { in: ['approved', 'paid'] } },
+              { completedAt: { greater_than_equal: twentyFourHoursAgo.toISOString() } },
+            ],
+          } as any,
+          depth: 0,
+          limit: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'pheromones' as any,
+          where: { strength: { greater_than: 5 } } as any,
+          depth: 0,
+          limit: 10,
+          sort: '-strength',
+          overrideAccess: true,
+        }),
+      ])
+
+    // Count healthy nodes
+    const nodes = endeavors.docs as any[]
+    let healthyCount = 0
+    for (const node of nodes) {
+      const lastPing = node.federation?.lastPingAt
+      if (lastPing) {
+        const age = (now.getTime() - new Date(lastPing).getTime()) / 1000
+        if (age <= MAX_HEARTBEAT_AGE) healthyCount++
+      }
+    }
+
+    // Active work breakdown
+    const workDocs = activeWork.docs as any[]
+    const executing = workDocs.filter((w: any) => w.status === 'executing').length
+    const pending = workDocs.length - executing
+
+    // Pheromone stats
+    const trails = pheromones.docs as any[]
+    const avgStrength =
+      trails.length > 0
+        ? Math.round(trails.reduce((s: number, t: any) => s + (t.strength || 0), 0) / trails.length)
+        : 0
+
+    // Pulse strength (0-100)
+    const nodeRatio = nodes.length > 0 ? healthyCount / nodes.length : 0
+    const pulseStrength = Math.round(
+      nodeRatio * 40 +
+      Math.min(1, workDocs.length / 10) * 25 +
+      Math.min(1, activeQuests.totalDocs / 5) * 20 +
+      Math.min(1, avgStrength / 50) * 15,
+    )
+
+    const lines: string[] = []
+    lines.push(pulseStrength > 50 ? `## \u{1F49A} Federation Pulse: ${pulseStrength}/100` : `## \u{1F49B} Federation Pulse: ${pulseStrength}/100`)
+    lines.push('')
+
+    if (healthyCount === 0) {
+      lines.push(`\u{1F6A8} **No healthy nodes detected** — the federation is quiet.`)
+    } else {
+      lines.push(`**${healthyCount}** of ${nodes.length} nodes are alive and responding.`)
+    }
+    lines.push('')
+
+    lines.push(`### \u{2699}\u{FE0F} Work Flow`)
+    lines.push(`- **${executing}** work units executing right now`)
+    lines.push(`- **${pending}** pending/claimed in queue`)
+    lines.push(`- **${completedWork.totalDocs}** completed in the last 24 hours`)
+    lines.push('')
+
+    lines.push(`### \u{1F3AF} Quests`)
+    lines.push(`- **${activeQuests.totalDocs}** active quest participations`)
+    lines.push(`- **${completedQuests.totalDocs}** quests completed in the last 24 hours`)
+    lines.push('')
+
+    lines.push(`### \u{1F41C} Pheromone Trails`)
+    lines.push(`- **${trails.length}** active trails (strength > 5)`)
+    lines.push(`- Average trail strength: **${avgStrength}**/100`)
+    if (trails.length > 0) {
+      lines.push(`- Strongest path: \`${(trails[0] as any).path || 'unknown'}\` (${(trails[0] as any).strength})`)
+    }
+    lines.push('')
+
+    lines.push(`*The organism is ${pulseStrength >= 50 ? 'thriving' : pulseStrength >= 25 ? 'growing' : 'awakening'}.*`)
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] federation_pulse error:', err)
+    return `Error reading federation pulse: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * my_place — User's position in the federation organism
+ */
+async function handleMyPlace(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    if (!ctx.userId) {
+      return 'Unable to determine your identity. Please log in to see your place in the federation.'
+    }
+
+    const [memberships, questParticipations, workUnits] = await Promise.all([
+      // Tenant memberships (nodes they belong to)
+      payload.find({
+        collection: 'tenant-memberships' as any,
+        where: {
+          user: { equals: ctx.userId },
+          status: { equals: 'active' },
+        } as any,
+        depth: 1,
+        limit: 20,
+        overrideAccess: true,
+      }),
+
+      // Quest participations
+      payload.find({
+        collection: 'quest-participations' as any,
+        where: { participant: { equals: ctx.userId } } as any,
+        depth: 1,
+        limit: 50,
+        sort: '-createdAt',
+        overrideAccess: true,
+      }),
+
+      // Work units they've processed
+      payload.find({
+        collection: 'work-units' as any,
+        where: { executedBy: { equals: String(ctx.userId) } } as any,
+        depth: 0,
+        limit: 100,
+        overrideAccess: true,
+      }),
+    ])
+
+    const lines: string[] = []
+    lines.push(`## \u{1F30D} Your Place in the Federation`)
+    lines.push('')
+
+    // Memberships / Nodes
+    const memberDocs = memberships.docs as any[]
+    lines.push(`### \u{1F3E0} Nodes`)
+    if (memberDocs.length === 0) {
+      lines.push(`You haven't joined any nodes yet. Explore the federation to find your home!`)
+    } else {
+      for (const m of memberDocs) {
+        const tenantName = typeof m.tenant === 'object' ? m.tenant?.name || m.tenant?.slug : m.tenant
+        const role = m.role || 'member'
+        lines.push(`- **${tenantName}** (${role})`)
+      }
+    }
+    lines.push('')
+
+    // Quest activity
+    const qDocs = questParticipations.docs as any[]
+    const activeQuests = qDocs.filter((q: any) =>
+      ['accepted', 'in_progress', 'submitted', 'under_review'].includes(q.status),
+    )
+    const completedQuests = qDocs.filter((q: any) => ['approved', 'paid'].includes(q.status))
+    const questTypes: Record<string, number> = {}
+    for (const q of completedQuests) {
+      const quest = q.quest as any
+      const qType = quest?.questType || quest?.difficulty || 'general'
+      questTypes[qType] = (questTypes[qType] || 0) + 1
+    }
+
+    lines.push(`### \u{1F3AF} Quests`)
+    lines.push(`- **${activeQuests.length}** active quest${activeQuests.length === 1 ? '' : 's'}`)
+    lines.push(`- **${completedQuests.length}** completed`)
+    if (Object.keys(questTypes).length > 0) {
+      lines.push(`- Specializations: ${Object.entries(questTypes).map(([k, v]) => `${k} (${v})`).join(', ')}`)
+    }
+    lines.push('')
+
+    // Work unit contributions
+    const wuDocs = workUnits.docs as any[]
+    const completed = wuDocs.filter((w: any) => w.status === 'completed')
+    const failed = wuDocs.filter((w: any) => w.status === 'failed' || w.status === 'timeout')
+    const successRate = wuDocs.length > 0 ? Math.round((completed.length / wuDocs.length) * 100) : 0
+    const workTypes: Record<string, number> = {}
+    for (const w of completed) {
+      const t = (w as any).type || 'unknown'
+      workTypes[t] = (workTypes[t] || 0) + 1
+    }
+
+    lines.push(`### \u{2699}\u{FE0F} Work Units`)
+    lines.push(`- **${completed.length}** completed / **${failed.length}** failed`)
+    lines.push(`- Success rate: **${successRate}%**`)
+    if (Object.keys(workTypes).length > 0) {
+      lines.push(`- Types: ${Object.entries(workTypes).map(([k, v]) => `${k} (${v})`).join(', ')}`)
+    }
+    lines.push('')
+
+    // Summary
+    const totalContributions = completedQuests.length + completed.length
+    let tier = 'Initiate'
+    if (totalContributions >= 50) tier = 'Architect'
+    else if (totalContributions >= 30) tier = 'Navigator'
+    else if (totalContributions >= 15) tier = 'Wayfinder'
+    else if (totalContributions >= 5) tier = 'Pathfinder'
+
+    lines.push(`### \u{2B50} Summary`)
+    lines.push(`- **Tier:** ${tier} (${totalContributions} total contributions)`)
+    lines.push(`- **Nodes:** ${memberDocs.length}`)
+    lines.push(`- **Total quests:** ${qDocs.length} (${completedQuests.length} completed)`)
+    lines.push(`- **Total work units:** ${wuDocs.length} (${successRate}% success)`)
+    lines.push('')
+    lines.push(`*You are a living cell in the federation organism. Every contribution strengthens the mesh.*`)
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] my_place error:', err)
+    return `Error reading your federation position: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * find_synchronicities — Pattern detection for meaningful connections
+ */
+async function handleFindSynchronicities(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    if (!ctx.userId) {
+      return 'Unable to determine your identity. Please log in to discover synchronicities.'
+    }
+
+    const minScore = input.minScore ? Number(input.minScore) : 40
+    const maxResults = input.maxResults ? Math.min(Number(input.maxResults), 10) : 5
+
+    // Get all users in the same tenant with their activity data
+    const [memberships, allQuestParticipations, allWorkUnits, allPheromones] = await Promise.all([
+      // All active memberships in this tenant
+      payload.find({
+        collection: 'tenant-memberships' as any,
+        where: ctx.tenantId
+          ? { tenant: { equals: ctx.tenantId }, status: { equals: 'active' } }
+          : { status: { equals: 'active' } },
+        depth: 1,
+        limit: 100,
+        overrideAccess: true,
+      }),
+
+      // All quest participations
+      payload.find({
+        collection: 'quest-participations' as any,
+        where: ctx.tenantId
+          ? ({ tenant: { equals: ctx.tenantId } } as any)
+          : {},
+        depth: 1,
+        limit: 500,
+        overrideAccess: true,
+      }),
+
+      // All completed work units
+      payload.find({
+        collection: 'work-units' as any,
+        where: { status: { equals: 'completed' } } as any,
+        depth: 0,
+        limit: 500,
+        overrideAccess: true,
+      }),
+
+      // All pheromone trails
+      payload.find({
+        collection: 'pheromones' as any,
+        where: { strength: { greater_than: 5 } } as any,
+        depth: 0,
+        limit: 200,
+        sort: '-strength',
+        overrideAccess: true,
+      }),
+    ])
+
+    // Build user → data maps
+    const memberDocs = memberships.docs as any[]
+    const userIds = new Set<string>()
+    const userNames: Record<string, string> = {}
+    const userNodes: Record<string, string[]> = {}
+
+    for (const m of memberDocs) {
+      const uid = String(typeof m.user === 'object' ? m.user?.id : m.user)
+      userIds.add(uid)
+      if (typeof m.user === 'object' && m.user?.name) {
+        userNames[uid] = m.user.name
+      }
+      const tenantId = String(typeof m.tenant === 'object' ? m.tenant?.id : m.tenant)
+      if (!userNodes[uid]) userNodes[uid] = []
+      userNodes[uid].push(tenantId)
+    }
+
+    if (userIds.size < 2) {
+      return 'Not enough active users in the federation to detect synchronicities yet. The organism grows as more people join!'
+    }
+
+    // Build quest completion maps per user
+    const userQuestCompletions: Record<string, Record<string, number>> = {}
+    for (const qp of allQuestParticipations.docs as any[]) {
+      const uid = String(typeof qp.participant === 'object' ? qp.participant?.id : qp.participant)
+      if (!['approved', 'paid'].includes(qp.status)) continue
+      if (!userQuestCompletions[uid]) userQuestCompletions[uid] = {}
+      const quest = qp.quest as any
+      const qType = quest?.questType || quest?.difficulty || 'general'
+      userQuestCompletions[uid][qType] = (userQuestCompletions[uid][qType] || 0) + 1
+    }
+
+    // Build work unit maps per user
+    const userWorkUnits: Record<string, Record<string, number>> = {}
+    for (const wu of allWorkUnits.docs as any[]) {
+      const uid = (wu as any).executedBy
+      if (!uid) continue
+      if (!userWorkUnits[uid]) userWorkUnits[uid] = {}
+      const wType = (wu as any).type || 'unknown'
+      userWorkUnits[uid][wType] = (userWorkUnits[uid][wType] || 0) + 1
+    }
+
+    // Build activity profiles
+    const profiles: UserActivityProfile[] = []
+    for (const uid of userIds) {
+      profiles.push(
+        buildActivityProfile({
+          userId: uid,
+          displayName: userNames[uid],
+          questCompletions: Object.entries(userQuestCompletions[uid] || {}).map(([type, count]) => ({
+            type,
+            count,
+          })),
+          workUnits: Object.entries(userWorkUnits[uid] || {}).map(([type, count]) => ({
+            type,
+            count,
+          })),
+          nodeIds: userNodes[uid] || [],
+          skills: [
+            ...Object.keys(userQuestCompletions[uid] || {}),
+            ...Object.keys(userWorkUnits[uid] || {}),
+          ],
+        }),
+      )
+    }
+
+    // Find target profile
+    const targetProfile = profiles.find((p) => p.userId === String(ctx.userId))
+    if (!targetProfile) {
+      return 'Could not find your activity profile. Complete some quests or process work units to build your profile!'
+    }
+
+    // Run the engine
+    const matches = findUserSynchronicities(targetProfile, profiles, {
+      minScore,
+      maxResults,
+    })
+
+    if (matches.length === 0) {
+      return `No synchronicities found above score ${minScore}. As you and others contribute more to the federation, patterns will emerge. Every quest completed and work unit processed adds to the web of connections.`
+    }
+
+    // Generate nudges
+    const nudges = generateNudges(matches, maxResults)
+
+    const lines: string[] = []
+    lines.push(`## \u{1F52E} Synchronicities Detected`)
+    lines.push('')
+    lines.push(`Found **${matches.length}** meaningful connection${matches.length === 1 ? '' : 's'}:`)
+    lines.push('')
+
+    for (const nudge of nudges) {
+      lines.push(nudge.message)
+      lines.push('')
+      const dims = nudge.match.dimensions
+      lines.push(`> Skills: ${dims.skillOverlap} | Time: ${dims.temporalProximity} | Space: ${dims.spatialProximity} | Trails: ${dims.trailIntersection} | Complement: ${dims.complementarity}`)
+      lines.push('')
+      lines.push('---')
+      lines.push('')
+    }
+
+    lines.push(`*Synchronicities are pheromone trail intersections made visible. The more you contribute, the more connections the organism reveals.*`)
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] find_synchronicities error:', err)
+    return `Error finding synchronicities: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

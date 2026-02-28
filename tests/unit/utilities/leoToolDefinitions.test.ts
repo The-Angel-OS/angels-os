@@ -36,8 +36,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 85 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(85)
+  it('has exactly 88 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(88)
   })
 
   it('every tool has a unique name', () => {
@@ -150,6 +150,9 @@ describe('LEO Tool Categories', () => {
       'check_fees',
       'browse_network',
       'find_producers',
+      'federation_pulse',
+      'my_place',
+      'find_synchronicities',
     ])('includes %s', (name) => {
       expect(toolNames()).toContain(name)
     })
