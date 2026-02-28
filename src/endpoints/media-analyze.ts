@@ -20,12 +20,16 @@
 
 import type { PayloadHandler } from 'payload'
 import { buildMediaMeta } from '@/utilities/mediaAnalysis'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const mediaAnalyzeHandler: PayloadHandler = async (req) => {
   // Auth check
   if (!req.user) {
     return Response.json({ success: false, error: 'Authentication required' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'default')
+  if (rateLimited) return rateLimited
 
   // Parse body
   let body: Record<string, unknown>

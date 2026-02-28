@@ -17,12 +17,17 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const chatSendHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
   if (!req.user) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 })
   }
+
+  // Rate limit: 20 messages per minute per user
+  const rateLimited = applyRateLimit(req, 'chat_send')
+  if (rateLimited) return rateLimited
 
   // Parse request body
   let body: Record<string, unknown>

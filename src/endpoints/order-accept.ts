@@ -8,6 +8,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { validateFulfillmentTransition } from '@/utilities/orderRoutingEngine'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const orderAcceptHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -15,6 +16,9 @@ export const orderAcceptHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'orders')
+  if (rateLimited) return rateLimited
 
   let body: Record<string, unknown>
   try {

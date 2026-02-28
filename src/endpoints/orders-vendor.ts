@@ -7,6 +7,7 @@
  * @see src/utilities/orderRoutingEngine.ts — vendor share calculation
  */
 import type { PayloadHandler } from 'payload'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const ordersVendorHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -14,6 +15,9 @@ export const ordersVendorHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'orders')
+  if (rateLimited) return rateLimited
 
   // Find holons owned by user's tenants
   const userTenants = ((user as any).tenants || []).map((t: any) =>

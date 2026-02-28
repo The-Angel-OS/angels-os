@@ -9,6 +9,7 @@
 import type { PayloadHandler } from 'payload'
 import { createInvitation, isValidEmail } from '@/utilities/invitationSystem'
 import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const spaceInviteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -16,6 +17,9 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'invitations')
+  if (rateLimited) return rateLimited
 
   let body: Record<string, unknown>
   try {

@@ -18,6 +18,10 @@ export type ApiEndpoint =
   | 'spaces_create'
   | 'stripe'
   | 'comments'
+  | 'chat_send'
+  | 'invitations'
+  | 'orders'
+  | 'registration'
   | 'default'
 
 export interface ApiRateLimitResult {
@@ -40,6 +44,10 @@ const LIMITS: Record<ApiEndpoint, number> = {
   spaces_create: 3,  // Prevent spam creation
   stripe: 10,        // Payment abuse prevention
   comments: 10,      // Comment spam
+  chat_send: 20,     // Message spam — generous for active chat, still bounded
+  invitations: 5,    // Invitation email spam prevention
+  orders: 10,        // Order lifecycle abuse prevention
+  registration: 3,   // Account creation spam — tight limit
   default: 60,       // General API protection
 }
 

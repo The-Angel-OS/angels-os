@@ -970,8 +970,37 @@ async function streamViaGateway(opts: {
     content: typeof m.content === 'string' ? m.content : '',
   }))
 
-  // Build user message (with images if present)
-  if (userImages.length > 0) {
+  // Prevent "split-brain" echo: the user message was already saved to DB
+  // before calling /api/leo/stream, so fetchConversationHistory() already
+  // includes it. Only append the current message if it ISN'T already the
+  // last entry in history (handles both race-condition and no-history cases).
+  const lastHistoryMsg = messages[messages.length - 1]
+  const alreadyInHistory =
+    lastHistoryMsg?.role === 'user' &&
+    typeof lastHistoryMsg.content === 'string' &&
+    lastHistoryMsg.content.trim() === userMessage.trim()
+
+  if (!alreadyInHistory) {
+    // Build user message (with images if present)
+    if (userImages.length > 0) {
+      const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+      const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = [
+        { type: 'text', text: userMessage },
+      ]
+      for (const img of userImages) {
+        let imageUrl = img.url
+        if (imageUrl.startsWith('/')) {
+          imageUrl = `${serverUrl}${imageUrl}`
+        }
+        parts.push({ type: 'image', image: new URL(imageUrl) })
+      }
+      messages.push({ role: 'user', content: parts })
+    } else {
+      messages.push({ role: 'user', content: userMessage })
+    }
+  } else if (userImages.length > 0) {
+    // History has the text but not the images — replace the last entry
+    // with a multimodal message so the LLM can see both text and images.
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
     const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = [
       { type: 'text', text: userMessage },
@@ -983,9 +1012,7 @@ async function streamViaGateway(opts: {
       }
       parts.push({ type: 'image', image: new URL(imageUrl) })
     }
-    messages.push({ role: 'user', content: parts })
-  } else {
-    messages.push({ role: 'user', content: userMessage })
+    messages[messages.length - 1] = { role: 'user', content: parts }
   }
 
   // Convert tools with execute functions bound to Payload context
@@ -1138,10 +1165,33 @@ async function streamViaAnthropic(opts: {
     }
   }
 
-  const messages: Anthropic.MessageParam[] = [
-    ...historyMessages,
-    { role: 'user' as const, content: userImages.length > 0 ? userContent : userMessage },
-  ]
+  // Prevent "split-brain" echo: the user message was already saved to DB
+  // before calling /api/leo/stream, so fetchConversationHistory() already
+  // includes it. Only append the current message if it ISN'T already the
+  // last entry in history.
+  const lastMsg = historyMessages[historyMessages.length - 1]
+  const msgAlreadyInHistory =
+    lastMsg?.role === 'user' &&
+    typeof lastMsg.content === 'string' &&
+    lastMsg.content.trim() === userMessage.trim()
+
+  let messages: Anthropic.MessageParam[]
+  if (msgAlreadyInHistory && userImages.length > 0) {
+    // History has text but not images — replace last entry with multimodal version
+    messages = [
+      ...historyMessages.slice(0, -1),
+      { role: 'user' as const, content: userContent },
+    ]
+  } else if (msgAlreadyInHistory) {
+    // Already in history, no images — use history as-is
+    messages = [...historyMessages]
+  } else {
+    // Not in history (race condition / first message) — append it
+    messages = [
+      ...historyMessages,
+      { role: 'user' as const, content: userImages.length > 0 ? userContent : userMessage },
+    ]
+  }
 
   let fullText = ''
   let round = 0

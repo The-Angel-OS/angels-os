@@ -11,6 +11,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { AccessToken } from 'livekit-server-sdk'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const liveKitTokenHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -18,6 +19,9 @@ export const liveKitTokenHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required.' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'default')
+  if (rateLimited) return rateLimited
 
   const apiKey = process.env.LIVEKIT_API_KEY
   const apiSecret = process.env.LIVEKIT_API_SECRET

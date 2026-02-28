@@ -1,6 +1,7 @@
 import type { PayloadHandler } from 'payload'
 import { findOrCreateDM } from '@/utilities/dmChannels'
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 /**
  * POST /api/dm/find-or-create
@@ -23,6 +24,9 @@ export const dmFindOrCreateHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ message: 'Not authenticated' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'default')
+  if (rateLimited) return rateLimited
 
   // Parse body
   let body: Record<string, unknown>

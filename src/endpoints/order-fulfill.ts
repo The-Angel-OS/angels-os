@@ -11,6 +11,7 @@
 import type { PayloadHandler } from 'payload'
 import { validateFulfillmentTransition, validateFulfillmentUpdate } from '@/utilities/orderRoutingEngine'
 import type { FulfillmentUpdate } from '@/utilities/orderRoutingEngine'
+import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const orderFulfillHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -18,6 +19,9 @@ export const orderFulfillHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  const rateLimited = applyRateLimit(req, 'orders')
+  if (rateLimited) return rateLimited
 
   let body: Record<string, unknown>
   try {
