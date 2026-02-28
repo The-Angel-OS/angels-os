@@ -67,6 +67,7 @@ export default async function ShopPage({ searchParams }: Props) {
       gallery: true,
       categories: true,
       priceInUSD: true,
+      meta: true,
     },
     ...(sort ? { sort } : { sort: 'title' }),
     where: {

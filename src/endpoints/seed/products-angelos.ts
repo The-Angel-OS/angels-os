@@ -31,12 +31,14 @@ function buildProductRichText(paragraphs: string[]) {
 
 type ProductArgs = {
   metaImage?: Media
+  galleryImage?: Media
   categories: Category[]
   relatedProducts?: Product[]
 }
 
 export const avEventPackageData: (args: ProductArgs) => RequiredDataFromCollectionSlug<'products'> = ({
   metaImage,
+  galleryImage,
   categories,
   relatedProducts = [],
 }) => ({
@@ -53,7 +55,7 @@ export const avEventPackageData: (args: ProductArgs) => RequiredDataFromCollecti
     'Whether you\'re hosting a 50-person board meeting or a 500-person gala, this package scales to your needs. Hybrid and virtual streaming add-ons available.',
   ]),
   layout: [],
-  gallery: [],
+  gallery: galleryImage ? [{ image: galleryImage.id }] : [],
   meta: {
     title: 'Live Event AV Package | Angel OS',
     description: 'Complete audio-visual production package for corporate events. Sound, lighting, video walls, and certified technicians.',
@@ -63,6 +65,7 @@ export const avEventPackageData: (args: ProductArgs) => RequiredDataFromCollecti
 
 export const itSecurityConsultationData: (args: ProductArgs) => RequiredDataFromCollectionSlug<'products'> = ({
   metaImage,
+  galleryImage,
   categories,
   relatedProducts = [],
 }) => ({
@@ -79,7 +82,7 @@ export const itSecurityConsultationData: (args: ProductArgs) => RequiredDataFrom
     'Ideal for small-to-medium businesses looking to strengthen their defenses without the overhead of a full-time security team.',
   ]),
   layout: [],
-  gallery: [],
+  gallery: galleryImage ? [{ image: galleryImage.id }] : [],
   meta: {
     title: 'IT Security Consultation | Angel OS',
     description: 'Professional cybersecurity assessment and remediation roadmap for your business infrastructure.',
@@ -89,6 +92,7 @@ export const itSecurityConsultationData: (args: ProductArgs) => RequiredDataFrom
 
 export const aiStrategyWorkshopData: (args: ProductArgs) => RequiredDataFromCollectionSlug<'products'> = ({
   metaImage,
+  galleryImage,
   categories,
   relatedProducts = [],
 }) => ({
@@ -105,7 +109,7 @@ export const aiStrategyWorkshopData: (args: ProductArgs) => RequiredDataFromColl
     'Led by experienced consultants who have guided dozens of organizations through successful AI transformations. No buzzwords — just practical, actionable intelligence.',
   ]),
   layout: [],
-  gallery: [],
+  gallery: galleryImage ? [{ image: galleryImage.id }] : [],
   meta: {
     title: 'AI Strategy Workshop | Angel OS',
     description: 'Half-day workshop for business leaders on practical AI adoption. Actionable roadmap, no buzzwords.',

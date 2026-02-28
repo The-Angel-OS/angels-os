@@ -29,8 +29,12 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
     }
   }
 
-  const image =
+  // Prefer gallery image, fallback to meta image if gallery is empty
+  const galleryImage =
     gallery?.[0]?.image && typeof gallery[0]?.image !== 'string' ? gallery[0]?.image : false
+  const metaImage =
+    product.meta?.image && typeof product.meta.image !== 'string' ? product.meta.image : false
+  const image = galleryImage || metaImage
 
   return (
     <Link className="relative block h-full w-full group rounded-lg border border-border bg-card overflow-hidden transition-colors hover:border-primary/50" href={`/products/${product.slug}`}>

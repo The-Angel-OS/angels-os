@@ -752,7 +752,7 @@ export const seed = async ({
     collection: 'products',
     depth: 0,
     data: {
-      ...avEventPackageData({ metaImage: imageHero, categories: [eventsCategory, servicesCategory] }),
+      ...avEventPackageData({ metaImage: imageHero, galleryImage: imageHero, categories: [eventsCategory, servicesCategory] }),
       tenant: defaultTenantId,
     },
   })
@@ -761,7 +761,7 @@ export const seed = async ({
     collection: 'products',
     depth: 0,
     data: {
-      ...itSecurityConsultationData({ metaImage: imageHero, categories: [technologyCategory, servicesCategory], relatedProducts: [] }),
+      ...itSecurityConsultationData({ metaImage: imageHero, galleryImage: imageHero, categories: [technologyCategory, servicesCategory], relatedProducts: [] }),
       tenant: defaultTenantId,
     },
   })
@@ -770,7 +770,7 @@ export const seed = async ({
     collection: 'products',
     depth: 0,
     data: {
-      ...aiStrategyWorkshopData({ metaImage: imageHero, categories: [technologyCategory], relatedProducts: [productSecurity] }),
+      ...aiStrategyWorkshopData({ metaImage: imageHero, galleryImage: imageHero, categories: [technologyCategory], relatedProducts: [productSecurity] }),
       tenant: defaultTenantId,
     },
   })
