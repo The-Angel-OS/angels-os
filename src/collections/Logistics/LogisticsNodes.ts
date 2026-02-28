@@ -115,6 +115,7 @@ export const LogisticsNodes: CollectionConfig = {
       name: 'type',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Food Pantry', value: 'pantry' },
         { label: 'Shelter', value: 'shelter' },
@@ -265,6 +266,7 @@ export const LogisticsNodes: CollectionConfig = {
       name: 'status',
       type: 'select',
       defaultValue: 'active',
+      index: true,
       options: [
         { label: 'Active', value: 'active' },
         { label: 'Inactive', value: 'inactive' },

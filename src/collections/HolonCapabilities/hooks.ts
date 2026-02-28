@@ -66,7 +66,7 @@ export const afterHolonChange: CollectionAfterChangeHook = async ({
 
     // Query all orders that have queued Angel Tokens (pending_match with queuedAt)
     const queuedOrders = await req.payload.find({
-      collection: 'orders' as any,
+      collection: 'orders',
       where: {
         'fulfillment.fulfillmentStatus': { equals: 'pending_match' },
         'fulfillment.tokenStatus': { equals: 'active' },
@@ -140,7 +140,7 @@ export const afterHolonChange: CollectionAfterChangeHook = async ({
 
       if (orderUpdated) {
         await req.payload.update({
-          collection: 'orders' as any,
+          collection: 'orders',
           id: order.id,
           data: { fulfillment } as any,
           overrideAccess: true,
@@ -153,7 +153,7 @@ export const afterHolonChange: CollectionAfterChangeHook = async ({
             collection: 'messages',
             data: {
               content: `Angel Token matched! Order #${order.id} has been assigned to ${holonNode.businessName}. The maker can now accept and begin production.`,
-              messageType: 'system' as any,
+              messageType: 'system',
               tenant: tenantId,
               author: (req.user?.id as number) ?? 1,
             } as any,

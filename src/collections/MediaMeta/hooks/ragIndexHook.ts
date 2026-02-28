@@ -204,9 +204,8 @@ export const ragIndexHook: CollectionAfterChangeHook = async ({
     if (chunks.length === 0) return doc
 
     // Update the document with RAG chunks
-    // Note: 'media-meta' is not in generated types yet — cast to any
     await req.payload.update({
-      collection: 'media-meta' as any,
+      collection: 'media-meta',
       id: doc.id,
       data: {
         ragChunks: chunks,

@@ -61,6 +61,7 @@ export const StreetSigns: CollectionConfig = {
     {
       name: 'contentType',
       type: 'select',
+      index: true,
       required: true,
       options: [
         { label: 'Product', value: 'product' },
@@ -202,6 +203,7 @@ export const StreetSigns: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       required: true,
       defaultValue: 'active',
       options: [

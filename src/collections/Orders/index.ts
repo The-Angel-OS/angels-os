@@ -39,7 +39,7 @@ export const OrdersCollection: CollectionOverride = ({ defaultCollection }) => (
         {
           name: 'assignedHolon',
           type: 'relationship',
-          relationTo: 'holon-capabilities' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+          relationTo: 'holon-capabilities',
           admin: { description: 'The Holon node assigned to fulfill this item' },
         },
         {

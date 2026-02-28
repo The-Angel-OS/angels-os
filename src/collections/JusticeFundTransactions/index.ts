@@ -27,6 +27,7 @@ export const JusticeFundTransactions: CollectionConfig = {
     {
       name: 'type',
       type: 'select',
+      index: true,
       required: true,
       options: [
         { label: 'Allocation (from sale)', value: 'allocation' },
@@ -62,6 +63,7 @@ export const JusticeFundTransactions: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       required: true,
       defaultValue: 'completed',
       options: [

@@ -45,6 +45,7 @@ export const BoardMembers: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
       admin: {
         description: 'The user who holds this board seat',
       },
@@ -99,6 +100,7 @@ export const BoardMembers: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       required: true,
       defaultValue: 'active',
       options: [

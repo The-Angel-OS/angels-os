@@ -212,6 +212,7 @@ export const Messages: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       defaultValue: 'active',
       options: [
         { label: 'Active', value: 'active' },

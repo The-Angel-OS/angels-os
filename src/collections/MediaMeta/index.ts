@@ -61,6 +61,7 @@ export const MediaMeta: CollectionConfig = {
       type: 'relationship',
       relationTo: 'media',
       required: true,
+      index: true,
       admin: { description: 'The media item being analyzed' },
     },
     {

@@ -21,6 +21,7 @@ export const simpleSlugField = slugField({
     // Multi-tenant: allow duplicate slugs across tenants
     if (slugFieldConfig) {
       slugFieldConfig.unique = false
+      ;(slugFieldConfig as Record<string, unknown>).index = true
     }
     return field
   },

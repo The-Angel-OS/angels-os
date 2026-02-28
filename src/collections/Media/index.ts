@@ -15,6 +15,8 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   admin: {
     group: 'Content',
+    defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'createdAt'],
+    description: 'Uploaded media assets — images, documents, and files for all tenant content.',
   },
   slug: 'media',
   access: {

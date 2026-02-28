@@ -7,6 +7,7 @@ export const Bookings: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'bookingType', 'startDateTime', 'status', 'tenant'],
     group: 'Commerce',
+    description: 'Appointment and service bookings — links providers, clients, and time slots.',
   },
   access: {
     create: authenticated,
@@ -67,6 +68,7 @@ export const Bookings: CollectionConfig = {
       name: 'provider',
       type: 'relationship',
       relationTo: 'users',
+      index: true,
       required: true,
       admin: {
         description: 'The person or resource providing this service',
@@ -77,6 +79,7 @@ export const Bookings: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
       admin: {
         description: 'The person booking this service',
       },
@@ -196,6 +199,7 @@ export const Bookings: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       options: [
         {
           label: 'Pending',

@@ -107,6 +107,10 @@ export interface Config {
     'street-signs': StreetSign;
     quests: Quest;
     'quest-participations': QuestParticipation;
+    'board-members': BoardMember;
+    'logistics-nodes': LogisticsNode;
+    transports: Transport;
+    shipments: Shipment;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -171,6 +175,10 @@ export interface Config {
     'street-signs': StreetSignsSelect<false> | StreetSignsSelect<true>;
     quests: QuestsSelect<false> | QuestsSelect<true>;
     'quest-participations': QuestParticipationsSelect<false> | QuestParticipationsSelect<true>;
+    'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
+    'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
+    transports: TransportsSelect<false> | TransportsSelect<true>;
+    shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -567,6 +575,8 @@ export interface Tenant {
   createdAt: string;
 }
 /**
+ * Uploaded media assets — images, documents, and files for all tenant content.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
@@ -1204,6 +1214,7 @@ export interface Page {
     | BannerBlock
     | FormBlock
     | CalendarBlock
+    | FeaturedEndeavorsBlock
   )[];
   meta?: {
     title?: string | null;
@@ -1695,6 +1706,234 @@ export interface CalendarBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeaturedEndeavorsBlock".
+ */
+export interface FeaturedEndeavorsBlock {
+  /**
+   * Section heading displayed above the endeavor cards
+   */
+  heading?: string | null;
+  /**
+   * Optional description below the heading
+   */
+  subheading?: string | null;
+  /**
+   * Choose "Most Recent" to auto-display the 5 latest active endeavors, or "Hand-Picked" to select specific ones.
+   */
+  source?: ('recent' | 'manual') | null;
+  /**
+   * Select specific endeavors to feature (only used when source is "Hand-Picked")
+   */
+  endeavors?: (number | Endeavor)[] | null;
+  /**
+   * Maximum number of endeavors to display (used when source is "Most Recent")
+   */
+  maxItems?: number | null;
+  /**
+   * How the endeavor cards are displayed
+   */
+  layout?: ('grid' | 'carousel' | 'featured') | null;
+  /**
+   * Display the endeavor description/tagline
+   */
+  showDescription?: boolean | null;
+  /**
+   * Display the endeavor region/location
+   */
+  showRegion?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'featuredEndeavors';
+}
+/**
+ * The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "endeavors".
+ */
+export interface Endeavor {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Official name of this Endeavor / Enterprise
+   */
+  name: string;
+  /**
+   * One-sentence mission statement
+   */
+  tagline?: string | null;
+  /**
+   * Full description of what this Enterprise does and stands for
+   */
+  description?: string | null;
+  /**
+   * The primary operational model of this Enterprise
+   */
+  endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
+  /**
+   * Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.
+   */
+  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
+  /**
+   * What does this Enterprise serve? Set during Leo Wizard step 5.
+   */
+  missionStatement?: string | null;
+  /**
+   * "Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.
+   */
+  status: 'forming' | 'active' | 'suspended' | 'retired';
+  /**
+   * The main community space for this Endeavor — created during Leo Wizard step 3
+   */
+  primarySpace?: (number | null) | Space;
+  /**
+   * The human who runs this Enterprise
+   */
+  operator?: {
+    name?: string | null;
+    email?: string | null;
+    /**
+     * e.g., "Founder", "Chapter Lead", "Community Manager"
+     */
+    role?: string | null;
+  };
+  /**
+   * What this Enterprise can offer to the network (visible in federation catalog)
+   */
+  capabilities?:
+    | {
+        skill: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Network participation and constitutional commitment
+   */
+  federation?: {
+    /**
+     * Appear in the Angel OS network catalog. Enable after Leo Wizard is complete.
+     */
+    networkVisible?: boolean | null;
+    /**
+     * Federation trust level. Starts as "applicant" after first ping. Advances to "active" after 90-day probation and 2 vouches.
+     */
+    ministryStatus?: ('applicant' | 'probation' | 'active' | 'suspended') | null;
+    /**
+     * Version of the Angel OS Constitution that was signed
+     */
+    constitutionVersion?: string | null;
+    /**
+     * When the operator signed the Angel OS Constitution
+     */
+    constitutionSignedAt?: string | null;
+    /**
+     * Ed25519 signature of the constitution signing event (hex-encoded, first 32 chars shown)
+     */
+    constitutionSignature?: string | null;
+    /**
+     * Unique UUID assigned at constitution signing — the Enterprise's immutable identity in the federation network
+     */
+    federationId?: string | null;
+    /**
+     * When this Enterprise last pinged the federation registry
+     */
+    lastPingAt?: string | null;
+  };
+  /**
+   * People this Endeavor serves — may be pre-registered before they onboard. Each beneficiary gets a unique claim token. When they create an account and present the token, they are verified and linked.
+   */
+  beneficiaries?:
+    | {
+        name: string;
+        /**
+         * Contact email if known — used for matching during onboarding
+         */
+        email?: string | null;
+        /**
+         * Their role in this Endeavor
+         */
+        role?: string | null;
+        /**
+         * Why this person is a beneficiary of this Endeavor
+         */
+        description?: string | null;
+        /**
+         * Unique verification token (UUID). Share with the beneficiary so they can claim their account when they onboard. Auto-generated on creation.
+         */
+        claimToken?: string | null;
+        /**
+         * Lifecycle: pending → invited → verified (or declined)
+         */
+        verificationStatus?: ('pending' | 'invited' | 'verified' | 'declined') | null;
+        /**
+         * Linked user account — set when beneficiary onboards and verifies
+         */
+        linkedUser?: (number | null) | User;
+        /**
+         * When the beneficiary verified their identity and linked their account
+         */
+        verifiedAt?: string | null;
+        /**
+         * When this person was designated as a beneficiary
+         */
+        designatedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Primary logo for network catalog display
+   */
+  logo?: (number | null) | Media;
+  /**
+   * Cover image for the network catalog card
+   */
+  coverImage?: (number | null) | Media;
+  /**
+   * Geographic region for network discovery and routing
+   */
+  region?: {
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spaces".
+ */
+export interface Space {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
+  visibility?: ('public' | 'invite_only' | 'private') | null;
+  /**
+   * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
+   */
+  enabledApplets?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "CommentsBlock".
  */
 export interface CommentsBlock {
@@ -1929,6 +2168,8 @@ export interface Address {
   createdAt: string;
 }
 /**
+ * User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tenant-memberships".
  */
@@ -1980,36 +2221,6 @@ export interface TenantMembership {
      */
     invitationEmail?: string | null;
   };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "spaces".
- */
-export interface Space {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  name: string;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  description?: string | null;
-  visibility?: ('public' | 'invite_only' | 'private') | null;
-  /**
-   * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
-   */
-  enabledApplets?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2271,6 +2482,8 @@ export interface Message {
   createdAt: string;
 }
 /**
+ * Appointment and service bookings — links providers, clients, and time slots.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
  */
@@ -2706,6 +2919,8 @@ export interface EventRegistration {
   createdAt: string;
 }
 /**
+ * Provider availability slots — defines when a user or resource can accept bookings.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "availability".
  */
@@ -2826,12 +3041,18 @@ export interface Availability {
   createdAt: string;
 }
 /**
+ * Site header navigation — one per tenant.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header".
  */
 export interface Header {
   id: number;
   tenant?: (number | null) | Tenant;
+  /**
+   * Descriptive label for this header (e.g. "Main Header").
+   */
+  label?: string | null;
   navItems?:
     | {
         link: {
@@ -2851,12 +3072,18 @@ export interface Header {
   createdAt: string;
 }
 /**
+ * Site footer navigation — one per tenant.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer".
  */
 export interface Footer {
   id: number;
   tenant?: (number | null) | Tenant;
+  /**
+   * Descriptive label for this footer (e.g. "Main Footer").
+   */
+  label?: string | null;
   navItems?:
     | {
         link: {
@@ -2959,6 +3186,8 @@ export interface Post {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Portfolio showcase — completed projects, case studies, and client work.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects".
  */
@@ -3345,6 +3574,8 @@ export interface ApplicationLog {
   createdAt: string;
 }
 /**
+ * Customer feedback and ratings — native, Google Places import, or manual entry.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "reviews".
  */
@@ -3398,120 +3629,6 @@ export interface Review {
    * Product this review is about (optional)
    */
   product?: (number | null) | Product;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "endeavors".
- */
-export interface Endeavor {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  /**
-   * Official name of this Endeavor / Enterprise
-   */
-  name: string;
-  /**
-   * One-sentence mission statement
-   */
-  tagline?: string | null;
-  /**
-   * Full description of what this Enterprise does and stands for
-   */
-  description?: string | null;
-  /**
-   * The primary operational model of this Enterprise
-   */
-  endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
-  /**
-   * Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.
-   */
-  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
-  /**
-   * What does this Enterprise serve? Set during Leo Wizard step 5.
-   */
-  missionStatement?: string | null;
-  /**
-   * "Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.
-   */
-  status: 'forming' | 'active' | 'suspended' | 'retired';
-  /**
-   * The main community space for this Endeavor — created during Leo Wizard step 3
-   */
-  primarySpace?: (number | null) | Space;
-  /**
-   * The human who runs this Enterprise
-   */
-  operator?: {
-    name?: string | null;
-    email?: string | null;
-    /**
-     * e.g., "Founder", "Chapter Lead", "Community Manager"
-     */
-    role?: string | null;
-  };
-  /**
-   * What this Enterprise can offer to the network (visible in federation catalog)
-   */
-  capabilities?:
-    | {
-        skill: string;
-        description?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Network participation and constitutional commitment
-   */
-  federation?: {
-    /**
-     * Appear in the Angel OS network catalog. Enable after Leo Wizard is complete.
-     */
-    networkVisible?: boolean | null;
-    /**
-     * Federation trust level. Starts as "applicant" after first ping. Advances to "active" after 90-day probation and 2 vouches.
-     */
-    ministryStatus?: ('applicant' | 'probation' | 'active' | 'suspended') | null;
-    /**
-     * Version of the Angel OS Constitution that was signed
-     */
-    constitutionVersion?: string | null;
-    /**
-     * When the operator signed the Angel OS Constitution
-     */
-    constitutionSignedAt?: string | null;
-    /**
-     * Ed25519 signature of the constitution signing event (hex-encoded, first 32 chars shown)
-     */
-    constitutionSignature?: string | null;
-    /**
-     * Unique UUID assigned at constitution signing — the Enterprise's immutable identity in the federation network
-     */
-    federationId?: string | null;
-    /**
-     * When this Enterprise last pinged the federation registry
-     */
-    lastPingAt?: string | null;
-  };
-  /**
-   * Primary logo for network catalog display
-   */
-  logo?: (number | null) | Media;
-  /**
-   * Cover image for the network catalog card
-   */
-  coverImage?: (number | null) | Media;
-  /**
-   * Geographic region for network discovery and routing
-   */
-  region?: {
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -3637,7 +3754,7 @@ export interface Contact {
   createdAt: string;
 }
 /**
- * Immutable audit trail of all federation network activity
+ * Immutable audit trail of all federation network activity.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "federation-audit-log".
@@ -4140,6 +4257,8 @@ export interface Quest {
   createdAt: string;
 }
 /**
+ * Quest participation records — tracks evidence, objectives, review, and payout for each participant.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "quest-participations".
  */
@@ -4204,6 +4323,313 @@ export interface QuestParticipation {
    * Other team members (for group quests)
    */
   teamMembers?: (number | User)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Federation governance board members
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "board-members".
+ */
+export interface BoardMember {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The user who holds this board seat
+   */
+  user: number | User;
+  /**
+   * Board role — determines governance powers
+   */
+  role: 'founder' | 'advisor' | 'sentinel_representative' | 'observer';
+  /**
+   * Display title (e.g., "Founder & Herald")
+   */
+  title: string;
+  /**
+   * When this board member was appointed
+   */
+  appointedAt: string;
+  /**
+   * Term length — permanent for founders
+   */
+  term: 'permanent' | '1yr' | '2yr';
+  status: 'active' | 'emeritus' | 'removed';
+  /**
+   * Specific governance permissions
+   */
+  permissions?: ('oversight' | 'veto' | 'provision' | 'moderate' | 'configure')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Physical nodes in the Universal Logistics Network — pantries, shelters, drop zones.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "logistics-nodes".
+ */
+export interface LogisticsNode {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Human-readable node name (e.g., "Clearwater Community Pantry")
+   */
+  name: string;
+  /**
+   * Auto-generated @handle (e.g., @clearwater-pantry-djk3x). Leave blank to auto-generate.
+   */
+  handle?: string | null;
+  type: 'pantry' | 'shelter' | 'dropzone' | 'warehouse' | 'medical' | 'distribution' | 'community_fridge';
+  /**
+   * Regulated = institutional (Red Cross, hospitals). Autonomous = grassroots mutual aid.
+   */
+  governanceMode: 'regulated' | 'autonomous';
+  /**
+   * Upload insurance certificate (PDF/image)
+   */
+  insurancePolicy?: (number | null) | Media;
+  /**
+   * HIPAA, food safety, or other compliance certifications
+   */
+  complianceCerts?:
+    | {
+        /**
+         * e.g., "HIPAA", "ServSafe", "FDA"
+         */
+        certType: string;
+        certDoc?: (number | null) | Media;
+        expiresAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Soul Fleet operators accept responsibility under Good Samaritan laws.
+   */
+  liabilityWaiverSigned?: boolean | null;
+  /**
+   * Reputation score. Starts at 1, grows with successful deliveries. Max 100.
+   */
+  trustScore?: number | null;
+  /**
+   * Total shipments successfully completed through this node.
+   */
+  completedShipments?: number | null;
+  location: {
+    lat: number;
+    lng: number;
+    /**
+     * Street address
+     */
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+  };
+  /**
+   * Auto-computed from lat/lng. Used for spatial proximity queries.
+   */
+  geohash?: string | null;
+  /**
+   * Delivery/pickup radius in miles. 0 = pickup only.
+   */
+  serviceRadius?: number | null;
+  /**
+   * Current stock at this node
+   */
+  inventory?:
+    | {
+        /**
+         * e.g., "Canned Soup", "Blankets", "First Aid Kit"
+         */
+        item: string;
+        category?: ('food' | 'medicine' | 'clothing' | 'hygiene' | 'shelter' | 'baby' | 'pet' | 'other') | null;
+        quantity: number;
+        /**
+         * e.g., "cases", "lbs", "units"
+         */
+        unit?: string | null;
+        /**
+         * For perishables
+         */
+        expiresAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * What this node currently needs — drives demand matching
+   */
+  needs?:
+    | {
+        item: string;
+        category?: ('food' | 'medicine' | 'clothing' | 'hygiene' | 'shelter' | 'baby' | 'pet' | 'other') | null;
+        quantity: number;
+        urgency?: ('standard' | 'urgent' | 'sos') | null;
+        id?: string | null;
+      }[]
+    | null;
+  status?: ('active' | 'inactive' | 'seasonal') | null;
+  /**
+   * e.g., "Mon-Fri 9am-5pm" or "24/7"
+   */
+  operatingHours?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Soul Fleet vehicles and couriers that move resources between nodes.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "transports".
+ */
+export interface Transport {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Give it a name. "Soul Van 1", "The Enterprise", "Blue Thunder" — the vibe matters.
+   */
+  vehicleName: string;
+  /**
+   * The driver / operator responsible for this transport.
+   */
+  owner: number | User;
+  transportType: 'van' | 'pickup' | 'box_truck' | 'car' | 'bicycle' | 'foot' | 'boat' | 'drone';
+  /**
+   * Cargo capacity in standard units (1 unit = approx 1 cubic foot / 30 lbs).
+   */
+  capacity: number;
+  status: 'idle' | 'en_route' | 'loading' | 'returning' | 'offline' | 'maintenance';
+  /**
+   * Last known position. Updated by driver app or GPS integration.
+   */
+  currentLocation?: {
+    lat?: number | null;
+    lng?: number | null;
+    /**
+     * When this position was last reported
+     */
+    updatedAt?: string | null;
+  };
+  /**
+   * Where this transport is normally stationed.
+   */
+  homeBase?: (number | null) | LogisticsNode;
+  /**
+   * Maximum one-way range in miles the driver is willing to travel.
+   */
+  maxRange?: number | null;
+  /**
+   * Availability schedule, e.g., "Weekdays 6am-2pm" or "On-call"
+   */
+  availableFrom?: string | null;
+  /**
+   * Special capabilities this transport offers.
+   */
+  specialCapabilities?: ('refrigerated' | 'temp_controlled' | 'hazmat' | 'accessible' | 'pet_friendly')[] | null;
+  completedDeliveries?: number | null;
+  /**
+   * Driver reliability rating (0-5).
+   */
+  rating?: number | null;
+  /**
+   * Currently assigned shipment (if en_route).
+   */
+  activeShipment?: (number | null) | Shipment;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Resource shipments moving between logistics nodes.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipments".
+ */
+export interface Shipment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Auto-generated shipment identifier (e.g., SHP-20260228-001). Leave blank to auto-generate.
+   */
+  shipmentId?: string | null;
+  /**
+   * Pickup location (supply node).
+   */
+  origin: number | LogisticsNode;
+  /**
+   * Delivery location (demand node).
+   */
+  destination: number | LogisticsNode;
+  /**
+   * Calculated distance between origin and destination in miles.
+   */
+  distanceMiles?: number | null;
+  /**
+   * Items being shipped.
+   */
+  manifest: {
+    item: string;
+    category?: ('food' | 'medicine' | 'clothing' | 'hygiene' | 'shelter' | 'baby' | 'pet' | 'other') | null;
+    quantity: number;
+    unit?: string | null;
+    /**
+     * Weight in lbs (optional)
+     */
+    weight?: number | null;
+    perishable?: boolean | null;
+    requiresRefrigeration?: boolean | null;
+    id?: string | null;
+  }[];
+  priority: 'standard' | 'urgent' | 'sos';
+  status: 'pending' | 'matched' | 'dispatched' | 'in_transit' | 'delivered' | 'cancelled' | 'failed';
+  /**
+   * Why the shipment failed or was cancelled.
+   */
+  failureReason?: string | null;
+  /**
+   * The Soul Fleet vehicle assigned to this shipment.
+   */
+  assignedTransport?: (number | null) | Transport;
+  /**
+   * The person actually driving / carrying the goods.
+   */
+  driver?: (number | null) | User;
+  matchType?: ('manual' | 'auto' | 'sos_dispatch') | null;
+  /**
+   * Algorithm confidence score (0-100) if auto-matched.
+   */
+  matchScore?: number | null;
+  matchedAt?: string | null;
+  dispatchedAt?: string | null;
+  pickedUpAt?: string | null;
+  deliveredAt?: string | null;
+  /**
+   * ETA at destination.
+   */
+  estimatedArrival?: string | null;
+  /**
+   * Evidence that the shipment was received.
+   */
+  proofOfDelivery?: {
+    photo?: (number | null) | Media;
+    recipientName?: string | null;
+    recipientSignature?: boolean | null;
+    notes?: string | null;
+  };
+  /**
+   * Total cargo size in standard units (used for transport capacity matching).
+   */
+  totalSize?: number | null;
+  /**
+   * Total weight in lbs.
+   */
+  totalWeight?: number | null;
+  /**
+   * Who created or triggered this shipment.
+   */
+  requestedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -4578,6 +5004,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'quest-participations';
         value: number | QuestParticipation;
+      } | null)
+    | ({
+        relationTo: 'board-members';
+        value: number | BoardMember;
+      } | null)
+    | ({
+        relationTo: 'logistics-nodes';
+        value: number | LogisticsNode;
+      } | null)
+    | ({
+        relationTo: 'transports';
+        value: number | Transport;
+      } | null)
+    | ({
+        relationTo: 'shipments';
+        value: number | Shipment;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5247,6 +5689,7 @@ export interface AvailabilitySelect<T extends boolean = true> {
  */
 export interface HeaderSelect<T extends boolean = true> {
   tenant?: T;
+  label?: T;
   navItems?:
     | T
     | {
@@ -5270,6 +5713,7 @@ export interface HeaderSelect<T extends boolean = true> {
  */
 export interface FooterSelect<T extends boolean = true> {
   tenant?: T;
+  label?: T;
   navItems?:
     | T
     | {
@@ -5329,6 +5773,7 @@ export interface PagesSelect<T extends boolean = true> {
         banner?: T | BannerBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
+        featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
       };
   meta?:
     | T
@@ -5488,6 +5933,22 @@ export interface CalendarBlockSelect<T extends boolean = true> {
   defaultView?: T;
   showPastEvents?: T;
   accentColor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeaturedEndeavorsBlock_select".
+ */
+export interface FeaturedEndeavorsBlockSelect<T extends boolean = true> {
+  heading?: T;
+  subheading?: T;
+  source?: T;
+  endeavors?: T;
+  maxItems?: T;
+  layout?: T;
+  showDescription?: T;
+  showRegion?: T;
   id?: T;
   blockName?: T;
 }
@@ -5843,6 +6304,20 @@ export interface EndeavorsSelect<T extends boolean = true> {
         federationId?: T;
         lastPingAt?: T;
       };
+  beneficiaries?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        role?: T;
+        description?: T;
+        claimToken?: T;
+        verificationStatus?: T;
+        linkedUser?: T;
+        verifiedAt?: T;
+        designatedAt?: T;
+        id?: T;
+      };
   logo?: T;
   coverImage?: T;
   region?:
@@ -6099,6 +6574,159 @@ export interface QuestParticipationsSelect<T extends boolean = true> {
   completedAt?: T;
   teamId?: T;
   teamMembers?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "board-members_select".
+ */
+export interface BoardMembersSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  role?: T;
+  title?: T;
+  appointedAt?: T;
+  term?: T;
+  status?: T;
+  permissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "logistics-nodes_select".
+ */
+export interface LogisticsNodesSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  handle?: T;
+  type?: T;
+  governanceMode?: T;
+  insurancePolicy?: T;
+  complianceCerts?:
+    | T
+    | {
+        certType?: T;
+        certDoc?: T;
+        expiresAt?: T;
+        id?: T;
+      };
+  liabilityWaiverSigned?: T;
+  trustScore?: T;
+  completedShipments?: T;
+  location?:
+    | T
+    | {
+        lat?: T;
+        lng?: T;
+        address?: T;
+        city?: T;
+        state?: T;
+        zip?: T;
+      };
+  geohash?: T;
+  serviceRadius?: T;
+  inventory?:
+    | T
+    | {
+        item?: T;
+        category?: T;
+        quantity?: T;
+        unit?: T;
+        expiresAt?: T;
+        id?: T;
+      };
+  needs?:
+    | T
+    | {
+        item?: T;
+        category?: T;
+        quantity?: T;
+        urgency?: T;
+        id?: T;
+      };
+  status?: T;
+  operatingHours?: T;
+  contactName?: T;
+  contactPhone?: T;
+  contactEmail?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "transports_select".
+ */
+export interface TransportsSelect<T extends boolean = true> {
+  tenant?: T;
+  vehicleName?: T;
+  owner?: T;
+  transportType?: T;
+  capacity?: T;
+  status?: T;
+  currentLocation?:
+    | T
+    | {
+        lat?: T;
+        lng?: T;
+        updatedAt?: T;
+      };
+  homeBase?: T;
+  maxRange?: T;
+  availableFrom?: T;
+  specialCapabilities?: T;
+  completedDeliveries?: T;
+  rating?: T;
+  activeShipment?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipments_select".
+ */
+export interface ShipmentsSelect<T extends boolean = true> {
+  tenant?: T;
+  shipmentId?: T;
+  origin?: T;
+  destination?: T;
+  distanceMiles?: T;
+  manifest?:
+    | T
+    | {
+        item?: T;
+        category?: T;
+        quantity?: T;
+        unit?: T;
+        weight?: T;
+        perishable?: T;
+        requiresRefrigeration?: T;
+        id?: T;
+      };
+  priority?: T;
+  status?: T;
+  failureReason?: T;
+  assignedTransport?: T;
+  driver?: T;
+  matchType?: T;
+  matchScore?: T;
+  matchedAt?: T;
+  dispatchedAt?: T;
+  pickedUpAt?: T;
+  deliveredAt?: T;
+  estimatedArrival?: T;
+  proofOfDelivery?:
+    | T
+    | {
+        photo?: T;
+        recipientName?: T;
+        recipientSignature?: T;
+        notes?: T;
+      };
+  totalSize?: T;
+  totalWeight?: T;
+  requestedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

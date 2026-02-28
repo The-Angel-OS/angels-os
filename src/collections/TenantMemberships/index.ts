@@ -14,6 +14,7 @@ export const TenantMemberships: CollectionConfig = {
     group: 'Angel OS',
     useAsTitle: 'id',
     defaultColumns: ['user', 'tenant', 'role', 'status'],
+    description: 'User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).',
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },
   access: {

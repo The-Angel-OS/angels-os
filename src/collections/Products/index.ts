@@ -231,6 +231,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     },
     {
       name: 'vendor',
+      index: true,
       type: 'relationship',
       relationTo: 'tenants',
       admin: {

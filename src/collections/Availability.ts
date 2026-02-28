@@ -7,6 +7,7 @@ export const Availability: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'provider', 'dayOfWeek', 'startTime', 'endTime', 'isActive'],
     group: 'Commerce',
+    description: 'Provider availability slots — defines when a user or resource can accept bookings.',
   },
   access: {
     create: authenticated,
@@ -25,6 +26,7 @@ export const Availability: CollectionConfig = {
     },
     {
       name: 'provider',
+      index: true,
       type: 'relationship',
       relationTo: 'users',
       required: true,

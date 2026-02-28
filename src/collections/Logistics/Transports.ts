@@ -40,6 +40,7 @@ export const Transports: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
       admin: { description: 'The driver / operator responsible for this transport.' },
     },
     {
@@ -94,7 +95,8 @@ export const Transports: CollectionConfig = {
     {
       name: 'homeBase',
       type: 'relationship',
-      relationTo: 'logistics-nodes' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+      relationTo: 'logistics-nodes',
+      index: true,
       admin: { description: 'Where this transport is normally stationed.' },
     },
     // ─── Operational ────────────────────────────────────────────────────────
@@ -139,7 +141,8 @@ export const Transports: CollectionConfig = {
     {
       name: 'activeShipment',
       type: 'relationship',
-      relationTo: 'shipments' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+      relationTo: 'shipments',
+      index: true,
       admin: { description: 'Currently assigned shipment (if en_route).' },
     },
   ],

@@ -63,15 +63,17 @@ export const Shipments: CollectionConfig = {
     {
       name: 'origin',
       type: 'relationship',
-      relationTo: 'logistics-nodes' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+      relationTo: 'logistics-nodes',
       required: true,
+      index: true,
       admin: { description: 'Pickup location (supply node).' },
     },
     {
       name: 'destination',
       type: 'relationship',
-      relationTo: 'logistics-nodes' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+      relationTo: 'logistics-nodes',
       required: true,
+      index: true,
       admin: { description: 'Delivery location (demand node).' },
     },
     {
@@ -146,7 +148,8 @@ export const Shipments: CollectionConfig = {
     {
       name: 'assignedTransport',
       type: 'relationship',
-      relationTo: 'transports' as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- slug not in generated types yet
+      relationTo: 'transports',
+      index: true,
       admin: { description: 'The Soul Fleet vehicle assigned to this shipment.' },
     },
     {
@@ -154,6 +157,7 @@ export const Shipments: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { description: 'The person actually driving / carrying the goods.' },
+      index: true,
     },
     // ─── Matching Metadata ──────────────────────────────────────────────────
     {

@@ -8,6 +8,7 @@ export const QuestParticipations: CollectionConfig = {
   admin: {
     group: 'Quests',
     defaultColumns: ['quest', 'participant', 'status', 'createdAt'],
+    description: 'Quest participation records — tracks evidence, objectives, review, and payout for each participant.',
   },
   access: {
     create: authenticated,
@@ -20,8 +21,9 @@ export const QuestParticipations: CollectionConfig = {
     {
       name: 'quest',
       type: 'relationship',
-      relationTo: 'quests' as any, // Not yet in generated types — regenerate after migration
+      relationTo: 'quests',
       required: true,
+      index: true,
       admin: { position: 'sidebar' },
     },
     {
@@ -29,6 +31,7 @@ export const QuestParticipations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
       admin: { position: 'sidebar' },
     },
     // ─── State Machine ────────────────────────────────
@@ -36,6 +39,7 @@ export const QuestParticipations: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       defaultValue: 'accepted',
       options: [
         { label: 'Accepted', value: 'accepted' },

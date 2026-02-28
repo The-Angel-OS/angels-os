@@ -125,6 +125,7 @@ export const Endeavors: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       required: true,
       defaultValue: 'forming',
       options: [

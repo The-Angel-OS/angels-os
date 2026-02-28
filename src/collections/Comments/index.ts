@@ -94,6 +94,7 @@ export const Comments: CollectionConfig = {
     {
       name: 'isApproved',
       type: 'checkbox',
+      index: true,
       defaultValue: false,
       admin: {
         description: 'Only approved comments are shown on the frontend',

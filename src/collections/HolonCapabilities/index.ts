@@ -37,6 +37,7 @@ export const HolonCapabilities: CollectionConfig = {
     // Do not define it here to avoid duplicate field errors.
     {
       name: 'nodeType',
+      index: true,
       type: 'select',
       required: true,
       options: [
@@ -123,6 +124,7 @@ export const HolonCapabilities: CollectionConfig = {
     },
     {
       name: 'acceptingOrders',
+      index: true,
       type: 'checkbox',
       defaultValue: true,
       admin: { description: 'Currently accepting new orders from the network' },

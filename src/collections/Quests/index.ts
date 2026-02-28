@@ -34,6 +34,7 @@ export const Quests: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       required: true,
       defaultValue: 'draft',
       options: [
@@ -217,6 +218,7 @@ export const Quests: CollectionConfig = {
       name: 'postedBy',
       type: 'relationship',
       relationTo: 'users',
+      index: true,
       admin: { position: 'sidebar' },
     },
     {

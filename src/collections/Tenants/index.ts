@@ -26,6 +26,7 @@ export const Tenants: CollectionConfig = {
     {
       name: 'type',
       type: 'select',
+      index: true,
       options: [
         { label: 'Platform', value: 'platform' },
         { label: 'Tenant', value: 'tenant' },
@@ -55,6 +56,7 @@ export const Tenants: CollectionConfig = {
     {
       name: 'domain',
       type: 'text',
+      index: true,
       required: true,
       admin: {
         description: 'Primary domain (e.g., hays-cactus.com). Used for hostname routing.',
@@ -78,6 +80,7 @@ export const Tenants: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       defaultValue: 'active',
       options: [
         { label: 'Active', value: 'active' },

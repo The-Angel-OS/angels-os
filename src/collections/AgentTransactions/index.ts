@@ -55,6 +55,7 @@ export const AgentTransactions: CollectionConfig = {
       name: 'type',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Spend', value: 'spend' },
         { label: 'Earn', value: 'earn' },
@@ -156,6 +157,7 @@ export const AgentTransactions: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       defaultValue: 'pending',
       options: [
         { label: 'Pending', value: 'pending' },

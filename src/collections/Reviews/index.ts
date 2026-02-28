@@ -13,6 +13,7 @@ export const Reviews: CollectionConfig = {
     group: 'Commerce',
     useAsTitle: 'author',
     defaultColumns: ['author', 'rating', 'source', 'isVerified', 'publishedAt'],
+    description: 'Customer feedback and ratings — native, Google Places import, or manual entry.',
   },
   access: {
     read: publicWithTenantScope,
@@ -55,6 +56,7 @@ export const Reviews: CollectionConfig = {
     {
       name: 'source',
       type: 'select',
+      index: true,
       defaultValue: 'angelos',
       options: [
         { label: 'Angel OS', value: 'angelos' },
@@ -105,6 +107,7 @@ export const Reviews: CollectionConfig = {
     },
     {
       name: 'product',
+      index: true,
       type: 'relationship',
       relationTo: 'products',
       admin: {

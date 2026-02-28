@@ -21,6 +21,7 @@ export const EventRegistrations: CollectionConfig = {
       name: 'event',
       type: 'relationship',
       relationTo: 'events',
+      index: true,
       required: true,
       admin: {
         description: 'Which event this registration is for',
@@ -30,6 +31,7 @@ export const EventRegistrations: CollectionConfig = {
       name: 'attendee',
       type: 'relationship',
       relationTo: 'users',
+      index: true,
       admin: {
         description: 'Registered user (optional — anonymous registrations use name/email)',
       },
@@ -44,6 +46,7 @@ export const EventRegistrations: CollectionConfig = {
     {
       name: 'email',
       type: 'text',
+      index: true,
       admin: {
         description: 'Attendee email (required for anonymous registrations)',
       },
@@ -52,6 +55,7 @@ export const EventRegistrations: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Registered', value: 'registered' },
         { label: 'Waitlisted', value: 'waitlisted' },

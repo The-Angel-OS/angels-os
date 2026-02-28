@@ -13,6 +13,7 @@ export const Spaces: CollectionConfig = {
     group: 'Angel OS',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'tenant', 'visibility'],
+    description: 'Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.',
   },
   access: {
     create: async ({ req: { user }, data }) => {

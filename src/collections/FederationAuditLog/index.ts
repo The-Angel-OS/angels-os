@@ -21,10 +21,10 @@ import type { CollectionConfig } from 'payload'
 export const FederationAuditLog: CollectionConfig = {
   slug: 'federation-audit-log',
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'action',
     defaultColumns: ['action', 'sourceFederationId', 'allowed', 'createdAt'],
-    description: 'Immutable audit trail of all federation network activity',
+    description: 'Immutable audit trail of all federation network activity.',
   },
   access: {
     // Only super admins can read the audit log
@@ -44,6 +44,7 @@ export const FederationAuditLog: CollectionConfig = {
     {
       name: 'action',
       type: 'select',
+      index: true,
       required: true,
       options: [
         { label: 'Discovery', value: 'discovery' },
@@ -75,6 +76,7 @@ export const FederationAuditLog: CollectionConfig = {
     {
       name: 'sourceFederationId',
       type: 'text',
+      index: true,
       required: true,
       admin: {
         description: 'Federation UUID of the Enterprise that initiated this action',

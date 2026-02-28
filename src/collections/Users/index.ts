@@ -48,6 +48,7 @@ export const Users: CollectionConfig = {
       name: 'isSystemUser',
       type: 'checkbox',
       defaultValue: false,
+      index: true,
       admin: {
         description: 'LEO/AI avatar users. Do not log in; author Messages as ai_agent.',
         condition: (_, siblingData) => siblingData?.isSystemUser === true,

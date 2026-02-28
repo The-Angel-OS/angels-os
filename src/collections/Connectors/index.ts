@@ -44,6 +44,7 @@ export const Connectors: CollectionConfig = {
       name: 'type',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Email Inbound (IMAP)', value: 'email_inbound' },
         { label: 'Email Outbound (SMTP/Resend)', value: 'email_outbound' },
@@ -65,6 +66,7 @@ export const Connectors: CollectionConfig = {
       name: 'space',
       type: 'relationship',
       relationTo: 'spaces',
+      index: true,
       admin: {
         description:
           'Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.',
@@ -120,6 +122,7 @@ export const Connectors: CollectionConfig = {
     {
       name: 'status',
       type: 'select',
+      index: true,
       defaultValue: 'active',
       options: [
         { label: 'Active', value: 'active' },

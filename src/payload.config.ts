@@ -223,17 +223,21 @@ export default buildConfig({
         contacts: {},
         header: {},
         footer: {},
-        // Sprint 18B/19/20: not in generated types yet — cast to bypass strict check
-        ...({ 'media-meta': {}, connectors: {} } as Record<string, object>),
-        // Sprint 20: Federation — constitutional identity + marketplace discovery
-        ...({ endeavors: {} } as Record<string, object>),
-        ...({ 'street-signs': {} } as Record<string, object>),
-        // Sprint 23: Quests — universal gamification primitive
-        ...({ quests: {}, 'quest-participations': {} } as Record<string, object>),
-        // Sprint 24: Board governance (federation)
-        ...({ 'board-members': {} } as Record<string, object>),
-        // Sprint 27: Universal Logistics Network (ULN)
-        ...({ 'logistics-nodes': {}, transports: {}, shipments: {} } as Record<string, object>),
+        // ─── Sprint 18B/19/20 ──────────────────────────────
+        'media-meta': {},
+        connectors: {},
+        // ─── Sprint 20: Federation ──────────────────────────
+        endeavors: {},
+        'street-signs': {},
+        // ─── Sprint 23: Quests ──────────────────────────────
+        quests: {},
+        'quest-participations': {},
+        // ─── Sprint 24: Board governance ────────────────────
+        'board-members': {},
+        // ─── Sprint 27: Universal Logistics Network ─────────
+        'logistics-nodes': {},
+        transports: {},
+        shipments: {},
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {

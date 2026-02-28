@@ -8,6 +8,7 @@ export const Projects: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'client', 'status', 'projectType', 'completedAt', 'tenant'],
     group: 'Portfolio',
+    description: 'Portfolio showcase — completed projects, case studies, and client work.',
   },
   access: {
     create: authenticated,

@@ -67,6 +67,7 @@ export const Events: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'Upcoming', value: 'upcoming' },
@@ -167,6 +168,7 @@ export const Events: CollectionConfig = {
       name: 'host',
       type: 'relationship',
       relationTo: 'users',
+      index: true,
       required: true,
       admin: {
         description: 'Event organizer',
@@ -426,6 +428,7 @@ export const Events: CollectionConfig = {
       name: 'space',
       type: 'relationship',
       relationTo: 'spaces',
+      index: true,
       admin: {
         description: 'Associated space for AI Bus announcements',
       },
