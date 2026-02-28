@@ -28,6 +28,7 @@ import {
   type Ministry,
   type FederationCatalogEntry,
 } from '@/utilities/federationEngine'
+import { buildCapacitySnapshot, type WorkerCapabilities } from '@/utilities/workload-engine'
 import { getCachedGovernance, setCachedGovernanceWithPersist } from './federation-governance-sync'
 
 export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
@@ -135,6 +136,28 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       // Products collection may not exist — that's fine
     }
 
+    // ── Build capacity snapshot for workload routing ─────────────
+    // Sprint 30: Include our compute capacity so peers can route work to us
+    const localWorker: WorkerCapabilities = {
+      nodeId: federationId,
+      nodeName: identity.name,
+      domain,
+      computeClass: 'standard',
+      supportedWorkTypes: ['computation', 'analysis', 'transformation'],
+      maxConcurrent: 5,
+      activeWorkUnits: 0, // TODO: query actual active work units
+      accepting: true,
+      costPerUnitCents: 0,
+      trustLevel: 'vouched',
+      compositeTrustScore: 70,
+      completedCount: 0,
+      failedCount: 0,
+      avgExecutionTimeMs: 0,
+      lastHeartbeat: new Date().toISOString(),
+      isHealthy: true,
+    }
+    const capacitySnapshot = buildCapacitySnapshot(localWorker)
+
     // ── Send heartbeats ─────────────────────────────────────────
     const heartbeat: HeartbeatPayload = {
       federationId,
@@ -145,7 +168,8 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       status: 'healthy',
       capabilities: ['products'], // TODO: derive from tenant commerce config
       catalogEntryCount,
-    }
+      capacity: capacitySnapshot, // Sprint 30: workload capacity broadcast
+    } as HeartbeatPayload & { capacity: unknown }
 
     // Process peers in parallel (with concurrency limit)
     const CONCURRENCY = 5

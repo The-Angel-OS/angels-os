@@ -84,6 +84,7 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
     status: senderStatus,
     capabilities: senderCapabilities,
     catalogEntryCount,
+    capacity: senderCapacity,
   } = body
 
   if (!senderFedId || typeof senderFedId !== 'string') {
@@ -124,6 +125,8 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
           federation: {
             lastPingAt: new Date().toISOString(),
             networkVisible: true,
+            // Sprint 30: Store capacity snapshot from sender for workload routing
+            ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
           },
         } as any,
         overrideAccess: true,

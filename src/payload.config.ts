@@ -64,7 +64,7 @@ import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
-import { Pheromones } from '@/collections/Intelligence'
+import { Pheromones, WorkUnits } from '@/collections/Intelligence'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -179,6 +179,7 @@ export default buildConfig({
     Transports,
     Shipments,
     Pheromones,
+    WorkUnits,
   ],
   db: postgresAdapter({
     pool: {
@@ -242,6 +243,8 @@ export default buildConfig({
         shipments: {},
         // ─── Sprint 29: Pheromone Grid (Swarm Intelligence) ─
         pheromones: {},
+        // ─── Sprint 30: Distributed Workload Engine ───────────
+        'work-units': {},
       } as any,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
