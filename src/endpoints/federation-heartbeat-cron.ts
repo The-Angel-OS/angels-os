@@ -137,7 +137,83 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
     }
 
     // ── Build capacity snapshot for workload routing ─────────────
-    // Sprint 30: Include our compute capacity so peers can route work to us
+    // Sprint 31: Query actual work unit counts + derive capabilities
+    let activeWorkUnitCount = 0
+    let completedWorkCount = 0
+    let failedWorkCount = 0
+    let avgExecTime = 0
+
+    try {
+      // Count active (pending + claimed + executing) work units
+      const activeWork = await req.payload.find({
+        collection: 'work-units' as any,
+        where: {
+          status: { in: ['pending', 'claimed', 'executing'] },
+        },
+        limit: 0,
+        depth: 0,
+        overrideAccess: true,
+      })
+      activeWorkUnitCount = activeWork.totalDocs
+
+      // Count completed and failed for success rate
+      const completedWork = await req.payload.find({
+        collection: 'work-units' as any,
+        where: { status: { equals: 'completed' } },
+        limit: 0,
+        depth: 0,
+        overrideAccess: true,
+      })
+      completedWorkCount = completedWork.totalDocs
+
+      const failedWork = await req.payload.find({
+        collection: 'work-units' as any,
+        where: { status: { in: ['failed', 'timeout'] } },
+        limit: 0,
+        depth: 0,
+        overrideAccess: true,
+      })
+      failedWorkCount = failedWork.totalDocs
+
+      // Average execution time from recent completed work
+      const recentCompleted = await req.payload.find({
+        collection: 'work-units' as any,
+        where: { status: { equals: 'completed' } },
+        limit: 20,
+        depth: 0,
+        overrideAccess: true,
+        sort: '-completedAt',
+      })
+      const execTimes = (recentCompleted.docs as unknown as Array<Record<string, unknown>>)
+        .map((d) => d.executionTimeMs as number)
+        .filter((t) => typeof t === 'number' && t > 0)
+      if (execTimes.length > 0) {
+        avgExecTime = Math.round(execTimes.reduce((a, b) => a + b, 0) / execTimes.length)
+      }
+    } catch {
+      // WorkUnits collection query failed — use defaults (zero)
+    }
+
+    // Derive capabilities from available collections/features
+    const derivedCapabilities: string[] = []
+    try {
+      // Check if products exist
+      if (catalogEntryCount > 0) derivedCapabilities.push('products')
+      // Check for logistics capability
+      const logNodes = await req.payload.find({
+        collection: 'logistics-nodes' as any,
+        limit: 0,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (logNodes.totalDocs > 0) derivedCapabilities.push('logistics')
+    } catch {
+      // Default to products if we can't query
+      if (catalogEntryCount > 0) derivedCapabilities.push('products')
+    }
+    // All nodes support base computation
+    derivedCapabilities.push('computation', 'analysis')
+
     const localWorker: WorkerCapabilities = {
       nodeId: federationId,
       nodeName: identity.name,
@@ -145,14 +221,14 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       computeClass: 'standard',
       supportedWorkTypes: ['computation', 'analysis', 'transformation'],
       maxConcurrent: 5,
-      activeWorkUnits: 0, // TODO: query actual active work units
+      activeWorkUnits: activeWorkUnitCount,
       accepting: true,
       costPerUnitCents: 0,
       trustLevel: 'vouched',
       compositeTrustScore: 70,
-      completedCount: 0,
-      failedCount: 0,
-      avgExecutionTimeMs: 0,
+      completedCount: completedWorkCount,
+      failedCount: failedWorkCount,
+      avgExecutionTimeMs: avgExecTime,
       lastHeartbeat: new Date().toISOString(),
       isHealthy: true,
     }
@@ -166,9 +242,9 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       timestamp: new Date().toISOString(),
       constitutionVersion: constitution.version,
       status: 'healthy',
-      capabilities: ['products'], // TODO: derive from tenant commerce config
+      capabilities: derivedCapabilities,
       catalogEntryCount,
-      capacity: capacitySnapshot, // Sprint 30: workload capacity broadcast
+      capacity: capacitySnapshot, // Sprint 31: live workload capacity broadcast
     } as HeartbeatPayload & { capacity: unknown }
 
     // Process peers in parallel (with concurrency limit)

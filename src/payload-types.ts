@@ -111,6 +111,8 @@ export interface Config {
     'logistics-nodes': LogisticsNode;
     transports: Transport;
     shipments: Shipment;
+    pheromones: Pheromone;
+    'work-units': WorkUnit;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -179,6 +181,8 @@ export interface Config {
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
     transports: TransportsSelect<false> | TransportsSelect<true>;
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
+    pheromones: PheromonesSelect<false> | PheromonesSelect<true>;
+    'work-units': WorkUnitsSelect<false> | WorkUnitsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -4634,6 +4638,207 @@ export interface Shipment {
   createdAt: string;
 }
 /**
+ * Digital pheromone trails — swarm intelligence for LEO navigation paths.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pheromones".
+ */
+export interface Pheromone {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Deterministic hash of user intent (e.g., "ph_a3f7c012"). Same intent → same hash.
+   */
+  contextHash: string;
+  /**
+   * The UI route this pheromone leads to (e.g., "/dashboard/products").
+   */
+  path: string;
+  /**
+   * Which LEO tool triggered this trail (e.g., "create_product").
+   */
+  toolName?: string | null;
+  /**
+   * Pheromone intensity (0-100). Computed from traversals, age, and abandonments.
+   */
+  strength: number;
+  /**
+   * How many times users successfully followed this trail.
+   */
+  successfulTraversals?: number | null;
+  /**
+   * How many times users bounced or back-navigated after following.
+   */
+  abandonments?: number | null;
+  /**
+   * When someone last followed this trail.
+   */
+  lastTraversedAt: string;
+  /**
+   * TTL date — trails past this date are candidates for cleanup.
+   */
+  decay?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Distributed work units — atoms of computation routed across the federation mesh.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-units".
+ */
+export interface WorkUnit {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Auto-generated ID: WU-YYYYMMDD-XXXX
+   */
+  workUnitId: string;
+  /**
+   * The kind of computational work being distributed.
+   */
+  type: 'computation' | 'analysis' | 'generation' | 'transformation' | 'aggregation';
+  /**
+   * Current state in the work unit lifecycle.
+   */
+  status: 'pending' | 'claimed' | 'executing' | 'completed' | 'failed' | 'timeout' | 'cancelled';
+  /**
+   * Priority level — critical work is never shed under backpressure.
+   */
+  priority: 'critical' | 'high' | 'normal' | 'low' | 'background';
+  /**
+   * The data payload to be processed by the worker.
+   */
+  inputData:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Expected shape of the output (optional validation hint).
+   */
+  outputSchema?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Execution output — populated on completion.
+   */
+  result?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Resource requirements for executing this work unit.
+   */
+  requirements: {
+    computeClass: 'lightweight' | 'standard' | 'heavy';
+    minTrustLevel: 'none' | 'probationary' | 'vouched' | 'full';
+    /**
+     * Array of capability strings the worker must support.
+     */
+    requiredCapabilities?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Expected execution time in milliseconds.
+     */
+    estimatedDurationMs?: number | null;
+    /**
+     * Hard timeout — work unit auto-fails if exceeded.
+     */
+    maxDurationMs?: number | null;
+  };
+  /**
+   * Retry configuration for failed work units.
+   */
+  retryPolicy?: {
+    maxRetries?: number | null;
+    /**
+     * Base backoff delay in milliseconds.
+     */
+    backoffMs?: number | null;
+    /**
+     * Exponential backoff multiplier.
+     */
+    backoffMultiplier?: number | null;
+  };
+  /**
+   * Number of execution attempts (incremented on each retry).
+   */
+  attemptCount?: number | null;
+  /**
+   * Error message from the last failed attempt.
+   */
+  lastError?: string | null;
+  /**
+   * Node ID of the worker processing this unit.
+   */
+  assignedNode?: string | null;
+  /**
+   * When a worker claimed this unit.
+   */
+  claimedAt?: string | null;
+  /**
+   * When execution began.
+   */
+  startedAt?: string | null;
+  /**
+   * When execution finished (success or failure).
+   */
+  completedAt?: string | null;
+  /**
+   * Absolute deadline — unit auto-times-out after this.
+   */
+  deadline?: string | null;
+  /**
+   * Which federation node created this work unit.
+   */
+  originNode: string;
+  /**
+   * Tenant ID that owns this work.
+   */
+  originTenant?: number | null;
+  /**
+   * Which skill/tool generated this work (for pheromone learning).
+   */
+  skillName?: string | null;
+  /**
+   * Parent work unit ID for decomposed (fan-out) sub-tasks.
+   */
+  parentWorkUnitId?: string | null;
+  /**
+   * Actual execution time in milliseconds.
+   */
+  executionTimeMs?: number | null;
+  /**
+   * Node ID that executed the work (may differ from assignedNode on retry).
+   */
+  executedBy?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
@@ -5020,6 +5225,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'shipments';
         value: number | Shipment;
+      } | null)
+    | ({
+        relationTo: 'pheromones';
+        value: number | Pheromone;
+      } | null)
+    | ({
+        relationTo: 'work-units';
+        value: number | WorkUnit;
       } | null)
     | ({
         relationTo: 'forms';
@@ -6727,6 +6940,68 @@ export interface ShipmentsSelect<T extends boolean = true> {
   totalSize?: T;
   totalWeight?: T;
   requestedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pheromones_select".
+ */
+export interface PheromonesSelect<T extends boolean = true> {
+  tenant?: T;
+  contextHash?: T;
+  path?: T;
+  toolName?: T;
+  strength?: T;
+  successfulTraversals?: T;
+  abandonments?: T;
+  lastTraversedAt?: T;
+  decay?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-units_select".
+ */
+export interface WorkUnitsSelect<T extends boolean = true> {
+  tenant?: T;
+  workUnitId?: T;
+  type?: T;
+  status?: T;
+  priority?: T;
+  inputData?: T;
+  outputSchema?: T;
+  result?: T;
+  requirements?:
+    | T
+    | {
+        computeClass?: T;
+        minTrustLevel?: T;
+        requiredCapabilities?: T;
+        estimatedDurationMs?: T;
+        maxDurationMs?: T;
+      };
+  retryPolicy?:
+    | T
+    | {
+        maxRetries?: T;
+        backoffMs?: T;
+        backoffMultiplier?: T;
+      };
+  attemptCount?: T;
+  lastError?: T;
+  assignedNode?: T;
+  claimedAt?: T;
+  startedAt?: T;
+  completedAt?: T;
+  deadline?: T;
+  originNode?: T;
+  originTenant?: T;
+  skillName?: T;
+  parentWorkUnitId?: T;
+  executionTimeMs?: T;
+  executedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

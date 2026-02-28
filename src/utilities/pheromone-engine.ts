@@ -438,6 +438,104 @@ export function recordAbandonment(
 }
 
 // ---------------------------------------------------------------------------
+// Dispatch Learning — The Colony Learns Which Routes Work
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a pheromone context for a workload dispatch event.
+ * This bridges workload routing outcomes into the pheromone grid.
+ *
+ * Successful dispatches reinforce trails. Failed dispatches record
+ * abandonments. Over time, the grid learns which federation nodes
+ * are reliable for which work types.
+ *
+ * @param nodeId    The federation node that processed the work
+ * @param workType  The type of work dispatched
+ * @param skillName Optional skill context
+ * @param tenantSlug Tenant scoping
+ */
+export function buildDispatchContext(
+  nodeId: string,
+  workType: string,
+  skillName?: string,
+  tenantSlug?: string,
+): PheromoneContext {
+  return {
+    query: `dispatch ${workType}`,
+    toolName: `node:${nodeId}`,
+    tenantSlug,
+    additionalContext: skillName ? `skill:${skillName}` : undefined,
+  }
+}
+
+/**
+ * Build a pheromone trail update for a successful dispatch.
+ * Reinforces the nodeId trail for this work type.
+ */
+export function buildDispatchSuccess(
+  existing: PheromoneData | null,
+  nodeId: string,
+  workType: string,
+  skillName?: string,
+  tenantSlug?: string,
+  now: Date = new Date(),
+): TraversalResult {
+  const ctx = buildDispatchContext(nodeId, workType, skillName, tenantSlug)
+  const path = `dispatch/${workType}/${nodeId}`
+  return buildTraversal(existing, ctx, path, now)
+}
+
+/**
+ * Record a failed dispatch — the ant tried the trail but it led nowhere.
+ * If no existing trail, creates one with an immediate abandonment.
+ */
+export function buildDispatchFailure(
+  existing: PheromoneData | null,
+  nodeId: string,
+  workType: string,
+  skillName?: string,
+  tenantSlug?: string,
+  now: Date = new Date(),
+): PheromoneData {
+  if (!existing) {
+    // First encounter with this route — create trail with abandonment
+    const ctx = buildDispatchContext(nodeId, workType, skillName, tenantSlug)
+    const contextHash = hashContext(ctx)
+    return {
+      contextHash,
+      path: `dispatch/${workType}/${nodeId}`,
+      toolName: `node:${nodeId}`,
+      strength: 0,
+      successfulTraversals: 0,
+      abandonments: 1,
+      lastTraversedAt: now.toISOString(),
+      decay: calculateDecayDate(now),
+      createdAt: now.toISOString(),
+    }
+  }
+
+  // Existing trail — record abandonment
+  return recordAbandonment(existing, now)
+}
+
+/**
+ * Extract dispatch pheromone hints from a list of pheromone trails.
+ * Filters to dispatch paths and formats for WorkloadEngine consumption.
+ */
+export function extractDispatchHints(
+  pheromones: PheromoneData[],
+): Array<{ nodeId: string; successfulDispatches: number; abandonments: number; strength: number }> {
+  return pheromones
+    .filter((p) => p.path.startsWith('dispatch/') && p.toolName?.startsWith('node:'))
+    .map((p) => ({
+      nodeId: p.toolName!.replace('node:', ''),
+      successfulDispatches: p.successfulTraversals,
+      abandonments: p.abandonments,
+      strength: p.strength,
+    }))
+}
+
+// ---------------------------------------------------------------------------
 // Circuit Breaker — The Colony Doesn't Run Forever
 // ---------------------------------------------------------------------------
 

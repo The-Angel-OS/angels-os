@@ -114,6 +114,7 @@ import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/au
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
+import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -702,6 +703,12 @@ export default buildConfig({
       path: '/beneficiary/claim',
       method: 'post',
       handler: beneficiaryClaimHandler,
+    },
+    // ─── Distributed Workload Dispatch (Sprint 31) ──────────────
+    {
+      path: '/federation/dispatch-work',
+      method: 'post',
+      handler: federationDispatchWorkHandler,
     },
   ],
   globals: [],
