@@ -89,7 +89,7 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   // Teaser bubble for guests — links to login
   return (
     <Link
-      href="/login"
+      href="/login?redirect=/dashboard"
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 transition-transform"
       title="Chat with LEO — Log in to start"
       aria-label="Log in to chat with LEO"

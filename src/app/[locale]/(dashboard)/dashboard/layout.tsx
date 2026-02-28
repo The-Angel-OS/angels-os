@@ -18,6 +18,7 @@ import type { DashboardSpace } from '@/providers/DashboardContext'
 import { ChatProvider } from '@/components/ChatControl/ChatProvider'
 import type { ChatSpace } from '@/components/ChatControl/types'
 import type { Media } from '@/payload-types'
+import { LeoNavigationBridge } from './LeoNavigationBridge'
 
 /**
  * Dashboard layout — Rev 5 (tenant branding + space context).
@@ -189,6 +190,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         spaces={chatSpaces}
         userId={userId ? String(userId) : ''}
       >
+        {/* LEO Navigation Bridge — auto-navigates when LEO tools mutate data */}
+        <LeoNavigationBridge />
+
         <div className="flex h-screen bg-background overflow-hidden">
           {/* ─── Sidebar Navigation (left) ─── */}
           <DashboardSidebar

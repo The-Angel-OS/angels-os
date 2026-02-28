@@ -224,6 +224,20 @@ function sseEvent(event: string, data: Record<string, unknown>): string {
 }
 
 // ---------------------------------------------------------------------------
+// LEO Navigation Bridge — extract/strip nav directives from tool responses
+// ---------------------------------------------------------------------------
+
+function extractNavDirective(text: string): { path: string; label?: string } | null {
+  const match = text.match(/<!--nav:(.*?)-->/)
+  if (!match) return null
+  try { return JSON.parse(match[1]) } catch { return null }
+}
+
+function stripNavDirective(text: string): string {
+  return text.replace(/<!--nav:.*?-->/g, '').trim()
+}
+
+// ---------------------------------------------------------------------------
 // System Prompt Builder (standalone — doesn't need ConversationEngine instance)
 // ---------------------------------------------------------------------------
 
@@ -1002,6 +1016,9 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       // ─── Persist: update pre-created message or create new one ──────
       let savedMessageId: number | undefined = preCreatedMsgId
       if (resolvedSpaceId && fullText.trim()) {
+        // Strip navigation directives before persisting — they're ephemeral SSE-only
+        const persistText = stripNavDirective(fullText)
+
         try {
           if (preCreatedMsgId) {
             // Update the pre-created placeholder with final content
@@ -1009,7 +1026,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               collection: 'messages',
               id: preCreatedMsgId,
               data: {
-                content: wrapTextContent(fullText),
+                content: wrapTextContent(persistText),
                 metadata: { streaming: false, model: resolveModelId(), partial: hadError },
               } as any,
               overrideAccess: true,
@@ -1019,7 +1036,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             const saved = await req.payload.create({
               collection: 'messages',
               data: {
-                content: wrapTextContent(fullText),
+                content: wrapTextContent(persistText),
                 space: resolvedSpaceId,
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
@@ -1063,14 +1080,19 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
 
       // Send done event (even on error, if we have partial text)
       if (!hadError || fullText.trim()) {
+        // LEO Navigation Bridge — extract nav directive before stripping
+        const navDirective = extractNavDirective(fullText)
+        const cleanText = stripNavDirective(fullText)
+
         controller.enqueue(
           encoder.encode(
             sseEvent('done', {
-              text: fullText,
+              text: cleanText,
               agentName,
               messageId: savedMessageId,
               conversationId: resolvedConversationId,
               ...(hadError ? { partial: true } : {}),
+              ...(navDirective ? { navigateTo: navDirective } : {}),
             }),
           ),
         )

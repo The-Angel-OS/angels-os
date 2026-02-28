@@ -51,6 +51,18 @@ import {
 } from './orderRoutingEngine'
 
 // ---------------------------------------------------------------------------
+// Navigation Directive Helper — LEO Navigation Bridge
+// ---------------------------------------------------------------------------
+// When LEO tools create or modify data, they append an invisible directive
+// that tells the frontend where to navigate so the user sees the result.
+// Format: <!--nav:{"path":"/dashboard/products","label":"View Products"}-->
+// The SSE layer strips this before displaying and forwards it as a navigateTo event.
+
+function navDirective(path: string, label?: string): string {
+  return `\n<!--nav:${JSON.stringify({ path, ...(label ? { label } : {}) })}-->`
+}
+
+// ---------------------------------------------------------------------------
 // Tool Definitions (sent to Claude API)
 // ---------------------------------------------------------------------------
 
@@ -2753,7 +2765,7 @@ async function createBooking(
       timeZoneName: 'short',
     })
 
-    return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.`
+    return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.` + navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
     console.error('[LEO Tools] Error creating booking:', err)
     return `Error creating booking: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
@@ -2956,7 +2968,7 @@ async function updateBookingStatus(
       overrideAccess: true,
     })
 
-    return `Booking updated:\n- **${bookingTitle}** (ID: ${bookingId})\n- Status: ${oldStatus} \u2192 ${status}`
+    return `Booking updated:\n- **${bookingTitle}** (ID: ${bookingId})\n- Status: ${oldStatus} \u2192 ${status}` + navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
     console.error('[LEO Tools] Error updating booking:', err)
     return `Error updating booking: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -3097,7 +3109,7 @@ async function createProduct(
     parts.push('')
     parts.push('Would you like me to generate a product image for this listing?')
 
-    return parts.join('\n')
+    return parts.join('\n') + navDirective('/dashboard/products', 'View Products')
   } catch (err) {
     console.error('[LEO Tools] Error creating product:', err)
     return `Error creating product: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
@@ -3230,7 +3242,7 @@ async function updateProduct(
 
     const displayTitle = updateData.title || oldTitle
 
-    return `Product updated!\n- **${displayTitle}** (ID: ${productId})\n- Changes:\n${changes.map((c) => `  - ${c}`).join('\n')}`
+    return `Product updated!\n- **${displayTitle}** (ID: ${productId})\n- Changes:\n${changes.map((c) => `  - ${c}`).join('\n')}` + navDirective('/dashboard/products', 'View Products')
   } catch (err) {
     console.error('[LEO Tools] Error updating product:', err)
     return `Error updating product: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -3306,7 +3318,7 @@ async function inviteMember(
     parts.push('')
     parts.push('They can accept the invitation by visiting the invite link.')
 
-    return parts.join('\n')
+    return parts.join('\n') + navDirective('/dashboard/community', 'View Community')
   } catch (err) {
     return `Error: ${err instanceof Error ? err.message : 'Failed to create invitation.'}`
   }
@@ -3910,7 +3922,7 @@ async function handleRouteOrder(
       }
     }
 
-    return `Order #${orderId} routing:\n\n${routingResults.join('\n')}`
+    return `Order #${orderId} routing:\n\n${routingResults.join('\n')}` + navDirective('/dashboard/orders', 'View Orders')
   } catch (err) {
     console.error('[LEO Tools] Error routing order:', err)
     return `Error routing order: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -4152,7 +4164,7 @@ async function handleConfigureBusiness(
     }
     response += ' Your storefront is taking shape! Next steps: add products, set up availability, or connect Stripe for payments.'
 
-    return response
+    return response + navDirective('/dashboard/enterprise', 'View Enterprise')
   } catch (err) {
     console.error('[LEO Tools] Error configuring business:', err)
     return `Error configuring business: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -4607,7 +4619,7 @@ async function createPost(
   if (postData.categories?.length) lines.push(`- Categories: ${categoryNames?.join(', ')}`)
   if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
 
-  return lines.join('\n')
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
 
 /**
@@ -4666,7 +4678,7 @@ async function updatePost(
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
   if (slug) lines.push(`- URL: /posts/${slug}`)
 
-  return lines.join('\n')
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
 
 /**
@@ -4712,7 +4724,7 @@ async function createPage(
   if (slug) lines.push(`- URL: /${slug}`)
   if (status === 'draft') lines.push(`\nThe page is saved as a draft. Say "publish page ${result.id}" to make it live.`)
 
-  return lines.join('\n')
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
 
 /**
@@ -4757,7 +4769,7 @@ async function updatePage(
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
   if (slug) lines.push(`- URL: /${slug}`)
 
-  return lines.join('\n')
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
 
 /**
@@ -4896,7 +4908,7 @@ async function handleCreateSpace(
     if (description) lines.push(`- Description: ${description}`)
     lines.push(`\nThis is the main room where your community gathers.`)
 
-    return lines.join('\n')
+    return lines.join('\n') + navDirective('/dashboard/community', 'View Community')
   } catch (err) {
     console.error('[LEO Tools] Error creating space:', err)
     return `Error creating space: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -5737,7 +5749,7 @@ async function handleUpdateThemeSettings(
       }
     }
 
-    return lines.join('\n')
+    return lines.join('\n') + navDirective('/dashboard/branding', 'View Branding')
   } catch (err) {
     console.error('[LEO Tools] Error updating theme settings:', err)
     return `Error updating theme settings: ${err instanceof Error ? err.message : 'Unknown error'}`

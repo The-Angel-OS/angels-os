@@ -10,15 +10,21 @@ import { getPayload } from 'payload'
 import { LoginForm } from '@/components/forms/LoginForm'
 import { redirect } from 'next/navigation'
 
-export default async function Login() {
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>
+}) {
   const headers = await getHeaders()
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
 
   if (user) {
-    // Route already-logged-in users to dashboard (admins and customers alike)
-    // Note: /admin is Payload CMS — we always want the frontend /dashboard
-    redirect('/dashboard')
+    // Route already-logged-in users — respect redirect param if same-origin
+    const params = await searchParams
+    const target =
+      params.redirect && params.redirect.startsWith('/') ? params.redirect : '/dashboard'
+    redirect(target)
   }
 
   return (

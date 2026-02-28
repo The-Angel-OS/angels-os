@@ -387,7 +387,7 @@ export default function FederationNetworkLCARS() {
 
           <div className="flex-1 overflow-y-auto" style={{ background: LCARS_COLORS.panelBg }}>
             {selectedNodeData ? (
-              <NodeDetailPanel node={selectedNodeData} vouchGraph={governance?.vouchGraph || []} allNodes={nodes} />
+              <NodeDetailPanel node={selectedNodeData} vouchGraph={governance?.vouchGraph || []} allNodes={nodes} catalogIndex={governance?.catalogIndex || []} />
             ) : (
               <div className="flex h-full items-center justify-center p-4 text-center">
                 <div>
@@ -661,10 +661,12 @@ function NodeDetailPanel({
   node,
   vouchGraph,
   allNodes,
+  catalogIndex,
 }: {
   node: FederationNodeDisplay
   vouchGraph: VouchEdge[]
   allNodes: FederationNodeDisplay[]
+  catalogIndex: Array<{ sourceMinistryId: string; productId: string; title: string; category: string }>
 }) {
   const vouchesFor = vouchGraph.filter((v) => v.targetId === node.id && v.isValid)
   const vouchedBy = vouchesFor.map((v) => {
@@ -773,6 +775,63 @@ function NodeDetailPanel({
           </div>
         </div>
       )}
+
+      {/* Catalog drill-down — products/services this node offers */}
+      {(() => {
+        const nodeCatalog = catalogIndex.filter((c) => c.sourceMinistryId === node.id)
+        if (nodeCatalog.length === 0) return null
+        return (
+          <>
+            <div className="h-px" style={{ background: `${LCARS_COLORS.amber}33` }} />
+            <div className="px-1">
+              <div className="font-mono text-[9px] tracking-wider" style={{ color: LCARS_COLORS.amber }}>
+                CATALOG ({nodeCatalog.length})
+              </div>
+              <div className="mt-1 space-y-0.5">
+                {nodeCatalog.slice(0, 8).map((item) => (
+                  <div key={item.productId} className="flex items-center justify-between gap-2">
+                    <span
+                      className="truncate font-mono text-[10px]"
+                      style={{ color: LCARS_COLORS.blueLight }}
+                    >
+                      {item.title}
+                    </span>
+                    <span className="shrink-0 font-mono text-[9px]" style={{ color: LCARS_COLORS.textMuted }}>
+                      {item.category}
+                    </span>
+                  </div>
+                ))}
+                {nodeCatalog.length > 8 && (
+                  <div className="font-mono text-[9px]" style={{ color: LCARS_COLORS.textMuted }}>
+                    +{nodeCatalog.length - 8} more
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* Visit Dashboard action */}
+      <div className="h-px" style={{ background: `${LCARS_COLORS.amber}33` }} />
+      <div className="px-1 pb-1">
+        <a
+          href="/dashboard/enterprise"
+          className="block w-full rounded py-1.5 text-center font-mono text-[10px] tracking-wider transition-colors"
+          style={{
+            border: `1px solid ${LCARS_COLORS.amber}66`,
+            color: LCARS_COLORS.amber,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = `${LCARS_COLORS.amber}15`
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          VISIT DASHBOARD →
+        </a>
+      </div>
     </div>
   )
 }
