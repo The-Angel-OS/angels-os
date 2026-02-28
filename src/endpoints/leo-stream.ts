@@ -28,6 +28,13 @@ import { buildMinimalConstitutionalPrompt, buildCOOPromptSuffix, buildHealthDige
 import type { EnterpriseStage, NodeRole } from '@/utilities/constitutional-prompt'
 import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
+import {
+  hashContext as hashPheromoneContext,
+  calculateStrength as calcPheromoneStrength,
+  calculateDecayDate,
+  PHEROMONE_TRAVERSAL_WEIGHT,
+} from '@/utilities/pheromone-engine'
+import type { Payload } from 'payload'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
 import { routeToAgent } from '@/utilities/AgentRouter'
 import { extractTextFromContent, wrapTextContent } from '@/utilities/messageContent'
@@ -235,6 +242,80 @@ function extractNavDirective(text: string): { path: string; label?: string } | n
 
 function stripNavDirective(text: string): string {
   return text.replace(/<!--nav:.*?-->/g, '').trim()
+}
+
+// ---------------------------------------------------------------------------
+// Pheromone Recording (fire-and-forget, best-effort)
+// ---------------------------------------------------------------------------
+
+/**
+ * Record a pheromone trail when LEO navigates the user.
+ * Creates or strengthens a trail so the swarm remembers successful paths.
+ * Never blocks the SSE response — errors are silently swallowed.
+ */
+async function recordPheromoneTraversal(
+  payload: Payload,
+  opts: {
+    contextHash: string
+    path: string
+    toolName?: string
+    tenantId: number
+  },
+): Promise<void> {
+  const now = new Date()
+
+  // Find existing pheromone for this context+path+tenant
+  const existing = await payload.find({
+    collection: 'pheromones' as any,
+    where: {
+      and: [
+        { contextHash: { equals: opts.contextHash } },
+        { path: { equals: opts.path } },
+        { tenant: { equals: opts.tenantId } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if (existing.docs[0]) {
+    // Reinforce existing trail — the ant followed the scent
+    const doc = existing.docs[0] as any
+    const ageMs = now.getTime() - new Date(doc.createdAt).getTime()
+    const ageDays = Math.max(0, ageMs / (1000 * 60 * 60 * 24))
+    const newTraversals = (doc.successfulTraversals || 0) + 1
+    const newStrength = calcPheromoneStrength(newTraversals, ageDays, doc.abandonments || 0)
+
+    await payload.update({
+      collection: 'pheromones' as any,
+      id: doc.id,
+      data: {
+        successfulTraversals: newTraversals,
+        strength: newStrength,
+        lastTraversedAt: now.toISOString(),
+        decay: calculateDecayDate(now),
+      } as any,
+      overrideAccess: true,
+    })
+  } else {
+    // First traversal — lay a new trail
+    await payload.create({
+      collection: 'pheromones' as any,
+      data: {
+        contextHash: opts.contextHash,
+        path: opts.path,
+        toolName: opts.toolName || 'unknown',
+        strength: PHEROMONE_TRAVERSAL_WEIGHT,
+        successfulTraversals: 1,
+        abandonments: 0,
+        lastTraversedAt: now.toISOString(),
+        decay: calculateDecayDate(now),
+        tenant: opts.tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1083,6 +1164,18 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         // LEO Navigation Bridge — extract nav directive before stripping
         const navDirective = extractNavDirective(fullText)
         const cleanText = stripNavDirective(fullText)
+
+        // Pheromone Grid — record the scent trail (fire-and-forget)
+        // Note: toolName is unavailable here (tracked inside streamViaGateway).
+        // The contextHash still produces useful differentiation via query + tenantSlug.
+        if (navDirective && tenantId) {
+          recordPheromoneTraversal(req.payload, {
+            contextHash: hashPheromoneContext({ query: trimmedMsg, tenantSlug }),
+            path: navDirective.path,
+            toolName: undefined,
+            tenantId,
+          }).catch(() => {/* best-effort — never block SSE */})
+        }
 
         controller.enqueue(
           encoder.encode(

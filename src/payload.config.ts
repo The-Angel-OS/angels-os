@@ -64,6 +64,7 @@ import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
+import { Pheromones } from '@/collections/Intelligence'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -177,6 +178,7 @@ export default buildConfig({
     LogisticsNodes,
     Transports,
     Shipments,
+    Pheromones,
   ],
   db: postgresAdapter({
     pool: {
@@ -238,7 +240,9 @@ export default buildConfig({
         'logistics-nodes': {},
         transports: {},
         shipments: {},
-      },
+        // ─── Sprint 29: Pheromone Grid (Swarm Intelligence) ─
+        pheromones: {},
+      } as any,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
         includeDefaultField: true,

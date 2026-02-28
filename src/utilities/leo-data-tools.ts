@@ -62,6 +62,44 @@ function navDirective(path: string, label?: string): string {
   return `\n<!--nav:${JSON.stringify({ path, ...(label ? { label } : {}) })}-->`
 }
 
+/**
+ * Query strongest pheromone trails for a context.
+ * Returns path recommendations LEO can include in responses.
+ *
+ * Infrastructure for future swarm intelligence hints —
+ * tool handlers can call this to include "Most users found success with X".
+ */
+export async function getRecommendedPaths(
+  payload: any,
+  contextHash: string,
+  tenantId: number,
+  limit: number = 3,
+): Promise<Array<{ path: string; strength: number; traversals: number }>> {
+  try {
+    const results = await payload.find({
+      collection: 'pheromones' as any,
+      where: {
+        and: [
+          { contextHash: { equals: contextHash } },
+          { tenant: { equals: tenantId } },
+          { strength: { greater_than: 10 } },
+        ],
+      },
+      sort: '-strength',
+      limit,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return results.docs.map((doc: any) => ({
+      path: doc.path,
+      strength: doc.strength,
+      traversals: doc.successfulTraversals || 0,
+    }))
+  } catch {
+    return [] // Non-critical — swarm hints are a bonus
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tool Definitions (sent to Claude API)
 // ---------------------------------------------------------------------------

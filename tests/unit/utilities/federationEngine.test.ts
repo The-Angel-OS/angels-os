@@ -8,12 +8,19 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import {
+  computeLifecycleState,
+  computeGenesisScore,
+  DORMANCY_THRESHOLD_DAYS,
+  GENESIS_SIGNAL_MIN_NODES,
+  GENESIS_SIGNAL_MIN_TRUST,
+} from '../../../src/utilities/federationEngine'
 
 // ---------------------------------------------------------------------------
 // Re-implement types (avoid Payload imports)
 // ---------------------------------------------------------------------------
 
-type MinistryStatus = 'applicant' | 'probation' | 'active' | 'suspended' | 'revoked'
+type MinistryStatus = 'applicant' | 'probation' | 'active' | 'suspended' | 'revoked' | 'dormant'
 
 type TrustLevel = 'none' | 'probationary' | 'vouched' | 'full'
 
@@ -110,8 +117,9 @@ const MIN_CONSTITUTION_VERSION = '1.0.0'
 const VALID_MINISTRY_TRANSITIONS: Record<MinistryStatus, MinistryStatus[]> = {
   applicant: ['probation', 'revoked'],
   probation: ['active', 'suspended', 'revoked'],
-  active: ['suspended', 'revoked'],
+  active: ['suspended', 'dormant', 'revoked'],
   suspended: ['active', 'revoked'],
+  dormant: ['active', 'revoked'],
   revoked: [],
 }
 
@@ -126,6 +134,7 @@ function validateMinistryTransition(from: MinistryStatus, to: MinistryStatus): b
 function calculateTrustLevel(ministry: Ministry): TrustLevel {
   if (ministry.status === 'revoked' || ministry.status === 'suspended') return 'none'
   if (ministry.status === 'applicant') return 'none'
+  if (ministry.status === 'dormant') return 'none'
   if (ministry.status === 'probation') return 'probationary'
 
   const validVouches = ministry.vouchesReceived.filter((v) => v.isValid).length
@@ -2429,6 +2438,269 @@ describe('Federation Protocol Engine', () => {
 
       const syncPeer = selectSyncPeer(mesh, 'new-node', meshNow)
       expect(syncPeer?.id).toBe('sentinel-001') // Highest version available
+    })
+  })
+
+  // =========================================================================
+  // Sprint 29: Game of Life — Node Lifecycle
+  // =========================================================================
+
+  describe('computeLifecycleState', () => {
+    const now = new Date('2025-06-15T12:00:00Z')
+
+    function makeActiveMinistry(id: string): Ministry {
+      return {
+        id,
+        name: `Ministry ${id}`,
+        domain: `${id}.angelcore.dev`,
+        operator: 'Operator',
+        status: 'active',
+        appliedAt: '2024-01-01T00:00:00Z',
+        activatedAt: '2024-03-01T00:00:00Z',
+        vouchesReceived: [],
+        constitutionVersion: '1.0.0',
+        lastHeartbeat: now.toISOString(),
+        capabilities: ['products'],
+        region: 'us-east',
+      }
+    }
+
+    it('active node with 3 peers stays active', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const peers = new Map([['a', 5], ['b', 3], ['c', 1]])
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: now.toISOString() }, now)
+      expect(result.shouldTransition).toBe(false)
+      expect(result.recommendedStatus).toBe('active')
+    })
+
+    it('active node with 2 peers stays active', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const peers = new Map([['a', 5], ['b', 3]])
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: now.toISOString() }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('active node with 1 peer stays active (still has activity)', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const peers = new Map([['a', 1]])
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: now.toISOString() }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('active node with 0 activity for 31 days → recommends dormant', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const staleDate = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000)
+      const peers = new Map<string, number>() // no active peers
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: staleDate.toISOString() }, now)
+      expect(result.shouldTransition).toBe(true)
+      expect(result.recommendedStatus).toBe('dormant')
+      expect(result.reason).toContain('dormancy')
+    })
+
+    it('active node with 0 activity for 29 days → stays active', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const recentDate = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000)
+      const peers = new Map<string, number>()
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: recentDate.toISOString() }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('stale activity but active peers prevents dormancy', () => {
+      const ministry = makeActiveMinistry('node-1')
+      const staleDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000) // 60 days
+      const peers = new Map([['a', 2]]) // still has active peer
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers, lastActivityDate: staleDate.toISOString() }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('dormant node with activity → recommends revival', () => {
+      const ministry = { ...makeActiveMinistry('node-1'), status: 'dormant' as MinistryStatus }
+      const peers = new Map([['a', 1]])
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers }, now)
+      expect(result.shouldTransition).toBe(true)
+      expect(result.recommendedStatus).toBe('active')
+      expect(result.reason).toContain('revival')
+    })
+
+    it('dormant node without activity stays dormant', () => {
+      const ministry = { ...makeActiveMinistry('node-1'), status: 'dormant' as MinistryStatus }
+      const peers = new Map<string, number>()
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('applicant nodes are not affected', () => {
+      const ministry = { ...makeActiveMinistry('node-1'), status: 'applicant' as MinistryStatus }
+      const peers = new Map<string, number>()
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers }, now)
+      expect(result.shouldTransition).toBe(false)
+      expect(result.reason).toContain('No lifecycle change')
+    })
+
+    it('suspended nodes are not affected', () => {
+      const ministry = { ...makeActiveMinistry('node-1'), status: 'suspended' as MinistryStatus }
+      const peers = new Map<string, number>()
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+
+    it('revoked nodes are not affected', () => {
+      const ministry = { ...makeActiveMinistry('node-1'), status: 'revoked' as MinistryStatus }
+      const peers = new Map<string, number>()
+      const result = computeLifecycleState({ ministry, peerTransactionCounts: peers }, now)
+      expect(result.shouldTransition).toBe(false)
+    })
+  })
+
+  // =========================================================================
+  // Sprint 29: Game of Life — Genesis Score (Reproduction)
+  // =========================================================================
+
+  describe('computeGenesisScore', () => {
+    const now = new Date('2025-06-15T12:00:00Z')
+
+    function makeMinistry(id: string, status: MinistryStatus = 'active'): Ministry {
+      return {
+        id,
+        name: `Ministry ${id}`,
+        domain: `${id}.angelcore.dev`,
+        operator: 'Operator',
+        status,
+        appliedAt: '2024-01-01T00:00:00Z',
+        vouchesReceived: [],
+        constitutionVersion: '1.0.0',
+        capabilities: [],
+      }
+    }
+
+    it('0 qualifying nodes → score 0, not ready', () => {
+      const result = computeGenesisScore({ neighborhood: [], trustScores: {} }, now)
+      expect(result.score).toBe(0)
+      expect(result.readyForGenesis).toBe(false)
+      expect(result.qualifyingNodes).toHaveLength(0)
+    })
+
+    it('1 qualifying node → score 25, not ready', () => {
+      const neighborhood = [makeMinistry('a')]
+      const trustScores = { a: 80 }
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.score).toBe(25)
+      expect(result.readyForGenesis).toBe(false)
+    })
+
+    it('2 qualifying nodes → score 50, not ready', () => {
+      const neighborhood = [makeMinistry('a'), makeMinistry('b')]
+      const trustScores = { a: 80, b: 60 }
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.score).toBe(50)
+      expect(result.readyForGenesis).toBe(false)
+    })
+
+    it('3 qualifying nodes → score 75, ready for genesis', () => {
+      const neighborhood = [makeMinistry('a'), makeMinistry('b'), makeMinistry('c')]
+      const trustScores = { a: 80, b: 60, c: 55 }
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.score).toBe(75)
+      expect(result.readyForGenesis).toBe(true)
+      expect(result.qualifyingNodes).toHaveLength(3)
+    })
+
+    it('4 qualifying nodes → score 100 (capped), ready', () => {
+      const neighborhood = [makeMinistry('a'), makeMinistry('b'), makeMinistry('c'), makeMinistry('d')]
+      const trustScores = { a: 80, b: 60, c: 55, d: 90 }
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.score).toBe(100)
+      expect(result.readyForGenesis).toBe(true)
+    })
+
+    it('nodes with trust < 50 are excluded', () => {
+      const neighborhood = [makeMinistry('a'), makeMinistry('b'), makeMinistry('c')]
+      const trustScores = { a: 80, b: 30, c: 10 } // only 'a' qualifies
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.score).toBe(25)
+      expect(result.readyForGenesis).toBe(false)
+      expect(result.qualifyingNodes).toEqual(['a'])
+    })
+
+    it('inactive/dormant nodes are excluded', () => {
+      const neighborhood = [
+        makeMinistry('a', 'active'),
+        makeMinistry('b', 'dormant'),
+        makeMinistry('c', 'suspended'),
+        makeMinistry('d', 'active'),
+      ]
+      const trustScores = { a: 80, b: 90, c: 90, d: 70 }
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      // Only a and d are active with trust >= 50
+      expect(result.qualifyingNodes).toEqual(['a', 'd'])
+      expect(result.score).toBe(50)
+      expect(result.readyForGenesis).toBe(false)
+    })
+
+    it('nodes without trust scores default to 0 (excluded)', () => {
+      const neighborhood = [makeMinistry('a'), makeMinistry('b'), makeMinistry('c')]
+      const trustScores = { a: 80 } // b and c have no trust scores
+      const result = computeGenesisScore({ neighborhood, trustScores }, now)
+      expect(result.qualifyingNodes).toEqual(['a'])
+      expect(result.readyForGenesis).toBe(false)
+    })
+  })
+
+  // =========================================================================
+  // Sprint 29: calculateTrustLevel with dormant status
+  // =========================================================================
+
+  describe('calculateTrustLevel (dormant)', () => {
+    it('dormant ministry returns trust level none', () => {
+      const dormant: Ministry = {
+        id: 'dormant-1',
+        name: 'Dormant Ministry',
+        domain: 'dormant.angelcore.dev',
+        operator: 'Op',
+        status: 'dormant',
+        appliedAt: '2024-01-01',
+        vouchesReceived: [
+          { voucherId: 'v1', voucherName: 'V1', vouchedAt: '2024-06-01', reason: 'trust', isValid: true },
+          { voucherId: 'v2', voucherName: 'V2', vouchedAt: '2024-06-01', reason: 'trust', isValid: true },
+        ],
+        constitutionVersion: '1.0.0',
+        capabilities: [],
+      }
+      expect(calculateTrustLevel(dormant)).toBe('none')
+    })
+  })
+
+  // =========================================================================
+  // Sprint 29: VALID_MINISTRY_TRANSITIONS with dormant
+  // =========================================================================
+
+  describe('VALID_MINISTRY_TRANSITIONS (dormant)', () => {
+    it('active can transition to dormant', () => {
+      expect(VALID_MINISTRY_TRANSITIONS.active).toContain('dormant')
+    })
+
+    it('dormant can transition to active (revival)', () => {
+      expect(VALID_MINISTRY_TRANSITIONS.dormant).toContain('active')
+    })
+
+    it('dormant can transition to revoked', () => {
+      expect(VALID_MINISTRY_TRANSITIONS.dormant).toContain('revoked')
+    })
+
+    it('dormant cannot transition to other states', () => {
+      expect(VALID_MINISTRY_TRANSITIONS.dormant).toEqual(['active', 'revoked'])
+    })
+
+    it('validateMinistryTransition allows active→dormant', () => {
+      expect(validateMinistryTransition('active', 'dormant')).toBe(true)
+    })
+
+    it('validateMinistryTransition allows dormant→active', () => {
+      expect(validateMinistryTransition('dormant', 'active')).toBe(true)
+    })
+
+    it('validateMinistryTransition blocks dormant→probation', () => {
+      expect(validateMinistryTransition('dormant', 'probation')).toBe(false)
     })
   })
 })

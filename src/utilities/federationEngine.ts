@@ -27,6 +27,7 @@ export type MinistryStatus =
   | 'active'
   | 'suspended'
   | 'revoked'
+  | 'dormant' // Sprint 29: Game of Life — death state (zero activity for 30+ days)
 
 export type TrustLevel =
   | 'none'
@@ -128,6 +129,16 @@ export const REQUIRED_VOUCHES = 2
 /** Maximum heartbeat age before marking unhealthy (in seconds). */
 export const MAX_HEARTBEAT_AGE_SECONDS = 300 // 5 minutes
 
+// ─── Sprint 29: Game of Life Constants ────────────────────────────────────
+/** Days of zero activity before recommending dormancy. */
+export const DORMANCY_THRESHOLD_DAYS = 30
+
+/** Minimum active nodes with high trust to trigger genesis signal. */
+export const GENESIS_SIGNAL_MIN_NODES = 3
+
+/** Minimum composite trust score for a node to count toward genesis. */
+export const GENESIS_SIGNAL_MIN_TRUST = 50
+
 /** Minimum constitution version for federation. */
 export const MIN_CONSTITUTION_VERSION = '1.0.0'
 
@@ -135,8 +146,9 @@ export const MIN_CONSTITUTION_VERSION = '1.0.0'
 export const VALID_MINISTRY_TRANSITIONS: Record<MinistryStatus, MinistryStatus[]> = {
   applicant: ['probation', 'revoked'],
   probation: ['active', 'suspended', 'revoked'],
-  active: ['suspended', 'revoked'],
+  active: ['suspended', 'revoked', 'dormant'], // Sprint 29: can go dormant
   suspended: ['active', 'revoked'],
+  dormant: ['active', 'revoked'], // Sprint 29: can revive or permanently revoke
   revoked: [], // Terminal state
 }
 
@@ -154,7 +166,7 @@ export function validateMinistryTransition(
 
 /** Determine trust level from ministry status and vouches. */
 export function calculateTrustLevel(ministry: Ministry): TrustLevel {
-  if (ministry.status === 'revoked' || ministry.status === 'suspended') return 'none'
+  if (ministry.status === 'revoked' || ministry.status === 'suspended' || ministry.status === 'dormant') return 'none'
   if (ministry.status === 'applicant') return 'none'
   if (ministry.status === 'probation') return 'probationary'
 
@@ -919,4 +931,152 @@ export function serializeHealthReport(report: FederationHealthReport): string {
   }
 
   return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 29: Game of Life — Node Lifecycle
+// ---------------------------------------------------------------------------
+
+/**
+ * Conway's Game of Life rules applied to federation nodes.
+ *
+ * - Survival: Active node with transactions from 2+ peers stays active
+ * - Death: Active node with zero activity for 30+ days → recommends dormant
+ * - Revival: Dormant node receiving activity → recommends active
+ */
+export interface LifecycleInput {
+  /** The ministry to evaluate. */
+  ministry: Ministry
+  /** Map of peer ministry ID → transaction count with this node. */
+  peerTransactionCounts: Map<string, number>
+  /** ISO date of last transaction/activity (if known). */
+  lastActivityDate?: string
+}
+
+export interface LifecycleResult {
+  currentStatus: MinistryStatus
+  recommendedStatus: MinistryStatus
+  shouldTransition: boolean
+  reason: string
+}
+
+export function computeLifecycleState(
+  input: LifecycleInput,
+  currentDate: Date = new Date(),
+): LifecycleResult {
+  const { ministry, peerTransactionCounts, lastActivityDate } = input
+  const noOp: LifecycleResult = {
+    currentStatus: ministry.status,
+    recommendedStatus: ministry.status,
+    shouldTransition: false,
+    reason: 'No lifecycle change applicable',
+  }
+
+  // Only evaluate active and dormant nodes
+  if (ministry.status !== 'active' && ministry.status !== 'dormant') {
+    return noOp
+  }
+
+  // Count distinct active peers (peers with at least 1 transaction)
+  let activePeerCount = 0
+  for (const count of peerTransactionCounts.values()) {
+    if (count > 0) activePeerCount++
+  }
+
+  // ── Dormant → Revival ────────────────────────────────────────────
+  if (ministry.status === 'dormant') {
+    if (activePeerCount > 0 || (lastActivityDate && !isStale(lastActivityDate, currentDate))) {
+      return {
+        currentStatus: 'dormant',
+        recommendedStatus: 'active',
+        shouldTransition: true,
+        reason: `Dormant node received activity (${activePeerCount} active peer(s)) — revival recommended`,
+      }
+    }
+    return noOp
+  }
+
+  // ── Active → Dormancy check ──────────────────────────────────────
+  // If we have a last activity date, check if it's stale
+  if (lastActivityDate && isStale(lastActivityDate, currentDate)) {
+    // Zero peer activity AND stale last activity → dormant
+    if (activePeerCount === 0) {
+      return {
+        currentStatus: 'active',
+        recommendedStatus: 'dormant',
+        shouldTransition: true,
+        reason: `Zero activity for ${daysSince(lastActivityDate, currentDate).toFixed(0)}+ days — dormancy recommended`,
+      }
+    }
+  }
+
+  // If no lastActivityDate provided but zero peers, we can't determine staleness
+  // Stay active (benefit of the doubt)
+
+  // ── Survival ─────────────────────────────────────────────────────
+  return noOp
+}
+
+/** Check if a date is older than DORMANCY_THRESHOLD_DAYS. */
+function isStale(isoDate: string, now: Date): boolean {
+  return daysSince(isoDate, now) >= DORMANCY_THRESHOLD_DAYS
+}
+
+/** Days between an ISO date and now. */
+function daysSince(isoDate: string, now: Date): number {
+  const then = new Date(isoDate)
+  return Math.max(0, (now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 29: Game of Life — Genesis Signal (Reproduction)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the genesis score for a neighborhood of federation nodes.
+ *
+ * When 3+ active nodes in a neighborhood all have composite trust > 50,
+ * the cluster is ready to attract new members — the genesis signal fires.
+ *
+ * This is Conway's reproduction rule: a dead cell with exactly 3 neighbors
+ * comes alive. In Angel OS, a "dead zone" (area with no node) gains enough
+ * gravity from nearby thriving nodes to attract a new deployment.
+ */
+export interface GenesisInput {
+  /** Active nodes in geographic/logical proximity. */
+  neighborhood: Ministry[]
+  /** Trust scores for each ministry ID. */
+  trustScores: Record<string, number>
+}
+
+export interface GenesisResult {
+  /** Genesis readiness score (0-100). */
+  score: number
+  /** Whether the cluster has enough gravity to attract a new node. */
+  readyForGenesis: boolean
+  /** IDs of qualifying nodes contributing to the signal. */
+  qualifyingNodes: string[]
+}
+
+export function computeGenesisScore(
+  input: GenesisInput,
+  _currentDate: Date = new Date(),
+): GenesisResult {
+  const { neighborhood, trustScores } = input
+
+  // Find active nodes with trust above threshold
+  const qualifying = neighborhood.filter((m) => {
+    if (m.status !== 'active') return false
+    const trust = trustScores[m.id] ?? 0
+    return trust >= GENESIS_SIGNAL_MIN_TRUST
+  })
+
+  const qualifyingCount = qualifying.length
+  const score = Math.min(100, qualifyingCount * 25) // Linear scale, capped at 100
+
+  return {
+    score,
+    readyForGenesis: qualifyingCount >= GENESIS_SIGNAL_MIN_NODES,
+    qualifyingNodes: qualifying.map((m) => m.id),
+  }
 }
