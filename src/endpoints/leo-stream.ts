@@ -24,7 +24,8 @@ import type { ModelMessage } from 'ai'
 import fs from 'fs'
 import path from 'path'
 
-import { buildMinimalConstitutionalPrompt } from '@/utilities/constitutional-prompt'
+import { buildMinimalConstitutionalPrompt, buildCOOPromptSuffix, buildHealthDigest } from '@/utilities/constitutional-prompt'
+import type { EnterpriseStage, NodeRole } from '@/utilities/constitutional-prompt'
 import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
@@ -531,6 +532,114 @@ function extractImageUrlsFromText(toolResultTexts: string[]): Array<{ url: strin
 }
 
 // ---------------------------------------------------------------------------
+// Proactive Health Context — Sprint 24
+// ---------------------------------------------------------------------------
+
+/**
+ * Lightweight health context gathered at session start.
+ * This provides LEO with situational awareness without the user asking.
+ */
+async function gatherHealthContext(
+  payload: import('payload').Payload,
+  tenantId: number,
+): Promise<{
+  healthDigest: string
+  cooSuffix: string
+} | null> {
+  try {
+    const tenant = await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (!tenant) return null
+
+    const createdAt = (tenant as any).createdAt || new Date().toISOString()
+    const created = new Date(createdAt)
+    const daysSinceCreation = Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24))
+    const stage: EnterpriseStage = daysSinceCreation <= 90 ? 'BIRTH' : daysSinceCreation <= 365 ? 'GROWTH' : 'ACTIVE'
+    const daysInStage = stage === 'BIRTH' ? 90 - daysSinceCreation : stage === 'GROWTH' ? 365 - daysSinceCreation : undefined
+
+    // Detect node role — flagship if domain matches or setup flag
+    const domain = (tenant as any)?.domains?.[0]?.domain || ''
+    const isFlagship = domain === 'spacesangels.com' || Boolean((tenant as any)?.setup?.isFlagship)
+
+    // Quick parallel queries for health metrics (non-blocking, best-effort)
+    const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes] = await Promise.allSettled([
+      payload.find({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.find({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }, { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.find({ collection: 'products' as any, where: { tenant: { equals: tenantId } } as any, limit: 200, depth: 0, overrideAccess: true, select: { inventory: true, _status: true } as any }),
+      payload.find({ collection: 'comments', where: { and: [{ tenant: { equals: tenantId } }, { isApproved: { equals: false } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.find({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'draft' } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.find({ collection: 'spaces', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.find({ collection: 'space-memberships', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
+    ])
+
+    const pendingOrders = pendingOrdersRes.status === 'fulfilled' ? pendingOrdersRes.value.totalDocs : 0
+    const overdueOrders = overdueOrdersRes.status === 'fulfilled' ? overdueOrdersRes.value.totalDocs : 0
+
+    // Inventory analysis
+    let lowStockProducts = 0
+    let outOfStockProducts = 0
+    if (productsRes.status === 'fulfilled') {
+      for (const doc of productsRes.value.docs) {
+        const d = doc as any
+        if (d._status === 'draft') continue
+        const inv = d.inventory
+        if (!inv || typeof inv !== 'object') continue
+        if (!inv.trackInventory || typeof inv.quantity !== 'number') continue
+        if (inv.quantity <= 0) outOfStockProducts++
+        else if (inv.quantity <= (inv.lowStockThreshold || 5)) lowStockProducts++
+      }
+    }
+
+    const pendingComments = pendingCommentsRes.status === 'fulfilled' ? pendingCommentsRes.value.totalDocs : 0
+    const draftPosts = draftPostsRes.status === 'fulfilled' ? draftPostsRes.value.totalDocs : 0
+    const spaceCount = spacesRes.status === 'fulfilled' ? spacesRes.value.totalDocs : 0
+    const memberCount = membershipsRes.status === 'fulfilled' ? membershipsRes.value.totalDocs : 0
+
+    // Federation status
+    const setup = (tenant as any)?.setup || {}
+    const completedSteps: number[] = Array.isArray(setup?.wizardProgress?.completedSteps) ? setup.wizardProgress.completedSteps : []
+    const federationStatus: 'connected' | 'pending' | 'unknown' = completedSteps.includes(8) ? 'connected' : setup.federationId ? 'pending' : 'unknown'
+    const stripeConnected = Boolean((tenant as any)?.stripe?.accountId)
+
+    // Determine node role (simplified — no board query to keep this lightweight)
+    const nodeRole: NodeRole = isFlagship ? 'flagship_user' : 'member_node_admin'
+
+    const healthDigest = buildHealthDigest({
+      stage,
+      daysSinceCreation,
+      daysInStage: daysInStage != null && daysInStage > 0 ? daysInStage : undefined,
+      pendingOrders,
+      overdueOrders,
+      lowStockProducts,
+      outOfStockProducts,
+      pendingComments,
+      draftPosts,
+      federationStatus,
+      stripeConnected,
+      spaceCount,
+      memberCount,
+    })
+
+    const cooSuffix = buildCOOPromptSuffix({
+      stage,
+      daysSinceCreation,
+      nodeRole,
+      isFlagship,
+      isBoardMember: false, // Lightweight — skip board query at prompt build time
+    })
+
+    return { healthDigest, cooSuffix }
+  } catch (err) {
+    console.warn('[LEO Stream] Health context gathering failed (non-fatal):', err)
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
 
@@ -673,9 +782,22 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     userRoles,
     phase,
   })
-  const systemPrompt = isWizardMode
-    ? baseSystemPrompt + buildWizardSystemPromptSuffix(wizardStep as number, wizardContext)
-    : baseSystemPrompt
+
+  // Sprint 24: Proactive health context injection (non-wizard mode only)
+  let systemPrompt: string
+  if (isWizardMode) {
+    systemPrompt = baseSystemPrompt + buildWizardSystemPromptSuffix(wizardStep as number, wizardContext)
+  } else if (tenantId) {
+    // Gather health context for COO mode — lightweight, non-blocking
+    const healthCtx = await gatherHealthContext(req.payload, tenantId)
+    if (healthCtx) {
+      systemPrompt = baseSystemPrompt + '\n\n' + healthCtx.cooSuffix + '\n\n' + healthCtx.healthDigest
+    } else {
+      systemPrompt = baseSystemPrompt
+    }
+  } else {
+    systemPrompt = baseSystemPrompt
+  }
 
   // Fetch conversation history
   const historyMessages = resolvedSpaceId

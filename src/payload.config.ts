@@ -62,6 +62,7 @@ import { MediaMeta } from '@/collections/MediaMeta'
 import { StreetSigns } from '@/collections/StreetSigns'
 import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
+import { BoardMembers } from '@/collections/BoardMembers'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -170,6 +171,7 @@ export default buildConfig({
     StreetSigns,
     Quests,
     QuestParticipations,
+    BoardMembers,
   ],
   db: postgresAdapter({
     pool: {
@@ -223,6 +225,8 @@ export default buildConfig({
         ...({ 'street-signs': {} } as Record<string, object>),
         // Sprint 23: Quests — universal gamification primitive
         ...({ quests: {}, 'quest-participations': {} } as Record<string, object>),
+        // Sprint 24: Board governance (federation)
+        ...({ 'board-members': {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {

@@ -1996,6 +1996,50 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['title', 'details', 'impact', 'response'],
     },
   },
+  // ─── Sprint 24: LEO Enterprise Manager — Operational Intelligence ────
+  {
+    name: 'check_enterprise_health',
+    description:
+      'Run a comprehensive health check on the Enterprise. Returns metrics across orders, inventory, content, federation, payments, spaces, and lifecycle stage. Use when users ask "how\'s my business?", "what needs attention?", or at the start of a session to give a status update. Can filter to specific areas.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        include: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optional filter — which areas to check. Options: orders, inventory, content, federation, payments, spaces, lifecycle. Omit to check all.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_enterprise_stage',
+    description:
+      'Determine the Enterprise lifecycle stage (BIRTH, GROWTH, or ACTIVE) based on tenant creation date and milestones achieved. Use to adapt guidance — BIRTH enterprises need more hand-holding, ACTIVE enterprises need strategic recommendations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'query_board_members',
+    description:
+      'List the Angel OS federation board members with their roles, status, and permissions. Available on all nodes (federation transparency). Use when users ask about governance, the board, or who oversees the federation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['active', 'emeritus', 'removed'],
+          description: 'Filter by board member status (default: active)',
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -2198,6 +2242,13 @@ export async function executeToolCall(
         return await handleSendEmergencyAlert(payload, toolInput, ctx)
       case 'document_incident':
         return await handleDocumentIncident(payload, toolInput, ctx)
+      // Sprint 24: LEO Enterprise Manager — Operational Intelligence
+      case 'check_enterprise_health':
+        return await handleCheckEnterpriseHealth(payload, toolInput, ctx)
+      case 'get_enterprise_stage':
+        return await handleGetEnterpriseStage(payload, ctx)
+      case 'query_board_members':
+        return await handleQueryBoardMembers(payload, toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -7935,5 +7986,386 @@ async function handleDocumentIncident(
   } catch (err) {
     console.error('[LEO Tools] document_incident error:', err)
     return `Error documenting incident: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 24: LEO Enterprise Manager — Operational Intelligence
+// ---------------------------------------------------------------------------
+
+/**
+ * Enterprise lifecycle stages based on tenant age
+ */
+type LifecycleStage = 'BIRTH' | 'GROWTH' | 'ACTIVE'
+
+function getLifecycleStage(createdAt: string | Date): { stage: LifecycleStage; daysSinceCreation: number; daysRemaining?: number } {
+  const created = new Date(createdAt)
+  const now = new Date()
+  const daysSinceCreation = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (daysSinceCreation <= 90) {
+    return { stage: 'BIRTH', daysSinceCreation, daysRemaining: 90 - daysSinceCreation }
+  } else if (daysSinceCreation <= 365) {
+    return { stage: 'GROWTH', daysSinceCreation, daysRemaining: 365 - daysSinceCreation }
+  }
+  return { stage: 'ACTIVE', daysSinceCreation }
+}
+
+/**
+ * check_enterprise_health — Comprehensive health report
+ */
+async function handleCheckEnterpriseHealth(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available for health check.'
+
+  const includeAreas = Array.isArray(input.include)
+    ? (input.include as string[]).map((s) => s.toLowerCase())
+    : null
+  const checkAll = !includeAreas
+  const shouldCheck = (area: string) => checkAll || includeAreas!.includes(area)
+
+  const report: string[] = ['## 🏥 Enterprise Health Report\n']
+
+  try {
+    // ─── Lifecycle Stage ──────────────────────────────────────────
+    if (shouldCheck('lifecycle')) {
+      try {
+        const tenant = await payload.findByID({
+          collection: 'tenants',
+          id: tenantId,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const lifecycle = getLifecycleStage((tenant as any).createdAt || new Date().toISOString())
+        const stageEmoji = lifecycle.stage === 'BIRTH' ? '🌱' : lifecycle.stage === 'GROWTH' ? '🌿' : '🌳'
+        report.push(`### ${stageEmoji} Lifecycle: **${lifecycle.stage}** (Day ${lifecycle.daysSinceCreation})`)
+        if (lifecycle.daysRemaining != null) {
+          report.push(`- ${lifecycle.daysRemaining} days until next stage`)
+        }
+        report.push('')
+      } catch {
+        report.push('### ⚠️ Lifecycle: Unable to determine\n')
+      }
+    }
+
+    // ─── Orders ──────────────────────────────────────────────────
+    if (shouldCheck('orders')) {
+      try {
+        const pendingOrders = await payload.find({
+          collection: 'orders' as any,
+          where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const overdueOrders = await payload.find({
+          collection: 'orders' as any,
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { status: { equals: 'processing' } },
+              { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } },
+            ],
+          } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const emoji = overdueOrders.totalDocs > 0 ? '🔴' : pendingOrders.totalDocs > 0 ? '🟡' : '🟢'
+        report.push(`### ${emoji} Orders`)
+        report.push(`- **${pendingOrders.totalDocs}** pending/processing`)
+        if (overdueOrders.totalDocs > 0) {
+          report.push(`- **${overdueOrders.totalDocs}** overdue (>48h in processing) ⚠️`)
+        }
+        report.push('')
+      } catch {
+        report.push('### Orders: Unable to query\n')
+      }
+    }
+
+    // ─── Inventory ───────────────────────────────────────────────
+    if (shouldCheck('inventory')) {
+      try {
+        const allProducts = await payload.find({
+          collection: 'products' as any,
+          where: { tenant: { equals: tenantId } } as any,
+          limit: 200,
+          depth: 0,
+          overrideAccess: true,
+          select: { title: true, inventory: true, _status: true } as any,
+        })
+        const published = allProducts.docs.filter((d: any) => d._status !== 'draft')
+        const lowStock = published.filter((d: any) => {
+          const inv = d.inventory
+          if (!inv || typeof inv !== 'object') return false
+          return (inv as any).trackInventory && typeof (inv as any).quantity === 'number' && (inv as any).quantity <= ((inv as any).lowStockThreshold || 5)
+        })
+        const outOfStock = published.filter((d: any) => {
+          const inv = d.inventory
+          if (!inv || typeof inv !== 'object') return false
+          return (inv as any).trackInventory && typeof (inv as any).quantity === 'number' && (inv as any).quantity <= 0
+        })
+        const emoji = outOfStock.length > 0 ? '🔴' : lowStock.length > 0 ? '🟡' : '🟢'
+        report.push(`### ${emoji} Inventory`)
+        report.push(`- **${published.length}** published products`)
+        if (lowStock.length > 0) {
+          report.push(`- **${lowStock.length}** low stock: ${lowStock.slice(0, 3).map((p: any) => p.title).join(', ')}`)
+        }
+        if (outOfStock.length > 0) {
+          report.push(`- **${outOfStock.length}** out of stock ⚠️`)
+        }
+        report.push('')
+      } catch {
+        report.push('### Inventory: Unable to query\n')
+      }
+    }
+
+    // ─── Content ─────────────────────────────────────────────────
+    if (shouldCheck('content')) {
+      try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const draftPosts = await payload.find({
+          collection: 'posts',
+          where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'draft' } }] } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const stalePosts = await payload.find({
+          collection: 'posts',
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { _status: { equals: 'published' } },
+              { updatedAt: { less_than: thirtyDaysAgo } },
+            ],
+          } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const pendingComments = await payload.find({
+          collection: 'comments',
+          where: { and: [{ tenant: { equals: tenantId } }, { isApproved: { equals: false } }] } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const emoji = pendingComments.totalDocs > 5 ? '🟡' : '🟢'
+        report.push(`### ${emoji} Content`)
+        report.push(`- **${draftPosts.totalDocs}** draft posts`)
+        report.push(`- **${stalePosts.totalDocs}** stale pages (>30 days unchanged)`)
+        report.push(`- **${pendingComments.totalDocs}** pending comments awaiting moderation`)
+        report.push('')
+      } catch {
+        report.push('### Content: Unable to query\n')
+      }
+    }
+
+    // ─── Federation ──────────────────────────────────────────────
+    if (shouldCheck('federation')) {
+      try {
+        const tenant = await payload.findByID({
+          collection: 'tenants',
+          id: tenantId,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const setup = (tenant as any)?.setup || {}
+        const hasFederationId = Boolean(setup.federationId)
+        const hasConstitutionSigned = Boolean(setup.constitutionSigned)
+        const wizardProgress = setup.wizardProgress || {}
+        const completedSteps: number[] = Array.isArray(wizardProgress.completedSteps) ? wizardProgress.completedSteps : []
+        const federationPinged = completedSteps.includes(8)
+
+        report.push(`### 🌐 Federation`)
+        report.push(`- Federation ID: ${hasFederationId ? '✅ assigned' : '❌ not yet'}`)
+        report.push(`- Constitution: ${hasConstitutionSigned ? '✅ signed' : '❌ unsigned'}`)
+        report.push(`- Registry ping: ${federationPinged ? '✅ connected' : '⏳ pending'}`)
+        report.push('')
+      } catch {
+        report.push('### Federation: Unable to query\n')
+      }
+    }
+
+    // ─── Payments ────────────────────────────────────────────────
+    if (shouldCheck('payments')) {
+      try {
+        const tenant = await payload.findByID({
+          collection: 'tenants',
+          id: tenantId,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const stripeConnected = Boolean((tenant as any)?.stripe?.accountId)
+        report.push(`### 💳 Payments`)
+        report.push(`- Stripe: ${stripeConnected ? '✅ connected' : '❌ not connected'}`)
+        report.push('')
+      } catch {
+        report.push('### Payments: Unable to query\n')
+      }
+    }
+
+    // ─── Spaces ──────────────────────────────────────────────────
+    if (shouldCheck('spaces')) {
+      try {
+        const spaces = await payload.find({
+          collection: 'spaces',
+          where: { tenant: { equals: tenantId } } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const memberships = await payload.find({
+          collection: 'space-memberships',
+          where: { tenant: { equals: tenantId } } as any,
+          limit: 0,
+          depth: 0,
+          overrideAccess: true,
+        })
+        report.push(`### 💬 Spaces`)
+        report.push(`- **${spaces.totalDocs}** spaces`)
+        report.push(`- **${memberships.totalDocs}** total memberships`)
+        report.push('')
+      } catch {
+        report.push('### Spaces: Unable to query\n')
+      }
+    }
+
+    report.push(`---\n*Health check completed at ${new Date().toISOString()}*`)
+
+    return report.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] check_enterprise_health error:', err)
+    return `Error running health check: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * get_enterprise_stage — Lifecycle stage determination
+ */
+async function handleGetEnterpriseStage(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  try {
+    const tenant = await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const lifecycle = getLifecycleStage((tenant as any).createdAt || new Date().toISOString())
+    const setup = (tenant as any)?.setup || {}
+    const wizardProgress = setup.wizardProgress || {}
+    const completedSteps: number[] = Array.isArray(wizardProgress.completedSteps) ? wizardProgress.completedSteps : []
+
+    // Milestones
+    const milestones: string[] = []
+    if (completedSteps.includes(1) || completedSteps.includes(2)) milestones.push('✅ Business configured')
+    if (completedSteps.includes(3)) milestones.push('✅ First space created')
+    if (completedSteps.includes(4)) milestones.push('✅ First member invited')
+    if (completedSteps.includes(5)) milestones.push('✅ First product created')
+    if (completedSteps.includes(6)) milestones.push('✅ Stripe connected')
+    if (completedSteps.includes(7)) milestones.push('✅ Enlistment complete')
+    if (completedSteps.includes(8)) milestones.push('✅ Federation connected')
+
+    // Suggest next milestones
+    const suggestions: string[] = []
+    if (lifecycle.stage === 'BIRTH') {
+      if (!completedSteps.includes(5)) suggestions.push('🎯 Create your first product')
+      if (!completedSteps.includes(6)) suggestions.push('🎯 Connect Stripe for payments')
+      if (!completedSteps.includes(8)) suggestions.push('🎯 Join the federation network')
+      if (completedSteps.length >= 7) suggestions.push('🎯 Make your first sale!')
+    } else if (lifecycle.stage === 'GROWTH') {
+      suggestions.push('🎯 Reach 10 published products')
+      suggestions.push('🎯 Earn 2+ federation vouches for sentinel status')
+      suggestions.push('🎯 Host your first event')
+    }
+
+    const stageEmoji = lifecycle.stage === 'BIRTH' ? '🌱' : lifecycle.stage === 'GROWTH' ? '🌿' : '🌳'
+
+    const lines = [
+      `## ${stageEmoji} Enterprise Lifecycle: **${lifecycle.stage}**\n`,
+      `- **Day ${lifecycle.daysSinceCreation}** since creation`,
+    ]
+    if (lifecycle.daysRemaining != null) {
+      lines.push(`- **${lifecycle.daysRemaining} days** until next stage`)
+    }
+    lines.push(`- Wizard steps completed: **${completedSteps.length}/8**\n`)
+
+    if (milestones.length > 0) {
+      lines.push('### Milestones Achieved')
+      lines.push(...milestones)
+      lines.push('')
+    }
+
+    if (suggestions.length > 0) {
+      lines.push('### Suggested Next Steps')
+      lines.push(...suggestions)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] get_enterprise_stage error:', err)
+    return `Error determining enterprise stage: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * query_board_members — Federation governance board
+ */
+async function handleQueryBoardMembers(
+  payload: Payload,
+  input: Record<string, unknown>,
+): Promise<string> {
+  try {
+    const statusFilter = typeof input.status === 'string' ? input.status : 'active'
+
+    const where: Where = { status: { equals: statusFilter } }
+
+    const result = await payload.find({
+      collection: 'board-members' as any,
+      where,
+      limit: 50,
+      depth: 1,
+      overrideAccess: true,
+      sort: 'role',
+    })
+
+    if (result.totalDocs === 0) {
+      return `No ${statusFilter} board members found. The federation governance board may not yet be established on this node.`
+    }
+
+    const lines = [`## 🏛️ Federation Board (${statusFilter})\n`]
+    for (const member of result.docs) {
+      const doc = member as any
+      const userName = doc.user?.name || doc.user?.email || 'Unknown'
+      const role = doc.role || 'observer'
+      const title = doc.title || role
+      const permissions = Array.isArray(doc.permissions) ? doc.permissions.join(', ') : 'none'
+      const appointed = doc.appointedAt ? new Date(doc.appointedAt).toLocaleDateString() : 'unknown'
+
+      lines.push(`### ${userName}`)
+      lines.push(`- **Title:** ${title}`)
+      lines.push(`- **Role:** ${role}`)
+      lines.push(`- **Term:** ${doc.term || 'permanent'}`)
+      lines.push(`- **Permissions:** ${permissions}`)
+      lines.push(`- **Appointed:** ${appointed}`)
+      lines.push('')
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] query_board_members error:', err)
+    return `Error querying board members: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

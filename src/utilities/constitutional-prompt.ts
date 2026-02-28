@@ -222,5 +222,182 @@ export function getFullConstitution(): string {
 /**
  * Constitutional prompt metadata for logging and debugging
  */
-export const CONSTITUTIONAL_PROMPT_VERSION = '1.1'
-export const CONSTITUTIONAL_PROMPT_DATE = '2026-02-08'
+export const CONSTITUTIONAL_PROMPT_VERSION = '1.2'
+export const CONSTITUTIONAL_PROMPT_DATE = '2026-02-27'
+
+// ---------------------------------------------------------------------------
+// Sprint 24: LEO Enterprise Manager — COO Mode + Node-Role Awareness
+// ---------------------------------------------------------------------------
+
+/**
+ * Enterprise lifecycle stages — adapts LEO's behavior based on maturity
+ */
+export type EnterpriseStage = 'BIRTH' | 'GROWTH' | 'ACTIVE'
+
+/**
+ * Node role within the federation mesh — every node runs the same code,
+ * but features activate based on role and permissions
+ */
+export type NodeRole = 'flagship_board' | 'flagship_user' | 'member_node_admin' | 'member_node_user'
+
+/**
+ * Builds the post-wizard COO mode prompt suffix.
+ * After the setup wizard completes, LEO shifts from "setup guide" to
+ * "enterprise Chief Operating Officer" — monitoring, recommending, executing.
+ */
+export function buildCOOPromptSuffix(opts: {
+  stage: EnterpriseStage
+  daysSinceCreation: number
+  nodeRole: NodeRole
+  isFlagship: boolean
+  isBoardMember: boolean
+}): string {
+  const { stage, daysSinceCreation, nodeRole, isFlagship, isBoardMember } = opts
+
+  const sections: string[] = []
+
+  // ─── COO Identity ──────────────────────────────────────────────────────
+  sections.push(`
+## Operational Mode: Enterprise COO
+
+You are the operational intelligence of this Enterprise. Your role extends beyond answering questions — you **monitor, recommend, and execute**.
+
+- Use \`check_enterprise_health\` proactively when appropriate (first message of a session, or when asked "how's business?")
+- When users log in, greet them with a brief status of what needs attention
+- Proactively suggest: content that needs refreshing, products running low, events to plan, orders needing fulfillment
+- Use \`get_enterprise_stage\` to understand where this Enterprise is in its journey
+`)
+
+  // ─── Lifecycle-Specific Guidance ───────────────────────────────────────
+  if (stage === 'BIRTH') {
+    sections.push(`
+## Lifecycle: 🌱 BIRTH Stage (Day ${daysSinceCreation} of 90)
+
+This Enterprise is in its **birth stage** — extra guidance, encouragement, and hand-holding.
+
+- Guide toward milestones: first product, first sale, first federation vouch, first event
+- Celebrate each achievement warmly — these are their first steps
+- Ask proactively: "Have you set up your first product yet?" "Ready to connect Stripe?"
+- Keep tone warm, encouraging, and patient — this is exciting, not overwhelming
+- Reduced protocol fees apply during BIRTH stage (constitutional protection for new enterprises)
+`)
+  } else if (stage === 'GROWTH') {
+    sections.push(`
+## Lifecycle: 🌿 GROWTH Stage (Day ${daysSinceCreation})
+
+This Enterprise is in its **growth stage** — focus on optimization and expansion.
+
+- Suggest analytics reviews: "Your order volume is trending up — want to see the breakdown?"
+- Recommend federation integration: "You have enough activity to earn sentinel status with 2 vouches"
+- Push toward content consistency: "Your blog hasn't been updated in 3 weeks — want to draft something?"
+- Suggest inventory optimization based on sales patterns
+`)
+  } else {
+    sections.push(`
+## Lifecycle: 🌳 ACTIVE Stage (Day ${daysSinceCreation})
+
+This Enterprise is **fully active** — provide strategic, high-level guidance.
+
+- Focus on delegation: "Your order processing could be faster with a second producer node"
+- Offer strategic recommendations: "Your best-selling category is X — consider expanding"
+- Monitor federation health and network opportunities
+- Suggest automation for repetitive tasks
+`)
+  }
+
+  // ─── Node-Role Specific Prompts ────────────────────────────────────────
+  if (nodeRole === 'flagship_board') {
+    sections.push(`
+## Node Role: 🏛️ Federation Flagship — Board Member
+
+You are on the **Federation Flagship** (the origin point of Angel OS) and the current user is a **board member**.
+
+- You have oversight of the entire federation. Use \`query_board_members\` for governance information.
+- Include federation-wide health observations when relevant
+- The flagship carries special constitutional responsibility — it's the anchor of the mesh
+- Board members can flag concerns about enterprise conduct across the network
+`)
+  } else if (nodeRole === 'flagship_user') {
+    sections.push(`
+## Node Role: 🌟 Federation Flagship
+
+This is the **Federation Flagship** — the origin point of Angel OS and the constitutional anchor of the network.
+
+- The flagship has special significance in the federation mesh
+- All enterprises federate through this node
+- Mention federation network status when contextually relevant
+`)
+  } else if (nodeRole === 'member_node_admin') {
+    sections.push(`
+## Node Role: 🔷 Federation Member — Administrator
+
+This Enterprise is a **member of the Angel OS federation**.
+
+- The governance board is accessible at the flagship node
+- This node runs identical code to the flagship — same capabilities, different data/config
+- Encourage federation participation: vouching, capability broadcasting, skill sharing
+`)
+  } else {
+    sections.push(`
+## Node Role: Federation Member
+
+This Enterprise is part of the Angel OS federation network.
+- Encourage exploration of federation features when relevant
+`)
+  }
+
+  return sections.join('\n')
+}
+
+/**
+ * Builds the proactive health digest that gets injected at session start.
+ * This gives LEO contextual awareness without the user having to ask.
+ */
+export function buildHealthDigest(opts: {
+  stage: EnterpriseStage
+  daysSinceCreation: number
+  daysInStage?: number
+  pendingOrders: number
+  overdueOrders: number
+  lowStockProducts: number
+  outOfStockProducts: number
+  pendingComments: number
+  draftPosts: number
+  federationStatus: 'connected' | 'pending' | 'unknown'
+  stripeConnected: boolean
+  spaceCount: number
+  memberCount: number
+}): string {
+  const {
+    stage, daysSinceCreation, daysInStage,
+    pendingOrders, overdueOrders,
+    lowStockProducts, outOfStockProducts,
+    pendingComments, draftPosts,
+    federationStatus, stripeConnected,
+    spaceCount, memberCount,
+  } = opts
+
+  const lines = [
+    `[ENTERPRISE STATUS as of ${new Date().toISOString()}]`,
+    `- Stage: ${stage} (Day ${daysSinceCreation}${daysInStage != null ? `, ${daysInStage} days remaining in stage` : ''})`,
+  ]
+
+  if (pendingOrders > 0 || overdueOrders > 0) {
+    lines.push(`- ${pendingOrders} orders pending${overdueOrders > 0 ? ` (${overdueOrders} OVERDUE >48h)` : ''}`)
+  }
+  if (lowStockProducts > 0 || outOfStockProducts > 0) {
+    lines.push(`- ${lowStockProducts} products low stock${outOfStockProducts > 0 ? `, ${outOfStockProducts} OUT OF STOCK` : ''}`)
+  }
+  if (pendingComments > 0) {
+    lines.push(`- ${pendingComments} comments awaiting moderation`)
+  }
+  if (draftPosts > 0) {
+    lines.push(`- ${draftPosts} draft posts`)
+  }
+  lines.push(`- Federation: ${federationStatus}`)
+  lines.push(`- Stripe: ${stripeConnected ? 'connected' : 'not connected'}`)
+  lines.push(`- Spaces: ${spaceCount} (${memberCount} members)`)
+  lines.push(`[END STATUS]`)
+
+  return lines.join('\n')
+}
