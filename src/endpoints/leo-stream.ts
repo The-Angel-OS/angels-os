@@ -720,6 +720,10 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     }
   }
 
+  // Resolve conversationId early — needed for slash command SSE responses
+  const resolvedConversationId =
+    typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
+
   // ─── Slash Commands ──────────────────────────────────────────────────────
   const trimmedMsg = message.trim()
   if (trimmedMsg.startsWith('/')) {
@@ -796,8 +800,6 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
 
   const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
   const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
-  const resolvedConversationId =
-    typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
 
   // Build system prompt
   const phase = isWizardMode ? 'enterprise-setup-wizard' : 'general'
