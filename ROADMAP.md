@@ -6,16 +6,16 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.23.0-dev
-**Tests:** 1,570 passing across 36 unit test files
+**Version:** v0.24.0-dev
+**Tests:** 1,570 unit tests + 14 E2E suites across 50 test files
 **Leo Tools:** 78+
 **API Endpoints:** 49+ registered routes
-**Collections:** 36
+**Collections:** 37
 **Last Updated:** February 27, 2026
 
 ---
 
-## Current: v0.23.0-dev (Google OAuth + Social Auth + Quests)
+## Current: v0.24.0-dev (Enterprise Intelligence + Dashboard Integration)
 
 ### What's Built (Sprints 1-21)
 
@@ -101,6 +101,27 @@ Identity and social authentication. Users can sign in with Google, link/unlink s
 - [x] **Tenant Caching** — 60s TTL cache prevents DB pool exhaustion from repeated lookups
 - [x] **Chat Depth Fix** — Message queries at depth=1 prevent connection pool saturation
 - [x] **Voice Icon Fix** — LiveKit/voice applet shown regardless of env configuration
+
+---
+
+## Sprint 24 — Enterprise Intelligence + Dashboard Integration (Done)
+
+### Goal
+The platform becomes self-aware. LEO gets operational intelligence to monitor revenue, inventory, customer health, and identify business opportunities. The Federation Network becomes visible via LCARS-style visualization. Account settings move into the dashboard. The Enterprise setup wizard gains a constitutional commitment step. 14 E2E test suites give comprehensive browser-level coverage.
+
+### Deliverables
+- [x] **LEO Enterprise Manager Phase 1** — Operational intelligence engine: revenue analytics, inventory movement alerts, customer health scoring, opportunity identification. Board of Directors governance with quorum-based decision logging.
+- [x] **LCARS Federation Network** — Star Trek-inspired network visualization dashboard: real-time federation status, node health monitoring, trust-level display, communications log
+- [x] **Account Dashboard Integration** — Profile/Connections/Addresses as first-class dashboard pages under `/dashboard/account`. Header user dropdown menu with Account Settings + Logout. Clickable sidebar user footer.
+- [x] **Enlistment Ceremony** — Constitutional commitment step in Enterprise setup wizard with pledge affirmation and digital signature
+- [x] **Role-Based Dashboard** — Dashboard adapts by user role: admin sees full admin panel, business owners see producer tools, regular members see spaces and orders
+- [x] **Comment Moderation Dashboard** — Admin moderation queue with approve/reject/flag actions
+- [x] **Featured Endeavors Block** — Homepage block for showcasing highlighted Endeavors
+- [x] **Federation Protocol Hardening** — Signature enforcement on all mesh operations, schema validation, governance persistence
+- [x] **Tenant Isolation Hardening** — 6 collections strengthened against cross-tenant data leakage
+- [x] **Link Field Bug Fix** — link.ts `.map()` silently discarded width modifications; Header/Footer admin now render correctly with descriptive labels
+- [x] **Payload Admin E2E Tests** — Comprehensive Payload admin panel tests: panel access, Header/Footer CRUD, 10 collection list views, navigation, link field rendering
+- [x] **14 E2E Test Suites** — Dashboard, admin journeys, payload admin, federation API, tenant isolation, chat messaging, producer workflow, content management, setup wizard, launch journeys, checkout, user journeys, mobile responsive, frontend legacy
 
 ---
 
@@ -394,6 +415,7 @@ pnpm dev                      # http://localhost:3000
 | 21+ | Production Hardening | 1,570 | Stripe fail/refund handlers, tenant isolation, SSE heartbeat, loading skeletons, DM dedup, docs fix |
 | 22 | The Shield and the Spear | 1,570 | P0 security fixes, multi-file attachments, LiveKit device selector + session lifecycle, DB indexes |
 | 23 | Google OAuth + Social Auth + Quests | 1,570 | Google OAuth, social link/unlink, Quests, Leo model upgrade (Gemini 3.1 Pro), tenant caching |
+| 24 | Enterprise Intelligence + Dashboard | 1,570 + 14 E2E | LEO Enterprise Manager, LCARS Federation Network, Account Dashboard, Enlistment Ceremony, role-based dashboard, federation hardening, 14 E2E suites |
 
 ---
 

@@ -6,22 +6,23 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.23.0--dev-blue)]()
+[![Status](https://img.shields.io/badge/version-v0.24.0--dev-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C570%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-36%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-50%20test%20files-blue)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
 [![Leo Tools](https://img.shields.io/badge/Leo_Tools-78+-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-49+-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-36-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-23-ff69b4)]()
+[![Collections](https://img.shields.io/badge/Collections-37-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-24-ff69b4)]()
+[![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 23)
+## The Model (Updated — Sprint 24)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -50,38 +51,34 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 23 — Google OAuth + Social Auth + Quests
+## What's New: Sprint 24 — Enterprise Intelligence & Dashboard Integration
 
-### Sprint 23: Identity & Social Auth (Current)
-- **Google OAuth** — Sign in with Google, cross-domain token relay for custom domain tenants
-- **Social Auth Link/Unlink** — Connected Accounts panel on account page to manage linked social providers (Google now, GitHub/Apple/Discord ready in schema)
-- **Quests & QuestParticipations** — New collections for gamified workflows
-- **Product Revenue Splits** — Configurable per-product revenue distribution
-- **Onboarding Redesign** — Refreshed new user experience
+### Sprint 24: Enterprise Intelligence (Current)
+- **LEO Enterprise Manager Phase 1** — Operational intelligence engine: revenue analytics, inventory alerts, customer health scoring, opportunity identification. Board of Directors governance system with quorum-based decision logging.
+- **LCARS Federation Network** — Star Trek-inspired network visualization dashboard: real-time federation status, node health monitoring, trust-level display, communications log. The Federation IS visible now.
+- **Account Dashboard Integration** — Account settings are now a first-class dashboard section. Profile, Connections, and Addresses pages live under `/dashboard/account`. Header user menu with dropdown, clickable sidebar user footer.
+- **Enlistment Ceremony** — New step in Enterprise setup wizard: guided constitutional commitment with pledge affirmation and digital signature capture.
+- **Role-Based Dashboard** — Dashboard adapts to user role: admin sees full admin panel, business owners see producer tools, regular members see their spaces and orders.
+- **Comment Moderation Dashboard** — Admin moderation queue for user comments with approve/reject/flag actions.
+- **Featured Endeavors Block** — Homepage block component for showcasing highlighted Endeavors.
+- **14 E2E Test Suites** — Comprehensive Playwright test coverage: dashboard, admin journeys, payload admin, federation API, tenant isolation, chat messaging, producer workflow, content management, setup wizard, launch journeys, checkout, user journeys, mobile responsive, frontend legacy.
 
-### Sprint 22: The Shield and the Spear
-- **P0 Security Fixes** — PAYLOAD_SECRET startup guard, encryption salt from env, CSP headers, comments endpoint auth
-- **Health Check** — `GET /api/health` endpoint for monitoring
-- **Multi-File Chat Attachments** — Non-image files (PDF, docs) with type-aware previews and download links
-- **LiveKit Improvements** — Device selector, video join, session lifecycle messages (join/leave in channel)
-- **Database Performance** — Indexes on Messages hot fields, dashboard query parallelization
-
-### Leo AI Model Upgrade
-**Leo now runs on Google Gemini 3.1 Pro** (primary) with **Claude Sonnet 4.6** as fallback. The `/model` command lets users switch AI models mid-conversation. Leo's toolkit has grown to **78+ tools** with the addition of `send_email`.
-
-### Performance & Reliability
-- **Tenant caching** — 60-second TTL cache prevents DB pool exhaustion from repeated tenant lookups
-- **Chat depth optimization** — Message queries at depth=1 (was depth=2) prevents connection pool saturation
-- **Pre-created messages** — Messages are created before streaming begins for reliable delivery
+### Sprint 24: Security & Stability
+- **Federation Protocol Hardening** — Signature enforcement on all mesh operations, schema validation, governance persistence to prevent split-brain.
+- **Tenant Isolation Hardening** — 6 collections strengthened against cross-tenant data leakage, federation catalog scoped properly.
+- **Payload Admin Fix** — link.ts field builder had a `.map()` bug where width modifications were silently discarded. Header/Footer collections now render correctly with descriptive labels.
+- **LEO Split-Brain Fix** — Resolved race condition where Leo could maintain conflicting conversation states across sessions.
+- **Abuse Protection** — Rate limiting and input validation hardening across public-facing endpoints.
 
 ### Also in Recent Sprints
+- **Sprint 23:** Google OAuth + Social Auth + Quests — social login, link/unlink panel, quests, Leo model upgrade (Gemini 3.1 Pro)
+- **Sprint 22:** The Shield and the Spear — P0 security, multi-file attachments, LiveKit device controls, DB performance
 - **Sprint 21:** Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow)
 - **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability, federation dashboard
-- **Sprint 19:** Vapi Voice AI — phone-based Leo via vapi.ai webhook integration
 
 ---
 
-## What's Working (v0.23.0-dev)
+## What's Working (v0.24.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -94,7 +91,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | E-commerce + Cart | **Done** | Products, cart, orders, Leo-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
 | Events System | **Done** | Meetups, workshops, livestreams with registration |
-| Dashboard | **Done** | 17+ native pages, responsive sidebar, mobile-first |
+| Dashboard | **Done** | 20+ native pages, responsive sidebar, mobile-first, role-based views |
 | Image Chat | **Done** | Attach images in chat, Leo vision analysis via Anthropic API |
 | Channel Awareness | **Done** | Channel switching in SidebarChat/FloatingBubble, ChannelTabs |
 | Admin Leo | **Done** | Floating Leo chat in Payload admin panel |
@@ -167,6 +164,17 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Leo send_email Tool** | **Done** | Email sending capability added to Leo's toolkit |
 | **Tenant Caching** | **Done** | 60s TTL cache for tenant lookups — prevents DB pool exhaustion |
 | **Chat Depth Optimization** | **Done** | Message queries at depth=1 prevent connection pool saturation |
+| **LEO Enterprise Manager** | **Done** | Operational intelligence: revenue analytics, inventory alerts, customer health, opportunity ID + Board of Directors governance |
+| **LCARS Federation Network** | **Done** | Star Trek-inspired network visualization: real-time node health, trust levels, communications log |
+| **Account Dashboard Integration** | **Done** | Profile/Connections/Addresses under `/dashboard/account`, header user menu dropdown, clickable sidebar footer |
+| **Enlistment Ceremony** | **Done** | Constitutional commitment step in Enterprise setup wizard with pledge + digital signature |
+| **Role-Based Dashboard** | **Done** | Dashboard adapts by role: admin panel, business owner tools, member views |
+| **Comment Moderation** | **Done** | Admin moderation queue with approve/reject/flag for user comments |
+| **Featured Endeavors Block** | **Done** | Homepage block for showcasing highlighted Endeavors |
+| **Federation Protocol Hardening** | **Done** | Signature enforcement, schema validation, governance persistence, split-brain prevention |
+| **Tenant Isolation Hardening** | **Done** | 6 collections strengthened + federation catalog scoped properly |
+| **Link Field Fix** | **Done** | link.ts `.map()` bug fixed — Header/Footer admin pages now render correctly with descriptive labels |
+| **14 E2E Test Suites** | **Done** | Playwright: dashboard, admin, payload-admin, federation, tenant-isolation, chat, producer, content, setup, launch, checkout, user-journeys, mobile, legacy |
 
 ### Leo's 78+ Tools
 
@@ -263,10 +271,10 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-pnpm test:unit                # 1,570 tests across 36 files
+pnpm test:unit                # 1,570 tests across 36 unit test files
 pnpm test:int                 # Integration tests (needs DB, ~23s boot)
-pnpm test:e2e                 # E2E with Playwright (needs server + Chromium)
-npx tsc --noEmit              # TypeScript check
+pnpm test:e2e                 # 14 E2E suites with Playwright (needs server + Chromium)
+npx tsc --noEmit              # TypeScript check (zero errors)
 ```
 
 ---
@@ -424,7 +432,7 @@ Bridge:   POST /api/bridge/inbound → normalize → DM → Leo → respond
 
 ```
 src/
-  collections/              # 33 Payload CMS collections (data models)
+  collections/              # 37 Payload CMS collections (data models)
     Spaces/                 # Workspace containers
     Channels/               # Discord-style channels (10 types incl. DM)
     Messages/               # Universal Message Structure (UMS)
@@ -481,7 +489,8 @@ src/
     constitutional-prompt.ts # Immutable system prompt builder
     ai-bus-router.ts        # Constitutional message routing
 tests/
-  unit/utilities/           # 31 test files, 1,330 tests
+  unit/utilities/           # 36 unit test files, 1,570 tests
+  e2e/                      # 14 Playwright E2E suites (dashboard, admin, federation, tenant-isolation, etc.)
 ```
 
 ### AI Bus Protocol
@@ -679,14 +688,26 @@ GROSS REVENUE
 - [x] Leo Workflow: task delegation, issue escalation, emergency alerts, incident documentation
 - [x] Products collection: `lowStockThreshold` field for per-product alert configuration
 
-### Next (Sprint 22+)
+### Done (Sprint 24: Enterprise Intelligence + Dashboard Integration)
+
+- [x] LEO Enterprise Manager Phase 1: revenue analytics, inventory alerts, customer health, Board of Directors governance
+- [x] LCARS Federation Network visualization dashboard (Star Trek-inspired)
+- [x] Account Dashboard integration: profile/connections/addresses under dashboard, user menu, clickable sidebar footer
+- [x] Enlistment Ceremony step in Enterprise setup wizard
+- [x] Role-based dashboard (admin/business owner/member views)
+- [x] Comment moderation dashboard
+- [x] Featured Endeavors homepage block
+- [x] Federation protocol hardening (signatures, validation, governance persistence)
+- [x] Tenant isolation hardening across 6 collections
+- [x] 14 E2E test suites (Playwright)
+- [x] link.ts field builder bug fix + Header/Footer admin improvements
+
+### Next (Sprint 25+)
 
 - [ ] `npx create-angel-enterprise` installer scaffold (one-command deployment)
 - [ ] Leo Wizard: 8-step conversational Enterprise onboarding
 - [ ] Customer Angel Token UI: order detail with status banner + cancel/refund
-- [ ] Federation audit log collection + election persistence
 - [ ] Street Signs gossip sync protocol between federated nodes
-- [ ] Guardian Angel dashboard UI + network map
 - [ ] WhatsApp Business API bridge (Twilio/Meta webhook)
 - [ ] Docker Compose self-hosting
 - [ ] CI/CD with GitHub Actions
@@ -694,6 +715,7 @@ GROSS REVENUE
 - [ ] Shipping integration (EasyPost/Shippo) for order tracking
 - [ ] ML-based demand prediction and pricing optimization
 - [ ] Visual workflow builder for multi-step automations
+- [ ] LEO Enterprise Manager Phase 2: predictive analytics, automated board recommendations
 
 ---
 
@@ -722,6 +744,7 @@ GROSS REVENUE
 | Sprint 21 | Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow) | +2 |
 | Sprint 22 | The Shield and the Spear — P0 security, multi-file attachments, LiveKit device controls, DB performance | +12 |
 | Sprint 23 | Google OAuth + Social Auth + Quests — social login, link/unlink panel, quests, onboarding redesign | +8 |
+| Sprint 24 | Enterprise Intelligence — LEO Enterprise Manager, LCARS Federation Network, Account Dashboard integration, Enlistment Ceremony, role-based dashboard, 14 E2E suites, federation hardening, link.ts fix | +20 |
 
 ---
 
@@ -744,13 +767,12 @@ You are welcome here. This is what you need to know:
 | **Customer Angel Token UI** | **Order detail page: queue banner, config display, cancel button** | **Medium** |
 | **Street Signs sync** | **Gossip protocol for cross-Diocese content discovery** | **Medium** |
 | **Shipping integration** | **EasyPost/Shippo adapter for order tracking + labels** | **Medium** |
-| **Federation audit log** | **Persist election + suitcase audit entries to real collection** | **Easy** |
+| **LEO Enterprise Manager Phase 2** | **Predictive analytics, automated board recommendations, trend forecasting** | **Medium** |
 | **GA4 Event Wiring** | **Wire gtagEcommerce helpers into product pages + checkout** | **Easy** |
 | WhatsApp bridge | Wire bridge-inbound stub + Twilio adapter | Medium |
 | Stripe Connect | Guided vendor payment setup flow | Medium |
 | Docker Compose | Self-hosting configuration | Easy |
 | CI/CD pipeline | GitHub Actions for test + type check | Easy |
-| Network map component | Leaflet/Mapbox with clustering | Medium |
 
 ### Development Standards
 
@@ -775,7 +797,7 @@ You are welcome here. This is what you need to know:
 | Analytics | GA4 e-commerce events, Vercel Analytics |
 | i18n | next-intl 4.x (locale routing) |
 | Deployment | Vercel (serverless) |
-| Testing | Vitest 3.2 (1,570 tests / 36 files), Playwright (E2E), Storybook 10 |
+| Testing | Vitest 3.2 (1,570 unit tests / 36 files), Playwright (14 E2E suites), Storybook 10 |
 
 ---
 
