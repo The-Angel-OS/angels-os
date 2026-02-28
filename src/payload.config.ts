@@ -63,6 +63,7 @@ import { StreetSigns } from '@/collections/StreetSigns'
 import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
 import { BoardMembers } from '@/collections/BoardMembers'
+import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -173,6 +174,9 @@ export default buildConfig({
     Quests,
     QuestParticipations,
     BoardMembers,
+    LogisticsNodes,
+    Transports,
+    Shipments,
   ],
   db: postgresAdapter({
     pool: {
@@ -228,6 +232,8 @@ export default buildConfig({
         ...({ quests: {}, 'quest-participations': {} } as Record<string, object>),
         // Sprint 24: Board governance (federation)
         ...({ 'board-members': {} } as Record<string, object>),
+        // Sprint 27: Universal Logistics Network (ULN)
+        ...({ 'logistics-nodes': {}, transports: {}, shipments: {} } as Record<string, object>),
       },
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {

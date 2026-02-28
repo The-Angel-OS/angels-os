@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film } from 'lucide-react'
 
 /** Max file size per attachment: 25 MB */
@@ -47,9 +47,12 @@ export function MessageInput({
     onSend(value.trim(), attachments.length > 0 ? attachments : undefined)
     setValue('')
     setAttachments([])
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto'
-    }
+    // Defer height reset to avoid synchronous reflow during submit
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+      }
+    })
   }, [value, attachments, disabled, onSend])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -60,14 +63,22 @@ export function MessageInput({
   }
 
   const maxHeight = fullPage ? 160 : 120
+  const rafRef = useRef<number>(0)
 
   const handleInput = () => {
-    const el = inputRef.current
-    if (el) {
-      el.style.height = 'auto'
-      el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px'
-    }
+    // Defer DOM read/write to next animation frame to avoid blocking INP
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      const el = inputRef.current
+      if (el) {
+        el.style.height = 'auto'
+        el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px'
+      }
+    })
   }
+
+  // Cleanup rAF on unmount
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
 
   const [fileError, setFileError] = useState<string | null>(null)
 
