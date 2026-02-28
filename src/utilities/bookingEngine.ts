@@ -57,6 +57,152 @@ export interface BookingRequest {
   metadata?: Record<string, any>
 }
 
+export interface RescheduleResult {
+  success: boolean
+  booking?: any
+  alternatives?: Array<{ startTime: Date; endTime: Date; harmonicScore: number; suggestion: string }>
+  error?: string
+}
+
+// ---------------------------------------------------------------------------
+// Standalone pure functions — exported for direct use and testability
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate individual time slots within a time window.
+ * Pure function: no side effects, no Payload dependency.
+ */
+export function generateTimeSlots(
+  date: Date,
+  startTime: string,
+  endTime: string,
+  slotDuration: number,
+  bufferTime: number,
+  existingBookings: Array<{ id: string; startDateTime: string; endDateTime: string }>,
+  maxAdvanceBooking?: number,
+  minAdvanceBooking?: number,
+): TimeSlot[] {
+  const slots: TimeSlot[] = []
+  const [startHour, startMinute] = startTime.split(':').map(Number)
+  const [endHour, endMinute] = endTime.split(':').map(Number)
+
+  const slotStart = new Date(date)
+  slotStart.setHours(startHour, startMinute, 0, 0)
+
+  const windowEnd = new Date(date)
+  windowEnd.setHours(endHour, endMinute, 0, 0)
+
+  const now = new Date()
+  const minBookingTime = new Date(now.getTime() + (minAdvanceBooking || 1) * 60 * 60 * 1000)
+  const maxBookingTime = maxAdvanceBooking ?
+    new Date(now.getTime() + maxAdvanceBooking * 24 * 60 * 60 * 1000) : null
+
+  while (slotStart < windowEnd) {
+    const slotEnd = new Date(slotStart.getTime() + slotDuration * 60 * 1000)
+
+    if (slotEnd > windowEnd) break
+
+    // Check booking time constraints
+    if (slotStart < minBookingTime || (maxBookingTime && slotStart > maxBookingTime)) {
+      slotStart.setTime(slotStart.getTime() + slotDuration * 60 * 1000)
+      continue
+    }
+
+    // Check for conflicts with existing bookings
+    const conflict = existingBookings.find(booking => {
+      const bookingStart = new Date(booking.startDateTime)
+      const bookingEnd = new Date(booking.endDateTime)
+
+      return (
+        (slotStart >= bookingStart && slotStart < bookingEnd) ||
+        (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+        (slotStart <= bookingStart && slotEnd >= bookingEnd)
+      )
+    })
+
+    const slot: TimeSlot = {
+      startTime: new Date(slotStart),
+      endTime: new Date(slotEnd),
+      available: !conflict,
+      slotType: conflict ? 'booked' : 'available',
+      bookingId: conflict?.id
+    }
+
+    slots.push(slot)
+
+    // Add buffer time if configured
+    if (bufferTime > 0 && !conflict) {
+      const bufferEnd = new Date(slotEnd.getTime() + bufferTime * 60 * 1000)
+      if (bufferEnd <= windowEnd) {
+        slots.push({
+          startTime: new Date(slotEnd),
+          endTime: bufferEnd,
+          available: false,
+          slotType: 'buffer'
+        })
+      }
+    }
+
+    slotStart.setTime(slotStart.getTime() + (slotDuration + bufferTime) * 60 * 1000)
+  }
+
+  return slots
+}
+
+/**
+ * Merge overlapping/adjacent available slots.
+ * Pure function: no side effects, no Payload dependency.
+ */
+export function mergeOverlappingSlots(slots: TimeSlot[]): TimeSlot[] {
+  if (slots.length <= 1) return slots
+
+  const sorted = slots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+  const merged: TimeSlot[] = []
+  let current = sorted[0]
+
+  for (let i = 1; i < sorted.length; i++) {
+    const next = sorted[i]
+
+    if (current.available && next.available &&
+        current.slotType === 'available' && next.slotType === 'available' &&
+        current.endTime.getTime() === next.startTime.getTime()) {
+      // Merge adjacent available slots
+      current = {
+        ...current,
+        endTime: next.endTime
+      }
+    } else {
+      merged.push(current)
+      current = next
+    }
+  }
+
+  merged.push(current)
+  return merged
+}
+
+/**
+ * Calculate harmonic compatibility between requested and alternative times.
+ * Pure function: no side effects, no Payload dependency.
+ *
+ * Answer 53 harmonic principles:
+ * - Same day = highest harmony
+ * - Similar time of day = good harmony
+ * - 1-2 days difference = acceptable harmony
+ * - Weekend/weekday shifts = consider rhythm
+ */
+export function calculateHarmonicScore(requestedTime: Date, alternativeTime: Date): number {
+  const timeDiff = Math.abs(requestedTime.getTime() - alternativeTime.getTime())
+  const hoursDiff = timeDiff / (1000 * 60 * 60)
+
+  if (hoursDiff < 1) return 100 // Perfect harmony
+  if (hoursDiff < 4) return 90   // Same day, close time
+  if (hoursDiff < 24) return 70  // Same day, different time
+  if (hoursDiff < 48) return 50  // Next day
+
+  return Math.max(10, 40 - (hoursDiff / 24) * 5) // Decreasing harmony over time
+}
+
 /**
  * Core booking engine for Angel OS
  * Handles availability checking, slot generation, and booking creation
@@ -193,7 +339,7 @@ export class BookingEngine {
       }
 
       // Generate time slots within the availability window
-      const daySlots = this.generateTimeSlots(
+      const daySlots = generateTimeSlots(
         date,
         startTime,
         endTime,
@@ -207,118 +353,7 @@ export class BookingEngine {
       slots.push(...daySlots)
     }
 
-    return this.mergeOverlappingSlots(slots)
-  }
-
-  /**
-   * Generate individual time slots within a time window
-   */
-  private generateTimeSlots(
-    date: Date,
-    startTime: string,
-    endTime: string,
-    slotDuration: number,
-    bufferTime: number,
-    existingBookings: any[],
-    maxAdvanceBooking?: number,
-    minAdvanceBooking?: number
-  ): TimeSlot[] {
-    const slots: TimeSlot[] = []
-    const [startHour, startMinute] = startTime.split(':').map(Number)
-    const [endHour, endMinute] = endTime.split(':').map(Number)
-
-    const slotStart = new Date(date)
-    slotStart.setHours(startHour, startMinute, 0, 0)
-
-    const windowEnd = new Date(date)
-    windowEnd.setHours(endHour, endMinute, 0, 0)
-
-    const now = new Date()
-    const minBookingTime = new Date(now.getTime() + (minAdvanceBooking || 1) * 60 * 60 * 1000)
-    const maxBookingTime = maxAdvanceBooking ? 
-      new Date(now.getTime() + maxAdvanceBooking * 24 * 60 * 60 * 1000) : null
-
-    while (slotStart < windowEnd) {
-      const slotEnd = new Date(slotStart.getTime() + slotDuration * 60 * 1000)
-      
-      if (slotEnd > windowEnd) break
-
-      // Check booking time constraints
-      if (slotStart < minBookingTime || (maxBookingTime && slotStart > maxBookingTime)) {
-        slotStart.setTime(slotStart.getTime() + slotDuration * 60 * 1000)
-        continue
-      }
-
-      // Check for conflicts with existing bookings
-      const conflict = existingBookings.find(booking => {
-        const bookingStart = new Date(booking.startDateTime)
-        const bookingEnd = new Date(booking.endDateTime)
-        
-        return (
-          (slotStart >= bookingStart && slotStart < bookingEnd) ||
-          (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
-          (slotStart <= bookingStart && slotEnd >= bookingEnd)
-        )
-      })
-
-      const slot: TimeSlot = {
-        startTime: new Date(slotStart),
-        endTime: new Date(slotEnd),
-        available: !conflict,
-        slotType: conflict ? 'booked' : 'available',
-        bookingId: conflict?.id
-      }
-
-      slots.push(slot)
-
-      // Add buffer time if configured
-      if (bufferTime > 0 && !conflict) {
-        const bufferEnd = new Date(slotEnd.getTime() + bufferTime * 60 * 1000)
-        if (bufferEnd <= windowEnd) {
-          slots.push({
-            startTime: new Date(slotEnd),
-            endTime: bufferEnd,
-            available: false,
-            slotType: 'buffer'
-          })
-        }
-      }
-
-      slotStart.setTime(slotStart.getTime() + (slotDuration + bufferTime) * 60 * 1000)
-    }
-
-    return slots
-  }
-
-  /**
-   * Merge overlapping available slots
-   */
-  private mergeOverlappingSlots(slots: TimeSlot[]): TimeSlot[] {
-    if (slots.length <= 1) return slots
-
-    const sorted = slots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-    const merged: TimeSlot[] = []
-    let current = sorted[0]
-
-    for (let i = 1; i < sorted.length; i++) {
-      const next = sorted[i]
-      
-      if (current.available && next.available && 
-          current.slotType === 'available' && next.slotType === 'available' &&
-          current.endTime.getTime() === next.startTime.getTime()) {
-        // Merge adjacent available slots
-        current = {
-          ...current,
-          endTime: next.endTime
-        }
-      } else {
-        merged.push(current)
-        current = next
-      }
-    }
-    
-    merged.push(current)
-    return merged
+    return mergeOverlappingSlots(slots)
   }
 
   /**
@@ -471,7 +506,7 @@ export class BookingEngine {
       alternatives.push({
         startTime: slot.startTime,
         endTime: slot.endTime,
-        harmonicScore: this.calculateHarmonicScore(request.startDateTime, slot.startTime),
+        harmonicScore: calculateHarmonicScore(request.startDateTime, slot.startTime),
         suggestion: `Alternative time: ${slot.startTime.toLocaleString()}`
       })
     })
@@ -485,23 +520,146 @@ export class BookingEngine {
   }
 
   /**
-   * Calculate harmonic compatibility between requested and alternative times
+   * Cancel an existing booking
    */
-  private calculateHarmonicScore(requestedTime: Date, alternativeTime: Date): number {
-    const timeDiff = Math.abs(requestedTime.getTime() - alternativeTime.getTime())
-    const hoursDiff = timeDiff / (1000 * 60 * 60)
-    
-    // Answer 53 harmonic principles:
-    // - Same day = highest harmony
-    // - Similar time of day = good harmony  
-    // - 1-2 days difference = acceptable harmony
-    // - Weekend/weekday shifts = consider rhythm
-    
-    if (hoursDiff < 1) return 100 // Perfect harmony
-    if (hoursDiff < 4) return 90   // Same day, close time
-    if (hoursDiff < 24) return 70  // Same day, different time
-    if (hoursDiff < 48) return 50  // Next day
-    
-    return Math.max(10, 40 - (hoursDiff / 24) * 5) // Decreasing harmony over time
+  async cancelBooking(
+    bookingId: string,
+    tenantId: string,
+    reason: string,
+    cancelledBy: 'client' | 'provider' | 'system'
+  ): Promise<any> {
+    // Fetch the existing booking
+    const booking = await this.payload.findByID({
+      collection: 'bookings',
+      id: bookingId,
+      overrideAccess: true,
+    })
+
+    if (!booking) {
+      throw new Error(`Booking ${bookingId} not found`)
+    }
+
+    // Validate the booking belongs to this tenant
+    const bookingTenantId = typeof booking.tenant === 'object' ? (booking.tenant as any)?.id : booking.tenant
+    if (String(bookingTenantId) !== String(tenantId)) {
+      throw new Error(`Booking ${bookingId} does not belong to tenant ${tenantId}`)
+    }
+
+    // Validate the booking is in a cancellable state
+    const cancellableStatuses = ['pending', 'confirmed']
+    if (!cancellableStatuses.includes(booking.status as string)) {
+      throw new Error(`Booking ${bookingId} cannot be cancelled — current status: ${booking.status}`)
+    }
+
+    // Update the booking with structured cancellation data
+    const updatedBooking = await this.payload.update({
+      collection: 'bookings',
+      id: bookingId,
+      data: {
+        status: 'cancelled',
+        cancellation: {
+          reason,
+          cancelledBy,
+          cancelledAt: new Date().toISOString(),
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    return updatedBooking
+  }
+
+  /**
+   * Reschedule an existing booking to a new time
+   */
+  async rescheduleBooking(
+    bookingId: string,
+    tenantId: string,
+    newStartDateTime: Date,
+    newDuration?: number
+  ): Promise<RescheduleResult> {
+    // Fetch the existing booking
+    let booking: any
+    try {
+      booking = await this.payload.findByID({
+        collection: 'bookings',
+        id: bookingId,
+        overrideAccess: true,
+      })
+    } catch {
+      return { success: false, error: `Booking ${bookingId} not found` }
+    }
+
+    if (!booking) {
+      return { success: false, error: `Booking ${bookingId} not found` }
+    }
+
+    // Validate the booking belongs to this tenant
+    const bookingTenantId = typeof booking.tenant === 'object' ? (booking.tenant as any)?.id : booking.tenant
+    if (String(bookingTenantId) !== String(tenantId)) {
+      return { success: false, error: `Booking ${bookingId} does not belong to tenant ${tenantId}` }
+    }
+
+    // Validate the booking is in a reschedulable state
+    const reschedulableStatuses = ['pending', 'confirmed']
+    if (!reschedulableStatuses.includes(booking.status as string)) {
+      return { success: false, error: `Booking ${bookingId} cannot be rescheduled — current status: ${booking.status}` }
+    }
+
+    const duration = newDuration || booking.duration
+    const providerId = typeof booking.provider === 'object' ? (booking.provider as any)?.id : booking.provider
+    const clientId = typeof booking.client === 'object' ? (booking.client as any)?.id : booking.client
+
+    // Build a request for conflict checking
+    const rescheduleRequest: BookingRequest = {
+      providerId: String(providerId),
+      clientId: String(clientId),
+      tenantId,
+      startDateTime: newStartDateTime,
+      duration,
+      bookingType: booking.bookingType,
+      title: booking.title,
+      pricing: booking.pricing,
+      location: booking.location,
+    }
+
+    // Check for conflicts at the new time (exclude the current booking from conflict check)
+    const conflicts = await this.checkBookingConflicts(rescheduleRequest)
+    // Filter out the booking being rescheduled from conflicts
+    const realConflicts = conflicts.filter(c => c.conflictId !== bookingId)
+
+    if (realConflicts.length === 0) {
+      // No conflicts — update the booking
+      const newEndDateTime = new Date(newStartDateTime.getTime() + duration * 60 * 1000)
+      const currentRescheduleCount = (booking.rescheduling?.rescheduleCount as number) || 0
+      const updatedBooking = await this.payload.update({
+        collection: 'bookings',
+        id: bookingId,
+        data: {
+          startDateTime: newStartDateTime.toISOString(),
+          endDateTime: newEndDateTime.toISOString(),
+          duration,
+          rescheduling: {
+            rescheduledFrom: {
+              startDateTime: booking.startDateTime,
+              endDateTime: booking.endDateTime,
+              rescheduledAt: new Date().toISOString(),
+            },
+            rescheduleCount: currentRescheduleCount + 1,
+          },
+        } as any,
+        overrideAccess: true,
+      })
+
+      return { success: true, booking: updatedBooking }
+    }
+
+    // Conflicts exist — resolve harmonically
+    const harmonicResult = await this.resolveBookingHarmonically(rescheduleRequest, realConflicts)
+    return {
+      success: false,
+      alternatives: harmonicResult.alternatives,
+      error: `Conflicts at requested time: ${realConflicts.map(c => c.message).join(', ')}`,
+    }
   }
 }

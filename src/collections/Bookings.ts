@@ -229,6 +229,71 @@ export const Bookings: CollectionConfig = {
       defaultValue: 'pending',
     },
     {
+      name: 'cancellation',
+      type: 'group',
+      admin: {
+        condition: (data) => data.status === 'cancelled',
+        description: 'Details about the cancellation',
+      },
+      fields: [
+        {
+          name: 'reason',
+          type: 'textarea',
+          admin: {
+            description: 'Why this booking was cancelled',
+          },
+        },
+        {
+          name: 'cancelledBy',
+          type: 'select',
+          options: [
+            { label: 'Client', value: 'client' },
+            { label: 'Provider', value: 'provider' },
+            { label: 'System', value: 'system' },
+          ],
+          admin: {
+            description: 'Who initiated the cancellation',
+          },
+        },
+        {
+          name: 'cancelledAt',
+          type: 'date',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+            description: 'When the cancellation occurred',
+          },
+        },
+      ],
+    },
+    {
+      name: 'rescheduling',
+      type: 'group',
+      admin: {
+        description: 'Rescheduling history for this booking',
+      },
+      fields: [
+        {
+          name: 'rescheduledFrom',
+          type: 'json',
+          admin: {
+            readOnly: true,
+            description: 'Previous time slot before rescheduling',
+          },
+        },
+        {
+          name: 'rescheduleCount',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            readOnly: true,
+            description: 'Number of times this booking has been rescheduled',
+          },
+        },
+      ],
+    },
+    {
       name: 'location',
       type: 'group',
       fields: [

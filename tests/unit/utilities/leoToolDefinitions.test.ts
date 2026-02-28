@@ -36,8 +36,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 82 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(82)
+  it('has exactly 85 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(85)
   })
 
   it('every tool has a unique name', () => {
@@ -131,6 +131,9 @@ describe('LEO Tool Categories', () => {
     it.each([
       'create_booking',
       'update_booking_status',
+      'check_available_slots',
+      'cancel_booking',
+      'reschedule_booking',
       'query_orders',
       'route_order',
       'accept_order',

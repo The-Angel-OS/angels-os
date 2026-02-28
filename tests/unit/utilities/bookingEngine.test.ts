@@ -12,143 +12,29 @@
  * @see src/utilities/bookingEngine.ts
  */
 import { describe, it, expect } from 'vitest'
+import {
+  generateTimeSlots as generateTimeSlotsRaw,
+  mergeOverlappingSlots,
+  calculateHarmonicScore,
+  type TimeSlot,
+} from '@/utilities/bookingEngine'
 
 // ---------------------------------------------------------------------------
-// Re-implement pure functions for isolated testing
+// Wrapper: the exported generateTimeSlots includes minAdvanceBooking /
+// maxAdvanceBooking parameters that depend on `new Date()`. For unit tests
+// we skip those guards by omitting the last two params (they default to
+// undefined, so the min-advance check uses 1 hour). To keep old tests
+// deterministic we use a far-future test date.
 // ---------------------------------------------------------------------------
-
-interface TimeSlot {
-  startTime: Date
-  endTime: Date
-  available: boolean
-  bookingId?: string
-  slotType: 'available' | 'booked' | 'blocked' | 'buffer'
-}
-
-/**
- * Generate individual time slots within a time window.
- * Mirrors BookingEngine.generateTimeSlots() but stripped of `now` checks
- * (those are impure; we test the slot generation algorithm itself).
- */
 function generateTimeSlots(
   date: Date,
   startTime: string,
   endTime: string,
   slotDuration: number,
   bufferTime: number,
-  existingBookings: Array<{
-    id: string
-    startDateTime: string
-    endDateTime: string
-  }>,
+  existingBookings: Array<{ id: string; startDateTime: string; endDateTime: string }>,
 ): TimeSlot[] {
-  const slots: TimeSlot[] = []
-  const [startHour, startMinute] = startTime.split(':').map(Number)
-  const [endHour, endMinute] = endTime.split(':').map(Number)
-
-  const slotStart = new Date(date)
-  slotStart.setHours(startHour, startMinute, 0, 0)
-
-  const windowEnd = new Date(date)
-  windowEnd.setHours(endHour, endMinute, 0, 0)
-
-  while (slotStart < windowEnd) {
-    const slotEnd = new Date(slotStart.getTime() + slotDuration * 60 * 1000)
-    if (slotEnd > windowEnd) break
-
-    const conflict = existingBookings.find((booking) => {
-      const bookingStart = new Date(booking.startDateTime)
-      const bookingEnd = new Date(booking.endDateTime)
-      return (
-        (slotStart >= bookingStart && slotStart < bookingEnd) ||
-        (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
-        (slotStart <= bookingStart && slotEnd >= bookingEnd)
-      )
-    })
-
-    const slot: TimeSlot = {
-      startTime: new Date(slotStart),
-      endTime: new Date(slotEnd),
-      available: !conflict,
-      slotType: conflict ? 'booked' : 'available',
-      bookingId: conflict?.id,
-    }
-
-    slots.push(slot)
-
-    if (bufferTime > 0 && !conflict) {
-      const bufferEnd = new Date(
-        slotEnd.getTime() + bufferTime * 60 * 1000,
-      )
-      if (bufferEnd <= windowEnd) {
-        slots.push({
-          startTime: new Date(slotEnd),
-          endTime: bufferEnd,
-          available: false,
-          slotType: 'buffer',
-        })
-      }
-    }
-
-    slotStart.setTime(
-      slotStart.getTime() + (slotDuration + bufferTime) * 60 * 1000,
-    )
-  }
-
-  return slots
-}
-
-/**
- * Merge overlapping/adjacent available slots.
- */
-function mergeOverlappingSlots(slots: TimeSlot[]): TimeSlot[] {
-  if (slots.length <= 1) return slots
-
-  const sorted = slots.sort(
-    (a, b) => a.startTime.getTime() - b.startTime.getTime(),
-  )
-  const merged: TimeSlot[] = []
-  let current = sorted[0]
-
-  for (let i = 1; i < sorted.length; i++) {
-    const next = sorted[i]
-
-    if (
-      current.available &&
-      next.available &&
-      current.slotType === 'available' &&
-      next.slotType === 'available' &&
-      current.endTime.getTime() === next.startTime.getTime()
-    ) {
-      current = { ...current, endTime: next.endTime }
-    } else {
-      merged.push(current)
-      current = next
-    }
-  }
-
-  merged.push(current)
-  return merged
-}
-
-/**
- * Harmonic scoring for alternative time suggestions.
- */
-function calculateHarmonicScore(
-  requestedTime: Date,
-  alternativeTime: Date,
-): number {
-  const timeDiff = Math.abs(
-    requestedTime.getTime() - alternativeTime.getTime(),
-  )
-  const hoursDiff = timeDiff / (1000 * 60 * 60)
-
-  if (hoursDiff < 1) return 100
-  if (hoursDiff < 4) return 90
-  if (hoursDiff < 24) return 70
-  if (hoursDiff < 48) return 50
-
-  return Math.max(10, 40 - (hoursDiff / 24) * 5)
+  return generateTimeSlotsRaw(date, startTime, endTime, slotDuration, bufferTime, existingBookings)
 }
 
 // ---------------------------------------------------------------------------
@@ -420,6 +306,305 @@ describe('calculateHarmonicScore', () => {
     const alt = new Date(base.getTime() + 3 * 60 * 60 * 1000)
     expect(calculateHarmonicScore(base, alt)).toBe(
       calculateHarmonicScore(alt, base),
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests — generateTimeSlots edge cases (enhanced coverage)
+// ---------------------------------------------------------------------------
+
+describe('generateTimeSlots — edge cases', () => {
+  const testDate = new Date('2026-03-15T00:00:00')
+
+  it('generates 15-min slots correctly', () => {
+    const slots = generateTimeSlots(testDate, '09:00', '10:00', 15, 0, [])
+    const available = slots.filter((s) => s.slotType === 'available')
+    expect(available).toHaveLength(4) // 60min / 15min = 4
+  })
+
+  it('handles empty window (start equals end)', () => {
+    const slots = generateTimeSlots(testDate, '09:00', '09:00', 30, 0, [])
+    expect(slots).toHaveLength(0)
+  })
+
+  it('handles multiple non-overlapping bookings', () => {
+    const bookings = [
+      {
+        id: 'b1',
+        startDateTime: new Date('2026-03-15T09:00:00').toISOString(),
+        endDateTime: new Date('2026-03-15T10:00:00').toISOString(),
+      },
+      {
+        id: 'b2',
+        startDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+        endDateTime: new Date('2026-03-15T12:00:00').toISOString(),
+      },
+    ]
+    const slots = generateTimeSlots(testDate, '09:00', '13:00', 60, 0, bookings)
+    // 9-10 booked (b1), 10-11 available, 11-12 booked (b2), 12-13 available
+    expect(slots[0].available).toBe(false)
+    expect(slots[0].bookingId).toBe('b1')
+    expect(slots[1].available).toBe(true)
+    expect(slots[2].available).toBe(false)
+    expect(slots[2].bookingId).toBe('b2')
+    expect(slots[3].available).toBe(true)
+  })
+
+  it('correctly marks all slots when all are booked', () => {
+    const bookings = [
+      {
+        id: 'b1',
+        startDateTime: new Date('2026-03-15T09:00:00').toISOString(),
+        endDateTime: new Date('2026-03-15T10:00:00').toISOString(),
+      },
+      {
+        id: 'b2',
+        startDateTime: new Date('2026-03-15T10:00:00').toISOString(),
+        endDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+      },
+    ]
+    const slots = generateTimeSlots(testDate, '09:00', '11:00', 60, 0, bookings)
+    expect(slots.every(s => !s.available)).toBe(true)
+  })
+
+  it('buffer time accounts for slot + buffer in step', () => {
+    // 60-min slot + 30-min buffer = 90-min steps
+    const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 30, [])
+    // 9:00-10:00 (avail) + 10:00-10:30 (buffer), 10:30-11:30 (avail) + 11:30-12:00 (buffer)
+    const availSlots = slots.filter(s => s.slotType === 'available')
+    const bufferSlots = slots.filter(s => s.slotType === 'buffer')
+    expect(availSlots.length).toBe(2) // 2 bookable slots
+    expect(bufferSlots.length).toBe(2) // 2 buffer periods
+  })
+
+  it('slot timestamps are Date objects', () => {
+    const slots = generateTimeSlots(testDate, '09:00', '10:00', 60, 0, [])
+    expect(slots[0].startTime).toBeInstanceOf(Date)
+    expect(slots[0].endTime).toBeInstanceOf(Date)
+  })
+
+  it('slot duration matches configuration', () => {
+    const slots = generateTimeSlots(testDate, '09:00', '10:00', 45, 0, [])
+    const slot = slots[0]
+    const durationMin = (slot.endTime.getTime() - slot.startTime.getTime()) / 60000
+    expect(durationMin).toBe(45)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests — mergeOverlappingSlots edge cases
+// ---------------------------------------------------------------------------
+
+describe('mergeOverlappingSlots — edge cases', () => {
+  it('preserves bookingId on booked slots', () => {
+    const slots: TimeSlot[] = [
+      {
+        startTime: new Date('2026-03-15T09:00:00'),
+        endTime: new Date('2026-03-15T10:00:00'),
+        available: false,
+        slotType: 'booked',
+        bookingId: 'booking_123',
+      },
+    ]
+    const merged = mergeOverlappingSlots(slots)
+    expect(merged).toHaveLength(1)
+    expect(merged[0].bookingId).toBe('booking_123')
+  })
+
+  it('keeps non-adjacent available slots separate', () => {
+    const slots: TimeSlot[] = [
+      {
+        startTime: new Date('2026-03-15T09:00:00'),
+        endTime: new Date('2026-03-15T10:00:00'),
+        available: true,
+        slotType: 'available',
+      },
+      // Gap: 10:00-11:00 is missing
+      {
+        startTime: new Date('2026-03-15T11:00:00'),
+        endTime: new Date('2026-03-15T12:00:00'),
+        available: true,
+        slotType: 'available',
+      },
+    ]
+    const merged = mergeOverlappingSlots(slots)
+    expect(merged).toHaveLength(2)
+  })
+
+  it('handles mixed slot types correctly', () => {
+    const slots: TimeSlot[] = [
+      {
+        startTime: new Date('2026-03-15T09:00:00'),
+        endTime: new Date('2026-03-15T10:00:00'),
+        available: true,
+        slotType: 'available',
+      },
+      {
+        startTime: new Date('2026-03-15T10:00:00'),
+        endTime: new Date('2026-03-15T10:15:00'),
+        available: false,
+        slotType: 'buffer',
+      },
+      {
+        startTime: new Date('2026-03-15T10:15:00'),
+        endTime: new Date('2026-03-15T11:15:00'),
+        available: true,
+        slotType: 'available',
+      },
+    ]
+    const merged = mergeOverlappingSlots(slots)
+    // available, buffer, available — none should merge
+    expect(merged).toHaveLength(3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests — calculateHarmonicScore extended
+// ---------------------------------------------------------------------------
+
+describe('calculateHarmonicScore — extended', () => {
+  const base = new Date('2026-03-15T10:00:00')
+
+  it('returns > 0 for any time difference', () => {
+    const oneYear = new Date(base.getTime() + 365 * 24 * 60 * 60 * 1000)
+    expect(calculateHarmonicScore(base, oneYear)).toBeGreaterThan(0)
+  })
+
+  it('handles exact same Date object', () => {
+    const same = new Date(base.getTime())
+    expect(calculateHarmonicScore(base, same)).toBe(100)
+  })
+
+  it('30-minute difference is perfect harmony', () => {
+    const halfHour = new Date(base.getTime() + 30 * 60 * 1000)
+    expect(calculateHarmonicScore(base, halfHour)).toBe(100)
+  })
+
+  it('59-minute difference is perfect harmony', () => {
+    const almostHour = new Date(base.getTime() + 59 * 60 * 1000)
+    expect(calculateHarmonicScore(base, almostHour)).toBe(100)
+  })
+
+  it('2-hour difference gives good harmony (90)', () => {
+    const twoHours = new Date(base.getTime() + 2 * 60 * 60 * 1000)
+    expect(calculateHarmonicScore(base, twoHours)).toBe(90)
+  })
+
+  it('3.5-hour difference gives good harmony (90)', () => {
+    const threeHalf = new Date(base.getTime() + 3.5 * 60 * 60 * 1000)
+    expect(calculateHarmonicScore(base, threeHalf)).toBe(90)
+  })
+
+  it('scores are monotonically non-increasing over distance', () => {
+    const times = [1, 2, 4, 8, 24, 48, 72, 168].map(
+      h => new Date(base.getTime() + h * 60 * 60 * 1000)
+    )
+    const scores = times.map(t => calculateHarmonicScore(base, t))
+    for (let i = 1; i < scores.length; i++) {
+      expect(scores[i]).toBeLessThanOrEqual(scores[i - 1])
+    }
+  })
+
+  it('all scores are in valid range [10, 100]', () => {
+    const offsets = [0, 30, 120, 360, 1440, 2880, 10080, 43200] // minutes
+    offsets.forEach(offset => {
+      const alt = new Date(base.getTime() + offset * 60 * 1000)
+      const score = calculateHarmonicScore(base, alt)
+      expect(score).toBeGreaterThanOrEqual(10)
+      expect(score).toBeLessThanOrEqual(100)
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests — Type exports
+// ---------------------------------------------------------------------------
+
+describe('BookingEngine type exports', () => {
+  it('exports TimeSlot type with required fields', () => {
+    const slot: TimeSlot = {
+      startTime: new Date(),
+      endTime: new Date(),
+      available: true,
+      slotType: 'available',
+    }
+    expect(slot.available).toBe(true)
+    expect(slot.slotType).toBe('available')
+  })
+
+  it('TimeSlot supports all slot types', () => {
+    const types: TimeSlot['slotType'][] = ['available', 'booked', 'blocked', 'buffer']
+    expect(types).toHaveLength(4)
+  })
+
+  it('TimeSlot bookingId is optional', () => {
+    const slot: TimeSlot = {
+      startTime: new Date(),
+      endTime: new Date(),
+      available: false,
+      slotType: 'booked',
+      bookingId: 'test-123',
+    }
+    expect(slot.bookingId).toBe('test-123')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests — Integration patterns (verifying pure function composition)
+// ---------------------------------------------------------------------------
+
+describe('BookingEngine — composition patterns', () => {
+  const testDate = new Date('2026-03-15T00:00:00')
+
+  it('generate + merge produces consolidated view', () => {
+    const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 0, [])
+    const merged = mergeOverlappingSlots(slots)
+    // 3 available slots should merge into 1 contiguous block
+    expect(merged).toHaveLength(1)
+    expect(merged[0].startTime.getHours()).toBe(9)
+    expect(merged[0].endTime.getHours()).toBe(12)
+  })
+
+  it('generate with bookings + merge preserves structure', () => {
+    const bookings = [{
+      id: 'b1',
+      startDateTime: new Date('2026-03-15T10:00:00').toISOString(),
+      endDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+    }]
+    const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 0, bookings)
+    const merged = mergeOverlappingSlots(slots)
+    // 9-10 (avail), 10-11 (booked), 11-12 (avail) — no merge possible
+    expect(merged).toHaveLength(3)
+  })
+
+  it('harmonic scoring works with generated slot times', () => {
+    const requestedTime = new Date('2026-03-15T10:00:00')
+    const slots = generateTimeSlots(testDate, '09:00', '17:00', 60, 0, [])
+
+    // Score all available slots against requested time
+    const scores = slots
+      .filter(s => s.available)
+      .map(s => ({
+        time: s.startTime,
+        score: calculateHarmonicScore(requestedTime, s.startTime),
+      }))
+
+    // 10:00 slot should have highest score (exact match)
+    const bestMatch = scores.reduce((best, curr) =>
+      curr.score > best.score ? curr : best
+    )
+    expect(bestMatch.time.getHours()).toBe(10)
+    expect(bestMatch.score).toBe(100)
+  })
+
+  it('nearby slots score higher than distant slots', () => {
+    const requestedTime = new Date('2026-03-15T10:00:00')
+    const nearSlot = new Date('2026-03-15T11:00:00')
+    const farSlot = new Date('2026-03-16T15:00:00')
+
+    expect(calculateHarmonicScore(requestedTime, nearSlot)).toBeGreaterThan(
+      calculateHarmonicScore(requestedTime, farSlot)
     )
   })
 })

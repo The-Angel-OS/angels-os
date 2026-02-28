@@ -23,6 +23,7 @@
 import type { Payload, Where } from 'payload'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
+import { BookingEngine } from './bookingEngine'
 import {
   generateImage,
   uploadGeneratedImage,
@@ -298,6 +299,10 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           enum: ['service', 'consultation', 'rental', 'class', 'event', 'custom'],
           description: 'Type of booking',
         },
+        providerId: {
+          type: 'number',
+          description: 'Optional provider user ID. If not specified, auto-assigns from available providers.',
+        },
         startDateTime: {
           type: 'string',
           description: 'ISO 8601 date-time string for when the booking starts (e.g., "2026-02-20T14:00:00Z")',
@@ -309,10 +314,6 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         description: {
           type: 'string',
           description: 'Optional description or notes for the booking',
-        },
-        clientName: {
-          type: 'string',
-          description: 'Name of the person booking (defaults to current user)',
         },
       },
       required: ['title', 'bookingType', 'startDateTime'],
@@ -336,6 +337,85 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['bookingId', 'status'],
+    },
+  },
+  {
+    name: 'check_available_slots',
+    description:
+      'Check available time slots for a provider or service. Use when users ask "when is X available?", "show me open times", or "what slots are free?". Returns actual bookable time slots with harmonic scores.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        providerId: {
+          type: 'number',
+          description: 'Provider user ID to check availability for',
+        },
+        date: {
+          type: 'string',
+          description: 'Date to check (ISO 8601 date, e.g., "2026-03-15"). Defaults to today.',
+        },
+        days: {
+          type: 'number',
+          description: 'Number of days to check (1-14, default: 3)',
+        },
+        duration: {
+          type: 'number',
+          description: 'Desired booking duration in minutes (default: 60)',
+        },
+        serviceType: {
+          type: 'string',
+          enum: ['service', 'consultation', 'rental', 'class', 'event', 'custom'],
+          description: 'Optional service type to filter availability by',
+        },
+      },
+      required: ['providerId'],
+    },
+  },
+  {
+    name: 'cancel_booking',
+    description:
+      'Cancel an existing booking with a reason. Always confirm with the user before cancelling — Article III.2. Returns cancellation details and any refund implications.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        bookingId: {
+          type: 'number',
+          description: 'The ID of the booking to cancel',
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for cancellation (e.g., "schedule conflict", "no longer needed")',
+        },
+        cancelledBy: {
+          type: 'string',
+          enum: ['client', 'provider', 'system'],
+          description: 'Who is initiating the cancellation (default: client)',
+        },
+      },
+      required: ['bookingId', 'reason'],
+    },
+  },
+  {
+    name: 'reschedule_booking',
+    description:
+      'Reschedule an existing booking to a new time. Automatically checks for conflicts and suggests harmonic alternatives if the requested time is unavailable. Always confirm with the user — Article III.2.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        bookingId: {
+          type: 'number',
+          description: 'The ID of the booking to reschedule',
+        },
+        newStartDateTime: {
+          type: 'string',
+          description: 'New start time in ISO 8601 format (e.g., "2026-03-15T14:00:00Z")',
+        },
+        newDuration: {
+          type: 'number',
+          description: 'Optional new duration in minutes (keeps original duration if not specified)',
+        },
+      },
+      required: ['bookingId', 'newStartDateTime'],
     },
   },
   // ─── Shopping Cart Tools ─────────────────────────────────────────
@@ -2135,6 +2215,12 @@ export async function executeToolCall(
         return await createBooking(payload, toolInput, ctx)
       case 'update_booking_status':
         return await updateBookingStatus(payload, toolInput)
+      case 'check_available_slots':
+        return await checkAvailableSlots(payload, toolInput, ctx)
+      case 'cancel_booking':
+        return await cancelBookingHandler(payload, toolInput, ctx)
+      case 'reschedule_booking':
+        return await rescheduleBookingHandler(payload, toolInput, ctx)
       case 'add_to_cart':
         return await addToCart(payload, toolInput, ctx)
       case 'view_cart':
@@ -2746,50 +2832,110 @@ async function createBooking(
     return 'Error: Cannot create a booking in the past. Please provide a future date and time.'
   }
 
+  if (!ctx.userId) {
+    return 'Error: You must be logged in to create a booking. Please log in first.'
+  }
+
+  if (!ctx.tenantId) {
+    return 'Error: No tenant context. Please ensure you are accessing a valid workspace.'
+  }
+
   try {
-    // Build the booking data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const bookingData: Record<string, any> = {
-      title,
-      bookingType,
-      startDateTime,
-      duration,
-      status: 'pending',
-    }
+    const engine = new BookingEngine(payload)
 
-    // If we know the current user, set them as the client
-    if (ctx.userId) {
-      bookingData.client = ctx.userId
-    }
+    // Find an available provider for this tenant
+    // If providerId is specified in input, use it; otherwise find one
+    let providerId = input.providerId ? String(input.providerId) : undefined
 
-    // Add description as richText if provided
-    if (description) {
-      bookingData.description = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: description, detail: 0, format: 0, mode: 'normal', style: '', version: 1 }],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              version: 1,
-            },
+    if (!providerId) {
+      // Find a provider who has availability set up for this tenant
+      const availabilityResult = await payload.find({
+        collection: 'availability',
+        where: {
+          and: [
+            { tenant: { equals: ctx.tenantId } },
+            { isActive: { equals: true } },
           ],
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-        },
+        } as Where,
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      if (availabilityResult.docs.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const avail = availabilityResult.docs[0] as any
+        providerId = String(typeof avail.provider === 'object' ? avail.provider?.id : avail.provider)
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (payload.create as any)({
-      collection: 'bookings',
-      data: bookingData,
-      overrideAccess: true,
+    if (!providerId) {
+      // Fallback: use the current user as both provider and client (self-booking)
+      providerId = String(ctx.userId)
+    }
+
+    // Use BookingEngine to check conflicts and create with proper data
+    const conflicts = await engine.checkBookingConflicts({
+      providerId,
+      clientId: String(ctx.userId),
+      tenantId: String(ctx.tenantId),
+      startDateTime: startDate,
+      duration,
+      bookingType,
+      title,
+      pricing: { amount: 0, currency: 'usd' },
+    })
+
+    if (conflicts.length > 0) {
+      // Conflicts exist — use harmonic resolution to suggest alternatives
+      const harmonicResult = await engine.resolveBookingHarmonically(
+        {
+          providerId,
+          clientId: String(ctx.userId),
+          tenantId: String(ctx.tenantId),
+          startDateTime: startDate,
+          duration,
+          bookingType,
+          title,
+          pricing: { amount: 0, currency: 'usd' },
+        },
+        conflicts
+      )
+
+      const alternativesList = harmonicResult.alternatives
+        .slice(0, 3)
+        .map((alt, i) => `  ${i + 1}. ${alt.startTime.toLocaleString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        })} (harmony: ${alt.harmonicScore}%)`)
+        .join('\n')
+
+      return `⚠️ **Scheduling conflict detected!**\n\n${conflicts.map(c => `- ${c.message}`).join('\n')}\n\n` +
+        (alternativesList
+          ? `**Suggested alternatives** (Answer 53 harmonic resolution):\n${alternativesList}\n\nWould you like to book one of these alternative times instead?`
+          : 'No nearby alternatives found. Try a different date or provider.')
+    }
+
+    // No conflicts — create the booking through the engine
+    const result = await engine.createBooking({
+      providerId,
+      clientId: String(ctx.userId),
+      tenantId: String(ctx.tenantId),
+      startDateTime: startDate,
+      duration,
+      bookingType,
+      title,
+      description,
+      pricing: {
+        amount: 0,
+        currency: 'usd',
+        splitConfiguration: {
+          providerShare: 60,
+          platformShare: 20,
+          operationsShare: 15,
+          justiceShare: 5,
+        },
+      },
     })
 
     const bookingId = result.id
@@ -2803,10 +2949,201 @@ async function createBooking(
       timeZoneName: 'short',
     })
 
-    return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.` + navDirective('/dashboard/bookings', 'View Bookings')
+    return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Provider: ${providerId}\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.` + navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
     console.error('[LEO Tools] Error creating booking:', err)
     return `Error creating booking: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Available Slots Handler (real-time availability checking)
+// ---------------------------------------------------------------------------
+
+async function checkAvailableSlots(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const providerId = input.providerId ? String(input.providerId) : undefined
+  const duration = Math.max(15, Number(input.duration) || 60)
+  const days = Math.min(14, Math.max(1, Number(input.days) || 3))
+  const serviceType = input.serviceType as string | undefined
+
+  if (!providerId) {
+    return 'Error: providerId is required. Use query_availability to find providers first.'
+  }
+
+  const startDate = input.date ? new Date(input.date as string) : new Date()
+  if (isNaN(startDate.getTime())) {
+    return 'Error: Invalid date format. Please use ISO 8601 date (e.g., "2026-03-15").'
+  }
+
+  // Set to beginning of day
+  startDate.setHours(0, 0, 0, 0)
+  const endDate = new Date(startDate)
+  endDate.setDate(endDate.getDate() + days)
+
+  try {
+    const engine = new BookingEngine(payload)
+    const slots = await engine.getAvailableSlots({
+      providerId,
+      tenantId: String(ctx.tenantId || ''),
+      startDate,
+      endDate,
+      serviceType,
+      slotDuration: duration,
+    })
+
+    const availableSlots = slots.filter(s => s.available)
+
+    if (availableSlots.length === 0) {
+      return `No available ${duration}-minute slots found for provider #${providerId} in the next ${days} day(s). The provider may not have availability set up, or all slots are booked.\n\nTips:\n- Try a longer date range (e.g., \`days: 7\`)\n- Try a shorter duration\n- Check query_availability to see if the provider has a schedule configured`
+    }
+
+    // Group slots by date for readable output
+    const slotsByDate = new Map<string, typeof availableSlots>()
+    availableSlots.forEach(slot => {
+      const dateKey = slot.startTime.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+      })
+      if (!slotsByDate.has(dateKey)) slotsByDate.set(dateKey, [])
+      slotsByDate.get(dateKey)!.push(slot)
+    })
+
+    const lines: string[] = [`**Available ${duration}-min slots** (next ${days} days):\n`]
+
+    for (const [dateLabel, dateSlots] of slotsByDate) {
+      const slotTimes = dateSlots
+        .slice(0, 8) // Max 8 slots per day to keep output manageable
+        .map(s => {
+          const start = s.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+          const end = s.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+          return `${start} – ${end}`
+        })
+        .join(' · ')
+      const moreCount = dateSlots.length > 8 ? ` (+${dateSlots.length - 8} more)` : ''
+      lines.push(`📅 **${dateLabel}**: ${slotTimes}${moreCount}`)
+    }
+
+    lines.push(`\nTotal: ${availableSlots.length} available slot(s). Say **"book [time]"** to schedule!`)
+
+    return lines.join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error checking available slots:', err)
+    return `Error checking availability: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cancel Booking Handler
+// ---------------------------------------------------------------------------
+
+async function cancelBookingHandler(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const bookingId = input.bookingId ? String(input.bookingId) : undefined
+  const reason = (input.reason as string) || 'No reason provided'
+  const cancelledBy = (input.cancelledBy as 'client' | 'provider' | 'system') || 'client'
+
+  if (!bookingId) {
+    return 'Error: bookingId is required. Use query_bookings to find booking IDs.'
+  }
+
+  if (!ctx.tenantId) {
+    return 'Error: No tenant context. Please ensure you are accessing a valid workspace.'
+  }
+
+  try {
+    const engine = new BookingEngine(payload)
+    const result = await engine.cancelBooking(bookingId, String(ctx.tenantId), reason, cancelledBy)
+
+    const bookingTitle = str(result, 'title', 'Untitled')
+    const startDT = str(result, 'startDateTime')
+    const formattedDate = startDT
+      ? new Date(startDT).toLocaleString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        })
+      : 'Unknown'
+
+    return `Booking cancelled:\n- **${bookingTitle}** (ID: ${bookingId})\n- Was scheduled: ${formattedDate}\n- Reason: ${reason}\n- Cancelled by: ${cancelledBy}\n- Status: cancelled\n\nThe booking has been cancelled. Any associated calendar events should be updated.` +
+      navDirective('/dashboard/bookings', 'View Bookings')
+  } catch (err) {
+    console.error('[LEO Tools] Error cancelling booking:', err)
+    return `Error cancelling booking: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reschedule Booking Handler
+// ---------------------------------------------------------------------------
+
+async function rescheduleBookingHandler(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const bookingId = input.bookingId ? String(input.bookingId) : undefined
+  const newStartDateTime = input.newStartDateTime as string | undefined
+  const newDuration = input.newDuration ? Number(input.newDuration) : undefined
+
+  if (!bookingId || !newStartDateTime) {
+    return 'Error: bookingId and newStartDateTime are required.'
+  }
+
+  const newStart = new Date(newStartDateTime)
+  if (isNaN(newStart.getTime())) {
+    return 'Error: Invalid newStartDateTime format. Please use ISO 8601 format (e.g., "2026-03-15T14:00:00Z").'
+  }
+
+  if (newStart < new Date()) {
+    return 'Error: Cannot reschedule to a past time. Please provide a future date and time.'
+  }
+
+  if (!ctx.tenantId) {
+    return 'Error: No tenant context. Please ensure you are accessing a valid workspace.'
+  }
+
+  try {
+    const engine = new BookingEngine(payload)
+    const result = await engine.rescheduleBooking(bookingId, String(ctx.tenantId), newStart, newDuration)
+
+    if (result.success && result.booking) {
+      const bookingTitle = str(result.booking, 'title', 'Untitled')
+      const formattedDate = newStart.toLocaleString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+      })
+      const durationMin = newDuration || result.booking.duration || 60
+
+      return `Booking rescheduled successfully!\n- **${bookingTitle}** (ID: ${bookingId})\n- New time: ${formattedDate}\n- Duration: ${durationMin} minutes\n- Status: ${result.booking.status}\n\nAny associated calendar events should be updated.` +
+        navDirective('/dashboard/bookings', 'View Bookings')
+    }
+
+    // Conflicts — show harmonic alternatives
+    let response = `⚠️ **Cannot reschedule to that time.**\n\n${result.error}\n`
+
+    if (result.alternatives && result.alternatives.length > 0) {
+      const altList = result.alternatives
+        .slice(0, 5)
+        .map((alt, i) => `  ${i + 1}. ${alt.startTime.toLocaleString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        })} (harmony: ${alt.harmonicScore}%)`)
+        .join('\n')
+
+      response += `\n**Harmonic alternatives** (Answer 53):\n${altList}\n\nWould you like to reschedule to one of these times instead?`
+    } else {
+      response += '\nNo nearby alternatives found. Try a different date or time.'
+    }
+
+    return response
+  } catch (err) {
+    console.error('[LEO Tools] Error rescheduling booking:', err)
+    return `Error rescheduling booking: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
@@ -2997,12 +3334,23 @@ async function updateBookingStatus(
     const oldStatus = str(existing, 'status', 'unknown')
     const bookingTitle = str(existing, 'title', 'Untitled')
 
+    // Build update data — include cancellation details if status is 'cancelled'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = { status }
+    if (status === 'cancelled') {
+      updateData.cancellation = {
+        reason: 'Status updated via LEO',
+        cancelledBy: 'system',
+        cancelledAt: new Date().toISOString(),
+      }
+    }
+
     // Update the booking
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (payload.update as any)({
       collection: 'bookings',
       id: bookingId,
-      data: { status },
+      data: updateData,
       overrideAccess: true,
     })
 

@@ -21,6 +21,7 @@ export type ApiEndpoint =
   | 'chat_send'
   | 'invitations'
   | 'orders'
+  | 'bookings'
   | 'registration'
   | 'default'
 
@@ -47,6 +48,7 @@ const LIMITS: Record<ApiEndpoint, number> = {
   chat_send: 20,     // Message spam — generous for active chat, still bounded
   invitations: 5,    // Invitation email spam prevention
   orders: 10,        // Order lifecycle abuse prevention
+  bookings: 20,      // Availability queries — generous for scheduling UX
   registration: 3,   // Account creation spam — tight limit
   default: 60,       // General API protection
 }

@@ -85,6 +85,7 @@ import { orderFulfillHandler } from '@/endpoints/order-fulfill'
 import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
+import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
 import { makerOpportunitiesHandler } from '@/endpoints/maker-opportunities'
@@ -513,6 +514,12 @@ export default buildConfig({
       path: '/orders/vendor',
       method: 'get',
       handler: ordersVendorHandler,
+    },
+    // ─── Booking Endpoints ────────────────────────────────────────
+    {
+      path: '/bookings/available-slots',
+      method: 'post',
+      handler: bookingAvailableSlotsHandler,
     },
     // ─── Angel Token & Maker Queue Endpoints ──────────────────────
     {
