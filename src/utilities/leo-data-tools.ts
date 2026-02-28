@@ -1004,9 +1004,36 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'complete_enlistment',
+    description:
+      'Complete the Enlistment Ceremony — the solemn moment where the Enterprise operator affirms their commitment to the Angel OS federation values: constitutional governance, dignity for every person, the Toward-53 principle, and the anti-demonic safeguards. Call this during wizard step 7: Enlistment, after the operator has expressed why they are building their Enterprise and affirmed their commitment. Records the ceremony timestamp and the operator\'s stated mission.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        operatorName: {
+          type: 'string',
+          description: 'Full name of the operator being enlisted',
+        },
+        enterpriseName: {
+          type: 'string',
+          description: 'Name of the Enterprise being enlisted',
+        },
+        missionStatement: {
+          type: 'string',
+          description: 'The operator\'s stated mission — why they are building this Enterprise and who it will serve. Captured from the ceremony conversation.',
+        },
+        affirmation: {
+          type: 'string',
+          description: 'The operator\'s affirmation of commitment to constitutional governance and Angel OS values. Should be their own words, not a template.',
+        },
+      },
+      required: ['operatorName', 'enterpriseName', 'missionStatement'],
+    },
+  },
+  {
     name: 'sign_constitution',
     description:
-      'Sign the Angel OS Constitution on behalf of the Enterprise operator, generating a cryptographic Ed25519 signature and a permanent federationId (UUID). Use during wizard step 7: Federation. This is the moment of constitutional commitment.',
+      'Sign the Angel OS Constitution on behalf of the Enterprise operator, generating a cryptographic Ed25519 signature and a permanent federationId (UUID). Use during wizard step 8: Federation. This is the moment of constitutional commitment.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1029,7 +1056,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'ping_federation',
     description:
-      'Ping the Angel OS federation registry to announce this Enterprise\'s existence. Called after sign_constitution during wizard step 7. Gracefully handles no registry URL — completes wizard regardless.',
+      'Ping the Angel OS federation registry to announce this Enterprise\'s existence. Called after sign_constitution during wizard step 8: Federation. Gracefully handles no registry URL — completes wizard regardless.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -2082,6 +2109,8 @@ export async function executeToolCall(
       // ─── Sprint 17: Leo Wizard Tools ──────────────────────────
       case 'create_space':
         return await handleCreateSpace(payload, toolInput, ctx)
+      case 'complete_enlistment':
+        return await handleCompleteEnlistment(payload, toolInput, ctx)
       case 'sign_constitution':
         return await handleSignConstitution(payload, toolInput, ctx)
       case 'ping_federation':
@@ -4824,7 +4853,70 @@ async function handleCreateSpace(
 }
 
 /**
- * sign_constitution — Signs the Angel OS Constitution for wizard step 7.
+ * complete_enlistment — Records the Enlistment Ceremony for wizard step 7.
+ * The solemn moment where the operator commits to Angel OS values before signing
+ * the constitution. Persists the ceremony record to tenant.setup.enlistment.
+ */
+async function handleCompleteEnlistment(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const operatorName = (input.operatorName as string)?.trim()
+  const enterpriseName = (input.enterpriseName as string)?.trim()
+  const missionStatement = (input.missionStatement as string)?.trim()
+  const affirmation = (input.affirmation as string)?.trim() || 'I commit to upholding constitutional governance and the Angel OS values.'
+
+  if (!operatorName) return 'Error: Operator name is required for enlistment.'
+  if (!enterpriseName) return 'Error: Enterprise name is required for enlistment.'
+  if (!missionStatement) return 'Error: Mission statement is required — this captures why the operator is building their Enterprise.'
+
+  try {
+    // Record the enlistment ceremony on the tenant
+    const now = new Date().toISOString()
+
+    await payload.update({
+      collection: 'tenants',
+      id: tenantId,
+      data: {
+        setup: {
+          enlistment: {
+            operatorName,
+            enterpriseName,
+            missionStatement,
+            affirmation,
+            enlistedAt: now,
+            flagshipOrigin: 'spacesangels.com',
+          },
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    return [
+      `⚔️ **Enlistment Ceremony Complete**`,
+      ``,
+      `Welcome to the Angel Army, **${operatorName}**.`,
+      ``,
+      `- **Enterprise:** ${enterpriseName}`,
+      `- **Mission:** ${missionStatement}`,
+      `- **Affirmed:** ${affirmation}`,
+      `- **Enlisted:** ${new Date(now).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`,
+      `- **Origin:** Clearwater Flagship (spacesangels.com)`,
+      ``,
+      `Your commitment has been recorded. The next step is to sign the Angel OS Constitution — making your enlistment cryptographically permanent — and announce your Enterprise to the federation network.`,
+    ].join('\n')
+  } catch (err) {
+    console.error('[LEO Tools] Error completing enlistment:', err)
+    return `Error completing enlistment: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * sign_constitution — Signs the Angel OS Constitution for wizard step 8.
  * Generates an Ed25519 signature, federationId, and persists to tenant.setup.*
  */
 async function handleSignConstitution(
@@ -4975,7 +5067,7 @@ async function handlePingFederation(
           data: {
             setup: {
               wizardComplete: true,
-              wizardProgress: { completedStep: 7, completedAt: new Date().toISOString() },
+              wizardProgress: { completedStep: 8, completedAt: new Date().toISOString() },
             },
           } as any,
           overrideAccess: true,
@@ -5995,7 +6087,7 @@ async function handleResearchAndProvision(
         parts.push(`- **Slug:** ${slug}`)
         parts.push(`- **Domain:** ${slug}.${domainSuffix}`)
         parts.push(`- **Status:** provisioning`)
-        parts.push(`\nNext steps: Use configure_business to set branding, create_space to add channels, then sign_constitution to join the federation.`)
+        parts.push(`\nNext steps: Use configure_business to set branding, create_space to add channels, then complete_enlistment and sign_constitution to join the federation.`)
       }
     } catch (err) {
       parts.push(`\nError creating tenant: ${err instanceof Error ? err.message : 'Unknown error'}`)

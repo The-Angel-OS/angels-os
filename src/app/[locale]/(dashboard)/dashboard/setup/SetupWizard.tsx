@@ -228,7 +228,7 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
           { id: 'welcome', role: 'system', content: 'Enterprise Setup — Leo is ready' },
         ])
         sendToLeo(
-          'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation. Confirm they are ready to begin.',
+          'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 9 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Enlistment, 9. Federation. Confirm they are ready to begin.',
           true,
         )
       }
@@ -308,7 +308,7 @@ export function SetupWizard({ initialProgress, spaceId, channelSlug, tenantSlug 
           },
           body: JSON.stringify({
             message: isOpening
-              ? userMessage || 'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 8 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Federation.'
+              ? userMessage || 'Start the Enterprise setup wizard. Introduce yourself as Leo. Explain that an Enterprise is a PLATFORM that hosts Endeavors (businesses/projects). List EXACTLY these 9 steps by name: 1. Welcome, 2. Identity, 3. Endeavor Type, 4. First Space, 5. First Member, 6. First Offering, 7. Payments, 8. Enlistment, 9. Federation.'
               : userMessage,
             channelSlug,
             spaceId,

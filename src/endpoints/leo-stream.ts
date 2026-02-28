@@ -398,8 +398,9 @@ async function advanceWizardStep(
     create_product: 5,
     suggest_products: -1,
     connect_stripe_account: 6,
+    complete_enlistment: 7,
     sign_constitution: -1,
-    ping_federation: 7,
+    ping_federation: 8,
   }
   const stepsToComplete = toolNames
     .map((name) => TOOL_TO_STEP[name] ?? -1)
@@ -431,7 +432,7 @@ async function advanceWizardStep(
           wizardProgress: {
             ...existing,
             completedSteps: newCompleted,
-            currentStep: Math.min(nextStep, 7),
+            currentStep: Math.min(nextStep, 8),
           },
         },
       } as any,
