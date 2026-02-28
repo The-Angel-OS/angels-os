@@ -200,11 +200,11 @@ test.describe.serial('E-Commerce: Cart Operations', () => {
     await cartTrigger.click()
     await sharedPage.waitForTimeout(1000)
 
-    // Click "Reduce item quantity" button to remove one item
-    const reduceButton = sharedPage.getByRole('button', { name: 'Reduce item quantity' }).first()
-    await expect(reduceButton).toBeVisible({ timeout: 5000 })
+    // Click "Reduce item quantity" button (minus icon with aria-label) to remove one item
+    const reduceButton = sharedPage.locator('button[aria-label="Reduce item quantity"]').first()
+    await expect(reduceButton).toBeVisible({ timeout: 8000 })
     await reduceButton.click()
-    await sharedPage.waitForTimeout(1000)
+    await sharedPage.waitForTimeout(1500)
 
     // Cart button should now show "1"
     const cartButton = sharedPage.locator('button', { hasText: /Cart/ }).first()

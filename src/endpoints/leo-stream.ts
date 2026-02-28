@@ -50,10 +50,12 @@ const LLM_MODEL = 'claude-sonnet-4-20250514'
 
 /**
  * Handle /commands typed in chat. Returns response text or null if not a command.
+ * Model switching is restricted to super_admin users for security.
  */
-function handleSlashCommand(msg: string): string | null {
+function handleSlashCommand(msg: string, userRoles?: string[]): string | null {
   const parts = msg.split(/\s+/)
   const cmd = parts[0]?.toLowerCase()
+  const isSuperAdmin = userRoles?.includes('super_admin') ?? false
 
   if (cmd === '/model' || cmd === '/models') {
     const subCmd = parts[1]?.toLowerCase()
@@ -67,9 +69,18 @@ function handleSlashCommand(msg: string): string | null {
       }
       lines.push(`\n**Default:** \`${DEFAULT_MODEL}\``)
       lines.push(`**Fallback:** \`${FALLBACK_MODEL}\``)
-      lines.push(`\nSwitch with: \`/model <alias>\` (e.g. \`/model gemini-pro\`)`)
-      lines.push(`Or set \`LLM_MODEL\` env var for a persistent override.`)
+      if (isSuperAdmin) {
+        lines.push(`\nSwitch with: \`/model <alias>\` (e.g. \`/model gemini-pro\`)`)
+        lines.push(`Or set \`LLM_MODEL\` env var for a persistent override.`)
+      } else {
+        lines.push(`\n*Model switching is restricted to super admins.*`)
+      }
       return lines.join('\n')
+    }
+
+    // Model switching — super_admin only
+    if (!isSuperAdmin) {
+      return `🔒 **Model switching is restricted to super admins.**\n\nYou can view available models with \`/models\`.`
     }
 
     // /model <alias> — switch
@@ -92,8 +103,8 @@ function handleSlashCommand(msg: string): string | null {
   if (cmd === '/help') {
     return [
       '**LEO Commands**\n',
-      '• `/model` or `/models` — List available AI models',
-      '• `/model <alias>` — Switch to a different model',
+      '• `/models` — List available AI models',
+      ...(isSuperAdmin ? ['• `/model <alias>` — Switch to a different model (super admin only)'] : []),
       '• `/help` — Show this help',
     ].join('\n')
   }
@@ -573,7 +584,9 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   // ─── Slash Commands ──────────────────────────────────────────────────────
   const trimmedMsg = message.trim()
   if (trimmedMsg.startsWith('/')) {
-    const cmdResult = handleSlashCommand(trimmedMsg)
+    const reqUser = req.user as unknown as Record<string, unknown> | undefined
+    const slashRoles = Array.isArray(reqUser?.roles) ? (reqUser.roles as string[]) : undefined
+    const cmdResult = handleSlashCommand(trimmedMsg, slashRoles)
     if (cmdResult) {
       // Return slash command response as a quick SSE stream
       const cmdEncoder = new TextEncoder()

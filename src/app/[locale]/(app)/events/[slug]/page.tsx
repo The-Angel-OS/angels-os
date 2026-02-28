@@ -85,6 +85,20 @@ export default async function EventDetailPage({
     overrideAccess: true,
   })
 
+  // Resolve logged-in user to prefill registration form
+  let regUser: { name?: string; email?: string } | null = null
+  try {
+    const { user } = await payload.auth({ headers: headersList })
+    if (user) {
+      regUser = {
+        name: (user as any).name || undefined,
+        email: (user as any).email || undefined,
+      }
+    }
+  } catch {
+    // Not logged in — form will show name/email fields
+  }
+
   const startDate = new Date(event.startDateTime)
   const endDate = event.endDateTime ? new Date(event.endDateTime) : null
   const coverUrl =
@@ -261,6 +275,7 @@ export default async function EventDetailPage({
                 isWaitlist={!!canWaitlist}
                 isLateRegistration={!!canLateRegister}
                 locationType={locationType}
+                user={regUser}
               />
             ) : isAtCapacity && !event.capacity?.waitlistEnabled ? (
               <div className="rounded-md bg-yellow-500/10 p-4 text-center text-sm text-yellow-600 dark:text-yellow-400">

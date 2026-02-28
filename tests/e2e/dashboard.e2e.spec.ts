@@ -44,7 +44,8 @@ test.describe('Dashboard Layout', () => {
     await expect(page.getByText('Dashboard').first()).toBeVisible()
 
     // Spaces link in sidebar (under OVERVIEW)
-    await expect(page.getByRole('link', { name: /Spaces/i })).toBeVisible()
+    const spacesLink = page.locator('nav a', { hasText: 'Spaces' }).first()
+    await expect(spacesLink).toBeVisible()
   })
 
   test('sidebar collapse toggle works', async ({ page }) => {
@@ -201,12 +202,12 @@ test.describe('Dashboard Navigation', () => {
     await page.goto('/dashboard')
     await page.waitForTimeout(2000)
 
-    // Click Orders in sidebar — use exact match to avoid "My Orders" confusion
-    const ordersLink = page.getByRole('link', { name: 'Orders' }).first()
+    // Click Orders or My Orders in sidebar — admin sees "Orders", regular user sees "My Orders"
+    const ordersLink = page.locator('nav a', { hasText: /^(My )?Orders$/ }).first()
     if (await ordersLink.isVisible()) {
       await ordersLink.click()
       await page.waitForTimeout(2000)
-      await expect(page).toHaveURL(/\/dashboard\/orders/)
+      await expect(page).toHaveURL(/\/dashboard\/(orders|my-orders)/)
     }
   })
 })

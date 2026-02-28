@@ -2,6 +2,7 @@ import React from 'react'
 
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import { headers } from 'next/headers'
 import { CommentForm } from '@/components/Comments/CommentForm'
 import { Star } from 'lucide-react'
 
@@ -32,6 +33,21 @@ export const CommentsBlock: React.FC<CommentsBlockComponentProps> = async ({
 
   const payload = await getPayload({ config: configPromise })
 
+  // Resolve logged-in user to prefill comment form
+  let commentUser: { name?: string; email?: string } | null = null
+  try {
+    const requestHeaders = await headers()
+    const { user } = await payload.auth({ headers: requestHeaders })
+    if (user) {
+      commentUser = {
+        name: (user as any).name || undefined,
+        email: (user as any).email || undefined,
+      }
+    }
+  } catch {
+    // Not logged in — form will show name/email fields
+  }
+
   const commentsResult = await payload.find({
     collection: 'comments',
     where: {
@@ -58,6 +74,7 @@ export const CommentsBlock: React.FC<CommentsBlockComponentProps> = async ({
           parentId={parentId}
           parentCollection={parentCollection}
           showRating={showRating}
+          user={commentUser}
         />
 
         {comments.length > 0 && (

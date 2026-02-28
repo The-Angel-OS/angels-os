@@ -193,12 +193,9 @@ test.describe('Enterprise Setup Wizard', () => {
       return
     }
 
-    // Footer text: "~17 min . guided by Leo"
-    const footerTime = page.locator('text=17 min')
+    // Footer text: "~17 min · guided by Leo"
+    const footerTime = page.getByText('~17 min · guided by Leo')
     await expect(footerTime).toBeVisible()
-
-    const guidedByLeo = page.locator('text=guided by Leo')
-    await expect(guidedByLeo).toBeVisible()
   })
 
   // ── Two-Panel Layout ──────────────────────────────────────────────────────

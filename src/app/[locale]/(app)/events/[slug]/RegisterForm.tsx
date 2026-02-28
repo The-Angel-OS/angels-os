@@ -8,6 +8,8 @@ interface RegisterFormProps {
   isWaitlist: boolean
   isLateRegistration: boolean
   locationType?: string
+  /** Pre-fill from logged-in user — hides name/email fields when provided */
+  user?: { name?: string; email?: string } | null
 }
 
 export function RegisterForm({
@@ -16,9 +18,11 @@ export function RegisterForm({
   isWaitlist,
   isLateRegistration,
   locationType,
+  user,
 }: RegisterFormProps) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const isLoggedIn = !!(user?.name && user?.email)
+  const [name, setName] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
   const [attendanceMode, setAttendanceMode] = useState<string>(
     locationType === 'virtual' ? 'virtual' : 'in-person',
   )
@@ -91,35 +95,44 @@ export function RegisterForm({
         </p>
       )}
 
-      <div>
-        <label htmlFor="reg-name" className="mb-1 block text-xs font-medium text-foreground">
-          Name
-        </label>
-        <input
-          id="reg-name"
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      {isLoggedIn ? (
+        <p className="text-sm text-muted-foreground">
+          Registering as <span className="font-medium text-foreground">{user!.name}</span>{' '}
+          <span className="text-xs">({user!.email})</span>
+        </p>
+      ) : (
+        <>
+          <div>
+            <label htmlFor="reg-name" className="mb-1 block text-xs font-medium text-foreground">
+              Name
+            </label>
+            <input
+              id="reg-name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
 
-      <div>
-        <label htmlFor="reg-email" className="mb-1 block text-xs font-medium text-foreground">
-          Email
-        </label>
-        <input
-          id="reg-email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+          <div>
+            <label htmlFor="reg-email" className="mb-1 block text-xs font-medium text-foreground">
+              Email
+            </label>
+            <input
+              id="reg-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </>
+      )}
 
       {showModeSelector && (
         <div>

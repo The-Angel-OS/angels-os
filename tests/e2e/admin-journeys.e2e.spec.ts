@@ -159,7 +159,7 @@ test.describe('Admin Journey: Provision Wizard', () => {
     await page.waitForTimeout(500)
 
     // Click Next to go to Endeavor step
-    await page.getByRole('button', { name: /Next/i }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
     await page.waitForTimeout(2000)
 
     // Step 2 heading
@@ -184,11 +184,11 @@ test.describe('Admin Journey: Provision Wizard', () => {
     await page.waitForTimeout(500)
 
     // Step 1 → Step 2
-    await page.getByRole('button', { name: /Next/i }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
     await page.waitForTimeout(2000)
 
     // Step 2 → Step 3
-    await page.getByRole('button', { name: /Next/i }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
     await page.waitForTimeout(1000)
 
     // Step 3 heading
@@ -223,7 +223,7 @@ test.describe('Admin Journey: Provision Wizard', () => {
     await page.waitForTimeout(500)
 
     // Go to step 2
-    await page.getByRole('button', { name: /Next/i }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
     await page.waitForTimeout(2000)
 
     // Should now be on Endeavor step

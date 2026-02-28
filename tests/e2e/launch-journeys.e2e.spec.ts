@@ -375,7 +375,7 @@ test.describe('Launch Journey: Federation Dashboard', () => {
     await page.waitForTimeout(2000)
 
     // Should show Suitcase heading
-    await expect(page.locator('text=Endeavor Portability')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Endeavor Portability/ })).toBeVisible()
 
     // Export section
     const packBtn = page.getByRole('button', { name: /Pack Suitcase/i })

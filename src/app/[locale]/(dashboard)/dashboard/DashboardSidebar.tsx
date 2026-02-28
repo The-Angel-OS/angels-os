@@ -310,6 +310,9 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/dashboard/media`} icon={<ImageIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/media')}>
               Media
             </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/comments`} icon={<CommentIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/comments')}>
+              Comments
+            </NavLink>
           </NavSection>
         )}
 
@@ -556,6 +559,9 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/media`} icon={<ImageIcon />} collapsed={false} active={pathname.includes('/dashboard/media')}>
             Media
           </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/comments`} icon={<CommentIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/comments')}>
+            Comments
+          </NavLink>
         </NavSection>
       )}
 
@@ -794,6 +800,14 @@ function FederationIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+    </svg>
+  )
+}
+
+function CommentIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   )
 }

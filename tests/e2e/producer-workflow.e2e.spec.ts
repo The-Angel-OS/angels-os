@@ -47,7 +47,7 @@ test.describe('Producer Workflow', () => {
       await expect(fairSplitHeading).toBeVisible({ timeout: 5000 })
 
       // Should show the 60% maker share
-      const makerShare = page.getByText('60%')
+      const makerShare = page.getByText('60%', { exact: true })
       await expect(makerShare).toBeVisible()
     })
 

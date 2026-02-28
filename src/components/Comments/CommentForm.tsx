@@ -11,11 +11,14 @@ type CommentFormProps = {
   parentId: number
   parentCollection: 'posts' | 'products'
   showRating?: boolean
+  /** Pre-fill from logged-in user — hides name/email fields when provided */
+  user?: { name?: string; email?: string } | null
 }
 
-export function CommentForm({ parentId, parentCollection, showRating }: CommentFormProps) {
-  const [author, setAuthor] = useState('')
-  const [email, setEmail] = useState('')
+export function CommentForm({ parentId, parentCollection, showRating, user }: CommentFormProps) {
+  const isLoggedIn = !!(user?.name && user?.email)
+  const [author, setAuthor] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
   const [content, setContent] = useState('')
   const [rating, setRating] = useState<number | null>(null)
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
@@ -68,33 +71,39 @@ export function CommentForm({ parentId, parentCollection, showRating }: CommentF
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="comment-author">Name *</Label>
-          <Input
-            id="comment-author"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            required
-            disabled={status === 'submitting'}
-            placeholder="Your name"
-            className="mt-1"
-          />
+      {isLoggedIn ? (
+        <p className="text-sm text-muted-foreground">
+          Commenting as <span className="font-medium text-foreground">{user!.name}</span>
+        </p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="comment-author">Name *</Label>
+            <Input
+              id="comment-author"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              required
+              disabled={status === 'submitting'}
+              placeholder="Your name"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="comment-email">Email *</Label>
+            <Input
+              id="comment-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={status === 'submitting'}
+              placeholder="your@email.com"
+              className="mt-1"
+            />
+          </div>
         </div>
-        <div>
-          <Label htmlFor="comment-email">Email *</Label>
-          <Input
-            id="comment-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={status === 'submitting'}
-            placeholder="your@email.com"
-            className="mt-1"
-          />
-        </div>
-      </div>
+      )}
 
       {showRating && (
         <div>
