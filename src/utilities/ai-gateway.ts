@@ -94,7 +94,7 @@ export const TASK_MODEL_MAP: Record<TaskComplexity, {
 // Credit Balance Monitoring
 // ---------------------------------------------------------------------------
 
-interface CreditSnapshot {
+export interface CreditSnapshot {
   balance: number
   totalUsed: number
   checkedAt: number

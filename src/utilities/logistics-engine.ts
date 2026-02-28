@@ -372,6 +372,7 @@ export function geohashProximity(
   b: string | undefined,
   prefixLength = 4,
 ): boolean {
+  if (prefixLength <= 0) return true // trivially: everything shares a 0-length prefix
   if (!a || !b || a.length < prefixLength || b.length < prefixLength) return false
   return a.slice(0, prefixLength) === b.slice(0, prefixLength)
 }
