@@ -45,7 +45,7 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/user.json',
       },
       dependencies: ['setup'],
-      testMatch: /(?:dashboard|launch-journeys|admin-journeys|tenant-isolation|chat-messaging|federation-api|producer-workflow|content-management|setup-wizard)\.e2e\.spec\.ts/,
+      testMatch: /(?:dashboard|launch-journeys|admin-journeys|payload-admin|tenant-isolation|chat-messaging|federation-api|producer-workflow|content-management|setup-wizard)\.e2e\.spec\.ts/,
     },
     // User journey tests — self-contained auth, creates its own users
     {

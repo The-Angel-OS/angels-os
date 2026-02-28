@@ -7,13 +7,22 @@ export const Footer: CollectionConfig = {
   slug: 'footer',
   admin: {
     group: 'Angel OS',
-    useAsTitle: 'id',
+    useAsTitle: 'label',
+    description: 'Site footer navigation — one per tenant.',
   },
   access: {
     // Each tenant has its own footer — scope to current tenant.
     read: publicWithTenantScope,
   },
   fields: [
+    {
+      name: 'label',
+      type: 'text',
+      admin: {
+        description: 'Descriptive label for this footer (e.g. "Main Footer").',
+      },
+      defaultValue: 'Main Footer',
+    },
     {
       name: 'navItems',
       type: 'array',

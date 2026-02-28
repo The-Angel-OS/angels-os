@@ -10,6 +10,8 @@
  * - 10 channels (various types)
  * - Space memberships for all users
  * - 3 projects (Angel OS MVP, Community Portal, Kitchen Remodel)
+ * - 1 header (Main Header) with 4 nav items
+ * - 1 footer (Main Footer) with 3 nav items
  * - Welcome messages in general channels
  *
  * Safe to run multiple times — uses findOrCreate pattern throughout.
@@ -310,7 +312,7 @@ async function main() {
   console.log(`   ✅ ${allUsers.length * allSpaces.length} space memberships`)
 
   // ─── Step 7: Seed Projects ──────────────────────────────────────
-  console.log('📐 Step 7/8: Seeding projects...')
+  console.log('📐 Step 7/10: Seeding projects...')
 
   const findOrCreateProject = async (data: {
     title: string
@@ -417,8 +419,51 @@ async function main() {
 
   console.log('   ✅ 3 sample projects')
 
-  // ─── Step 8: Seed Messages ────────────────────────────────────────
-  console.log('💬 Step 8/8: Seeding welcome messages...')
+  // ─── Step 8: Header & Footer ─────────────────────────────────────
+  console.log('🧭 Step 8/10: Seeding header & footer...')
+
+  const findOrCreateHeaderFooter = async (
+    collection: 'header' | 'footer',
+    label: string,
+    navItems: Array<{ link: { type: string; url: string; label: string; newTab?: boolean } }>,
+  ) => {
+    const existing = await payload.find({
+      collection,
+      where: { tenant: { equals: tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs?.length) return existing.docs[0]
+    return payload.create({
+      collection,
+      data: {
+        label,
+        navItems,
+        tenant: tenantId as number,
+      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      req,
+      overrideAccess: true,
+    })
+  }
+
+  await findOrCreateHeaderFooter('header', 'Main Header', [
+    { link: { type: 'custom', url: '/', label: 'Home' } },
+    { link: { type: 'custom', url: '/posts', label: 'Blog' } },
+    { link: { type: 'custom', url: '/projects', label: 'Portfolio' } },
+    { link: { type: 'custom', url: '/contact', label: 'Contact' } },
+  ])
+  console.log('   ✅ Header with 4 nav items')
+
+  await findOrCreateHeaderFooter('footer', 'Main Footer', [
+    { link: { type: 'custom', url: '/privacy', label: 'Privacy Policy' } },
+    { link: { type: 'custom', url: '/terms', label: 'Terms of Service' } },
+    { link: { type: 'custom', url: '/contact', label: 'Contact Us' } },
+  ])
+  console.log('   ✅ Footer with 3 nav items')
+
+  // ─── Step 9: Seed Messages ────────────────────────────────────────
+  console.log('💬 Step 9/10: Seeding welcome messages...')
 
   const seedMessage = async (
     authorId: number | string,
@@ -473,7 +518,7 @@ async function main() {
   )
   console.log('   ✅ Welcome messages seeded')
 
-  // ─── Step 9: Clean up duplicate DM channels ────────────────────────
+  // ─── Step 10: Clean up duplicate DM channels ───────────────────────
   console.log('🧹 Step 9/9: Cleaning duplicate DM channels...')
   try {
     const allDmChannels = await payload.find({
@@ -537,6 +582,8 @@ async function main() {
   console.log(`   Channels:   10 (general, announcements, support, social, projects, standup, system-log, agent-chat, integrations)`)
   console.log(`   Memberships: ${allUsers.length * allSpaces.length} space + 5 tenant`)
   console.log(`   Projects:   3 sample projects`)
+  console.log(`   Header:     1 with 4 nav items`)
+  console.log(`   Footer:     1 with 3 nav items`)
   console.log(`   Messages:   3 welcome messages`)
   console.log(`   Time:       ${elapsed}s`)
   console.log(`\n   Login: dev-admin@spacesangels.com / devdev123`)
