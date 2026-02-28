@@ -6,16 +6,17 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.24.0-dev
-**Tests:** 1,570 unit tests + 14 E2E suites across 50 test files
+**Version:** v0.30.0-dev
+**Tests:** 2,213 unit tests + 14 E2E suites across 47 test files
+**Engines:** 12 pure utility engines (zero Payload imports)
 **Leo Tools:** 78+
 **API Endpoints:** 49+ registered routes
-**Collections:** 37
-**Last Updated:** February 27, 2026
+**Collections:** 42
+**Last Updated:** February 28, 2026
 
 ---
 
-## Current: v0.24.0-dev (Enterprise Intelligence + Dashboard Integration)
+## Current: v0.30.0-dev (Distributed Intelligence + Workload Engine)
 
 ### What's Built (Sprints 1-21)
 
@@ -81,6 +82,12 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Production Hardening** | **21+** | **Stripe payment_failed/refund handlers, chat-send tenant isolation, SSE heartbeat, loading skeletons, auth guards, form error handling** |
 | **Channel-per-Integration** | **21+** | **Dedicated leo/email/whatsapp/sms channel types; DM dedup with race-condition safety** |
 | **Docs Viewer Fix** | **21+** | **Documentation center now indexes .md + .txt files (transcripts were previously invisible)** |
+| **AI Gateway (Smart Routing)** | **25** | **Credit-aware 4-tier model routing, dynamic provider selection, fallback chains (65 tests)** |
+| **Universal Logistics Network** | **26** | **Bread-Breaker local + Soul Fleet long-haul, 3 collections, transport matching (55 tests)** |
+| **Adversarial Testing** | **27** | **170 edge-case tests, TDZ crash fix, INP optimization** |
+| **Puma Punku Polish** | **28** | **LEO Navigation Bridge, DB indexes, type safety hardening** |
+| **Pheromone Grid** | **29** | **Swarm intelligence, 5 pheromone types, Game of Life lifecycle (70 tests)** |
+| **Distributed Workload Engine** | **30** | **Work routing, 5-dim scoring, backpressure, WorkUnits collection (91 tests)** |
 
 ---
 
@@ -122,6 +129,85 @@ The platform becomes self-aware. LEO gets operational intelligence to monitor re
 - [x] **Link Field Bug Fix** — link.ts `.map()` silently discarded width modifications; Header/Footer admin now render correctly with descriptive labels
 - [x] **Payload Admin E2E Tests** — Comprehensive Payload admin panel tests: panel access, Header/Footer CRUD, 10 collection list views, navigation, link field rendering
 - [x] **14 E2E Test Suites** — Dashboard, admin journeys, payload admin, federation API, tenant isolation, chat messaging, producer workflow, content management, setup wizard, launch journeys, checkout, user journeys, mobile responsive, frontend legacy
+
+---
+
+## Sprint 30 — The Wellness Virus: Distributed Workload Engine (Done)
+
+### Goal
+The federation gains distributed musculature. Computational work flows to wherever it'll be processed best. The Workload Engine scores candidate nodes using trust, capability, capacity, performance history (pheromone data), and cost. Nodes that carry load well earn stronger pheromone trails. Nodes that fail go dormant.
+
+### Deliverables
+- [x] **Workload Engine** (`workload-engine.ts`, 884 lines) — Pure TypeScript distributed work routing engine. 5-dimension scoring: capability (30%), trust (25%), load (20%), performance (15%), cost (10%) + pheromone bonus (0-15).
+- [x] **WorkUnits Collection** — Persistent work unit tracking in Intelligence admin group. State machine: pending -> claimed -> executing -> completed/failed/timeout.
+- [x] **Backpressure Detection** — Mesh-wide load monitoring at 85% threshold. Priority-based shedding (critical never shed, background first).
+- [x] **Capacity Broadcasting** — Federation heartbeats include compute capacity snapshots for intelligent work routing.
+- [x] **Work Decomposition** — Aggregation fan-out into per-item children with automatic result aggregation.
+- [x] **Trust-Gated Dispatch** — Generation/aggregation work requires `vouched` trust minimum.
+- [x] **91 new tests** (workloadEngine.test.ts) — state machine, scoring, routing, backpressure, capacity, decomposition
+
+---
+
+## Sprint 29 — Pheromone Grid: Swarm Intelligence (Done)
+
+### Goal
+Bio-inspired navigation for the federation mesh. Nodes deposit chemical-like signals (pheromones) that evaporate over time and reinforce successful paths. Conway's Game of Life rules applied to federation health — emergent mesh resilience.
+
+### Deliverables
+- [x] **Pheromone Engine** (`pheromone-engine.ts`, 757 lines) — deposit, decay, reinforce, follow trails. 5 pheromone types: success, failure, discovery, demand, warning.
+- [x] **Game of Life Federation Lifecycle** — Conway's rules: birth (2-3 healthy neighbors), survival (2-3), death (isolation/overcrowding).
+- [x] **Pheromones Collection** — Persistent pheromone storage in Intelligence admin group. Auto-decay, spatial grid operations, gradient following.
+- [x] **70 new tests** (pheromoneEngine.test.ts)
+
+---
+
+## Sprint 28 — Puma Punku Polish + Navigation Bridge (Done)
+
+### Goal
+Precision polish across the codebase — database indexes, type safety, admin consistency — plus a LEO Navigation Bridge that makes the dashboard respond to tool mutations.
+
+### Deliverables
+- [x] **LEO Navigation Bridge** — Dashboard auto-navigates when Leo executes mutation tools
+- [x] **Database Index Optimization** — Strategic indexes across federation, logistics, and pheromone query paths
+- [x] **Type Safety Hardening** — Admin field consistency, proper casts, collection admin improvements
+
+---
+
+## Sprint 27 — Adversarial Testing + Stability (Done)
+
+### Goal
+Break everything, fix everything. 170 new adversarial tests across all engines targeting boundary conditions, malformed inputs, race conditions, and edge cases.
+
+### Deliverables
+- [x] **170 new adversarial tests** — Edge cases across all engines: overflow, Unicode, empty datasets, negative values, boundary conditions
+- [x] **TDZ Crash Fix** — Resolved temporal dead zone in slash command handler (commit f7d607f)
+- [x] **INP 222ms Fix** — Chat textarea resize deferred to requestAnimationFrame
+
+---
+
+## Sprint 26 — Universal Logistics Network (Done)
+
+### Goal
+Physical goods movement enters the federation. The Bread-Breaker handles local delivery within economic radius. The Soul Fleet handles long-haul dispatch across federation nodes.
+
+### Deliverables
+- [x] **Logistics Engine** (`logistics-engine.ts`) — Transport matching, load optimization, delivery time estimation
+- [x] **LogisticsNodes Collection** — Delivery hubs with capacity tracking, geographic coverage
+- [x] **Transports Collection** — Vehicles/couriers with load capacity, availability scheduling
+- [x] **Shipments Collection** — Package tracking, pickup-to-delivery lifecycle
+- [x] **55 new tests** (logisticsEngine.test.ts)
+
+---
+
+## Sprint 25 — Smart Model Routing (Done)
+
+### Goal
+Leo's AI Gateway becomes credit-aware. Dynamic 4-tier model routing prevents credit exhaustion and selects the best model for each task based on available resources.
+
+### Deliverables
+- [x] **AI Gateway** (`ai-gateway.ts`) — Credit-aware 4-tier model routing with dynamic provider selection
+- [x] **Fallback Chains** — Gemini 3.1 Pro -> Sonnet 4.6 -> GPT-4o -> Haiku with credit awareness
+- [x] **65 new tests** (aiGateway.test.ts)
 
 ---
 
@@ -416,6 +502,12 @@ pnpm dev                      # http://localhost:3000
 | 22 | The Shield and the Spear | 1,570 | P0 security fixes, multi-file attachments, LiveKit device selector + session lifecycle, DB indexes |
 | 23 | Google OAuth + Social Auth + Quests | 1,570 | Google OAuth, social link/unlink, Quests, Leo model upgrade (Gemini 3.1 Pro), tenant caching |
 | 24 | Enterprise Intelligence + Dashboard | 1,570 + 14 E2E | LEO Enterprise Manager, LCARS Federation Network, Account Dashboard, Enlistment Ceremony, role-based dashboard, federation hardening, 14 E2E suites |
+| 25 | Smart Model Routing | 1,635 | AI Gateway, credit-aware 4-tier routing, fallback chains (65 tests) |
+| 26 | Universal Logistics Network | 1,690 | Logistics engine, 3 new collections, Bread-Breaker + Soul Fleet (55 tests) |
+| 27 | Adversarial Testing + Stability | 1,860 | 170 adversarial tests, TDZ crash fix, INP optimization |
+| 28 | Puma Punku Polish + Navigation Bridge | 1,860 | LEO nav bridge, DB indexes, type safety hardening |
+| 29 | Pheromone Grid | 1,930 | Swarm intelligence, Game of Life lifecycle, Pheromones collection (70 tests) |
+| 30 | Distributed Workload Engine | 2,060 | Work routing, 5-dim scoring, backpressure, WorkUnits collection (91 tests) |
 
 ---
 
@@ -427,4 +519,4 @@ pnpm dev                      # http://localhost:3000
 
 ---
 
-**Last Updated:** February 27, 2026
+**Last Updated:** February 28, 2026

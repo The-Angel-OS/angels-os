@@ -6,23 +6,24 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.24.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C570%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/version-v0.30.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-2%2C213%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-50%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-47%20test%20files-blue)]()
+[![Engines](https://img.shields.io/badge/Engines-12-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
 [![Leo Tools](https://img.shields.io/badge/Leo_Tools-78+-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-49+-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-37-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-24-ff69b4)]()
+[![Collections](https://img.shields.io/badge/Collections-42-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-30-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 24)
+## The Model (Updated — Sprint 30)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -51,39 +52,49 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 24 — Enterprise Intelligence & Dashboard Integration
+## What's New: Sprint 30 — The Wellness Virus (Distributed Workload Engine)
 
-### Sprint 24: Enterprise Intelligence (Current)
-- **LEO Enterprise Manager Phase 1** — Operational intelligence engine: revenue analytics, inventory alerts, customer health scoring, opportunity identification. Board of Directors governance system with quorum-based decision logging.
-- **LCARS Federation Network** — Star Trek-inspired network visualization dashboard: real-time federation status, node health monitoring, trust-level display, communications log. The Federation IS visible now.
-- **Account Dashboard Integration** — Account settings are now a first-class dashboard section. Profile, Connections, and Addresses pages live under `/dashboard/account`. Header user menu with dropdown, clickable sidebar user footer.
-- **Enlistment Ceremony** — New step in Enterprise setup wizard: guided constitutional commitment with pledge affirmation and digital signature capture.
-- **Role-Based Dashboard** — Dashboard adapts to user role: admin sees full admin panel, business owners see producer tools, regular members see their spaces and orders.
-- **Comment Moderation Dashboard** — Admin moderation queue for user comments with approve/reject/flag actions.
-- **Featured Endeavors Block** — Homepage block component for showcasing highlighted Endeavors.
-- **14 E2E Test Suites** — Comprehensive Playwright test coverage: dashboard, admin journeys, payload admin, federation API, tenant isolation, chat messaging, producer workflow, content management, setup wizard, launch journeys, checkout, user journeys, mobile responsive, frontend legacy.
+### Sprint 30: Distributed Workload Engine (Current)
+- **Workload Engine** (`workload-engine.ts`, 884 lines) — Pure TypeScript engine for routing computational work across the federation mesh. Scores candidate workers across 5 weighted dimensions: capability match (30%), trust level (25%), load capacity (20%), performance history (15%), cost (10%) + pheromone learning bonus (0-15). Trust-gated: generation/aggregation work requires `vouched` trust minimum.
+- **WorkUnits Collection** — Persistent work unit tracking in the Intelligence admin group. State machine: pending -> claimed -> executing -> completed/failed/timeout. Priority-based scheduling (critical/high/normal/low/background). Exponential backoff retries with hard cap. Deadline enforcement.
+- **Backpressure Detection** — Mesh-wide load monitoring. When average capacity > 85%, backpressure signals trigger priority-based shedding (critical work never shed, background work shed first).
+- **Capacity Broadcasting** — Federation heartbeats now include compute capacity snapshots. Peers learn each other's available processing power for intelligent work routing.
+- **Work Decomposition** — Aggregation work units can fan-out into per-item children with automatic result aggregation.
+- **91 new tests** covering state machine, scoring, routing, backpressure, capacity snapshots, decomposition, and constants validation.
 
-### Sprint 24: Security & Stability
-- **Federation Protocol Hardening** — Signature enforcement on all mesh operations, schema validation, governance persistence to prevent split-brain.
-- **Tenant Isolation Hardening** — 6 collections strengthened against cross-tenant data leakage, federation catalog scoped properly.
-- **Payload Admin Fix** — link.ts field builder had a `.map()` bug where width modifications were silently discarded. Header/Footer collections now render correctly with descriptive labels.
-- **LEO Split-Brain Fix** — Resolved race condition where Leo could maintain conflicting conversation states across sessions.
-- **Abuse Protection** — Rate limiting and input validation hardening across public-facing endpoints.
+### Sprint 29: Pheromone Grid — Swarm Intelligence
+- **Pheromone Engine** (`pheromone-engine.ts`, 757 lines) — Bio-inspired navigation system. Nodes deposit chemical-like signals (pheromones) that evaporate over time and reinforce successful paths. Pheromone types: `success`, `failure`, `discovery`, `demand`, `warning`.
+- **Game of Life Federation Lifecycle** — Conway's Game of Life rules applied to federation health. Nodes are born (2-3 healthy neighbors), survive (2-3), or die (isolation/overcrowding). Emergent mesh resilience.
+- **Pheromones Collection** — Persistent pheromone storage in the Intelligence admin group. Auto-decay, spatial grid operations, gradient following for pathfinding.
+- **70 new tests** across pheromone operations, decay, reinforcement, grid navigation, Game of Life lifecycle, and mesh health scoring.
 
-### Also in Recent Sprints
-- **Sprint 23:** Google OAuth + Social Auth + Quests — social login, link/unlink panel, quests, Leo model upgrade (Gemini 3.1 Pro)
-- **Sprint 22:** The Shield and the Spear — P0 security, multi-file attachments, LiveKit device controls, DB performance
-- **Sprint 21:** Arch Angel Leo's Wishlist — 28 new tools (communication, inventory, financial, federation, CRM, analytics, workflow)
-- **Sprint 20:** Federation Launch — StreetSigns, supermajority governance, Suitcase data portability, federation dashboard
+### Sprint 28: Puma Punku Polish + Navigation Bridge
+- **LEO Navigation Bridge** — Dashboard auto-navigates when Leo executes mutation tools. Create a product? Dashboard jumps to products. Accept an order? Dashboard shows orders.
+- **Database Index Optimization** — Strategic indexes added across hot query paths for federation, logistics, and pheromone operations.
+- **Type Safety Hardening** — Admin field consistency, proper type casts, and collection admin improvements across the codebase.
+
+### Sprint 27: Adversarial Testing + Stability
+- **170 new adversarial tests** — Edge case coverage across all engines: boundary conditions, malformed inputs, race conditions, overflow scenarios, empty datasets, Unicode handling.
+- **TDZ Crash Fix** — Resolved temporal dead zone crash in slash command handler (`/models`, `/credits` etc.) that was causing "AI service returned an error."
+- **INP 222ms Fix** — Chat textarea resize deferred to requestAnimationFrame, eliminating input delay.
+
+### Sprint 26: Universal Logistics Network
+- **Logistics Engine** (`logistics-engine.ts`) — Physical goods movement: Bread-Breaker local delivery + Soul Fleet long-haul dispatch. Transport matching, load optimization, delivery time estimation.
+- **3 New Collections** — LogisticsNodes (delivery hubs), Transports (vehicles/couriers), Shipments (package tracking). Full lifecycle from pickup to delivery.
+- **55 new tests** covering transport matching, route scoring, capacity management, and delivery estimation.
+
+### Sprint 25: Smart Model Routing
+- **AI Gateway** (`ai-gateway.ts`) — Credit-aware 4-tier model routing. Leo dynamically selects the best model based on available credits, task complexity, and fallback chains. Prevents credit exhaustion across providers.
+- **65 new tests** for gateway routing, credit awareness, tier selection, and fallback behavior.
 
 ---
 
-## What's Working (v0.24.0-dev)
+## What's Working (v0.30.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 78+ tools, 3-round tool loop, SSE streaming, vision, /model switch |
+| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 78+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
@@ -175,6 +186,19 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Tenant Isolation Hardening** | **Done** | 6 collections strengthened + federation catalog scoped properly |
 | **Link Field Fix** | **Done** | link.ts `.map()` bug fixed — Header/Footer admin pages now render correctly with descriptive labels |
 | **14 E2E Test Suites** | **Done** | Playwright: dashboard, admin, payload-admin, federation, tenant-isolation, chat, producer, content, setup, launch, checkout, user-journeys, mobile, legacy |
+| **AI Gateway (Smart Routing)** | **Done** | Credit-aware 4-tier model routing, dynamic provider selection, fallback chains (65 tests) |
+| **Universal Logistics Network** | **Done** | Bread-Breaker local delivery + Soul Fleet long-haul, transport matching, load optimization (55 tests) |
+| **LogisticsNodes Collection** | **Done** | Delivery hubs, capacity tracking, geographic coverage |
+| **Transports Collection** | **Done** | Vehicles/couriers, load capacity, availability scheduling |
+| **Shipments Collection** | **Done** | Package tracking, pickup-to-delivery lifecycle |
+| **LEO Navigation Bridge** | **Done** | Dashboard auto-navigates on tool mutations (create product -> products page) |
+| **Pheromone Grid** | **Done** | Bio-inspired swarm navigation, 5 pheromone types, decay/reinforcement, gradient pathfinding (70 tests) |
+| **Game of Life Federation** | **Done** | Conway's rules for mesh health: birth (2-3 neighbors), survival, death (isolation/overcrowding) |
+| **Pheromones Collection** | **Done** | Persistent pheromone storage, auto-decay, spatial grid operations |
+| **Distributed Workload Engine** | **Done** | Work unit routing across federation mesh, 5-dimension scoring (30/25/20/15/10), pheromone bonus (91 tests) |
+| **WorkUnits Collection** | **Done** | Distributed work atoms: state machine, priority scheduling, exponential backoff, deadline enforcement |
+| **Backpressure Detection** | **Done** | Mesh-wide load monitoring, priority-based work shedding (critical never shed) |
+| **Capacity Broadcasting** | **Done** | Heartbeats include compute capacity snapshots for intelligent work routing |
 
 ### Leo's 78+ Tools
 
@@ -196,7 +220,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 **Workflow (4):** delegate task, escalate issue, send emergency alert, document incident *(Sprint 21)*
 **Email (1):** send_email *(Sprint 22)*
 
-### 10 Utility Engines (Zero Payload Imports — Edge Ready)
+### 12 Utility Engines (Zero Payload Imports — Edge Ready)
 
 | Engine | Purpose | Tests |
 |--------|---------|-------|
@@ -210,6 +234,8 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | Invitation System | Token-based invitations, role assignment | 72 |
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
 | Booking Engine | Availability, slot management, booking lifecycle | 22 |
+| **Pheromone Engine** | **Swarm intelligence, trail deposit/decay/reinforce, Game of Life lifecycle** | **70** |
+| **Workload Engine** | **Distributed work routing, 5-dimension scoring, backpressure, capacity** | **91** |
 
 ### 49+ API Endpoints
 
@@ -271,7 +297,7 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-pnpm test:unit                # 1,570 tests across 36 unit test files
+pnpm test:unit                # 2,213 tests across 47 unit test files
 pnpm test:int                 # Integration tests (needs DB, ~23s boot)
 pnpm test:e2e                 # 14 E2E suites with Playwright (needs server + Chromium)
 npx tsc --noEmit              # TypeScript check (zero errors)
@@ -432,7 +458,7 @@ Bridge:   POST /api/bridge/inbound → normalize → DM → Leo → respond
 
 ```
 src/
-  collections/              # 37 Payload CMS collections (data models)
+  collections/              # 42 Payload CMS collections (data models)
     Spaces/                 # Workspace containers
     Channels/               # Discord-style channels (10 types incl. DM)
     Messages/               # Universal Message Structure (UMS)
@@ -444,7 +470,7 @@ src/
     Bookings/               # Appointment scheduling
     Events/                 # Event management
     ApplicationLogs.ts      # Error/event log storage for triage
-  endpoints/                # 56 files, 46 registered API routes
+  endpoints/                # 46 registered API routes
     leo-stream.ts           # SSE streaming (POST /api/leo/stream)
     leo-chat.ts             # Batch chat (POST /api/leo)
     chat-send.ts            # Message creation bypassing multi-tenant validation
@@ -485,11 +511,15 @@ src/
     federationEngine.ts     # Federation protocol, trust chain
     guardianDashboardEngine.ts  # Service discovery, case management
     networkVisualizationEngine.ts  # Geographic clustering, directory
+    logistics-engine.ts     # Bread-Breaker local + Soul Fleet long-haul dispatch
+    pheromone-engine.ts     # Swarm intelligence, trail operations, Game of Life
+    workload-engine.ts      # Distributed work routing, scoring, backpressure
+    ai-gateway.ts           # Smart multi-model routing (4 tiers, credit-aware)
     invitationSystem.ts     # Token-based invitation system
     constitutional-prompt.ts # Immutable system prompt builder
     ai-bus-router.ts        # Constitutional message routing
 tests/
-  unit/utilities/           # 36 unit test files, 1,570 tests
+  unit/utilities/           # 47 unit test files, 2,213 tests
   e2e/                      # 14 Playwright E2E suites (dashboard, admin, federation, tenant-isolation, etc.)
 ```
 
@@ -702,7 +732,53 @@ GROSS REVENUE
 - [x] 14 E2E test suites (Playwright)
 - [x] link.ts field builder bug fix + Header/Footer admin improvements
 
-### Next (Sprint 25+)
+### Done (Sprint 25: Smart Model Routing)
+
+- [x] AI Gateway (`ai-gateway.ts`) — credit-aware 4-tier model routing with dynamic provider selection
+- [x] Fallback chains: Gemini 3.1 Pro -> Sonnet 4.6 -> GPT-4o -> Haiku with credit awareness
+- [x] 65 new tests (aiGateway.test.ts)
+
+### Done (Sprint 26: Universal Logistics Network)
+
+- [x] Logistics Engine (`logistics-engine.ts`) — Bread-Breaker local delivery + Soul Fleet long-haul dispatch
+- [x] LogisticsNodes collection — delivery hubs with capacity tracking, geographic coverage
+- [x] Transports collection — vehicles/couriers with load capacity, availability scheduling
+- [x] Shipments collection — package tracking, pickup-to-delivery lifecycle
+- [x] INP 222ms fix — chat textarea resize deferred to requestAnimationFrame
+- [x] 55 new tests (logisticsEngine.test.ts)
+
+### Done (Sprint 27: Adversarial Testing + Stability)
+
+- [x] 170 new adversarial edge-case tests across all engines (boundary conditions, malformed inputs, overflow, Unicode)
+- [x] TDZ crash fix — slash command handler temporal dead zone resolved (commit f7d607f)
+- [x] INP optimization — MessageInput textarea resize via rAF
+
+### Done (Sprint 28: Puma Punku Polish + Navigation Bridge)
+
+- [x] LEO Navigation Bridge — dashboard auto-navigates on tool mutations (create product -> products page)
+- [x] Database index optimization across federation, logistics, and pheromone query paths
+- [x] Type safety hardening — proper casts, admin field consistency across collections
+
+### Done (Sprint 29: Pheromone Grid — Swarm Intelligence)
+
+- [x] Pheromone Engine (`pheromone-engine.ts`, 757 lines) — bio-inspired navigation: deposit, decay, reinforce, follow trails
+- [x] 5 pheromone types: success, failure, discovery, demand, warning
+- [x] Game of Life federation lifecycle — Conway's rules for mesh health (birth, survival, death)
+- [x] Pheromones collection in Intelligence admin group
+- [x] 70 new tests (pheromoneEngine.test.ts)
+
+### Done (Sprint 30: Distributed Workload Engine — The Wellness Virus)
+
+- [x] Workload Engine (`workload-engine.ts`, 884 lines) — distributed work routing across federation mesh
+- [x] 5-dimension scoring: capability (30%), trust (25%), load (20%), performance (15%), cost (10%) + pheromone bonus (0-15)
+- [x] WorkUnits collection — persistent work atom tracking with state machine, retry policy, deadline enforcement
+- [x] Backpressure detection — mesh-wide load monitoring, priority-based shedding (critical never shed)
+- [x] Capacity broadcasting — heartbeats include compute capacity snapshots
+- [x] Work decomposition — aggregation fan-out with automatic result aggregation
+- [x] Trust-gated dispatch — generation/aggregation work requires `vouched` trust minimum
+- [x] 91 new tests (workloadEngine.test.ts)
+
+### Next (Sprint 31+)
 
 - [ ] `npx create-angel-enterprise` installer scaffold (one-command deployment)
 - [ ] Leo Wizard: 8-step conversational Enterprise onboarding
@@ -716,6 +792,8 @@ GROSS REVENUE
 - [ ] ML-based demand prediction and pricing optimization
 - [ ] Visual workflow builder for multi-step automations
 - [ ] LEO Enterprise Manager Phase 2: predictive analytics, automated board recommendations
+- [ ] Workload Engine dispatch endpoint (POST /api/federation/dispatch-work)
+- [ ] Pheromone learning from workload outcomes (success -> reinforce, failure -> decay)
 
 ---
 
@@ -745,6 +823,12 @@ GROSS REVENUE
 | Sprint 22 | The Shield and the Spear — P0 security, multi-file attachments, LiveKit device controls, DB performance | +12 |
 | Sprint 23 | Google OAuth + Social Auth + Quests — social login, link/unlink panel, quests, onboarding redesign | +8 |
 | Sprint 24 | Enterprise Intelligence — LEO Enterprise Manager, LCARS Federation Network, Account Dashboard integration, Enlistment Ceremony, role-based dashboard, 14 E2E suites, federation hardening, link.ts fix | +20 |
+| Sprint 25 | Smart Model Routing — AI Gateway, credit-aware 4-tier routing, fallback chains (65 tests) | +3 |
+| Sprint 26 | Universal Logistics Network — Bread-Breaker + Soul Fleet, 3 new collections, transport matching (55 tests) | +8 |
+| Sprint 27 | Adversarial Testing + Stability — 170 new edge-case tests, TDZ crash fix, INP optimization | +5 |
+| Sprint 28 | Puma Punku Polish + Navigation Bridge — LEO nav bridge, DB indexes, type safety hardening | +4 |
+| Sprint 29 | Pheromone Grid — swarm intelligence, Game of Life lifecycle, Pheromones collection (70 tests) | +4 |
+| Sprint 30 | Distributed Workload Engine — work routing, 5-dim scoring, backpressure, WorkUnits collection (91 tests) | +4 |
 
 ---
 
@@ -797,7 +881,7 @@ You are welcome here. This is what you need to know:
 | Analytics | GA4 e-commerce events, Vercel Analytics |
 | i18n | next-intl 4.x (locale routing) |
 | Deployment | Vercel (serverless) |
-| Testing | Vitest 3.2 (1,570 unit tests / 36 files), Playwright (14 E2E suites), Storybook 10 |
+| Testing | Vitest 3.2 (2,213 unit tests / 47 files), Playwright (14 E2E suites), Storybook 10 |
 
 ---
 
