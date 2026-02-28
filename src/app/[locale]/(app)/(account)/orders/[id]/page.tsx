@@ -14,6 +14,7 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { OrderStatus } from '@/components/OrderStatus'
 import { AddressItem } from '@/components/addresses/AddressItem'
+import { OrderCancelButton } from '@/components/OrderCancelButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,7 @@ export default async function Order({ params, searchParams }: PageProps) {
         createdAt: true,
         updatedAt: true,
         shippingAddress: true,
+        fulfillment: true,
       },
     })
 
@@ -186,6 +188,79 @@ export default async function Order({ params, searchParams }: PageProps) {
 
             {/* @ts-expect-error - some kind of type hell */}
             <AddressItem address={order.shippingAddress} hideActions />
+          </div>
+        )}
+
+        {/* ─── Angel Token / Fulfillment Status ─────────────────── */}
+        {(order as any).fulfillment && (order as any).fulfillment.length > 0 && (
+          <div>
+            <h2 className="font-mono text-primary/50 mb-4 uppercase text-sm">Fulfillment</h2>
+            <div className="flex flex-col gap-4">
+              {((order as any).fulfillment as any[]).map((entry: any, idx: number) => (
+                <div
+                  key={entry.id || idx}
+                  className="border rounded-md p-4 flex flex-col gap-2"
+                >
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="font-mono text-xs uppercase tracking-widest px-2 py-0.5 rounded bg-primary/10">
+                      {entry.fulfillmentStatus?.replace(/_/g, ' ')}
+                    </span>
+                    {entry.angelTokenId && (
+                      <span className="font-mono text-xs text-primary/60">
+                        Token: {entry.angelTokenId}
+                      </span>
+                    )}
+                    {entry.tokenStatus && (
+                      <span
+                        className={`font-mono text-xs uppercase px-2 py-0.5 rounded ${
+                          entry.tokenStatus === 'active'
+                            ? 'bg-amber-100 text-amber-800'
+                            : entry.tokenStatus === 'redeemed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {entry.tokenStatus}
+                      </span>
+                    )}
+                  </div>
+
+                  {entry.queueReason && (
+                    <p className="text-sm text-primary/60">{entry.queueReason}</p>
+                  )}
+
+                  {entry.trackingNumber && (
+                    <p className="text-sm">
+                      Tracking:{' '}
+                      {entry.trackingUrl ? (
+                        <a
+                          href={entry.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline"
+                        >
+                          {entry.trackingNumber}
+                        </a>
+                      ) : (
+                        entry.trackingNumber
+                      )}
+                    </p>
+                  )}
+
+                  {/* Cancel button — only for pending_match items with active tokens */}
+                  {user &&
+                    entry.fulfillmentStatus === 'pending_match' &&
+                    entry.tokenStatus === 'active' && (
+                      <OrderCancelButton
+                        orderId={order.id}
+                        orderItemIndex={entry.orderItemIndex}
+                        angelTokenId={entry.angelTokenId}
+                        className="mt-2"
+                      />
+                    )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

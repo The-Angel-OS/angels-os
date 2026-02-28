@@ -12,6 +12,14 @@
  * separate collections. The Endeavor is the meta-object that declares
  * what kind of value-creation this Enterprise is organized around.
  *
+ * Beneficiaries (Sprint 25):
+ * An Endeavor can designate beneficiaries — people the Endeavor serves who
+ * may not yet be on the platform. Each beneficiary receives a claimToken
+ * (a unique UUID). When the beneficiary onboards and presents their claim
+ * token, the system links their user account to the beneficiary record,
+ * marking them as verified. This enables use cases like "Help DNA Free
+ * Ernesto Behrens" where the beneficiary isn't yet an Angel OS user.
+ *
  * Constitutional Reference: "An Endeavor is ONE constitutional object that
  * configures itself as a business, cause, creator channel, community, or
  * media presence. The Endeavor owner decides. The platform does not."
@@ -19,9 +27,13 @@
 
 import type { CollectionConfig } from 'payload'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { generateBeneficiaryTokens } from './hooks/generateBeneficiaryTokens'
 
 export const Endeavors: CollectionConfig = {
   slug: 'endeavors',
+  hooks: {
+    beforeChange: [generateBeneficiaryTokens],
+  },
   admin: {
     group: 'Angel OS',
     useAsTitle: 'name',
@@ -276,6 +288,100 @@ export const Endeavors: CollectionConfig = {
           type: 'date',
           admin: {
             description: 'When this Enterprise last pinged the federation registry',
+            readOnly: true,
+          },
+        },
+      ],
+    },
+
+    // ── Beneficiaries (Sprint 25) ──────────────────────────────────
+    {
+      name: 'beneficiaries',
+      type: 'array',
+      admin: {
+        description:
+          'People this Endeavor serves — may be pre-registered before they onboard. ' +
+          'Each beneficiary gets a unique claim token. When they create an account and ' +
+          'present the token, they are verified and linked.',
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+          admin: { placeholder: 'e.g., "Ernesto Behrens"' },
+        },
+        {
+          name: 'email',
+          type: 'email',
+          admin: {
+            description: 'Contact email if known — used for matching during onboarding',
+          },
+        },
+        {
+          name: 'role',
+          type: 'text',
+          admin: {
+            description: 'Their role in this Endeavor',
+            placeholder: 'e.g., "Beneficiary", "Recipient", "Subject"',
+          },
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          admin: {
+            description: 'Why this person is a beneficiary of this Endeavor',
+            rows: 2,
+          },
+        },
+        {
+          name: 'claimToken',
+          type: 'text',
+          unique: true,
+          admin: {
+            description:
+              'Unique verification token (UUID). Share with the beneficiary so they can ' +
+              'claim their account when they onboard. Auto-generated on creation.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'verificationStatus',
+          type: 'select',
+          defaultValue: 'pending',
+          options: [
+            { label: 'Pending', value: 'pending' },       // designated but not yet onboarded
+            { label: 'Invited', value: 'invited' },        // invitation sent
+            { label: 'Verified', value: 'verified' },      // onboarded and claimed
+            { label: 'Declined', value: 'declined' },      // opted out
+          ],
+          admin: {
+            description: 'Lifecycle: pending → invited → verified (or declined)',
+          },
+        },
+        {
+          name: 'linkedUser',
+          type: 'relationship',
+          relationTo: 'users',
+          admin: {
+            description: 'Linked user account — set when beneficiary onboards and verifies',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'verifiedAt',
+          type: 'date',
+          admin: {
+            description: 'When the beneficiary verified their identity and linked their account',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'designatedAt',
+          type: 'date',
+          admin: {
+            description: 'When this person was designated as a beneficiary',
             readOnly: true,
           },
         },

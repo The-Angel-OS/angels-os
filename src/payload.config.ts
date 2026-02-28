@@ -111,6 +111,7 @@ import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
+import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -678,6 +679,12 @@ export default buildConfig({
       path: '/auth/social-unlink',
       method: 'post',
       handler: authSocialUnlinkHandler,
+    },
+    // ─── Beneficiary Verification (Sprint 25) ──────────────────
+    {
+      path: '/beneficiary/claim',
+      method: 'post',
+      handler: beneficiaryClaimHandler,
     },
   ],
   globals: [],
