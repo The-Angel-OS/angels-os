@@ -234,6 +234,16 @@ export function DashboardSidebar({
           >
             Documentation
           </NavLink>
+          <NavLink
+            href={`${prefix}/dashboard/federation-network`}
+            icon={<NetworkIcon />}
+            collapsed={isCollapsed}
+            active={pathname.includes('/dashboard/federation-network')}
+            badge={!isCollapsed ? 'Live' : undefined}
+            badgeColor="bg-amber-500"
+          >
+            Federation
+          </NavLink>
           {!wizardComplete && (
             <NavLink
               href={`${prefix}/dashboard/setup`}
@@ -500,6 +510,16 @@ function MobileNavContent({
           active={pathname.includes('/dashboard/docs')}
         >
           Documentation
+        </NavLink>
+        <NavLink
+          href={`${prefix}/dashboard/federation-network`}
+          icon={<NetworkIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/federation-network')}
+          badge="Live"
+          badgeColor="bg-amber-500"
+        >
+          Federation
         </NavLink>
         {!wizardComplete && (
           <NavLink
@@ -800,6 +820,19 @@ function FederationIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+    </svg>
+  )
+}
+
+function NetworkIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="2" strokeWidth={1.5} />
+      <circle cx="5" cy="6" r="1.5" strokeWidth={1.5} />
+      <circle cx="19" cy="6" r="1.5" strokeWidth={1.5} />
+      <circle cx="5" cy="18" r="1.5" strokeWidth={1.5} />
+      <circle cx="19" cy="18" r="1.5" strokeWidth={1.5} />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.5 7.5L10 10m4 4l2.5 2.5M10 14l-3.5 2.5M14 10l3.5-2.5" />
     </svg>
   )
 }
