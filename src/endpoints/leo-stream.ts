@@ -34,7 +34,8 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits } from '@/utilities/ai-gateway'
+import type { TaskComplexity } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -53,7 +54,7 @@ const LLM_MODEL = 'claude-sonnet-4-20250514'
  * Handle /commands typed in chat. Returns response text or null if not a command.
  * Model switching is restricted to super_admin users for security.
  */
-function handleSlashCommand(msg: string, userRoles?: string[]): string | null {
+async function handleSlashCommand(msg: string, userRoles?: string[]): Promise<string | null> {
   const parts = msg.split(/\s+/)
   const cmd = parts[0]?.toLowerCase()
   const isSuperAdmin = userRoles?.includes('super_admin') ?? false
@@ -70,6 +71,10 @@ function handleSlashCommand(msg: string, userRoles?: string[]): string | null {
       }
       lines.push(`\n**Default:** \`${DEFAULT_MODEL}\``)
       lines.push(`**Fallback:** \`${FALLBACK_MODEL}\``)
+      lines.push(`\n**Smart Routing Tiers:**`)
+      for (const [tier, cfg] of Object.entries(TASK_MODEL_MAP)) {
+        lines.push(`• **${tier}** → \`${cfg.primary}\` (fallback: ${cfg.fallbacks.map(f => `\`${f}\``).join(', ')})`)
+      }
       if (isSuperAdmin) {
         lines.push(`\nSwitch with: \`/model <alias>\` (e.g. \`/model gemini-pro\`)`)
         lines.push(`Or set \`LLM_MODEL\` env var for a persistent override.`)
@@ -101,11 +106,35 @@ function handleSlashCommand(msg: string, userRoles?: string[]): string | null {
     return `❌ Unknown model: \`${alias}\`\n\nAvailable aliases: ${Object.keys(MODEL_CATALOG).map(k => `\`${k}\``).join(', ')}`
   }
 
+  if (cmd === '/credits' && isSuperAdmin) {
+    const credits = await checkCredits()
+    if (!credits) {
+      return '⚠️ Could not check credits — AI Gateway key may not be configured.'
+    }
+    const lines = [
+      '**AI Gateway Credits**\n',
+      `💰 **Balance:** $${credits.balance.toFixed(2)}`,
+      `📊 **Total used:** $${credits.totalUsed.toFixed(2)}`,
+      '',
+    ]
+    if (credits.balance < 2) {
+      lines.push('🔴 **CRITICAL** — Budget models forced. Top up immediately.')
+    } else if (credits.balance < 10) {
+      lines.push('🟡 **LOW** — Model tiers are being downshifted to conserve credits.')
+    } else if (credits.balance < 25) {
+      lines.push('🟠 **MONITOR** — Usage is being tracked.')
+    } else {
+      lines.push('🟢 **Healthy** — All model tiers available.')
+    }
+    return lines.join('\n')
+  }
+
   if (cmd === '/help') {
     return [
       '**LEO Commands**\n',
-      '• `/models` — List available AI models',
+      '• `/models` — List available AI models + smart routing tiers',
       ...(isSuperAdmin ? ['• `/model <alias>` — Switch to a different model (super admin only)'] : []),
+      ...(isSuperAdmin ? ['• `/credits` — Check AI Gateway credit balance (super admin only)'] : []),
       '• `/help` — Show this help',
     ].join('\n')
   }
@@ -696,7 +725,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   if (trimmedMsg.startsWith('/')) {
     const reqUser = req.user as unknown as Record<string, unknown> | undefined
     const slashRoles = Array.isArray(reqUser?.roles) ? (reqUser.roles as string[]) : undefined
-    const cmdResult = handleSlashCommand(trimmedMsg, slashRoles)
+    const cmdResult = await handleSlashCommand(trimmedMsg, slashRoles)
     if (cmdResult) {
       // Return slash command response as a quick SSE stream
       const cmdEncoder = new TextEncoder()
@@ -1084,8 +1113,14 @@ async function streamViaGateway(opts: {
     isWizardMode, wizardStep,
   } = opts
 
-  const model = getModel() ?? getFallbackModel()
-  if (!model) throw new Error('AI Gateway model could not be created')
+  // Smart model selection: credit-aware tier + gateway-native fallback chain
+  const smart = await getSmartModel('medium', {
+    tenantId,
+    userId,
+    tags: ['leo-stream', isWizardMode ? 'wizard' : 'chat'],
+  })
+  if (!smart) throw new Error('AI Gateway model could not be created')
+  const { model, providerOptions: smartProviderOptions } = smart
 
   // Convert history to AI SDK format
   const messages: ModelMessage[] = historyMessages.map((m) => ({
@@ -1158,6 +1193,7 @@ async function streamViaGateway(opts: {
     tools,
     stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
     maxOutputTokens: MAX_RESPONSE_TOKENS,
+    providerOptions: smartProviderOptions,
     onStepFinish: (step) => {
       // Track tool names for wizard advancement
       if (step.toolCalls) {
@@ -1202,18 +1238,23 @@ async function streamViaGateway(opts: {
       // Return partial text instead of losing it
       return fullText
     }
-    // Retry with fallback model (Sonnet 4.6) if primary produced no output
-    const fallback = getFallbackModel()
-    if (fallback) {
-      console.warn('[LEO Stream] Retrying with fallback model (Sonnet 4.6)')
+    // Retry with high-tier model if primary stream produced no output
+    const retrySmart = await getSmartModel('high', {
+      tenantId,
+      userId,
+      tags: ['leo-stream', 'retry'],
+    })
+    if (retrySmart) {
+      console.warn(`[LEO Stream] Retrying with ${retrySmart.modelId}`)
       controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
       const retryResult = streamText({
-        model: fallback,
+        model: retrySmart.model,
         system: systemPrompt,
         messages,
         tools,
         stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
         maxOutputTokens: MAX_RESPONSE_TOKENS,
+        providerOptions: retrySmart.providerOptions,
       })
       for await (const part of retryResult.fullStream) {
         if (part.type === 'text-delta') {

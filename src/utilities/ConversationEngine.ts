@@ -30,7 +30,8 @@ import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK } from './ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, getSmartModel } from './ai-gateway'
+import type { TaskComplexity } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Minimal env-file parser — avoids dotenv import issues with bundler resolution.
@@ -189,8 +190,15 @@ export class ConversationEngine {
   private async generateViaGateway(
     userMessage: MessageContent,
   ): Promise<MessageContent | null> {
-    const model = getModel()
-    if (!model) return this.buildFallbackResponse(userMessage)
+    // Smart model selection: credit-aware, with gateway-native fallback chain
+    const tenantId = this.context.sessionMemory?.tenantId as number | undefined
+    const userId = (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id
+    const smart = await getSmartModel('medium', {
+      tenantId,
+      userId,
+      tags: ['leo-chat'],
+    })
+    if (!smart) return this.buildFallbackResponse(userMessage)
 
     try {
       const systemPrompt = this.buildSystemPrompt()
@@ -207,41 +215,24 @@ export class ConversationEngine {
       const payload = this.context.sessionMemory?.payload as Payload | undefined
       const toolCtx: ToolExecutorContext = {
         payload: payload!,
-        tenantId: this.context.sessionMemory?.tenantId as number | undefined,
+        tenantId,
         spaceId: this.context.sessionMemory?.spaceId as number | undefined,
-        userId: (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id,
+        userId,
       }
       const tools = payload
         ? convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
         : undefined
 
-      let result
-      try {
-        result = await generateText({
-          model,
-          system: systemPrompt,
-          messages,
-          tools,
-          stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
-          maxOutputTokens: MAX_RESPONSE_TOKENS,
-        })
-      } catch (primaryErr) {
-        // Fallback to Sonnet 4.6 if primary model (Gemini) fails
-        const fallback = getFallbackModel()
-        if (fallback) {
-          console.warn('[ConversationEngine] Primary model failed, falling back to Sonnet 4.6:', primaryErr)
-          result = await generateText({
-            model: fallback,
-            system: systemPrompt,
-            messages,
-            tools,
-            stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
-            maxOutputTokens: MAX_RESPONSE_TOKENS,
-          })
-        } else {
-          throw primaryErr
-        }
-      }
+      // Gateway handles fallback via providerOptions.gateway.models — no manual try/catch
+      const result = await generateText({
+        model: smart.model,
+        system: systemPrompt,
+        messages,
+        tools,
+        stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+        maxOutputTokens: MAX_RESPONSE_TOKENS,
+        providerOptions: smart.providerOptions,
+      })
 
       const responseText = result.text
       if (!responseText) return this.buildFallbackResponse(userMessage)
