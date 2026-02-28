@@ -132,9 +132,13 @@ export function DashboardSidebar({
             wizardComplete={wizardComplete}
           />
 
-          {/* User footer */}
+          {/* User footer — clickable link to account */}
           {userName && (
-            <div className="shrink-0 border-t border-border px-3 py-3">
+            <Link
+              href={`${prefix}/dashboard/account`}
+              className="block shrink-0 border-t border-border px-3 py-3 transition-colors hover:bg-muted/50"
+              onClick={() => setIsMobileOpen(false)}
+            >
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
                   {userInitials}
@@ -144,7 +148,7 @@ export function DashboardSidebar({
                   <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
         </aside>
       </>
@@ -258,6 +262,34 @@ export function DashboardSidebar({
           )}
         </NavSection>
 
+        {/* ACCOUNT — visible to all authenticated users */}
+        <NavSection label="ACCOUNT" collapsed={isCollapsed}>
+          <NavLink
+            href={`${prefix}/dashboard/account`}
+            icon={<UserIcon />}
+            collapsed={isCollapsed}
+            active={pathname === `${prefix}/dashboard/account` || pathname === '/dashboard/account'}
+          >
+            Profile
+          </NavLink>
+          <NavLink
+            href={`${prefix}/dashboard/account/connections`}
+            icon={<LinkChainIcon />}
+            collapsed={isCollapsed}
+            active={pathname.includes('/dashboard/account/connections')}
+          >
+            Connections
+          </NavLink>
+          <NavLink
+            href={`${prefix}/dashboard/account/addresses`}
+            icon={<MapPinIcon />}
+            collapsed={isCollapsed}
+            active={pathname.includes('/dashboard/account/addresses')}
+          >
+            Addresses
+          </NavLink>
+        </NavSection>
+
         {/* BUSINESS OPERATIONS */}
         {isBusinessOwner && (
           <NavSection label="BUSINESS OPS" collapsed={isCollapsed}>
@@ -366,9 +398,13 @@ export function DashboardSidebar({
         )}
       </div>
 
-      {/* User footer */}
+      {/* User footer — clickable link to account */}
       {userName && (
-        <div className="shrink-0 border-t border-border px-2 py-3">
+        <Link
+          href={`${prefix}/dashboard/account`}
+          className="block shrink-0 border-t border-border px-2 py-3 transition-colors hover:bg-muted/50"
+          title="Account settings"
+        >
           <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
               {userInitials}
@@ -380,7 +416,7 @@ export function DashboardSidebar({
               </div>
             )}
           </div>
-        </div>
+        </Link>
       )}
     </aside>
   )
@@ -535,6 +571,34 @@ function MobileNavContent({
         )}
       </NavSection>
 
+      {/* ACCOUNT — visible to all authenticated users */}
+      <NavSection label="ACCOUNT" collapsed={false}>
+        <NavLink
+          href={`${prefix}/dashboard/account`}
+          icon={<UserIcon />}
+          collapsed={false}
+          active={pathname === `${prefix}/dashboard/account` || pathname === '/dashboard/account'}
+        >
+          Profile
+        </NavLink>
+        <NavLink
+          href={`${prefix}/dashboard/account/connections`}
+          icon={<LinkChainIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/account/connections')}
+        >
+          Connections
+        </NavLink>
+        <NavLink
+          href={`${prefix}/dashboard/account/addresses`}
+          icon={<MapPinIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/account/addresses')}
+        >
+          Addresses
+        </NavLink>
+      </NavSection>
+
       {isBusinessOwner && (
         <NavSection label="BUSINESS OPS" collapsed={false}>
           <NavLink href={`${prefix}/dashboard/products`} icon={<CubeIcon />} collapsed={false} active={pathname.includes('/dashboard/products')}>
@@ -627,6 +691,31 @@ function MobileNavContent({
 }
 
 // ─── Icons ───────────────────────────────────────────────────────
+
+function UserIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  )
+}
+
+function LinkChainIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+  )
+}
+
+function MapPinIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  )
+}
 
 function GridIcon() {
   return (

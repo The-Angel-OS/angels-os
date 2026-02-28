@@ -122,9 +122,14 @@ export function HeaderClient({ header, tenant }: Props) {
 
           <div className="flex justify-end flex-shrink-0 gap-4 items-center">
             {user ? (
-              <Link href="/logout" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
-                Logout
-              </Link>
+              <>
+                <Link href="/dashboard/account" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                  Account
+                </Link>
+                <Link href="/logout" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                  Logout
+                </Link>
+              </>
             ) : (
               <>
                 <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">

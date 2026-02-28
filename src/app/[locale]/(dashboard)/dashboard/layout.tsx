@@ -207,7 +207,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {/* ─── Main Content (center) ─── */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* Dashboard Header Bar — title + user info */}
-            <DashboardHeader prefix={prefix} userName={userName} />
+            <DashboardHeader prefix={prefix} userName={userName} userInitials={userInitials} />
 
             {/* Page Content — reduced padding on mobile */}
             <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
