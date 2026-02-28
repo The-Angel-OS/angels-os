@@ -62,14 +62,16 @@ function makeTransport(overrides: Partial<TransportData> = {}): TransportData {
 // ===========================================================================
 
 describe('calculateDistance — edge cases', () => {
-  it('handles NaN latitude gracefully (returns NaN, does not throw)', () => {
+  it('handles NaN latitude by returning 0 (fixed: safe default)', () => {
     const result = calculateDistance({ lat: NaN, lng: -82 }, { lat: 27, lng: -82 })
-    expect(result).toBeNaN()
+    // FIXED: NaN coords now caught by Number.isFinite guard → returns 0
+    expect(result).toBe(0)
   })
 
-  it('handles NaN longitude gracefully', () => {
+  it('handles NaN longitude by returning 0 (fixed: safe default)', () => {
     const result = calculateDistance({ lat: 27, lng: NaN }, { lat: 27, lng: -82 })
-    expect(result).toBeNaN()
+    // FIXED: NaN coords now caught by Number.isFinite guard → returns 0
+    expect(result).toBe(0)
   })
 
   it('handles Infinity coordinates', () => {

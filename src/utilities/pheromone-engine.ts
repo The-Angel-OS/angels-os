@@ -226,7 +226,13 @@ export function calculateStrength(
   ageInDays: number,
   abandonments: number,
 ): number {
-  if (traversals <= 0) return 0
+  // Guard: NaN, Infinity, and non-positive traversals all produce zero
+  if (!Number.isFinite(traversals) || traversals <= 0) return 0
+  if (!Number.isFinite(ageInDays)) return 0
+  if (!Number.isFinite(abandonments)) abandonments = 0
+
+  // Sanitize: treat negatives as zero
+  abandonments = Math.max(0, abandonments)
 
   // Raw strength from traversal count (capped at max)
   const rawStrength = Math.min(
@@ -243,7 +249,9 @@ export function calculateStrength(
   const abandonmentRatio = totalAttempts > 0 ? abandonments / totalAttempts : 0
   const abandonmentFactor = 1 - abandonmentRatio * PHEROMONE_ABANDONMENT_PENALTY
 
-  return Math.max(0, Math.round(rawStrength * decayFactor * abandonmentFactor))
+  const result = rawStrength * decayFactor * abandonmentFactor
+  // Final guard: ensure result is a valid non-negative number
+  return Number.isFinite(result) ? Math.max(0, Math.round(result)) : 0
 }
 
 // ---------------------------------------------------------------------------
@@ -375,6 +383,10 @@ export function rankPaths(
   pheromones: PheromoneData[],
   limit: number = 5,
 ): PathRecommendation[] {
+  // Guard: non-positive or invalid limit returns empty
+  if (!Number.isFinite(limit) || limit <= 0) return []
+  limit = Math.floor(limit) // integer only
+
   // Sort by strength descending
   const sorted = [...pheromones].sort((a, b) => b.strength - a.strength)
 
@@ -436,5 +448,7 @@ export function recordAbandonment(
  * Prevents the Prey scenario: an AI navigating endlessly without human input.
  */
 export function shouldCircuitBreak(hopCount: number): boolean {
+  // Guard: NaN or non-finite hop count → break (safe default)
+  if (!Number.isFinite(hopCount)) return true
   return hopCount >= MAX_NAVIGATION_HOPS_PER_CONVERSATION
 }

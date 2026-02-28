@@ -158,20 +158,19 @@ describe('calculateStrength — boundary conditions', () => {
     expect(result).toBe(0)
   })
 
-  it('handles NaN inputs without throwing', () => {
+  it('handles NaN inputs by returning 0 (safe default)', () => {
     const result = calculateStrength(NaN, 0, 0)
-    // NaN <= 0 is false in JS, so it does NOT hit the early return
-    // NaN propagates through the arithmetic → result is NaN
-    expect(result).toBeNaN()
+    // FIXED: NaN traversals now caught by Number.isFinite guard → returns 0
+    expect(result).toBe(0)
   })
 
-  it('handles Infinity inputs without throwing', () => {
+  it('handles Infinity inputs by returning 0 (safe default)', () => {
     const posInf = calculateStrength(Infinity, 0, 0)
-    // Infinity * 10 = Infinity, min(100, Infinity) = 100, exp(0) = 1 → 100
-    expect(posInf).toBe(PHEROMONE_MAX_STRENGTH)
+    // FIXED: Infinity traversals caught by Number.isFinite guard → returns 0
+    expect(posInf).toBe(0)
 
     const infAge = calculateStrength(10, Infinity, 0)
-    // exp(-Infinity/30) = 0 → strength 0
+    // FIXED: Infinity age caught by Number.isFinite guard → returns 0
     expect(infAge).toBe(0)
   })
 })
@@ -449,12 +448,11 @@ describe('rankPaths — edge cases', () => {
     result.forEach((r) => expect(r.strength).toBe(42))
   })
 
-  it('returns 1 item when limit is 0 (first item pushed before break check)', () => {
+  it('returns empty array when limit is 0 (fixed: guard at top)', () => {
     const pheromones = [makePheromone({ strength: 50 })]
     const result = rankPaths(pheromones, 0)
-    // The break check `results.length >= limit` fires after push
-    // 1 >= 0 is true, so it breaks — but one item already got through
-    expect(result).toHaveLength(1)
+    // FIXED: limit <= 0 now returns empty array immediately
+    expect(result).toHaveLength(0)
   })
 
   it('returns all pheromones when limit exceeds array length', () => {
@@ -467,12 +465,11 @@ describe('rankPaths — edge cases', () => {
     expect(result).toHaveLength(2)
   })
 
-  it('handles negative limit (first item pushed before break check)', () => {
+  it('returns empty array when limit is negative (fixed: guard at top)', () => {
     const pheromones = [makePheromone({ strength: 50 })]
     const result = rankPaths(pheromones, -5)
-    // The break check `results.length >= limit` fires after push
-    // 1 >= -5 is true, so it breaks — but one item already got through
-    expect(result).toHaveLength(1)
+    // FIXED: negative limit now returns empty array immediately
+    expect(result).toHaveLength(0)
   })
 
   it('handles pheromones with NaN strength (sorts them last)', () => {

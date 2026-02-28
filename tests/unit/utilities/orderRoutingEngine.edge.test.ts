@@ -74,8 +74,9 @@ function makeRequirement(overrides: Partial<OrderRequirement> = {}): OrderRequir
 // ===========================================================================
 
 describe('calculateDistance — edge cases', () => {
-  it('handles NaN latitude (returns NaN, does not throw)', () => {
-    expect(calculateDistance(NaN, -82, 27, -82)).toBeNaN()
+  it('handles NaN latitude by returning 0 (fixed: safe default)', () => {
+    // FIXED: NaN coords now caught by Number.isFinite guard → returns 0
+    expect(calculateDistance(NaN, -82, 27, -82)).toBe(0)
   })
 
   it('handles Infinity coordinates without crashing', () => {
@@ -237,10 +238,10 @@ describe('calculateFairnessScore — edge cases', () => {
     expect(score).toBe(100)
   })
 
-  it('handles negative rating', () => {
+  it('handles negative rating by clamping to 0 (fixed)', () => {
     const score = calculateFairnessScore(0, -5)
-    // 100 - 0 + (-5/5)*20 = 100 - 20 = 80
-    expect(score).toBe(80)
+    // FIXED: rating clamped to Math.max(0, ...) → 0/5 * 20 = 0 → 100 - 0 + 0 = 100
+    expect(score).toBe(100)
   })
 
   it('handles massive order count', () => {

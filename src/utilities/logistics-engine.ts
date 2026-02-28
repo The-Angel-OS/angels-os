@@ -123,12 +123,16 @@ export const TRANSPORT_WEIGHTS = {
 // ---------------------------------------------------------------------------
 
 export function calculateDistance(a: GeoPoint, b: GeoPoint): number {
+  // Guard: NaN/Infinity coordinates produce 0 (same-point fallback)
+  if (!Number.isFinite(a.lat) || !Number.isFinite(a.lng) ||
+      !Number.isFinite(b.lat) || !Number.isFinite(b.lng)) return 0
   const dLat = toRad(b.lat - a.lat)
   const dLng = toRad(b.lng - a.lng)
   const sinLat = Math.sin(dLat / 2)
   const sinLng = Math.sin(dLng / 2)
   const h = sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng
-  return 2 * EARTH_RADIUS_MI * Math.asin(Math.sqrt(h))
+  const result = 2 * EARTH_RADIUS_MI * Math.asin(Math.sqrt(h))
+  return Number.isFinite(result) ? result : 0
 }
 
 function toRad(deg: number): number {
@@ -188,11 +192,12 @@ export function findNearestTransport(
     if (dist > maxDistance) continue
 
     // Score components
-    const proximityScore = Math.max(0, 100 - (dist / transport.maxRange) * 100)
-    const capacityFit = shipmentSize / transport.capacity // lower = more room
-    const capacityScore = (1 - capacityFit) * 100 // more room = higher score
-    const reliabilityScore = (transport.rating / 5) * 70 +
-      Math.min(transport.completedDeliveries / 50, 1) * 30
+    const proximityScore = Math.max(0, Math.min(100, 100 - (dist / transport.maxRange) * 100))
+    const capacityFit = transport.capacity > 0 ? shipmentSize / transport.capacity : 1 // lower = more room
+    const capacityScore = Math.max(0, Math.min(100, (1 - capacityFit) * 100)) // more room = higher score
+    const clampedRating = Math.max(0, Math.min(5, transport.rating || 0))
+    const reliabilityScore = (clampedRating / 5) * 70 +
+      Math.min(Math.max(0, transport.completedDeliveries) / 50, 1) * 30
     const capabilityBonus = (transport.specialCapabilities?.length ?? 0) > 0 ? 15 : 0
 
     const totalScore =

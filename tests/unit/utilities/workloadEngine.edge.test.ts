@@ -264,10 +264,10 @@ describe('Scoring boundary conditions', () => {
     expect(score).toBe(100)
   })
 
-  it('calculateTrustScore with compositeTrustScore = -10 returns negative capped to min', () => {
+  it('calculateTrustScore with compositeTrustScore = -10 clamps to 0 (fixed)', () => {
     const score = calculateTrustScore('full', 'none', -10)
-    // Math.min(100, -10) = -10 — the function does not clamp lower bound
-    expect(score).toBe(-10)
+    // FIXED: now clamps to Math.max(0, Math.min(100, ...)) → 0
+    expect(score).toBe(0)
   })
 
   it('calculateLoadScore with maxConcurrent = 0 returns 0 (divide-by-zero guard)', () => {
@@ -288,9 +288,12 @@ describe('Scoring boundary conditions', () => {
     expect(score).toBe(30)
   })
 
-  it('calculatePerformanceScore with NaN success rate returns NaN (propagates)', () => {
+  it('calculatePerformanceScore with NaN success rate returns neutral (fixed)', () => {
     const score = calculatePerformanceScore(NaN, 5000, 10000)
-    expect(score).toBeNaN()
+    // FIXED: NaN success rate → 0.5 (neutral), ratio=5000/10000=0.5 → speedBonus=30
+    // 0.5 * 70 + 30 = 65
+    expect(score).toBe(65)
+    expect(Number.isFinite(score)).toBe(true)
   })
 
   it('calculateCostScore with all costs at 0 returns 100', () => {

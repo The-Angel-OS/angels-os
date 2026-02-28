@@ -324,10 +324,13 @@ export function canRetry(unit: WorkUnit): boolean {
 
 /**
  * Calculate next retry backoff in ms (exponential).
+ * Capped at 5 minutes to prevent Infinity from extreme attempt counts.
  */
 export function calculateBackoff(unit: WorkUnit): number {
   const attempt = Math.max(0, unit.attemptCount - 1)
-  return unit.retryPolicy.backoffMs * Math.pow(unit.retryPolicy.backoffMultiplier, attempt)
+  const MAX_BACKOFF_MS = 300_000 // 5 minutes hard cap
+  const raw = unit.retryPolicy.backoffMs * Math.pow(unit.retryPolicy.backoffMultiplier, attempt)
+  return Number.isFinite(raw) ? Math.min(raw, MAX_BACKOFF_MS) : MAX_BACKOFF_MS
 }
 
 /**
@@ -375,9 +378,11 @@ export function availableSlots(worker: WorkerCapabilities): number {
  * Compute success rate for a worker (0-1).
  */
 export function successRate(worker: WorkerCapabilities): number {
-  const total = worker.completedCount + worker.failedCount
+  const completed = Math.max(0, worker.completedCount || 0)
+  const failed = Math.max(0, worker.failedCount || 0)
+  const total = completed + failed
   if (total === 0) return 0.5 // Neutral for new nodes — give them a chance
-  return worker.completedCount / total
+  return Math.max(0, Math.min(1, completed / total))
 }
 
 /**
@@ -441,7 +446,7 @@ export function calculateCapabilityScore(
 
 /**
  * Score trust adequacy (0-100).
- * Returns 0 if below required minimum. Otherwise scales from composite trust score.
+ * Returns 0 if below required minimum. Otherwise clamps composite trust score to [0, 100].
  */
 export function calculateTrustScore(
   workerTrust: TrustLevel,
@@ -449,7 +454,8 @@ export function calculateTrustScore(
   compositeTrustScore: number,
 ): number {
   if (!trustLevelSufficient(workerTrust, requiredTrust)) return 0
-  return Math.min(100, compositeTrustScore)
+  if (!Number.isFinite(compositeTrustScore)) return 0
+  return Math.max(0, Math.min(100, compositeTrustScore))
 }
 
 /**
@@ -459,9 +465,10 @@ export function calculateLoadScore(
   activeWorkUnits: number,
   maxConcurrent: number,
 ): number {
-  if (maxConcurrent <= 0) return 0
-  const available = Math.max(0, maxConcurrent - activeWorkUnits)
-  return (available / maxConcurrent) * 100
+  if (!Number.isFinite(maxConcurrent) || maxConcurrent <= 0) return 0
+  if (!Number.isFinite(activeWorkUnits)) return 0
+  const available = Math.max(0, maxConcurrent - Math.max(0, activeWorkUnits))
+  return Math.max(0, Math.min(100, (available / maxConcurrent) * 100))
 }
 
 /**
@@ -473,12 +480,19 @@ export function calculatePerformanceScore(
   avgExecutionTimeMs: number,
   estimatedDurationMs: number,
 ): number {
+  // Guard: NaN/Infinity inputs → neutral score
+  if (!Number.isFinite(workerSuccessRate)) workerSuccessRate = 0.5
+
+  // Clamp success rate to [0, 1]
+  workerSuccessRate = Math.max(0, Math.min(1, workerSuccessRate))
+
   // Success rate component (0-70)
   const rateScore = workerSuccessRate * 70
 
   // Speed bonus (0-30): faster than estimated = bonus
   let speedBonus = 15 // Neutral default
-  if (estimatedDurationMs > 0 && avgExecutionTimeMs > 0) {
+  if (Number.isFinite(estimatedDurationMs) && estimatedDurationMs > 0 &&
+      Number.isFinite(avgExecutionTimeMs) && avgExecutionTimeMs > 0) {
     const ratio = avgExecutionTimeMs / estimatedDurationMs
     if (ratio <= 0.5) speedBonus = 30       // 2x faster or more
     else if (ratio <= 1.0) speedBonus = 20  // Faster than estimated
@@ -497,9 +511,9 @@ export function calculateCostScore(
   costPerUnitCents: number,
   maxCostInPool: number,
 ): number {
-  if (maxCostInPool <= 0) return 100
-  if (costPerUnitCents <= 0) return 100
-  return Math.max(0, (1 - costPerUnitCents / maxCostInPool) * 100)
+  if (!Number.isFinite(maxCostInPool) || maxCostInPool <= 0) return 100
+  if (!Number.isFinite(costPerUnitCents) || costPerUnitCents <= 0) return 100
+  return Math.max(0, Math.min(100, (1 - costPerUnitCents / maxCostInPool) * 100))
 }
 
 /**
@@ -788,8 +802,8 @@ export function parseCapacitySnapshot(
   if (typeof data.nodeId !== 'string') return null
   if (typeof data.computeClass !== 'string') return null
   if (!Array.isArray(data.supportedWorkTypes)) return null
-  if (typeof data.maxConcurrent !== 'number') return null
-  if (typeof data.activeWorkUnits !== 'number') return null
+  if (typeof data.maxConcurrent !== 'number' || !Number.isFinite(data.maxConcurrent) || data.maxConcurrent < 0) return null
+  if (typeof data.activeWorkUnits !== 'number' || !Number.isFinite(data.activeWorkUnits) || data.activeWorkUnits < 0) return null
   if (typeof data.accepting !== 'boolean') return null
 
   const validClasses: ComputeClass[] = ['lightweight', 'standard', 'heavy']

@@ -137,6 +137,9 @@ export function calculateDistance(
   lat2: number,
   lng2: number,
 ): number {
+  // Guard: NaN/Infinity coordinates → 0 (same-point fallback)
+  if (!Number.isFinite(lat1) || !Number.isFinite(lng1) ||
+      !Number.isFinite(lat2) || !Number.isFinite(lng2)) return 0
   const R = 3959 // Earth's radius in miles
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
@@ -147,7 +150,8 @@ export function calculateDistance(
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
+  const result = R * c
+  return Number.isFinite(result) ? result : 0
 }
 
 // ---------------------------------------------------------------------------
@@ -212,8 +216,10 @@ export function calculateFairnessScore(
   activeOrderCount: number,
   rating: number,
 ): number {
-  const utilizationPenalty = Math.min(activeOrderCount * 2, 80)
-  const ratingBonus = (rating / 5) * 20
+  const clampedOrders = Math.max(0, activeOrderCount || 0)
+  const clampedRating = Math.max(0, Math.min(5, rating || 0))
+  const utilizationPenalty = Math.min(clampedOrders * 2, 80)
+  const ratingBonus = (clampedRating / 5) * 20
   return Math.max(0, Math.min(100, 100 - utilizationPenalty + ratingBonus))
 }
 
@@ -271,7 +277,8 @@ export function findMatchingHolons(
       holon.capabilities,
     )
     const proximityScore = calculateProximityScore(distance, holon.serviceRadius)
-    const ratingScore = (holon.rating / 5) * 100
+    const clampedRating = Math.max(0, Math.min(5, holon.rating || 0))
+    const ratingScore = (clampedRating / 5) * 100
     const fairnessScore = calculateFairnessScore(
       holon.activeOrderCount,
       holon.rating,
