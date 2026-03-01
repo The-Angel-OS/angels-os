@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { headers } from 'next/headers'
-import { getWizardProgress, ensureWizardChannel } from './actions'
+import { getWizardProgress, ensureWizardChannel, checkIsAdmin } from './actions'
 import { SetupWizard } from './SetupWizard'
 
 /**
@@ -20,6 +20,13 @@ export default async function SetupPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+
+  // Redirect non-admins — only admins can access Enterprise Setup
+  const isAdmin = await checkIsAdmin()
+  if (!isAdmin) {
+    const prefix = locale === 'en' ? '' : `/${locale}`
+    redirect(`${prefix}/dashboard`)
+  }
 
   // Redirect if wizard is already done
   const { progress, wizardComplete, tenantId } = await getWizardProgress()

@@ -248,7 +248,7 @@ export function DashboardSidebar({
           >
             Federation
           </NavLink>
-          {!wizardComplete && (
+          {!wizardComplete && isAdmin && (
             <NavLink
               href={`${prefix}/dashboard/setup`}
               icon={<WandIcon />}
@@ -369,6 +369,9 @@ export function DashboardSidebar({
               className="text-emerald-600 dark:text-emerald-400"
             >
               Tenant Admin
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/endeavor`} icon={<WandIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/endeavor')}>
+              Endeavor Setup
             </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/provision`} icon={<PlusIcon />} collapsed={isCollapsed} active={false}>
               Provision
@@ -557,7 +560,7 @@ function MobileNavContent({
         >
           Federation
         </NavLink>
-        {!wizardComplete && (
+        {!wizardComplete && isAdmin && (
           <NavLink
             href={`${prefix}/dashboard/setup`}
             icon={<WandIcon />}
@@ -659,6 +662,9 @@ function MobileNavContent({
             className="text-emerald-600 dark:text-emerald-400"
           >
             Tenant Admin
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/endeavor`} icon={<WandIcon />} collapsed={false} active={pathname.includes('/dashboard/endeavor')}>
+            Endeavor Setup
           </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/provision`} icon={<PlusIcon />} collapsed={false} active={false}>
             Provision

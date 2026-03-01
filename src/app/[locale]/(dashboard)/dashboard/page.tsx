@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
+import OnboardingGuide from '@/components/OnboardingGuide'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
@@ -58,6 +59,9 @@ export default async function DashboardPage({
   let orderData: Awaited<ReturnType<typeof getOrderVolume>> = []
   let federationData: Awaited<ReturnType<typeof getFederationActivity>> = []
   let justiceFundData: Awaited<ReturnType<typeof getJusticeFundGrowth>> = []
+
+  // Growth stats (admin only)
+  let growthStats = { pendingInvites: 0, activeMembers: 0, federationPeers: 0 }
 
   let feeStatus: {
     tier: string
@@ -193,6 +197,42 @@ export default async function DashboardPage({
     orderData = ordData
     federationData = fedData
     justiceFundData = jfData
+
+    // Growth stats for admins
+    if (isAdmin && currentTenant) {
+      const [pendingResult, membersResult, peersResult] = await Promise.all([
+        payload.count({
+          collection: 'tenant-memberships',
+          where: {
+            and: [
+              { tenant: { equals: currentTenant.id } },
+              { status: { equals: 'pending' } },
+            ],
+          },
+          overrideAccess: true,
+        }).catch(() => ({ totalDocs: 0 })),
+        payload.count({
+          collection: 'tenant-memberships',
+          where: {
+            and: [
+              { tenant: { equals: currentTenant.id } },
+              { status: { equals: 'active' } },
+            ],
+          },
+          overrideAccess: true,
+        }).catch(() => ({ totalDocs: 0 })),
+        payload.count({
+          collection: 'federation-audit-log',
+          where: { action: { equals: 'ping_received' } },
+          overrideAccess: true,
+        }).catch(() => ({ totalDocs: 0 })),
+      ])
+      growthStats = {
+        pendingInvites: pendingResult.totalDocs,
+        activeMembers: membersResult.totalDocs,
+        federationPeers: peersResult.totalDocs,
+      }
+    }
   } catch {
     // Not authenticated or DB not ready — show defaults
   }
@@ -202,6 +242,9 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
+      {/* Onboarding Guide — first-time walkthrough, dismissible via localStorage */}
+      <OnboardingGuide role={userRole} prefix={prefix} />
+
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
 
@@ -249,10 +292,31 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Quick Access – 3 primary cards like Rev 2 */}
+      {/* Growth Stats — admin only */}
+      {isAdmin && (growthStats.pendingInvites > 0 || growthStats.activeMembers > 0 || growthStats.federationPeers > 0) && (
+        <div>
+          <h2 className="mb-4 text-xl font-semibold">Network Growth</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-lg border bg-card p-4 text-center">
+              <p className="text-2xl font-bold text-amber-500">{growthStats.pendingInvites}</p>
+              <p className="text-sm text-muted-foreground">Pending Invites</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-500">{growthStats.activeMembers}</p>
+              <p className="text-sm text-muted-foreground">Active Members</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4 text-center">
+              <p className="text-2xl font-bold text-blue-500">{growthStats.federationPeers}</p>
+              <p className="text-sm text-muted-foreground">Federation Peers</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Access */}
       <div>
         <h2 className="mb-4 text-xl font-semibold">Quick Access</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           <QuickAccessCard
             href={`${prefix}/dashboard/spaces`}
             icon={<ChatIcon />}
@@ -274,6 +338,15 @@ export default async function DashboardPage({
             title="Products"
             subtitle="E-commerce Catalog"
           />
+          {isAdmin && (
+            <QuickAccessCard
+              href={`${prefix}/dashboard/admin/invitations`}
+              icon={<UsersIcon />}
+              iconColor="text-amber-500"
+              title="Invite People"
+              subtitle="Grow your community"
+            />
+          )}
         </div>
       </div>
 

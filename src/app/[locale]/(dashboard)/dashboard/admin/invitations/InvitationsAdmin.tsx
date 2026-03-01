@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { sendQuickInvite, type QuickInviteResult } from './actions'
 
 /**
- * InvitationsAdmin — Manage sent invitations.
+ * InvitationsAdmin — Quick Invite form + manage sent invitations.
  *
- * Shows list of all invitations with status, resend capability,
- * and invitation statistics.
+ * Shows Quick Invite at the top for sending tenant-level invites,
+ * followed by the list of existing invitations with stats and resend.
  */
 
 interface Invitation {
@@ -31,6 +32,53 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
 
   const [resendingId, setResendingId] = useState<string | number | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  // Quick Invite form state
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('tenant_member')
+  const [inviteMessage, setInviteMessage] = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteResult, setInviteResult] = useState<QuickInviteResult | null>(null)
+  const [copiedUrl, setCopiedUrl] = useState(false)
+
+  const handleQuickInvite = useCallback(async () => {
+    if (!inviteEmail.trim()) return
+    setInviteSending(true)
+    setInviteResult(null)
+    setToast(null)
+
+    const result = await sendQuickInvite({
+      email: inviteEmail.trim(),
+      role: inviteRole,
+      message: inviteMessage.trim() || undefined,
+    })
+
+    setInviteResult(result)
+    setInviteSending(false)
+
+    if (result.success) {
+      setToast({
+        message: result.emailSent
+          ? `Invitation sent to ${inviteEmail}!`
+          : `Invitation created for ${inviteEmail} (email transport not configured — share the link manually).`,
+        type: 'success',
+      })
+      setInviteEmail('')
+      setInviteMessage('')
+    } else {
+      setToast({ message: result.error || 'Failed to send invitation.', type: 'error' })
+    }
+  }, [inviteEmail, inviteRole, inviteMessage])
+
+  const handleCopyUrl = useCallback(async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2000)
+    } catch {
+      // Fallback
+    }
+  }, [])
 
   const handleResend = useCallback(async (membershipId: string | number) => {
     setResendingId(membershipId)
@@ -64,8 +112,71 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
       <div>
         <h1 className="text-2xl font-bold">Invitations</h1>
         <p className="text-muted-foreground mt-1">
-          Track and manage team invitations.
+          Invite people to your Enterprise and manage existing invitations.
         </p>
+      </div>
+
+      {/* Quick Invite Form */}
+      <div className="rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
+        <h2 className="mb-3 text-lg font-semibold">Quick Invite</h2>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Email Address</label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="colleague@example.com"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              onKeyDown={(e) => e.key === 'Enter' && handleQuickInvite()}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Role</label>
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="tenant_member">Member</option>
+              <option value="tenant_manager">Manager</option>
+              <option value="tenant_admin">Admin</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleQuickInvite}
+              disabled={inviteSending || !inviteEmail.trim()}
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {inviteSending ? 'Sending...' : 'Send Invite'}
+            </button>
+          </div>
+        </div>
+        <div className="mt-2">
+          <input
+            type="text"
+            value={inviteMessage}
+            onChange={(e) => setInviteMessage(e.target.value)}
+            placeholder="Personal message (optional)"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
+
+        {/* Invite URL result */}
+        {inviteResult?.success && inviteResult.inviteUrl && (
+          <div className="mt-3 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+            <span className="flex-1 truncate text-xs text-muted-foreground">
+              {inviteResult.inviteUrl}
+            </span>
+            <button
+              onClick={() => handleCopyUrl(inviteResult.inviteUrl!)}
+              className="shrink-0 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
+            >
+              {copiedUrl ? 'Copied!' : 'Copy Link'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -107,10 +218,10 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
           </div>
           <h3 className="text-lg font-semibold mb-1">No invitations yet</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Invite your team members through LEO or the Spaces dashboard. They'll receive an email with a link to join.
+            Use the Quick Invite form above to send your first invitation.
           </p>
           <p className="text-xs text-muted-foreground">
-            Try saying to LEO: "Invite john@example.com to our General space"
+            You can also ask LEO: &quot;Invite john@example.com to our General space&quot;
           </p>
         </div>
       ) : (
@@ -160,7 +271,7 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
                     <td className="px-4 py-3 text-muted-foreground">
                       {inv.expiresAt
                         ? new Date(inv.expiresAt).toLocaleDateString()
-                        : '—'}
+                        : '\u2014'}
                     </td>
                     <td className="px-4 py-3">
                       {(inv.status === 'pending') && (

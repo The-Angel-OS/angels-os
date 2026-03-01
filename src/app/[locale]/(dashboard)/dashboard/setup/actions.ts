@@ -43,6 +43,27 @@ async function resolveTenantId(payload: Awaited<ReturnType<typeof getPayload>>, 
   return (tenants.docs?.[0]?.id as number) ?? null
 }
 
+// ── checkIsAdmin ─────────────────────────────────────────────────────────────
+
+/**
+ * Returns true if the current user has an admin-level platform role.
+ * Used to guard the setup page from non-admin users.
+ */
+export async function checkIsAdmin(): Promise<boolean> {
+  try {
+    const payload = await getPayload({ config })
+    const headersList = await headers()
+    const { user } = await payload.auth({ headers: headersList })
+    if (!user) return false
+    const roles = (user as any).roles as string[] | undefined
+    return Boolean(
+      roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
+    )
+  } catch {
+    return false
+  }
+}
+
 // ── checkSetupRequired ─────────────────────────────────────────────────────
 
 /**
