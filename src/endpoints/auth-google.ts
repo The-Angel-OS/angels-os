@@ -20,6 +20,7 @@
 import type { PayloadHandler } from 'payload'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import { cookies as getCookies } from 'next/headers'
 import { getServerSideURL } from '@/utilities/getURL'
 
 // ---------------------------------------------------------------------------
@@ -407,40 +408,62 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // ----- Same-domain: set cookie via Set-Cookie header -----
-    // NOTE: Do NOT use NextResponse.cookies.set() here — Payload's
-    // handleEndpoints() reconstructs the Response from body/headers/status,
-    // which silently drops NextResponse's internal cookie jar. Use a plain
-    // Set-Cookie header string instead (matches Payload's own login endpoint).
-    const cookieDomain = process.env.COOKIE_DOMAIN || ''
-    const isProduction = process.env.NODE_ENV === 'production'
+    // ----- Same-domain: set cookie via Next.js cookies() API -----
+    // This matches how Payload itself sets auth cookies internally
+    // (via @payloadcms/next setPayloadAuthCookie). The cookies() API
+    // from next/headers uses AsyncLocalStorage to register cookie
+    // operations, which Next.js then merges into the outgoing response.
+    // This bypasses any issues with Set-Cookie headers being lost
+    // during Payload's handleEndpoints() Response reconstruction.
     const absoluteRedirect = new URL(redirectPath, canonicalUrl).toString()
+    const cookieName = `${req.payload.config.cookiePrefix}-token`
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined
+    const isProduction = process.env.NODE_ENV === 'production'
 
-    console.log('[Google OAuth] Setting cookie and redirecting:', {
+    console.log('[Google OAuth] Setting cookie via cookies() API and redirecting:', {
       userId: user.id,
       email: user.email,
       redirectPath,
       absoluteRedirect,
+      cookieName,
       cookieDomain: cookieDomain || '(current host)',
       isProduction,
     })
 
-    const cookieParts = [
-      `payload-token=${payloadToken}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      ...(isProduction ? ['Secure'] : []),
-      ...(cookieDomain ? [`Domain=${cookieDomain}`] : []),
-      'Max-Age=1209600',
-    ]
+    try {
+      const cookieStore = await getCookies()
+      cookieStore.set(cookieName, payloadToken, {
+        domain: cookieDomain,
+        expires: new Date(Date.now() + 1209600 * 1000), // 14 days
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction,
+        path: '/',
+      })
+    } catch (cookieErr) {
+      console.error('[Google OAuth] cookies() API failed, falling back to Set-Cookie header:', cookieErr)
+      // Fallback: set cookie via Set-Cookie header
+      const cookieParts = [
+        `${cookieName}=${payloadToken}`,
+        'Path=/',
+        'HttpOnly',
+        'SameSite=Lax',
+        ...(isProduction ? ['Secure'] : []),
+        ...(cookieDomain ? [`Domain=${cookieDomain}`] : []),
+        'Max-Age=1209600',
+      ]
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: absoluteRedirect,
+          'Set-Cookie': cookieParts.join('; '),
+        },
+      })
+    }
 
     return new Response(null, {
       status: 302,
-      headers: {
-        Location: absoluteRedirect,
-        'Set-Cookie': cookieParts.join('; '),
-      },
+      headers: { Location: absoluteRedirect },
     })
   } catch (err) {
     const message =

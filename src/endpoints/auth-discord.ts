@@ -19,6 +19,7 @@
 import type { PayloadHandler } from 'payload'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import { cookies as getCookies } from 'next/headers'
 import { getServerSideURL } from '@/utilities/getURL'
 
 // ---------------------------------------------------------------------------
@@ -440,40 +441,59 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // ----- Same-domain: set cookie via Set-Cookie header -----
-    // NOTE: Do NOT use NextResponse.cookies.set() here — Payload's
-    // handleEndpoints() reconstructs the Response from body/headers/status,
-    // which silently drops NextResponse's internal cookie jar. Use a plain
-    // Set-Cookie header string instead (matches Payload's own login endpoint).
-    const cookieDomain = process.env.COOKIE_DOMAIN || ''
-    const isProduction = process.env.NODE_ENV === 'production'
+    // ----- Same-domain: set cookie via Next.js cookies() API -----
+    // Matches Payload's own setPayloadAuthCookie mechanism. Uses the
+    // AsyncLocalStorage-backed cookies() from next/headers which Next.js
+    // merges into the outgoing response, bypassing handleEndpoints()
+    // Response reconstruction issues.
     const absoluteRedirect = new URL(redirectPath, canonicalUrl).toString()
+    const cookieName = `${req.payload.config.cookiePrefix}-token`
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined
+    const isProduction = process.env.NODE_ENV === 'production'
 
-    console.log('[Discord OAuth] Setting cookie and redirecting:', {
+    console.log('[Discord OAuth] Setting cookie via cookies() API and redirecting:', {
       userId: user.id,
       email: user.email,
       redirectPath,
       absoluteRedirect,
+      cookieName,
       cookieDomain: cookieDomain || '(current host)',
       isProduction,
     })
 
-    const cookieParts = [
-      `payload-token=${payloadToken}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      ...(isProduction ? ['Secure'] : []),
-      ...(cookieDomain ? [`Domain=${cookieDomain}`] : []),
-      'Max-Age=1209600',
-    ]
+    try {
+      const cookieStore = await getCookies()
+      cookieStore.set(cookieName, payloadToken, {
+        domain: cookieDomain,
+        expires: new Date(Date.now() + 1209600 * 1000), // 14 days
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction,
+        path: '/',
+      })
+    } catch (cookieErr) {
+      console.error('[Discord OAuth] cookies() API failed, falling back to Set-Cookie header:', cookieErr)
+      const cookieParts = [
+        `${cookieName}=${payloadToken}`,
+        'Path=/',
+        'HttpOnly',
+        'SameSite=Lax',
+        ...(isProduction ? ['Secure'] : []),
+        ...(cookieDomain ? [`Domain=${cookieDomain}`] : []),
+        'Max-Age=1209600',
+      ]
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: absoluteRedirect,
+          'Set-Cookie': cookieParts.join('; '),
+        },
+      })
+    }
 
     return new Response(null, {
       status: 302,
-      headers: {
-        Location: absoluteRedirect,
-        'Set-Cookie': cookieParts.join('; '),
-      },
+      headers: { Location: absoluteRedirect },
     })
   } catch (err) {
     const message =

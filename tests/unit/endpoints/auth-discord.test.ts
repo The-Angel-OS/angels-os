@@ -20,8 +20,19 @@ vi.mock('jsonwebtoken', () => ({
   },
 }))
 
-// NOTE: next/server mock removed — auth-discord no longer uses NextResponse.
-// Cookie is now set via a plain Response with Set-Cookie header.
+// ─── Mock next/headers cookies() ────────────────────────────────
+// Auth handlers now use cookies() from next/headers to set the auth
+// cookie (matching Payload's own setPayloadAuthCookie mechanism).
+const mockCookieSet = vi.fn()
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({
+    set: mockCookieSet,
+    get: vi.fn(),
+    getAll: vi.fn(() => []),
+    has: vi.fn(() => false),
+    delete: vi.fn(),
+  })),
+}))
 
 // ─── Import handlers after mocks ────────────────────────────────
 const { authDiscordInitHandler, authDiscordCallbackHandler } = await import(
@@ -54,6 +65,7 @@ function makeMockReq(overrides: {
 /** Build a mock Payload CMS instance */
 function makeMockPayload(overrides: Record<string, unknown> = {}) {
   return {
+    config: { cookiePrefix: 'payload' },
     find: vi.fn().mockResolvedValue({ docs: [] }),
     findByID: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue({ id: 'new-user-1', email: 'new@test.com', roles: ['customer'] }),
@@ -94,6 +106,7 @@ const originalEnv = { ...process.env }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockCookieSet.mockClear()
   process.env.DISCORD_CLIENT_ID = 'test-client-id'
   process.env.DISCORD_CLIENT_SECRET = 'test-client-secret'
   process.env.NEXT_PUBLIC_SERVER_URL = 'http://localhost:3000'
@@ -460,10 +473,16 @@ describe('state validation', () => {
 
     const res = await authDiscordCallbackHandler(req as any)
 
-    // Plain Response with Location header and Set-Cookie
+    // Redirect via plain Response (cookie set via cookies() API)
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('/my-custom-page')
-    expect(res.headers.get('Set-Cookie')).toContain('payload-token=mock-jwt-token')
+
+    // Cookie set via Next.js cookies() API
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      'payload-token',
+      'mock-jwt-token',
+      expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/' }),
+    )
   })
 
   it('invalid/tampered state does not crash (gracefully ignored)', async () => {
@@ -494,7 +513,13 @@ describe('state validation', () => {
     // Should still complete the flow with a redirect (defaults to /dashboard)
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('/dashboard')
-    expect(res.headers.get('Set-Cookie')).toContain('payload-token=')
+
+    // Cookie set via cookies() API
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      'payload-token',
+      'mock-jwt-token',
+      expect.objectContaining({ httpOnly: true }),
+    )
   })
 
   it('missing state works (defaults to /dashboard redirect)', async () => {
@@ -523,7 +548,13 @@ describe('state validation', () => {
     // With no state, customer user should redirect to /dashboard
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('/dashboard')
-    expect(res.headers.get('Set-Cookie')).toContain('payload-token=')
+
+    // Cookie set via cookies() API
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      'payload-token',
+      'mock-jwt-token',
+      expect.objectContaining({ httpOnly: true }),
+    )
   })
 })
 
@@ -604,16 +635,21 @@ describe('cross-domain relay', () => {
 
     const res = await authDiscordCallbackHandler(req as any)
 
-    // Plain Response with Location header and Set-Cookie
+    // Redirect via plain Response (cookie set via cookies() API)
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('/dashboard')
 
-    // Verify cookie was set via Set-Cookie header
-    const setCookie = res.headers.get('Set-Cookie')!
-    expect(setCookie).toContain('payload-token=mock-jwt-token')
-    expect(setCookie).toContain('HttpOnly')
-    expect(setCookie).toContain('SameSite=Lax')
-    expect(setCookie).toContain('Path=/')
-    expect(setCookie).toContain('Max-Age=1209600')
+    // Verify cookie was set via Next.js cookies() API
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      'payload-token',
+      'mock-jwt-token',
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      }),
+    )
+    // No Set-Cookie header in Response (cookie set via cookies() API)
+    expect(res.headers.get('Set-Cookie')).toBeNull()
   })
 })

@@ -18,6 +18,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import jwt from 'jsonwebtoken'
+import { cookies as getCookies } from 'next/headers'
 import { getServerSideURL } from '@/utilities/getURL'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
@@ -54,9 +55,9 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     // Validate redirect is relative path (prevent open redirect)
     const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-    // Set the cookie on this domain via Set-Cookie header
-    // NOTE: Do NOT use NextResponse.cookies.set() — Payload's handleEndpoints()
-    // reconstructs the Response and silently drops NextResponse's cookie jar.
+    // Set the cookie via Next.js cookies() API — matches Payload's own
+    // setPayloadAuthCookie mechanism. Bypasses handleEndpoints() Response
+    // reconstruction issues with Set-Cookie headers.
     const isProduction = process.env.NODE_ENV === 'production'
     const hostHeader = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || ''
     const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
@@ -64,28 +65,47 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
       ? `${protoHeader}://${hostHeader}`
       : getServerSideURL()
     const absoluteRedirect = new URL(safeRedirect, baseUrl).toString()
+    const cookieName = `${req.payload.config.cookiePrefix}-token`
 
-    console.log('[Token Relay] Setting cookie and redirecting:', {
+    console.log('[Token Relay] Setting cookie via cookies() API and redirecting:', {
       safeRedirect,
       absoluteRedirect,
+      cookieName,
       isProduction,
     })
 
-    const cookieParts = [
-      `payload-token=${token}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      ...(isProduction ? ['Secure'] : []),
-      'Max-Age=1209600',
-    ]
+    try {
+      const cookieStore = await getCookies()
+      cookieStore.set(cookieName, token, {
+        // No domain for relay — cookie is for the current (custom) domain only
+        expires: new Date(Date.now() + 1209600 * 1000), // 14 days
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction,
+        path: '/',
+      })
+    } catch (cookieErr) {
+      console.error('[Token Relay] cookies() API failed, falling back to Set-Cookie header:', cookieErr)
+      const cookieParts = [
+        `${cookieName}=${token}`,
+        'Path=/',
+        'HttpOnly',
+        'SameSite=Lax',
+        ...(isProduction ? ['Secure'] : []),
+        'Max-Age=1209600',
+      ]
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: absoluteRedirect,
+          'Set-Cookie': cookieParts.join('; '),
+        },
+      })
+    }
 
     return new Response(null, {
       status: 302,
-      headers: {
-        Location: absoluteRedirect,
-        'Set-Cookie': cookieParts.join('; '),
-      },
+      headers: { Location: absoluteRedirect },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Token relay failed'
