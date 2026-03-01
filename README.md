@@ -230,7 +230,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Discord Formatter** | **Done** | LEO markdown → Discord markdown, 2000-char message splitting |
 | **Connectors: Discord + Telegram** | **Done** | `discord` and `telegram` types added to multi-tenant Connectors collection |
 
-### Leo's 78+ Tools
+### Leo's 88+ Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -249,8 +249,10 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 **Analytics (2):** analyze trends, recommend products *(Sprint 21)*
 **Workflow (4):** delegate task, escalate issue, send emergency alert, document incident *(Sprint 21)*
 **Email (1):** send_email *(Sprint 22)*
+**Booking (3):** create booking, cancel booking, reschedule booking *(Sprint 32)*
+**Federation Intelligence (3):** federation_pulse, query_synchronicity, federation_weather_report *(Sprint 32)*
 
-### 12 Utility Engines (Zero Payload Imports — Edge Ready)
+### 15 Utility Engines (Zero Payload Imports — Edge Ready)
 
 | Engine | Purpose | Tests |
 |--------|---------|-------|
@@ -263,21 +265,25 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | Network Visualization | Geographic clustering, filterable directory | 62 |
 | Invitation System | Token-based invitations, role assignment | 72 |
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
+| AI Gateway | Credit-aware 4-tier model routing, dynamic provider selection, fallback chains | 65 |
+| Logistics Engine | Bread-Breaker local delivery + Soul Fleet long-haul, transport matching | 55 |
 | Booking Engine | Availability, slot management, booking lifecycle | 22 |
-| **Pheromone Engine** | **Swarm intelligence, trail deposit/decay/reinforce, Game of Life lifecycle** | **70** |
-| **Workload Engine** | **Distributed work routing, 5-dimension scoring, backpressure, capacity** | **91** |
+| Pheromone Engine | Swarm intelligence, trail deposit/decay/reinforce, Game of Life lifecycle | 70 |
+| Workload Engine | Distributed work routing, 5-dimension scoring, backpressure, capacity | 91 |
+| Synchronicity Engine | Meaningful coincidence detection, temporal clustering, thematic resonance | 30 |
 
-### 49+ API Endpoints
+### 52+ API Endpoints
 
 **AI & Chat (5):** Leo chat, Leo stream, chat send, AI Bus poll, AI Bus stream
 **Orders (8):** route, accept, fulfill, ship, vendor list, claimable, claim, cancel
 **Spaces (4):** create, invite, invite resend, member remove
-**Federation (12):** ping, heartbeat, heartbeat cron, catalog, skills, vouch, governance-sync, sentinel election, election propose/vote (POST), election list (GET), suitcase export, suitcase import
+**Federation (14):** ping, heartbeat, heartbeat cron, catalog, skills, vouch, governance-sync, sentinel election, election propose/vote (POST), election list (GET), suitcase export, suitcase import, dispatch-work, pulse
 **Stripe (4):** connect onboard, connect callback, dashboard link, webhooks
-**Auth (3):** Google OAuth init, Google OAuth callback, social unlink
+**Auth (5):** Google OAuth init, Google OAuth callback, Discord OAuth init, Discord OAuth callback, social unlink
 **Invites (2):** invite accept, tenant invite accept
 **Content (3):** docs, comments add, export site
 **Communication (3):** DM find-or-create, LiveKit token, bridge inbound
+**Connectors (1):** Discord webhook (multi-tenant bot bridge)
 **Media (1):** media analyze (progressive analysis trigger)
 **Maker (1):** maker opportunities (public)
 **Vapi (1):** Vapi webhook (voice AI)
@@ -327,7 +333,7 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-pnpm test:unit                # 2,213 tests across 47 unit test files
+pnpm test:unit                # 2,482 tests across 53 unit test files
 pnpm test:int                 # Integration tests (needs DB, ~23s boot)
 pnpm test:e2e                 # 14 E2E suites with Playwright (needs server + Chromium)
 npx tsc --noEmit              # TypeScript check (zero errors)
