@@ -45,6 +45,8 @@
  *   - Redirect is validated to be a relative path (prevents open redirect)
  */
 import { jwtVerify } from 'jose'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +61,7 @@ export async function GET(request: Request) {
     'localhost'
   const isProduction = process.env.NODE_ENV === 'production'
 
-  console.log('[Auth Complete] Handler invoked (attempt #11 — document.cookie + dual verification):', {
+  console.log('[Auth Complete] Handler invoked:', {
     host,
     hasToken: Boolean(token),
     redirectTo,
@@ -73,15 +75,11 @@ export async function GET(request: Request) {
     )
   }
 
-  const secret = process.env.PAYLOAD_SECRET
-  if (!secret) {
-    return Response.json({ error: 'Server configuration error.' }, { status: 500 })
-  }
-
-  // Verify the JWT is genuine (signed by our PAYLOAD_SECRET)
-  // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
+  // Verify the JWT using Payload's hashed secret (NOT the raw env var).
+  // Payload hashes PAYLOAD_SECRET via sha256().slice(0,32) internally.
+  const payload = await getPayload({ config: configPromise })
   try {
-    const secretKey = new TextEncoder().encode(secret)
+    const secretKey = new TextEncoder().encode(payload.secret)
     await jwtVerify(token, secretKey)
   } catch {
     return Response.json({ error: 'Invalid or expired token.' }, { status: 401 })

@@ -279,9 +279,10 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     })
 
     // ----- Generate Payload-compatible JWT -----
-    // MUST use jose (same library as Payload CMS 3.x) — jsonwebtoken encodes
-    // the secret differently and produces signatures Payload cannot verify.
-    const secretKey = new TextEncoder().encode(process.env.PAYLOAD_SECRET!)
+    // CRITICAL: Use `req.payload.secret` — Payload internally hashes the config
+    // secret via sha256(PAYLOAD_SECRET).slice(0, 32). Signing with the raw env
+    // var produces tokens Payload's JWT strategy cannot verify.
+    const secretKey = new TextEncoder().encode(req.payload.secret)
     const issuedAt = Math.floor(Date.now() / 1000)
     const expiration = issuedAt + 14 * 24 * 60 * 60 // 14 days
 

@@ -28,15 +28,12 @@
  *   - Cookie flags match Payload's own auth cookie configuration
  */
 import { jwtVerify } from 'jose'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
-  const secret = process.env.PAYLOAD_SECRET
-  if (!secret) {
-    return Response.json({ error: 'Server configuration error.' }, { status: 500 })
-  }
-
   let body: { token?: string }
   try {
     body = await request.json()
@@ -49,10 +46,11 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Missing token in request body.' }, { status: 400 })
   }
 
-  // Verify the JWT is genuine
-  // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
+  // Verify the JWT using Payload's hashed secret (NOT the raw env var).
+  // Payload hashes PAYLOAD_SECRET via sha256().slice(0,32) internally.
+  const payload = await getPayload({ config: configPromise })
   try {
-    const secretKey = new TextEncoder().encode(secret)
+    const secretKey = new TextEncoder().encode(payload.secret)
     await jwtVerify(token, secretKey)
   } catch {
     return Response.json({ error: 'Invalid or expired token.' }, { status: 401 })

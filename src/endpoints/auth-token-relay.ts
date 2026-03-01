@@ -33,18 +33,10 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // Verify the JWT is genuine (signed by our PAYLOAD_SECRET)
-    const secret = process.env.PAYLOAD_SECRET
-    if (!secret) {
-      return Response.json(
-        { error: 'Server configuration error.' },
-        { status: 500 },
-      )
-    }
-
-    // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
+    // Verify the JWT is genuine — use req.payload.secret (the hashed secret
+    // that Payload's JWT strategy uses, NOT the raw PAYLOAD_SECRET env var).
     try {
-      const secretKey = new TextEncoder().encode(secret)
+      const secretKey = new TextEncoder().encode(req.payload.secret)
       await jwtVerify(token, secretKey)
     } catch {
       return Response.json(
