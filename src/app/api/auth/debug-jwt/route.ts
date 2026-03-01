@@ -61,7 +61,8 @@ export async function GET(request: Request) {
 
     // Step 3: Check if collection exists in Payload
     const collectionSlug = decodedPayload.collection as string
-    const collection = payload.collections[collectionSlug]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const collection = (payload.collections as any)[collectionSlug]
     steps['3_collection_slug'] = collectionSlug
     steps['3_collection_exists'] = Boolean(collection)
     steps['3_available_collections'] = Object.keys(payload.collections)
