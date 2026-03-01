@@ -141,26 +141,26 @@ export async function GET(request: Request) {
   //   Set-Cookie headers gives us zero framework interference.
 
   const securePart = isProduction ? '; Secure' : ''
-
-  // 1. Clear any host-only cookie (no Domain attribute)
-  const clearHostOnly = `payload-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${securePart}`
-
-  // 2. Clear any domain-scoped cookie (with Domain attribute)
-  const clearDomainScoped = effectiveCookieDomain
-    ? `payload-token=; Path=/; Domain=${effectiveCookieDomain}; Max-Age=0; HttpOnly; SameSite=Lax${securePart}`
-    : null
-
-  // 3. Set the real cookie (domain-scoped to match Payload's auth config)
   const domainPart = effectiveCookieDomain ? `; Domain=${effectiveCookieDomain}` : ''
+
+  // --- Attempt #9b: SINGLE Set-Cookie only (no clearing headers) ---
+  // Previous attempt sent 3 Set-Cookie headers (2 clearing + 1 setting).
+  // Hypothesis: Chrome batch-processes Set-Cookie for same name+domain
+  // and the Max-Age=0 clears may override the Max-Age=1209600 set.
+  // Now sending only the one cookie we actually want.
   const setCookie = `payload-token=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${securePart}${domainPart}`
 
-  console.log('[Auth Complete] Cookie strategy (attempt #9):', {
-    clearHostOnly: 'yes',
-    clearDomainScoped: Boolean(clearDomainScoped),
+  // Diagnostic: non-httpOnly test cookie visible to document.cookie.
+  // If this shows up but payload-token doesn't work → httpOnly-specific issue.
+  // If this also doesn't show up → Chrome blocks ALL cookies from this response.
+  const testCookie = `auth-debug-test=attempt9b; Path=/; Max-Age=120; SameSite=Lax${securePart}${domainPart}`
+
+  console.log('[Auth Complete] Cookie strategy (attempt #9b — single cookie, no clearing):', {
     effectiveCookieDomain: effectiveCookieDomain || '(host-only)',
     secure: isProduction,
     maxAge,
     tokenLength: token.length,
+    testCookieIncluded: true,
   })
 
   // --- Build the HTML verification page ---
@@ -264,6 +264,8 @@ export async function GET(request: Request) {
         }
 
         // Cookie NOT working \u2014 show diagnostics
+        var allCookies = document.cookie || '';
+        var hasTestCookie = allCookies.indexOf('auth-debug-test=') !== -1;
         status.innerHTML = '\\u274c Cookie verification failed (HTTP ' + res.status + ')';
         debug.style.display = 'block';
         debug.textContent = JSON.stringify({
@@ -271,7 +273,11 @@ export async function GET(request: Request) {
           fetchStatus: res.status,
           fetchStatusText: res.statusText,
           responsePreview: body.slice(0, 800),
-          visibleCookies: document.cookie || '(none visible \u2014 httpOnly)',
+          testCookieStored: hasTestCookie,
+          visibleCookies: allCookies || '(none visible)',
+          diagnosis: hasTestCookie
+            ? 'Test cookie stored OK \u2014 Set-Cookie works! Issue is specific to httpOnly payload-token.'
+            : 'Test cookie ALSO missing \u2014 Chrome is blocking ALL cookies from this response.',
           pageUrl: window.location.href,
           redirectTarget: REDIRECT,
           timestamp: new Date().toISOString(),
@@ -321,20 +327,20 @@ export async function GET(request: Request) {
   headers.set('X-Auth-Debug-Host', host)
   headers.set('X-Auth-Debug-Proto', proto)
   headers.set('X-Auth-Debug-Cookie-Domain', effectiveCookieDomain || '(host-only)')
-  headers.set('X-Auth-Debug-Cookie-Method', 'raw-Response-manual-SetCookie-verification-page')
-  headers.set('X-Auth-Debug-Attempt', '9')
+  headers.set('X-Auth-Debug-Cookie-Method', 'raw-Response-single-SetCookie-plus-test-cookie')
+  headers.set('X-Auth-Debug-Attempt', '9b')
 
-  // Set-Cookie headers: clear potential shadows first, then set real cookie.
-  // Order matters: clears processed first, then the set.
-  headers.append('Set-Cookie', clearHostOnly)
-  if (clearDomainScoped) {
-    headers.append('Set-Cookie', clearDomainScoped)
-  }
+  // Single Set-Cookie for the actual token — no clearing headers.
+  // Attempt #9a proved clearing headers (Max-Age=0) for the same cookie
+  // name+domain may cause Chrome to discard the subsequent set.
   headers.append('Set-Cookie', setCookie)
+  // Diagnostic test cookie (non-httpOnly) — visible to document.cookie
+  headers.append('Set-Cookie', testCookie)
 
   console.log('[Auth Complete] Returning raw Response with', {
-    setCookieCount: clearDomainScoped ? 3 : 2,
-    attempt: 9,
+    setCookieCount: 2,
+    attempt: '9b',
+    note: 'single payload-token + non-httpOnly test cookie',
   })
 
   return new Response(html, { status: 200, headers })
