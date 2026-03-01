@@ -6,24 +6,24 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.30.0-dev
-**Tests:** 2,213 unit tests + 14 E2E suites across 47 test files
-**Engines:** 12 pure utility engines (zero Payload imports)
-**Leo Tools:** 78+
-**API Endpoints:** 49+ registered routes
+**Version:** v0.33.0-dev
+**Tests:** 2,482 unit tests + 14 E2E suites across 53 test files
+**Engines:** 15 pure utility engines (zero Payload imports)
+**Leo Tools:** 88+
+**API Endpoints:** 52+ registered routes
 **Collections:** 42
 **Last Updated:** February 28, 2026
 
 ---
 
-## Current: v0.30.0-dev (Distributed Intelligence + Workload Engine)
+## Current: v0.33.0-dev (Discord Integration + Federation Intelligence)
 
 ### What's Built (Sprints 1-21)
 
 | Feature | Sprint | Details |
 |---------|--------|---------|
 | Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
-| LEO AI Agent (Gemini 3.1 Pro + Sonnet 4.6) | 1-23 | 78+ tools, constitutional prompt, agent routing, image vision, /model switch |
+| LEO AI Agent (Gemini 3.1 Pro + Sonnet 4.6) | 1-33 | 88+ tools, constitutional prompt, agent routing, image vision, /model switch |
 | SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
 | AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
 | Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
@@ -88,6 +88,81 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Puma Punku Polish** | **28** | **LEO Navigation Bridge, DB indexes, type safety hardening** |
 | **Pheromone Grid** | **29** | **Swarm intelligence, 5 pheromone types, Game of Life lifecycle (70 tests)** |
 | **Distributed Workload Engine** | **30** | **Work routing, 5-dim scoring, backpressure, WorkUnits collection (91 tests)** |
+| **Federation Dispatch** | **31** | **POST /api/federation/dispatch-work, pheromone learning, live capacity heartbeats (63 tests)** |
+| **Federation Pulse API** | **32** | **GET /api/federation/pulse, real-time health dashboard, capacity snapshots** |
+| **Synchronicity Engine** | **32** | **Meaningful coincidence detection: temporal, spatial, thematic pattern matching** |
+| **3 New Leo Tools** | **32** | **federation_pulse, query_synchronicity, federation_weather_report → 88 total** |
+| **Full-Stack Booking** | **32** | **LEO-powered scheduling, cancellation, rescheduling with availability checking** |
+| **Branding Update** | **32** | **Ministry → Enterprise, "Join Angel OS" → "Join the Federation"** |
+| **Discord Multi-Tenant Bots** | **33** | **BotManager: N Discord.js clients, one per connector, 60s sync, graceful shutdown** |
+| **Discord OAuth** | **33** | **User account linking, follows Google pattern, cross-domain relay (~95 tests)** |
+| **Discord Webhook** | **33** | **POST /api/discord/webhook, per-connector auth, guest users, AI Bus persistence** |
+| **Discord Formatter** | **33** | **LEO markdown → Discord markdown, 2000-char message splitting** |
+| **Connectors: Discord + Telegram** | **33** | **New types in multi-tenant Connectors collection config schema** |
+
+---
+
+## Sprint 34 — Connectors Phase 2: Slack + Telegram Bridges (Planned)
+
+### Goal
+Replicate the Discord connector pattern for Slack and Telegram. Each Enterprise gets its own bot on each platform. The BotManager architecture, webhook endpoints, and formatter utilities follow the exact template proven in Sprint 33. Parallel engine test audit fills coverage gaps ahead of v1.0.0.
+
+### Planned Deliverables
+- [ ] **Slack Bot Manager** (`src/slack/bot.ts`) — Multi-app manager using @slack/bolt, one per active `slack` connector
+- [ ] **Slack Webhook Endpoint** (`src/endpoints/slack-webhook.ts`) — Multi-tenant message processing, per-connector HMAC auth
+- [ ] **Slack Formatter** (`src/utilities/slack-formatter.ts`) — LEO markdown → Slack mrkdwn, 4000-char splitting
+- [ ] **Slack OAuth** (`src/endpoints/auth-slack.ts`) — User account linking, follows Google/Discord pattern
+- [ ] **Telegram Bot Manager** (`src/telegram/bot.ts`) — Multi-bot manager using Telegraf, one per active `telegram` connector
+- [ ] **Telegram Webhook Endpoint** (`src/endpoints/telegram-webhook.ts`) — Multi-tenant processing, MarkdownV2 support
+- [ ] **Telegram Formatter** (`src/utilities/telegram-formatter.ts`) — LEO markdown → Telegram MarkdownV2, 4096-char splitting
+- [ ] **Engine Test Audit** — Verify coverage for Guardian Angel, Justice Fund, Print-on-Demand, Synchronicity, Booking engines
+- [ ] **~199 new tests** across 8 test files + engine edge cases
+
+See full plan: `docs/planning/SPRINT_34_PLAN.md`
+
+---
+
+## Sprint 33 — LEO Speaks on Discord (Done)
+
+### Goal
+LEO talks on the web, on the phone (Vapi), and through the API (MCP). Discord is next — and it's the template for every future connector (Slack, Telegram, WhatsApp). Each Enterprise gets its own bot. The Connectors collection handles multi-tenant integration config. All intelligence stays in LEO; the bot bridge is just ears and a mouth.
+
+### Deliverables
+- [x] **Multi-Tenant Discord Bots** (`src/discord/bot.ts`) — BotManager class runs N Discord.js clients simultaneously. One per active `discord` connector. 60s sync poll for add/remove/config changes. Graceful multi-client shutdown on SIGINT/SIGTERM.
+- [x] **Discord OAuth** (`src/endpoints/auth-discord.ts`) — Full OAuth2 flow for user account linking. Init + callback handlers, state encoding, cross-domain relay. Scopes: identify, email, guilds.
+- [x] **Discord Webhook Endpoint** (`src/endpoints/discord-webhook.ts`) — Multi-tenant message processing. Validates per-connector HMAC secret, resolves tenant from connector, finds or creates guest users by Discord ID, routes through `leoProcessMessage()`, persists both messages to AI Bus.
+- [x] **Discord Formatter** (`src/utilities/discord-formatter.ts`) — LEO markdown to Discord-compatible markdown. Headers to bold, code blocks preserved, 2000-char message splitting at paragraph/sentence boundaries.
+- [x] **Connectors Collection Update** — Added `discord` and `telegram` types to the multi-tenant Connectors config schema.
+- [x] **Social Providers Panel** — Discord enabled in `AVAILABLE_PROVIDERS` (metadata already defined).
+- [x] **Slash Commands** — `/ask`, `/pulse`, `/weather` registered per-guild via Discord REST API.
+- [x] **~95 new tests** across discord-webhook, auth-discord, discordFormatter, and bot manager.
+
+---
+
+## Sprint 32 — The Wellness Virus Becomes Visible (Done)
+
+### Goal
+The federation's distributed intelligence becomes observable. The Pulse API surfaces real-time health across the mesh. The Synchronicity Engine detects meaningful patterns in federation activity. LEO gains 3 new tools to report on federation health in natural language. Full-stack booking with LEO-powered scheduling rounds out the sprint.
+
+### Deliverables
+- [x] **Federation Pulse API** (`GET /api/federation/pulse`) — Real-time federation health dashboard endpoint. Live capacity snapshots from WorkUnit queries, pheromone trail summaries, backpressure status, per-peer health scoring.
+- [x] **Synchronicity Engine** (`src/utilities/synchronicity-engine.ts`) — Meaningful coincidence detection. Pattern matching for temporal clustering, spatial convergence, and thematic resonance. Wellness metric aggregation.
+- [x] **3 New LEO Tools** — `federation_pulse` (health check), `query_synchronicity` (pattern detection), `federation_weather_report` (natural language mesh status). Total tools: 88.
+- [x] **Full-Stack Booking System** — LEO-powered appointment scheduling, cancellation, and rescheduling with provider availability checking and conflict detection.
+- [x] **Branding Updates** — Ministry → Enterprise throughout UI. "Join Angel OS" → "Join the Federation" on signup page. Federation Network labels updated.
+
+---
+
+## Sprint 31 — Wire the Brains to the Body (Done)
+
+### Goal
+The pheromone grid and workload engine connect to a real production endpoint. Dispatch requests flow through validation, peer querying, workload scoring, pheromone feedback, and persistence — all in a single POST endpoint that any federation peer can call.
+
+### Deliverables
+- [x] **Dispatch Endpoint** (`POST /api/federation/dispatch-work`) — Production webhook: validates work requests, queries peer capacity via federation heartbeats, routes via workload engine, persists WorkUnits, returns full scoring breakdown.
+- [x] **Pheromone Learning** — Dispatch results feed back into the pheromone grid. Successful dispatches deposit `success` pheromones; failures deposit `failure` pheromones. The mesh learns which routes work over time.
+- [x] **Live Capacity in Heartbeats** — Federation heartbeats now include real WorkUnit queries (not mocked). Peers see actual pending/executing/completed work counts.
+- [x] **63 new tests** (sprint31-dispatch.test.ts) — Endpoint validation, peer querying, workload routing, pheromone feedback, capacity snapshots.
 
 ---
 
@@ -372,6 +447,7 @@ Any Enterprise operator can see their federation status, discover other holons v
 | User AI Key Management | TODO | Bring-your-own-key for model selection |
 | Social Syndication | TODO | Post to Facebook/Instagram/Twitter |
 | Guardian Angel Dashboard | TODO | Service discovery + network map UI |
+| Discord Integration | **Done** | Multi-tenant bots, OAuth, webhook, message formatter (Sprint 33) |
 | WhatsApp Bridge | TODO | Twilio/Meta webhook integration |
 | Voice Mode | TODO | Web Speech API in chat |
 
@@ -508,6 +584,9 @@ pnpm dev                      # http://localhost:3000
 | 28 | Puma Punku Polish + Navigation Bridge | 1,860 | LEO nav bridge, DB indexes, type safety hardening |
 | 29 | Pheromone Grid | 1,930 | Swarm intelligence, Game of Life lifecycle, Pheromones collection (70 tests) |
 | 30 | Distributed Workload Engine | 2,060 | Work routing, 5-dim scoring, backpressure, WorkUnits collection (91 tests) |
+| 31 | Wire the Brains to the Body | 2,123 | Dispatch endpoint, pheromone learning, live capacity heartbeats (63 tests) |
+| 32 | The Wellness Virus Becomes Visible | 2,387 | Federation Pulse API, Synchronicity Engine, 3 new LEO tools, full-stack booking, branding |
+| 33 | LEO Speaks on Discord | 2,482 | Multi-tenant Discord bots, Discord OAuth, webhook endpoint, formatter (~95 tests) |
 
 ---
 

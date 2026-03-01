@@ -6,24 +6,24 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.30.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-2%2C213%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/version-v0.33.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-2%2C482%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-47%20test%20files-blue)]()
-[![Engines](https://img.shields.io/badge/Engines-12-ff8c00)]()
+[![TDD](https://img.shields.io/badge/TDD-53%20test%20files-blue)]()
+[![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-78+-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-49+-purple)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-88+-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-52+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-30-ff69b4)]()
+[![Sprints](https://img.shields.io/badge/Sprints-33-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
 ---
 
-## The Model (Updated — Sprint 30)
+## The Model (Updated — Sprint 33)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -52,49 +52,66 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 30 — The Wellness Virus (Distributed Workload Engine)
+## What's New: Sprint 33 — LEO Speaks on Discord (N Bots per Enterprise)
 
-### Sprint 30: Distributed Workload Engine (Current)
-- **Workload Engine** (`workload-engine.ts`, 884 lines) — Pure TypeScript engine for routing computational work across the federation mesh. Scores candidate workers across 5 weighted dimensions: capability match (30%), trust level (25%), load capacity (20%), performance history (15%), cost (10%) + pheromone learning bonus (0-15). Trust-gated: generation/aggregation work requires `vouched` trust minimum.
-- **WorkUnits Collection** — Persistent work unit tracking in the Intelligence admin group. State machine: pending -> claimed -> executing -> completed/failed/timeout. Priority-based scheduling (critical/high/normal/low/background). Exponential backoff retries with hard cap. Deadline enforcement.
-- **Backpressure Detection** — Mesh-wide load monitoring. When average capacity > 85%, backpressure signals trigger priority-based shedding (critical work never shed, background work shed first).
-- **Capacity Broadcasting** — Federation heartbeats now include compute capacity snapshots. Peers learn each other's available processing power for intelligent work routing.
-- **Work Decomposition** — Aggregation work units can fan-out into per-item children with automatic result aggregation.
-- **91 new tests** covering state machine, scoring, routing, backpressure, capacity snapshots, decomposition, and constants validation.
+### Sprint 33: Discord Integration (Current)
+- **Multi-Tenant Discord Bots** (`src/discord/bot.ts`) — BotManager class runs N Discord.js clients simultaneously, one per active `discord` connector. Each Enterprise gets its own bot. 60s sync poll for connector add/remove/config changes. Graceful multi-client shutdown.
+- **Discord OAuth** (`src/endpoints/auth-discord.ts`) — Full OAuth2 flow for user account linking. Follows Google OAuth pattern: init handler, callback handler, state encoding, cross-domain relay. Users link Discord identity in `/dashboard/account/connections`.
+- **Discord Webhook Endpoint** (`src/endpoints/discord-webhook.ts`) — Multi-tenant message processing. Validates per-connector HMAC secret, resolves tenant from connector, finds or creates guest users by Discord ID, routes through `leoProcessMessage()`, persists to AI Bus.
+- **Discord Formatter** (`src/utilities/discord-formatter.ts`) — LEO markdown → Discord-compatible markdown. Splits messages at 2000-char Discord limit cleanly at paragraph/sentence boundaries.
+- **Connectors Collection Update** — Added `discord` and `telegram` types to the Connectors multi-tenant config schema.
+- **~95 new tests** across discord-webhook, auth-discord, discordFormatter, and bot manager.
+
+### Sprint 32: The Wellness Virus Becomes Visible
+- **Federation Pulse API** (`GET /api/federation/pulse`) — Real-time federation health dashboard. Live capacity snapshots from WorkUnit queries, pheromone trail summaries, backpressure status, per-peer health scoring.
+- **Synchronicity Engine** (`src/utilities/synchronicity-engine.ts`) — Meaningful coincidence detection across federation events. Pattern matching for temporal clustering, spatial convergence, and thematic resonance. Wellness metric aggregation.
+- **3 New LEO Tools** — `federation_pulse`, `query_synchronicity`, `federation_weather_report`. Leo can now report on federation health in natural language. Total: 88 tools.
+- **Full-Stack Booking System** — LEO-powered appointment scheduling, cancellation, and rescheduling with provider availability checking.
+- **Branding Updates** — Ministry → Enterprise throughout UI. "Join Angel OS" → "Join the Federation" on signup page.
+
+### Sprint 31: Wire the Brains to the Body
+- **Dispatch Endpoint** (`POST /api/federation/dispatch-work`) — Production webhook that validates work requests, queries peer capacity, routes via workload engine, persists WorkUnits, and returns full scoring breakdown.
+- **Pheromone Learning** — Dispatch results feed back into the pheromone grid. Successful dispatches deposit `success` pheromones; failures deposit `failure` pheromones. The mesh learns which routes work.
+- **Live Capacity in Heartbeats** — Federation heartbeats now include real WorkUnit queries (not mocked data). Peers see each other's actual pending/executing/completed work counts.
+- **63 new tests** (sprint31-dispatch.test.ts) — Endpoint validation, peer querying, workload routing, pheromone feedback, capacity snapshots.
+
+### Sprint 30: Distributed Workload Engine
+- **Workload Engine** (`workload-engine.ts`, 884 lines) — Pure TypeScript engine for routing computational work across the federation mesh. 5-dimension scoring: capability (30%), trust (25%), load (20%), performance (15%), cost (10%) + pheromone bonus (0-15).
+- **WorkUnits Collection** — Persistent work unit tracking. State machine: pending -> claimed -> executing -> completed/failed/timeout. Priority scheduling, exponential backoff, deadline enforcement.
+- **Backpressure Detection** — Mesh-wide load monitoring at 85% threshold. Priority-based shedding (critical never shed).
+- **91 new tests** covering state machine, scoring, routing, backpressure, capacity, decomposition.
 
 ### Sprint 29: Pheromone Grid — Swarm Intelligence
-- **Pheromone Engine** (`pheromone-engine.ts`, 757 lines) — Bio-inspired navigation system. Nodes deposit chemical-like signals (pheromones) that evaporate over time and reinforce successful paths. Pheromone types: `success`, `failure`, `discovery`, `demand`, `warning`.
-- **Game of Life Federation Lifecycle** — Conway's Game of Life rules applied to federation health. Nodes are born (2-3 healthy neighbors), survive (2-3), or die (isolation/overcrowding). Emergent mesh resilience.
-- **Pheromones Collection** — Persistent pheromone storage in the Intelligence admin group. Auto-decay, spatial grid operations, gradient following for pathfinding.
-- **70 new tests** across pheromone operations, decay, reinforcement, grid navigation, Game of Life lifecycle, and mesh health scoring.
+- **Pheromone Engine** (`pheromone-engine.ts`, 757 lines) — Bio-inspired navigation. 5 pheromone types: `success`, `failure`, `discovery`, `demand`, `warning`. Decay, reinforcement, gradient following.
+- **Game of Life Federation Lifecycle** — Conway's rules for mesh health. Emergent resilience.
+- **70 new tests** across pheromone operations, grid navigation, and mesh health scoring.
 
 ### Sprint 28: Puma Punku Polish + Navigation Bridge
-- **LEO Navigation Bridge** — Dashboard auto-navigates when Leo executes mutation tools. Create a product? Dashboard jumps to products. Accept an order? Dashboard shows orders.
-- **Database Index Optimization** — Strategic indexes added across hot query paths for federation, logistics, and pheromone operations.
-- **Type Safety Hardening** — Admin field consistency, proper type casts, and collection admin improvements across the codebase.
+- **LEO Navigation Bridge** — Dashboard auto-navigates when Leo executes mutation tools.
+- **Database Index Optimization** — Strategic indexes across federation, logistics, and pheromone query paths.
 
 ### Sprint 27: Adversarial Testing + Stability
-- **170 new adversarial tests** — Edge case coverage across all engines: boundary conditions, malformed inputs, race conditions, overflow scenarios, empty datasets, Unicode handling.
-- **TDZ Crash Fix** — Resolved temporal dead zone crash in slash command handler (`/models`, `/credits` etc.) that was causing "AI service returned an error."
-- **INP 222ms Fix** — Chat textarea resize deferred to requestAnimationFrame, eliminating input delay.
+- **170 new adversarial tests** — Boundary conditions, malformed inputs, race conditions, overflow scenarios.
+- **TDZ Crash Fix** — Resolved temporal dead zone crash in slash command handler.
+- **INP 222ms Fix** — Chat textarea resize deferred to requestAnimationFrame.
 
 ### Sprint 26: Universal Logistics Network
-- **Logistics Engine** (`logistics-engine.ts`) — Physical goods movement: Bread-Breaker local delivery + Soul Fleet long-haul dispatch. Transport matching, load optimization, delivery time estimation.
-- **3 New Collections** — LogisticsNodes (delivery hubs), Transports (vehicles/couriers), Shipments (package tracking). Full lifecycle from pickup to delivery.
-- **55 new tests** covering transport matching, route scoring, capacity management, and delivery estimation.
+- **Logistics Engine** (`logistics-engine.ts`) — Bread-Breaker local delivery + Soul Fleet long-haul dispatch.
+- **3 New Collections** — LogisticsNodes, Transports, Shipments.
+- **55 new tests** covering transport matching, route scoring, capacity management.
 
 ### Sprint 25: Smart Model Routing
-- **AI Gateway** (`ai-gateway.ts`) — Credit-aware 4-tier model routing. Leo dynamically selects the best model based on available credits, task complexity, and fallback chains. Prevents credit exhaustion across providers.
-- **65 new tests** for gateway routing, credit awareness, tier selection, and fallback behavior.
+- **AI Gateway** (`ai-gateway.ts`) — Credit-aware 4-tier model routing with fallback chains.
+- **65 new tests** for gateway routing, credit awareness, tier selection.
 
 ---
 
-## What's Working (v0.30.0-dev)
+## What's Working (v0.33.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 78+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
+| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 88+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
@@ -199,6 +216,19 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **WorkUnits Collection** | **Done** | Distributed work atoms: state machine, priority scheduling, exponential backoff, deadline enforcement |
 | **Backpressure Detection** | **Done** | Mesh-wide load monitoring, priority-based work shedding (critical never shed) |
 | **Capacity Broadcasting** | **Done** | Heartbeats include compute capacity snapshots for intelligent work routing |
+| **Dispatch Endpoint** | **Done** | POST /api/federation/dispatch-work — validates, queries peers, routes via workload engine, persists WorkUnits (63 tests) |
+| **Pheromone Learning** | **Done** | Dispatch results feed pheromone grid — success/failure trails, mesh learns optimal routes |
+| **Live Capacity Heartbeats** | **Done** | Real WorkUnit queries in heartbeats (not mocked), peers see actual work counts |
+| **Federation Pulse API** | **Done** | GET /api/federation/pulse — real-time health dashboard, capacity snapshots, pheromone summaries |
+| **Synchronicity Engine** | **Done** | Meaningful coincidence detection: temporal clustering, spatial convergence, thematic resonance |
+| **3 New Leo Tools (S32)** | **Done** | federation_pulse, query_synchronicity, federation_weather_report (total: 88 tools) |
+| **Full-Stack Booking** | **Done** | LEO-powered scheduling, cancellation, rescheduling with availability checking |
+| **Branding Update** | **Done** | Ministry → Enterprise throughout UI, "Join Angel OS" → "Join the Federation" |
+| **Discord Multi-Tenant Bots** | **Done** | BotManager runs N Discord.js clients, one per connector. 60s sync poll. Graceful shutdown |
+| **Discord OAuth** | **Done** | Full OAuth2 user account linking, follows Google pattern, cross-domain relay |
+| **Discord Webhook** | **Done** | POST /api/discord/webhook — per-connector HMAC auth, guest user creation, AI Bus persistence |
+| **Discord Formatter** | **Done** | LEO markdown → Discord markdown, 2000-char message splitting |
+| **Connectors: Discord + Telegram** | **Done** | `discord` and `telegram` types added to multi-tenant Connectors collection |
 
 ### Leo's 78+ Tools
 
