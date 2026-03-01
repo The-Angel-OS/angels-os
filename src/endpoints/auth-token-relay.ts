@@ -18,7 +18,6 @@
  */
 import type { PayloadHandler } from 'payload'
 import jwt from 'jsonwebtoken'
-import { cookies as getCookies } from 'next/headers'
 import { getServerSideURL } from '@/utilities/getURL'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
@@ -55,57 +54,27 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     // Validate redirect is relative path (prevent open redirect)
     const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-    // Set the cookie via Next.js cookies() API — matches Payload's own
-    // setPayloadAuthCookie mechanism. Bypasses handleEndpoints() Response
-    // reconstruction issues with Set-Cookie headers.
-    const isProduction = process.env.NODE_ENV === 'production'
+    // Redirect through /api/auth/complete — a standalone Next.js route
+    // handler that sets the cookie outside of Payload's pipeline.
+    // For token-relay, we use the current host (custom domain) as the base URL.
     const hostHeader = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || ''
     const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
     const baseUrl = hostHeader
       ? `${protoHeader}://${hostHeader}`
       : getServerSideURL()
-    const absoluteRedirect = new URL(safeRedirect, baseUrl).toString()
-    const cookieName = `${req.payload.config.cookiePrefix}-token`
 
-    console.log('[Token Relay] Setting cookie via cookies() API and redirecting:', {
+    const completeUrl = new URL('/api/auth/complete', baseUrl)
+    completeUrl.searchParams.set('token', token)
+    completeUrl.searchParams.set('redirect', safeRedirect)
+
+    console.log('[Token Relay] Redirecting through /api/auth/complete:', {
       safeRedirect,
-      absoluteRedirect,
-      cookieName,
-      isProduction,
+      completeUrl: completeUrl.toString(),
     })
-
-    try {
-      const cookieStore = await getCookies()
-      cookieStore.set(cookieName, token, {
-        // No domain for relay — cookie is for the current (custom) domain only
-        expires: new Date(Date.now() + 1209600 * 1000), // 14 days
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: isProduction,
-        path: '/',
-      })
-    } catch (cookieErr) {
-      console.error('[Token Relay] cookies() API failed, falling back to Set-Cookie header:', cookieErr)
-      const cookieParts = [
-        `${cookieName}=${token}`,
-        'Path=/',
-        'HttpOnly',
-        'SameSite=Lax',
-        ...(isProduction ? ['Secure'] : []),
-        'Max-Age=1209600',
-      ]
-      return new Response(null, {
-        status: 302,
-        headers: {
-          Location: absoluteRedirect,
-          'Set-Cookie': cookieParts.join('; '),
-        },
-      })
-    }
 
     return new Response(null, {
       status: 302,
-      headers: { Location: absoluteRedirect },
+      headers: { Location: completeUrl.toString() },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Token relay failed'
