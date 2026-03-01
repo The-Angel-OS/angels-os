@@ -17,7 +17,6 @@
  * @see src/endpoints/auth-google.ts — blueprint for this implementation
  */
 import type { PayloadHandler } from 'payload'
-import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -441,7 +440,11 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // ----- Same-domain: set cookie via NextResponse -----
+    // ----- Same-domain: set cookie via Set-Cookie header -----
+    // NOTE: Do NOT use NextResponse.cookies.set() here — Payload's
+    // handleEndpoints() reconstructs the Response from body/headers/status,
+    // which silently drops NextResponse's internal cookie jar. Use a plain
+    // Set-Cookie header string instead (matches Payload's own login endpoint).
     const cookieDomain = process.env.COOKIE_DOMAIN || ''
     const isProduction = process.env.NODE_ENV === 'production'
     const absoluteRedirect = new URL(redirectPath, canonicalUrl).toString()
@@ -455,16 +458,23 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       isProduction,
     })
 
-    const response = NextResponse.redirect(absoluteRedirect, 302)
-    response.cookies.set('payload-token', payloadToken, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: isProduction,
-      maxAge: 1209600,
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    const cookieParts = [
+      `payload-token=${payloadToken}`,
+      'Path=/',
+      'HttpOnly',
+      'SameSite=Lax',
+      ...(isProduction ? ['Secure'] : []),
+      ...(cookieDomain ? [`Domain=${cookieDomain}`] : []),
+      'Max-Age=1209600',
+    ]
+
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: absoluteRedirect,
+        'Set-Cookie': cookieParts.join('; '),
+      },
     })
-    return response
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'An unexpected error occurred'

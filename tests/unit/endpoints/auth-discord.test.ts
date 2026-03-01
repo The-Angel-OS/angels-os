@@ -20,25 +20,8 @@ vi.mock('jsonwebtoken', () => ({
   },
 }))
 
-// ─── Mock next/server ───────────────────────────────────────────
-vi.mock('next/server', () => ({
-  NextResponse: {
-    redirect: vi.fn((url: string, status: number) => {
-      const headers = new Headers({ Location: url })
-      const cookieJar: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
-      return {
-        status,
-        headers,
-        cookies: {
-          set: (name: string, value: string, options: Record<string, unknown> = {}) => {
-            cookieJar.push({ name, value, options })
-          },
-          getAll: () => cookieJar,
-        },
-      }
-    }),
-  },
-}))
+// NOTE: next/server mock removed — auth-discord no longer uses NextResponse.
+// Cookie is now set via a plain Response with Set-Cookie header.
 
 // ─── Import handlers after mocks ────────────────────────────────
 const { authDiscordInitHandler, authDiscordCallbackHandler } = await import(
@@ -477,12 +460,10 @@ describe('state validation', () => {
 
     const res = await authDiscordCallbackHandler(req as any)
 
-    // NextResponse.redirect is called — check the redirect URL includes custom path
-    const { NextResponse } = await import('next/server')
-    expect(NextResponse.redirect).toHaveBeenCalledWith(
-      expect.stringContaining('/my-custom-page'),
-      302,
-    )
+    // Plain Response with Location header and Set-Cookie
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('/my-custom-page')
+    expect(res.headers.get('Set-Cookie')).toContain('payload-token=mock-jwt-token')
   })
 
   it('invalid/tampered state does not crash (gracefully ignored)', async () => {
@@ -511,11 +492,9 @@ describe('state validation', () => {
     const res = await authDiscordCallbackHandler(req as any)
 
     // Should still complete the flow with a redirect (defaults to /dashboard)
-    const { NextResponse } = await import('next/server')
-    expect(NextResponse.redirect).toHaveBeenCalledWith(
-      expect.stringContaining('/dashboard'),
-      302,
-    )
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('/dashboard')
+    expect(res.headers.get('Set-Cookie')).toContain('payload-token=')
   })
 
   it('missing state works (defaults to /dashboard redirect)', async () => {
@@ -542,11 +521,9 @@ describe('state validation', () => {
     const res = await authDiscordCallbackHandler(req as any)
 
     // With no state, customer user should redirect to /dashboard
-    const { NextResponse } = await import('next/server')
-    expect(NextResponse.redirect).toHaveBeenCalledWith(
-      expect.stringContaining('/dashboard'),
-      302,
-    )
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('/dashboard')
+    expect(res.headers.get('Set-Cookie')).toContain('payload-token=')
   })
 })
 
@@ -627,26 +604,16 @@ describe('cross-domain relay', () => {
 
     const res = await authDiscordCallbackHandler(req as any)
 
-    // NextResponse.redirect should have been used (sets cookie internally)
-    const { NextResponse } = await import('next/server')
-    expect(NextResponse.redirect).toHaveBeenCalledWith(
-      expect.stringContaining('/dashboard'),
-      302,
-    )
+    // Plain Response with Location header and Set-Cookie
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('/dashboard')
 
-    // Verify cookie was set on the NextResponse object
-    const redirectCall = (NextResponse.redirect as ReturnType<typeof vi.fn>).mock.results[
-      (NextResponse.redirect as ReturnType<typeof vi.fn>).mock.results.length - 1
-    ]
-    const mockResponse = redirectCall.value
-    const cookies = mockResponse.cookies.getAll()
-    expect(cookies).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'payload-token',
-          value: 'mock-jwt-token',
-        }),
-      ]),
-    )
+    // Verify cookie was set via Set-Cookie header
+    const setCookie = res.headers.get('Set-Cookie')!
+    expect(setCookie).toContain('payload-token=mock-jwt-token')
+    expect(setCookie).toContain('HttpOnly')
+    expect(setCookie).toContain('SameSite=Lax')
+    expect(setCookie).toContain('Path=/')
+    expect(setCookie).toContain('Max-Age=1209600')
   })
 })

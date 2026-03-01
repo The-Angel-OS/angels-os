@@ -17,7 +17,6 @@
  * before setting the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { getServerSideURL } from '@/utilities/getURL'
 
@@ -55,9 +54,10 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     // Validate redirect is relative path (prevent open redirect)
     const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-    // Set the cookie on this domain via NextResponse
+    // Set the cookie on this domain via Set-Cookie header
+    // NOTE: Do NOT use NextResponse.cookies.set() — Payload's handleEndpoints()
+    // reconstructs the Response and silently drops NextResponse's cookie jar.
     const isProduction = process.env.NODE_ENV === 'production'
-    // Build absolute URL for NextResponse.redirect
     const hostHeader = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || ''
     const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
     const baseUrl = hostHeader
@@ -71,15 +71,22 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
       isProduction,
     })
 
-    const response = NextResponse.redirect(absoluteRedirect, 302)
-    response.cookies.set('payload-token', token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: isProduction,
-      maxAge: 1209600,
+    const cookieParts = [
+      `payload-token=${token}`,
+      'Path=/',
+      'HttpOnly',
+      'SameSite=Lax',
+      ...(isProduction ? ['Secure'] : []),
+      'Max-Age=1209600',
+    ]
+
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: absoluteRedirect,
+        'Set-Cookie': cookieParts.join('; '),
+      },
     })
-    return response
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Token relay failed'
     return Response.json({ error: message }, { status: 500 })
