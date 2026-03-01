@@ -278,6 +278,30 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       roles: user.roles,
     })
 
+    // ----- Create session (required for Payload 3.x useSessions default) -----
+    // Payload's JWT strategy rejects tokens without a valid `sid` when
+    // useSessions is true (the default in Payload 3.77+).
+    const sid = crypto.randomUUID()
+    const now = new Date()
+    const tokenExpMs = 14 * 24 * 60 * 60 * 1000 // 14 days
+    const expiresAt = new Date(now.getTime() + tokenExpMs)
+    const session = { id: sid, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingSessions: any[] = (user as any).sessions || []
+    const validSessions = existingSessions.filter(
+      (s: { expiresAt: string }) => new Date(s.expiresAt) > now,
+    )
+    validSessions.push(session)
+
+    await req.payload.update({
+      collection: 'users',
+      id: user.id,
+      data: { sessions: validSessions } as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+
     // ----- Generate Payload-compatible JWT -----
     // CRITICAL: Use `req.payload.secret` — Payload internally hashes the config
     // secret via sha256(PAYLOAD_SECRET).slice(0, 32). Signing with the raw env
@@ -286,7 +310,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     const issuedAt = Math.floor(Date.now() / 1000)
     const expiration = issuedAt + 14 * 24 * 60 * 60 // 14 days
 
-    const payloadToken = await new SignJWT({ id: user.id, email: user.email, collection: 'users' })
+    const payloadToken = await new SignJWT({ id: user.id, email: user.email, collection: 'users', sid })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .setIssuedAt(issuedAt)
       .setExpirationTime(expiration)
