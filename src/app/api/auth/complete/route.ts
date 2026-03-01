@@ -25,11 +25,21 @@
  *   - Redirect is validated to be a relative path (prevents open redirect)
  *   - Cookie flags match Payload's own auth cookie configuration
  *
+ * Cookie Strategy (Attempt #7):
+ *   Uses NextResponse.redirect() + response.cookies.set() — the native Next.js
+ *   cookie API. This is critical because:
+ *   - Middleware (src/middleware.ts) intercepts /api routes via NextResponse.next()
+ *   - When middleware is active, raw `new Response()` with Set-Cookie headers
+ *     can be silently dropped during Next.js response pipeline processing
+ *   - NextResponse.cookies.set() integrates properly with the middleware pipeline
+ *   - This is different from cookies() (next/headers AsyncLocalStorage) which
+ *     only works with NextResponse, not raw Response objects
+ *
  * Diagnostic:
  *   Response includes X-Auth-Debug-* headers visible in Chrome DevTools
  *   Network tab for troubleshooting cookie issues.
  */
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
 export async function GET(request: NextRequest) {
@@ -128,46 +138,34 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Build Set-Cookie header manually — this is the most reliable approach.
-  // We avoid cookies() from next/headers because it uses AsyncLocalStorage
-  // which does NOT merge into a raw Response(302). We also avoid
-  // NextResponse.cookies because we want full control over every attribute.
-  // Since this route handler is NOT going through Payload's handleEndpoints(),
-  // a raw Set-Cookie header goes straight to the browser.
   const maxAge = 14 * 24 * 60 * 60 // 14 days in seconds
-
-  const cookieParts = [
-    `payload-token=${encodeURIComponent(token)}`,
-    `Path=/`,
-    `Max-Age=${maxAge}`,
-    `HttpOnly`,
-    `SameSite=Lax`,
-  ]
-  if (effectiveCookieDomain) {
-    cookieParts.push(`Domain=${effectiveCookieDomain}`)
-  }
-  if (isProduction) {
-    cookieParts.push(`Secure`)
-  }
-  const setCookieValue = cookieParts.join('; ')
 
   console.log('[Auth Complete] Setting cookie and redirecting:', {
     safeRedirect,
     absoluteRedirect,
     effectiveCookieDomain: effectiveCookieDomain || '(exact host: ' + host + ')',
     isProduction,
-    cookieLength: setCookieValue.length,
     tokenLength: token.length,
-    setCookiePreview: setCookieValue.substring(0, 100) + '...',
   })
 
-  // Include diagnostic headers so the user can check Chrome DevTools
-  // Network tab to see exactly what happened during the auth flow.
-  return new Response(null, {
+  // --- Use NextResponse.redirect() + response.cookies.set() ---
+  // This is the ONLY reliable way to set cookies in a Next.js route handler
+  // when middleware (src/middleware.ts) is in the pipeline.
+  //
+  // Why other approaches failed:
+  // 1. Raw Set-Cookie header on Payload endpoint → Payload handleEndpoints() strips it
+  // 2. cookies() (next/headers) on Payload endpoint → same strip
+  // 3. cookies() (next/headers) + new Response(302) → AsyncLocalStorage doesn't merge
+  // 4. Raw Set-Cookie on new Response(302) in standalone handler → middleware pipeline
+  //    processes the response and can silently drop Set-Cookie from raw Response objects
+  //
+  // NextResponse.redirect() + .cookies.set() works because:
+  // - NextResponse is the native response type that Next.js middleware pipeline expects
+  // - .cookies.set() attaches cookies directly to the NextResponse instance
+  // - The middleware pipeline preserves NextResponse cookie state through processing
+  const response = NextResponse.redirect(absoluteRedirect, {
     status: 302,
     headers: {
-      Location: absoluteRedirect,
-      'Set-Cookie': setCookieValue,
       'Cache-Control': 'no-store, no-cache, must-revalidate',
       'X-Auth-Debug-Host': host,
       'X-Auth-Debug-Proto': proto,
@@ -176,6 +174,19 @@ export async function GET(request: NextRequest) {
       'X-Auth-Debug-Secure': String(isProduction),
       'X-Auth-Debug-Env-Server-URL': envServerUrl,
       'X-Auth-Debug-Env-Vercel-Prod-URL': envVercelProdUrl,
+      'X-Auth-Debug-Cookie-Method': 'NextResponse.cookies.set',
     },
   })
+
+  // Set the payload-token cookie using NextResponse's native cookie API
+  response.cookies.set('payload-token', token, {
+    path: '/',
+    maxAge,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    ...(effectiveCookieDomain ? { domain: effectiveCookieDomain } : {}),
+  })
+
+  return response
 }
