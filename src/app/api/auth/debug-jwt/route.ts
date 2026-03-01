@@ -83,7 +83,7 @@ export async function GET(request: Request) {
     try {
       const user = await payload.findByID({
         id: userId as number,
-        collection: collectionSlug,
+        collection: collectionSlug as 'users',
         depth: 0,
       })
       steps['4_findByID'] = user ? 'FOUND' : 'NULL'
