@@ -18,7 +18,7 @@
  *    through /api/auth/token-relay on the origin domain to set the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import jwt from 'jsonwebtoken'
+import { SignJWT } from 'jose'
 import crypto from 'crypto'
 import { getServerSideURL } from '@/utilities/getURL'
 
@@ -279,11 +279,17 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     })
 
     // ----- Generate Payload-compatible JWT -----
-    const payloadToken = jwt.sign(
-      { id: user.id, email: user.email, collection: 'users' },
-      process.env.PAYLOAD_SECRET!,
-      { expiresIn: '14d' },
-    )
+    // MUST use jose (same library as Payload CMS 3.x) — jsonwebtoken encodes
+    // the secret differently and produces signatures Payload cannot verify.
+    const secretKey = new TextEncoder().encode(process.env.PAYLOAD_SECRET!)
+    const issuedAt = Math.floor(Date.now() / 1000)
+    const expiration = issuedAt + 14 * 24 * 60 * 60 // 14 days
+
+    const payloadToken = await new SignJWT({ id: user.id, email: user.email, collection: 'users' })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuedAt(issuedAt)
+      .setExpirationTime(expiration)
+      .sign(secretKey)
 
     // ----- Parse state to determine redirect + origin domain + link mode -----
     let stateRedirect: string | undefined

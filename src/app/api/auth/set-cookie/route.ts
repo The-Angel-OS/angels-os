@@ -27,7 +27,7 @@
  *   - Only accepts POST requests (not linkable/CSRF via GET)
  *   - Cookie flags match Payload's own auth cookie configuration
  */
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,8 +50,10 @@ export async function POST(request: Request) {
   }
 
   // Verify the JWT is genuine
+  // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
   try {
-    jwt.verify(token, secret)
+    const secretKey = new TextEncoder().encode(secret)
+    await jwtVerify(token, secretKey)
   } catch {
     return Response.json({ error: 'Invalid or expired token.' }, { status: 401 })
   }

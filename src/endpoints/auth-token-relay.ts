@@ -17,7 +17,7 @@
  * before setting the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 import { getServerSideURL } from '@/utilities/getURL'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
@@ -42,8 +42,10 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
       )
     }
 
+    // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
     try {
-      jwt.verify(token, secret)
+      const secretKey = new TextEncoder().encode(secret)
+      await jwtVerify(token, secretKey)
     } catch {
       return Response.json(
         { error: 'Invalid or expired token.' },

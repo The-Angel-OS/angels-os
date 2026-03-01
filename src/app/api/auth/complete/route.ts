@@ -44,7 +44,7 @@
  *   - document.cookie sets non-HttpOnly cookie (acceptable tradeoff vs no auth)
  *   - Redirect is validated to be a relative path (prevents open redirect)
  */
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,8 +79,10 @@ export async function GET(request: Request) {
   }
 
   // Verify the JWT is genuine (signed by our PAYLOAD_SECRET)
+  // MUST use jose (same library as Payload CMS 3.x) for consistent verification.
   try {
-    jwt.verify(token, secret)
+    const secretKey = new TextEncoder().encode(secret)
+    await jwtVerify(token, secretKey)
   } catch {
     return Response.json({ error: 'Invalid or expired token.' }, { status: 401 })
   }
