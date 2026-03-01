@@ -316,7 +316,7 @@ export default async function DashboardPage({
       {/* Quick Access */}
       <div>
         <h2 className="mb-4 text-xl font-semibold">Quick Access</h2>
-        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
           <QuickAccessCard
             href={`${prefix}/dashboard/spaces`}
             icon={<ChatIcon />}
@@ -337,6 +337,13 @@ export default async function DashboardPage({
             iconColor="text-purple-500"
             title="Products"
             subtitle="E-commerce Catalog"
+          />
+          <QuickAccessCard
+            href={`${prefix}/federation/discover`}
+            icon={<NetworkIcon />}
+            iconColor="text-indigo-500"
+            title="Discover"
+            subtitle="Federation Network"
           />
           {isAdmin && (
             <QuickAccessCard
@@ -479,6 +486,19 @@ function CubeIcon() {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+      />
+    </svg>
+  )
+}
+
+function NetworkIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
       />
     </svg>
   )

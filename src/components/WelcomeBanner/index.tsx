@@ -367,8 +367,8 @@ function getRoleBannerConfig(
             description: 'Add team members to your spaces and assign roles for collaboration.',
           },
           {
-            title: 'Customize Your Brand',
-            description: 'Set your logo, colors, and site name in the Enterprise Setup wizard.',
+            title: 'Discover the Federation',
+            description: 'Browse other Enterprises, find partners, and grow your network.',
           },
         ],
         links: [

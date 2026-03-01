@@ -102,6 +102,7 @@ import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
 import { federationCatalogHandler } from '@/endpoints/federation-catalog'
+import { federationHolonsHandler } from '@/endpoints/federation-holons'
 import { federationSkillsListHandler, federationSkillsInvokeHandler } from '@/endpoints/federation-skills'
 import { federationVouchHandler } from '@/endpoints/federation-vouch'
 import { federationGovernanceSyncHandler } from '@/endpoints/federation-governance-sync'
@@ -628,6 +629,11 @@ export default buildConfig({
       path: '/federation/catalog',
       method: 'get',
       handler: federationCatalogHandler,
+    },
+    {
+      path: '/federation/holons',
+      method: 'get',
+      handler: federationHolonsHandler,
     },
     {
       path: '/federation/skills',

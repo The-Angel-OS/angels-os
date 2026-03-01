@@ -50,6 +50,16 @@ const SPACES_NAV_ITEM = {
   },
 }
 
+const DISCOVER_NAV_ITEM = {
+  id: 'discover',
+  link: {
+    type: 'custom' as const,
+    label: 'Discover',
+    url: '/federation/discover',
+    newTab: false,
+  },
+}
+
 const DASHBOARD_NAV_ITEM = {
   id: 'dashboard',
   link: {
@@ -72,6 +82,7 @@ export function HeaderClient({ header, tenant }: Props) {
     // Ensure Posts, Events, Docs always present (even if CMS omits them)
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
+    if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
     if (user) {
       if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
       if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
