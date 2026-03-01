@@ -20,6 +20,13 @@ const TENANT_HEADER = 'x-tenant-id'
 const handleI18nRouting = createMiddleware(routing)
 
 export default async function middleware(request: NextRequest) {
+  // Auth complete handler sets cookies via raw Response — bypass ALL middleware
+  // processing to prevent NextResponse.next() from wrapping/merging the
+  // response and potentially dropping Set-Cookie headers.
+  if (request.nextUrl.pathname === '/api/auth/complete') {
+    return NextResponse.next()
+  }
+
   const hostname = request.headers.get('host')?.split(':')[0] ?? 'localhost'
 
   // Redirect legacy default. subdomain to www.
