@@ -19,6 +19,7 @@
 import type { PayloadHandler } from 'payload'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { getServerSideURL } from '@/utilities/getURL'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
   try {
@@ -61,7 +62,7 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     const protoHeader = req.headers?.get?.('x-forwarded-proto') || 'https'
     const baseUrl = hostHeader
       ? `${protoHeader}://${hostHeader}`
-      : (process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000')
+      : getServerSideURL()
     const absoluteRedirect = new URL(safeRedirect, baseUrl).toString()
 
     console.log('[Token Relay] Setting cookie and redirecting:', {

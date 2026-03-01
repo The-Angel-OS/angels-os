@@ -8,6 +8,7 @@
  * @see src/utilities/invitationSystem.ts — generates tokens and URLs
  */
 import type { Payload } from 'payload'
+import { getServerSideURL } from '@/utilities/getURL'
 
 export interface SendInvitationEmailOptions {
   payload: Payload
@@ -42,7 +43,7 @@ export async function sendInvitationEmail(opts: SendInvitationEmailOptions): Pro
     tenantName,
   } = opts
 
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const baseUrl = getServerSideURL()
   const fullInviteUrl = inviteUrl.startsWith('http') ? inviteUrl : `${baseUrl}${inviteUrl}`
 
   const subject = `${inviterName} invited you to join ${spaceName}`

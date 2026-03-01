@@ -30,12 +30,17 @@ export const getServerSideURL = () => {
   // First priority: Explicitly set NEXT_PUBLIC_SERVER_URL
   let url = process.env.NEXT_PUBLIC_SERVER_URL
 
-  // Second priority: Vercel custom domain (production)
+  // Second priority: PAYLOAD_PUBLIC_SERVER_URL (Payload-specific, often set on Vercel)
+  if (!url && process.env.PAYLOAD_PUBLIC_SERVER_URL) {
+    return process.env.PAYLOAD_PUBLIC_SERVER_URL
+  }
+
+  // Third priority: Vercel custom domain (production)
   if (!url && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   }
 
-  // Third priority: Vercel deployment URL (preview/development)
+  // Fourth priority: Vercel deployment URL (preview/development)
   if (!url && process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }

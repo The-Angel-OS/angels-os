@@ -7,6 +7,7 @@
  * @see src/utilities/sendInvitationEmail.ts — space-level equivalent
  */
 import type { Payload } from 'payload'
+import { getServerSideURL } from '@/utilities/getURL'
 
 export interface SendTenantInvitationEmailOptions {
   payload: Payload
@@ -41,7 +42,7 @@ export async function sendTenantInvitationEmail(
     message,
   } = opts
 
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const baseUrl = getServerSideURL()
   const fullInviteUrl = inviteUrl.startsWith('http') ? inviteUrl : `${baseUrl}${inviteUrl}`
 
   const roleLabel = role.replace('tenant_', '').replace('_', ' ')

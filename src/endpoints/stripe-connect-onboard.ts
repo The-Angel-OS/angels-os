@@ -10,6 +10,7 @@
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import Stripe from 'stripe'
+import { getServerSideURL } from '@/utilities/getURL'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -113,7 +114,7 @@ export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
     }
 
     // Generate the onboarding link
-    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const baseUrl = getServerSideURL()
 
     const accountLink = await getStripe().accountLinks.create({
       account: accountId,

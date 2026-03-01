@@ -10,6 +10,7 @@ import type { PayloadHandler } from 'payload'
 import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
 import { DEFAULT_EXPIRY_DAYS, calculateExpiration } from '@/utilities/invitationSystem'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { getServerSideURL } from '@/utilities/getURL'
 
 export const inviteResendHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -146,7 +147,7 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
       // Non-fatal
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const baseUrl = getServerSideURL()
     const inviteUrl = `${baseUrl}/invite/accept?token=${membership.invitationDetails.invitationToken}`
 
     const emailSent = await sendInvitationEmail({

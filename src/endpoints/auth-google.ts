@@ -21,6 +21,7 @@ import type { PayloadHandler } from 'payload'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import { getServerSideURL } from '@/utilities/getURL'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -55,7 +56,7 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
   }
 
   const url = new URL(req.url || '', 'http://localhost')
-  const canonicalUrl = process.env.NEXT_PUBLIC_SERVER_URL || url.origin
+  const canonicalUrl = getServerSideURL()
 
   const redirectUri = `${canonicalUrl}/api/auth/google/callback`
 
@@ -125,7 +126,7 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
 export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
   try {
     const url = new URL(req.url || '', 'http://localhost')
-    const canonicalUrl = process.env.NEXT_PUBLIC_SERVER_URL || url.origin
+    const canonicalUrl = getServerSideURL()
 
     const code = url.searchParams.get('code')
     const stateRaw = url.searchParams.get('state')
