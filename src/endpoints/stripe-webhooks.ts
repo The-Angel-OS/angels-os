@@ -28,6 +28,7 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { calculateUltimateFairSplit, ULTIMATE_FAIR_SPLIT } from '@/lib/ultimate-fair-split'
+import { sendOrderConfirmationEmail } from '@/utilities/sendOrderConfirmationEmail'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -205,6 +206,75 @@ async function handlePaymentIntentSucceeded(
       })
     } catch {
       // Order may not exist or have different status field — non-fatal
+    }
+
+    // Send order confirmation email
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = await (payload.findByID as any)({
+        collection: 'orders',
+        id: orderId,
+        depth: 1,
+        overrideAccess: true,
+      })
+
+      const customerEmail =
+        paymentIntent.metadata?.customerEmail ||
+        paymentIntent.receipt_email ||
+        order?.orderedBy?.email ||
+        (typeof order?.orderedBy === 'object' ? order.orderedBy?.email : null)
+
+      if (customerEmail) {
+        // Build order items from the order data
+        const orderItems: Array<{ title: string; quantity: number; priceInUSD: number }> = []
+        const items = order?.items || []
+        for (const item of items) {
+          const product = typeof item.product === 'object' ? item.product : null
+          orderItems.push({
+            title: product?.title || item.productTitle || 'Product',
+            quantity: item.quantity || 1,
+            priceInUSD: (item.priceInUSD || item.price || 0),
+          })
+        }
+
+        // Get Stripe receipt URL from the latest charge
+        let receiptUrl: string | undefined
+        try {
+          const stripe = getStripe()
+          if (connectedAccountId) {
+            const charges = await stripe.charges.list(
+              { payment_intent: paymentIntent.id, limit: 1 },
+              { stripeAccount: connectedAccountId },
+            )
+            receiptUrl = charges.data[0]?.receipt_url || undefined
+          } else {
+            const charges = await stripe.charges.list(
+              { payment_intent: paymentIntent.id, limit: 1 },
+            )
+            receiptUrl = charges.data[0]?.receipt_url || undefined
+          }
+        } catch {
+          // Receipt URL is nice-to-have, not critical
+        }
+
+        const customerName =
+          paymentIntent.metadata?.customerName ||
+          (typeof order?.orderedBy === 'object' ? order.orderedBy?.name : undefined)
+
+        await sendOrderConfirmationEmail({
+          payload,
+          customerEmail,
+          customerName,
+          orderId: String(orderId),
+          orderItems,
+          totalCents: amountCents,
+          currency: paymentIntent.currency || 'usd',
+          stripeReceiptUrl: receiptUrl,
+        })
+      }
+    } catch (err) {
+      // Email send failure should never break the webhook
+      console.error('[Stripe Webhook] Failed to send order confirmation email:', err)
     }
   }
 }

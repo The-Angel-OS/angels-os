@@ -1,8 +1,8 @@
 /**
  * LEO Chat Endpoint — POST /api/leo
  *
- * Handles browser-based chat messages from authenticated users.
- * Uses standard Payload session/cookie auth (no Bearer token needed).
+ * Handles browser-based chat messages from authenticated users AND guests.
+ * Uses standard Payload session/cookie auth, or guest mode via x-leo-guest header.
  *
  * This is the lightweight alternative to the MCP endpoint for
  * browser clients. External Angels (Merlin, etc.) use /api/mcp
@@ -23,13 +23,16 @@ import { wrapTextContent } from '@/utilities/messageContent'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const leoChatHandler: PayloadHandler = async (req) => {
-  // Require authenticated user (session cookie)
-  if (!req.user) {
+  const isGuest = !req.user
+  const isGuestAllowed = req.headers.get('x-leo-guest') === 'true'
+
+  // Allow guest access with stricter rate limiting, or require auth
+  if (isGuest && !isGuestAllowed) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
-  // Rate limit: 10 requests/min per user (each call = Anthropic API cost)
-  const rateLimited = applyRateLimit(req, 'leo_chat')
+  // Rate limit: 10/min for authenticated, 5/min for guests (IP-based)
+  const rateLimited = applyRateLimit(req, isGuest ? 'leo_chat_guest' : 'leo_chat')
   if (rateLimited) return rateLimited
 
   // Parse request body
@@ -71,6 +74,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
     const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
 
     // Extract user context for LEO identity awareness
+    // Guests get a minimal context with no persistence
     const user = req.user as unknown as Record<string, unknown> | undefined
     const userContext = user
       ? {
@@ -79,7 +83,11 @@ export const leoChatHandler: PayloadHandler = async (req) => {
           email: (user.email as string) || undefined,
           roles: Array.isArray(user.roles) ? (user.roles as string[]) : undefined,
         }
-      : undefined
+      : {
+          id: 'guest' as string | number,
+          name: 'Guest',
+          roles: [] as string[],
+        }
 
     const result = await leoProcessMessage({
       message: message.trim(),
@@ -92,8 +100,9 @@ export const leoChatHandler: PayloadHandler = async (req) => {
     })
 
     // Persist LEO's response to the Messages collection so it survives polling
+    // Skip persistence for guest users — no message history for anonymous
     let savedMessageId: number | undefined
-    if (resolvedSpaceId && result.text) {
+    if (resolvedSpaceId && result.text && !isGuest) {
       try {
         // Find the LEO system user for this tenant to use as author
         let leoUserId: number | undefined
@@ -149,6 +158,8 @@ export const leoChatHandler: PayloadHandler = async (req) => {
       conversationId: result.conversationId,
       channelSlug: resolvedChannel,
       messageId: savedMessageId,
+      isGuest,
+      ...(isGuest ? { guestCta: 'Sign up for the full LEO experience — message history, personalized recommendations, and more.' } : {}),
     })
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error'

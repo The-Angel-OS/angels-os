@@ -42,12 +42,20 @@ const STATUS_STYLES: Record<string, string> = {
   suspended: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export function FederationCard({ holon }: { holon: FederationHolon }) {
   const regionParts = [holon.region.city, holon.region.state, holon.region.country].filter(Boolean)
   const regionText = regionParts.length > 0 ? regionParts.join(', ') : null
+  const href = `/federation/${slugify(holon.name)}`
 
   return (
-    <div className="group rounded-lg border border-border bg-card transition-all hover:border-primary/40 hover:shadow-md">
+    <Link href={href} className="group block rounded-lg border border-border bg-card transition-all hover:border-primary/40 hover:shadow-md">
       {/* Cover Image */}
       {holon.coverImage && (
         <div className="h-32 w-full overflow-hidden rounded-t-lg">
@@ -148,6 +156,6 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   )
 }

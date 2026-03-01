@@ -14,6 +14,7 @@
 
 export type ApiEndpoint =
   | 'leo_chat'
+  | 'leo_chat_guest'
   | 'leo_stream'
   | 'spaces_create'
   | 'stripe'
@@ -40,8 +41,9 @@ interface RateLimitEntry {
 
 /** Requests per minute per user, per endpoint */
 const LIMITS: Record<ApiEndpoint, number> = {
-  leo_chat: 10,      // Each call = Anthropic API cost (~$0.01-0.10)
-  leo_stream: 5,     // SSE streams are expensive (~$0.05-0.50 each)
+  leo_chat: 10,       // Each call = Anthropic API cost (~$0.01-0.10)
+  leo_chat_guest: 5,  // Guest access — stricter limit (IP-based)
+  leo_stream: 5,      // SSE streams are expensive (~$0.05-0.50 each)
   spaces_create: 3,  // Prevent spam creation
   stripe: 10,        // Payment abuse prevention
   comments: 10,      // Comment spam
