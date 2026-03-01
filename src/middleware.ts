@@ -20,13 +20,6 @@ const TENANT_HEADER = 'x-tenant-id'
 const handleI18nRouting = createMiddleware(routing)
 
 export default async function middleware(request: NextRequest) {
-  // Auth complete handler sets cookies via raw Response — bypass ALL middleware
-  // processing to prevent NextResponse.next() from wrapping/merging the
-  // response and potentially dropping Set-Cookie headers.
-  if (request.nextUrl.pathname === '/api/auth/complete') {
-    return NextResponse.next()
-  }
-
   const hostname = request.headers.get('host')?.split(':')[0] ?? 'localhost'
 
   // Redirect legacy default. subdomain to www.
@@ -67,9 +60,12 @@ export const config = {
      * Match all pathnames except:
      * - /admin (Payload CMS admin panel — has its own auth)
      * - _next, _vercel, static files
+     * - /api/auth/complete, /api/auth/set-cookie (OAuth cookie endpoints —
+     *   must be fully excluded so middleware never wraps/interferes with
+     *   their Set-Cookie headers. See attempt #10 in auth/complete/route.ts)
      * NOTE: /api IS included so that x-tenant-id is injected into all
      * Payload API and custom endpoint requests.
      */
-    '/((?!admin|_next|_vercel|.*\\..*).*)',
+    '/((?!admin|_next|_vercel|api/auth/complete|api/auth/set-cookie|.*\\..*).*)',
   ],
 }

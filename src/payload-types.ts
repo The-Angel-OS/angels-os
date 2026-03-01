@@ -3697,7 +3697,9 @@ export interface Connector {
     | 'google_chat'
     | 'sms'
     | 'webhook'
-    | 'livekit';
+    | 'livekit'
+    | 'discord'
+    | 'telegram';
   /**
    * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
    */
@@ -3716,6 +3718,8 @@ export interface Connector {
    * • cloudflare_worker: { "workerName": "angel-os-image-gen", "workerUrl": "https://...", "kvNamespace": "TENANT_CACHE" }
    * • stripe: { "accountId": "acct_xxx", "mode": "direct" }
    * • webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
+   * • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
+   * • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
    */
   config?:
     | {

@@ -501,7 +501,7 @@ function NetworkTopology({
             AWAITING FEDERATION SIGNAL
           </p>
           <p className="mt-1 font-mono text-xs" style={{ color: LCARS_COLORS.textMuted }}>
-            No ministries detected in governance data
+            No enterprises detected in governance data
           </p>
         </div>
       </div>

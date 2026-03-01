@@ -84,7 +84,7 @@ export default async function CreateAccount({
                   ? `You're invited to ${inviteContext.spaceName}`
                   : inviteContext?.tenantName
                     ? `Join ${inviteContext.tenantName}`
-                    : 'Join Angel OS'}
+                    : 'Join the Federation'}
               </p>
               {inviteContext?.inviterName ? (
                 <p className="text-lg text-muted-foreground">
@@ -93,7 +93,7 @@ export default async function CreateAccount({
                 </p>
               ) : (
                 <p className="text-lg text-muted-foreground">
-                  The platform for creators, makers, and communities building the future together.
+                  Angel OS is the platform for creators, makers, and communities building the future together.
                 </p>
               )}
             </div>
@@ -198,10 +198,10 @@ export default async function CreateAccount({
 }
 
 export const metadata: Metadata = {
-  description: 'Create your Angel OS account to launch your endeavor, join communities, and start building.',
+  description: 'Join the Federation — Angel OS is the platform for creators, makers, and communities building the future together.',
   openGraph: mergeOpenGraph({
-    title: 'Join Angel OS',
+    title: 'Join the Federation',
     url: '/create-account',
   }),
-  title: 'Join Angel OS',
+  title: 'Join the Federation',
 }

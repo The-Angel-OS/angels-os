@@ -30,7 +30,7 @@ export const Tenants: CollectionConfig = {
       options: [
         { label: 'Platform', value: 'platform' },
         { label: 'Tenant', value: 'tenant' },
-        { label: 'Ministry', value: 'ministry' },
+        { label: 'Enterprise', value: 'ministry' },
       ],
       defaultValue: 'tenant',
       required: true,
@@ -175,7 +175,7 @@ export const Tenants: CollectionConfig = {
         { label: 'Retail / E-Commerce', value: 'retail' },
         { label: 'Service Business', value: 'service' },
         { label: 'Content Creator', value: 'content_creator' },
-        { label: 'Nonprofit / Ministry', value: 'nonprofit' },
+        { label: 'Nonprofit / Enterprise', value: 'nonprofit' },
         { label: 'Professional Services', value: 'professional_services' },
         { label: 'Custom / Other', value: 'custom' },
       ],
@@ -322,7 +322,7 @@ export const Tenants: CollectionConfig = {
           name: 'isTaxExempt',
           type: 'checkbox',
           defaultValue: false,
-          admin: { description: 'Tax-exempt organization (e.g. 501(c)(3) ministry, nonprofit)' },
+          admin: { description: 'Tax-exempt organization (e.g. 501(c)(3), nonprofit)' },
         },
         {
           name: 'taxExemptId',
