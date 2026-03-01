@@ -15,29 +15,27 @@
  * generating the JWT, and this handler sets the cookie and sends the user
  * to their final destination.
  *
+ * Cookie Strategy (Attempt #8 — HTML page + meta refresh):
+ *   Previous attempts proved the Set-Cookie header IS sent on 302 responses
+ *   (verified via curl), but Chrome does not store the cookie during
+ *   redirect chains originating from cross-site OAuth flows.
+ *
+ *   This approach returns a 200 HTML page instead of a 302 redirect.
+ *   The browser processes the Set-Cookie header on a normal 200 response
+ *   (which is always honored), then follows a meta refresh to the
+ *   final destination. This separates cookie storage from navigation.
+ *
  * Flow:
  *   1. OAuth callback (Payload endpoint) exchanges code, creates/finds user, signs JWT
  *   2. Redirect to: /api/auth/complete?token=<jwt>&redirect=/admin
- *   3. This handler verifies JWT, sets `payload-token` cookie, redirects to /admin
+ *   3. This handler verifies JWT, sets `payload-token` cookie via Set-Cookie header
+ *   4. Returns 200 HTML page with meta refresh → /admin
+ *   5. Browser stores cookie, then navigates to /admin as a fresh page load
  *
  * Security:
  *   - JWT is verified with PAYLOAD_SECRET before setting the cookie
  *   - Redirect is validated to be a relative path (prevents open redirect)
  *   - Cookie flags match Payload's own auth cookie configuration
- *
- * Cookie Strategy (Attempt #7):
- *   Uses NextResponse.redirect() + response.cookies.set() — the native Next.js
- *   cookie API. This is critical because:
- *   - Middleware (src/middleware.ts) intercepts /api routes via NextResponse.next()
- *   - When middleware is active, raw `new Response()` with Set-Cookie headers
- *     can be silently dropped during Next.js response pipeline processing
- *   - NextResponse.cookies.set() integrates properly with the middleware pipeline
- *   - This is different from cookies() (next/headers AsyncLocalStorage) which
- *     only works with NextResponse, not raw Response objects
- *
- * Diagnostic:
- *   Response includes X-Auth-Debug-* headers visible in Chrome DevTools
- *   Network tab for troubleshooting cookie issues.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
@@ -47,7 +45,7 @@ export async function GET(request: NextRequest) {
   const token = url.searchParams.get('token')
   const redirectTo = url.searchParams.get('redirect') || '/dashboard'
 
-  // --- Collect diagnostic info for headers ---
+  // --- Collect diagnostic info ---
   const proto = request.headers.get('x-forwarded-proto') || 'https'
   const host =
     request.headers.get('x-forwarded-host') ||
@@ -109,14 +107,7 @@ export async function GET(request: NextRequest) {
   // Validate redirect is a relative path (prevent open redirect)
   const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-  // Build absolute redirect URL from request context (current host)
-  const baseUrl = `${proto}://${host}`
-  const absoluteRedirect = new URL(safeRedirect, baseUrl).toString()
-
   // --- Cookie domain validation ---
-  // If COOKIE_DOMAIN is set, verify it matches the current host.
-  // A mismatch causes the browser to silently reject the cookie.
-  // e.g., COOKIE_DOMAIN=".angelos.local" on host "spacesangels.com" → rejected
   let effectiveCookieDomain = envCookieDomain
 
   if (effectiveCookieDomain) {
@@ -130,51 +121,62 @@ export async function GET(request: NextRequest) {
 
     if (!domainMatches) {
       console.warn(
-        '[Auth Complete] COOKIE_DOMAIN mismatch! Domain "%s" does not match host "%s". Skipping Domain attribute to avoid silent rejection.',
+        '[Auth Complete] COOKIE_DOMAIN mismatch! Domain "%s" does not match host "%s". Skipping Domain attribute.',
         effectiveCookieDomain,
         hostWithoutPort,
       )
-      effectiveCookieDomain = '' // Skip Domain attribute — let browser default to exact host
+      effectiveCookieDomain = ''
     }
   }
 
   const maxAge = 14 * 24 * 60 * 60 // 14 days in seconds
 
-  console.log('[Auth Complete] Setting cookie and redirecting:', {
+  console.log('[Auth Complete] Setting cookie via HTML page + meta refresh:', {
     safeRedirect,
-    absoluteRedirect,
     effectiveCookieDomain: effectiveCookieDomain || '(exact host: ' + host + ')',
     isProduction,
     tokenLength: token.length,
   })
 
-  // --- Use NextResponse.redirect() + response.cookies.set() ---
-  // This is the ONLY reliable way to set cookies in a Next.js route handler
-  // when middleware (src/middleware.ts) is in the pipeline.
+  // --- Return 200 HTML page with Set-Cookie + meta refresh ---
+  // Why NOT a 302 redirect:
+  //   Chrome does not reliably store cookies set on 302 responses during
+  //   redirect chains originating from cross-site OAuth flows (Google).
+  //   Verified via curl that Set-Cookie header IS present on 302, but
+  //   Chrome ignores it. A 200 HTML page with meta refresh separates
+  //   cookie storage from navigation.
   //
-  // Why other approaches failed:
-  // 1. Raw Set-Cookie header on Payload endpoint → Payload handleEndpoints() strips it
-  // 2. cookies() (next/headers) on Payload endpoint → same strip
-  // 3. cookies() (next/headers) + new Response(302) → AsyncLocalStorage doesn't merge
-  // 4. Raw Set-Cookie on new Response(302) in standalone handler → middleware pipeline
-  //    processes the response and can silently drop Set-Cookie from raw Response objects
-  //
-  // NextResponse.redirect() + .cookies.set() works because:
-  // - NextResponse is the native response type that Next.js middleware pipeline expects
-  // - .cookies.set() attaches cookies directly to the NextResponse instance
-  // - The middleware pipeline preserves NextResponse cookie state through processing
-  const response = NextResponse.redirect(absoluteRedirect, {
-    status: 302,
+  // The HTML page:
+  //   1. Browser receives 200 + Set-Cookie → stores cookie immediately
+  //   2. <meta http-equiv="refresh"> triggers navigation to final URL
+  //   3. JavaScript window.location.replace() as fallback
+  //   4. The next page load includes the stored cookie
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url=${safeRedirect}">
+  <title>Signing in...</title>
+</head>
+<body>
+  <p>Signing in, please wait...</p>
+  <script>window.location.replace(${JSON.stringify(safeRedirect)})</script>
+</body>
+</html>`
+
+  // Build the response with NextResponse so cookies work with middleware
+  const response = new NextResponse(html, {
+    status: 200,
     headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
       'X-Auth-Debug-Host': host,
       'X-Auth-Debug-Proto': proto,
       'X-Auth-Debug-Cookie-Domain': effectiveCookieDomain || '(exact host)',
-      'X-Auth-Debug-Redirect': absoluteRedirect,
+      'X-Auth-Debug-Redirect': safeRedirect,
       'X-Auth-Debug-Secure': String(isProduction),
-      'X-Auth-Debug-Env-Server-URL': envServerUrl,
-      'X-Auth-Debug-Env-Vercel-Prod-URL': envVercelProdUrl,
-      'X-Auth-Debug-Cookie-Method': 'NextResponse.cookies.set',
+      'X-Auth-Debug-Cookie-Method': 'NextResponse-200-html-meta-refresh',
     },
   })
 
