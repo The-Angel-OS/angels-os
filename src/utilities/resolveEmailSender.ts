@@ -28,6 +28,7 @@
 import type { Payload } from 'payload'
 
 import { resolveConnector } from './resolveConnector'
+import { withRetry } from './outboundRetry'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,6 @@ export async function resolveEmailSender(
           return {
             sendEmail: async (msg) => {
               const fromLine = msg.from || `${fromName} <${fromAddress}>`
-              // Build Resend-compatible options
               const opts: {
                 from: string
                 to: string[]
@@ -105,8 +105,7 @@ export async function resolveEmailSender(
               if (msg.html) opts.html = msg.html
               if (msg.text) opts.text = msg.text
               if (msg.replyTo) opts.replyTo = msg.replyTo
-              await resend.emails.send(opts as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-              // Update connector activity on success
+              await withRetry(() => resend.emails.send(opts as any)) // eslint-disable-line @typescript-eslint/no-explicit-any
               await updateConnectorActivity(payload, connector.id).catch(() => {})
             },
             fromAddress,
@@ -136,14 +135,16 @@ export async function resolveEmailSender(
 
           return {
             sendEmail: async (msg) => {
-              await transporter.sendMail({
-                from: msg.from || `"${fromName}" <${fromAddress}>`,
-                to: msg.to,
-                subject: msg.subject,
-                html: msg.html || undefined,
-                text: msg.text || undefined,
-                ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
-              })
+              await withRetry(() =>
+                transporter.sendMail({
+                  from: msg.from || `"${fromName}" <${fromAddress}>`,
+                  to: msg.to,
+                  subject: msg.subject,
+                  html: msg.html || undefined,
+                  text: msg.text || undefined,
+                  ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+                }),
+              )
               await updateConnectorActivity(payload, connector.id).catch(() => {})
             },
             fromAddress,

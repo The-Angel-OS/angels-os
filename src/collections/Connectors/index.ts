@@ -57,6 +57,7 @@ export const Connectors: CollectionConfig = {
         { label: 'LiveKit', value: 'livekit' },
         { label: 'Discord', value: 'discord' },
         { label: 'Telegram', value: 'telegram' },
+        { label: 'Slack', value: 'slack' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',

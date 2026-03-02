@@ -23,6 +23,8 @@
  */
 import type { Payload } from 'payload'
 import { resolveConnector } from './resolveConnector'
+import { logError } from './logError'
+import { withRetry } from './outboundRetry'
 
 // ─── Public Interface ────────────────────────────────────────
 
@@ -81,7 +83,7 @@ export async function resolveWhatsAppSender(
   const businessName = String(cfg.businessName || 'Angel OS')
 
   if (!phoneNumberId || !accessToken) {
-    console.warn('[resolveWhatsAppSender] Connector found but missing phoneNumberId or accessToken')
+    logError({ level: 'warning', source: 'resolveWhatsAppSender', message: 'Connector found but missing phoneNumberId or accessToken', tenantId: String(tenantId) }).catch(() => {})
     return null
   }
 
@@ -89,34 +91,33 @@ export async function resolveWhatsAppSender(
 
   // ── Send Text Message ────────────────────────────────────
   const sendText = async (to: string, text: string): Promise<void> => {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+    await withRetry(async () => {
+      const response = await fetch(
+        `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: to.replace(/[^0-9]/g, ''),
+            type: 'text',
+            text: { body: text },
+          }),
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: to.replace(/[^0-9]/g, ''),
-          type: 'text',
-          text: { body: text },
-        }),
-      },
-    )
+      )
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => '')
-      const errMsg = `WhatsApp API ${response.status}: ${errorBody}`
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '')
+        const errMsg = `WhatsApp API ${response.status}: ${errorBody}`
+        await markWhatsAppConnectorError(payload, connectorId, errMsg)
+        throw new Error(errMsg)
+      }
+    })
 
-      // Mark connector error
-      await markWhatsAppConnectorError(payload, connectorId, errMsg)
-      throw new Error(errMsg)
-    }
-
-    // Update connector activity on success
     await updateWhatsAppConnectorActivity(payload, connectorId)
   }
 
@@ -139,34 +140,36 @@ export async function resolveWhatsAppSender(
       })
     }
 
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: msg.to.replace(/[^0-9]/g, ''),
-          type: 'template',
-          template: {
-            name: msg.templateName,
-            language: { code: msg.templateLanguage || 'en_US' },
-            ...(components.length > 0 ? { components } : {}),
+    await withRetry(async () => {
+      const response = await fetch(
+        `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      },
-    )
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: msg.to.replace(/[^0-9]/g, ''),
+            type: 'template',
+            template: {
+              name: msg.templateName,
+              language: { code: msg.templateLanguage || 'en_US' },
+              ...(components.length > 0 ? { components } : {}),
+            },
+          }),
+        },
+      )
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => '')
-      const errMsg = `WhatsApp Template API ${response.status}: ${errorBody}`
-      await markWhatsAppConnectorError(payload, connectorId, errMsg)
-      throw new Error(errMsg)
-    }
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '')
+        const errMsg = `WhatsApp Template API ${response.status}: ${errorBody}`
+        await markWhatsAppConnectorError(payload, connectorId, errMsg)
+        throw new Error(errMsg)
+      }
+    })
 
     await updateWhatsAppConnectorActivity(payload, connectorId)
   }

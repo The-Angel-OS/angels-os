@@ -44,6 +44,8 @@ import {
   generateInviteUrl,
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
+import { logCaughtError } from './logError'
+import { validateToolInput } from './toolInputSchemas'
 import { findOrCreateDM } from './dmChannels'
 import { ensureDMSpace } from './ensureSystemSpace'
 import {
@@ -1990,6 +1992,98 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Phase 5b: Multi-Channel Messaging ──────────────────────────────────
+  {
+    name: 'send_whatsapp',
+    description:
+      'Send a WhatsApp message to a contact. Requires an active WhatsApp connector for the tenant. Within 24 hours of the customer\'s last message, free-form text is sent. Outside the 24-hour window, use a pre-approved template. Always confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        to: {
+          type: 'string',
+          description: 'Recipient phone number in international format (e.g., "15551234567"). No + prefix needed.',
+        },
+        text: {
+          type: 'string',
+          description: 'Message text to send. Used for free-form messages within the 24-hour customer service window.',
+        },
+        templateName: {
+          type: 'string',
+          description: 'Template name for sending outside the 24-hour window (optional). If the free-form send fails with a "24-hour" error, suggest using a template.',
+        },
+        templateParameters: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Positional parameters for the template body (optional).',
+        },
+      },
+      required: ['to', 'text'],
+    },
+  },
+  {
+    name: 'send_telegram',
+    description:
+      'Send a Telegram message to a chat. Requires an active Telegram bot connector for the tenant. No 24-hour window limitation. Supports Markdown formatting. Always confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        chatId: {
+          type: 'string',
+          description: 'Telegram chat ID to send the message to. This is the numeric ID of the user or group.',
+        },
+        text: {
+          type: 'string',
+          description: 'Message text to send. Supports basic Markdown formatting.',
+        },
+      },
+      required: ['chatId', 'text'],
+    },
+  },
+  {
+    name: 'send_sms',
+    description:
+      'Send an SMS text message to a phone number. Requires an active SMS/Twilio connector for the tenant. Plain text only, limited to 1600 characters. Always confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        to: {
+          type: 'string',
+          description: 'Recipient phone number in E.164 format (e.g., "+15551234567").',
+        },
+        body: {
+          type: 'string',
+          description: 'SMS message text. Max 1600 characters (will be split into segments by carrier if over 160).',
+        },
+      },
+      required: ['to', 'body'],
+    },
+  },
+
+  {
+    name: 'send_slack',
+    description:
+      'Send a Slack message to a channel or user. Requires an active Slack bot connector for the tenant. Supports Slack markdown formatting. Always confirm with the user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        channelId: {
+          type: 'string',
+          description: 'Slack channel ID (e.g., "C1234567890") or user ID (e.g., "U1234567890") to send to.',
+        },
+        text: {
+          type: 'string',
+          description: 'Message text to send. Supports Slack mrkdwn formatting.',
+        },
+        threadTs: {
+          type: 'string',
+          description: 'Optional thread timestamp to reply in a specific thread.',
+        },
+      },
+      required: ['channelId', 'text'],
+    },
+  },
+
   // ── Phase 6: Analytics & Intelligence ──────────────────────────────────
   {
     name: 'analyze_trends',
@@ -2239,6 +2333,10 @@ export async function executeToolCall(
 ): Promise<string> {
   const { payload, tenantId } = ctx
 
+  // Validate mutation/outbound tool inputs before execution
+  const validationError = validateToolInput(toolName, toolInput)
+  if (validationError) return validationError
+
   try {
     switch (toolName) {
       case 'query_products':
@@ -2410,6 +2508,15 @@ export async function executeToolCall(
         return await handleSendFollowUp(payload, toolInput, ctx)
       case 'send_email':
         return await handleSendEmail(payload, toolInput, ctx)
+      // Phase 5b: Multi-Channel Messaging
+      case 'send_whatsapp':
+        return await handleSendWhatsApp(payload, toolInput, ctx)
+      case 'send_telegram':
+        return await handleSendTelegram(payload, toolInput, ctx)
+      case 'send_sms':
+        return await handleSendSms(payload, toolInput, ctx)
+      case 'send_slack':
+        return await handleSendSlack(payload, toolInput, ctx)
       // Phase 6: Analytics & Intelligence
       case 'analyze_trends':
         return await handleAnalyzeTrends(payload, toolInput, ctx)
@@ -2442,7 +2549,7 @@ export async function executeToolCall(
         return `Unknown tool: ${toolName}`
     }
   } catch (err) {
-    console.error(`[LEO Tools] Error executing ${toolName}:`, err)
+    logCaughtError(`leo-tools/${toolName}`, err).catch(() => {})
     return `Error querying data: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3004,7 +3111,7 @@ async function createBooking(
 
     return `Booking created successfully!\n- **${title}** (${bookingType})\n- Date: ${formattedDate}\n- Duration: ${duration} minutes\n- Provider: ${providerId}\n- Status: pending\n- Booking ID: ${bookingId}\n\nThe booking is pending confirmation. You or the provider can confirm it.` + navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
-    console.error('[LEO Tools] Error creating booking:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error creating booking: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
   }
 }
@@ -3083,7 +3190,7 @@ async function checkAvailableSlots(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error checking available slots:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error checking availability: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3125,7 +3232,7 @@ async function cancelBookingHandler(
     return `Booking cancelled:\n- **${bookingTitle}** (ID: ${bookingId})\n- Was scheduled: ${formattedDate}\n- Reason: ${reason}\n- Cancelled by: ${cancelledBy}\n- Status: cancelled\n\nThe booking has been cancelled. Any associated calendar events should be updated.` +
       navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
-    console.error('[LEO Tools] Error cancelling booking:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error cancelling booking: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3195,7 +3302,7 @@ async function rescheduleBookingHandler(
 
     return response
   } catch (err) {
-    console.error('[LEO Tools] Error rescheduling booking:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error rescheduling booking: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3303,11 +3410,11 @@ async function addToCart(
 
       return `Added to cart!\n- **${title}** × ${quantity} (${priceStr} each)\n- Cart now has ${totalItems} item(s)\n${slug ? `- View product: /products/${slug}` : ''}\n\nSay "show my cart" to see everything, or "checkout" when you're ready!`
     } catch (cartErr) {
-      console.error('[LEO Tools] Error updating cart:', cartErr)
+      logCaughtError('leo-tools', cartErr).catch(() => {})
       return `I found the product **${title}** (${priceStr}), but had trouble adding it to your cart. The cart system may need to be initialized. You can add it manually at /products/${slug}.`
     }
   } catch (err) {
-    console.error('[LEO Tools] Error in addToCart:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error finding product: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3350,7 +3457,7 @@ async function viewCart(
 
     return `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):\n${items.join('\n')}\n\n**Subtotal: $${totalPrice.toFixed(2)}**\n\nReady to check out? Head to /checkout or say "remove [item]" to update your cart.`
   } catch (err) {
-    console.error('[LEO Tools] Error viewing cart:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error loading cart: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3409,7 +3516,7 @@ async function updateBookingStatus(
 
     return `Booking updated:\n- **${bookingTitle}** (ID: ${bookingId})\n- Status: ${oldStatus} \u2192 ${status}` + navDirective('/dashboard/bookings', 'View Bookings')
   } catch (err) {
-    console.error('[LEO Tools] Error updating booking:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating booking: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3550,7 +3657,7 @@ async function createProduct(
 
     return parts.join('\n') + navDirective('/dashboard/products', 'View Products')
   } catch (err) {
-    console.error('[LEO Tools] Error creating product:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error creating product: ${err instanceof Error ? err.message : 'Unknown error'}. Please check the details and try again.`
   }
 }
@@ -3683,7 +3790,7 @@ async function updateProduct(
 
     return `Product updated!\n- **${displayTitle}** (ID: ${productId})\n- Changes:\n${changes.map((c) => `  - ${c}`).join('\n')}` + navDirective('/dashboard/products', 'View Products')
   } catch (err) {
-    console.error('[LEO Tools] Error updating product:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating product: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3834,7 +3941,7 @@ async function handleGenerateImage(
 
     return parts.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error generating image:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error generating image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3912,7 +4019,7 @@ async function handleImproveImage(
 
     return parts.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error improving image:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error improving image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3957,7 +4064,7 @@ async function handleAttachImageToProduct(
 
     return `Image attached! Added Media #${mediaId} to **${title}**'s gallery.`
   } catch (err) {
-    console.error('[LEO Tools] Error attaching image:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error attaching image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -3989,7 +4096,7 @@ async function handleReplaceImage(
 
     return `Image replaced globally! Updated ${result.updatedDocuments} document(s) — swapped Media #${oldMediaId} → #${newMediaId}.`
   } catch (err) {
-    console.error('[LEO Tools] Error replacing image:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error replacing image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4090,7 +4197,7 @@ async function handleFindProducers(
 
     return `Found ${matches.length} producer(s) for "${skill}":\n\n${results.join('\n')}`
   } catch (err) {
-    console.error('[LEO Tools] Error finding producers:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error searching for producers: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4140,7 +4247,7 @@ async function handleBrowseNetwork(
 
     return `Network products (${products.docs.length}):\n\n${results.join('\n')}`
   } catch (err) {
-    console.error('[LEO Tools] Error browsing network:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error browsing network: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4210,7 +4317,7 @@ async function handleQueryOrders(
     const label = viewAs === 'customer' ? 'Your Orders' : 'Assigned Orders'
     return `${label} (${orders.docs.length}):\n\n${results.join('\n')}`
   } catch (err) {
-    console.error('[LEO Tools] Error querying orders:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error looking up orders: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4363,7 +4470,7 @@ async function handleRouteOrder(
 
     return `Order #${orderId} routing:\n\n${routingResults.join('\n')}` + navDirective('/dashboard/orders', 'View Orders')
   } catch (err) {
-    console.error('[LEO Tools] Error routing order:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error routing order: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4424,7 +4531,7 @@ async function handleAcceptOrder(
 
     return `Order #${orderId}, item ${itemIndex} (${productTitle}) accepted! Your vendor share (60%): ${vendorShare}.${estimatedDate ? ` Estimated completion: ${estimatedDate}.` : ''} Update status to "in_production" when you start working on it.`
   } catch (err) {
-    console.error('[LEO Tools] Error accepting order:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error accepting order: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4506,7 +4613,7 @@ async function handleUpdateFulfillment(
 
     return `Order #${orderId}, item ${itemIndex}: ${statusMessages[newStatus] || `Status updated to "${newStatus}".`}`
   } catch (err) {
-    console.error('[LEO Tools] Error updating fulfillment:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating fulfillment: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4605,7 +4712,7 @@ async function handleConfigureBusiness(
 
     return response + navDirective('/dashboard/enterprise', 'View Enterprise')
   } catch (err) {
-    console.error('[LEO Tools] Error configuring business:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error configuring business: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4643,7 +4750,7 @@ async function handleConnectStripe(
 
     return `To start accepting payments with the Ultimate Fair split (you receive 60% of every transaction), visit your Payments dashboard to connect Stripe: ${setupUrl}\n\nThe setup takes about 5 minutes and requires basic business information and a bank account for payouts.`
   } catch (err) {
-    console.error('[LEO Tools] Error checking Stripe status:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error checking Stripe status: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -4782,7 +4889,7 @@ async function handleOnboardVendor(
       `4. Customize your branding\n\n` +
       `Would you like me to help you add your first products?`
   } catch (err) {
-    console.error('[LEO Tools] Error onboarding vendor:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error setting up vendor: ${err instanceof Error ? err.message : 'Unknown error'}. Let me know if you'd like to try again.`
   }
 }
@@ -5349,7 +5456,7 @@ async function handleCreateSpace(
 
     return lines.join('\n') + navDirective('/dashboard/community', 'View Community')
   } catch (err) {
-    console.error('[LEO Tools] Error creating space:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error creating space: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -5412,7 +5519,7 @@ async function handleCompleteEnlistment(
       `Your commitment has been recorded. The next step is to sign the Angel OS Constitution — making your enlistment cryptographically permanent — and announce your Enterprise to the federation network.`,
     ].join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error completing enlistment:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error completing enlistment: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -5481,7 +5588,7 @@ async function handleSignConstitution(
       `The signature is cryptographically verified and stored immutably. ${enterpriseName} is now constitutionally committed to the Angel OS network.`,
     ].join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error signing constitution:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error signing constitution: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -5597,7 +5704,7 @@ async function handlePingFederation(
       `You'll be redirected to your dashboard in a moment. Welcome to the Angel OS network, ${enterpriseName}.`,
     ].join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error pinging federation:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     // NEVER fail the wizard over a ping error
     return [
       `Federation registry ping attempted — network unavailable (this is expected in development).`,
@@ -5705,7 +5812,7 @@ async function handleAnalyzeImage(
 
     return 'Analysis completed but no metadata was generated.'
   } catch (err) {
-    console.error('[LEO Tools] analyze_image error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error analyzing image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -5785,7 +5892,7 @@ async function handleExtractPdfPages(
     lines.push(`\nAll pages are now searchable via query_knowledge.`)
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] extract_pdf_pages error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error extracting PDF: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -5945,7 +6052,7 @@ async function handleQueryKnowledge(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] query_knowledge error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error searching knowledge base: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6012,7 +6119,7 @@ async function handleCheckFees(
 
     return lines.filter(Boolean).join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error checking fees:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return 'Unable to retrieve fee status. Please try again later.'
   }
 }
@@ -6089,7 +6196,7 @@ async function handleGetThemeSettings(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error reading theme settings:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error reading theme settings: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6190,7 +6297,7 @@ async function handleUpdateThemeSettings(
 
     return lines.join('\n') + navDirective('/dashboard/branding', 'View Branding')
   } catch (err) {
-    console.error('[LEO Tools] Error updating theme settings:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating theme settings: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6289,7 +6396,7 @@ async function handleSetPageHero(
     const pageTitle = page.title || page.slug || `ID ${page.id}`
     return [`## Hero Updated — "${pageTitle}"`, ``, ...changes].join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error setting page hero:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error setting page hero: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6434,7 +6541,7 @@ async function handleGenerateThemeAwareImage(
 
     return parts.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] Error generating theme-aware image:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error generating theme-aware image: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6859,7 +6966,7 @@ async function handleSendMessage(
     })
     return `Message sent to #${channel} (message ID: ${msg.id}). Content: "${content.slice(0, 100)}${content.length > 100 ? '...' : ''}"`
   } catch (err) {
-    console.error('[LEO Tools] send_message error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6906,7 +7013,7 @@ async function handleSendDirectMessage(
 
     return `Direct message sent to user ${targetUserId} (message ID: ${msg.id}, channel: ${dm.channelSlug}${dm.isNew ? ' — new DM created' : ''}).`
   } catch (err) {
-    console.error('[LEO Tools] send_direct_message error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error sending DM: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -6973,7 +7080,7 @@ async function handleCreateAnnouncement(
 
     return `Announcement "${title}" posted to ${sent} space(s).`
   } catch (err) {
-    console.error('[LEO Tools] create_announcement error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error creating announcement: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7013,7 +7120,7 @@ async function handleModerateContent(
 
     return `Message ${messageId} moderated: action="${action}", reason="${reason}". Status updated to ${updates.status}.`
   } catch (err) {
-    console.error('[LEO Tools] moderate_content error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error moderating message: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7060,7 +7167,7 @@ async function handleUpdateInventory(
     // The afterProductChange hook automatically creates AI Bus messages
     return `Inventory updated for "${(product as any).title}": ${currentInventory} → ${newInventory} (${adjustment > 0 ? '+' : ''}${adjustment}). Reason: ${reason}`
   } catch (err) {
-    console.error('[LEO Tools] update_inventory error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating inventory: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7112,7 +7219,7 @@ async function handleTrackInventoryMovement(
 
     return `Inventory processed for order #${orderId}:\n${results.map((r) => `  - ${r}`).join('\n')}`
   } catch (err) {
-    console.error('[LEO Tools] track_inventory_movement error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error processing inventory: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7149,7 +7256,7 @@ async function handleSetLowStockAlert(
 
     return `Low stock alert threshold set for "${product.title}": alert when inventory drops below ${threshold} units. Current inventory: ${currentInventory}${status}`
   } catch (err) {
-    console.error('[LEO Tools] set_low_stock_alert error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error setting alert: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7190,7 +7297,7 @@ async function handleQueryInventoryHistory(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] query_inventory_history error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error querying inventory history: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7265,7 +7372,7 @@ async function handleGenerateInvoice(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] generate_invoice error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error generating invoice: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7372,7 +7479,7 @@ async function handleQueryFinancialReports(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] query_financial_reports error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error generating report: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7438,7 +7545,7 @@ async function handleIssueRefund(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] issue_refund error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error issuing refund: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7548,7 +7655,7 @@ async function handleQueryFederation(
 
     return [`## Federation Search Results`, '', ...results].join('\n')
   } catch (err) {
-    console.error('[LEO Tools] query_federation error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error searching federation: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7595,7 +7702,7 @@ async function handleBroadcastCapability(
 
     return `Capability broadcasted to federation!\n- **Title:** ${title}\n- **Type:** ${contentType}\n- **Street Sign ID:** ${sign.id}\n- **Source:** ${tenant?.name || 'your Enterprise'}\n\nOther Enterprises in the federation can now discover this offering.`
   } catch (err) {
-    console.error('[LEO Tools] broadcast_capability error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error broadcasting: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7638,7 +7745,7 @@ async function handleRouteFederatedRequest(
 
     return `## Federated Request Routed\n\n**Request:** ${request}\n\n${searchResult}\n\n_Request logged in federation audit trail._`
   } catch (err) {
-    console.error('[LEO Tools] route_federated_request error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error routing request: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7700,7 +7807,7 @@ async function handleNegotiateDeal(
 
     return lines.filter(Boolean).join('\n')
   } catch (err) {
-    console.error('[LEO Tools] negotiate_deal error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error negotiating deal: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7775,7 +7882,7 @@ async function handleCreateCustomerProfile(
 
     return `Customer profile created for ${email} (contact ID: ${contact.id}). Status: lead, source: ${source}.${tags.length > 0 ? ` Tags: ${tags.join(', ')}.` : ''}`
   } catch (err) {
-    console.error('[LEO Tools] create_customer_profile error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error creating profile: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7818,7 +7925,7 @@ async function handleLogInteraction(
 
     return `Interaction logged for ${contact.name || contact.email} (ID: ${contactId}):\n- **Type:** ${interactionType}\n- **Notes:** ${notes}\n- **Timestamp:** ${timestamp}`
   } catch (err) {
-    console.error('[LEO Tools] log_interaction error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error logging interaction: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7881,7 +7988,7 @@ async function handleSegmentCustomers(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] segment_customers error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error segmenting customers: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -7946,7 +8053,7 @@ async function handleSendFollowUp(
 
     return `Follow-up queued for ${contact.name || contact.email} (${contact.email}):\n- **Subject:** ${subject}\n- **Message:** ${message.slice(0, 200)}${message.length > 200 ? '...' : ''}\n- **Logged at:** ${timestamp}\n\n_Note: Email delivery depends on the platform's email adapter (Resend). The interaction has been logged to the contact record._`
   } catch (err) {
-    console.error('[LEO Tools] send_follow_up error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error sending follow-up: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8032,12 +8139,155 @@ async function handleSendEmail(
 
     return `Email sent successfully!\n- **To:** ${to}\n- **Subject:** ${subject}\n- **Preview:** ${body.slice(0, 150)}${body.length > 150 ? '...' : ''}`
   } catch (err) {
-    console.error('[LEO Tools] send_email error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     const msg = err instanceof Error ? err.message : 'Unknown error'
     if (msg.includes('No email transport') || msg.includes('sendEmail')) {
       return 'Error: Email transport is not configured. Please set up RESEND_API_KEY or SMTP settings in your environment.'
     }
     return `Error sending email: ${msg}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5b: Multi-Channel Messaging
+// ---------------------------------------------------------------------------
+
+async function handleSendWhatsApp(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const to = (input.to as string)?.trim()
+  const text = (input.text as string)?.trim()
+  const templateName = (input.templateName as string)?.trim() || undefined
+  const templateParameters = (input.templateParameters as string[]) || undefined
+
+  if (!to) return 'Error: recipient phone number (to) is required.'
+  if (!text && !templateName) return 'Error: either text or templateName is required.'
+
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    const { resolveWhatsAppSender } = await import('./resolveWhatsAppSender')
+    const sender = await resolveWhatsAppSender(payload, ctx.tenantId, ctx.spaceId)
+
+    if (!sender) {
+      return 'Error: No WhatsApp connector is configured for this tenant. Please set up a WhatsApp connector in Admin → Connectors.'
+    }
+
+    if (templateName) {
+      await sender.sendTemplate({
+        to,
+        templateName,
+        templateParameters,
+      })
+      return `WhatsApp template message sent!\n- **To:** ${to}\n- **Template:** ${templateName}${templateParameters ? `\n- **Parameters:** ${templateParameters.join(', ')}` : ''}`
+    }
+
+    await sender.sendText(to, text!)
+    return `WhatsApp message sent!\n- **To:** ${to}\n- **Preview:** ${text!.slice(0, 150)}${text!.length > 150 ? '...' : ''}`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    if (msg.includes('24') || msg.includes('window')) {
+      return `Error: The 24-hour customer service window may have expired. Try using a template message instead by providing a templateName parameter.\n\nDetails: ${msg}`
+    }
+    return `Error sending WhatsApp message: ${msg}`
+  }
+}
+
+async function handleSendTelegram(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const chatId = (input.chatId as string)?.trim()
+  const text = (input.text as string)?.trim()
+
+  if (!chatId) return 'Error: chatId is required.'
+  if (!text) return 'Error: text is required.'
+
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    const { resolveTelegramSender } = await import('./resolveTelegramSender')
+    const sender = await resolveTelegramSender(payload, ctx.tenantId, ctx.spaceId)
+
+    if (!sender) {
+      return 'Error: No Telegram connector is configured for this tenant. Please set up a Telegram bot connector in Admin → Connectors.'
+    }
+
+    await sender.sendText(chatId, text, 'Markdown')
+    return `Telegram message sent!\n- **Chat ID:** ${chatId}\n- **Preview:** ${text.slice(0, 150)}${text.length > 150 ? '...' : ''}`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return `Error sending Telegram message: ${msg}`
+  }
+}
+
+async function handleSendSms(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const to = (input.to as string)?.trim()
+  const body = (input.body as string)?.trim()
+
+  if (!to) return 'Error: recipient phone number (to) is required.'
+  if (!body) return 'Error: message body is required.'
+
+  if (body.length > 1600) {
+    return `Error: SMS body is ${body.length} characters. Maximum is 1600. Please shorten the message.`
+  }
+
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    const { resolveSmsSender } = await import('./resolveSmsSender')
+    const sender = await resolveSmsSender(payload, ctx.tenantId, ctx.spaceId)
+
+    if (!sender) {
+      return 'Error: No SMS connector is configured for this tenant. Please set up a Twilio SMS connector in Admin → Connectors.'
+    }
+
+    await sender.sendText(to, body)
+    return `SMS sent!\n- **To:** ${to}\n- **From:** ${sender.fromNumber}\n- **Preview:** ${body.slice(0, 150)}${body.length > 150 ? '...' : ''}`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return `Error sending SMS: ${msg}`
+  }
+}
+
+async function handleSendSlack(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const channelId = (input.channelId as string)?.trim()
+  const text = (input.text as string)?.trim()
+  const threadTs = (input.threadTs as string)?.trim() || undefined
+
+  if (!channelId) return 'Error: channelId is required.'
+  if (!text) return 'Error: message text is required.'
+
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    const { resolveSlackSender } = await import('./resolveSlackSender')
+    const sender = await resolveSlackSender(payload, ctx.tenantId, ctx.spaceId)
+
+    if (!sender) {
+      return 'Error: No Slack connector is configured for this tenant. Please set up a Slack bot connector in Admin → Connectors.'
+    }
+
+    await sender.sendText(channelId, text, threadTs)
+    return `Slack message sent!\n- **Channel:** ${channelId}\n- **Preview:** ${text.slice(0, 150)}${text.length > 150 ? '...' : ''}`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return `Error sending Slack message: ${msg}`
   }
 }
 
@@ -8148,7 +8398,7 @@ async function handleAnalyzeTrends(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] analyze_trends error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error analyzing trends: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8192,7 +8442,7 @@ async function handleRecommendProducts(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] recommend_products error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error getting recommendations: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8246,7 +8496,7 @@ async function handleDelegateTask(
 
     return `Task delegated in #team channel:\n- **Task:** ${task}\n- **Assigned to:** ${assigneeEmail || 'team'}\n- **Priority:** ${priority}${deadline ? `\n- **Deadline:** ${deadline}` : ''}`
   } catch (err) {
-    console.error('[LEO Tools] delegate_task error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error delegating task: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8308,7 +8558,7 @@ async function handleEscalateIssue(
 
     return `Issue escalated (${priority}):\n- **Issue:** ${issue}${issueContext ? `\n- **Context:** ${issueContext}` : ''}\n- Posted to #support channel and logged to application logs.`
   } catch (err) {
-    console.error('[LEO Tools] escalate_issue error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error escalating issue: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8375,7 +8625,7 @@ async function handleSendEmergencyAlert(
 
     return `Emergency alert broadcast to ${sent} space(s):\n"${message}"\n\nPriority: ${priority}. Logged to application logs.`
   } catch (err) {
-    console.error('[LEO Tools] send_emergency_alert error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error sending alert: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8435,7 +8685,7 @@ async function handleDocumentIncident(
 
     return `Incident documented:\n- **Title:** ${title}\n- **Application log:** created\n- **Draft post:** ID ${post.id} (status: draft)\n\nThe incident report is saved as a draft post for review before publishing.`
   } catch (err) {
-    console.error('[LEO Tools] document_incident error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error documenting incident: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8691,7 +8941,7 @@ async function handleCheckEnterpriseHealth(
 
     return report.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] check_enterprise_health error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error running health check: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8766,7 +9016,7 @@ async function handleGetEnterpriseStage(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] get_enterprise_stage error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error determining enterprise stage: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8816,7 +9066,7 @@ async function handleQueryBoardMembers(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] query_board_members error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error querying board members: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -8960,7 +9210,7 @@ async function handleFederationPulse(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] federation_pulse error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error reading federation pulse: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -9086,7 +9336,7 @@ async function handleMyPlace(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] my_place error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error reading your federation position: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
@@ -9256,7 +9506,7 @@ async function handleFindSynchronicities(
 
     return lines.join('\n')
   } catch (err) {
-    console.error('[LEO Tools] find_synchronicities error:', err)
+    logCaughtError('leo-tools', err).catch(() => {})
     return `Error finding synchronicities: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

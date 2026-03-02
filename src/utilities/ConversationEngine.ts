@@ -87,7 +87,7 @@ function resolveAnthropicKey(): string | undefined {
       }
     }
   } catch (err) {
-    console.warn('[ConversationEngine] Failed to read .env files:', err)
+    logError({ level: 'warning', source: 'ConversationEngine/resolveKey', message: `Failed to read .env files: ${err}` }).catch(() => {})
   }
 
   return undefined
@@ -109,7 +109,7 @@ function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
   if (_anthropic && _cachedKey === apiKey) return _anthropic
 
   if (!apiKey) {
-    console.warn('[ConversationEngine] ANTHROPIC_API_KEY not set — using fallback responses')
+    logError({ level: 'warning', source: 'ConversationEngine', message: 'ANTHROPIC_API_KEY not set — using fallback responses' }).catch(() => {})
     return null
   }
   _anthropic = new Anthropic({ apiKey })
@@ -240,10 +240,7 @@ export class ConversationEngine {
       // Constitutional validation
       const validation = validateConstitutionalResponse(responseText)
       if (!validation.valid) {
-        console.warn(
-          '[ConversationEngine] Constitutional concerns detected:',
-          validation.concerns,
-        )
+        logError({ level: 'warning', source: 'ConversationEngine/constitutional', message: `Constitutional concerns: ${validation.concerns?.join(', ')}` }).catch(() => {})
       }
 
       this.inferPhaseFromResponse(userMessage.text || '')
@@ -265,7 +262,6 @@ export class ConversationEngine {
         },
       }
     } catch (error) {
-      console.error('[ConversationEngine] AI Gateway call failed:', error)
       logError({
         source: 'ConversationEngine.generateViaGateway',
         message: `AI Gateway call failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -277,7 +273,7 @@ export class ConversationEngine {
       }).catch(() => {})
 
       // Fall back to direct Anthropic SDK
-      console.warn('[ConversationEngine] Falling back to direct Anthropic SDK')
+      logError({ level: 'warning', source: 'ConversationEngine/gateway', message: 'Falling back to direct Anthropic SDK' }).catch(() => {})
       return this.generateViaAnthropic(userMessage)
     }
   }
@@ -368,10 +364,7 @@ export class ConversationEngine {
 
       const validation = validateConstitutionalResponse(responseText)
       if (!validation.valid) {
-        console.warn(
-          '[ConversationEngine] Constitutional concerns detected:',
-          validation.concerns,
-        )
+        logError({ level: 'warning', source: 'ConversationEngine/constitutional', message: `Constitutional concerns: ${validation.concerns?.join(', ')}` }).catch(() => {})
       }
 
       this.inferPhaseFromResponse(userMessage.text || '')
@@ -394,7 +387,6 @@ export class ConversationEngine {
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
-      console.error('[ConversationEngine] LLM call failed:', errMsg)
       logError({
         source: 'ConversationEngine.generateResponse',
         message: `LLM call failed (all providers exhausted): ${errMsg}`,
@@ -623,7 +615,7 @@ ${pageHint}
 
       return messages
     } catch (err) {
-      console.warn('[ConversationEngine] Failed to fetch history:', err)
+      logError({ level: 'warning', source: 'ConversationEngine/history', message: `Failed to fetch history: ${err instanceof Error ? err.message : String(err)}` }).catch(() => {})
       return []
     }
   }

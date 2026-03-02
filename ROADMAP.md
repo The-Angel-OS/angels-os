@@ -10,9 +10,9 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 **Tests:** 2,482 unit tests + 14 E2E suites across 53 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
 **Leo Tools:** 88+
-**API Endpoints:** 52+ registered routes
+**API Endpoints:** 55+ registered routes
 **Collections:** 42
-**Last Updated:** February 28, 2026
+**Last Updated:** March 2, 2026
 
 ---
 
@@ -99,26 +99,33 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Discord Webhook** | **33** | **POST /api/discord/webhook, per-connector auth, guest users, AI Bus persistence** |
 | **Discord Formatter** | **33** | **LEO markdown → Discord markdown, 2000-char message splitting** |
 | **Connectors: Discord + Telegram** | **33** | **New types in multi-tenant Connectors collection config schema** |
+| **WhatsApp Signature Fix** | **34** | **Critical: raw body HMAC verification instead of JSON.stringify** |
+| **Shared Bridge Helpers** | **34** | **8 shared utilities extracted from duplicated webhook code** |
+| **Telegram Webhook** | **34** | **POST /api/telegram/webhook: 12 content types, Markdown retry, 4096-char splitting** |
+| **SMS/Twilio Webhook** | **34** | **POST /api/sms/webhook: TwiML responses, phone→connector resolution, HMAC-SHA1** |
+| **Connector Admin UI** | **34** | **Google Chat catalog entry, Telegram/SMS/Google Chat webhook URL hints** |
 
 ---
 
-## Sprint 34 — Connectors Phase 2: Slack + Telegram Bridges (Planned)
+## Sprint 34 — Connectors Phase 2: Multi-Channel Bridge Hardening (Done)
 
 ### Goal
-Replicate the Discord connector pattern for Slack and Telegram. Each Enterprise gets its own bot on each platform. The BotManager architecture, webhook endpoints, and formatter utilities follow the exact template proven in Sprint 33. Parallel engine test audit fills coverage gaps ahead of v1.0.0.
+Harden the connector integration layer. Fix the critical WhatsApp signature verification bug. Extract shared bridge utilities to eliminate code duplication. Add message deduplication across all inbound channels. Build native webhook handlers for Telegram and SMS/Twilio. Complete the Connector Admin UI with all webhook URLs and Google Chat support.
 
-### Planned Deliverables
-- [ ] **Slack Bot Manager** (`src/slack/bot.ts`) — Multi-app manager using @slack/bolt, one per active `slack` connector
-- [ ] **Slack Webhook Endpoint** (`src/endpoints/slack-webhook.ts`) — Multi-tenant message processing, per-connector HMAC auth
-- [ ] **Slack Formatter** (`src/utilities/slack-formatter.ts`) — LEO markdown → Slack mrkdwn, 4000-char splitting
-- [ ] **Slack OAuth** (`src/endpoints/auth-slack.ts`) — User account linking, follows Google/Discord pattern
-- [ ] **Telegram Bot Manager** (`src/telegram/bot.ts`) — Multi-bot manager using Telegraf, one per active `telegram` connector
-- [ ] **Telegram Webhook Endpoint** (`src/endpoints/telegram-webhook.ts`) — Multi-tenant processing, MarkdownV2 support
-- [ ] **Telegram Formatter** (`src/utilities/telegram-formatter.ts`) — LEO markdown → Telegram MarkdownV2, 4096-char splitting
-- [ ] **Engine Test Audit** — Verify coverage for Guardian Angel, Justice Fund, Print-on-Demand, Synchronicity, Booking engines
-- [ ] **~199 new tests** across 8 test files + engine edge cases
+### Deliverables
+- [x] **WhatsApp Signature Fix** — Critical bug: handler used `JSON.stringify(body)` instead of raw bytes for HMAC verification, causing signature mismatches. Fixed to read raw body via `.text()` then parse separately.
+- [x] **Shared Bridge Helpers** (`src/utilities/bridgeHelpers.ts`) — Extracted 8 shared utilities from duplicated webhook code: `findOrCreateBridgeChannel`, `findOrCreateGuestUser`, `markConnectorActive`, `markConnectorError`, `isMessageDuplicate`, `getSourceIcon`, `getChannelSource`, `getMessageType`.
+- [x] **WhatsApp Deduplication** — Added `isMessageDuplicate()` check via `whatsappMessageId` in Messages metadata. WhatsApp read receipts sent on successful processing.
+- [x] **Telegram Webhook** (`src/endpoints/telegram-webhook.ts`) — Full Telegram Bot API handler: secret token verification, bot index cache (2-min TTL), content extraction for 12 message types, Markdown retry with fallback, 4096-char message splitting at paragraph/sentence/word boundaries.
+- [x] **SMS/Twilio Webhook** (`src/endpoints/sms-webhook.ts`) — Native Twilio handler: phone number → connector resolution, HMAC-SHA1 signature verification, TwiML response format, media attachment detection, form-encoded body parsing.
+- [x] **Schema Enums** — Added `telegram_message` to Messages messageType, `discord` and `telegram` to Channels source options.
+- [x] **Connector Admin UI** — Added Google Chat to CONNECTOR_CATALOG, webhook URL hints for Telegram/SMS/Google Chat connector setup, Telegram and SMS entries in webhook reference panel.
+- [x] **Bridge Refactor** — `bridge-inbound.ts` and `whatsapp-webhook.ts` refactored to use shared helpers, reducing combined code by ~200 lines.
 
-See full plan: `docs/planning/SPRINT_34_PLAN.md`
+### Remaining (Deferred)
+- [ ] **Slack Bot Manager** (`src/slack/bot.ts`) — Multi-app manager using @slack/bolt
+- [ ] **Slack Webhook Endpoint** (`src/endpoints/slack-webhook.ts`) — Multi-tenant Slack processing
+- [ ] **Engine Test Audit** — Coverage for Guardian Angel, Justice Fund, Print-on-Demand, Synchronicity engines
 
 ---
 
@@ -448,7 +455,9 @@ Any Enterprise operator can see their federation status, discover other holons v
 | Social Syndication | TODO | Post to Facebook/Instagram/Twitter |
 | Guardian Angel Dashboard | TODO | Service discovery + network map UI |
 | Discord Integration | **Done** | Multi-tenant bots, OAuth, webhook, message formatter (Sprint 33) |
-| WhatsApp Bridge | TODO | Twilio/Meta webhook integration |
+| WhatsApp Bridge | **Done** | **Meta Cloud API webhook + outbound sender (Sprint 34)** |
+| Telegram Bridge | **Done** | **Telegram Bot API webhook handler (Sprint 34)** |
+| SMS/Twilio Bridge | **Done** | **Native Twilio webhook with TwiML responses (Sprint 34)** |
 | Voice Mode | TODO | Web Speech API in chat |
 
 ---
@@ -587,6 +596,7 @@ pnpm dev                      # http://localhost:3000
 | 31 | Wire the Brains to the Body | 2,123 | Dispatch endpoint, pheromone learning, live capacity heartbeats (63 tests) |
 | 32 | The Wellness Virus Becomes Visible | 2,387 | Federation Pulse API, Synchronicity Engine, 3 new LEO tools, full-stack booking, branding |
 | 33 | LEO Speaks on Discord | 2,482 | Multi-tenant Discord bots, Discord OAuth, webhook endpoint, formatter (~95 tests) |
+| 34 | Multi-Channel Bridge Hardening | 2,482 | WhatsApp sig fix, shared bridge helpers, Telegram + SMS webhooks, Connector Admin UI |
 
 ---
 
@@ -598,4 +608,4 @@ pnpm dev                      # http://localhost:3000
 
 ---
 
-**Last Updated:** February 28, 2026
+**Last Updated:** March 2, 2026

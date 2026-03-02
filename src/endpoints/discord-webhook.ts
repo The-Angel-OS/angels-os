@@ -12,10 +12,11 @@
  *
  * 1. Validates the per-connector webhook secret
  * 2. Resolves tenant from the connector
- * 3. Finds or creates a Payload user from Discord identity
- * 4. Processes through leoProcessMessage()
- * 5. Persists to AI Bus (Messages collection)
- * 6. Returns response for the bot to send back
+ * 3. Deduplicates via Discord message ID
+ * 4. Finds or creates a Payload user from Discord identity
+ * 5. Processes through leoProcessMessage()
+ * 6. Persists to AI Bus (Messages collection)
+ * 7. Returns response for the bot to send back
  *
  * ## AI Bus Integration
  *
@@ -24,14 +25,24 @@
  * visible alongside chat, email, and voice channels.
  *
  * @see src/discord/bot.ts — Bot bridge that sends to this endpoint
+ * @see src/utilities/bridgeHelpers.ts — Shared bridge utilities
  * @see src/utilities/resolveConnector.ts — Connector resolution
- * @see src/endpoints/vapi-webhook.ts — Blueprint for this pattern
  *
  * Sprint 33 — Discord Integration · Multi-Tenant Bot Bridge
  */
 import type { PayloadHandler } from 'payload'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { formatForDiscord } from '@/utilities/discord-formatter'
+import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
+import { wrapTextContent } from '@/utilities/messageContent'
+import { logError } from '@/utilities/logError'
+import {
+  findOrCreateBridgeChannel,
+  findOrCreateGuestUser,
+  markConnectorActive,
+  markConnectorError,
+  isMessageDuplicate,
+} from '@/utilities/bridgeHelpers'
 
 // ─── In-Memory Connector Cache (60s TTL) ─────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +87,7 @@ export interface DiscordWebhookRequest {
   isDM: boolean
   threadId?: string
   commandName?: string
+  messageId?: string
 }
 
 export interface DiscordWebhookResponse {
@@ -144,8 +156,57 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
       return Response.json({ error: 'Connector has no tenant assigned' }, { status: 500 })
     }
 
-    // ─── Resolve Payload user from Discord identity ────────────
-    const payloadUser = await resolveDiscordUser(payload, body.userId, body.userName, tenantId)
+    // ─── Deduplication ────────────────────────────────────────
+    if (body.messageId) {
+      const isDup = await isMessageDuplicate(payload, {
+        source: 'discord',
+        externalMessageId: body.messageId,
+        tenantId,
+      })
+      if (isDup) {
+        return Response.json({ text: '', conversationId: '', agentName: 'LEO' })
+      }
+    }
+
+    // ─── Ensure DM space ──────────────────────────────────────
+    const dmSpaceId = await ensureDMSpace(tenantId)
+    if (!dmSpaceId) {
+      return Response.json({ error: 'Failed to ensure DM space' }, { status: 500 })
+    }
+
+    // ─── Build channel slug ───────────────────────────────────
+    const channelSlug = body.isDM
+      ? `discord-dm-${body.userId}`
+      : `discord-${body.channelId}`
+
+    const channelDisplayName = body.isDM
+      ? body.userName
+      : `#${body.channelName || body.channelId}`
+
+    // ─── Find or create channel (shared helper) ────────────────
+    await findOrCreateBridgeChannel(payload, {
+      tenantId,
+      dmSpaceId: Number(dmSpaceId),
+      slug: channelSlug,
+      displayName: channelDisplayName,
+      source: 'discord',
+      description: body.isDM
+        ? `Discord DM with ${body.userName}`
+        : `Discord channel #${body.channelName}`,
+    })
+
+    // ─── Resolve Payload user (shared helper) ──────────────────
+    const payloadUser = await findOrCreateGuestUser(payload, {
+      externalId: body.userId,
+      displayName: body.userName,
+      source: 'discord',
+      tenantId,
+      socialProvider: {
+        provider: 'discord',
+        providerId: body.userId,
+        displayName: body.userName,
+      },
+    })
 
     // ─── Build conversation ID ─────────────────────────────────
     let conversationId: string
@@ -179,8 +240,27 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
       messageContent = 'Hello'
     }
 
-    // ─── Resolve channel slug ──────────────────────────────────
-    const channelSlug = body.isDM ? 'discord-dm' : (body.channelName || 'discord')
+    // ─── Create inbound message ───────────────────────────────
+    await payload.create({
+      collection: 'messages' as any,
+      data: {
+        content: wrapTextContent(messageContent),
+        space: Number(dmSpaceId),
+        channel: channelSlug,
+        messageType: 'discord_message',
+        metadata: {
+          source: 'discord',
+          discordUserId: body.userId,
+          discordMessageId: body.messageId || '',
+          discordGuildId: body.guildId,
+          discordChannelId: body.channelId,
+          connectorId: body.connectorId,
+          conversationId,
+        },
+        tenant: tenantId,
+      } as any,
+      overrideAccess: true,
+    })
 
     // ─── Process through LEO ───────────────────────────────────
     const result = await leoProcessMessage({
@@ -188,6 +268,7 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
       conversationId,
       tenantId,
       channelSlug,
+      spaceId: Number(dmSpaceId),
       payload,
       userContext: {
         id: payloadUser.id,
@@ -199,42 +280,18 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
     // ─── Format response for Discord ───────────────────────────
     const formattedText = formatForDiscord(result.text)
 
-    // ─── Persist to AI Bus ─────────────────────────────────────
-    try {
-      // User message
+    // ─── Persist LEO response ──────────────────────────────────
+    if (result.text) {
       await payload.create({
         collection: 'messages' as any,
         data: {
-          content: {
-            type: 'text',
-            text: messageContent,
-          },
-          messageType: 'discord_message',
-          metadata: {
-            source: 'discord',
-            discordUserId: body.userId,
-            discordGuildId: body.guildId,
-            discordChannelId: body.channelId,
-            connectorId: body.connectorId,
-            conversationId,
-          },
-          tenant: tenantId,
-        } as any,
-        overrideAccess: true,
-      })
-
-      // LEO response
-      await payload.create({
-        collection: 'messages' as any,
-        data: {
-          content: {
-            type: 'text',
-            text: result.text,
-          },
+          content: wrapTextContent(result.text),
+          space: Number(dmSpaceId),
+          channel: channelSlug,
           messageType: 'ai_agent',
           metadata: {
             source: 'discord',
-            agentName: result.agentName,
+            agentName: result.agentName || 'LEO',
             conversationId,
             connectorId: body.connectorId,
           },
@@ -242,28 +299,11 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
         } as any,
         overrideAccess: true,
       })
-    } catch (err) {
-      // AI Bus persistence is non-fatal — don't fail the response
-      console.error('[Discord Webhook] Failed to persist to AI Bus:', err)
     }
 
-    // ─── Update connector lastActivity ─────────────────────────
-    try {
-      await payload.update({
-        collection: 'connectors' as any,
-        id: body.connectorId,
-        data: {
-          lastActivity: new Date().toISOString(),
-          status: 'active',
-          errorMessage: '',
-        } as any,
-        overrideAccess: true,
-      })
-      // Invalidate connector cache for this connector
-      connectorCache.delete(body.connectorId)
-    } catch {
-      // Non-fatal
-    }
+    // ─── Update connector activity (shared helper) ─────────────
+    await markConnectorActive(payload, body.connectorId)
+    connectorCache.delete(body.connectorId)
 
     // ─── Return response ───────────────────────────────────────
     const response: DiscordWebhookResponse = {
@@ -274,131 +314,25 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
 
     return Response.json(response)
   } catch (err) {
-    console.error('[Discord Webhook] Unhandled error:', err)
+    await logError({
+      source: 'discord-webhook',
+      message: 'Failed to process Discord message',
+      details: err instanceof Error ? err.message : String(err),
+    })
 
-    // Try to update connector status on error
+    // Mark connector error (shared helper)
     if (body.connectorId) {
-      try {
-        await payload.update({
-          collection: 'connectors' as any,
-          id: body.connectorId,
-          data: {
-            status: 'error',
-            errorMessage: err instanceof Error ? err.message : 'Unknown error',
-          } as any,
-          overrideAccess: true,
-        })
-        connectorCache.delete(body.connectorId)
-      } catch {
-        // Double-fault — nothing we can do
-      }
+      await markConnectorError(
+        payload,
+        body.connectorId,
+        err instanceof Error ? err.message : 'Unknown error',
+      )
+      connectorCache.delete(body.connectorId)
     }
 
     return Response.json(
       { error: 'Internal server error', text: 'Sorry, I encountered an error processing your message. Please try again.' },
       { status: 500 },
     )
-  }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────
-
-/**
- * Find or create a Payload user from a Discord identity.
- * Looks up by socialProviders.providerId first, creates guest if not found.
- */
-async function resolveDiscordUser(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any,
-  discordUserId: string,
-  discordUserName: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tenantId: any,
-): Promise<{ id: string | number; name: string; email: string }> {
-  // Try to find by Discord provider ID
-  try {
-    const byProvider = await payload.find({
-      collection: 'users',
-      where: {
-        'socialProviders.providerId': { equals: discordUserId },
-      },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (byProvider.docs?.length > 0) {
-      const user = byProvider.docs[0]
-      return {
-        id: user.id,
-        name: user.name || discordUserName,
-        email: user.email,
-      }
-    }
-  } catch {
-    // Fall through to guest creation
-  }
-
-  // Create guest user
-  const syntheticEmail = `discord-${discordUserId}@guests.angel-os.local`
-
-  // Check if guest already exists (may have been created in a previous message)
-  try {
-    const existingGuest = await payload.find({
-      collection: 'users',
-      where: { email: { equals: syntheticEmail } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (existingGuest.docs?.length > 0) {
-      const user = existingGuest.docs[0]
-      return {
-        id: user.id,
-        name: user.name || discordUserName,
-        email: user.email,
-      }
-    }
-  } catch {
-    // Fall through to creation
-  }
-
-  // Create new guest user
-  try {
-    const crypto = await import('crypto')
-    const user = await payload.create({
-      collection: 'users',
-      data: {
-        email: syntheticEmail,
-        name: discordUserName,
-        password: crypto.randomUUID() + crypto.randomUUID(),
-        roles: ['customer'],
-        socialProviders: [
-          {
-            provider: 'discord',
-            providerId: discordUserId,
-            displayName: discordUserName,
-            linkedAt: new Date().toISOString(),
-          },
-        ],
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
-
-    return {
-      id: user.id,
-      name: user.name || discordUserName,
-      email: user.email,
-    }
-  } catch (err) {
-    console.error('[Discord Webhook] Failed to create guest user:', err)
-    // Return a minimal user context so LEO can still respond
-    return {
-      id: 0,
-      name: discordUserName,
-      email: syntheticEmail,
-    }
   }
 }

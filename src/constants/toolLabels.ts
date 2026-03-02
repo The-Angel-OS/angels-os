@@ -42,4 +42,11 @@ export const TOOL_LABELS: Record<string, string> = {
 
   // Platform / Fees
   check_fees: 'Checking platform fees',
+
+  // Multi-Channel Messaging
+  send_email: 'Sending email',
+  send_whatsapp: 'Sending WhatsApp message',
+  send_telegram: 'Sending Telegram message',
+  send_sms: 'Sending SMS',
+  send_slack: 'Sending Slack message',
 }

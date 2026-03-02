@@ -1,5 +1,6 @@
 import type { Payload } from 'payload'
 import type { User } from '@/payload-types'
+import { sendBookingConfirmation } from '@/utilities/bookingNotifications'
 
 export interface TimeSlot {
   startTime: Date
@@ -467,9 +468,8 @@ export class BookingEngine {
       overrideAccess: true,
     })
 
-    // TODO: Send notifications
-    // TODO: Create calendar events
-    // TODO: Initialize LEO conversation thread
+    // Fire-and-forget: notifications must never block booking creation
+    sendBookingConfirmation(this.payload, booking, request.tenantId).catch(() => {})
 
     return booking
   }

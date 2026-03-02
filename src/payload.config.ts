@@ -98,6 +98,8 @@ import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
 import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
 import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
+import { connectorTestHandler } from '@/endpoints/connector-test'
+import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
@@ -122,6 +124,9 @@ import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
 import { discordWebhookHandler } from '@/endpoints/discord-webhook'
 import { whatsappWebhookHandler, whatsappWebhookVerifyHandler } from '@/endpoints/whatsapp-webhook'
+import { telegramWebhookHandler } from '@/endpoints/telegram-webhook'
+import { smsWebhookHandler } from '@/endpoints/sms-webhook'
+import { slackWebhookHandler } from '@/endpoints/slack-webhook'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -602,6 +607,18 @@ export default buildConfig({
       method: 'post',
       handler: bridgeInboundHandler,
     },
+    // ─── Connector Health Probe ───────────────────────────────────
+    {
+      path: '/connectors/test',
+      method: 'post',
+      handler: connectorTestHandler,
+    },
+    // ─── Connector Health Cron (Vercel Cron: */30 * * * *) ───────
+    {
+      path: '/connectors/health',
+      method: 'get',
+      handler: connectorHealthCronHandler,
+    },
     // ─── Email Poll Endpoint (Vercel Cron: */2 * * * *) ─────────
     // Fetches unseen emails from SYSTEM_EMAIL_ADDRESS via IMAP,
     // creates AI Bus channels per sender, replies via Resend.
@@ -765,6 +782,23 @@ export default buildConfig({
       path: '/whatsapp/webhook',
       method: 'post',
       handler: whatsappWebhookHandler,
+    },
+    // ─── Telegram Bot API Webhook ─────────────────────────────
+    {
+      path: '/telegram/webhook',
+      method: 'post',
+      handler: telegramWebhookHandler,
+    },
+    // ─── Twilio SMS Webhook ─────────────────────────────────
+    {
+      path: '/sms/webhook',
+      method: 'post',
+      handler: smsWebhookHandler,
+    },
+    {
+      path: '/slack/webhook',
+      method: 'post',
+      handler: slackWebhookHandler,
     },
   ],
   globals: [],

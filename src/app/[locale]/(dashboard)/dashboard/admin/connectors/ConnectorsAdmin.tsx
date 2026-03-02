@@ -70,6 +70,17 @@ const CONNECTOR_CATALOG: ConnectorTypeDef[] = [
     ],
   },
   {
+    type: 'slack',
+    label: 'Slack',
+    icon: '💼',
+    description: 'Connect a Slack workspace bot to receive and send messages via LEO.',
+    category: 'messaging',
+    fields: [
+      { key: 'botToken', label: 'Bot Token (xoxb-...)', type: 'password', placeholder: 'xoxb-...', required: true, helpText: 'From Slack App → OAuth & Permissions' },
+      { key: 'signingSecret', label: 'Signing Secret', type: 'password', placeholder: 'abc123...', required: true, helpText: 'From Slack App → Basic Information' },
+    ],
+  },
+  {
     type: 'email_inbound',
     label: 'Email Inbound (IMAP)',
     icon: '📨',
@@ -121,6 +132,18 @@ const CONNECTOR_CATALOG: ConnectorTypeDef[] = [
     fields: [
       { key: 'botToken', label: 'Bot Token', type: 'password', placeholder: '123456:ABC-DEF...', required: true, helpText: 'From @BotFather on Telegram' },
       { key: 'webhookSecret', label: 'Webhook Secret', type: 'password' },
+    ],
+  },
+  {
+    type: 'google_chat',
+    label: 'Google Chat',
+    icon: '💬',
+    description: 'Connect Google Chat to receive workspace messages via LEO.',
+    category: 'messaging',
+    fields: [
+      { key: 'webhookSecret', label: 'Webhook Secret', type: 'password', required: true, helpText: 'Shared secret for HMAC verification' },
+      { key: 'projectId', label: 'Google Cloud Project ID', type: 'text', placeholder: 'my-project-123', helpText: 'From Google Cloud Console' },
+      { key: 'spaceId', label: 'Google Chat Space ID', type: 'text', placeholder: 'spaces/AAAA...', helpText: 'The Chat space to bridge' },
     ],
   },
   {
@@ -180,6 +203,8 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
   const [saveError, setSaveError] = useState('')
   const [toggleLoading, setToggleLoading] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [testing, setTesting] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<Record<string, { status: string; message: string; latencyMs?: number }>>({})
 
   // ── Add Connector ──────────────────────────────────────────
   const handleSelectType = useCallback((typeDef: ConnectorTypeDef) => {
@@ -299,6 +324,34 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
       // Non-critical
     } finally {
       setDeleteConfirm(null)
+    }
+  }, [])
+
+  // ── Test Connector ────────────────────────────────────────
+  const handleTest = useCallback(async (id: string) => {
+    setTesting(id)
+    setTestResult((prev) => ({ ...prev, [id]: { status: 'testing', message: 'Testing...' } }))
+    try {
+      const res = await fetch('/api/connectors/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectorId: id }),
+      })
+      const data = (await res.json()) as { status: string; message: string; latencyMs?: number }
+      setTestResult((prev) => ({ ...prev, [id]: data }))
+      if (data.status === 'ok') {
+        setConnectors((prev) => prev.map((c) =>
+          c.id === id ? { ...c, status: 'active', errorMessage: null } : c,
+        ))
+      } else {
+        setConnectors((prev) => prev.map((c) =>
+          c.id === id ? { ...c, status: 'error', errorMessage: data.message } : c,
+        ))
+      }
+    } catch {
+      setTestResult((prev) => ({ ...prev, [id]: { status: 'error', message: 'Network error' } }))
+    } finally {
+      setTesting(null)
     }
   }, [])
 
@@ -464,6 +517,70 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
                   </div>
                 )}
 
+                {/* Slack-specific Event Subscriptions hint */}
+                {selectedType.type === 'slack' && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Slack Event Subscriptions</p>
+                    <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                      Register this URL in your Slack App under Event Subscriptions:
+                    </p>
+                    <code className="mt-2 block rounded bg-blue-100 px-2 py-1 text-xs dark:bg-blue-900/50">
+                      {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/slack/webhook
+                    </code>
+                    <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      Subscribe to: <strong>message.channels</strong>, <strong>message.groups</strong>, <strong>message.im</strong>
+                    </p>
+                  </div>
+                )}
+
+                {/* Telegram-specific webhook URL hint */}
+                {selectedType.type === 'telegram' && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Telegram Webhook</p>
+                    <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                      Register the webhook with your bot token using the Telegram API:
+                    </p>
+                    <code className="mt-2 block rounded bg-blue-100 px-2 py-1 text-xs dark:bg-blue-900/50">
+                      https://api.telegram.org/bot&lt;TOKEN&gt;/setWebhook?url={typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/telegram/webhook&secret_token=&lt;WEBHOOK_SECRET&gt;
+                    </code>
+                    <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      The <strong>secret_token</strong> must match the Webhook Secret above.
+                    </p>
+                  </div>
+                )}
+
+                {/* SMS/Twilio-specific webhook URL hint */}
+                {selectedType.type === 'sms' && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Twilio Webhook</p>
+                    <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                      In Twilio Console, set the &quot;A message comes in&quot; webhook URL to:
+                    </p>
+                    <code className="mt-2 block rounded bg-blue-100 px-2 py-1 text-xs dark:bg-blue-900/50">
+                      {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/sms/webhook
+                    </code>
+                    <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      Method: <strong>HTTP POST</strong>. Found under Phone Numbers &rarr; Active Numbers &rarr; your number.
+                    </p>
+                  </div>
+                )}
+
+                {/* Google Chat-specific webhook URL hint */}
+                {selectedType.type === 'google_chat' && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Google Chat App</p>
+                    <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                      Use the generic bridge endpoint for Google Chat messages:
+                    </p>
+                    <code className="mt-2 block rounded bg-blue-100 px-2 py-1 text-xs dark:bg-blue-900/50">
+                      {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/bridge/inbound
+                    </code>
+                    <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      Include the <strong>X-Bridge-Secret</strong> header with your Webhook Secret.
+                    </p>
+                  </div>
+                )}
+
                 {saveError && (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
                     {saveError}
@@ -577,6 +694,20 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
                           />
                         </button>
 
+                        {/* Test */}
+                        <button
+                          onClick={() => handleTest(conn.id)}
+                          disabled={testing === conn.id}
+                          className="rounded border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                          title={testResult[conn.id]?.message || 'Test connection'}
+                        >
+                          {testing === conn.id
+                            ? 'Testing...'
+                            : testResult[conn.id]?.status === 'ok'
+                              ? `OK (${testResult[conn.id]?.latencyMs}ms)`
+                              : 'Test'}
+                        </button>
+
                         {/* Delete */}
                         {deleteConfirm === conn.id ? (
                           <div className="flex items-center gap-1">
@@ -624,8 +755,10 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
           {[
             { label: 'WhatsApp (Meta)', path: '/api/whatsapp/webhook', note: 'Subscribe to "messages" field' },
             { label: 'Discord Bot', path: '/api/discord/webhook', note: 'Include X-Discord-Secret header' },
+            { label: 'Telegram Bot', path: '/api/telegram/webhook', note: 'Set via setWebhook API with secret_token' },
+            { label: 'SMS (Twilio)', path: '/api/sms/webhook', note: 'Twilio "A message comes in" webhook (POST)' },
             { label: 'Email Poll (Cron)', path: '/api/email/poll', note: 'Vercel Cron: */2 * * * *' },
-            { label: 'Bridge (Generic)', path: '/api/bridge/inbound', note: 'For custom integrations' },
+            { label: 'Bridge (Generic)', path: '/api/bridge/inbound', note: 'For Google Chat + custom integrations' },
           ].map((wh) => (
             <div key={wh.path} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
               <div className="min-w-0 flex-1">

@@ -1,22 +1,30 @@
-import type { PayloadHandler, Payload } from 'payload'
+import type { PayloadHandler } from 'payload'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { logError } from '@/utilities/logError'
+import {
+  findOrCreateBridgeChannel,
+  findOrCreateGuestUser,
+  markConnectorActive,
+  markConnectorError,
+  getMessageType,
+} from '@/utilities/bridgeHelpers'
 
 /**
  * POST /api/bridge/inbound
  *
  * Generic inbound message bridge for external channels.
  * Receives messages from any source (SMS, Google Chat, custom webhooks)
- * and routes them through the standard Connector → DM → LEO → Reply pipeline.
+ * and routes them through the standard Connector -> DM -> LEO -> Reply pipeline.
  *
  * For WhatsApp and Discord, use their dedicated webhook endpoints instead:
  *   - POST /api/whatsapp/webhook (Meta Cloud API format)
  *   - POST /api/discord/webhook (Discord bot bridge format)
+ *   - POST /api/telegram/webhook (Telegram Bot API format)
  *
  * This endpoint handles sources that don't have a dedicated webhook:
- *   - SMS (Twilio)
+ *   - SMS (Twilio) — until dedicated Twilio handler is built
  *   - Google Chat
  *   - Custom webhooks (any source with a connectorId)
  *
@@ -113,34 +121,25 @@ export const bridgeInboundHandler: PayloadHandler = async (req) => {
     const channelSlug = `${source}-${sanitizedId}`
     const displayName = externalUserName || externalUserId
 
-    // ── Find or create channel ───────────────────────────────
-    await findOrCreateBridgeChannel(
-      payload,
+    // ── Find or create channel (shared helper) ───────────────
+    await findOrCreateBridgeChannel(payload, {
       tenantId,
-      Number(dmSpaceId),
-      channelSlug,
-      String(displayName),
-      String(source),
-    )
+      dmSpaceId: Number(dmSpaceId),
+      slug: channelSlug,
+      displayName: String(displayName),
+      source: String(source),
+    })
 
-    // ── Find or create external user ─────────────────────────
-    const user = await findOrCreateExternalUser(
-      payload,
-      String(externalUserId),
-      String(displayName),
-      String(source),
+    // ── Find or create external user (shared helper) ─────────
+    const user = await findOrCreateGuestUser(payload, {
+      externalId: String(externalUserId),
+      displayName: String(displayName),
+      source: String(source),
       tenantId,
-    )
+    })
 
-    // ── Map source to messageType ────────────────────────────
-    const messageTypeMap: Record<string, string> = {
-      sms: 'sms_message',
-      email: 'email_message',
-      whatsapp: 'whatsapp_message',
-      google_chat: 'user',
-      webhook: 'user',
-    }
-    const messageType = messageTypeMap[source as string] || 'user'
+    // ── Map source to messageType (shared helper) ────────────
+    const messageType = getMessageType(String(source))
 
     // ── Create inbound message ───────────────────────────────
     await payload.create({
@@ -212,22 +211,9 @@ export const bridgeInboundHandler: PayloadHandler = async (req) => {
       })
     }
 
-    // ── Update connector activity ────────────────────────────
+    // ── Update connector activity (shared helper) ────────────
     if (connectorId) {
-      try {
-        await payload.update({
-          collection: 'connectors' as any,
-          id: String(connectorId),
-          data: {
-            lastActivity: new Date().toISOString(),
-            status: 'active',
-            errorMessage: '',
-          } as any,
-          overrideAccess: true,
-        })
-      } catch {
-        // Non-critical
-      }
+      await markConnectorActive(payload, String(connectorId))
     }
 
     return Response.json({
@@ -246,153 +232,16 @@ export const bridgeInboundHandler: PayloadHandler = async (req) => {
 
     // Mark connector error if applicable
     if (connectorId) {
-      try {
-        await payload.update({
-          collection: 'connectors' as any,
-          id: String(connectorId),
-          data: {
-            status: 'error',
-            errorMessage: err instanceof Error ? err.message : 'Unknown error',
-          } as any,
-          overrideAccess: true,
-        })
-      } catch {
-        // Non-critical
-      }
+      await markConnectorError(
+        payload,
+        String(connectorId),
+        err instanceof Error ? err.message : 'Unknown error',
+      )
     }
 
     return Response.json(
       { message: 'Internal server error', error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 },
     )
-  }
-}
-
-// ─── Helpers ──────────────────────────────────────────────────
-
-async function findOrCreateBridgeChannel(
-  payload: Payload,
-  tenantId: number | string,
-  dmSpaceId: number,
-  slug: string,
-  displayName: string,
-  source: string,
-): Promise<{ channelId: string }> {
-  const existing = await payload.find({
-    collection: 'channels',
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        { tenant: { equals: tenantId } },
-        { type: { equals: 'dm' } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  if (existing.docs?.[0]) {
-    return { channelId: String(existing.docs[0].id) }
-  }
-
-  const sourceIcons: Record<string, string> = {
-    sms: '📲',
-    google_chat: '💬',
-    webhook: '🔗',
-    whatsapp: '📱',
-    email: '📧',
-  }
-  const icon = sourceIcons[source] || '📨'
-
-  // Map source to channel source enum value
-  const channelSourceMap: Record<string, string> = {
-    sms: 'sms',
-    whatsapp: 'whatsapp',
-    email: 'email',
-    google_chat: 'google_chat',
-    webhook: 'native',
-  }
-  const channelSource = channelSourceMap[source] || 'native'
-
-  const channel = await payload.create({
-    collection: 'channels',
-    data: {
-      name: `${icon} ${displayName}`,
-      slug,
-      description: `${source} thread with ${displayName}`,
-      type: 'dm',
-      source: channelSource,
-      space: dmSpaceId,
-      isDefault: false,
-      tenant: tenantId,
-      members: [],
-    } as any,
-    overrideAccess: true,
-  })
-
-  return { channelId: String(channel.id) }
-}
-
-async function findOrCreateExternalUser(
-  payload: Payload,
-  externalUserId: string,
-  displayName: string,
-  source: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tenantId: any,
-): Promise<{ id: string | number; name: string; email: string }> {
-  const sanitizedId = externalUserId.replace(/[^a-zA-Z0-9._@+-]/g, '')
-  const syntheticEmail = `${source}-${sanitizedId}@guests.angel-os.local`
-
-  // Check if guest already exists
-  try {
-    const existing = await payload.find({
-      collection: 'users',
-      where: { email: { equals: syntheticEmail } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (existing.docs?.length > 0) {
-      const user = existing.docs[0] as any
-      return {
-        id: user.id,
-        name: user.name || displayName,
-        email: user.email,
-      }
-    }
-  } catch {
-    // Fall through to creation
-  }
-
-  // Create new guest
-  try {
-    const crypto = await import('crypto')
-    const user = await payload.create({
-      collection: 'users',
-      data: {
-        email: syntheticEmail,
-        name: displayName || `${source} ${sanitizedId}`,
-        password: crypto.randomUUID() + crypto.randomUUID(),
-        roles: ['customer'],
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
-
-    return {
-      id: user.id,
-      name: (user as any).name || displayName,
-      email: (user as any).email,
-    }
-  } catch (err) {
-    console.error('[Bridge Inbound] Failed to create guest user:', err)
-    return {
-      id: 0,
-      name: displayName,
-      email: syntheticEmail,
-    }
   }
 }

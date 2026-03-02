@@ -268,6 +268,7 @@ class BotManager {
           userId: message.author.id,
           userName: message.author.displayName || message.author.username,
           isDM: !message.guildId,
+          messageId: message.id,
         },
         connector.config.webhookSecret,
       )
@@ -534,6 +535,7 @@ export function buildPayload(opts: {
   userName: string
   isDM: boolean
   commandName?: string
+  messageId?: string
 }) {
   return { ...opts }
 }

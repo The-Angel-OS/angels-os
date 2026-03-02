@@ -28,7 +28,7 @@
  *   DEFAULT_TENANT_SLUG    — Platform tenant slug (default: 'default')
  */
 
-import type { PayloadHandler, Payload } from 'payload'
+import type { PayloadHandler } from 'payload'
 import { ImapFlow } from 'imapflow'
 import { simpleParser, type ParsedMail } from 'mailparser'
 
@@ -38,6 +38,7 @@ import { wrapTextContent } from '@/utilities/messageContent'
 import { logError } from '@/utilities/logError'
 import { findAllConnectors } from '@/utilities/resolveConnector'
 import { resolveEmailSender } from '@/utilities/resolveEmailSender'
+import { findOrCreateBridgeChannel, markConnectorActive } from '@/utilities/bridgeHelpers'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -256,14 +257,14 @@ export const emailPollHandler: PayloadHandler = async (req) => {
               .replace(/^-|-$/g, '')
             const channelSlug = `email-${sanitized}`
 
-            await findOrCreateEmailChannel(
-              payload,
+            await findOrCreateBridgeChannel(payload, {
               tenantId,
-              Number(dmSpaceId),
-              channelSlug,
-              fromName,
-              fromAddress,
-            )
+              dmSpaceId: Number(dmSpaceId),
+              slug: channelSlug,
+              displayName: fromName,
+              source: 'email',
+              description: `Email thread with ${fromAddress}`,
+            })
 
             const inboundBody = subject ? `\uD83D\uDCE7 **${subject}**\n\n${bodyText}` : bodyText
             await payload.create({
@@ -363,16 +364,9 @@ export const emailPollHandler: PayloadHandler = async (req) => {
       await client.logout().catch(() => {})
     }
 
-    // Update connector lastActivity on success
+    // Update connector lastActivity on success (shared helper)
     if (source.connectorId && processed.length > 0) {
-      try {
-        await payload.update({
-          collection: 'connectors' as any,
-          id: source.connectorId,
-          data: { lastActivity: new Date().toISOString(), status: 'active', errorMessage: '' } as any,
-          overrideAccess: true,
-        })
-      } catch { /* non-critical */ }
+      await markConnectorActive(payload, source.connectorId)
     }
 
     allProcessed.push(...processed.map((p) => ({ ...p, source: emailAddress })))
@@ -387,50 +381,3 @@ export const emailPollHandler: PayloadHandler = async (req) => {
   })
 }
 
-// ─── Helper: find or create an email-sourced DM channel ──────────────────────
-
-async function findOrCreateEmailChannel(
-  payload: Payload,
-  tenantId: number,
-  dmSpaceId: number,
-  slug: string,
-  fromName: string,
-  fromAddress: string,
-): Promise<{ channelId: string; isNew: boolean }> {
-  const existing = await payload.find({
-    collection: 'channels',
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        { tenant: { equals: tenantId } },
-        { type: { equals: 'dm' } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  if (existing.docs?.[0]) {
-    return { channelId: String(existing.docs[0].id), isNew: false }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const channel = await payload.create({
-    collection: 'channels',
-    data: {
-      name: `\uD83D\uDCE7 ${fromName}`,
-      slug,
-      description: `Email thread with ${fromAddress}`,
-      type: 'dm',
-      space: dmSpaceId,
-      source: 'email',
-      isDefault: false,
-      tenant: tenantId,
-      members: [],
-    } as any,
-    overrideAccess: true,
-  })
-
-  return { channelId: String(channel.id), isNew: true }
-}

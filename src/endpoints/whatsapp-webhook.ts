@@ -9,12 +9,14 @@
  * Each tenant configures their own WhatsApp Business account via the
  * Connectors collection (type: 'whatsapp'). The handler:
  *
- * 1. Verifies Meta webhook signature (X-Hub-Signature-256)
+ * 1. Verifies Meta webhook signature (X-Hub-Signature-256) on raw body
  * 2. Resolves the connector by phone number ID
- * 3. Finds or creates a Payload user from WhatsApp identity
- * 4. Processes through leoProcessMessage()
- * 5. Persists to AI Bus (Messages collection)
- * 6. Sends reply via Meta Cloud API
+ * 3. Deduplicates via WhatsApp message ID (Meta may resend)
+ * 4. Finds or creates a Payload user from WhatsApp identity
+ * 5. Processes through leoProcessMessage()
+ * 6. Persists to AI Bus (Messages collection)
+ * 7. Sends reply via Meta Cloud API
+ * 8. Sends read receipt to sender
  *
  * ## Connector Config
  *
@@ -30,22 +32,28 @@
  *
  * ## Supported Message Types
  *
- * - Text messages → processed through LEO
- * - Image messages → logged with caption, image URL in metadata
- * - Document messages → logged with filename
- * - Location messages → logged with lat/lng
- * - Button/Interactive replies → processed as text
+ * - Text messages -> processed through LEO
+ * - Image messages -> logged with caption, image URL in metadata
+ * - Document messages -> logged with filename
+ * - Location messages -> logged with lat/lng
+ * - Button/Interactive replies -> processed as text
  *
  * @see src/utilities/resolveConnector.ts — Connector resolution
- * @see src/endpoints/discord-webhook.ts — Blueprint pattern
+ * @see src/utilities/bridgeHelpers.ts — Shared bridge utilities
  * @see https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks
  */
-import type { PayloadHandler, Payload } from 'payload'
+import type { PayloadHandler } from 'payload'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { findAllConnectors } from '@/utilities/resolveConnector'
 import { logError } from '@/utilities/logError'
+import {
+  findOrCreateBridgeChannel,
+  findOrCreateGuestUser,
+  markConnectorActive,
+  isMessageDuplicate,
+} from '@/utilities/bridgeHelpers'
 
 // ─── In-Memory Connector Cache (60s TTL) ─────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,11 +157,14 @@ export const whatsappWebhookVerifyHandler: PayloadHandler = async (req) => {
 export const whatsappWebhookHandler: PayloadHandler = async (req) => {
   const { payload } = req
 
-  // ── Parse request body ─────────────────────────────────────
+  // ── Read raw body for signature verification, then parse ───
+  // HMAC must be computed on the exact bytes Meta sent, not re-serialized JSON
+  let rawBody: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any
   try {
-    body = await (req as Request).json()
+    rawBody = await (req as Request).text()
+    body = JSON.parse(rawBody)
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
@@ -176,8 +187,8 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
       const value = change.value || {}
       const messages = value.messages || []
       const contacts = value.contacts || []
-      const metadata = value.metadata || {}
-      const phoneNumberId = String(metadata.phone_number_id || '')
+      const metaMetadata = value.metadata || {}
+      const phoneNumberId = String(metaMetadata.phone_number_id || '')
 
       if (!phoneNumberId || messages.length === 0) continue
 
@@ -216,7 +227,7 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
         const signature = (req as Request).headers.get('x-hub-signature-256')
         if (signature) {
           const isValid = await verifyWebhookSignature(
-            JSON.stringify(body),
+            rawBody,
             signature,
             String(appSecret),
           )
@@ -243,6 +254,17 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
           const waMessageId = msg.id || ''
           const timestamp = msg.timestamp || ''
 
+          // ── Deduplication ─────────────────────────────────────
+          // Meta may resend messages on timeout — skip if already processed
+          if (waMessageId) {
+            const isDup = await isMessageDuplicate(payload, {
+              source: 'whatsapp',
+              externalMessageId: waMessageId,
+              tenantId,
+            })
+            if (isDup) continue
+          }
+
           // Resolve contact name
           const contact = contacts.find(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -255,30 +277,35 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
 
           if (!messageText) continue
 
-          // ── Find or create WhatsApp channel ───────────────────
+          // ── Find or create WhatsApp channel (shared helper) ───
           const sanitizedPhone = fromPhone.replace(/[^0-9]/g, '')
           const channelSlug = `whatsapp-${sanitizedPhone}`
 
-          await findOrCreateWhatsAppChannel(
-            payload,
+          await findOrCreateBridgeChannel(payload, {
             tenantId,
-            Number(dmSpaceId),
-            channelSlug,
-            contactName,
-            fromPhone,
-          )
+            dmSpaceId: Number(dmSpaceId),
+            slug: channelSlug,
+            displayName: contactName,
+            source: 'whatsapp',
+            description: `WhatsApp thread with ${fromPhone}`,
+          })
 
-          // ── Resolve Payload user from WhatsApp identity ───────
-          const payloadUser = await resolveWhatsAppUser(
-            payload,
-            fromPhone,
-            contactName,
+          // ── Resolve Payload user (shared helper) ───────────────
+          const payloadUser = await findOrCreateGuestUser(payload, {
+            externalId: sanitizedPhone,
+            displayName: contactName,
+            source: 'whatsapp',
             tenantId,
-          )
+            socialProvider: {
+              provider: 'whatsapp',
+              providerId: sanitizedPhone,
+              displayName: contactName,
+            },
+          })
 
           // ── Create inbound message ────────────────────────────
           const inboundContent = mediaInfo
-            ? `📱 ${messageText}\n\n_[${mediaInfo}]_`
+            ? `${messageText}\n\n_[${mediaInfo}]_`
             : messageText
 
           await payload.create({
@@ -300,6 +327,17 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
             } as any,
             overrideAccess: true,
           })
+
+          // ── Send read receipt ──────────────────────────────────
+          if (waMessageId && config.accessToken && phoneNumberId) {
+            sendWhatsAppReadReceipt({
+              phoneNumberId,
+              accessToken: String(config.accessToken),
+              messageId: waMessageId,
+            }).catch(() => {
+              /* non-critical — fire and forget */
+            })
+          }
 
           // ── Process through LEO ─────────────────────────────
           const conversationId = `whatsapp-${sanitizedPhone}`
@@ -381,23 +419,10 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
         }
       }
 
-      // ── Update connector lastActivity ───────────────────────
+      // ── Update connector lastActivity (shared helper) ───────
       if (results.length > 0) {
-        try {
-          await payload.update({
-            collection: 'connectors' as any,
-            id: connector.id,
-            data: {
-              lastActivity: new Date().toISOString(),
-              status: 'active',
-              errorMessage: '',
-            } as any,
-            overrideAccess: true,
-          })
-          connectorCache.delete(connector.id)
-        } catch {
-          // Non-critical
-        }
+        await markConnectorActive(payload, connector.id)
+        connectorCache.delete(connector.id)
       }
     }
   }
@@ -443,7 +468,7 @@ function extractMessageContent(msg: any): { text: string; mediaInfo?: string } {
 
     case 'location':
       return {
-        text: `📍 Location: ${msg.location?.latitude}, ${msg.location?.longitude}${msg.location?.name ? ` — ${msg.location.name}` : ''}`,
+        text: `Location: ${msg.location?.latitude}, ${msg.location?.longitude}${msg.location?.name ? ` — ${msg.location.name}` : ''}`,
       }
 
     case 'contacts':
@@ -467,7 +492,7 @@ function extractMessageContent(msg: any): { text: string; mediaInfo?: string } {
       return { text: '(sticker)', mediaInfo: 'Sticker' }
 
     case 'reaction':
-      return { text: `Reacted with ${msg.reaction?.emoji || '👍'}` }
+      return { text: `Reacted with ${msg.reaction?.emoji || ''}` }
 
     default:
       return { text: msg.text?.body || '' }
@@ -510,6 +535,32 @@ async function sendWhatsAppMessage(opts: SendWhatsAppOptions): Promise<void> {
   }
 }
 
+// ─── WhatsApp Cloud API — Send Read Receipt ──────────────────
+
+async function sendWhatsAppReadReceipt(opts: {
+  phoneNumberId: string
+  accessToken: string
+  messageId: string
+}): Promise<void> {
+  const { phoneNumberId, accessToken, messageId } = opts
+
+  await fetch(
+    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: messageId,
+      }),
+    },
+  )
+}
+
 // ─── Webhook Signature Verification ──────────────────────────
 
 async function verifyWebhookSignature(
@@ -526,135 +577,5 @@ async function verifyWebhookSignature(
     return signature === `sha256=${expectedSignature}`
   } catch {
     return false
-  }
-}
-
-// ─── Find or Create WhatsApp DM Channel ──────────────────────
-
-async function findOrCreateWhatsAppChannel(
-  payload: Payload,
-  tenantId: number | string,
-  dmSpaceId: number,
-  slug: string,
-  contactName: string,
-  phoneNumber: string,
-): Promise<{ channelId: string; isNew: boolean }> {
-  const existing = await payload.find({
-    collection: 'channels',
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        { tenant: { equals: tenantId } },
-        { type: { equals: 'dm' } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  if (existing.docs?.[0]) {
-    return { channelId: String(existing.docs[0].id), isNew: false }
-  }
-
-  const channel = await payload.create({
-    collection: 'channels',
-    data: {
-      name: `📱 ${contactName}`,
-      slug,
-      description: `WhatsApp thread with ${phoneNumber}`,
-      type: 'dm',
-      source: 'whatsapp',
-      space: dmSpaceId,
-      isDefault: false,
-      tenant: tenantId,
-      members: [],
-    } as any,
-    overrideAccess: true,
-  })
-
-  return { channelId: String(channel.id), isNew: true }
-}
-
-// ─── Find or Create Payload User from WhatsApp Identity ──────
-
-async function resolveWhatsAppUser(
-  payload: Payload,
-  phoneNumber: string,
-  contactName: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tenantId: any,
-): Promise<{ id: string | number; name: string; email: string }> {
-  const sanitizedPhone = phoneNumber.replace(/[^0-9]/g, '')
-  const syntheticEmail = `whatsapp-${sanitizedPhone}@guests.angel-os.local`
-
-  // Check if guest already exists
-  try {
-    const existingGuest = await payload.find({
-      collection: 'users',
-      where: { email: { equals: syntheticEmail } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (existingGuest.docs?.length > 0) {
-      const user = existingGuest.docs[0] as any
-      // Update name if it changed
-      if (contactName && user.name !== contactName) {
-        try {
-          await payload.update({
-            collection: 'users',
-            id: user.id,
-            data: { name: contactName } as any,
-            overrideAccess: true,
-          })
-        } catch { /* non-critical */ }
-      }
-      return {
-        id: user.id,
-        name: user.name || contactName,
-        email: user.email,
-      }
-    }
-  } catch {
-    // Fall through to creation
-  }
-
-  // Create new guest user
-  try {
-    const crypto = await import('crypto')
-    const user = await payload.create({
-      collection: 'users',
-      data: {
-        email: syntheticEmail,
-        name: contactName || `WhatsApp ${sanitizedPhone}`,
-        password: crypto.randomUUID() + crypto.randomUUID(),
-        roles: ['customer'],
-        socialProviders: [
-          {
-            provider: 'whatsapp',
-            providerId: sanitizedPhone,
-            displayName: contactName,
-            linkedAt: new Date().toISOString(),
-          },
-        ],
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
-
-    return {
-      id: user.id,
-      name: (user as any).name || contactName,
-      email: (user as any).email,
-    }
-  } catch (err) {
-    console.error('[WhatsApp Webhook] Failed to create guest user:', err)
-    return {
-      id: 0,
-      name: contactName || `WhatsApp ${sanitizedPhone}`,
-      email: syntheticEmail,
-    }
   }
 }

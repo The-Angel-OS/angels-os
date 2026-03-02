@@ -88,6 +88,9 @@ export const Channels: CollectionConfig = {
         { label: 'Email', value: 'email' },
         { label: 'Google Chat', value: 'google_chat' },
         { label: 'SMS', value: 'sms' },
+        { label: 'Discord', value: 'discord' },
+        { label: 'Telegram', value: 'telegram' },
+        { label: 'Slack', value: 'slack' },
       ],
     },
     {
