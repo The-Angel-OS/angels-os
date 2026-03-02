@@ -7,12 +7,12 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
 **Version:** v0.33.0-dev
-**Tests:** 2,482 unit tests + 14 E2E suites across 53 test files
+**Tests:** 2,620 unit tests + 14 E2E suites across 64 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
-**Leo Tools:** 88+
-**API Endpoints:** 55+ registered routes
-**Collections:** 42
-**Last Updated:** March 2, 2026
+**Leo Tools:** 89+ (including send_slack)
+**API Endpoints:** 59 registered routes
+**Collections:** 40
+**Last Updated:** March 3, 2026
 
 ---
 
@@ -104,6 +104,41 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Telegram Webhook** | **34** | **POST /api/telegram/webhook: 12 content types, Markdown retry, 4096-char splitting** |
 | **SMS/Twilio Webhook** | **34** | **POST /api/sms/webhook: TwiML responses, phone→connector resolution, HMAC-SHA1** |
 | **Connector Admin UI** | **34** | **Google Chat catalog entry, Telegram/SMS/Google Chat webhook URL hints** |
+| **Outbound Retry Engine** | **35** | **withRetry() exponential backoff wired into 4 senders (36 tests)** |
+| **Structured Logging Sweep** | **35** | **console.error/warn → logError() across all handlers** |
+| **LEO Tool Input Validation** | **35** | **Zod schemas for 8 mutation tools (42 tests)** |
+| **Connector Health Probe + Cron** | **35** | **POST /connectors/test + GET /connectors/health (every 30min), shared probes** |
+| **Webhook Test Suites** | **35** | **5 handler test files: WhatsApp, Telegram, SMS, email-poll, bridge-inbound (25 tests)** |
+| **Booking Notifications + ICS** | **35** | **Multi-channel confirm (email+ICS, WhatsApp, SMS, LEO thread) (17 tests)** |
+| **Slack Connector** | **35** | **Event Subscriptions webhook + outbound sender + send_slack LEO tool (8 tests)** |
+| **Connector Health Cron** | **35** | **Every 30min: probe all enabled connectors, update status (10 tests)** |
+
+---
+
+## Sprint 35 — The Vigil: Operational Excellence (Done)
+
+### Goal
+Harden the operational layer before scaling. Add retry logic to every outbound sender, structured logging across all handlers, input validation for LEO mutation tools, connector health monitoring, and comprehensive test coverage for untested webhook handlers. Build the Slack connector to complete the messaging platform quintet. Add booking notifications with ICS calendar generation.
+
+### Deliverables
+- [x] **Outbound Retry Engine** (`src/utilities/outboundRetry.ts`) — `withRetry()` utility with exponential backoff + jitter. Wired into WhatsApp, Telegram, SMS, and Email senders. Configurable retries (default 3), timeout (default 10s), and retry predicate. 36 tests.
+- [x] **Structured Logging Sweep** — Replaced remaining `console.error`/`console.warn` calls with `logError()`/`logCaughtError()` across bridge-inbound, email-poll, discord-webhook, whatsapp-webhook, and all outbound senders.
+- [x] **LEO Tool Input Validation** (`src/utilities/toolInputSchemas.ts`) — Zod schemas for 8 mutation tools: `send_message`, `send_direct_message`, `create_announcement`, `moderate_content`, `update_inventory`, `create_customer_profile`, `set_low_stock_alert`, `delegate_task`. Runtime validation in `executeToolCall()`. 42 tests.
+- [x] **Connector Health Probe** (`src/endpoints/connector-test.ts`) — On-demand health probe for any connector. Per-type probes for WhatsApp, Telegram, SMS, Discord, Slack, Email. Admin "Test Connection" button.
+- [x] **Connector Health Cron** (`src/endpoints/connector-health-cron.ts`) — Vercel Cron (every 30 min): probes all enabled connectors in parallel (concurrency=5), updates status. Shared probes via `connectorProbes.ts`. 10 tests.
+- [x] **Webhook Test Suites** — 5 new test files for previously untested handlers: WhatsApp (4), Telegram (4), SMS (5), email-poll (5), bridge-inbound (7). Module-level cache busting via `Date.now()` spy, `vi.mock` hoisting fix. 25 tests.
+- [x] **Booking Notifications + Calendar** — ICS calendar generator (`icsGenerator.ts`), multi-channel booking confirmation (`bookingNotifications.ts`): email + ICS attachment, WhatsApp/SMS fallback, LEO conversation thread. 17 tests.
+- [x] **Slack Connector** — Full Event Subscriptions webhook (`slack-webhook.ts`) with HMAC-SHA256 verification, deduplication, bot filtering. Outbound sender (`resolveSlackSender.ts`). `send_slack` LEO tool. Collection schema updates (Connectors + Channels). Admin UI catalog entry + webhook URL hint. 8 tests.
+
+### Stats
+- 138 new tests across 11 test files
+- 44 files changed, +5,991 / -774 lines
+- TypeScript clean, all tests passing
+
+### Remaining (Deferred)
+- [ ] **Engine Edge-Case Tests** — Additional adversarial tests for Sprint 5 + 32 engines
+- [ ] **MessageProcessor stubs** — 4 placeholder methods in MessageProcessor.ts
+- [ ] **BusinessIntelligenceProcessor** — Scaffold with no tests, 2 TODOs
 
 ---
 
@@ -458,6 +493,9 @@ Any Enterprise operator can see their federation status, discover other holons v
 | WhatsApp Bridge | **Done** | **Meta Cloud API webhook + outbound sender (Sprint 34)** |
 | Telegram Bridge | **Done** | **Telegram Bot API webhook handler (Sprint 34)** |
 | SMS/Twilio Bridge | **Done** | **Native Twilio webhook with TwiML responses (Sprint 34)** |
+| Slack Connector | **Done** | **Event Subscriptions webhook + outbound sender + LEO tool (Sprint 35)** |
+| Connector Health Monitoring | **Done** | **Active probes + 30-min cron + admin UI (Sprint 35)** |
+| Outbound Retry + Validation | **Done** | **withRetry() on all senders, Zod schemas on mutation tools (Sprint 35)** |
 | Voice Mode | TODO | Web Speech API in chat |
 
 ---
@@ -597,6 +635,7 @@ pnpm dev                      # http://localhost:3000
 | 32 | The Wellness Virus Becomes Visible | 2,387 | Federation Pulse API, Synchronicity Engine, 3 new LEO tools, full-stack booking, branding |
 | 33 | LEO Speaks on Discord | 2,482 | Multi-tenant Discord bots, Discord OAuth, webhook endpoint, formatter (~95 tests) |
 | 34 | Multi-Channel Bridge Hardening | 2,482 | WhatsApp sig fix, shared bridge helpers, Telegram + SMS webhooks, Connector Admin UI |
+| 35 | The Vigil: Operational Excellence | 2,620 | Retry engine, Zod validation, Slack connector, health cron, booking notifications, 138 tests |
 
 ---
 
@@ -608,4 +647,4 @@ pnpm dev                      # http://localhost:3000
 
 ---
 
-**Last Updated:** March 2, 2026
+**Last Updated:** March 3, 2026
