@@ -121,6 +121,7 @@ import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-w
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
 import { discordWebhookHandler } from '@/endpoints/discord-webhook'
+import { whatsappWebhookHandler, whatsappWebhookVerifyHandler } from '@/endpoints/whatsapp-webhook'
 import type { Config } from './payload-types'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
@@ -753,6 +754,17 @@ export default buildConfig({
       path: '/discord/webhook',
       method: 'post',
       handler: discordWebhookHandler,
+    },
+    // ─── WhatsApp Cloud API Webhook ────────────────────────────
+    {
+      path: '/whatsapp/webhook',
+      method: 'get',
+      handler: whatsappWebhookVerifyHandler,
+    },
+    {
+      path: '/whatsapp/webhook',
+      method: 'post',
+      handler: whatsappWebhookHandler,
     },
   ],
   globals: [],
