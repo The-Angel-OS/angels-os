@@ -9,9 +9,12 @@
  */
 import type { Payload } from 'payload'
 import { getServerSideURL } from '@/utilities/getURL'
+import { markConnectorError, resolveEmailSender } from '@/utilities/resolveEmailSender'
 
 export interface OrderEmailOptions {
   payload: Payload
+  /** Tenant ID — used to resolve per-tenant email outbound connector */
+  tenantId?: number | string | null
   customerEmail: string
   customerName?: string
   orderId: string
@@ -40,6 +43,7 @@ export async function sendOrderConfirmationEmail(
 ): Promise<boolean> {
   const {
     payload,
+    tenantId,
     customerEmail,
     customerName,
     orderId,
@@ -151,19 +155,24 @@ export async function sendOrderConfirmationEmail(
   const text = `Thank you${customerName ? `, ${customerName}` : ''}!\n\nYour order #${orderId.slice(-8).toUpperCase()} has been confirmed.\n\nOrder Summary:\n${itemsTextList}\n\nTotal: ${totalFormatted}\n\nView your order: ${orderUrl}\n${stripeReceiptUrl ? `Payment receipt: ${stripeReceiptUrl}\n` : ''}\nPowered by Angel OS — Everyone gets an Angel.`
 
   try {
-    await payload.sendEmail({
-      to: customerEmail,
-      subject,
-      html,
-      text,
-    })
-    console.log(`[Order Email] Confirmation sent to ${customerEmail} for order ${orderId}`)
+    const sender = await resolveEmailSender(payload, tenantId)
+    await sender.sendEmail({ to: customerEmail, subject, html, text })
+    console.log(
+      `[Order Email] Confirmation sent to ${customerEmail} for order ${orderId} via ${sender.provider}${sender.connectorId ? ` (connector ${sender.connectorId})` : ''}`,
+    )
     return true
   } catch (err) {
     console.warn(
       `[Order Email] Could not send to ${customerEmail} for order ${orderId}. Order URL: ${orderUrl}`,
       err instanceof Error ? err.message : err,
     )
+    // If we had a connector, mark it as errored for observability
+    if (tenantId) {
+      const sender = await resolveEmailSender(payload, tenantId).catch(() => null)
+      if (sender?.connectorId) {
+        await markConnectorError(payload, sender.connectorId, err instanceof Error ? err.message : String(err))
+      }
+    }
     return false
   }
 }

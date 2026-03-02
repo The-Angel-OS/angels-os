@@ -5,9 +5,11 @@
  * via IMAP, fetches unseen messages, converts each into an AI Bus channel,
  * generates a LEO response, and replies to the sender via Resend.
  *
- * Connector-aware: When email_inbound Connectors exist in the database,
- * this handler iterates all enabled connectors. Falls back to environment
- * variables (SYSTEM_EMAIL_ADDRESS) for backwards compatibility.
+ * Connector-aware (both directions):
+ *   Inbound:  email_inbound Connectors → IMAP sources per tenant
+ *   Outbound: email_outbound Connectors → per-tenant reply transport (Resend/SMTP)
+ *
+ * Falls back to environment variables for backwards compatibility.
  *
  * Channel per sender:
  *   slug: email-{sanitized-sender-address}
@@ -22,7 +24,6 @@
  *   SYSTEM_EMAIL_ADDRESS   — IMAP user + reply-from (hello@spacesangels.com)
  *   SYSTEM_EMAIL_PASSWORD  — IMAP password
  *   SYSTEM_EMAIL_NAME      — Display name in outbound replies (Angel OS)
- *   RESEND_API_KEY         — For sending LEO replies via Resend
  *   CRON_SECRET            — Shared secret authenticating cron calls
  *   DEFAULT_TENANT_SLUG    — Platform tenant slug (default: 'default')
  */
@@ -30,13 +31,13 @@
 import type { PayloadHandler, Payload } from 'payload'
 import { ImapFlow } from 'imapflow'
 import { simpleParser, type ParsedMail } from 'mailparser'
-import { Resend } from 'resend'
 
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { logError } from '@/utilities/logError'
 import { findAllConnectors } from '@/utilities/resolveConnector'
+import { resolveEmailSender } from '@/utilities/resolveEmailSender'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,6 @@ export const emailPollHandler: PayloadHandler = async (req) => {
   }
 
   const payload = req.payload
-  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
   // ── Build list of email accounts to poll ─────────────────────────────────
   // Priority 1: Connectors collection (Endeavor-level config)
@@ -323,20 +323,22 @@ export const emailPollHandler: PayloadHandler = async (req) => {
             }
 
             let replied = false
-            if (resend && leoReply) {
+            if (leoReply) {
               try {
-                await resend.emails.send({
-                  from: `${emailName} <${emailAddress}>`,
-                  to: [fromAddress],
+                // Resolve email outbound via Connectors pattern (per-tenant, swappable)
+                const sender = await resolveEmailSender(payload, tenantId)
+                await sender.sendEmail({
+                  to: fromAddress,
                   subject: `Re: ${subject}`,
                   text: leoReply,
+                  from: `${emailName} <${emailAddress}>`,
                   replyTo: emailAddress,
                 })
                 replied = true
               } catch (sendErr) {
                 await logError({
                   source: 'email-poll',
-                  message: 'Resend reply failed',
+                  message: 'Email reply failed',
                   details: sendErr instanceof Error ? sendErr.message : String(sendErr),
                 })
               }

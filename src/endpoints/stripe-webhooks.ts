@@ -261,8 +261,14 @@ async function handlePaymentIntentSucceeded(
           paymentIntent.metadata?.customerName ||
           (typeof order?.orderedBy === 'object' ? order.orderedBy?.name : undefined)
 
+        // Resolve tenant for per-tenant email outbound connector
+        const orderTenantId = order?.tenant
+          ? typeof order.tenant === 'object' ? order.tenant.id : order.tenant
+          : undefined
+
         await sendOrderConfirmationEmail({
           payload,
+          tenantId: orderTenantId,
           customerEmail,
           customerName,
           orderId: String(orderId),

@@ -9,9 +9,12 @@
  */
 import type { Payload } from 'payload'
 import { getServerSideURL } from '@/utilities/getURL'
+import { resolveEmailSender } from '@/utilities/resolveEmailSender'
 
 export interface SendInvitationEmailOptions {
   payload: Payload
+  /** Tenant ID — used to resolve per-tenant email outbound connector */
+  tenantId?: number | string | null
   recipientEmail: string
   inviterName: string
   spaceName: string
@@ -34,6 +37,7 @@ function esc(str: string): string {
 export async function sendInvitationEmail(opts: SendInvitationEmailOptions): Promise<boolean> {
   const {
     payload,
+    tenantId,
     recipientEmail,
     inviterName,
     spaceName,
@@ -106,12 +110,8 @@ export async function sendInvitationEmail(opts: SendInvitationEmailOptions): Pro
   const text = `${inviterName} invited you to join ${spaceName} as a ${role}.${message ? `\n\nMessage: "${message}"` : ''}\n\nAccept the invitation: ${fullInviteUrl}\n\nThis invitation expires in 7 days.`
 
   try {
-    await payload.sendEmail({
-      to: recipientEmail,
-      subject,
-      html,
-      text,
-    })
+    const sender = await resolveEmailSender(payload, tenantId)
+    await sender.sendEmail({ to: recipientEmail, subject, html, text })
     return true
   } catch (err) {
     // Email transport may not be configured — log the invite URL instead

@@ -461,9 +461,10 @@ export async function bulkInvite(options: {
           overrideAccess: true,
         })
 
-        // Send email
+        // Send email (connector-resolved per tenant)
         await sendTenantInvitationEmail({
           payload,
+          tenantId,
           recipientEmail: email,
           inviterName,
           enterpriseName,

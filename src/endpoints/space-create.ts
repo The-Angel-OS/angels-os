@@ -160,9 +160,10 @@ export const spaceCreateHandler: PayloadHandler = async (req) => {
         invitedByUserId: user.id,
         role: (inv.role as 'member' | 'moderator' | 'guest') || 'member',
       })
-      // Send email non-fatally
+      // Send email non-fatally (connector-resolved per tenant)
       sendInvitationEmail({
         payload,
+        tenantId,
         recipientEmail: String(inv.email),
         inviteUrl: result.inviteUrl,
         spaceName: space.name,

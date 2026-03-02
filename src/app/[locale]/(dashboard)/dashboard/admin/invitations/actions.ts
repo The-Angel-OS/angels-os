@@ -131,6 +131,7 @@ export async function sendQuickInvite(input: {
   try {
     emailSent = await sendTenantInvitationEmail({
       payload,
+      tenantId,
       recipientEmail: email,
       inviterName,
       enterpriseName: tenantName,

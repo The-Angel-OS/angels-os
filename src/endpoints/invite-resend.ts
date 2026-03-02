@@ -131,15 +131,16 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
     }
 
     let tenantName: string | undefined
+    let resolveTenantId: number | string | undefined
     try {
       const space =
         typeof membership.space === 'object'
           ? membership.space
           : await payload.findByID({ collection: 'spaces', id: spaceId, depth: 0 }) as any
       if (space?.tenant) {
-        const tId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
-        if (tId) {
-          const t = await payload.findByID({ collection: 'tenants', id: tId, depth: 0 }) as any
+        resolveTenantId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+        if (resolveTenantId) {
+          const t = await payload.findByID({ collection: 'tenants', id: resolveTenantId, depth: 0 }) as any
           if (t?.name) tenantName = t.name
         }
       }
@@ -152,6 +153,7 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
 
     const emailSent = await sendInvitationEmail({
       payload,
+      tenantId: resolveTenantId,
       recipientEmail,
       inviterName,
       spaceName,

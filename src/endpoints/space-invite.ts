@@ -76,6 +76,7 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
     let spaceName = 'a space'
     let inviterName = 'Someone'
     let tenantName: string | undefined
+    let spaceTenantId: number | string | undefined
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,10 +90,10 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
 
       // Try to get tenant name for branding
       if (space?.tenant) {
-        const tId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
-        if (tId) {
+        spaceTenantId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+        if (spaceTenantId) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const t = await payload.findByID({ collection: 'tenants', id: tId, depth: 0 }) as any
+          const t = await payload.findByID({ collection: 'tenants', id: spaceTenantId, depth: 0 }) as any
           if (t?.name) tenantName = t.name
         }
       }
@@ -102,6 +103,7 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
 
     const emailSent = await sendInvitationEmail({
       payload,
+      tenantId: spaceTenantId,
       recipientEmail: String(email),
       inviterName,
       spaceName,
