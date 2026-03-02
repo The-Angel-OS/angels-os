@@ -171,6 +171,10 @@ export const Messages: CollectionConfig = {
         { label: 'Widget', value: 'widget' },
         { label: 'Ethical Assessment', value: 'ethical_assessment' },
         { label: 'Voice Call', value: 'voice_call' },
+        { label: 'Discord Message', value: 'discord_message' },
+        { label: 'WhatsApp Message', value: 'whatsapp_message' },
+        { label: 'Email Message', value: 'email_message' },
+        { label: 'SMS Message', value: 'sms_message' },
       ],
       admin: {
         description: 'Message classification — determines rendering, routing, and workflow triggers',

@@ -286,6 +286,8 @@ export const Users: CollectionConfig = {
             { label: 'GitHub', value: 'github' },
             { label: 'Apple', value: 'apple' },
             { label: 'Discord', value: 'discord' },
+            { label: 'WhatsApp', value: 'whatsapp' },
+            { label: 'Telegram', value: 'telegram' },
           ],
         },
         {

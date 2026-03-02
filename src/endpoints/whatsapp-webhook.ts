@@ -287,7 +287,7 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
               content: wrapTextContent(inboundContent),
               space: Number(dmSpaceId),
               channel: channelSlug,
-              messageType: 'user',
+              messageType: 'whatsapp_message',
               metadata: {
                 source: 'whatsapp',
                 whatsappMessageId: waMessageId,
