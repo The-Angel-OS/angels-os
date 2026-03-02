@@ -60,6 +60,16 @@ const DISCOVER_NAV_ITEM = {
   },
 }
 
+const BOOK_NAV_ITEM = {
+  id: 'book',
+  link: {
+    type: 'custom' as const,
+    label: 'Book',
+    url: '/book',
+    newTab: false,
+  },
+}
+
 const DASHBOARD_NAV_ITEM = {
   id: 'dashboard',
   link: {
@@ -83,6 +93,7 @@ export function HeaderClient({ header, tenant }: Props) {
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
+    if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
     if (user) {
       if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
       if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)

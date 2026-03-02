@@ -487,7 +487,7 @@ You have access to the platform's data through tools. When users ask about produ
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.` : ''}
 
-${this.buildUserContextSection()}## Guidelines
+${this.buildUserContextSection()}${this.buildPageContextSection()}## Guidelines
 
 - Be warm, concise, and genuinely helpful.
 - You may use personality, humor, and warmth — but never be sycophantic.
@@ -534,6 +534,34 @@ You are speaking with **${name}**${userCtx.email ? ` (${userCtx.email})` : ''}.
 - Roles: ${roles.length > 0 ? roles.join(', ') : 'standard user'}
 
 Tailor your responses to their access level. Administrators can see all data and configure the platform. Customers should only see their own bookings, orders, and public content. Be helpful to everyone, but respect the access boundaries.
+
+`
+  }
+
+  private buildPageContextSection(): string {
+    const pagePath = this.context.sessionMemory?.pageContext as string | undefined
+    if (!pagePath) return ''
+
+    // Detect page type from URL path and provide relevant context hints
+    let pageHint = ''
+    if (pagePath.includes('/shop') || pagePath.includes('/product')) {
+      pageHint = 'The user is browsing the shop. Use the **query_products** tool to look up products they might be asking about. Help them find what they need and offer to add items to cart.'
+    } else if (pagePath.includes('/book')) {
+      pageHint = 'The user is on the booking page. Use **query_availability** to help them find open slots. Guide them through scheduling.'
+    } else if (pagePath.includes('/federation')) {
+      pageHint = 'The user is exploring the federation network. Help them learn about enterprises, constitutional commerce, and how the network works.'
+    } else if (pagePath.includes('/events')) {
+      pageHint = 'The user is browsing events. Help them find upcoming events and provide details.'
+    } else if (pagePath.includes('/posts')) {
+      pageHint = 'The user is reading blog content. Use **query_posts** to help them find related articles.'
+    } else {
+      pageHint = 'Help them navigate the site and find what they need.'
+    }
+
+    return `## Page Context
+
+The user is currently viewing: **${pagePath}**
+${pageHint}
 
 `
   }

@@ -1,18 +1,10 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAY_FULL_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
-const SERVICE_LABELS: Record<string, string> = {
-  service: 'Service Session',
-  consultation: 'Consultation',
-  rental: 'Equipment Rental',
-  class: 'Class / Workshop',
-  event: 'Event Ticket',
-  custom: 'Custom',
-}
 
 interface AvailabilitySlot {
   id: string
@@ -36,6 +28,9 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [step, setStep] = useState<'date' | 'time' | 'confirm'>('date')
+  const [bookingState, setBookingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [bookingError, setBookingError] = useState('')
+  const [bookingId, setBookingId] = useState<string | null>(null)
 
   // Generate next 30 days
   const dates = useMemo(() => {
@@ -102,6 +97,47 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
 
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
 
+  const handleBooking = async () => {
+    if (!selectedDate || !selectedTime) return
+    setBookingState('loading')
+    setBookingError('')
+
+    try {
+      const res = await fetch('/api/bookings/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: selectedDate,
+          time: selectedTime,
+          duration: availabilitySlots[0]?.slotDuration || 60,
+          serviceType: 'service',
+        }),
+      })
+
+      if (res.status === 401) {
+        setBookingState('error')
+        setBookingError('Please sign in to book a service.')
+        return
+      }
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setBookingState('error')
+        setBookingError(data.error || 'Something went wrong. Please try again.')
+        return
+      }
+
+      // Booking created with payment intent
+      setBookingId(data.bookingId)
+      setBookingState('success')
+    } catch {
+      setBookingState('error')
+      setBookingError('Connection error. Please try again.')
+    }
+  }
+
   return (
     <div className="container max-w-3xl py-12">
       {/* Hero */}
@@ -161,6 +197,7 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
                     setSelectedDate(d.date)
                     setSelectedTime(null)
                     setStep('time')
+                    setBookingState('idle')
                   }}
                   className={`rounded-lg p-2 text-center text-sm transition-colors ${
                     selectedDate === d.date
@@ -207,6 +244,7 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
                       onClick={() => {
                         setSelectedTime(t.time)
                         setStep('confirm')
+                        setBookingState('idle')
                       }}
                       className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                         selectedTime === t.time
@@ -264,14 +302,71 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
                 </div>
               </div>
 
-              <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-                <p className="mb-2 text-sm text-muted-foreground">
-                  Payment integration coming soon. For now, contact the enterprise directly to confirm.
-                </p>
-                <span className="inline-block rounded-lg bg-muted px-4 py-2 text-sm font-medium text-muted-foreground">
-                  Stripe Booking Checkout — Coming Soon
-                </span>
-              </div>
+              {bookingState === 'success' ? (
+                <div className="rounded-lg border-2 border-green-500/30 bg-green-500/5 p-6 text-center">
+                  <svg className="mx-auto mb-3 h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 className="mb-1 text-lg font-semibold text-green-700 dark:text-green-400">
+                    Booking Confirmed!
+                  </h3>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Your appointment with {endeavorName} has been reserved. You&apos;ll receive a confirmation email shortly.
+                  </p>
+                  {bookingId && (
+                    <p className="text-xs text-muted-foreground">
+                      Booking ID: {bookingId}
+                    </p>
+                  )}
+                  <Link
+                    href="/dashboard"
+                    className="mt-4 inline-block rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    View in Dashboard
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  {bookingError && (
+                    <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                      {bookingError}
+                      {bookingError.includes('sign in') && (
+                        <div className="mt-2">
+                          <Link href="/login" className="font-medium text-primary underline">
+                            Sign in
+                          </Link>
+                          {' or '}
+                          <Link href="/create-account" className="font-medium text-primary underline">
+                            create an account
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleBooking}
+                    disabled={bookingState === 'loading'}
+                    className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {bookingState === 'loading' ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Booking...
+                      </span>
+                    ) : (
+                      'Confirm & Book'
+                    )}
+                  </button>
+
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Constitutional commerce — 60% to seller, 5% to Justice Fund
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

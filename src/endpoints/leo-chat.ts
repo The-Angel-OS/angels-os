@@ -43,7 +43,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { message, conversationId, channelSlug, spaceId } = body
+  const { message, conversationId, channelSlug, spaceId, pageContext } = body
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
@@ -97,6 +97,7 @@ export const leoChatHandler: PayloadHandler = async (req) => {
       spaceId: resolvedSpaceId,
       payload: req.payload,
       userContext,
+      pageContext: typeof pageContext === 'string' ? pageContext : undefined,
     })
 
     // Persist LEO's response to the Messages collection so it survives polling

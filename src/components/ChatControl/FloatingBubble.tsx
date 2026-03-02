@@ -112,7 +112,7 @@ function GuestChatBubble() {
           'Content-Type': 'application/json',
           'x-leo-guest': 'true',
         },
-        body: JSON.stringify({ message: userMsg }),
+        body: JSON.stringify({ message: userMsg, pageContext: window.location.pathname }),
       })
 
       if (res.status === 429) {

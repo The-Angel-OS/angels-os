@@ -382,6 +382,12 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/dashboard/admin/payments`} icon={<CreditCardIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/payments')}>
               Payments
             </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/payouts`} icon={<BanknoteIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/payouts')}>
+              Payouts
+            </NavLink>
+            <NavLink href={`${prefix}/dashboard/admin/bookings`} icon={<CalendarEventIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/bookings')}>
+              Bookings
+            </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/invitations')}>
               Invitations
             </NavLink>
@@ -675,6 +681,12 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/admin/payments`} icon={<CreditCardIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/payments')}>
             Payments
           </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/payouts`} icon={<BanknoteIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/payouts')}>
+            Payouts
+          </NavLink>
+          <NavLink href={`${prefix}/dashboard/admin/bookings`} icon={<CalendarEventIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/bookings')}>
+            Bookings
+          </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/invitations`} icon={<MailIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/invitations')}>
             Invitations
           </NavLink>
@@ -953,6 +965,14 @@ function WandIcon() {
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 10l2-2m-2 0l-2-2m2 2v4" />
+    </svg>
+  )
+}
+
+function BanknoteIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 6h20v12H2V6zm10 3a3 3 0 100 6 3 3 0 000-6zM6 8v.01M18 16v.01" />
     </svg>
   )
 }

@@ -28,6 +28,8 @@ export type ProcessMessageOptions = {
   agentId?: number | string
   payload?: Payload
   userContext?: UserContext
+  /** Current page path (e.g. '/shop/product-slug') — gives LEO browsing context */
+  pageContext?: string
 }
 
 export type ProcessMessageResult = {
@@ -51,7 +53,7 @@ export type ProcessMessageResult = {
 export async function leoProcessMessage(
   options: ProcessMessageOptions,
 ): Promise<ProcessMessageResult> {
-  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext } =
+  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext, pageContext } =
     options
 
   // Determine which agent should handle this message
@@ -95,6 +97,7 @@ export async function leoProcessMessage(
           ...(channelSlug ? { channel: channelSlug } : {}),
           ...(userContext ? { userContext } : {}),
           ...(tenantAnthropicApiKey ? { tenantAnthropicApiKey } : {}),
+          ...(pageContext ? { pageContext } : {}),
         }
       : {},
     agent: agent ? {
