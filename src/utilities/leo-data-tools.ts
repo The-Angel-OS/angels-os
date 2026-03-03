@@ -3960,7 +3960,7 @@ async function createProduct(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productData: Record<string, any> = {
       title: title.trim(),
-      priceInUSD: Math.round(price * 100) / 100, // Round to 2 decimal places
+      priceInUSD: Math.round(price * 100), // Convert dollars to cents (priceInUSD is stored in cents)
       priceInUSDEnabled: true,
       _status: status,
     }
@@ -4031,9 +4031,12 @@ async function createProduct(
       overrideAccess: true,
     })
 
-    const productId = result.id
+    const productId = result?.id
+    if (!productId) {
+      return 'CREATION FAILED: Product was not saved to the database (no ID returned). Do NOT report success — tell the user the creation failed and to try again.'
+    }
     const slug = str(result, 'slug')
-    const priceStr = `$${productData.priceInUSD.toFixed(2)}`
+    const priceStr = `$${(productData.priceInUSD / 100).toFixed(2)}`
 
     const parts: string[] = [
       `Product created successfully!`,
@@ -4123,11 +4126,11 @@ async function updateProduct(
     }
 
     if (input.price !== undefined) {
-      const newPrice = Math.round(Number(input.price) * 100) / 100
+      const newPrice = Math.round(Number(input.price) * 100) // Convert dollars to cents
       const oldPrice = num(existing, 'priceInUSD')
       updateData.priceInUSD = newPrice
       updateData.priceInUSDEnabled = true
-      changes.push(`Price: $${oldPrice?.toFixed(2) || 'N/A'} → $${newPrice.toFixed(2)}`)
+      changes.push(`Price: $${oldPrice !== undefined ? (oldPrice / 100).toFixed(2) : 'N/A'} → $${(newPrice / 100).toFixed(2)}`)
     }
 
     if (input.inventory !== undefined) {
