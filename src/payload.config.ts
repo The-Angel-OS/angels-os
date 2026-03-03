@@ -134,6 +134,23 @@ import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
 
 export default buildConfig({
+  // ─── CORS ─────────────────────────────────────────────────────────────────
+  // Allow all origins under *.spacesangels.com and *.kendev.co so tenant
+  // subdomains can make credentialed Payload API calls (e.g. /api/users/me).
+  // Payload's cors accepts string globs via micromatch.
+  // Note: the primary cross-subdomain auth fix is in AuthProvider (uses
+  // window.location.origin so calls are same-origin). This is belt-and-suspenders
+  // for federation, partner embeds, and any remaining cross-origin fetch paths.
+  cors: [
+    'https://spacesangels.com',
+    'https://www.spacesangels.com',
+    'https://*.spacesangels.com',
+    'https://kendev.co',
+    'https://www.kendev.co',
+    'https://*.kendev.co',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ],
   admin: {
     livePreview: {
       breakpoints: [

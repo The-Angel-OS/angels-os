@@ -4,8 +4,29 @@ import type { User } from '@/payload-types'
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
-// Client-side API base URL — falls back to current origin if env var not set
-const API_URL = process.env.NEXT_PUBLIC_SERVER_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+/**
+ * Return the API base URL for client-side fetches.
+ *
+ * Always use the CURRENT window origin instead of the build-time
+ * NEXT_PUBLIC_SERVER_URL canonical URL. Angel OS is a multi-tenant
+ * deployment where the same Next.js app is served from every
+ * *.spacesangels.com subdomain. If we used the canonical URL
+ * (www.spacesangels.com) from a tenant subdomain like
+ * hays-cactus.spacesangels.com, every fetch would be cross-origin.
+ * Payload has no CORS wildcard — the browser blocks the request,
+ * the catch marks the user as logged-out, and the brochure header
+ * shows "Sign In" even though the server-side session is valid.
+ *
+ * Using window.location.origin keeps all auth calls same-origin
+ * regardless of which tenant subdomain the visitor is on.
+ */
+function getApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
+  // SSR fallback (AuthProvider is client-only but keep it safe)
+  return process.env.NEXT_PUBLIC_SERVER_URL || ''
+}
 
 // eslint-disable-next-line no-unused-vars
 type ResetPassword = (args: {
@@ -43,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [status, setStatus] = useState<'loggedIn' | 'loggedOut' | undefined>()
   const create = useCallback<Create>(async (args) => {
     try {
-      const res = await fetch(`${API_URL}/api/users`, {
+      const res = await fetch(`${getApiUrl()}/api/users`, {
         body: JSON.stringify({
           email: args.email,
           password: args.password,
@@ -62,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Account created — now log in
-      const loginRes = await fetch(`${API_URL}/api/users/login`, {
+      const loginRes = await fetch(`${getApiUrl()}/api/users/login`, {
         body: JSON.stringify({ email: args.email, password: args.password }),
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -84,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback<Login>(async (args) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/login`, {
+      const res = await fetch(`${getApiUrl()}/api/users/login`, {
         body: JSON.stringify({
           email: args.email,
           password: args.password,
@@ -112,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback<Logout>(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/users/logout`, {
+      const res = await fetch(`${getApiUrl()}/api/users/logout`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/users/me`, {
+        const res = await fetch(`${getApiUrl()}/api/users/me`, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
@@ -161,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const forgotPassword = useCallback<ForgotPassword>(async (args) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/forgot-password`, {
+      const res = await fetch(`${getApiUrl()}/api/users/forgot-password`, {
         body: JSON.stringify({
           email: args.email,
         }),
@@ -186,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = useCallback<ResetPassword>(async (args) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/reset-password`, {
+      const res = await fetch(`${getApiUrl()}/api/users/reset-password`, {
         body: JSON.stringify({
           password: args.password,
           passwordConfirm: args.passwordConfirm,
