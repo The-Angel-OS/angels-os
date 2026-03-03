@@ -6,17 +6,17 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.36.0-dev
-**Tests:** 2,768+ unit tests + 14 E2E suites across 73 test files
+**Version:** v0.38.0-dev
+**Tests:** 2,857 unit tests + 14 E2E suites across 73 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
-**Leo Tools:** 93 (including send_federation_message)
-**API Endpoints:** 70 registered routes
+**Leo Tools:** 104 (including browse_federation_peers, query_peer_catalog, search_federation_wide)
+**API Endpoints:** 72 registered routes
 **Collections:** 40
-**Last Updated:** March 2, 2026
+**Last Updated:** March 3, 2026
 
 ---
 
-## Current: v0.36.0-dev (Cross-Tenant Federation AI Bus)
+## Current: v0.38.0-dev (Federation Browsing + GitHub OAuth)
 
 ### What's Built (Sprints 1-21)
 
@@ -112,6 +112,59 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **Booking Notifications + ICS** | **35** | **Multi-channel confirm (email+ICS, WhatsApp, SMS, LEO thread) (17 tests)** |
 | **Slack Connector** | **35** | **Event Subscriptions webhook + outbound sender + send_slack LEO tool (8 tests)** |
 | **Connector Health Cron** | **35** | **Every 30min: probe all enabled connectors, update status (10 tests)** |
+| **Dead Code Cleanup** | **36** | **Removed MessageProcessor.ts, BusinessIntelligenceProcessor.ts — ≤10 actionable TODOs remain** |
+| **Engine Edge-Case Tests** | **36** | **119 adversarial tests: Guardian Angel, Justice Fund, Print-on-Demand, Synchronicity, Booking** |
+| **Site Export Endpoint** | **36** | **Full tenant data export: 35 collections, SHA-256 checksums, canonical JSON archive (31 tests)** |
+| **Federated AI Bus** | **36** | **Ed25519 JWT cross-tenant messaging, trust enforcement, dedup, LEO federation awareness (26 tests)** |
+| **GitHub OAuth** | **37** | **Full OAuth2 flow: init + callback, cross-domain relay, user creation/linking** |
+| **Multi-Channel Hardening** | **37** | **Unified inbound pipeline across SMS/Telegram/WhatsApp/Slack, AI Bus persistence, error isolation** |
+| **Vapi Voice Upgrade** | **37** | **Alice voice (British female), assistantId: null fix clears static Slartibartfast override** |
+| **Cross-Subdomain Auth Fix** | **37** | **getApiUrl() → window.location.origin; Payload CORS for *.spacesangels.com** |
+| **CI Failure Notifications** | **37** | **GitHub Actions → hello@spacesangels.com via Resend SMTP on any job failure** |
+| **browse_federation_peers** | **38** | **LEO tool: list all known federation peers from governance cache (zero HTTP, filters by status/capability/region)** |
+| **query_peer_catalog** | **38** | **LEO tool: fetch a specific peer's public catalog via fetchCatalog() with identity resolution** |
+| **search_federation_wide** | **38** | **LEO tool: fan-out search across ALL active peers in parallel (batches of 5, 8s timeout, sorted results)** |
+
+---
+
+## Sprint 38 — Federation Browsing Tools for LEO (Done)
+
+### Goal
+Give LEO the ability to see the federation — who's in it, what they offer, and how to search across it all. Three new tools wire existing infrastructure (`getCachedGovernance()`, `fetchCatalog()`) into browsable federation intelligence. Kenneth's vision: "Federation/discover should ideally be able to browse the local Angel OS Clearwater platform as if it were the federation."
+
+### Deliverables
+- [x] **`browse_federation_peers`** — LEO can list all known peers from the governance cache without any outbound HTTP. Filters by `status` (active/probation/all), `capability`, and `region`. Returns markdown table with Name, Domain, Capabilities, Trust Score, Last Heartbeat. LEO tool #102.
+- [x] **`query_peer_catalog`** — LEO can fetch a specific peer's public catalog via `fetchCatalog()`. Resolves local federation identity from the tenant's Endeavor record (same pattern as `handleBroadcastCapability`). Returns formatted markdown with products/services, price, rating, fulfillment mode. LEO tool #103.
+- [x] **`search_federation_wide`** — Fan-out search across ALL active federation peers in parallel. Batches of 5 concurrent requests, 8-second timeout per peer, `Promise.allSettled()` for resilience, results sorted by rating then price. "Google for the federation." LEO tool #104.
+- [x] **`resolveFederationIdentity()` helper** — Shared identity resolution for tools 2 and 3. Extracts `federationId`, `publicKey`, `privateKey`, `domain`, `name` from the tenant's Endeavor. Graceful fallback to unsigned requests.
+- [x] **Tool labels** — `browse_federation_peers`, `query_peer_catalog`, `search_federation_wide` added to `toolLabels.ts`.
+
+### Stats
+- 3 new LEO tools: **#102, #103, #104** (total: 104)
+- Tool count: 101 → 104
+- TypeScript clean, all tests passing (2,857)
+
+---
+
+## Sprint 37 — GitHub OAuth + Multi-Channel Hardening (Done)
+
+### Goal
+Complete the social auth trio (Google + Discord + GitHub). Harden the multi-channel inbound pipeline across all connectors. Fix the Vapi voice and static assistant override. Resolve the cross-subdomain auth bug that showed users as logged-out on tenant brochure sites.
+
+### Deliverables
+- [x] **GitHub OAuth** (`src/endpoints/auth-github.ts`) — Full OAuth2 flow following the Google/Discord pattern. Init handler redirects to GitHub consent screen. Callback handler exchanges code for token, creates/links user account, sets Payload JWT cookie. Cross-domain relay support for custom-domain tenants. Registered as `GET /api/auth/github` + `GET /api/auth/github/callback`.
+- [x] **Multi-Channel Hardening** — Unified inbound message pipeline across SMS/Telegram/WhatsApp/Slack connectors. AI Bus persistence on all inbound paths. Error isolation prevents one failing connector from disrupting others. Idempotency headers added to outbound requests.
+- [x] **bridge-inbound.ts** — Channel-agnostic inbound bridge consolidates shared processing logic. Discord webhook upgraded with improved AI Bus integration and error handling.
+- [x] **Vapi Voice Upgrade** — Default voice changed from ElevenLabs Adam (British male, `pNInz6obpgDQGcFmaJgB`) to Alice (British female, `Xb7hH8MSUJpSbSDYk0k2`) — warm, confident, professional. `vapi-setup.ts` PATCH now sends `assistantId: null` + `squadId: null` to clear any static Slartibartfast assignment. Vapi priority chain: `assistantId > squadId > serverUrl` was silently blocking the dynamic webhook.
+- [x] **Cross-Subdomain Auth Fix** — `AuthProvider` replaced static `NEXT_PUBLIC_SERVER_URL` constant with `getApiUrl()` returning `window.location.origin` at runtime. Payload `cors` config updated to allow `https://*.spacesangels.com` and `https://*.kendev.co`. Eliminates CORS-blocked `/api/users/me` calls from tenant subdomains showing users as logged-out on brochure sites.
+- [x] **CI Failure Notifications** — GitHub Actions `notify-failure` job sends failure email to `hello@spacesangels.com` via Resend SMTP (`smtp.resend.com:465`) using `dawidd6/action-send-mail@v3`. Triggers on any job failure (typecheck, unit-tests, build). Requires `RESEND_API_KEY` GitHub Secret.
+- [x] **Social Auth Hardening** — `auth-social-unlink` endpoint hardened with proper error recovery. Social providers panel updated to include GitHub.
+
+### Stats
+- 2 new API endpoints: `GET /api/auth/github`, `GET /api/auth/github/callback`
+- Total API endpoints: 70 → 72
+- Bug fixes: Vapi voice, Vapi static assistant override, cross-subdomain CORS, CI notifications
+- TypeScript clean, all 2,857 tests passing
 
 ---
 
@@ -662,6 +715,8 @@ pnpm dev                      # http://localhost:3000
 | 34 | Multi-Channel Bridge Hardening | 2,482 | WhatsApp sig fix, shared bridge helpers, Telegram + SMS webhooks, Connector Admin UI |
 | 35 | The Vigil: Operational Excellence | 2,620 | Retry engine, Zod validation, Slack connector, health cron, booking notifications, 138 tests |
 | 36 | The Crossing: Federation AI Bus | 2,768+ | Federated AI Bus (JWT cross-tenant messaging), dead code cleanup, 119 engine edge-case tests, site export endpoint, 176+ tests |
+| 37 | GitHub OAuth + Multi-Channel Hardening | 2,857 | GitHub OAuth (init + callback), Vapi Alice voice + assistantId:null fix, cross-subdomain CORS auth fix, CI failure notifications, multi-channel pipeline hardening |
+| 38 | Federation Browsing Tools | 2,857 | 3 new LEO tools: browse_federation_peers, query_peer_catalog, search_federation_wide — total 104 tools |
 
 ---
 

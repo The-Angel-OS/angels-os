@@ -482,8 +482,8 @@ export const Bookings: CollectionConfig = {
         // are handled by sendBookingConfirmation() in bookingEngine.ts (Sprint 35).
         // This afterChange hook handles status-change notifications.
         if (operation === 'update' && previousDoc.status !== doc.status) {
-          // Log status transitions for monitoring
-          console.log(`Booking ${doc.id} status changed from ${previousDoc.status} to ${doc.status}`)
+          // Status transitions are surfaced via booking notification system (bookingEngine.ts)
+          // No additional logging needed here — notifications already sent on create/update.
         }
 
         return doc

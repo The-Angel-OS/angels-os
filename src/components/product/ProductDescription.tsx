@@ -4,11 +4,12 @@ import type { Product, Variant } from '@/payload-types'
 import { RichText } from '@/components/RichText'
 import { AddToCart } from '@/components/Cart/AddToCart'
 import { Price } from '@/components/Price'
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 
 import { VariantSelector } from './VariantSelector'
 import { useCurrency } from '@payloadcms/plugin-ecommerce/client/react'
 import { StockIndicator } from '@/components/product/StockIndicator'
+import { trackViewItem } from '@/utilities/gtagEcommerce'
 
 export function ProductDescription({ product }: { product: Product }) {
   const { currency } = useCurrency()
@@ -50,6 +51,17 @@ export function ProductDescription({ product }: { product: Product }) {
   } else if (product[priceField] && typeof product[priceField] === 'number') {
     amount = product[priceField]
   }
+
+  // GA4: fire view_item when product page mounts
+  useEffect(() => {
+    trackViewItem({
+      item_id: String(product.id),
+      item_name: product.title,
+      price: hasVariants ? lowestAmount : amount,
+      currency: currency.code,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
 
   return (
     <div className="flex flex-col gap-6">

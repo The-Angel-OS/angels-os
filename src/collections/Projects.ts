@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { logError } from '@/utilities/logError'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
@@ -520,20 +521,34 @@ export const Projects: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, req, operation }) => {
-        // TODO: Integrate with LEO for project updates
-        // TODO: Send notifications to team members
-        // TODO: Generate project reports
-        
+      async ({ doc, req, operation, previousDoc }) => {
+        const tenantId = typeof doc.tenant === 'object' && doc.tenant !== null
+          ? (doc.tenant as { id: string | number }).id
+          : (doc.tenant as string | number | undefined)
+
+        // Emit AI Bus events for LEO awareness of project lifecycle
         if (operation === 'create') {
-          console.log(`New project created: ${doc.title}`)
+          void logError({
+            level: 'info',
+            source: 'Projects/afterChange',
+            message: `New project created: "${doc.title}"${doc.projectType ? ` (${doc.projectType})` : ''}`,
+            tenantId,
+          }).catch(() => {})
         }
 
-        if (operation === 'update' && doc.projectStatus === 'completed') {
-          console.log(`Project completed: ${doc.title}`)
-          // TODO: Trigger completion workflows
-          // TODO: Request client testimonial
-          // TODO: Generate final invoice
+        if (operation === 'update') {
+          const prevStatus = (previousDoc as typeof doc | undefined)?.projectStatus
+          if (prevStatus !== doc.projectStatus) {
+            const isCompleted = doc.projectStatus === 'completed'
+            void logError({
+              level: 'info',
+              source: 'Projects/afterChange',
+              message: isCompleted
+                ? `🎉 Project completed: "${doc.title}" — ready for client testimonial and final invoice review`
+                : `Project "${doc.title}" status changed: ${prevStatus ?? 'unknown'} → ${doc.projectStatus}`,
+              tenantId,
+            }).catch(() => {})
+          }
         }
 
         return doc

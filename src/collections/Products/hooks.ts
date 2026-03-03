@@ -62,8 +62,7 @@ export const afterProductChange: CollectionAfterChangeHook = async ({
       req,
     })
     
-    console.log(`[Constitutional Hook] Product inventory change message created: ${message.id}`)
-    console.log(`[Constitutional Hook] Product: ${doc.title}, Change: ${change}, Visibility: tenant`)
+    void message // message.id available if needed for tracing
     
     // If critically low stock, also create high-priority alert
     if (currentInventory === 0 || (doc.lowStockThreshold && currentInventory < doc.lowStockThreshold * 0.5)) {
