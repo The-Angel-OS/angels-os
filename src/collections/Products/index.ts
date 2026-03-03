@@ -27,17 +27,44 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   // Allow authenticated users to delete products in their own tenant.
   // The ecommerce plugin defaults to isAdmin-only; we extend it so tenant
   // operators can clean up draft products without needing superAdmin access.
+  //
+  // Implementation note: We use an async function that calls payload.findByID
+  // with overrideAccess:true so we can verify the product's tenant regardless
+  // of _status (drafts are invisible to access.read for non-admins, so a plain
+  // WHERE constraint would still return 403 because Payload can't find the doc).
   access: {
     ...defaultCollection?.access,
-    delete: ({ req: { user } }) => {
+    delete: async ({ req: { user, payload }, id }) => {
       if (!user) return false
       if ((user as any).isSystemUser) return true
-      // Return a Payload where-constraint: only match products whose tenant
-      // belongs to one of the authenticated user's tenants.
+
       const tenantIds = ((user as any).tenants || []).map((t: any) =>
         t?.tenant && typeof t.tenant === 'object' ? t.tenant.id : t?.tenant,
       ).filter(Boolean)
       if (tenantIds.length === 0) return false
+
+      // Single-doc delete: verify ownership via overrideAccess lookup so draft
+      // products (hidden from access.read) can still be deleted by their owner.
+      if (id) {
+        try {
+          const doc = await payload.findByID({
+            collection: 'products',
+            id,
+            overrideAccess: true,
+            depth: 0,
+          })
+          if (!doc) return false
+          const docTenantId =
+            doc.tenant && typeof doc.tenant === 'object'
+              ? (doc.tenant as any).id
+              : doc.tenant
+          return tenantIds.includes(docTenantId)
+        } catch {
+          return false
+        }
+      }
+
+      // Bulk delete fallback: use a where-constraint (only works for published docs).
       return { tenant: { in: tenantIds } }
     },
   },
