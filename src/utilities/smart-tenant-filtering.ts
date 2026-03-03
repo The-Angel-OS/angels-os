@@ -221,7 +221,6 @@ export function applySmartTenantFiltering(collection: any): any {
 
   if (!pattern || !pattern.field) {
     // No tenant filtering for this collection
-    console.log(`⚪ Collection '${collectionSlug}' - no tenant filtering`)
     return collection
   }
 
@@ -238,8 +237,6 @@ export function applySmartTenantFiltering(collection: any): any {
     update: collection.access?.update || smartAccess,
     delete: collection.access?.delete || smartAccess,
   }
-
-  console.log(`🔧 Collection '${collectionSlug}' - applied smart tenant filtering (${pattern.type}: ${pattern.field})`)
 
   return {
     ...collection,

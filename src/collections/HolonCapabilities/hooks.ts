@@ -165,11 +165,7 @@ export const afterHolonChange: CollectionAfterChangeHook = async ({
       }
     }
 
-    if (matchedCount > 0) {
-      console.log(
-        `[Angel Token Auto-Match] ${holonNode.businessName} matched ${matchedCount} queued order(s)`,
-      )
-    }
+    // matchedCount available here if needed for future telemetry
   } catch (err) {
     // Non-blocking: hook failure shouldn't prevent Holon registration
     console.error('[Angel Token Auto-Match] Error during queue drain:', err)

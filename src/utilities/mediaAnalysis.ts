@@ -719,9 +719,5 @@ Return ONLY the JSON array. No markdown, no commentary.`
     }
   }
 
-  console.log(
-    `[MediaAnalysis] PDF "${docTitle}" processed: ${metaIds.length} page records, group: ${documentGroup}`,
-  )
-
   return metaIds
 }

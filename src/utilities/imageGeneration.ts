@@ -174,7 +174,6 @@ export async function generateImage(
 
   // --- Path A: Vercel AI Gateway (preferred) ---
   if (isGatewayAvailable()) {
-    console.log('[ImageGeneration] Using Vercel AI Gateway')
     try {
       const result = await generateViaGateway(enhancedPrompt, options, payload)
       if (result.success) return result
@@ -193,7 +192,6 @@ export async function generateImage(
     }
   }
 
-  console.log('[ImageGeneration] Using OpenRouter fallback')
   return generateViaOpenRouter(enhancedPrompt, apiKey, options, payload)
 }
 

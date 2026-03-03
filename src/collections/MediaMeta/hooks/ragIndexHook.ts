@@ -216,9 +216,6 @@ export const ragIndexHook: CollectionAfterChangeHook = async ({
       context: { skipRagIndex: true },
     })
 
-    console.log(
-      `[RAG Index] Indexed media-meta ${doc.id}: ${chunks.length} chunks, ~${chunks.reduce((sum, c) => sum + c.tokenEstimate, 0)} tokens`,
-    )
   } catch (err) {
     // Non-fatal — don't block the save
     console.warn('[RAG Index] Failed to index:', err)

@@ -15,8 +15,6 @@ interface TenantResolutionResult {
 export async function resolveTenantFromDomain(hostname: string): Promise<TenantResolutionResult> {
   const payload = await getPayload({ config })
   
-  console.log(`🔍 Resolving tenant for hostname: ${hostname}`)
-
   try {
     // First, try exact domain match
     const exactDomainMatch = await payload.find({
@@ -29,7 +27,6 @@ export async function resolveTenantFromDomain(hostname: string): Promise<TenantR
 
     if (exactDomainMatch.docs.length > 0) {
       const tenant = exactDomainMatch.docs[0]
-      console.log(`✅ Found tenant by exact domain: ${tenant?.name}`)
       return {
         tenant,
         matchedDomain: hostname,
@@ -53,7 +50,6 @@ export async function resolveTenantFromDomain(hostname: string): Promise<TenantR
 
       if (subdomainMatch.docs.length > 0) {
         const tenant = subdomainMatch.docs[0]
-        console.log(`✅ Found tenant by subdomain: ${tenant?.name}`)
         return {
           tenant,
           matchedDomain: hostname,
@@ -75,7 +71,6 @@ export async function resolveTenantFromDomain(hostname: string): Promise<TenantR
 
     if (aliasMatch.docs.length > 0) {
       const tenant = aliasMatch.docs[0]
-      console.log(`✅ Found tenant by domain alias: ${tenant?.name}`)
       return {
         tenant,
         matchedDomain: hostname,
@@ -85,7 +80,6 @@ export async function resolveTenantFromDomain(hostname: string): Promise<TenantR
     }
 
     // No tenant found
-    console.log(`❌ No tenant found for hostname: ${hostname}`)
     return {
       tenant: null,
       matchedDomain: hostname,

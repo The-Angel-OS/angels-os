@@ -213,8 +213,7 @@ export function enhanceCollectionWithInvisibleTenantFiltering(collection: any): 
     // Add invisible tenant field (only for explicitly listed collections)
     enhancedFields = [...(collection.fields || []), createInvisibleTenantField()]
   } else {
-    // Collection doesn't have tenant field - skip tenant filtering for now
-    console.log(`⚠️ Collection '${collectionSlug}' has no tenant field - skipping tenant filtering`)
+    // Collection doesn't have tenant field - skip tenant filtering
     return collection
   }
 
@@ -245,17 +244,6 @@ export function enhanceCollectionWithInvisibleTenantFiltering(collection: any): 
  */
 export function applyInvisibleTenantFiltering(collections: any[]): any[] {
   const enhanced = collections.map(enhanceCollectionWithInvisibleTenantFiltering)
-  
-  // Log what was enhanced
-  const enhancedCollections = enhanced.filter((collection, index) => {
-    const wasEnhanced = collection !== collections[index]
-    if (wasEnhanced) {
-      console.log(`🔧 Enhanced '${collection.slug}' with invisible tenant filtering`)
-    }
-    return wasEnhanced
-  })
-  
-  console.log(`✅ Applied invisible tenant filtering to ${enhancedCollections.length} collections`)
   
   return enhanced
 }
