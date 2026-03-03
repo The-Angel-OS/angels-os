@@ -25,7 +25,17 @@ import { markConnectorActive, markConnectorError } from '@/utilities/bridgeHelpe
 import { runProbe } from '@/utilities/connectorProbes'
 
 export const connectorTestHandler: PayloadHandler = async (req) => {
-  const { payload } = req
+  const { payload, user } = req
+
+  // ── Auth ────────────────────────────────────────────────────
+  if (!user || !('roles' in user) || !Array.isArray(user.roles)) {
+    return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 })
+  }
+  const roles = (user.roles ?? []) as string[]
+  const isAdmin = roles.some((r) => ['super_admin', 'tenant_admin', 'admin'].includes(r))
+  if (!isAdmin) {
+    return Response.json({ status: 'error', message: 'Forbidden: requires admin role' }, { status: 403 })
+  }
 
   // ── Parse body ──────────────────────────────────────────────
   let body: Record<string, unknown>
