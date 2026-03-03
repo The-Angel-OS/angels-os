@@ -159,6 +159,16 @@ describe('LEO Tool Categories', () => {
     })
   })
 
+  describe('Federation Browsing tools (Sprint 38)', () => {
+    it.each([
+      'browse_federation_peers',
+      'query_peer_catalog',
+      'search_federation_wide',
+    ])('includes %s', (name) => {
+      expect(toolNames()).toContain(name)
+    })
+  })
+
   describe('Community tools', () => {
     it.each([
       'create_space',

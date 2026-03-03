@@ -56,7 +56,6 @@ export async function createChannelIfNotExists(
     })
 
     if (existing) {
-      console.log(`✅ Channel '${channelData.name}' already exists (ID: ${existing.id})`)
       return existing
     }
 
@@ -66,7 +65,6 @@ export async function createChannelIfNotExists(
       data: channelData
     })
 
-    console.log(`🆕 Created new channel '${channelData.name}' (ID: ${newChannel.id})`)
     return newChannel
 
   } catch (error) {
@@ -83,8 +81,6 @@ export async function cleanupDuplicateChannels(
   tenantId: string
 ): Promise<void> {
   try {
-    console.log(`🧹 Cleaning up duplicate channels for tenant ${tenantId}`)
-
     // Get all channels for this tenant
     const channels = await payload.find({
       collection: 'channels',
@@ -108,14 +104,9 @@ export async function cleanupDuplicateChannels(
     // Remove duplicates (keep the oldest one)
     for (const [key, duplicates] of Object.entries(channelGroups)) {
       if (duplicates.length > 1) {
-        console.log(`🔍 Found ${duplicates.length} duplicates for '${key}'`)
-        
         // Sort by creation date, keep the first one
         duplicates.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-        const toKeep = duplicates[0]
         const toDelete = duplicates.slice(1)
-
-        console.log(`✅ Keeping channel ID ${toKeep.id} (created: ${toKeep.createdAt})`)
 
         // Delete duplicates
         for (const duplicate of toDelete) {
@@ -124,15 +115,12 @@ export async function cleanupDuplicateChannels(
               collection: 'channels',
               id: duplicate.id
             })
-            console.log(`🗑️ Deleted duplicate channel ID ${duplicate.id}`)
           } catch (deleteError) {
             console.error(`❌ Failed to delete duplicate channel ${duplicate.id}:`, deleteError)
           }
         }
       }
     }
-
-    console.log(`✅ Cleanup complete for tenant ${tenantId}`)
 
   } catch (error) {
     console.error('Error cleaning up duplicate channels:', error)

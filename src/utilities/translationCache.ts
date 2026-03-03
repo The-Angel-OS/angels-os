@@ -46,7 +46,6 @@ function cleanupCache(): void {
   for (const [key, entry] of translationCache.entries()) {
     if (now.getTime() - entry.lastAccessed.getTime() > maxAge) {
       translationCache.delete(key)
-      console.log(`[TranslationCache] Cleaned up stale entry: ${key}`)
     }
   }
 }
@@ -70,7 +69,6 @@ export async function getCachedTranslation<T>(
   if (cached.sourceHash !== currentHash) {
     // Content changed, invalidate cache
     translationCache.delete(key)
-    console.log(`[TranslationCache] Content changed, invalidated: ${key}`)
     return null
   }
 
@@ -78,7 +76,6 @@ export async function getCachedTranslation<T>(
   cached.lastAccessed = new Date()
   translationCache.set(key, cached)
 
-  console.log(`[TranslationCache] Cache hit: ${key}`)
   return cached.translatedContent as T
 }
 
@@ -100,7 +97,6 @@ export async function setCachedTranslation<T>(
   }
 
   translationCache.set(key, entry)
-  console.log(`[TranslationCache] Cached translation: ${key}`)
 }
 
 export async function smartTranslateContent<T extends string>(
@@ -132,7 +128,6 @@ export async function smartTranslateContent<T extends string>(
     // Cache the result
     await setCachedTranslation(content, translatedContent as T, cacheKey)
 
-    console.log(`[SmartTranslation] Translated and cached: ${generateCacheKey(cacheKey)}`)
     return translatedContent as T
 
   } catch (error) {
@@ -265,7 +260,6 @@ export function invalidateCache(pattern?: string): number {
   if (!pattern) {
     const count = translationCache.size
     translationCache.clear()
-    console.log(`[TranslationCache] Cleared all ${count} entries`)
     return count
   }
 
@@ -277,6 +271,5 @@ export function invalidateCache(pattern?: string): number {
     }
   }
 
-  console.log(`[TranslationCache] Invalidated ${deletedCount} entries matching: ${pattern}`)
   return deletedCount
 }

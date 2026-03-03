@@ -171,7 +171,6 @@ async function resolveTenantFromDedicatedNumber(
 
     const tenantPhone = String(vapiConfig.phoneNumber).replace(/[\s-]/g, '')
     if (tenantPhone === normalized) {
-      console.log(`[Vapi] Dedicated number match: ${normalized} → ${tenant.slug}`)
       return tenant
     }
   }
@@ -288,7 +287,6 @@ export function matchTenantByName(
 
   if (bestMatch && bestMatch.score >= 60) {
     const name = (bestMatch.tenant as Record<string, unknown>).name || (bestMatch.tenant as Record<string, unknown>).slug
-    console.log(`[Vapi] Tenant matched from speech: "${name}" (score: ${bestMatch.score})`)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return bestMatch.tenant as Record<string, any>
   }

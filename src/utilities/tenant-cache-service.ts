@@ -31,11 +31,8 @@ export async function loadTenantMappings(): Promise<Map<string, TenantMapping>> 
   try {
     // Check if cache is still valid
     if (tenantCache && (Date.now() - tenantCache.timestamp) < tenantCache.ttl) {
-      console.log('🏢 Using cached tenant mappings')
       return tenantCache.data
     }
-
-    console.log('🔄 Loading tenant mappings from database...')
     
     // Use API call instead of direct DB access (Edge Runtime compatible)
     // FIXED: Use direct database access to avoid infinite loop with middleware
@@ -101,15 +98,6 @@ export async function loadTenantMappings(): Promise<Map<string, TenantMapping>> 
       ttl: CACHE_TTL
     }
 
-    console.log(`🏢 Cached ${data.tenants.length} tenants with ${mappings.size} domain mappings`)
-    
-    // Debug: Log all cached mappings
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Cached domain mappings:')
-      for (const [domain, tenant] of mappings.entries()) {
-        console.log(`   ${domain} → ${tenant.name} (${tenant.slug})`)
-      }
-    }
     
     return mappings
 

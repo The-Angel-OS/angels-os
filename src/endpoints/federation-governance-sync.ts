@@ -76,9 +76,6 @@ async function hydrateGovernanceCache(payload: Payload): Promise<void> {
 
     if (stored && typeof stored.registryVersion === 'number') {
       governanceCache = stored
-      console.log(
-        `[Federation Governance] Hydrated from DB: v${stored.registryVersion} (${stored.ministries?.length || 0} ministries)`,
-      )
     }
   } catch (err) {
     console.warn('[Federation Governance] Failed to hydrate from DB:', err)

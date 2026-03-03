@@ -50,7 +50,6 @@ export async function autoTranslateContent<T extends string>(
     // Use BusinessAgent to translate content
     const translatedContent = await businessAgent.translateSiteContent(content, context.userLanguage)
 
-    console.log(`[AutoTranslation] Translated content for tenant ${tenantId} to ${context.userLanguage}`)
     return translatedContent as T
 
   } catch (error) {

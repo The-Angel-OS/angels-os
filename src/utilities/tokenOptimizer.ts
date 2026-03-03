@@ -4,7 +4,6 @@ export class TokenOptimizer {
 
   async checkUsage(estimatedTokens: number): Promise<boolean> {
     if (this.currentUsage + estimatedTokens > this.tokenLimit) {
-      console.log(`[TokenOptimizer] Approaching limit: ${this.currentUsage}/${this.tokenLimit}`)
       return false
     }
     this.currentUsage += estimatedTokens

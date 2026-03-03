@@ -39,7 +39,6 @@ export async function validateMigratedBatchDetails(
   checkedCount: number;
   matchCount: number;
 }> {
-  console.log(`[Validation] Batch ${batchNumber} for ${collectionSlug} - Parent ID ${migratedParentItem.id}, Target Path: ${targetPathInJson}`);
   const results = {
     valid: true,
     errors: [] as string[],
@@ -85,7 +84,6 @@ export async function validateMigratedBatchDetails(
 
   if (results.errors.length > 0) results.valid = false;
 
-  console.log(`[Validation] Batch ${batchNumber} for ${collectionSlug} - Parent ID ${migratedParentItem.id} - Finished. Valid: ${results.valid}, Matches: ${results.matchCount}/${results.checkedCount}, Errors: ${results.errors.length}, Warnings: ${results.warnings.length}`);
   return results;
 }
 
@@ -103,7 +101,6 @@ export async function validateOverallIntegrity(
   targetCollectionSlug: string,
   targetJsonPath: string,
 ): Promise<{ totalOriginal: number; totalMigrated: number; issues: string[] }> {
-  console.log(`[Validation] Overall integrity check for ${sourceCollectionSlug} -> ${targetCollectionSlug}.${targetJsonPath}`);
   const results = { totalOriginal: 0, totalMigrated: 0, issues: [] as string[] };
 
   try {
@@ -155,7 +152,6 @@ export async function validateOverallIntegrity(
       );
     }
 
-    console.log(`[Validation] Overall counts - Original: ${results.totalOriginal}, Migrated: ${results.totalMigrated}. Issues: ${results.issues.length}`);
 
   } catch (error) {
      const errorMessage = error instanceof Error ? error.message : String(error);

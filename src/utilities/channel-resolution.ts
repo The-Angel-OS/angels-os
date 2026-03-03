@@ -60,13 +60,11 @@ export async function findOrCreateChannel(options: ChannelResolutionOptions) {
 
     if (existingChannels.docs.length > 0) {
       const channel = existingChannels.docs[0]
-      console.log(`✅ Found existing channel: ${name} (ID: ${channel?.id})`)
       return channel
     }
 
     // Create new channel if not found (only fields that exist on Channels collection)
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'channel'
-    console.log(`🔧 Creating new channel: ${name}`)
     const newChannel = await payload.create({
       collection: 'channels',
       data: {
@@ -79,7 +77,6 @@ export async function findOrCreateChannel(options: ChannelResolutionOptions) {
       draft: false,
     })
 
-    console.log(`✅ Created new channel: ${name} (ID: ${newChannel.id})`)
     return newChannel
 
   } catch (error) {

@@ -41,7 +41,6 @@ export class AIBusRouter {
    */
   subscribe(subscription: AIBusSubscription): void {
     this.subscriptions.set(subscription.subscriberId, subscription)
-    console.log(`[AI Bus] Subscriber registered: ${subscription.subscriberId} (${subscription.subscriberType})`)
   }
   
   /**
@@ -49,7 +48,6 @@ export class AIBusRouter {
    */
   unsubscribe(subscriberId: string): void {
     this.subscriptions.delete(subscriberId)
-    console.log(`[AI Bus] Subscriber removed: ${subscriberId}`)
   }
   
   /**

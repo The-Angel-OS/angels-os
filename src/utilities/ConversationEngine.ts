@@ -73,7 +73,6 @@ function resolveAnthropicKey(): string | undefined {
       const parsed = parseEnvFile(fs.readFileSync(envPath))
       if (parsed.ANTHROPIC_API_KEY) {
         _envFileKey = parsed.ANTHROPIC_API_KEY
-        console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env.local (process.env was empty)')
         return _envFileKey
       }
     }
@@ -82,7 +81,6 @@ function resolveAnthropicKey(): string | undefined {
       const parsed = parseEnvFile(fs.readFileSync(envFallback))
       if (parsed.ANTHROPIC_API_KEY) {
         _envFileKey = parsed.ANTHROPIC_API_KEY
-        console.log('[ConversationEngine] Loaded ANTHROPIC_API_KEY from .env (process.env was empty)')
         return _envFileKey
       }
     }

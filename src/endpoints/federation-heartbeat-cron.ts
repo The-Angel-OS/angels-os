@@ -361,9 +361,6 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       governanceVersion = snapshot.registryVersion
       governanceSynced = true
 
-      console.log(
-        `[Heartbeat Cron] Governance snapshot built: v${governanceVersion}, ${knownMinistries.length} ministries`,
-      )
     } catch (govErr) {
       console.warn('[Heartbeat Cron] Governance sync error:', govErr)
     }
