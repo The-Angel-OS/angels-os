@@ -2501,6 +2501,31 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Sprint 39: Street Signs Gossip ──────────────────────────────────────
+  {
+    name: 'discover_federation_products',
+    description:
+      'Browse product summaries from all known federation peers using the local Street Signs gossip cache. Instant — no outbound HTTP. Data is automatically refreshed every 5 minutes via heartbeat. Use query_peer_catalog to get the full catalog from a specific peer.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Filter results by product category (substring match, case-insensitive).',
+        },
+        capability: {
+          type: 'string',
+          description:
+            'Filter to peers whose products require a specific capability (e.g., "screen-printing", "CNC"). Substring match.',
+        },
+        max_price: {
+          type: 'number',
+          description: 'Maximum price in US dollars. Only shows products at or below this price.',
+        },
+      },
+      required: [],
+    },
+  },
   // ─── Sprint 36: Generic Payload CRUD — Leo Manages Everything ──────────
   {
     name: 'payload_find',
@@ -2907,6 +2932,8 @@ export async function executeToolCall(
         return await handleQueryPeerCatalog(payload, toolInput, ctx)
       case 'search_federation_wide':
         return await handleSearchFederationWide(payload, toolInput, ctx)
+      case 'discover_federation_products':
+        return await handleDiscoverFederationProducts(toolInput)
       // ─── Sprint 36: Generic Payload CRUD ────────────────────────────
       case 'payload_find':
         return await handlePayloadFind(payload, toolInput, ctx)
@@ -11104,4 +11131,115 @@ async function handleSearchFederationWide(
     logCaughtError('leo-tools/search_federation_wide', err).catch(() => {})
     return `Error searching federation: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+// ─── Sprint 39: discover_federation_products ─────────────────────────────
+
+async function handleDiscoverFederationProducts(
+  toolInput: Record<string, unknown>,
+): Promise<string> {
+  const { getAllPeerStreetSigns } = await import('@/utilities/streetSigns')
+
+  const categoryFilter =
+    typeof toolInput.category === 'string' ? toolInput.category.toLowerCase() : null
+  const capabilityFilter =
+    typeof toolInput.capability === 'string' ? toolInput.capability.toLowerCase() : null
+  const maxPriceDollars =
+    typeof toolInput.max_price === 'number' ? toolInput.max_price : null
+
+  const allPeers = getAllPeerStreetSigns()
+
+  if (allPeers.length === 0) {
+    return [
+      '## Federation Street Signs',
+      '',
+      'No street signs data available yet — the federation gossip cache is empty.',
+      '',
+      '_Street Signs data populates automatically every 5 minutes via heartbeat exchange.',
+      'Use `browse_federation_peers` to check which peers are known, or `search_federation_wide` to actively query them._',
+    ].join('\n')
+  }
+
+  const lines: string[] = ['## Federation Products (Street Signs Cache)', '']
+
+  let totalProducts = 0
+  let peersWithResults = 0
+
+  for (const entry of allPeers) {
+    const { signs } = entry
+    const peerLabel = entry.peerName || entry.peerId
+    const receivedAgo = Math.round(
+      (Date.now() - new Date(entry.receivedAt).getTime()) / 60_000,
+    )
+
+    // Filter featured products
+    let featured = signs.featured
+    if (categoryFilter) {
+      featured = featured.filter((p) =>
+        p.category.toLowerCase().includes(categoryFilter),
+      )
+    }
+    if (capabilityFilter) {
+      featured = featured.filter((p) =>
+        p.capabilities.some((c) => c.toLowerCase().includes(capabilityFilter!)),
+      )
+    }
+    if (maxPriceDollars !== null) {
+      const maxCents = Math.round(maxPriceDollars * 100)
+      featured = featured.filter((p) => p.priceMin <= maxCents)
+    }
+
+    if (featured.length === 0 && (categoryFilter || capabilityFilter || maxPriceDollars !== null)) {
+      continue // No matching products after filter — skip this peer
+    }
+
+    peersWithResults++
+    totalProducts += signs.productCount
+
+    lines.push(`### ${peerLabel}`)
+    lines.push(
+      `_${signs.productCount} products — top categories: ${signs.topCategories.join(', ') || 'none'} — gossip updated ${receivedAgo}m ago_`,
+    )
+    lines.push('')
+
+    if (featured.length > 0) {
+      lines.push('| Product | Category | Price | Capabilities |')
+      lines.push('|---------|----------|-------|--------------|')
+      for (const p of featured) {
+        const priceStr = p.priceMin > 0
+          ? `$${(p.priceMin / 100).toFixed(2)}`
+          : 'Contact for price'
+        const caps = p.capabilities.length > 0 ? p.capabilities.join(', ') : '—'
+        lines.push(`| ${p.productTitle} | ${p.category} | ${priceStr} | ${caps} |`)
+      }
+    } else {
+      lines.push('_No featured products — use `query_peer_catalog` for full catalog_')
+    }
+
+    lines.push('')
+    if (entry.peerDomain) {
+      lines.push(
+        `_Full catalog: \`query_peer_catalog\` with domain \`${entry.peerDomain}\`_`,
+      )
+    }
+    lines.push('')
+  }
+
+  if (peersWithResults === 0) {
+    return [
+      '## Federation Products (Street Signs Cache)',
+      '',
+      `No products match the current filters across ${allPeers.length} known peer(s).`,
+      '',
+      '_Try broader filters or use `search_federation_wide` for a live search._',
+    ].join('\n')
+  }
+
+  lines.push('---')
+  lines.push(
+    `_${allPeers.length} peer(s) in street signs cache — ${totalProducts} total products — data refreshes every 5 min via heartbeat_`,
+  )
+  lines.push('_For live product details, use `query_peer_catalog` with a peer\'s domain._')
+
+  return lines.join('\n')
 }

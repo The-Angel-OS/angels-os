@@ -1,16 +1,12 @@
-# Angel OS — Session Handoff: Sprint 38 Complete
+# Angel OS — Session Handoff: Sprint 39 Complete
 
 **Date:** March 3, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, 4,842 unit tests passing (216 files, 1 pre-existing skip), 72+ API endpoints, 40 collections, 104 Leo tools
-**Sprint:** Sprint 38 complete (Federation Browsing Tools + test polish wave) — Sprint 39 next
+**Status:** TypeScript clean, 4,858+ unit tests passing (217 files, 1 pre-existing skip), 72+ API endpoints, 40 collections, 105+ Leo tools
+**Sprint:** Sprint 39 complete (Order Journey + Street Signs Gossip) — Sprint 40 next
 **Stack:** Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 + Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) + Turbopack
-**Last commits:**
-- `1be351a` — tests: add leoProcessMessage unit tests (+13, 216 files)
-- `143630d` — tests: add outbound sender resolver unit tests (+16, 215 files)
-- `9c3e350` — tests: add Endeavors, Messages, Pages, Posts hook unit tests (+47, 214 files)
-- `966e3c1` — tests: add collection hook unit tests (+47, 209 files)
-- `3f7a2d5` — fix: add TenantAutoSelector to auto-set payload-tenant cookie from subdomain
+**Last commits (Sprint 39):**
+- Sprint 39 commit — feat: order detail page + street signs gossip + CI badge
 
 ---
 
@@ -113,11 +109,6 @@ This session completed a comprehensive test coverage push. Added ~330 new tests 
 
 ## Known Issues
 
-### Pre-existing Test Failure (1 test)
-**File:** `tests/unit/utilities/ultimateFairSplit.test.ts`
-- 1 failing test (down from 18 — most were fixed in Sprint 22)
-- Related to transparency report percentages
-
 ### Election Store is In-Memory
 `federation-election.ts` uses an in-memory `Map` for proposals. Proposals lost on server restart.
 
@@ -126,6 +117,16 @@ Webhook endpoint needs creation in Stripe Dashboard. `STRIPE_WEBHOOKS_SIGNING_SE
 
 ### In-Memory Rate Limiting
 Non-functional on serverless (Vercel). Needs Redis/Upstash for production enforcement.
+
+### CI/CD — RESEND_API_KEY Required
+The `.github/workflows/ci.yml` `notify-failure` job sends failure emails via Resend.
+To enable it, add `RESEND_API_KEY` in GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**.
+Without it, test/typecheck/build still run — only the failure notification email is skipped.
+
+### Street Signs Cache is In-Memory
+`peerSignsCache` in `streetSigns.ts` is in-memory. Cache is lost on Vercel cold starts.
+On each cold start, peers re-populate the cache on the next heartbeat cycle (~5 min).
+Production fix: persist to tenants.setup.streetSignsData (same pattern as governanceData).
 
 ---
 

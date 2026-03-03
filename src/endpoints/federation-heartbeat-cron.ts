@@ -30,6 +30,7 @@ import {
 } from '@/utilities/federationEngine'
 import { buildCapacitySnapshot, type WorkerCapabilities } from '@/utilities/workload-engine'
 import { getCachedGovernance, setCachedGovernanceWithPersist } from './federation-governance-sync'
+import { buildStreetSigns } from '@/utilities/streetSigns'
 
 export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
   // ── Verify cron authorization ─────────────────────────────────
@@ -234,6 +235,15 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
     }
     const capacitySnapshot = buildCapacitySnapshot(localWorker)
 
+    // ── Build street signs payload (Sprint 39: gossip protocol) ──
+    let streetSigns
+    try {
+      streetSigns = await buildStreetSigns(req.payload, tenantId)
+    } catch {
+      // Non-fatal — heartbeat continues without street signs
+      streetSigns = undefined
+    }
+
     // ── Send heartbeats ─────────────────────────────────────────
     const heartbeat: HeartbeatPayload = {
       federationId,
@@ -245,7 +255,8 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       capabilities: derivedCapabilities,
       catalogEntryCount,
       capacity: capacitySnapshot, // Sprint 31: live workload capacity broadcast
-    } as HeartbeatPayload & { capacity: unknown }
+      streetSigns,               // Sprint 39: product gossip
+    } as HeartbeatPayload & { capacity: unknown; streetSigns: unknown }
 
     // Process peers in parallel (with concurrency limit)
     const CONCURRENCY = 5

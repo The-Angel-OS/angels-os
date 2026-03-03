@@ -62,6 +62,9 @@ export const TOOL_LABELS: Record<string, string> = {
   query_peer_catalog: 'Querying peer catalog',
   search_federation_wide: 'Searching federation network',
 
+  // Street Signs Gossip (Sprint 39)
+  discover_federation_products: 'Scanning federation street signs',
+
   // Generic Payload CRUD
   payload_find: 'Querying collection',
   payload_update: 'Updating record',

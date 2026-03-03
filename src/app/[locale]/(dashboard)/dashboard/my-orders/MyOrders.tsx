@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 /**
  * MyOrders — Customer order history with Angel Token status.
@@ -36,6 +37,11 @@ export interface CustomerOrderItem {
 interface MyOrdersProps {
   orders: CustomerOrderItem[]
   locale: string
+}
+
+/** Unique key for an order item used in state maps */
+function itemKey(item: CustomerOrderItem) {
+  return `${item.orderId}-${item.orderItemIndex}`
 }
 
 export function MyOrders({ orders, locale }: MyOrdersProps) {
@@ -151,11 +157,12 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
           <div className="space-y-3">
             {queued.map((item) => (
               <CustomerOrderCard
-                key={`${item.orderId}-${item.orderItemIndex}`}
+                key={itemKey(item)}
                 item={item}
                 variant="queued"
+                locale={locale}
                 onCancel={handleCancel}
-                cancelling={cancelling === `${item.orderId}-${item.orderItemIndex}`}
+                cancelling={cancelling === itemKey(item)}
               />
             ))}
           </div>
@@ -174,9 +181,10 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
           <div className="space-y-3">
             {inProgress.map((item) => (
               <CustomerOrderCard
-                key={`${item.orderId}-${item.orderItemIndex}`}
+                key={itemKey(item)}
                 item={item}
                 variant="in_progress"
+                locale={locale}
               />
             ))}
           </div>
@@ -195,9 +203,10 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
           <div className="space-y-3">
             {fulfilled.map((item) => (
               <CustomerOrderCard
-                key={`${item.orderId}-${item.orderItemIndex}`}
+                key={itemKey(item)}
                 item={item}
                 variant="fulfilled"
+                locale={locale}
               />
             ))}
           </div>
@@ -216,9 +225,10 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
           <div className="space-y-3">
             {cancelled.map((item) => (
               <CustomerOrderCard
-                key={`${item.orderId}-${item.orderItemIndex}`}
+                key={itemKey(item)}
                 item={item}
                 variant="cancelled"
+                locale={locale}
               />
             ))}
           </div>
@@ -233,11 +243,13 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
 function CustomerOrderCard({
   item,
   variant,
+  locale,
   onCancel,
   cancelling,
 }: {
   item: CustomerOrderItem
   variant: 'queued' | 'in_progress' | 'fulfilled' | 'cancelled'
+  locale: string
   onCancel?: (orderId: number, orderItemIndex: number) => void
   cancelling?: boolean
 }) {
@@ -357,14 +369,22 @@ function CustomerOrderCard({
         </div>
       )}
 
-      {/* Order date */}
-      <p className="mt-2 text-xs text-muted-foreground">
-        Ordered {new Date(item.createdAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </p>
+      {/* Order date + view details */}
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Ordered {new Date(item.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </p>
+        <Link
+          href={`/${locale}/dashboard/my-orders/${item.orderId}`}
+          className="text-xs text-primary hover:underline font-medium"
+        >
+          View Details →
+        </Link>
+      </div>
     </div>
   )
 }

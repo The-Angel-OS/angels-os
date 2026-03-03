@@ -28,6 +28,7 @@ import type { PayloadHandler } from 'payload'
 import { verifySignature } from '@/federation/protocol'
 import { isHeartbeatHealthy } from '@/utilities/federationEngine'
 import { getActiveConstitution } from '@/federation/constitution'
+import { mergeStreetSignsForPeer, type StreetSignsPayload } from '@/utilities/streetSigns'
 
 export const federationHeartbeatHandler: PayloadHandler = async (req) => {
   // ── Parse body ────────────────────────────────────────────────
@@ -152,6 +153,20 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
   } catch (err) {
     // Non-fatal — heartbeat still acknowledged
     console.warn('[Federation Heartbeat] Failed to record heartbeat:', err)
+  }
+
+  // ── Cache incoming Street Signs gossip (Sprint 39) ─────────────
+  if (body.streetSigns && typeof body.streetSigns === 'object') {
+    try {
+      mergeStreetSignsForPeer(
+        senderFedId,
+        body.streetSigns as StreetSignsPayload,
+        typeof senderName === 'string' ? senderName : undefined,
+        typeof senderDomain === 'string' ? senderDomain : undefined,
+      )
+    } catch {
+      // Non-fatal — gossip cache failure does not affect heartbeat acknowledgement
+    }
   }
 
   // ── Build our health response ─────────────────────────────────

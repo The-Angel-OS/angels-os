@@ -6,18 +6,19 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.38.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-4%2C842%20passing-brightgreen)]()
+[![CI](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml/badge.svg)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
+[![Status](https://img.shields.io/badge/version-v0.39.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-4%2C857%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-216%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-217%20test%20files-blue)]()
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-104+-emerald)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-105+-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-72+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-40-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-38-ff69b4)]()
+[![Sprints](https://img.shields.io/badge/Sprints-39-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
@@ -52,14 +53,21 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 38 — Federation Browsing Tools for LEO
+## What's New: Sprint 39 — Order Journey + Street Signs Gossip
 
-### Sprint 38: Federation Browsing Tools for LEO (Current)
-- **`browse_federation_peers`** (`handleBrowseFederationPeers`) — LEO reads the local governance cache to list all known active peers: name, domain, capabilities, trust score, heartbeat status. No outbound HTTP — instant local read.
-- **`query_peer_catalog`** (`handleQueryPeerCatalog`) — LEO fetches a specific peer's public catalog (`/api/federation/catalog`) using the existing `fetchCatalog()` client. Supports free-text search, capability/region filters, price ceiling, min rating.
-- **`search_federation_wide`** (`handleSearchFederationWide`) — Fan-out search across ALL active peers in parallel. Batched 5 at a time, 8-second per-peer timeout, results sorted by rating then price. "Google for the federation."
-- **GitHub OAuth** — Full OAuth2 sign-in and account-linking flow. Follows the Google OAuth pattern (init + callback handlers, state encoding, cross-domain relay).
-- **4,842 unit tests across 216 files** — Comprehensive coverage: all engines, endpoints, hooks, utilities, resolver utilities, and federation tools.
+### Sprint 39: Order Journey + Street Signs Gossip (Current)
+- **Order Detail Page** (`/dashboard/my-orders/[id]`) — Full drill-down view for a customer order. Angel Token badge (amber=active, green=redeemed), 6-step fulfillment timeline stepper (Queued → Matched → Accepted → Being Made → Shipped → Delivered), configuration definition list, tracking info, and CancelConfirmDialog. Cards on the order list now link to detail.
+- **Street Signs Gossip Protocol** (`src/utilities/streetSigns.ts`) — Lightweight product gossip piggybacked on federation heartbeats. Every node broadcasts a compact `StreetSignsPayload` (product count, top categories, 10 featured items with prices + capabilities) in its outbound heartbeat. Receiving nodes cache it in memory. Zero outbound HTTP for consumers.
+- **`discover_federation_products`** LEO tool — Reads the local Street Signs cache and formats a table of peer products, filtered by category, capability, or max price. Instant — no HTTP.
+- **4,858+ unit tests across 217 files** — `streetSigns.test.ts` (16 new tests). All pre-existing failures resolved.
+- **CI status badge** — GitHub Actions badge wired to `.github/workflows/ci.yml`.
+
+### Sprint 38: Federation Browsing Tools for LEO
+- **`browse_federation_peers`** — LEO reads the local governance cache to list all known active peers: name, domain, capabilities, trust score, heartbeat status.
+- **`query_peer_catalog`** — LEO fetches a specific peer's public catalog. Supports free-text search, capability/region filters, price ceiling, min rating.
+- **`search_federation_wide`** — Fan-out search across ALL active peers in parallel. 5 at a time, 8s timeout, sorted by rating then price. "Google for the federation."
+- **GitHub OAuth** — Full OAuth2 sign-in and account-linking flow.
+- **4,842 unit tests across 216 files** — Comprehensive coverage.
 
 ### Sprint 36-37: Federated AI Bus + Connectors
 - **Federated AI Bus** — JWT-signed cross-tenant AI messaging. Peers can send messages directly to each other's LEO agents. Trust levels gate tool access.
