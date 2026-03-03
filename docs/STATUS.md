@@ -1,25 +1,25 @@
 # Angel OS — Status, Plan & What's Next
 
-> *Filed: February 27, 2026 — Sprint 24 Complete*
-> *Version: v0.24.0-dev*
+> *Filed: March 3, 2026 — Sprint 38 Complete*
+> *Version: v0.38.0-dev*
 
 ---
 
 ## Where We Are
 
-Angel OS is a live, federated cooperative operating system at [spacesangels.com](https://spacesangels.com). Twenty-four sprints of development have produced a production platform with real users, real federation architecture, and a constitutional AI guardian angel named Leo.
+Angel OS is a live, federated cooperative operating system at [spacesangels.com](https://spacesangels.com). Thirty-eight sprints of development have produced a production platform with real users, real federation architecture, and a constitutional AI guardian angel named Leo.
 
 ### By the Numbers
 
 | Metric | Count |
 |--------|-------|
-| **Sprints completed** | 24 |
-| **Payload CMS collections** | 37 |
-| **Leo AI tools** | 78+ |
-| **API endpoints** | 49+ |
-| **Unit tests** | 1,570 across 36 files |
+| **Sprints completed** | 38 |
+| **Payload CMS collections** | 40 |
+| **Leo AI tools** | 104+ |
+| **API endpoints** | 72+ |
+| **Unit tests** | 4,842 across 216 files |
 | **E2E test suites** | 14 (Playwright) |
-| **Total test files** | 50 |
+| **Total test files** | 229 |
 | **TypeScript errors** | 0 |
 | **Build status** | Passing |
 | **Deployment** | Vercel (serverless) |
@@ -82,54 +82,50 @@ Angel OS is a live, federated cooperative operating system at [spacesangels.com]
 - Enlistment Ceremony for constitutional commitment
 
 **Testing & Quality:**
-- 1,570 unit tests across 36 files (Vitest)
+- 4,842 unit tests across 216 files (Vitest)
 - 14 E2E test suites (Playwright): dashboard, admin, payload-admin, federation, tenant-isolation, chat, producer, content, setup-wizard, launch, checkout, user-journeys, mobile, legacy
 - Zero TypeScript errors
 - Integration tests with 60s hook timeout for Payload boot
 
 ---
 
-## What We Just Shipped (Sprint 24)
+## What We Just Shipped (Sprint 38)
 
-Sprint 24 was the "self-awareness" sprint. The platform gained the ability to see itself and its federation.
+Sprint 38 was the "federation intelligence + quality foundation" sprint. LEO gained the ability to browse the federation network, and the test suite grew to 4,842 tests with comprehensive hook and utility coverage.
 
 ### Features
-1. **LEO Enterprise Manager Phase 1** — Revenue analytics, inventory movement alerts, customer health scoring, opportunity identification. Board of Directors governance with quorum-based decision logging.
-2. **LCARS Federation Network** — Star Trek-inspired visualization: real-time node health, trust levels, communications log.
-3. **Account Dashboard Integration** — Profile/Connections/Addresses as dashboard sections. Header user dropdown. Clickable sidebar footer.
-4. **Enlistment Ceremony** — Constitutional commitment step in Enterprise setup wizard.
-5. **Role-Based Dashboard** — Views adapt by user role.
-6. **Comment Moderation Dashboard** — Admin moderation queue.
-7. **Featured Endeavors Block** — Homepage showcase component.
+1. **`browse_federation_peers`** — LEO reads the local governance cache to list all known active peers: name, domain, capabilities, trust score, last heartbeat. Instant — no outbound HTTP.
+2. **`query_peer_catalog`** — LEO fetches a specific peer's public catalog. Supports free-text search, capability/region filters, price ceiling, min rating.
+3. **`search_federation_wide`** — Fan-out search across ALL active peers in parallel. Batched 5 at a time with 8s timeout. Sorts by rating then price. "Google for the federation."
+4. **GitHub OAuth** — Full sign-in and account-linking flow. Follows the Google/Discord pattern.
+5. **TenantAutoSelector** — Client component that syncs the `payload-tenant` cookie from subdomain on page load. Fixes cross-subdomain admin context.
 
-### Hardening
-8. **Federation Protocol Hardening** — Signature enforcement, schema validation, governance persistence.
-9. **Tenant Isolation** — 6 collections hardened against cross-tenant leakage.
-10. **Link Field Bug Fix** — `.map()` result was silently discarded in link.ts; Header/Footer admin now render correctly.
-11. **LEO Split-Brain Fix** — Race condition in conversation state resolved.
-12. **14 E2E Test Suites** — Comprehensive Playwright coverage for all critical paths.
+### Hardening (Sprints 36-38)
+6. **Federated AI Bus** — JWT-signed cross-tenant AI messaging. Peers route messages to each other's LEO agents.
+7. **Vapi Voice Integration** — Phone calls → `leoProcessMessage()` → AI Bus. Full transcript persistence.
+8. **Multi-channel bridge hardening** — Telegram, WhatsApp, Slack, Discord, Email all through unified `bridge-inbound` with retry + error marking.
+9. **Test Polish Wave** — 330+ new tests: collection hooks, utility resolvers, orchestration (leoProcessMessage), endpoints.
 
 ---
 
 ## What's Next
 
-### Sprint 25: Federation Installer & Leo Wizard (Planned)
+### Sprint 39: Customer Angel Token UI + Federation Installer (Planned)
 
-**Theme:** Any business on Earth can run their own sovereign Angel OS instance through a guided conversation.
+**Theme:** Put power in customers' hands and make deployment frictionless.
 
 | Feature | Priority | Complexity | Notes |
 |---------|----------|------------|-------|
-| **Leo Wizard** | P0 | Hard | 8-step conversational Enterprise onboarding — identity, infrastructure, constitution, federation. No forms. Just a conversation with Leo. |
-| **`npx create-angel-enterprise`** | P0 | Hard | One-command scaffold: creates repo, sets up DB, seeds constitution, runs Leo Wizard. |
-| **Customer Angel Token UI** | P1 | Medium | Order detail page with status banner, config display, cancel/refund button. |
-| **Street Signs Gossip Sync** | P1 | Medium | Ambient marketplace data in heartbeat payloads — every node eventually knows every product. |
-| **LEO Enterprise Manager Phase 2** | P2 | Medium | Predictive analytics, automated board recommendations, trend forecasting. |
+| **Customer Angel Token UI** | P0 | Medium | Order detail with status banner, cancel/refund, token transfer. |
+| **`npx create-angel-enterprise`** | P0 | Hard | One-command scaffold: repo, DB, constitution seed, Leo Wizard. |
+| **Leo Wizard** | P0 | Hard | 8-step conversational Enterprise onboarding. No forms. |
+| **Street Signs Gossip Sync** | P1 | Medium | Ambient marketplace data in heartbeat payloads. |
+| **CI/CD Pipeline** | P1 | Easy | GitHub Actions: test → typecheck → build → deploy. |
 
-### Sprint 26+: Infrastructure & Integrations
+### Sprint 40+: Infrastructure & Integrations
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| **WhatsApp Bridge** | P1 | Twilio/Meta webhook → bridge-inbound → DM → Leo |
 | **Docker Compose** | P1 | Self-hosting for sovereign deployments |
 | **CI/CD Pipeline** | P1 | GitHub Actions: test + typecheck + deploy |
 | **Shipping Integration** | P2 | EasyPost/Shippo adapter for tracking + labels |

@@ -44,7 +44,7 @@ describe('ensureFirstUserIsAdmin', () => {
 
   it('returns value unchanged on update operation', async () => {
     const args = makeArgs({ operation: 'update', value: ['admin'] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toEqual(['admin'])
     expect(args.req.payload.find).not.toHaveBeenCalled()
   })
@@ -53,7 +53,7 @@ describe('ensureFirstUserIsAdmin', () => {
 
   it('returns value unchanged for system users on create', async () => {
     const args = makeArgs({ siblingData: { isSystemUser: true }, value: [] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toEqual([])
     expect(args.req.payload.find).not.toHaveBeenCalled()
   })
@@ -62,27 +62,27 @@ describe('ensureFirstUserIsAdmin', () => {
 
   it('adds super_admin to roles when no users exist yet', async () => {
     const args = makeArgs({ totalDocs: 0, value: [] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toContain('super_admin')
   })
 
   it('does not duplicate super_admin if already present', async () => {
     const args = makeArgs({ totalDocs: 0, value: ['super_admin'] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     const count = (result as string[]).filter((r: string) => r === 'super_admin').length
     expect(count).toBe(1)
   })
 
   it('preserves other roles when appending super_admin', async () => {
     const args = makeArgs({ totalDocs: 0, value: ['admin'] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toContain('admin')
     expect(result).toContain('super_admin')
   })
 
   it('queries users excluding system users', async () => {
     const args = makeArgs({ totalDocs: 0 })
-    await ensureFirstUserIsAdmin(args)
+    await ensureFirstUserIsAdmin(args as any)
     expect(args.req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'users',
@@ -95,14 +95,14 @@ describe('ensureFirstUserIsAdmin', () => {
 
   it('does not add super_admin when other users already exist', async () => {
     const args = makeArgs({ totalDocs: 5, value: [] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toEqual([])
     expect(result).not.toContain('super_admin')
   })
 
   it('returns existing roles unchanged when not first user', async () => {
     const args = makeArgs({ totalDocs: 3, value: ['member'] })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toEqual(['member'])
   })
 
@@ -110,13 +110,13 @@ describe('ensureFirstUserIsAdmin', () => {
 
   it('handles null value by creating array with super_admin', async () => {
     const args = makeArgs({ totalDocs: 0, value: null as any })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toContain('super_admin')
   })
 
   it('handles undefined value by creating array with super_admin', async () => {
     const args = makeArgs({ totalDocs: 0, value: undefined as any })
-    const result = await ensureFirstUserIsAdmin(args)
+    const result = await ensureFirstUserIsAdmin(args as any)
     expect(result).toContain('super_admin')
   })
 })

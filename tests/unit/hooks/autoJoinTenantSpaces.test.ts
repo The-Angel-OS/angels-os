@@ -56,7 +56,7 @@ describe('autoJoinTenantSpaces', () => {
   it('returns doc unchanged on update operation', async () => {
     const p = makePayload()
     const args = makeArgs({}, p, 'update')
-    const result = await autoJoinTenantSpaces(args)
+    const result = await autoJoinTenantSpaces(args as any)
     expect(result).toEqual(args.doc)
     expect(p.find).not.toHaveBeenCalled()
   })
@@ -64,7 +64,7 @@ describe('autoJoinTenantSpaces', () => {
   it('returns doc unchanged when doc is a system user', async () => {
     const p = makePayload()
     const args = makeArgs({ isSystemUser: true }, p)
-    const result = await autoJoinTenantSpaces(args)
+    const result = await autoJoinTenantSpaces(args as any)
     expect(result).toEqual(args.doc)
     expect(p.find).not.toHaveBeenCalled()
   })
@@ -74,7 +74,7 @@ describe('autoJoinTenantSpaces', () => {
   it('returns doc without creating memberships when user has no tenant memberships', async () => {
     const p = makePayload({ memberships: [] })
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
     expect(p.create).not.toHaveBeenCalled()
   })
 
@@ -86,7 +86,7 @@ describe('autoJoinTenantSpaces', () => {
       spaces: [],
     })
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
     expect(p.create).not.toHaveBeenCalled()
   })
 
@@ -98,7 +98,7 @@ describe('autoJoinTenantSpaces', () => {
       spaces: [{ id: 50, name: 'Main Space', tenant: 10 }],
     })
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
 
     expect(p.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -120,7 +120,7 @@ describe('autoJoinTenantSpaces', () => {
       spaces: [{ id: 60, name: 'Space', tenant: 20 }],
     })
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
 
     expect(p.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -138,7 +138,7 @@ describe('autoJoinTenantSpaces', () => {
       existingMembership: true,
     })
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
     expect(p.create).not.toHaveBeenCalled()
   })
 
@@ -170,7 +170,7 @@ describe('autoJoinTenantSpaces', () => {
       logger: { info: vi.fn(), warn: vi.fn() },
     }
     const args = makeArgs({}, p)
-    await autoJoinTenantSpaces(args)
+    await autoJoinTenantSpaces(args as any)
     expect(p.create).toHaveBeenCalledTimes(2)
   })
 
@@ -189,7 +189,7 @@ describe('autoJoinTenantSpaces', () => {
       logger: { info: vi.fn(), warn: vi.fn() },
     }
     const args = makeArgs({}, p)
-    const result = await autoJoinTenantSpaces(args)
+    const result = await autoJoinTenantSpaces(args as any)
     expect(result).toEqual(args.doc)
     expect(p.logger.warn).toHaveBeenCalled()
   })
@@ -198,7 +198,7 @@ describe('autoJoinTenantSpaces', () => {
     const p = makePayload()
     p.find.mockRejectedValue(new Error('Top-level DB error'))
     const args = makeArgs({}, p)
-    const result = await autoJoinTenantSpaces(args)
+    const result = await autoJoinTenantSpaces(args as any)
     expect(result).toEqual(args.doc)
     expect(p.logger.warn).toHaveBeenCalled()
   })
@@ -209,7 +209,7 @@ describe('autoJoinTenantSpaces', () => {
     const p = makePayload({ memberships: [], spaces: [] })
     const doc = { id: 5, email: 'test@example.com', extra: 'field' }
     const args = makeArgs(doc, p)
-    const result = await autoJoinTenantSpaces(args)
+    const result = await autoJoinTenantSpaces(args as any)
     expect(result).toEqual(doc)
   })
 })

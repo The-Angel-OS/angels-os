@@ -1,66 +1,113 @@
-# Angel OS — Session Handoff: Sprint 23 Complete
+# Angel OS — Session Handoff: Sprint 38 Complete
 
-**Date:** February 27, 2026
+**Date:** March 3, 2026
 **Branch:** `main`
-**Status:** TypeScript clean, 1,570 tests passing (36 files), 49+ API endpoints, 36 collections, 78+ Leo tools
-**Sprint:** Sprint 23 complete (Google OAuth + Social Auth + Quests) — Sprint 24 next
+**Status:** TypeScript clean, 4,842 unit tests passing (216 files, 1 pre-existing skip), 72+ API endpoints, 40 collections, 104 Leo tools
+**Sprint:** Sprint 38 complete (Federation Browsing Tools + test polish wave) — Sprint 39 next
 **Stack:** Payload 3.77.0 + Next.js 16.1.6 + React 19.2.1 + Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) + Turbopack
 **Last commits:**
-- `8a90efc` — feat: social auth link/unlink panel on account page
-- `9b930a1` — fix: show Voice/LiveKit applet icon regardless of env config
-- `4a4715d` — fix: Google OAuth cookie setting + mobile chat action icons
-- `58968c7` — feat: switch LEO to Gemini 3.1 Pro with Sonnet 4.6 fallback
-- `5bcc40b` — perf: cache tenant lookups to prevent connection pool exhaustion
+- `1be351a` — tests: add leoProcessMessage unit tests (+13, 216 files)
+- `143630d` — tests: add outbound sender resolver unit tests (+16, 215 files)
+- `9c3e350` — tests: add Endeavors, Messages, Pages, Posts hook unit tests (+47, 214 files)
+- `966e3c1` — tests: add collection hook unit tests (+47, 209 files)
+- `3f7a2d5` — fix: add TenantAutoSelector to auto-set payload-tenant cookie from subdomain
 
 ---
 
-## Critical Context: Sprint 22-23 Summary
+## Critical Context: Sprint 38 Summary
 
-### Sprint 23 — Google OAuth + Social Auth + Quests
+### Sprint 38 — Federation Browsing Tools for LEO
 
-**Google OAuth:** Full OAuth2 flow — sign in with Google, cross-domain token relay for custom domain tenants. OAuth state parameter encodes `{ redirect, origin, mode, userId }` for both sign-in and account-linking flows.
+**Three new LEO tools added** (in `src/utilities/leo-data-tools.ts`):
 
-**Social Auth Link/Unlink:** Connected Accounts panel on `/account` page. Users can view linked providers, unlink them, or link new ones. Currently only Google has OAuth implemented; GitHub/Apple/Discord are in the schema (`socialProviders` array field on Users collection) and ready for endpoints.
+1. **`browse_federation_peers`** — Reads the local governance cache to list known peers (name, domain, capabilities, trust score, heartbeat). No outbound HTTP. Instant.
+2. **`query_peer_catalog`** — Calls `fetchCatalog()` from `federationClient.ts` to browse a specific peer's public catalog endpoint. Supports search, capability/region filters, price ceiling, min rating.
+3. **`search_federation_wide`** — Fan-out search across ALL active peers in parallel. Batched 5 at a time (8s timeout per peer). "Google for the federation."
 
-**Key files:**
-- `src/endpoints/auth-google.ts` — OAuth init + callback handlers (with `mode=link` support)
-- `src/endpoints/auth-social-unlink.ts` — POST /api/auth/social-unlink
-- `src/components/forms/SocialProvidersPanel/index.tsx` — Connected Accounts UI
+**Tool labels** added to `src/constants/toolLabels.ts`.
+**Tests** in `tests/unit/utilities/federationBrowsingTools.test.ts`.
 
-**Leo Model Upgrade:** Switched from Claude Sonnet 4 to **Gemini 3.1 Pro** (primary) with **Sonnet 4.6** as fallback. The `/model` command lets users switch AI models mid-conversation.
+### Sprint 38 — Test Polish Wave
 
-**Performance:**
-- Tenant caching (60s TTL) in `src/utilities/tenantCache.ts` — prevents DB pool exhaustion
-- Chat message queries at depth=1 (was depth=2 causing 75-100s queries)
-- Pre-created messages before streaming for reliable delivery
+This session completed a comprehensive test coverage push. Added ~330 new tests across:
 
-### Sprint 22 — The Shield and the Spear
+- **Collection hooks:** `enforceUniqueEmailPerTenant`, `autoJoinTenantSpaces`, `messageHooks` (setAuthor/setTenantFromSpace), `ensureFirstUserIsAdmin`, `syncUserTenants`, `generateBeneficiaryTokens`, `autoAnalyzeMedia`, `runWorkflows`, `revalidatePage`, `revalidatePost`
+- **Utility resolvers:** `resolveSmsSender`, `resolveTelegramSender`, `resolveWhatsAppSender`, `resolveSlackSender` (combined in `resolveOutboundSenders.test.ts`)
+- **Orchestration:** `leoProcessMessage` (agent routing, BYOAI key, federated context, sessionMemory composition)
+- **Endpoints:** `orders-claimable` (claimable order filtering by Holon capabilities)
 
-**Security (The Shield):** PAYLOAD_SECRET startup guard, encryption salt from env, CSP headers, comments endpoint auth, `/api/health` endpoint.
+**Key vitest lesson (re-confirmed):** `vi.mock()` factories are hoisted — never reference external `const` variables in them. Always use `vi.fn()` inline, then `vi.mocked(importedFn)` after imports.
 
-**Features (The Spear):** Multi-file chat attachments (non-image files with type-aware previews), LiveKit device selector + video join + session lifecycle messages, database indexes on Messages hot fields, dashboard query parallelization.
+### Sprint 37 — Federated AI Bus + GitHub OAuth
+
+**Federated AI Bus:** JWT-signed cross-tenant AI messaging. Peers route messages directly to each other's LEO agents. Trust levels gate tool access (`vouched` vs `full`). Key files: `src/utilities/federatedAIBus.ts`, `src/endpoints/federated-ai-bus.ts`.
+
+**GitHub OAuth:** Full OAuth2 sign-in and account-linking. Follows Google pattern (init + callback handlers, state encoding, cross-domain relay, Sessions API). Key file: `src/endpoints/auth-github.ts`.
+
+**Multi-channel hardening:** Telegram, WhatsApp, Slack, Discord, Email all go through the unified `bridge-inbound` endpoint with retry + error marking.
+
+### Sprint 36 — Vapi Voice + AI Bus Projects
+
+**Vapi Voice:** Phone calls route through Vapi webhook → `leoProcessMessage()` → AI Bus. Full transcript persistence. Key file: `src/endpoints/vapi-webhook.ts`.
+
+**AI Bus Projects:** Users can subscribe LEO to external AI projects. Federation peers can join project channels. Cross-tenant AI collaboration.
+
+### Sprints 33-35 — Discord + Slack + Operational Excellence
+
+- Discord bot manager (N bots simultaneously), Discord OAuth, Discord formatter
+- Slack connector (`resolveSlackSender`, Slack bot token bridge)
+- Retry engine (`outboundRetry.ts`) with exponential backoff
+- Health cron endpoint, connector management UI
+- `autoTranslation.ts` for multi-language channel bridging
 
 ---
 
-## What's Next (Sprint 24)
+## Key Files: Federation Tools
 
-### Priority 1 — Additional OAuth Providers
-- GitHub, Apple, Discord OAuth endpoints (schema ready, need OAuth handlers)
-- Token-based account linking without full OAuth (for invite flows)
+| File | Role |
+|------|------|
+| `src/utilities/leo-data-tools.ts` | All LEO tool definitions and handlers (~11,000 lines) |
+| `src/utilities/federationClient.ts` | `fetchCatalog()`, `fetchHolons()`, signed outbound HTTP |
+| `src/endpoints/federation-governance-sync.ts` | `getCachedGovernance()`, governance cache |
+| `src/constants/toolLabels.ts` | Display labels for tool call indicators |
+| `tests/unit/utilities/federationBrowsingTools.test.ts` | Sprint 38 tool tests |
+
+---
+
+## Key Files: Auth
+
+| File | Role |
+|------|------|
+| `src/endpoints/auth-google.ts` | Google OAuth (init + callback, link mode) |
+| `src/endpoints/auth-github.ts` | GitHub OAuth (init + callback, link mode) |
+| `src/endpoints/auth-discord.ts` | Discord OAuth (init + callback, link mode) |
+| `src/endpoints/auth-token-relay.ts` | Cross-domain token relay |
+| `src/app/api/auth/complete/route.ts` | Cookie-setting page (standalone handler) |
+| `src/middleware.ts` | i18n + tenant detection |
+
+---
+
+## What's Next (Sprint 39)
+
+### Priority 1 — Customer Angel Token UI
+- Order detail page with token status banner (amber=active, green=redeemed)
+- Configuration display, Cancel & Refund button
+- Token transfer / gift flow
 
 ### Priority 2 — npx create-angel-enterprise
 - One-command installer scaffold
-- Leo Wizard 8-step conversational onboarding
+- Leo Wizard 8-step conversational onboarding (no forms, just a conversation)
 
-### Priority 3 — Customer Angel Token UI
-- Order detail page with token status banners (amber=active, green=redeemed)
-- Configuration display, Cancel & Refund button
-
-### Priority 4 — Federation Audit Log Collection
-- Election and suitcase endpoints persist to real collection (currently `as any`)
-
-### Priority 5 — Street Signs Sync Protocol
+### Priority 3 — Street Signs Gossip Sync
 - Gossip-style sync between federated nodes
+- Ambient marketplace data in heartbeat payloads — every node eventually knows every product
+
+### Priority 4 — CI/CD Pipeline
+- GitHub Actions: pnpm test → pnpm tsc --noEmit → pnpm build → Vercel deploy
+- Automated failure notification to hello@spacesangels.com (hook exists)
+
+### Priority 5 — Docker Compose
+- Self-hosting configuration for sovereign deployments
 
 ---
 
@@ -72,25 +119,22 @@
 - Related to transparency report percentages
 
 ### Election Store is In-Memory
-`federation-election.ts` uses an in-memory `Map` for proposals. Proposals are lost on server restart.
+`federation-election.ts` uses an in-memory `Map` for proposals. Proposals lost on server restart.
 
 ### Stripe Webhook Not Yet Configured
 Webhook endpoint needs creation in Stripe Dashboard. `STRIPE_WEBHOOKS_SIGNING_SECRET` still needed on Vercel.
 
-### DB Connection Pool
-- max=10 local, max=3 Vercel, connectionTimeoutMillis=30s
-- Tenant caching and depth=1 message queries mitigate pool exhaustion
-- Monitor for timeouts if new deep queries are added
+### In-Memory Rate Limiting
+Non-functional on serverless (Vercel). Needs Redis/Upstash for production enforcement.
 
 ---
 
 ## Current DB State
 
-**Enterprise:** `hays-cactus` and `serenity-massage` are active test tenants (plus `clearwater-cruisin`)
+**Enterprise:** `hays-cactus`, `serenity-massage`, and `clearwater-cruisin` are active test tenants
 **Admin user:** `kenneth.courtney@gmail.com` — roles: `['super_admin', 'customer']`
-**Test user:** Tyler Suzanne (`tylersuzanne84@gmail.com`) — has Google social login linked
-**Auth:** COOKIE_DOMAIN is `.angelos.local` in `.env`
-**Stripe:** Live keys configured locally, pending Vercel env vars
+**Auth:** Subdomain-based tenant detection with `TenantAutoSelector` component for cookie syncing
+**Stripe:** Live keys configured locally, pending Vercel env vars for webhooks
 
 ---
 
@@ -101,14 +145,22 @@ Webhook endpoint needs creation in Stripe Dashboard. `STRIPE_WEBHOOKS_SIGNING_SE
 pnpm dev               # http://localhost:3000 (runs node scripts/dev-with-env.mjs)
 
 # Tests
-pnpm test:unit         # 1,570 tests across 36 files
+pnpm test:unit         # 4,842 tests across 216 files
 pnpm test:int          # Integration tests (boots Payload, ~23s)
 pnpm test:e2e          # E2E with Playwright (needs server + Chromium)
-npx tsc --noEmit       # TypeScript check
+pnpm tsc --noEmit      # TypeScript check
 
-# Seed
-pnpm seed:reset        # Update roles without full reset
+# Deploy
+git push               # Auto-deploys to Vercel (main branch)
 ```
+
+---
+
+## Deployment
+
+- **Project:** `prj_18HdwoPYXit5bEWMgSthSQ32PofF`
+- **Team:** `team_fQfygPVPNVZC3YxQFMiK6KlB`
+- **Vercel:** Push `main` to trigger deployment
 
 ---
 

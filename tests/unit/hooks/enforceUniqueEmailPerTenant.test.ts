@@ -34,21 +34,21 @@ describe('enforceUniqueEmailPerTenant', () => {
 
   it('returns data unchanged when no email in data', async () => {
     const args = makeArgs({ data: { name: 'Alice' } })
-    const result = await enforceUniqueEmailPerTenant(args)
+    const result = await enforceUniqueEmailPerTenant(args as any)
     expect(result).toEqual({ name: 'Alice' })
     expect(args.req.payload.find).not.toHaveBeenCalled()
   })
 
   it('returns data unchanged when no tenant in data or originalDoc', async () => {
     const args = makeArgs({ data: { email: 'alice@test.com' } })
-    const result = await enforceUniqueEmailPerTenant(args)
+    const result = await enforceUniqueEmailPerTenant(args as any)
     expect(result).toEqual({ email: 'alice@test.com' })
     expect(args.req.payload.find).not.toHaveBeenCalled()
   })
 
   it('returns data when data is null', async () => {
     const args = makeArgs({ data: null })
-    const result = await enforceUniqueEmailPerTenant(args)
+    const result = await enforceUniqueEmailPerTenant(args as any)
     expect(result).toBeNull()
   })
 
@@ -56,13 +56,13 @@ describe('enforceUniqueEmailPerTenant', () => {
 
   it('normalizes email to lowercase', async () => {
     const args = makeArgs({ data: { email: 'ALICE@TEST.COM', tenant: 1 }, existingDocs: [] })
-    const result = await enforceUniqueEmailPerTenant(args) as any
+    const result = await enforceUniqueEmailPerTenant(args as any) as any
     expect(result.email).toBe('alice@test.com')
   })
 
   it('trims whitespace from email', async () => {
     const args = makeArgs({ data: { email: '  alice@test.com  ', tenant: 1 }, existingDocs: [] })
-    const result = await enforceUniqueEmailPerTenant(args) as any
+    const result = await enforceUniqueEmailPerTenant(args as any) as any
     expect(result.email).toBe('alice@test.com')
   })
 
@@ -70,7 +70,7 @@ describe('enforceUniqueEmailPerTenant', () => {
 
   it('uses tenant from data (numeric)', async () => {
     const args = makeArgs({ data: { email: 'a@b.com', tenant: 5 }, existingDocs: [] })
-    await enforceUniqueEmailPerTenant(args)
+    await enforceUniqueEmailPerTenant(args as any)
     expect(args.req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -82,7 +82,7 @@ describe('enforceUniqueEmailPerTenant', () => {
 
   it('uses tenant from data (object with id)', async () => {
     const args = makeArgs({ data: { email: 'a@b.com', tenant: { id: 10 } }, existingDocs: [] })
-    await enforceUniqueEmailPerTenant(args)
+    await enforceUniqueEmailPerTenant(args as any)
     expect(args.req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -98,7 +98,7 @@ describe('enforceUniqueEmailPerTenant', () => {
       originalDoc: { tenant: 7, id: 99 },
       existingDocs: [],
     })
-    await enforceUniqueEmailPerTenant(args)
+    await enforceUniqueEmailPerTenant(args as any)
     expect(args.req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -116,7 +116,7 @@ describe('enforceUniqueEmailPerTenant', () => {
       operation: 'create',
       existingDocs: [{ id: 50, email: 'dup@test.com', tenant: 1 }],
     })
-    await expect(enforceUniqueEmailPerTenant(args)).rejects.toThrow(
+    await expect(enforceUniqueEmailPerTenant(args as any)).rejects.toThrow(
       /already exists for this tenant/i,
     )
   })
@@ -127,7 +127,7 @@ describe('enforceUniqueEmailPerTenant', () => {
       operation: 'create',
       existingDocs: [],
     })
-    await expect(enforceUniqueEmailPerTenant(args)).resolves.not.toThrow()
+    await expect(enforceUniqueEmailPerTenant(args as any)).resolves.not.toThrow()
   })
 
   // ── duplicate detection on update ─────────────────────────────────────────
@@ -139,7 +139,7 @@ describe('enforceUniqueEmailPerTenant', () => {
       originalDoc: { id: 10, tenant: 1 },
       existingDocs: [{ id: 50 }], // different ID
     })
-    await expect(enforceUniqueEmailPerTenant(args)).rejects.toThrow(
+    await expect(enforceUniqueEmailPerTenant(args as any)).rejects.toThrow(
       /already exists for this tenant/i,
     )
   })
@@ -151,7 +151,7 @@ describe('enforceUniqueEmailPerTenant', () => {
       originalDoc: { id: 10, tenant: 1 },
       existingDocs: [{ id: 10 }], // same ID = self
     })
-    await expect(enforceUniqueEmailPerTenant(args)).resolves.not.toThrow()
+    await expect(enforceUniqueEmailPerTenant(args as any)).resolves.not.toThrow()
   })
 
   it('does NOT throw on update when no duplicate found', async () => {
@@ -161,6 +161,6 @@ describe('enforceUniqueEmailPerTenant', () => {
       originalDoc: { id: 10, tenant: 1 },
       existingDocs: [],
     })
-    await expect(enforceUniqueEmailPerTenant(args)).resolves.not.toThrow()
+    await expect(enforceUniqueEmailPerTenant(args as any)).resolves.not.toThrow()
   })
 })

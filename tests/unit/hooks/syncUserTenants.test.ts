@@ -41,7 +41,7 @@ describe('syncUserTenants', () => {
   it('returns doc without DB calls when status is not active', async () => {
     const p = makePayload()
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'pending' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(result).toEqual(args.doc)
     expect(p.findByID).not.toHaveBeenCalled()
     expect(p.update).not.toHaveBeenCalled()
@@ -50,7 +50,7 @@ describe('syncUserTenants', () => {
   it('returns doc without DB calls when status is suspended', async () => {
     const p = makePayload()
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'suspended' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(p.findByID).not.toHaveBeenCalled()
     expect(result).toEqual(args.doc)
   })
@@ -58,7 +58,7 @@ describe('syncUserTenants', () => {
   it('returns doc without DB calls when status is revoked', async () => {
     const p = makePayload()
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'revoked' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(p.findByID).not.toHaveBeenCalled()
     expect(result).toEqual(args.doc)
   })
@@ -68,7 +68,7 @@ describe('syncUserTenants', () => {
   it('returns doc without DB calls when userId is missing', async () => {
     const p = makePayload()
     const args = makeArgs({ id: 1, user: null, tenant: 20, status: 'active' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(p.findByID).not.toHaveBeenCalled()
     expect(result).toEqual(args.doc)
   })
@@ -76,7 +76,7 @@ describe('syncUserTenants', () => {
   it('returns doc without DB calls when tenantId is missing', async () => {
     const p = makePayload()
     const args = makeArgs({ id: 1, user: 10, tenant: null, status: 'active' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(p.findByID).not.toHaveBeenCalled()
     expect(result).toEqual(args.doc)
   })
@@ -86,7 +86,7 @@ describe('syncUserTenants', () => {
   it('adds tenant to User.tenants when membership becomes active', async () => {
     const p = makePayload([]) // user has no tenants yet
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     expect(p.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -101,7 +101,7 @@ describe('syncUserTenants', () => {
   it('supports user as object { id }', async () => {
     const p = makePayload([])
     const args = makeArgs({ id: 1, user: { id: 77 }, tenant: 20, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     expect(p.findByID).toHaveBeenCalledWith(
       expect.objectContaining({ collection: 'users', id: 77 }),
@@ -114,7 +114,7 @@ describe('syncUserTenants', () => {
   it('supports tenant as object { id }', async () => {
     const p = makePayload([])
     const args = makeArgs({ id: 1, user: 10, tenant: { id: 55 }, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     expect(p.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -127,7 +127,7 @@ describe('syncUserTenants', () => {
     const existing = [{ tenant: 5 }, { tenant: 6 }]
     const p = makePayload(existing)
     const args = makeArgs({ id: 1, user: 10, tenant: 99, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     const { tenants } = p.update.mock.calls[0][0].data
     expect(tenants).toHaveLength(3)
@@ -142,7 +142,7 @@ describe('syncUserTenants', () => {
     const existing = [{ tenant: 20 }]
     const p = makePayload(existing)
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     expect(p.update).not.toHaveBeenCalled()
   })
@@ -151,7 +151,7 @@ describe('syncUserTenants', () => {
     const existing = [{ tenant: { id: 20 } }]
     const p = makePayload(existing)
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'active' }, p)
-    await syncUserTenants(args)
+    await syncUserTenants(args as any)
 
     expect(p.update).not.toHaveBeenCalled()
   })
@@ -162,7 +162,7 @@ describe('syncUserTenants', () => {
     const p = makePayload()
     p.findByID.mockRejectedValue(new Error('DB error'))
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'active' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
 
     expect(p.logger.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to sync'))
     expect(result).toEqual(args.doc)
@@ -173,7 +173,7 @@ describe('syncUserTenants', () => {
     const p = makePayload([]) // empty tenants so update is attempted
     p.update.mockRejectedValue(new Error('Update failed'))
     const args = makeArgs({ id: 1, user: 10, tenant: 20, status: 'active' }, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
 
     expect(p.logger.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to sync'))
     expect(result).toEqual(args.doc)
@@ -185,7 +185,7 @@ describe('syncUserTenants', () => {
     const p = makePayload([])
     const doc = { id: 1, user: 10, tenant: 20, status: 'active', extra: 'field' }
     const args = makeArgs(doc, p)
-    const result = await syncUserTenants(args)
+    const result = await syncUserTenants(args as any)
     expect(result).toEqual(doc)
   })
 })

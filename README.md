@@ -6,18 +6,18 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 **Live:** [spacesangels.com](https://spacesangels.com)
 
-[![Status](https://img.shields.io/badge/version-v0.33.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-2%2C482%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/version-v0.38.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-4%2C842%20passing-brightgreen)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-53%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-216%20test%20files-blue)]()
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-88+-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-52+-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-42-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-33-ff69b4)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-104+-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-72+-purple)]()
+[![Collections](https://img.shields.io/badge/Collections-40-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-38-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 
@@ -52,15 +52,27 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 33 — LEO Speaks on Discord (N Bots per Enterprise)
+## What's New: Sprint 38 — Federation Browsing Tools for LEO
 
-### Sprint 33: Discord Integration (Current)
-- **Multi-Tenant Discord Bots** (`src/discord/bot.ts`) — BotManager class runs N Discord.js clients simultaneously, one per active `discord` connector. Each Enterprise gets its own bot. 60s sync poll for connector add/remove/config changes. Graceful multi-client shutdown.
-- **Discord OAuth** (`src/endpoints/auth-discord.ts`) — Full OAuth2 flow for user account linking. Follows Google OAuth pattern: init handler, callback handler, state encoding, cross-domain relay. Users link Discord identity in `/dashboard/account/connections`.
-- **Discord Webhook Endpoint** (`src/endpoints/discord-webhook.ts`) — Multi-tenant message processing. Validates per-connector HMAC secret, resolves tenant from connector, finds or creates guest users by Discord ID, routes through `leoProcessMessage()`, persists to AI Bus.
-- **Discord Formatter** (`src/utilities/discord-formatter.ts`) — LEO markdown → Discord-compatible markdown. Splits messages at 2000-char Discord limit cleanly at paragraph/sentence boundaries.
-- **Connectors Collection Update** — Added `discord` and `telegram` types to the Connectors multi-tenant config schema.
-- **~95 new tests** across discord-webhook, auth-discord, discordFormatter, and bot manager.
+### Sprint 38: Federation Browsing Tools for LEO (Current)
+- **`browse_federation_peers`** (`handleBrowseFederationPeers`) — LEO reads the local governance cache to list all known active peers: name, domain, capabilities, trust score, heartbeat status. No outbound HTTP — instant local read.
+- **`query_peer_catalog`** (`handleQueryPeerCatalog`) — LEO fetches a specific peer's public catalog (`/api/federation/catalog`) using the existing `fetchCatalog()` client. Supports free-text search, capability/region filters, price ceiling, min rating.
+- **`search_federation_wide`** (`handleSearchFederationWide`) — Fan-out search across ALL active peers in parallel. Batched 5 at a time, 8-second per-peer timeout, results sorted by rating then price. "Google for the federation."
+- **GitHub OAuth** — Full OAuth2 sign-in and account-linking flow. Follows the Google OAuth pattern (init + callback handlers, state encoding, cross-domain relay).
+- **4,842 unit tests across 216 files** — Comprehensive coverage: all engines, endpoints, hooks, utilities, resolver utilities, and federation tools.
+
+### Sprint 36-37: Federated AI Bus + Connectors
+- **Federated AI Bus** — JWT-signed cross-tenant AI messaging. Peers can send messages directly to each other's LEO agents. Trust levels gate tool access.
+- **Vapi Voice Integration** — Phone-based Leo. Incoming calls route through Vapi webhook to LEO conversation engine. Full transcript persistence.
+- **Multi-channel bridge hardening** — Telegram, WhatsApp, Slack, Discord, Email all connect through the unified bridge-inbound endpoint.
+- **Connector Management UI** — Admin interface for managing all external connectors per tenant.
+
+### Sprint 33-35: Discord + Slack + Operational Excellence
+- **Multi-Tenant Discord Bots** — BotManager runs N Discord.js clients simultaneously (one per `discord` connector). 60s sync poll.
+- **Discord OAuth** — Full OAuth2 account linking. Users link Discord in `/dashboard/account/connections`.
+- **Slack Connector** — `resolveSlackSender` + Slack bot token bridge. Enterprise teams get Leo in Slack.
+- **Retry Engine** (`outboundRetry.ts`) — Exponential backoff for all outbound bridge sends. Automatic connector error marking.
+- **Health Cron** — `/api/cron/health` endpoint for Vercel cron scheduler monitoring.
 
 ### Sprint 32: The Wellness Virus Becomes Visible
 - **Federation Pulse API** (`GET /api/federation/pulse`) — Real-time federation health dashboard. Live capacity snapshots from WorkUnit queries, pheromone trail summaries, backpressure status, per-peer health scoring.
