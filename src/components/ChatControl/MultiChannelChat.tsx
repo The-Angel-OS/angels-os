@@ -399,7 +399,9 @@ export function MultiChannelChat({
               </div>
             ) : channels.length === 0 && dmChannels.length === 0 ? (
               channelsPanelOpen ? (
-                <div className="p-3 text-xs text-muted-foreground">No channels yet</div>
+                <div className="p-3 text-xs text-muted-foreground">
+                  No channels yet — use the <span className="font-medium text-foreground">+</span> button above to create one.
+                </div>
               ) : null
             ) : (
               <>

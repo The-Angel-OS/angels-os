@@ -759,6 +759,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       try {
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
         const spaceIdNum = Number(spaceId)
+        const tenantIdNum = opts?.tenantId ? Number(opts.tenantId) : undefined
         const res = await fetch(`${SERVER_URL}/api/channels`, {
           method: 'POST',
           credentials: 'include',
@@ -769,6 +770,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             type,
             description: description || undefined,
             space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
+            ...(tenantIdNum && !Number.isNaN(tenantIdNum) ? { tenant: tenantIdNum } : {}),
           }),
         })
         if (res.ok) {
