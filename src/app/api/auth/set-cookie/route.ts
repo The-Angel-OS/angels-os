@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   const setCookie = `payload-token=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${securePart}${domainPart}`
 
-  console.log('[Auth Set-Cookie] Setting cookie via fetch-based endpoint (attempt #10):', {
+  console.log('[Auth Set-Cookie] Setting cookie:', {
     host,
     effectiveCookieDomain: effectiveCookieDomain || '(host-only)',
     secure: isProduction,

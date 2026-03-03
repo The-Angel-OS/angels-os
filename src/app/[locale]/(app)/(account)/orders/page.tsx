@@ -36,7 +36,9 @@ export default async function Orders() {
     })
 
     orders = ordersResult?.docs || []
-  } catch (error) {}
+  } catch (error) {
+    console.error('[Orders Page] Failed to fetch orders:', error)
+  }
 
   return (
     <>

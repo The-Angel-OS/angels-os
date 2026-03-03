@@ -16,7 +16,11 @@ import { markConnectorActive, markConnectorError } from '@/utilities/bridgeHelpe
 
 // ── Helpers ───────────────────────────────────────────────────
 
-function makeReq(body?: Record<string, unknown>, connector?: Record<string, unknown>) {
+function makeReq(
+  body?: Record<string, unknown>,
+  connector?: Record<string, unknown>,
+  user?: Record<string, unknown> | null,
+) {
   const payload = {
     findByID: vi.fn().mockResolvedValue(connector ?? null),
   }
@@ -27,7 +31,12 @@ function makeReq(body?: Record<string, unknown>, connector?: Record<string, unkn
     body: body ? JSON.stringify(body) : '{}',
   })
 
-  return Object.assign(request, { payload }) as any
+  // Default: authenticated admin user
+  const defaultUser = user === undefined
+    ? { id: 'user-1', roles: ['tenant_admin'] }
+    : user
+
+  return Object.assign(request, { payload, user: defaultUser }) as any
 }
 
 // ── Tests ─────────────────────────────────────────────────────
@@ -36,6 +45,33 @@ describe('connectorTestHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
+
+  // ── Auth guard ───────────────────────────────────────────────
+
+  it('returns 401 if no user', async () => {
+    const req = makeReq({}, undefined, null)
+    const res = await connectorTestHandler(req)
+    expect(res.status).toBe(401)
+    const data = await res.json()
+    expect(data.message).toMatch(/unauthorized/i)
+  })
+
+  it('returns 403 if user has no admin role', async () => {
+    const req = makeReq({}, undefined, { id: 'user-2', roles: ['member'] })
+    const res = await connectorTestHandler(req)
+    expect(res.status).toBe(403)
+    const data = await res.json()
+    expect(data.message).toMatch(/forbidden/i)
+  })
+
+  it.each(['super_admin', 'tenant_admin', 'admin'])('allows %s role through auth', async (role) => {
+    const req = makeReq({ connectorId: 'x' }, undefined, { id: 'user-3', roles: [role] })
+    // Will proceed past auth and hit 404 (no connector found) — that's fine
+    const res = await connectorTestHandler(req)
+    expect([400, 404]).toContain(res.status)
+  })
+
+  // ── Request validation ────────────────────────────────────────
 
   it('returns 400 if no connectorId', async () => {
     const req = makeReq({})
