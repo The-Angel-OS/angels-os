@@ -44,9 +44,14 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set('x-real-ip', cfIp)
   }
 
-  // For /api routes: inject tenant header and pass through — do NOT run i18n
-  // routing, which would incorrectly locale-redirect API requests.
-  if (request.nextUrl.pathname.startsWith('/api')) {
+  // For /api and /admin routes: inject tenant header and pass through.
+  // Do NOT run i18n routing — it would incorrectly locale-redirect these paths.
+  // /admin needs x-tenant-id so the PayloadAdminLEO component and
+  // any server-side admin rendering know the current tenant context.
+  if (
+    request.nextUrl.pathname.startsWith('/api') ||
+    request.nextUrl.pathname.startsWith('/admin')
+  ) {
     return NextResponse.next({ request: { headers: requestHeaders } })
   }
 
@@ -58,14 +63,15 @@ export const config = {
   matcher: [
     /*
      * Match all pathnames except:
-     * - /admin (Payload CMS admin panel — has its own auth)
      * - _next, _vercel, static files
      * - /api/auth/complete, /api/auth/set-cookie (OAuth cookie endpoints —
      *   must be fully excluded so middleware never wraps/interferes with
      *   their Set-Cookie headers. See attempt #10 in auth/complete/route.ts)
-     * NOTE: /api IS included so that x-tenant-id is injected into all
-     * Payload API and custom endpoint requests.
+     * NOTE: Both /api and /admin ARE included so that x-tenant-id is injected
+     * into all Payload API requests and the admin panel. The /admin path is
+     * handled like /api (header injection, no i18n routing) so that the
+     * PayloadAdminLEO component and admin server rendering know the tenant.
      */
-    '/((?!admin|_next|_vercel|api/auth/complete|api/auth/set-cookie|.*\\..*).*)',
+    '/((?!_next|_vercel|api/auth/complete|api/auth/set-cookie|.*\\..*).*)',
   ],
 }

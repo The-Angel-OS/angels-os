@@ -1,15 +1,22 @@
 import type { CollectionConfig } from 'payload'
 
 import { checkRole } from '@/access/utilities'
+import { syncUserTenants } from './hooks/syncUserTenants'
 
 /**
  * User–tenant membership with role-based permissions.
  * Source of truth for tenant-level access (tenant_admin, tenant_manager, tenant_member).
  * Platform-level super_admin remains on Users.roles.
  * Visible in admin only to super_admin.
+ *
+ * The syncUserTenants afterChange hook syncs active memberships to the User's
+ * `tenants` array so the multi-tenant admin plugin shows the correct tenant data.
  */
 export const TenantMemberships: CollectionConfig = {
   slug: 'tenant-memberships',
+  hooks: {
+    afterChange: [syncUserTenants],
+  },
   admin: {
     group: 'Angel OS',
     useAsTitle: 'id',

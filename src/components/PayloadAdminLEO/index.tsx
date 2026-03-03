@@ -9,40 +9,129 @@ import { useChat } from '@/components/ChatControl/useChat'
  * PayloadAdminLEO — Floating LEO chat toggle in the Payload admin panel.
  *
  * Registered via payload.config.ts → admin.components.afterNavLinks.
- * Reads the active tenant from the `payload-tenant` cookie and resolves
- * the tenant's default space for scoped LEO conversations.
+ *
+ * Tenant resolution priority:
+ *  1. Hostname slug (e.g. cactus-farm.kendev.co → 'cactus-farm') — ensures
+ *     the correct tenant is used even when visiting a different tenant's admin
+ *  2. `payload-tenant` cookie set by the multi-tenant plugin's tenant selector
+ *  3. Fallback: first available space (no tenant filter)
  */
+
+/** Extract the tenant slug from the browser hostname (client-side only). */
+function getTenantSlugFromHostname(): string | null {
+  if (typeof window === 'undefined') return null
+  const hostname = window.location.hostname
+
+  // Main platform domains — no tenant prefix
+  const mainDomains = [
+    'spacesangels.com',
+    'www.spacesangels.com',
+    'kendev.co',
+    'www.kendev.co',
+    'angels-os.kendev.co',
+    'angel-os.kendev.co',
+    'localhost',
+    '127.0.0.1',
+  ]
+  if (mainDomains.includes(hostname)) return null
+
+  // *.localhost subdomains (local multi-tenant dev)
+  if (hostname.endsWith('.localhost')) {
+    return hostname.slice(0, -'.localhost'.length) || null
+  }
+
+  // *.kendev.co / *.spacesangels.com — first label is the tenant slug
+  const parts = hostname.split('.')
+  if (parts.length >= 3 && parts[0] !== 'www') {
+    return parts[0] || null
+  }
+
+  return null
+}
+
 export const PayloadAdminLEO: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [spaceId, setSpaceId] = useState<string>('')
 
-  // Resolve default space from tenant cookie
   useEffect(() => {
-    const tenantCookie = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('payload-tenant='))
-      ?.split('=')[1]
+    let cancelled = false
 
-    if (!tenantCookie) {
-      // Fallback: fetch first available space
-      fetch('/api/spaces?limit=1&sort=createdAt&depth=0', { credentials: 'include' })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.docs?.[0]?.id) setSpaceId(String(data.docs[0].id))
+    async function resolveSpace() {
+      // 1. Try hostname-derived tenant slug
+      const hostnameSlug = getTenantSlugFromHostname()
+
+      if (hostnameSlug) {
+        try {
+          const res = await fetch(
+            `/api/tenants?where[slug][equals]=${encodeURIComponent(hostnameSlug)}&limit=1&depth=0`,
+            { credentials: 'include' },
+          )
+          if (res.ok) {
+            const data = await res.json()
+            const tenantId = data?.docs?.[0]?.id
+            if (tenantId) {
+              const spacesRes = await fetch(
+                `/api/spaces?where[tenant][equals]=${tenantId}&limit=1&sort=createdAt&depth=0`,
+                { credentials: 'include' },
+              )
+              if (spacesRes.ok) {
+                const spacesData = await spacesRes.json()
+                if (!cancelled && spacesData?.docs?.[0]?.id) {
+                  setSpaceId(String(spacesData.docs[0].id))
+                  return
+                }
+              }
+            }
+          }
+        } catch {
+          // Fall through to cookie-based approach
+        }
+      }
+
+      // 2. Try the payload-tenant cookie (set by multi-tenant plugin selector)
+      const tenantCookie = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('payload-tenant='))
+        ?.split('=')[1]
+
+      if (tenantCookie) {
+        try {
+          const res = await fetch(
+            `/api/spaces?where[tenant][equals]=${tenantCookie}&limit=1&depth=0`,
+            { credentials: 'include' },
+          )
+          if (res.ok) {
+            const data = await res.json()
+            if (!cancelled && data?.docs?.[0]?.id) {
+              setSpaceId(String(data.docs[0].id))
+              return
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
+      // 3. Fallback: first available space regardless of tenant
+      try {
+        const res = await fetch('/api/spaces?limit=1&sort=createdAt&depth=0', {
+          credentials: 'include',
         })
-        .catch(() => {})
-      return
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled && data?.docs?.[0]?.id) {
+            setSpaceId(String(data.docs[0].id))
+          }
+        }
+      } catch {
+        // No space available — LEO button shows in loading state
+      }
     }
 
-    // Fetch spaces for this tenant
-    fetch(`/api/spaces?where[tenant][equals]=${tenantCookie}&limit=1&depth=0`, {
-      credentials: 'include',
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.docs?.[0]?.id) setSpaceId(String(data.docs[0].id))
-      })
-      .catch(() => {})
+    resolveSpace()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const { messages, isLoading, sendMessage } = useChat(spaceId || '', 'general')
