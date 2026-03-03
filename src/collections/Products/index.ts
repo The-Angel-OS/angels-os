@@ -24,6 +24,23 @@ import { DefaultDocumentIDType, Where } from 'payload'
 
 export const ProductsCollection: CollectionOverride = ({ defaultCollection }) => ({
   ...defaultCollection,
+  // Allow authenticated users to delete products in their own tenant.
+  // The ecommerce plugin defaults to isAdmin-only; we extend it so tenant
+  // operators can clean up draft products without needing superAdmin access.
+  access: {
+    ...defaultCollection?.access,
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      if ((user as any).isSystemUser) return true
+      // Return a Payload where-constraint: only match products whose tenant
+      // belongs to one of the authenticated user's tenants.
+      const tenantIds = ((user as any).tenants || []).map((t: any) =>
+        t?.tenant && typeof t.tenant === 'object' ? t.tenant.id : t?.tenant,
+      ).filter(Boolean)
+      if (tenantIds.length === 0) return false
+      return { tenant: { in: tenantIds } }
+    },
+  },
   admin: {
     ...defaultCollection?.admin,
     defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants'],
