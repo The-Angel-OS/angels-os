@@ -50,7 +50,9 @@ export function setCachedGovernance(data: GovernanceData): void {
  */
 export function setCachedGovernanceWithPersist(data: GovernanceData, payload: Payload): void {
   governanceCache = data
-  persistGovernance(payload, data).catch(() => {})
+  persistGovernance(payload, data).catch((err) => {
+    console.error('[FederationGov] Failed to persist governance to DB:', err)
+  })
 }
 
 /**
@@ -178,7 +180,9 @@ export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
 
     // Accept the governance update — write through to memory AND database
     governanceCache = remoteGovernance
-    persistGovernance(req.payload, remoteGovernance).catch(() => {})
+    persistGovernance(req.payload, remoteGovernance).catch((err) => {
+      console.error('[FederationGov] Failed to persist governance update to DB:', err)
+    })
 
     return Response.json({
       success: true,

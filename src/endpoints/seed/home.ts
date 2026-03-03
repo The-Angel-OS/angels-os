@@ -610,8 +610,7 @@ export const homePageData: (args: ProductArgs) => RequiredDataFromCollectionSlug
     ],
     meta: {
       description: 'An open-source ecommerce site built with Payload and Next.js.',
-      // @ts-ignore
-      image: metaImage,
+      image: metaImage as number | null | Media,
       title: 'Payload Ecommerce Template',
     },
     title: 'Home',

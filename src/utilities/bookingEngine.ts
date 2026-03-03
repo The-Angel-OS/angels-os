@@ -469,7 +469,9 @@ export class BookingEngine {
     })
 
     // Fire-and-forget: notifications must never block booking creation
-    sendBookingConfirmation(this.payload, booking, request.tenantId).catch(() => {})
+    sendBookingConfirmation(this.payload, booking, request.tenantId).catch((err) => {
+      console.error('[BookingEngine] Failed to send booking confirmation email:', err)
+    })
 
     return booking
   }
