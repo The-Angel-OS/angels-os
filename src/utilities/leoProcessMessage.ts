@@ -19,6 +19,18 @@ export type UserContext = {
   roles?: string[]
 }
 
+/** Context from a federation peer when message arrives via cross-tenant AI Bus */
+export type FederatedContext = {
+  /** Display name of the sending peer (e.g. 'Clearwater Angels') */
+  peerName: string
+  /** Trust level of the peer: 'vouched' | 'full' */
+  trustLevel: string
+  /** Peer's federation ID */
+  federationId: string
+  /** Peer's domain */
+  peerDomain?: string
+}
+
 export type ProcessMessageOptions = {
   message: string
   conversationId?: string
@@ -30,6 +42,8 @@ export type ProcessMessageOptions = {
   userContext?: UserContext
   /** Current page path (e.g. '/shop/product-slug') — gives LEO browsing context */
   pageContext?: string
+  /** Federation context when message arrives from a cross-tenant peer */
+  federatedContext?: FederatedContext
 }
 
 export type ProcessMessageResult = {
@@ -53,7 +67,7 @@ export type ProcessMessageResult = {
 export async function leoProcessMessage(
   options: ProcessMessageOptions,
 ): Promise<ProcessMessageResult> {
-  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext, pageContext } =
+  const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext, pageContext, federatedContext } =
     options
 
   // Determine which agent should handle this message
@@ -98,6 +112,7 @@ export async function leoProcessMessage(
           ...(userContext ? { userContext } : {}),
           ...(tenantAnthropicApiKey ? { tenantAnthropicApiKey } : {}),
           ...(pageContext ? { pageContext } : {}),
+          ...(federatedContext ? { federatedContext } : {}),
         }
       : {},
     agent: agent ? {

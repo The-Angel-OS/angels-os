@@ -240,27 +240,31 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
       messageContent = 'Hello'
     }
 
-    // ─── Create inbound message ───────────────────────────────
-    await payload.create({
-      collection: 'messages' as any,
-      data: {
-        content: wrapTextContent(messageContent),
-        space: Number(dmSpaceId),
-        channel: channelSlug,
-        messageType: 'discord_message',
-        metadata: {
-          source: 'discord',
-          discordUserId: body.userId,
-          discordMessageId: body.messageId || '',
-          discordGuildId: body.guildId,
-          discordChannelId: body.channelId,
-          connectorId: body.connectorId,
-          conversationId,
-        },
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
+    // ─── Create inbound message (non-fatal — don't block LEO processing) ──
+    try {
+      await payload.create({
+        collection: 'messages' as any,
+        data: {
+          content: wrapTextContent(messageContent),
+          space: Number(dmSpaceId),
+          channel: channelSlug,
+          messageType: 'discord_message',
+          metadata: {
+            source: 'discord',
+            discordUserId: body.userId,
+            discordMessageId: body.messageId || '',
+            discordGuildId: body.guildId,
+            discordChannelId: body.channelId,
+            connectorId: body.connectorId,
+            conversationId,
+          },
+          tenant: tenantId,
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (persistErr) {
+      console.warn('[discord-webhook] Non-fatal: failed to persist inbound message:', persistErr)
+    }
 
     // ─── Process through LEO ───────────────────────────────────
     const result = await leoProcessMessage({
@@ -280,25 +284,29 @@ export const discordWebhookHandler: PayloadHandler = async (req) => {
     // ─── Format response for Discord ───────────────────────────
     const formattedText = formatForDiscord(result.text)
 
-    // ─── Persist LEO response ──────────────────────────────────
+    // ─── Persist LEO response (non-fatal — don't break the response) ──
     if (result.text) {
-      await payload.create({
-        collection: 'messages' as any,
-        data: {
-          content: wrapTextContent(result.text),
-          space: Number(dmSpaceId),
-          channel: channelSlug,
-          messageType: 'ai_agent',
-          metadata: {
-            source: 'discord',
-            agentName: result.agentName || 'LEO',
-            conversationId,
-            connectorId: body.connectorId,
-          },
-          tenant: tenantId,
-        } as any,
-        overrideAccess: true,
-      })
+      try {
+        await payload.create({
+          collection: 'messages' as any,
+          data: {
+            content: wrapTextContent(result.text),
+            space: Number(dmSpaceId),
+            channel: channelSlug,
+            messageType: 'ai_agent',
+            metadata: {
+              source: 'discord',
+              agentName: result.agentName || 'LEO',
+              conversationId,
+              connectorId: body.connectorId,
+            },
+            tenant: tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+      } catch (persistErr) {
+        console.warn('[discord-webhook] Non-fatal: failed to persist LEO response:', persistErr)
+      }
     }
 
     // ─── Update connector activity (shared helper) ─────────────

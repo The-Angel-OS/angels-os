@@ -76,6 +76,122 @@ export const createPostSchema = z.object({
   categories: z.array(z.string()).optional(),
 })
 
+/** Domain format validator — rejects IPs, localhost, and invalid chars */
+const safeDomain = z
+  .string()
+  .min(1)
+  .max(253, 'Domain too long')
+  .regex(
+    /^(?!localhost)(?!\d+\.\d+\.\d+\.\d+$)[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/,
+    'Must be a valid domain (e.g., "partner.angelos.app"). No IPs or localhost.',
+  )
+
+/** URL safety validator — blocks javascript:, data:, and vbscript: URIs */
+const safeUrl = z
+  .string()
+  .min(1)
+  .max(2000, 'URL too long')
+  .refine(
+    (url) => !/^(javascript|data|vbscript):/i.test(url.trim()),
+    'Dangerous URL protocol detected (javascript:, data:, vbscript: are not allowed)',
+  )
+
+export const sendFederationMessageSchema = z.object({
+  peerDomain: safeDomain,
+  message: z.string().min(1, 'Message text is required').max(10_000, 'Message must be under 10 000 characters'),
+  conversationId: z.string().optional(),
+})
+
+// ─── Sprint 36: Federation Broadcast & Handoff ──────────────
+
+export const broadcastFederationMessageSchema = z.object({
+  message: z.string().min(1, 'Message is required').max(10_000, 'Message must be under 10 000 characters'),
+  filter: z.enum(['all_active', 'vouched_or_higher', 'full_trust_only']).optional(),
+  conversationId: z.string().optional(),
+})
+
+export const leoHandoffSchema = z.object({
+  targetDomain: safeDomain,
+  handoffType: z.enum(['provisioning_welcome', 'delegation', 'escalation', 'collaboration']),
+  context: z.string().min(1, 'Context is required').max(5_000, 'Context must be under 5 000 characters'),
+  userId: z.number().optional(),
+  userName: z.string().max(200).optional(),
+  userEmail: z.string().email('Must be a valid email').optional(),
+  returnTo: safeUrl.optional(),
+})
+
+// ─── Sprint 36: Generic Payload CRUD Schemas ────────────────
+
+/**
+ * Whitelist of collections Leo can access via generic CRUD tools.
+ *
+ * EXCLUDED (sensitive):
+ *   users, tenants, processed-stripe-events, connectors (API keys!),
+ *   agent-configs, federation-audit-log, orders, payments, sessions
+ */
+export const PAYLOAD_CRUD_ALLOWED_COLLECTIONS = new Set([
+  'header',
+  'footer',
+  'categories',
+  'contacts',
+  'workflows',
+  'spaces',
+  'channels',
+  'events',
+  'event-registrations',
+  'pages',
+  'posts',
+  'products',
+  'bookings',
+  'availability',
+  'reviews',
+  'comments',
+  'media',
+  'endeavors',
+  'quests',
+  'quest-participations',
+  'board-members',
+  'projects',
+  'street-signs',
+  'holon-capabilities',
+  'space-memberships',
+  'media-meta',
+])
+
+export const payloadFindSchema = z.object({
+  collection: z.string().min(1, 'collection slug is required'),
+  where: z.record(z.string(), z.unknown()).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+  sort: z.string().optional(),
+  depth: z.number().int().min(0).max(3).optional(),
+})
+
+export const payloadUpdateSchema = z.object({
+  collection: z.string().min(1, 'collection slug is required'),
+  id: z.number().positive('document id is required'),
+  data: z.record(z.string(), z.unknown()).refine((d) => Object.keys(d).length > 0, 'data must not be empty'),
+})
+
+export const payloadCreateSchema = z.object({
+  collection: z.string().min(1, 'collection slug is required'),
+  data: z.record(z.string(), z.unknown()).refine((d) => Object.keys(d).length > 0, 'data must not be empty'),
+})
+
+export const payloadDeleteSchema = z.object({
+  collection: z.string().min(1, 'collection slug is required'),
+  id: z.number().positive('document id is required'),
+})
+
+export const updateNavigationSchema = z.object({
+  target: z.enum(['header', 'footer']),
+  action: z.enum(['add', 'remove', 'reorder', 'replace_all']),
+  label: z.string().max(100, 'Label must be under 100 characters').optional(),
+  url: safeUrl.optional(),
+  pageId: z.number().optional(),
+  newTab: z.boolean().optional(),
+  navItems: z.array(z.record(z.string(), z.unknown())).max(6, 'Maximum 6 nav items allowed').optional(),
+})
+
 // ─── Schema Registry ────────────────────────────────────────
 
 /**
@@ -92,6 +208,16 @@ export const TOOL_INPUT_SCHEMAS: Record<string, z.ZodType<any>> = {
   update_product: updateProductSchema,
   create_booking: createBookingSchema,
   create_post: createPostSchema,
+  send_federation_message: sendFederationMessageSchema,
+  // Sprint 36: Federation Broadcast & Handoff
+  broadcast_federation_message: broadcastFederationMessageSchema,
+  leo_handoff: leoHandoffSchema,
+  // Sprint 36: Generic Payload CRUD
+  payload_find: payloadFindSchema,
+  payload_update: payloadUpdateSchema,
+  payload_create: payloadCreateSchema,
+  payload_delete: payloadDeleteSchema,
+  update_navigation: updateNavigationSchema,
 }
 
 /**

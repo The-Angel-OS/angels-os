@@ -176,6 +176,7 @@ export const Messages: CollectionConfig = {
         { label: 'Email Message', value: 'email_message' },
         { label: 'SMS Message', value: 'sms_message' },
         { label: 'Telegram Message', value: 'telegram_message' },
+        { label: 'Federation Message', value: 'federation_message' },
       ],
       admin: {
         description: 'Message classification — determines rendering, routing, and workflow triggers',

@@ -1,6 +1,3 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
-
 import { createSystemActionContent } from '@/utilities/messageContent'
 import { AI_BUS_SPACE_SLUG } from '@/utilities/ensureSystemSpace'
 
@@ -63,6 +60,9 @@ const LEVEL_EMOJI: Record<LogLevel, string> = {
  */
 export async function logError(options: LogErrorOptions): Promise<void> {
   try {
+    // Lazy import: avoids pulling @payload-config into every module that imports logError
+    const { getPayload } = await import('payload')
+    const config = (await import('@payload-config')).default
     const payload = await getPayload({ config })
 
     // 1. Always persist to application-logs
@@ -120,7 +120,7 @@ export async function logCaughtError(
  * This makes system errors visible to LEO and other subscribed agents.
  */
 async function emitToAiBus(
-  payload: Awaited<ReturnType<typeof getPayload>>,
+  payload: { find: Function; create: Function },
   options: LogErrorOptions,
 ): Promise<void> {
   const tenantId = options.tenantId!

@@ -308,25 +308,29 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
             ? `${messageText}\n\n_[${mediaInfo}]_`
             : messageText
 
-          await payload.create({
-            collection: 'messages' as any,
-            data: {
-              content: wrapTextContent(inboundContent),
-              space: Number(dmSpaceId),
-              channel: channelSlug,
-              messageType: 'whatsapp_message',
-              metadata: {
-                source: 'whatsapp',
-                whatsappMessageId: waMessageId,
-                whatsappPhone: fromPhone,
-                whatsappContactName: contactName,
-                whatsappTimestamp: timestamp,
-                connectorId: connector.id,
-              },
-              tenant: tenantId,
-            } as any,
-            overrideAccess: true,
-          })
+          try {
+            await payload.create({
+              collection: 'messages' as any,
+              data: {
+                content: wrapTextContent(inboundContent),
+                space: Number(dmSpaceId),
+                channel: channelSlug,
+                messageType: 'whatsapp_message',
+                metadata: {
+                  source: 'whatsapp',
+                  whatsappMessageId: waMessageId,
+                  whatsappPhone: fromPhone,
+                  whatsappContactName: contactName,
+                  whatsappTimestamp: timestamp,
+                  connectorId: connector.id,
+                },
+                tenant: tenantId,
+              } as any,
+              overrideAccess: true,
+            })
+          } catch (persistErr) {
+            console.warn('[whatsapp-webhook] Non-fatal: failed to persist inbound message:', persistErr)
+          }
 
           // ── Send read receipt ──────────────────────────────────
           if (waMessageId && config.accessToken && phoneNumberId) {
@@ -369,24 +373,28 @@ export const whatsappWebhookHandler: PayloadHandler = async (req) => {
 
           // ── Persist LEO response ──────────────────────────────
           if (leoReply) {
-            await payload.create({
-              collection: 'messages' as any,
-              data: {
-                content: wrapTextContent(leoReply),
-                space: Number(dmSpaceId),
-                channel: channelSlug,
-                messageType: 'ai_agent',
-                metadata: {
-                  source: 'whatsapp',
-                  agentName: 'LEO',
-                  conversationId,
-                  connectorId: connector.id,
-                  replyTo: fromPhone,
-                },
-                tenant: tenantId,
-              } as any,
-              overrideAccess: true,
-            })
+            try {
+              await payload.create({
+                collection: 'messages' as any,
+                data: {
+                  content: wrapTextContent(leoReply),
+                  space: Number(dmSpaceId),
+                  channel: channelSlug,
+                  messageType: 'ai_agent',
+                  metadata: {
+                    source: 'whatsapp',
+                    agentName: 'LEO',
+                    conversationId,
+                    connectorId: connector.id,
+                    replyTo: fromPhone,
+                  },
+                  tenant: tenantId,
+                } as any,
+                overrideAccess: true,
+              })
+            } catch (persistErr) {
+              console.warn('[whatsapp-webhook] Non-fatal: failed to persist LEO response:', persistErr)
+            }
           }
 
           // ── Send reply via WhatsApp Cloud API ─────────────────

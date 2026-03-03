@@ -230,25 +230,29 @@ export const telegramWebhookHandler: PayloadHandler = async (req) => {
       ? `${messageText}\n\n_[${mediaInfo}]_`
       : messageText
 
-    await payload.create({
-      collection: 'messages' as any,
-      data: {
-        content: wrapTextContent(inboundContent),
-        space: Number(dmSpaceId),
-        channel: channelSlug,
-        messageType: 'telegram_message',
-        metadata: {
-          source: 'telegram',
-          telegramMessageId: String(updateId || message.message_id || ''),
-          telegramUserId,
-          telegramUsername: username,
-          telegramChatId: chatId,
-          connectorId: connector.id,
-        },
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
+    try {
+      await payload.create({
+        collection: 'messages' as any,
+        data: {
+          content: wrapTextContent(inboundContent),
+          space: Number(dmSpaceId),
+          channel: channelSlug,
+          messageType: 'telegram_message',
+          metadata: {
+            source: 'telegram',
+            telegramMessageId: String(updateId || message.message_id || ''),
+            telegramUserId,
+            telegramUsername: username,
+            telegramChatId: chatId,
+            connectorId: connector.id,
+          },
+          tenant: tenantId,
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (persistErr) {
+      console.warn('[telegram-webhook] Non-fatal: failed to persist inbound message:', persistErr)
+    }
 
     // ── Process through LEO ──────────────────────────────────
     const conversationId = `telegram-${telegramUserId}`
@@ -280,24 +284,28 @@ export const telegramWebhookHandler: PayloadHandler = async (req) => {
 
     // ── Persist LEO response ─────────────────────────────────
     if (leoReply) {
-      await payload.create({
-        collection: 'messages' as any,
-        data: {
-          content: wrapTextContent(leoReply),
-          space: Number(dmSpaceId),
-          channel: channelSlug,
-          messageType: 'ai_agent',
-          metadata: {
-            source: 'telegram',
-            agentName: 'LEO',
-            conversationId,
-            connectorId: connector.id,
-            replyTo: chatId,
-          },
-          tenant: tenantId,
-        } as any,
-        overrideAccess: true,
-      })
+      try {
+        await payload.create({
+          collection: 'messages' as any,
+          data: {
+            content: wrapTextContent(leoReply),
+            space: Number(dmSpaceId),
+            channel: channelSlug,
+            messageType: 'ai_agent',
+            metadata: {
+              source: 'telegram',
+              agentName: 'LEO',
+              conversationId,
+              connectorId: connector.id,
+              replyTo: chatId,
+            },
+            tenant: tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+      } catch (persistErr) {
+        console.warn('[telegram-webhook] Non-fatal: failed to persist LEO response:', persistErr)
+      }
     }
 
     // ── Send reply via Telegram Bot API ───────────────────────

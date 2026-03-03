@@ -189,18 +189,22 @@ export const slackWebhookHandler: PayloadHandler = async (req) => {
     })
 
     // Store inbound message
-    await payload.create({
-      collection: 'messages' as 'payload-locked-documents',
-      data: {
-        tenant: typeof tenantId === 'string' ? parseInt(tenantId, 10) : tenantId,
-        channel: channel.channelId,
-        author: guest.id,
-        content: wrapTextContent(text),
-        type: getMessageType('slack'),
-        externalMessageId: messageTs,
-      } as any,
-      overrideAccess: true,
-    })
+    try {
+      await payload.create({
+        collection: 'messages' as 'payload-locked-documents',
+        data: {
+          tenant: typeof tenantId === 'string' ? parseInt(tenantId, 10) : tenantId,
+          channel: channel.channelId,
+          author: guest.id,
+          content: wrapTextContent(text),
+          type: getMessageType('slack'),
+          externalMessageId: messageTs,
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (persistErr) {
+      console.warn('[slack-webhook] Non-fatal: failed to persist inbound message:', persistErr)
+    }
 
     // ── LEO Processing ──────────────────────────────────────
     const leoResult = await leoProcessMessage({

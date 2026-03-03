@@ -61,8 +61,8 @@ describe('Invitation Journey', () => {
       expect(DEFAULT_EXPIRY_DAYS).toBe(7)
       const expiry = calculateExpiration()
       const sevenDaysFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000
-      // Within 1 minute tolerance
-      expect(Math.abs(expiry.getTime() - sevenDaysFromNow)).toBeLessThan(60000)
+      // setDate is DST-aware; allow 2h tolerance for DST transitions in the 7-day window
+      expect(Math.abs(expiry.getTime() - sevenDaysFromNow)).toBeLessThan(7200000)
     })
 
     it('custom expiry days work', () => {

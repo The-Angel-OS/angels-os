@@ -479,7 +479,7 @@ You have access to the platform's data through tools. When users ask about produ
 
 Always use tools when the user asks a data question. Present results naturally in conversation, not as raw data dumps. For booking requests, guide the user through the details (what, when, how long) before creating. For shopping, help users find products first, then add to cart when they confirm.` : ''}
 
-${this.buildUserContextSection()}${this.buildPageContextSection()}## Guidelines
+${this.buildUserContextSection()}${this.buildPageContextSection()}${this.buildFederationContextSection()}## Guidelines
 
 - Be warm, concise, and genuinely helpful.
 - You may use personality, humor, and warmth — but never be sycophantic.
@@ -554,6 +554,27 @@ Tailor your responses to their access level. Administrators can see all data and
 
 The user is currently viewing: **${pagePath}**
 ${pageHint}
+
+`
+  }
+
+  private buildFederationContextSection(): string {
+    const fedCtx = this.context.sessionMemory?.federatedContext as
+      | { peerName: string; trustLevel: string; federationId: string; peerDomain?: string }
+      | undefined
+
+    if (!fedCtx) return ''
+
+    const trustLabel = fedCtx.trustLevel === 'full' ? 'fully trusted' : 'vouched'
+
+    return `## Federation Context
+
+This message comes from **${fedCtx.peerName}**, a **${trustLabel}** federation peer${fedCtx.peerDomain ? ` (${fedCtx.peerDomain})` : ''}.
+
+- Federation ID: \`${fedCtx.federationId}\`
+- Trust level: **${fedCtx.trustLevel}**
+
+You are responding on behalf of your Enterprise to a peer in the federation network. Be collaborative, helpful, and represent your Enterprise well. This is cross-tenant AI-to-AI communication — the federation's nervous system at work.
 
 `
   }

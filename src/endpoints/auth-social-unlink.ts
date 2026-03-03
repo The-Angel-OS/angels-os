@@ -77,7 +77,8 @@ export const authSocialUnlinkHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
-    console.log(`[Social Unlink] Removed ${provider} from user ${req.user.id}`)
+    // PII-safe: user ID only (opaque numeric identifier)
+    console.log('[Social Unlink] Provider removed:', { provider, userId: req.user.id })
 
     return Response.json({
       success: true,

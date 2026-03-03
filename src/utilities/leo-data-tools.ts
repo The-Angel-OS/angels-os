@@ -45,7 +45,7 @@ import {
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
 import { logCaughtError } from './logError'
-import { validateToolInput } from './toolInputSchemas'
+import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
 import { findOrCreateDM } from './dmChannels'
 import { ensureDMSpace } from './ensureSystemSpace'
 import {
@@ -2084,6 +2084,96 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Federation Messaging (Sprint 36) ──────────────────────────────────
+  {
+    name: 'send_federation_message',
+    description:
+      'Send a message to a federation peer (another Angel OS enterprise). Messages are signed with Ed25519 JWTs for authenticity. The peer must be a vouched or active federation member. Always confirm with the user before sending — show them the target domain and message.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        peerDomain: {
+          type: 'string',
+          description:
+            'Domain of the federation peer to send to (e.g., "partner.angelos.app"). Must be a vouched or active federation member.',
+        },
+        message: {
+          type: 'string',
+          description: 'Message text to send to the peer. Will be processed by their LEO agent.',
+        },
+        conversationId: {
+          type: 'string',
+          description: 'Optional conversation thread ID for continuing a cross-tenant conversation.',
+        },
+      },
+      required: ['peerDomain', 'message'],
+    },
+  },
+  {
+    name: 'broadcast_federation_message',
+    description:
+      'Broadcast a message to ALL active federation peers simultaneously. Each peer\'s LEO will receive and process the message. Use for federation-wide announcements, capability queries ("does anyone in the federation do X?"), or coordinated actions. Messages are individually Ed25519-signed per peer. Always confirm with the user before broadcasting — this reaches every active Endeavor in the network.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        message: {
+          type: 'string',
+          description: 'Message to broadcast to all federation peers. Will be processed by each peer\'s LEO agent.',
+        },
+        filter: {
+          type: 'string',
+          enum: ['all_active', 'vouched_or_higher', 'full_trust_only'],
+          description: 'Which peers to include (default: "all_active"). all_active = active+probation, vouched_or_higher = active only, full_trust_only = sentinels only.',
+        },
+        conversationId: {
+          type: 'string',
+          description: 'Optional shared conversation thread ID so all peers can participate in the same thread.',
+        },
+      },
+      required: ['message'],
+    },
+  },
+  {
+    name: 'leo_handoff',
+    description:
+      'Hand off a user or context to another LEO instance (on a different Endeavor). Use during provisioning: after creating an Endeavor, hand off to the new Endeavor\'s LEO so it can welcome the user. Also used for cross-Endeavor delegation ("talk to the marketing Endeavor about this"). The receiving LEO gets the handoff context and can continue the conversation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        targetDomain: {
+          type: 'string',
+          description: 'Domain of the target Endeavor (e.g., "newclient.angelos.app")',
+        },
+        handoffType: {
+          type: 'string',
+          enum: ['provisioning_welcome', 'delegation', 'escalation', 'collaboration'],
+          description: 'Type of handoff. provisioning_welcome = new Endeavor just created, delegation = pass a task to another Leo, escalation = this needs higher authority, collaboration = joint effort.',
+        },
+        context: {
+          type: 'string',
+          description: 'Context to pass to the receiving LEO — what happened so far, what the user needs, relevant details.',
+        },
+        userId: {
+          type: 'number',
+          description: 'Optional user ID being handed off (e.g., the user who just provisioned a new Endeavor)',
+        },
+        userName: {
+          type: 'string',
+          description: 'Name of the user being handed off, so the receiving LEO can greet them personally.',
+        },
+        userEmail: {
+          type: 'string',
+          description: 'Email of the user being handed off',
+        },
+        returnTo: {
+          type: 'string',
+          description: 'Optional: domain to return to after the receiving LEO completes its task',
+        },
+      },
+      required: ['targetDomain', 'handoffType', 'context'],
+    },
+  },
+
   // ── Phase 6: Analytics & Intelligence ──────────────────────────────────
   {
     name: 'analyze_trends',
@@ -2310,6 +2400,264 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Sprint 38: Federation Browsing — Browse Remote Peers ──────────────
+  {
+    name: 'browse_federation_peers',
+    description:
+      'List all known peers in the federation network. Shows their domains, capabilities, trust scores, and online status from the local governance cache (no outbound HTTP). Use this to discover which peers exist before querying their catalogs with query_peer_catalog.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: {
+          type: 'string',
+          description:
+            'Filter by ministry status: "active" (default), "probation", or "all" to include every status.',
+        },
+        capability: {
+          type: 'string',
+          description:
+            'Filter peers that advertise a specific capability (e.g., "screen-printing", "CNC-milling"). Substring match.',
+        },
+        region: {
+          type: 'string',
+          description: 'Filter by geographic region (e.g., "Florida", "UK"). Substring match.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum peers to return. Default 20, max 50.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'query_peer_catalog',
+    description:
+      "Search a specific federation peer's product/service catalog. Provide the peer's domain to browse their offerings. Use browse_federation_peers first to discover peer domains. This makes a signed outbound HTTP request to the peer's public catalog endpoint.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        domain: {
+          type: 'string',
+          description:
+            'The peer\'s domain (e.g., "clearwater.spacesangels.com"). Required.',
+        },
+        search: {
+          type: 'string',
+          description: 'Free text search across the peer\'s catalog.',
+        },
+        capability: {
+          type: 'string',
+          description: 'Filter by specific capability.',
+        },
+        region: {
+          type: 'string',
+          description: 'Filter by region.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results to return. Default 10, max 50.',
+        },
+        min_rating: {
+          type: 'number',
+          description: 'Minimum rating filter (0-5).',
+        },
+        max_price: {
+          type: 'number',
+          description: 'Maximum price filter (in cents).',
+        },
+      },
+      required: ['domain'],
+    },
+  },
+  {
+    name: 'search_federation_wide',
+    description:
+      "Search across ALL federation peers' catalogs simultaneously. Finds products and services across the entire network by querying every active peer in parallel. Use when you want to find the best option regardless of which peer offers it — this is the federation's unified search.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        search: {
+          type: 'string',
+          description: 'Free text search across all peers\' catalogs.',
+        },
+        capability: {
+          type: 'string',
+          description: 'Filter by specific capability.',
+        },
+        region: {
+          type: 'string',
+          description: 'Filter by region (also filters which peers to query).',
+        },
+        limit_per_peer: {
+          type: 'number',
+          description: 'Max results per peer. Default 5, max 20.',
+        },
+        max_peers: {
+          type: 'number',
+          description: 'Max peers to query. Default 10, max 25.',
+        },
+      },
+      required: [],
+    },
+  },
+  // ─── Sprint 36: Generic Payload CRUD — Leo Manages Everything ──────────
+  {
+    name: 'payload_find',
+    description:
+      'Query any Payload collection directly. Returns documents matching the given filters. Use this when no specific query tool exists for the collection, or when you need flexible access to any data in the Endeavor. Supports filtering by field values, sorting, and pagination. Always scoped to the current tenant.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        collection: {
+          type: 'string',
+          description:
+            'The collection slug to query (e.g., "header", "footer", "categories", "contacts", "workflows", "spaces", "channels", "events", "pages", "posts", "products", "bookings", "reviews", "comments", "media", "endeavors", "quests", "board-members", "connectors", "availability", "projects", "event-registrations", "street-signs")',
+        },
+        where: {
+          type: 'object',
+          description:
+            'Payload where clause object. Examples: {"title":{"equals":"Main Header"}}, {"email":{"contains":"@example.com"}}, {"status":{"equals":"published"}}. Supports: equals, not_equals, contains, like, greater_than, less_than, in, not_in, exists.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max documents to return (default 10, max 50)',
+        },
+        sort: {
+          type: 'string',
+          description: 'Sort field, prefix with - for descending (e.g., "-createdAt", "title")',
+        },
+        depth: {
+          type: 'number',
+          description: 'Relationship population depth (default 1, max 3)',
+        },
+      },
+      required: ['collection'],
+    },
+  },
+  {
+    name: 'payload_update',
+    description:
+      'Update a document in any Payload collection by ID. Use for modifications not covered by specific tools — navigation menus, footer links, contact records, workflow configs, etc. Always confirm changes with the user before calling — Article III.2 requires human confirmation for mutations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        collection: {
+          type: 'string',
+          description: 'The collection slug (e.g., "header", "footer", "contacts", "workflows")',
+        },
+        id: {
+          type: 'number',
+          description: 'The document ID to update',
+        },
+        data: {
+          type: 'object',
+          description:
+            'Fields to update. Partial updates are supported — only include fields you want to change. For array fields like navItems, provide the full array (Payload replaces the whole array).',
+        },
+      },
+      required: ['collection', 'id', 'data'],
+    },
+  },
+  {
+    name: 'payload_create',
+    description:
+      'Create a new document in any Payload collection. Use for creating records not covered by specific tools. Always confirm with the user before calling — Article III.2.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        collection: {
+          type: 'string',
+          description: 'The collection slug to create in (e.g., "contacts", "workflows", "categories")',
+        },
+        data: {
+          type: 'object',
+          description: 'The document data. Must include all required fields for the collection.',
+        },
+      },
+      required: ['collection', 'data'],
+    },
+  },
+  {
+    name: 'payload_delete',
+    description:
+      'Delete a document from a Payload collection by ID. This is irreversible. Always confirm with the user before calling — Article III.2 requires explicit human confirmation for destructive actions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        collection: {
+          type: 'string',
+          description: 'The collection slug',
+        },
+        id: {
+          type: 'number',
+          description: 'The document ID to delete',
+        },
+      },
+      required: ['collection', 'id'],
+    },
+  },
+  // ─── Navigation Convenience Tools ──────────────────────────────────────
+  {
+    name: 'query_navigation',
+    description:
+      'Get the current header and/or footer navigation for the site. Returns all nav items with their labels, link types, and URLs. Use when users ask about site navigation, menu items, or links.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        target: {
+          type: 'string',
+          enum: ['header', 'footer', 'both'],
+          description: 'Which navigation to retrieve (default: "both")',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'update_navigation',
+    description:
+      'Add, remove, or reorder navigation items in the header or footer. Use when users ask to change menu links, add new pages to the nav, remove links, or reorder the menu. Always confirm the change with the user before calling — Article III.2.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        target: {
+          type: 'string',
+          enum: ['header', 'footer'],
+          description: 'Which navigation to update',
+        },
+        action: {
+          type: 'string',
+          enum: ['add', 'remove', 'reorder', 'replace_all'],
+          description:
+            'Action to perform: add (append a nav item), remove (remove by label), reorder (set new order), replace_all (replace entire nav array)',
+        },
+        label: {
+          type: 'string',
+          description: 'For add: the link label. For remove: the label to remove (case-insensitive match).',
+        },
+        url: {
+          type: 'string',
+          description: 'For add: the URL for a custom link',
+        },
+        pageId: {
+          type: 'number',
+          description: 'For add: the page ID for an internal reference link (use instead of url)',
+        },
+        newTab: {
+          type: 'boolean',
+          description: 'For add: open in new tab (default false)',
+        },
+        navItems: {
+          type: 'array',
+          description:
+            'For reorder/replace_all: the full ordered array of nav items. Each item: { link: { type: "custom"|"reference", label: "Text", url: "/path", newTab: false } }',
+          items: { type: 'object' },
+        },
+      },
+      required: ['target', 'action'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -2517,6 +2865,13 @@ export async function executeToolCall(
         return await handleSendSms(payload, toolInput, ctx)
       case 'send_slack':
         return await handleSendSlack(payload, toolInput, ctx)
+      // Federation
+      case 'send_federation_message':
+        return await handleSendFederationMessage(payload, toolInput, ctx)
+      case 'broadcast_federation_message':
+        return await handleBroadcastFederationMessage(payload, toolInput, ctx)
+      case 'leo_handoff':
+        return await handleLeoHandoff(payload, toolInput, ctx)
       // Phase 6: Analytics & Intelligence
       case 'analyze_trends':
         return await handleAnalyzeTrends(payload, toolInput, ctx)
@@ -2545,6 +2900,26 @@ export async function executeToolCall(
         return await handleMyPlace(payload, ctx)
       case 'find_synchronicities':
         return await handleFindSynchronicities(payload, toolInput, ctx)
+      // ─── Sprint 38: Federation Browsing ─────────────────────────────
+      case 'browse_federation_peers':
+        return await handleBrowseFederationPeers(payload, toolInput, ctx)
+      case 'query_peer_catalog':
+        return await handleQueryPeerCatalog(payload, toolInput, ctx)
+      case 'search_federation_wide':
+        return await handleSearchFederationWide(payload, toolInput, ctx)
+      // ─── Sprint 36: Generic Payload CRUD ────────────────────────────
+      case 'payload_find':
+        return await handlePayloadFind(payload, toolInput, ctx)
+      case 'payload_update':
+        return await handlePayloadUpdate(payload, toolInput, ctx)
+      case 'payload_create':
+        return await handlePayloadCreate(payload, toolInput, ctx)
+      case 'payload_delete':
+        return await handlePayloadDelete(payload, toolInput, ctx)
+      case 'query_navigation':
+        return await handleQueryNavigation(payload, toolInput, ctx)
+      case 'update_navigation':
+        return await handleUpdateNavigation(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -8292,6 +8667,323 @@ async function handleSendSlack(
 }
 
 // ---------------------------------------------------------------------------
+// Federation Messaging (Sprint 36)
+// ---------------------------------------------------------------------------
+
+async function handleSendFederationMessage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const peerDomain = (input.peerDomain as string)?.trim()
+  const message = (input.message as string)?.trim()
+  const conversationId = (input.conversationId as string)?.trim() || undefined
+
+  if (!peerDomain) return 'Error: peerDomain is required (e.g., "partner.angelos.app").'
+  if (!message) return 'Error: message text is required.'
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    const { sendFederatedMessage } = await import('./federatedAIBus')
+    const result = await sendFederatedMessage(payload, ctx.tenantId, peerDomain, message, conversationId)
+
+    if (!result.success) {
+      return `Error sending federation message to ${peerDomain}: ${result.error}`
+    }
+
+    return `Federation message sent to **${peerDomain}**!\n- **Message:** ${message.slice(0, 150)}${message.length > 150 ? '...' : ''}\n- **Response:** ${result.response || 'No response received'}`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return `Error sending federation message: ${msg}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 36: Federation Broadcast & Leo-to-Leo Handoff
+// ---------------------------------------------------------------------------
+
+/**
+ * Broadcast a message to all active federation peers simultaneously.
+ * Discovers peers from the governance cache, filters by trust level,
+ * and sends individually signed JWTs to each peer's LEO.
+ */
+async function handleBroadcastFederationMessage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const message = (input.message as string)?.trim()
+  const filter = (input.filter as string) || 'all_active'
+  const conversationId = (input.conversationId as string)?.trim() || undefined
+
+  if (!message) return 'Error: message is required.'
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  try {
+    // 1. Get governance data (contains all federation peers)
+    const { getCachedGovernance } = await import('@/endpoints/federation-governance-sync')
+    const governance = getCachedGovernance()
+
+    if (!governance || !governance.ministries || governance.ministries.length === 0) {
+      return 'No federation peers found. The governance cache may not be initialized yet — try running a federation pulse first.'
+    }
+
+    // 2. Get our own identity to exclude from broadcast
+    const endeavors = await payload.find({
+      collection: 'endeavors',
+      where: { tenant: { equals: ctx.tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ourEndeavor = endeavors.docs?.[0] as any
+    const ourFederationId = ourEndeavor?.federation?.federationId
+    const ourDomain = ourEndeavor?.federation?.domain || ''
+
+    // 3. Filter peers by trust level
+    //    full_trust_only  = only 'active' ministries (fully vouched)
+    //    vouched_or_higher = 'active' + 'probation' (at least vouched to enter probation)
+    //    all_active        = 'active' + 'probation' + 'applicant' (anyone in the mesh)
+    const eligibleStatuses: string[] =
+      filter === 'full_trust_only'
+        ? ['active']
+        : filter === 'vouched_or_higher'
+          ? ['active', 'probation']
+          : ['active', 'probation', 'applicant'] // all_active
+
+    // 3b. Staleness check — skip peers whose heartbeat is older than 30 minutes
+    const HEARTBEAT_MAX_AGE_MS = 30 * 60 * 1000 // 30 minutes
+    const now = Date.now()
+
+    const peers = governance.ministries.filter((m) => {
+      if (!eligibleStatuses.includes(m.status)) return false
+      if (!m.domain || m.id === ourFederationId || m.domain === ourDomain) return false
+      // Skip peers with stale heartbeats (if heartbeat tracking is available)
+      if (m.lastHeartbeat) {
+        const heartbeatAge = now - new Date(m.lastHeartbeat).getTime()
+        if (heartbeatAge > HEARTBEAT_MAX_AGE_MS) return false
+      }
+      return true
+    })
+
+    if (peers.length === 0) {
+      return `No eligible federation peers found for filter "${filter}". There are ${governance.ministries.length} total ministries but none match the criteria (check heartbeat freshness and trust level).`
+    }
+
+    // 4. Send to all peers with concurrency limiter (max 10 parallel sends)
+    const { sendFederatedMessage } = await import('./federatedAIBus')
+    const CONCURRENCY_LIMIT = 10
+    const allResults: PromiseSettledResult<Awaited<ReturnType<typeof sendFederatedMessage>>>[] = []
+
+    for (let i = 0; i < peers.length; i += CONCURRENCY_LIMIT) {
+      const batch = peers.slice(i, i + CONCURRENCY_LIMIT)
+      const batchResults = await Promise.allSettled(
+        batch.map((peer) =>
+          sendFederatedMessage(payload, ctx.tenantId!, peer.domain, message, conversationId),
+        ),
+      )
+      allResults.push(...batchResults)
+    }
+    const results = allResults
+
+    // 5. Tally results
+    let sent = 0
+    let failed = 0
+    const failures: string[] = []
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      if (result.status === 'fulfilled' && result.value.success) {
+        sent++
+      } else {
+        failed++
+        const errMsg =
+          result.status === 'fulfilled'
+            ? result.value.error || 'Unknown error'
+            : result.reason?.message || 'Unknown error'
+        failures.push(`- ${peers[i].name} (${peers[i].domain}): ${errMsg}`)
+      }
+    }
+
+    // 6. Log in audit
+    await payload.create({
+      collection: 'federation-audit-log' as any,
+      data: {
+        eventType: 'broadcast_message',
+        description: `Federation broadcast: ${message.slice(0, 100)}`,
+        details: {
+          filter,
+          totalPeers: peers.length,
+          sent,
+          failed,
+          senderDomain: ourDomain,
+        },
+        tenant: ctx.tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    const lines = [
+      `## Federation Broadcast Sent`,
+      '',
+      `**Message:** ${message.slice(0, 200)}${message.length > 200 ? '...' : ''}`,
+      `**Filter:** ${filter}`,
+      `**Peers reached:** ${sent}/${peers.length}`,
+    ]
+
+    if (failed > 0) {
+      lines.push('', `**Failed (${failed}):**`)
+      lines.push(...failures.slice(0, 5))
+      if (failures.length > 5) lines.push(`... and ${failures.length - 5} more`)
+    }
+
+    lines.push('', `_Each peer's LEO is now processing your message._`)
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Error broadcasting: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * Leo-to-Leo handoff — send structured context to another Endeavor's Leo.
+ *
+ * This is the cornerstone of the provisioning flow:
+ *   1. Arch-Leo provisions a new Endeavor
+ *   2. Arch-Leo calls leo_handoff with context about the user
+ *   3. New Endeavor's Leo receives the context and welcomes the user
+ *
+ * The handoff message is a structured JSON payload sent via the federation bus,
+ * tagged with handoff type so the receiving Leo knows how to respond.
+ */
+async function handleLeoHandoff(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const targetDomain = (input.targetDomain as string)?.trim()
+  const handoffType = (input.handoffType as string)?.trim()
+  const context = (input.context as string)?.trim()
+
+  if (!targetDomain) return 'Error: targetDomain is required.'
+  if (!handoffType) return 'Error: handoffType is required.'
+  if (!context) return 'Error: context is required.'
+  if (!ctx.tenantId) return 'Error: no tenant context available.'
+
+  // Validate targetDomain exists in federation roster
+  try {
+    const { getCachedGovernance } = await import('@/endpoints/federation-governance-sync')
+    const governance = getCachedGovernance()
+    if (governance?.ministries) {
+      const knownPeer = governance.ministries.find(
+        (m) => m.domain === targetDomain && ['active', 'probation'].includes(m.status),
+      )
+      if (!knownPeer) {
+        const allDomains = governance.ministries
+          .filter((m) => m.domain && ['active', 'probation'].includes(m.status))
+          .map((m) => m.domain)
+          .slice(0, 10)
+        return `Target domain "${targetDomain}" is not a known active federation peer.\n\nKnown peers: ${allDomains.length > 0 ? allDomains.join(', ') : '(none)'}\n\nThe target must be an active or probationary member of the federation.`
+      }
+    }
+  } catch {
+    // Governance cache not available — proceed anyway (first-contact scenario)
+  }
+
+  // Build structured handoff payload
+  const userName = typeof input.userName === 'string' ? input.userName : undefined
+  const userEmail = typeof input.userEmail === 'string' ? input.userEmail : undefined
+  const returnTo = typeof input.returnTo === 'string' ? input.returnTo : undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handoffPayload: Record<string, any> = {
+    type: 'leo_handoff',
+    handoffType,
+    context,
+    sourceTenantId: ctx.tenantId,
+    timestamp: new Date().toISOString(),
+  }
+  if (input.userId) handoffPayload.userId = input.userId
+  if (userName) handoffPayload.userName = userName
+  if (userEmail) handoffPayload.userEmail = userEmail
+  if (returnTo) handoffPayload.returnTo = returnTo
+
+  // The message sent to the peer's LEO includes the structured handoff as JSON
+  const messageForPeerLeo = [
+    `[LEO HANDOFF — ${handoffType.toUpperCase()}]`,
+    '',
+    context,
+    '',
+    `--- HANDOFF METADATA ---`,
+    `Type: ${handoffType}`,
+    ...(userName ? [`User: ${userName}`] : []),
+    ...(userEmail ? [`Email: ${userEmail}`] : []),
+    ...(returnTo ? [`Return to: ${returnTo}`] : []),
+    '',
+    `Please welcome this user and help them get started.`,
+  ].join('\n')
+
+  try {
+    const { sendFederatedMessage } = await import('./federatedAIBus')
+    const result = await sendFederatedMessage(
+      payload,
+      ctx.tenantId,
+      targetDomain,
+      messageForPeerLeo,
+      `handoff-${Date.now()}`, // unique conversation thread for the handoff
+    )
+
+    // Log handoff in audit trail
+    await payload.create({
+      collection: 'federation-audit-log' as any,
+      data: {
+        eventType: 'leo_handoff',
+        description: `Leo handoff (${handoffType}) to ${targetDomain}`,
+        details: handoffPayload,
+        tenant: ctx.tenantId,
+      } as any,
+      overrideAccess: true,
+    })
+
+    if (!result.success) {
+      return `Handoff to ${targetDomain} failed: ${result.error}\n\nThe target Endeavor may not be online or may not have accepted federation yet.`
+    }
+
+    const lines = [
+      `## Leo Handoff Complete ✓`,
+      '',
+      `**Target:** ${targetDomain}`,
+      `**Type:** ${handoffType}`,
+      ...(userName ? [`**User:** ${userName}`] : []),
+    ]
+
+    if (handoffType === 'provisioning_welcome') {
+      lines.push(
+        '',
+        `The new Endeavor's Leo has received the context and will welcome the user.`,
+        `The user should navigate to **https://${targetDomain}** to see their new Leo.`,
+      )
+    } else if (handoffType === 'delegation') {
+      lines.push('', `The receiving Leo will process the delegated task.`)
+      if (returnTo) {
+        lines.push(`Results will be sent back to **${returnTo}**.`)
+      }
+    }
+
+    if (result.response) {
+      lines.push('', `**Peer response:** ${result.response}`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Error during handoff: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Phase 6: Analytics & Intelligence
 // ---------------------------------------------------------------------------
 
@@ -9087,7 +9779,7 @@ async function handleFederationPulse(
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const MAX_HEARTBEAT_AGE = 300 // seconds
 
-    const [endeavors, activeWork, completedWork, activeQuests, completedQuests, pheromones] =
+    const [endeavors, activeWork, completedWork, activeQuests, completedQuests, pheromones, federationMessages] =
       await Promise.all([
         payload.find({
           collection: 'endeavors' as any,
@@ -9140,6 +9832,19 @@ async function handleFederationPulse(
           depth: 0,
           limit: 10,
           sort: '-strength',
+          overrideAccess: true,
+        }),
+        // Cross-tenant federation messages in the last 24 hours
+        payload.find({
+          collection: 'messages' as any,
+          where: {
+            and: [
+              { messageType: { equals: 'federation_message' } },
+              { createdAt: { greater_than_equal: twentyFourHoursAgo.toISOString() } },
+            ],
+          } as any,
+          depth: 0,
+          limit: 0,
           overrideAccess: true,
         }),
       ])
@@ -9203,6 +9908,15 @@ async function handleFederationPulse(
     lines.push(`- Average trail strength: **${avgStrength}**/100`)
     if (trails.length > 0) {
       lines.push(`- Strongest path: \`${(trails[0] as any).path || 'unknown'}\` (${(trails[0] as any).strength})`)
+    }
+    lines.push('')
+
+    lines.push(`### \u{1F4E1} Cross-Tenant Messages`)
+    lines.push(`- **${federationMessages.totalDocs}** federation messages in the last 24 hours`)
+    if (federationMessages.totalDocs > 0) {
+      lines.push(`- The AI Bus is active — LEO-to-LEO conversations are flowing across Enterprise boundaries.`)
+    } else {
+      lines.push(`- No cross-tenant messages yet. Use \`send_federation_message\` to reach federation peers.`)
     }
     lines.push('')
 
@@ -9508,5 +10222,886 @@ async function handleFindSynchronicities(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error finding synchronicities: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 36: Generic Payload CRUD Handlers
+// ---------------------------------------------------------------------------
+// These give Leo the ability to read/write any whitelisted collection,
+// enabling management of navigation, contacts, workflows, and anything else
+// contained within the Endeavor — without needing a bespoke tool per collection.
+
+function assertAllowedCollection(collection: string): string | null {
+  if (!PAYLOAD_CRUD_ALLOWED_COLLECTIONS.has(collection)) {
+    return `Collection "${collection}" is not accessible via generic CRUD tools. Allowed collections: ${[...PAYLOAD_CRUD_ALLOWED_COLLECTIONS].join(', ')}`
+  }
+  return null
+}
+
+/** Summarise a document for LLM consumption (keeps it readable, avoids huge JSON) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function summariseDoc(doc: any, depth: number = 0): string {
+  if (!doc || typeof doc !== 'object') return String(doc)
+
+  const lines: string[] = []
+  lines.push(`ID: ${doc.id}`)
+
+  for (const [key, val] of Object.entries(doc)) {
+    if (['id', 'createdAt', 'updatedAt', 'tenant', '_status'].includes(key)) continue
+    if (val === null || val === undefined) continue
+
+    if (Array.isArray(val)) {
+      if (val.length === 0) continue
+      if (typeof val[0] === 'object') {
+        lines.push(`${key}: [${val.length} items]`)
+        if (depth < 1) {
+          for (const item of val.slice(0, 5)) {
+            lines.push(`  - ${JSON.stringify(item)}`)
+          }
+          if (val.length > 5) lines.push(`  ... and ${val.length - 5} more`)
+        }
+      } else {
+        lines.push(`${key}: ${val.join(', ')}`)
+      }
+    } else if (typeof val === 'object') {
+      lines.push(`${key}: ${JSON.stringify(val)}`)
+    } else {
+      lines.push(`${key}: ${val}`)
+    }
+  }
+
+  if (doc.createdAt) lines.push(`createdAt: ${doc.createdAt}`)
+  if (doc.updatedAt) lines.push(`updatedAt: ${doc.updatedAt}`)
+
+  return lines.join('\n')
+}
+
+async function handlePayloadFind(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const collection = String(input.collection || '')
+  const err = assertAllowedCollection(collection)
+  if (err) return err
+
+  const limit = Math.min(Number(input.limit) || 10, 50)
+  const depth = Math.min(Number(input.depth) || 1, 3)
+  const sort = typeof input.sort === 'string' ? input.sort : '-createdAt'
+
+  // Build where clause, always scoping to tenant
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+  if (ctx.tenantId) {
+    conditions.push({ tenant: { equals: ctx.tenantId } })
+  }
+
+  if (input.where && typeof input.where === 'object') {
+    // Merge user-provided where conditions
+    const userWhere = input.where as Record<string, unknown>
+    for (const [field, clause] of Object.entries(userWhere)) {
+      if (clause && typeof clause === 'object') {
+        conditions.push({ [field]: clause })
+      } else if (clause !== undefined) {
+        // Simple equality shorthand: { "title": "Something" }
+        conditions.push({ [field]: { equals: clause } })
+      }
+    }
+  }
+
+  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+
+  try {
+    const result = await payload.find({
+      collection: collection as any,
+      where,
+      limit,
+      depth,
+      sort,
+      overrideAccess: true,
+    })
+
+    if (result.docs.length === 0) {
+      return `No documents found in "${collection}" matching the given filters.`
+    }
+
+    const header = `Found ${result.totalDocs} document(s) in "${collection}" (showing ${result.docs.length}):\n`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docs = result.docs.map((doc: any, i: number) => `--- [${i + 1}] ---\n${summariseDoc(doc)}`).join('\n\n')
+
+    return header + docs
+  } catch (findErr) {
+    const msg = findErr instanceof Error ? findErr.message : 'Unknown error'
+    return `Error querying "${collection}": ${msg}`
+  }
+}
+
+async function handlePayloadUpdate(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const collection = String(input.collection || '')
+  const err = assertAllowedCollection(collection)
+  if (err) return err
+
+  const id = Number(input.id)
+  const data = input.data as Record<string, unknown>
+
+  // Strip any LLM-injected tenant field — we always enforce ctx.tenantId
+  delete data.tenant
+
+  // Verify document belongs to this tenant before updating
+  if (ctx.tenantId) {
+    try {
+      const existing = await payload.findByID({
+        collection: collection as any,
+        id,
+        depth: 0,
+        overrideAccess: true,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const docTenant = (existing as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return `Cannot update: document #${id} belongs to a different tenant.`
+      }
+    } catch {
+      return `Cannot update: document #${id} not found in "${collection}".`
+    }
+    data.tenant = ctx.tenantId
+  }
+
+  try {
+    const updated = await payload.update({
+      collection: collection as any,
+      id,
+      data,
+      overrideAccess: true,
+      depth: 1,
+    })
+    return `Successfully updated ${collection} #${id}.\n\n${summariseDoc(updated)}`
+  } catch (updateErr) {
+    const msg = updateErr instanceof Error ? updateErr.message : 'Unknown error'
+    return `Failed to update ${collection} #${id}: ${msg}`
+  }
+}
+
+async function handlePayloadCreate(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const collection = String(input.collection || '')
+  const err = assertAllowedCollection(collection)
+  if (err) return err
+
+  const data = input.data as Record<string, unknown>
+
+  // Strip any LLM-injected tenant field — we always enforce ctx.tenantId
+  delete data.tenant
+
+  // Inject tenant for multi-tenant scoping
+  if (ctx.tenantId) {
+    data.tenant = ctx.tenantId
+  }
+
+  try {
+    const created = await payload.create({
+      collection: collection as any,
+      data,
+      overrideAccess: true,
+      depth: 1,
+    })
+    return `Successfully created ${collection} #${created.id}.\n\n${summariseDoc(created)}`
+  } catch (createErr) {
+    const msg = createErr instanceof Error ? createErr.message : 'Unknown error'
+    // Surface common issues: duplicate slug, validation errors
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      return `Failed to create in "${collection}": a document with those values already exists. ${msg}`
+    }
+    return `Failed to create in "${collection}": ${msg}`
+  }
+}
+
+async function handlePayloadDelete(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const collection = String(input.collection || '')
+  const err = assertAllowedCollection(collection)
+  if (err) return err
+
+  const id = Number(input.id)
+
+  // Verify doc belongs to tenant before deleting
+  if (ctx.tenantId) {
+    const existing = await payload.findByID({
+      collection: collection as any,
+      id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docTenant = (existing as any)?.tenant
+    const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+    if (tenantVal && tenantVal !== ctx.tenantId) {
+      return `Cannot delete: document belongs to a different tenant.`
+    }
+  }
+
+  try {
+    await payload.delete({
+      collection: collection as any,
+      id,
+      overrideAccess: true,
+    })
+    return `Successfully deleted ${collection} #${id}.`
+  } catch (delErr) {
+    const msg = delErr instanceof Error ? delErr.message : 'Unknown error'
+    return `Failed to delete ${collection} #${id}: ${msg}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Navigation Convenience Handlers
+// ---------------------------------------------------------------------------
+
+async function handleQueryNavigation(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const target = (input.target as string) || 'both'
+  const results: string[] = []
+
+  const fetchNav = async (slug: 'header' | 'footer') => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = []
+    if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
+    const where: Where = conditions.length > 0 ? { and: conditions } : {}
+
+    const result = await payload.find({
+      collection: slug as any,
+      where,
+      limit: 1,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (result.docs.length === 0) return `No ${slug} found for this tenant.`
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc = result.docs[0] as any
+    const label = doc.label || slug
+    const navItems = doc.navItems || []
+
+    if (navItems.length === 0) return `**${label}** (${slug} #${doc.id}): No nav items configured.`
+
+    const items = navItems
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((item: any, i: number) => {
+        const link = item?.link || {}
+        const linkLabel = link.label || '(no label)'
+        const linkType = link.type || 'custom'
+        const url = link.url || ''
+        const ref = link.reference
+        const refDisplay = ref ? `→ page #${typeof ref === 'object' ? ref.id : ref}` : ''
+        const newTabFlag = link.newTab ? ' [new tab]' : ''
+        return `  ${i + 1}. "${linkLabel}" (${linkType}) ${url || refDisplay}${newTabFlag}`
+      })
+      .join('\n')
+
+    return `**${label}** (${slug} #${doc.id}) — ${navItems.length} item(s):\n${items}`
+  }
+
+  if (target === 'header' || target === 'both') {
+    results.push(await fetchNav('header'))
+  }
+  if (target === 'footer' || target === 'both') {
+    results.push(await fetchNav('footer'))
+  }
+
+  return results.join('\n\n')
+}
+
+async function handleUpdateNavigation(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const target = input.target as 'header' | 'footer'
+  const action = input.action as string
+
+  // Find the current nav doc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+  if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
+  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+
+  const result = await payload.find({
+    collection: target as any,
+    where,
+    limit: 1,
+    depth: 2,
+    overrideAccess: true,
+  })
+
+  if (result.docs.length === 0) {
+    return `No ${target} found for this tenant. Create one first using payload_create.`
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = result.docs[0] as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let navItems: any[] = [...(doc.navItems || [])]
+
+  switch (action) {
+    case 'add': {
+      const label = input.label as string
+      if (!label) return 'Error: "label" is required for add action.'
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newItem: any = {
+        link: {
+          type: input.pageId ? 'reference' : 'custom',
+          label,
+          newTab: input.newTab || false,
+        },
+      }
+      if (input.pageId) {
+        newItem.link.reference = { relationTo: 'pages', value: input.pageId }
+      } else if (input.url) {
+        // Belt-and-suspenders URL safety check (Zod schema also validates)
+        const urlStr = String(input.url).trim()
+        if (/^(javascript|data|vbscript):/i.test(urlStr)) {
+          return 'Error: dangerous URL protocol. Use a standard https:// or relative URL.'
+        }
+        newItem.link.url = urlStr
+      } else {
+        return 'Error: either "url" or "pageId" is required when adding a nav item.'
+      }
+
+      if (navItems.length >= 6) {
+        return `Cannot add: ${target} already has ${navItems.length} nav items (max 6). Remove one first.`
+      }
+
+      navItems.push(newItem)
+      break
+    }
+
+    case 'remove': {
+      const removeLabel = (input.label as string || '').toLowerCase()
+      if (!removeLabel) return 'Error: "label" is required for remove action.'
+
+      const beforeLen = navItems.length
+      navItems = navItems.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item: any) => (item?.link?.label || '').toLowerCase() !== removeLabel,
+      )
+
+      if (navItems.length === beforeLen) {
+        const existing = doc.navItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((item: any) => `"${item?.link?.label}"`)
+          .join(', ')
+        return `No nav item with label "${input.label}" found. Current items: ${existing}`
+      }
+      break
+    }
+
+    case 'reorder':
+    case 'replace_all': {
+      if (!Array.isArray(input.navItems)) {
+        return 'Error: "navItems" array is required for reorder/replace_all action.'
+      }
+      navItems = input.navItems as any[]
+      break
+    }
+
+    default:
+      return `Unknown action: ${action}. Use add, remove, reorder, or replace_all.`
+  }
+
+  // Persist
+  await payload.update({
+    collection: target as any,
+    id: doc.id,
+    data: { navItems },
+    overrideAccess: true,
+  })
+
+  // Return updated state
+  const updatedLabels = navItems
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((item: any, i: number) => `  ${i + 1}. "${item?.link?.label || '(no label)'}"`)
+    .join('\n')
+
+  return `Successfully updated ${target} navigation (${navItems.length} items):\n${updatedLabels}${navDirective(`/admin/collections/${target}/${doc.id}`, `Edit ${target}`)}`
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 38: Federation Browsing Tool Handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * Browse federation peers from the local governance cache.
+ * No outbound HTTP — reads the in-memory governance snapshot.
+ */
+async function handleBrowseFederationPeers(
+  payload: Payload,
+  input: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    const { getCachedGovernance } = await import('@/endpoints/federation-governance-sync')
+
+    const governance = getCachedGovernance()
+
+    if (!governance) {
+      return 'Governance cache not yet populated. The federation sync may not have run yet — it initializes on the first heartbeat cycle (every 5 minutes). Try again shortly.'
+    }
+
+    const statusFilter = ((input.status as string) || 'active').toLowerCase()
+    const capabilityFilter = ((input.capability as string) || '').toLowerCase()
+    const regionFilter = ((input.region as string) || '').toLowerCase()
+    const limit = Math.min(Math.max(Number(input.limit) || 20, 1), 50)
+
+    let ministries = governance.ministries || []
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      ministries = ministries.filter((m) => m.status === statusFilter)
+    }
+
+    // Filter by capability (substring match)
+    if (capabilityFilter) {
+      ministries = ministries.filter((m) =>
+        (m.capabilities || []).some((c) => c.toLowerCase().includes(capabilityFilter)),
+      )
+    }
+
+    // Filter by region (substring match)
+    if (regionFilter) {
+      ministries = ministries.filter(
+        (m) => m.region && m.region.toLowerCase().includes(regionFilter),
+      )
+    }
+
+    const totalInRegistry = governance.ministries?.length || 0
+    const totalActive = (governance.ministries || []).filter((m) => m.status === 'active').length
+
+    if (ministries.length === 0) {
+      const filters = [
+        statusFilter !== 'all' ? `status="${statusFilter}"` : '',
+        capabilityFilter ? `capability="${capabilityFilter}"` : '',
+        regionFilter ? `region="${regionFilter}"` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return `No peers found matching ${filters || 'current filters'}.\n\nFederation has ${totalActive} active peer(s) out of ${totalInRegistry} total in the registry. Try broadening your search with status="all" or removing filters.`
+    }
+
+    // Apply limit
+    const sliced = ministries.slice(0, limit)
+
+    // Build markdown table
+    const lines: string[] = [
+      `## Federation Peers`,
+      '',
+      `Found **${ministries.length}** peer(s) matching your query (${totalActive} active, ${totalInRegistry} total in registry).`,
+      '',
+      '| # | Name | Domain | Status | Capabilities | Region | Trust | Last Heartbeat |',
+      '|---|------|--------|--------|--------------|--------|-------|----------------|',
+    ]
+
+    for (let i = 0; i < sliced.length; i++) {
+      const m = sliced[i]
+      const trustScore = governance.trustScores?.[m.id]
+      const trust = trustScore != null ? `${(trustScore * 100).toFixed(0)}%` : 'N/A'
+      const caps = (m.capabilities || []).slice(0, 3).join(', ') || 'none listed'
+      const region = m.region || '—'
+      const heartbeat = m.lastHeartbeat
+        ? formatRelativeTime(m.lastHeartbeat)
+        : 'never'
+
+      lines.push(
+        `| ${i + 1} | **${m.name}** | ${m.domain} | ${m.status} | ${caps} | ${region} | ${trust} | ${heartbeat} |`,
+      )
+    }
+
+    if (ministries.length > limit) {
+      lines.push('', `_Showing ${limit} of ${ministries.length} matching peers. Increase limit to see more._`)
+    }
+
+    lines.push(
+      '',
+      '_Use `query_peer_catalog` with a peer\'s domain to browse their catalog, or `search_federation_wide` to search across all peers at once._',
+    )
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/browse_federation_peers', err).catch(() => {})
+    return `Error browsing federation peers: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/** Format an ISO timestamp as a relative time string. */
+function formatRelativeTime(isoTimestamp: string): string {
+  try {
+    const diff = Date.now() - new Date(isoTimestamp).getTime()
+    const mins = Math.floor(diff / 60_000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
+  } catch {
+    return 'unknown'
+  }
+}
+
+/**
+ * Resolve the local tenant's federation identity for outbound signed requests.
+ * Returns null if the tenant is not yet federated.
+ */
+async function resolveFederationIdentity(
+  payload: Payload,
+  tenantId: number,
+): Promise<import('@/utilities/federationClient').FederationIdentity | null> {
+  try {
+    const { getOrCreateFederationKeyPair } = await import('@/federation/keyStore')
+
+    const tenant = await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    }) as any
+
+    const federationId = tenant?.setup?.federationId as string | undefined
+    if (!federationId) return null
+
+    const keyPair = await getOrCreateFederationKeyPair(payload, tenantId)
+
+    const tenantDomain = tenant?.domain as string | undefined
+    const isLocalDomain = tenantDomain && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/.test(tenantDomain)
+    const domain =
+      (!isLocalDomain && tenantDomain) ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+      process.env.NEXT_PUBLIC_SERVER_URL?.replace(/^https?:\/\//, '') ||
+      'localhost'
+
+    return {
+      federationId,
+      publicKey: keyPair.publicKey,
+      privateKey: keyPair.privateKey,
+      domain,
+      name: (tenant?.name as string) || 'Angel OS Instance',
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Query a specific federation peer's catalog via signed outbound HTTP.
+ */
+async function handleQueryPeerCatalog(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const domain = (input.domain as string)?.trim()
+
+  if (!domain) {
+    return 'Error: domain is required. Provide the peer\'s domain (e.g., "clearwater.spacesangels.com"). Use `browse_federation_peers` to discover available peers.'
+  }
+
+  const limit = Math.min(Math.max(Number(input.limit) || 10, 1), 50)
+
+  try {
+    const { fetchCatalog } = await import('@/utilities/federationClient')
+
+    // Build catalog query
+    const query: import('@/utilities/federationClient').CatalogQuery = {
+      q: (input.search as string) || undefined,
+      capability: (input.capability as string) || undefined,
+      region: (input.region as string) || undefined,
+      limit,
+      minRating: input.min_rating != null ? Number(input.min_rating) : undefined,
+      maxPrice: input.max_price != null ? Number(input.max_price) : undefined,
+    }
+
+    // Resolve identity for signed requests
+    let identity: import('@/utilities/federationClient').FederationIdentity | null = null
+    if (tenantId) {
+      identity = await resolveFederationIdentity(payload, tenantId)
+    }
+
+    if (!identity) {
+      // Cannot make signed requests without federation identity
+      return 'This Enterprise is not yet federated (no federation ID or keys). Sign the constitution first using `sign_constitution`, then try again.'
+    }
+
+    const result = await fetchCatalog(domain, query, identity, { timeout: 10_000 })
+
+    if (!result) {
+      return `Could not reach peer at **${domain}**. They may be offline, not part of the federation, or the domain may be incorrect.\n\nUse \`browse_federation_peers\` to see known active peers and their domains.`
+    }
+
+    if (result.entries.length === 0) {
+      const filters = [
+        query.q ? `search="${query.q}"` : '',
+        query.capability ? `capability="${query.capability}"` : '',
+        query.region ? `region="${query.region}"` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return `## Catalog from ${domain}\n\nNo results found${filters ? ` for ${filters}` : ''}. The peer has ${result.total} total catalog entries — try broadening your search or removing filters.`
+    }
+
+    const lines: string[] = [
+      `## Catalog from ${domain}`,
+      '',
+      `**${result.total}** product(s)/service(s) found${result.entries.length < result.total ? ` (showing ${result.entries.length})` : ''}.`,
+      '',
+    ]
+
+    for (let i = 0; i < result.entries.length; i++) {
+      const entry = result.entries[i] as any
+      const name = entry.productName || entry.name || 'Unnamed'
+      const desc = entry.description ? String(entry.description).slice(0, 120) : ''
+      const price = entry.price != null ? `$${(Number(entry.price) / 100).toFixed(2)}` : 'Price TBD'
+      const rating = entry.rating != null ? `${entry.rating}/5` : ''
+      const caps = Array.isArray(entry.capabilities)
+        ? entry.capabilities.slice(0, 3).join(', ')
+        : ''
+      const fulfillment = entry.fulfillmentMode || ''
+
+      lines.push(`**${i + 1}. ${name}** — ${price}${rating ? ` | Rating: ${rating}` : ''}`)
+      if (desc) lines.push(`   ${desc}${desc.length >= 120 ? '…' : ''}`)
+      if (caps) lines.push(`   Capabilities: ${caps}`)
+      if (fulfillment) lines.push(`   Fulfillment: ${fulfillment}`)
+      lines.push('')
+    }
+
+    lines.push(
+      '_Use `query_peer_catalog` with different filters to narrow results, or `search_federation_wide` to search across all peers._',
+    )
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/query_peer_catalog', err).catch(() => {})
+    return `Error querying peer catalog: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * Fan-out search across all active federation peers' catalogs.
+ * Combines governance cache (peer discovery) with fetchCatalog (per-peer query).
+ */
+async function handleSearchFederationWide(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const searchText = (input.search as string) || ''
+  const capability = (input.capability as string) || ''
+  const region = (input.region as string) || ''
+  const limitPerPeer = Math.min(Math.max(Number(input.limit_per_peer) || 5, 1), 20)
+  const maxPeers = Math.min(Math.max(Number(input.max_peers) || 10, 1), 25)
+
+  try {
+    const { getCachedGovernance } = await import('@/endpoints/federation-governance-sync')
+    const { fetchCatalog } = await import('@/utilities/federationClient')
+
+    const governance = getCachedGovernance()
+    if (!governance) {
+      return 'Governance cache not yet populated. The federation sync may not have run yet — try again after the next heartbeat cycle (every 5 minutes).'
+    }
+
+    // Filter to active peers only
+    let peers = (governance.ministries || []).filter((m) => m.status === 'active')
+
+    // Optionally narrow by region
+    if (region) {
+      const regionLower = region.toLowerCase()
+      peers = peers.filter((m) => m.region && m.region.toLowerCase().includes(regionLower))
+    }
+
+    if (peers.length === 0) {
+      return `No active federation peers found${region ? ` in region "${region}"` : ''}. The federation may still be growing, or the governance cache needs to refresh.`
+    }
+
+    // Cap number of peers to query
+    const peersToQuery = peers.slice(0, maxPeers)
+
+    // Resolve identity for signed requests
+    let identity: import('@/utilities/federationClient').FederationIdentity | null = null
+    if (tenantId) {
+      identity = await resolveFederationIdentity(payload, tenantId)
+    }
+
+    if (!identity) {
+      return 'This Enterprise is not yet federated (no federation ID or keys). Sign the constitution first using `sign_constitution`, then try again.'
+    }
+
+    // Build catalog query
+    const query: import('@/utilities/federationClient').CatalogQuery = {
+      q: searchText || undefined,
+      capability: capability || undefined,
+      region: region || undefined,
+      limit: limitPerPeer,
+    }
+
+    // Fan-out in batches of 5 to limit concurrency
+    const BATCH_SIZE = 5
+    const allResults: {
+      peer: string
+      peerName: string
+      entries: any[]
+      total: number
+    }[] = []
+    const failures: { peer: string; error: string }[] = []
+
+    for (let i = 0; i < peersToQuery.length; i += BATCH_SIZE) {
+      const batch = peersToQuery.slice(i, i + BATCH_SIZE)
+      const batchPromises = batch.map(async (peer): Promise<
+        | { ok: true; peer: string; peerName: string; entries: any[]; total: number }
+        | { ok: false; peer: string; error: string }
+      > => {
+        try {
+          const result = await fetchCatalog(peer.domain, query, identity!, { timeout: 8_000 })
+          if (result) {
+            return {
+              ok: true,
+              peer: peer.domain,
+              peerName: peer.name,
+              entries: result.entries as any[],
+              total: result.total,
+            }
+          } else {
+            return { ok: false, peer: peer.domain, error: 'unreachable' }
+          }
+        } catch (err) {
+          return {
+            ok: false,
+            peer: peer.domain,
+            error: err instanceof Error ? err.message : 'unknown error',
+          }
+        }
+      })
+
+      const batchResults = await Promise.allSettled(batchPromises)
+
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          const val = result.value
+          if (val.ok) {
+            allResults.push(val)
+          } else {
+            failures.push({ peer: val.peer, error: val.error })
+          }
+        }
+      }
+    }
+
+    // Aggregate and sort entries (best rating first, then lowest price)
+    const aggregatedEntries: Array<{
+      name: string
+      peerDomain: string
+      peerName: string
+      price: number | null
+      rating: number | null
+      capabilities: string[]
+      description: string
+      fulfillmentMode: string
+    }> = []
+
+    for (const peerResult of allResults) {
+      for (const entry of peerResult.entries) {
+        aggregatedEntries.push({
+          name: entry.productName || entry.name || 'Unnamed',
+          peerDomain: peerResult.peer,
+          peerName: peerResult.peerName,
+          price: entry.price != null ? Number(entry.price) : null,
+          rating: entry.rating != null ? Number(entry.rating) : null,
+          capabilities: Array.isArray(entry.capabilities) ? entry.capabilities : [],
+          description: entry.description ? String(entry.description).slice(0, 100) : '',
+          fulfillmentMode: entry.fulfillmentMode || '',
+        })
+      }
+    }
+
+    // Sort: rating descending, then price ascending
+    aggregatedEntries.sort((a, b) => {
+      const ratingDiff = (b.rating ?? 0) - (a.rating ?? 0)
+      if (ratingDiff !== 0) return ratingDiff
+      return (a.price ?? Infinity) - (b.price ?? Infinity)
+    })
+
+    const peersWithResults = allResults.filter((r) => r.entries.length > 0).length
+    const totalEntries = aggregatedEntries.length
+
+    // Build response
+    const lines: string[] = [
+      `## Federation-Wide Search Results`,
+      '',
+      `Searched **${peersToQuery.length}** peer(s) — **${allResults.length}** responded, **${peersWithResults}** had results, **${totalEntries}** total entries found.`,
+      '',
+    ]
+
+    if (totalEntries === 0) {
+      const filters = [
+        searchText ? `search="${searchText}"` : '',
+        capability ? `capability="${capability}"` : '',
+        region ? `region="${region}"` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      lines.push(`No results found across the federation${filters ? ` for ${filters}` : ''}. Try broadening your search.`)
+    } else {
+      for (let i = 0; i < aggregatedEntries.length; i++) {
+        const e = aggregatedEntries[i]
+        const price = e.price != null ? `$${(e.price / 100).toFixed(2)}` : 'Price TBD'
+        const rating = e.rating != null ? `${e.rating}/5` : ''
+
+        lines.push(`**${i + 1}. ${e.name}** — ${price}${rating ? ` | ${rating}` : ''} | _via ${e.peerName}_ (${e.peerDomain})`)
+        if (e.description) lines.push(`   ${e.description}${e.description.length >= 100 ? '…' : ''}`)
+        if (e.capabilities.length > 0) lines.push(`   Capabilities: ${e.capabilities.slice(0, 3).join(', ')}`)
+        lines.push('')
+      }
+    }
+
+    if (failures.length > 0) {
+      lines.push('---')
+      lines.push(`_${failures.length} peer(s) could not be reached:_`)
+      for (const f of failures.slice(0, 5)) {
+        lines.push(`- ${f.peer}: ${f.error}`)
+      }
+      if (failures.length > 5) {
+        lines.push(`- _…and ${failures.length - 5} more_`)
+      }
+      lines.push('')
+    }
+
+    lines.push(
+      '_Use `query_peer_catalog` to browse a specific peer\'s full catalog, or `browse_federation_peers` to see all known peers._',
+    )
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/search_federation_wide', err).catch(() => {})
+    return `Error searching federation: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }

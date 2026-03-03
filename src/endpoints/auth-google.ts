@@ -271,11 +271,10 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       })
     }
 
+    // PII-safe: log only opaque IDs, never email
     console.log('[Google OAuth] User resolved:', {
       userId: user.id,
-      email: user.email,
       isNew: existing.docs.length === 0,
-      roles: user.roles,
     })
 
     // ----- Create session (required for Payload 3.x useSessions default) -----
@@ -369,10 +368,9 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           })
         }
 
+        // PII-safe: log only opaque IDs, never email
         console.log('[Google OAuth] Linked Google to existing user:', {
           userId: linkUser.id,
-          email: linkUser.email,
-          googleEmail: email,
         })
 
         // Redirect back — user is already authenticated, no new JWT needed
@@ -447,11 +445,10 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     completeUrl.searchParams.set('token', payloadToken)
     completeUrl.searchParams.set('redirect', redirectPath)
 
+    // PII-safe: no email, no token in logs
     console.log('[Google OAuth] Redirecting through /api/auth/complete:', {
       userId: user.id,
-      email: user.email,
       redirectPath,
-      completeUrl: completeUrl.toString(),
     })
 
     return new Response(null, {

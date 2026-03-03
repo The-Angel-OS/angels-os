@@ -213,24 +213,28 @@ export const smsWebhookHandler: PayloadHandler = async (req) => {
     }
 
     // ── Create inbound message ───────────────────────────────
-    await payload.create({
-      collection: 'messages' as any,
-      data: {
-        content: wrapTextContent(messageText),
-        space: Number(dmSpaceId),
-        channel: channelSlug,
-        messageType: 'sms_message',
-        metadata: {
-          source: 'sms',
-          smsMessageSid: messageSid,
-          smsFrom: fromPhone,
-          smsTo: toPhone,
-          connectorId: connector.id,
-        },
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
+    try {
+      await payload.create({
+        collection: 'messages' as any,
+        data: {
+          content: wrapTextContent(messageText),
+          space: Number(dmSpaceId),
+          channel: channelSlug,
+          messageType: 'sms_message',
+          metadata: {
+            source: 'sms',
+            smsMessageSid: messageSid,
+            smsFrom: fromPhone,
+            smsTo: toPhone,
+            connectorId: connector.id,
+          },
+          tenant: tenantId,
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (persistErr) {
+      console.warn('[sms-webhook] Non-fatal: failed to persist inbound message:', persistErr)
+    }
 
     // ── Process through LEO ──────────────────────────────────
     const conversationId = `sms-${sanitizedPhone}`
@@ -262,24 +266,28 @@ export const smsWebhookHandler: PayloadHandler = async (req) => {
 
     // ── Persist LEO response ─────────────────────────────────
     if (leoReply) {
-      await payload.create({
-        collection: 'messages' as any,
-        data: {
-          content: wrapTextContent(leoReply),
-          space: Number(dmSpaceId),
-          channel: channelSlug,
-          messageType: 'ai_agent',
-          metadata: {
-            source: 'sms',
-            agentName: 'LEO',
-            conversationId,
-            connectorId: connector.id,
-            replyTo: fromPhone,
-          },
-          tenant: tenantId,
-        } as any,
-        overrideAccess: true,
-      })
+      try {
+        await payload.create({
+          collection: 'messages' as any,
+          data: {
+            content: wrapTextContent(leoReply),
+            space: Number(dmSpaceId),
+            channel: channelSlug,
+            messageType: 'ai_agent',
+            metadata: {
+              source: 'sms',
+              agentName: 'LEO',
+              conversationId,
+              connectorId: connector.id,
+              replyTo: fromPhone,
+            },
+            tenant: tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+      } catch (persistErr) {
+        console.warn('[sms-webhook] Non-fatal: failed to persist LEO response:', persistErr)
+      }
     }
 
     // ── Update connector activity ────────────────────────────

@@ -13,6 +13,20 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// ─── Mock modules that trigger Payload CMS initialization ───────
+// ensureSystemSpace and logError import @payload-config which connects to Postgres
+vi.mock('@/utilities/ensureSystemSpace', () => ({
+  ensureDMSpace: vi.fn().mockResolvedValue('space-dm-1'),
+  ensureAIBusSpace: vi.fn().mockResolvedValue('space-bus-1'),
+  AI_BUS_SPACE_SLUG: 'ai-bus',
+  DM_SPACE_SLUG: 'direct-messages',
+}))
+
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn().mockResolvedValue(undefined),
+  logCaughtError: vi.fn().mockResolvedValue(undefined),
+}))
+
 // ─── Mock leoProcessMessage ─────────────────────────────────────
 const mockLeoProcessMessage = vi.fn().mockResolvedValue({
   text: 'I can help with that!',
@@ -360,11 +374,15 @@ describe('Connector resolution', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('User resolution', () => {
-  it('finds a linked Discord user by socialProviders.providerId', async () => {
-    const existingUser = { id: 'user-55', name: 'ExistingUser', email: 'real@example.com' }
+  it('finds existing guest user by synthetic email', async () => {
+    // findOrCreateGuestUser resolves users via synthetic email: discord-{userId}@guests.angel-os.local
+    const userId = 'disc-user-1' // default from makeBody
+    const syntheticEmail = `discord-${userId}@guests.angel-os.local`
+    const existingUser = { id: 'user-55', name: 'ExistingUser', email: syntheticEmail }
+
     const { req } = makeValidReq({}, {}, {
       find: vi.fn().mockImplementation(({ where }: any) => {
-        if (where?.['socialProviders.providerId']) {
+        if (where?.email?.equals === syntheticEmail) {
           return Promise.resolve({ docs: [existingUser] })
         }
         return Promise.resolve({ docs: [] })
@@ -378,7 +396,7 @@ describe('User resolution', () => {
       expect.objectContaining({
         userContext: expect.objectContaining({
           id: 'user-55',
-          email: 'real@example.com',
+          email: syntheticEmail,
         }),
       }),
     )
@@ -654,15 +672,16 @@ describe('LEO processing', () => {
 
   it('passes tenant and channel context to LEO', async () => {
     const { req } = makeValidReq(
-      { channelName: 'support-tickets' },
+      { channelId: 'chan-support', channelName: 'support-tickets' },
       { tenant: 'tenant-ctx' },
     )
     await discordWebhookHandler(req as any)
 
+    // channelSlug is derived from channelId: `discord-${channelId}`
     expect(mockLeoProcessMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-ctx',
-        channelSlug: 'support-tickets',
+        channelSlug: 'discord-chan-support',
       }),
     )
   })

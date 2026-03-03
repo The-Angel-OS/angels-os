@@ -49,4 +49,26 @@ export const TOOL_LABELS: Record<string, string> = {
   send_telegram: 'Sending Telegram message',
   send_sms: 'Sending SMS',
   send_slack: 'Sending Slack message',
+
+  // Federation
+  send_federation_message: 'Sending federation message',
+
+  // Federation Broadcast & Handoff
+  broadcast_federation_message: 'Broadcasting to federation',
+  leo_handoff: 'Handing off to Leo',
+
+  // Federation Browsing (Sprint 38)
+  browse_federation_peers: 'Browsing federation peers',
+  query_peer_catalog: 'Querying peer catalog',
+  search_federation_wide: 'Searching federation network',
+
+  // Generic Payload CRUD
+  payload_find: 'Querying collection',
+  payload_update: 'Updating record',
+  payload_create: 'Creating record',
+  payload_delete: 'Deleting record',
+
+  // Navigation
+  query_navigation: 'Checking site navigation',
+  update_navigation: 'Updating navigation menu',
 }

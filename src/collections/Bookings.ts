@@ -478,13 +478,11 @@ export const Bookings: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, req, operation, previousDoc }) => {
-        // TODO: Integrate with notification system
-        // TODO: Sync with calendar systems
-        // TODO: Create LEO conversation thread if needed
-        
-        // Example: Status change notifications
+        // Booking creation notifications (email+ICS, WhatsApp, SMS, LEO thread)
+        // are handled by sendBookingConfirmation() in bookingEngine.ts (Sprint 35).
+        // This afterChange hook handles status-change notifications.
         if (operation === 'update' && previousDoc.status !== doc.status) {
-          // Notify client and provider of status change
+          // Log status transitions for monitoring
           console.log(`Booking ${doc.id} status changed from ${previousDoc.status} to ${doc.status}`)
         }
 

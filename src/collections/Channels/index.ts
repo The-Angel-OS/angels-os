@@ -91,6 +91,7 @@ export const Channels: CollectionConfig = {
         { label: 'Discord', value: 'discord' },
         { label: 'Telegram', value: 'telegram' },
         { label: 'Slack', value: 'slack' },
+        { label: 'Federation', value: 'federation' },
       ],
     },
     {

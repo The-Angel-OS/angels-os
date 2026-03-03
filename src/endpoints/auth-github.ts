@@ -1,20 +1,20 @@
 /**
- * Discord OAuth Endpoints
+ * GitHub OAuth Endpoints
  *
- * 1. authDiscordInitHandler   — GET /api/auth/discord
- *    Redirects the user to Discord's OAuth2 consent screen.
+ * 1. authGithubInitHandler   — GET /api/auth/github
+ *    Redirects the user to GitHub's OAuth2 consent screen.
  *
- * 2. authDiscordCallbackHandler — GET /api/auth/discord/callback
+ * 2. authGithubCallbackHandler — GET /api/auth/github/callback
  *    Handles the OAuth2 callback, exchanges the code for tokens,
  *    finds or creates the user, sets the Payload auth cookie,
  *    and redirects to the appropriate dashboard.
  *
  * Cross-domain support:
- *    Same pattern as auth-google.ts — when a user on a custom domain
- *    initiates OAuth, the callback lands on the canonical domain, then
- *    relays the token back via /api/auth/token-relay.
+ *    Same pattern as auth-google.ts / auth-discord.ts — when a user on a
+ *    custom domain initiates OAuth, the callback lands on the canonical
+ *    domain, then relays the token back via /api/auth/token-relay.
  *
- * @see src/endpoints/auth-google.ts — blueprint for this implementation
+ * @see src/endpoints/auth-discord.ts — blueprint for this implementation
  */
 import type { PayloadHandler } from 'payload'
 import { SignJWT } from 'jose'
@@ -39,27 +39,16 @@ function isSubdomainOf(hostname: string, parent: string): boolean {
   return hostname === parent || hostname.endsWith(`.${parent}`)
 }
 
-/** Construct Discord avatar URL from user ID and avatar hash */
-function getDiscordAvatarUrl(userId: string, avatarHash: string | null): string {
-  if (!avatarHash) {
-    // Default avatar based on user discriminator/id
-    const defaultIndex = (BigInt(userId) >> BigInt(22)) % BigInt(6)
-    return `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`
-  }
-  const ext = avatarHash.startsWith('a_') ? 'gif' : 'png'
-  return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${ext}`
-}
-
 // ---------------------------------------------------------------------------
-// 1. Initiate Discord OAuth2 flow
+// 1. Initiate GitHub OAuth2 flow
 // ---------------------------------------------------------------------------
 
-export const authDiscordInitHandler: PayloadHandler = async (req) => {
-  const clientId = process.env.DISCORD_CLIENT_ID
+export const authGithubInitHandler: PayloadHandler = async (req) => {
+  const clientId = process.env.GITHUB_CLIENT_ID
 
   if (!clientId) {
     return Response.json(
-      { error: 'Discord authentication is not configured.' },
+      { error: 'GitHub authentication is not configured.' },
       { status: 501 },
     )
   }
@@ -67,11 +56,11 @@ export const authDiscordInitHandler: PayloadHandler = async (req) => {
   const url = new URL(req.url || '', 'http://localhost')
   const canonicalUrl = getServerSideURL()
 
-  const redirectUri = `${canonicalUrl}/api/auth/discord/callback`
+  const redirectUri = `${canonicalUrl}/api/auth/github/callback`
 
   // Build state: preserve caller's redirect + the origin domain for
   // cross-domain relay (custom domain tenants).
-  // mode=link: linking Discord to an existing logged-in user (vs sign-in)
+  // mode=link: linking GitHub to an existing logged-in user (vs sign-in)
   const statePayload: { redirect?: string; origin?: string; mode?: string; userId?: string | number } = {}
 
   const redirectParam = url.searchParams.get('redirect')
@@ -79,7 +68,7 @@ export const authDiscordInitHandler: PayloadHandler = async (req) => {
     statePayload.redirect = redirectParam
   }
 
-  // Link mode: attach Discord to an existing user account
+  // Link mode: attach GitHub to an existing user account
   const mode = url.searchParams.get('mode')
   if (mode === 'link') {
     // Require authentication — we need to know which user to link to
@@ -108,28 +97,26 @@ export const authDiscordInitHandler: PayloadHandler = async (req) => {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'identify email guilds',
-    prompt: 'consent',
+    scope: 'user:email',
   })
 
   if (Object.keys(statePayload).length > 0) {
     params.set('state', encodeURIComponent(JSON.stringify(statePayload)))
   }
 
-  const discordAuthUrl = `https://discord.com/oauth2/authorize?${params.toString()}`
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?${params.toString()}`
 
   return new Response(null, {
     status: 302,
-    headers: { Location: discordAuthUrl },
+    headers: { Location: githubAuthUrl },
   })
 }
 
 // ---------------------------------------------------------------------------
-// 2. Discord OAuth2 callback
+// 2. GitHub OAuth2 callback
 // ---------------------------------------------------------------------------
 
-export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
+export const authGithubCallbackHandler: PayloadHandler = async (req) => {
   try {
     const url = new URL(req.url || '', 'http://localhost')
     const canonicalUrl = getServerSideURL()
@@ -137,41 +124,37 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
     const code = url.searchParams.get('code')
     const stateRaw = url.searchParams.get('state')
 
-    console.log('[Discord OAuth] Callback received:', {
-      hasCode: Boolean(code),
-      hasState: Boolean(stateRaw),
-      canonicalUrl,
-    })
-
     if (!code) {
       return Response.json(
-        { error: 'Missing authorization code from Discord.' },
+        { error: 'Missing authorization code from GitHub.' },
         { status: 400 },
       )
     }
 
-    const clientId = process.env.DISCORD_CLIENT_ID
-    const clientSecret = process.env.DISCORD_CLIENT_SECRET
+    const clientId = process.env.GITHUB_CLIENT_ID
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET
 
     if (!clientId || !clientSecret) {
       return Response.json(
-        { error: 'Discord authentication is not configured.' },
+        { error: 'GitHub authentication is not configured.' },
         { status: 501 },
       )
     }
 
-    const redirectUri = `${canonicalUrl}/api/auth/discord/callback`
+    const redirectUri = `${canonicalUrl}/api/auth/github/callback`
 
     // ----- Exchange code for access token -----
-    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
         code,
         redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
       }),
     })
 
@@ -183,52 +166,89 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    const tokenData = (await tokenRes.json()) as { access_token?: string; token_type?: string }
+    const tokenData = (await tokenRes.json()) as {
+      access_token?: string
+      token_type?: string
+      error?: string
+      error_description?: string
+    }
 
-    if (!tokenData.access_token) {
+    if (tokenData.error || !tokenData.access_token) {
       return Response.json(
-        { error: 'No access_token received from Discord.' },
+        { error: tokenData.error_description || 'No access_token received from GitHub.' },
         { status: 502 },
       )
     }
 
-    // ----- Fetch Discord user profile -----
-    const profileRes = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    // ----- Fetch GitHub user profile -----
+    const profileRes = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'Angel-OS',
+      },
     })
 
     if (!profileRes.ok) {
       return Response.json(
-        { error: 'Failed to fetch Discord user profile.' },
+        { error: 'Failed to fetch GitHub user profile.' },
         { status: 502 },
       )
     }
 
     const profile = (await profileRes.json()) as {
-      id: string
-      username: string
-      global_name?: string | null
+      id: number
+      login: string
+      name?: string | null
       email?: string | null
-      avatar?: string | null
-      discriminator?: string
+      avatar_url?: string | null
     }
 
-    const { id: discordId, username, global_name, email, avatar } = profile
+    const githubId = String(profile.id)
 
-    if (!discordId) {
+    if (!githubId || githubId === '0') {
       return Response.json(
-        { error: 'Discord profile missing required user ID.' },
+        { error: 'GitHub profile missing required user ID.' },
         { status: 502 },
       )
     }
 
-    const displayName = global_name || username || ''
-    const avatarUrl = getDiscordAvatarUrl(discordId, avatar ?? null)
+    // GitHub may not include email in profile — fetch from /user/emails
+    let email = profile.email
+    if (!email) {
+      try {
+        const emailsRes = await fetch('https://api.github.com/user/emails', {
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'Angel-OS',
+          },
+        })
+
+        if (emailsRes.ok) {
+          const emails = (await emailsRes.json()) as Array<{
+            email: string
+            primary: boolean
+            verified: boolean
+          }>
+
+          // Prefer primary verified email
+          const primary = emails.find((e) => e.primary && e.verified)
+          const verified = emails.find((e) => e.verified)
+          email = primary?.email || verified?.email || null
+        }
+      } catch {
+        // Non-critical — proceed without email
+      }
+    }
+
+    const displayName = profile.name || profile.login || ''
+    const avatarUrl = profile.avatar_url || `https://avatars.githubusercontent.com/u/${profile.id}?v=4`
 
     // ----- Find or create user -----
     const socialEntry = {
-      provider: 'discord' as const,
-      providerId: discordId,
+      provider: 'github' as const,
+      providerId: githubId,
       email: email || '',
       displayName,
       avatarUrl,
@@ -261,7 +281,7 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // ----- Link mode: attach Discord to existing user instead of sign-in -----
+    // ----- Link mode: attach GitHub to existing user instead of sign-in -----
     if (stateMode === 'link' && stateLinkUserId) {
       const linkUser = await req.payload.findByID({
         collection: 'users',
@@ -277,7 +297,7 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
 
         const alreadyLinked = existingProviders.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (p: any) => p.provider === 'discord' && p.providerId === discordId,
+          (p: any) => p.provider === 'github' && p.providerId === githubId,
         )
 
         if (!alreadyLinked) {
@@ -291,12 +311,6 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
           })
         }
 
-        // PII-safe: log only opaque IDs, never email or displayName
-        console.log('[Discord OAuth] Linked Discord to existing user:', {
-          userId: linkUser.id,
-          discordId,
-        })
-
         // Redirect back — user is already authenticated, no new JWT needed
         const redirectPath = stateRedirect || '/account'
         const canonicalRedirect = new URL(redirectPath, canonicalUrl).toString()
@@ -308,7 +322,7 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
     }
 
     // ----- Sign-in mode: find or create user -----
-    // Try to find by email first (if Discord provided one)
+    // Try to find by email first (if GitHub provided one)
     if (email) {
       const existing = await req.payload.find({
         collection: 'users',
@@ -320,7 +334,7 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       if (existing.docs.length > 0) {
         user = existing.docs[0]
 
-        // Ensure the Discord provider entry exists in socialProviders
+        // Ensure the GitHub provider entry exists in socialProviders
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const providers: any[] = Array.isArray(user.socialProviders)
           ? user.socialProviders
@@ -328,7 +342,7 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
 
         const alreadyLinked = providers.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (p: any) => p.providerId === discordId,
+          (p: any) => p.providerId === githubId,
         )
 
         if (!alreadyLinked) {
@@ -344,12 +358,12 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // Try finding by Discord provider ID (user may not have email from Discord)
+    // Try finding by GitHub provider ID (user may not have email from GitHub)
     if (!user) {
       const byProvider = await req.payload.find({
         collection: 'users',
         where: {
-          'socialProviders.providerId': { equals: discordId },
+          'socialProviders.providerId': { equals: githubId },
         },
         limit: 1,
         overrideAccess: true,
@@ -362,14 +376,14 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
 
     // Create new user
     if (!user) {
-      // Discord email may not be available — generate a synthetic one if needed
-      const userEmail = email || `discord-${discordId}@oauth.angel-os.local`
+      // GitHub email may not be available — generate a synthetic one if needed
+      const userEmail = email || `github-${githubId}@oauth.angel-os.local`
 
       user = await req.payload.create({
         collection: 'users',
         data: {
           email: userEmail,
-          name: displayName || username,
+          name: displayName || profile.login,
           password: crypto.randomUUID() + crypto.randomUUID(),
           roles: ['customer'],
           socialProviders: [socialEntry],
@@ -377,13 +391,6 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
     }
-
-    // PII-safe: log only opaque IDs, never email or displayName
-    console.log('[Discord OAuth] User resolved:', {
-      userId: user.id,
-      discordId,
-      isNew: !email || !user.email,
-    })
 
     // ----- Create session (required for Payload 3.x useSessions default) -----
     // Payload's JWT strategy rejects tokens without a valid `sid` when
@@ -478,12 +485,6 @@ export const authDiscordCallbackHandler: PayloadHandler = async (req) => {
     const completeUrl = new URL('/api/auth/complete', canonicalUrl)
     completeUrl.searchParams.set('token', payloadToken)
     completeUrl.searchParams.set('redirect', redirectPath)
-
-    // PII-safe: no email, no token in logs
-    console.log('[Discord OAuth] Redirecting through /api/auth/complete:', {
-      userId: user.id,
-      redirectPath,
-    })
 
     return new Response(null, {
       status: 302,

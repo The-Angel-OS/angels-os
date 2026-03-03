@@ -376,7 +376,7 @@ function buildAssistantConfig(tenant: Record<string, any> | null) {
       },
       voice: {
         provider: '11labs',
-        voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam — warm, professional
+        voiceId: 'Xb7hH8MSUJpSbSDYk0k2', // Alice — warm, confident, professional female
         stability: 0.6,
         similarityBoost: 0.8,
       },
@@ -405,7 +405,7 @@ function buildTenantAssistantConfig(tenant: Record<string, any>) {
   const tenantName =
     (tenant.branding as Record<string, unknown>)?.siteName || tenant.name || 'Angel OS'
 
-  const voiceId = (vapiConfig?.voiceId as string) || 'pNInz6obpgDQGcFmaJgB'
+  const voiceId = (vapiConfig?.voiceId as string) || 'Xb7hH8MSUJpSbSDYk0k2'
   const greeting =
     (vapiConfig?.greeting as string) ||
     `Hello! I'm LEO, the AI assistant for ${tenantName}. How can I help you today?`

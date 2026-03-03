@@ -142,23 +142,27 @@ export const bridgeInboundHandler: PayloadHandler = async (req) => {
     const messageType = getMessageType(String(source))
 
     // ── Create inbound message ───────────────────────────────
-    await payload.create({
-      collection: 'messages' as any,
-      data: {
-        content: wrapTextContent(String(message)),
-        space: Number(dmSpaceId),
-        channel: channelSlug,
-        messageType,
-        metadata: {
-          source,
-          externalUserId,
-          ...(connectorId ? { connectorId } : {}),
-          ...(metadata && typeof metadata === 'object' ? metadata : {}),
-        },
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
-    })
+    try {
+      await payload.create({
+        collection: 'messages' as any,
+        data: {
+          content: wrapTextContent(String(message)),
+          space: Number(dmSpaceId),
+          channel: channelSlug,
+          messageType,
+          metadata: {
+            source,
+            externalUserId,
+            ...(connectorId ? { connectorId } : {}),
+            ...(metadata && typeof metadata === 'object' ? metadata : {}),
+          },
+          tenant: tenantId,
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (persistErr) {
+      console.warn('[bridge-inbound] Non-fatal: failed to persist inbound message:', persistErr)
+    }
 
     // ── Process through LEO ──────────────────────────────────
     const conversationId = `${source}-${sanitizedId}`
@@ -192,23 +196,27 @@ export const bridgeInboundHandler: PayloadHandler = async (req) => {
 
     // ── Persist LEO response ─────────────────────────────────
     if (leoReply) {
-      await payload.create({
-        collection: 'messages' as any,
-        data: {
-          content: wrapTextContent(leoReply),
-          space: Number(dmSpaceId),
-          channel: channelSlug,
-          messageType: 'ai_agent',
-          metadata: {
-            source,
-            agentName,
-            conversationId,
-            ...(connectorId ? { connectorId } : {}),
-          },
-          tenant: tenantId,
-        } as any,
-        overrideAccess: true,
-      })
+      try {
+        await payload.create({
+          collection: 'messages' as any,
+          data: {
+            content: wrapTextContent(leoReply),
+            space: Number(dmSpaceId),
+            channel: channelSlug,
+            messageType: 'ai_agent',
+            metadata: {
+              source,
+              agentName,
+              conversationId,
+              ...(connectorId ? { connectorId } : {}),
+            },
+            tenant: tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+      } catch (persistErr) {
+        console.warn('[bridge-inbound] Non-fatal: failed to persist LEO response:', persistErr)
+      }
     }
 
     // ── Update connector activity (shared helper) ────────────

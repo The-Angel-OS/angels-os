@@ -84,6 +84,11 @@ export const vapiSetupHandler: PayloadHandler = async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        // Clear any static assistant so the Server URL webhook takes over.
+        // Vapi priority: assistantId > squadId > serverUrl — if an assistant
+        // is assigned, the server URL is completely ignored.
+        assistantId: null,
+        squadId: null,
         server: serverConfig,
       }),
     })

@@ -13,12 +13,18 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ─── Mock jsonwebtoken ──────────────────────────────────────────
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: vi.fn(() => 'mock-jwt-token'),
-  },
-}))
+// ─── Mock jose SignJWT ───────────────────────────────────────────
+// The handler uses jose SignJWT to create Payload-compatible JWTs.
+// We mock it to avoid needing a real secret and to control the token value.
+vi.mock('jose', () => {
+  class MockSignJWT {
+    setProtectedHeader() { return this }
+    setIssuedAt() { return this }
+    setExpirationTime() { return this }
+    async sign() { return 'mock-jwt-token' }
+  }
+  return { SignJWT: MockSignJWT }
+})
 
 // No need to mock next/headers — auth handlers now redirect through
 // /api/auth/complete (a standalone Next.js route handler) instead of
@@ -55,6 +61,7 @@ function makeMockReq(overrides: {
 /** Build a mock Payload CMS instance */
 function makeMockPayload(overrides: Record<string, unknown> = {}) {
   return {
+    secret: 'hashed-payload-secret-for-tests',
     config: { cookiePrefix: 'payload' },
     find: vi.fn().mockResolvedValue({ docs: [] }),
     findByID: vi.fn().mockResolvedValue(null),

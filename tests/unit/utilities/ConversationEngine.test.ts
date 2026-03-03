@@ -106,7 +106,7 @@ describe('ConversationEngine', () => {
       })
       expect(response).not.toBeNull()
       expect(response!.text).toContain('LEO')
-      expect(response!.text).toContain('process')
+      expect(response!.text).toContain('help')
     })
 
     it('tracks intent from incoming message', async () => {

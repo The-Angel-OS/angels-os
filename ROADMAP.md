@@ -6,17 +6,17 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.33.0-dev
-**Tests:** 2,620 unit tests + 14 E2E suites across 64 test files
+**Version:** v0.36.0-dev
+**Tests:** 2,768+ unit tests + 14 E2E suites across 73 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
-**Leo Tools:** 89+ (including send_slack)
-**API Endpoints:** 59 registered routes
+**Leo Tools:** 93 (including send_federation_message)
+**API Endpoints:** 70 registered routes
 **Collections:** 40
-**Last Updated:** March 3, 2026
+**Last Updated:** March 2, 2026
 
 ---
 
-## Current: v0.33.0-dev (Discord Integration + Federation Intelligence)
+## Current: v0.36.0-dev (Cross-Tenant Federation AI Bus)
 
 ### What's Built (Sprints 1-21)
 
@@ -115,6 +115,31 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 ---
 
+## Sprint 36 — The Crossing: Cross-Tenant Federation AI Bus (Done)
+
+### Goal
+Ship the Federated AI Bus — the #1 remaining v1.0 blocker. LEO can talk to LEO across Enterprise boundaries using Ed25519-signed JWTs with 5-minute TTL. Clean up dead scaffold code. Expand engine edge-case coverage. Graduate the site export endpoint from scaffold to production.
+
+### Deliverables
+- [x] **Dead Code Cleanup** — Removed `MessageProcessor.ts`, `BusinessIntelligenceProcessor.ts`, and stale type imports. Audit confirmed ≤10 actionable TODOs remain.
+- [x] **Engine Edge-Case Tests (119 tests)** — Adversarial tests for Guardian Angel (24), Justice Fund (24), Print-on-Demand (24), Synchronicity (24), and Booking (23) engines. Empty datasets, boundary conditions, race conditions, DST transitions.
+- [x] **Site Export Endpoint (31 tests)** — Full tenant data export from 35 collections across 9 domain groups. Batched fetching (12/wave), per-collection SHA-256 checksums, recursive key-sorted canonical JSON, downloadable archive. Auth-protected (admin/owner).
+- [x] **Federated AI Bus (26 tests)** — `federatedAIBus.ts`: JWT creation/verification with Ed25519 via jose v6, trust level enforcement (vouched minimum), `sendFederatedMessage()` orchestrator with retry. `federation-message.ts`: POST `/api/federation/message` receiver with JWT verification, peer trust lookup, deduplication, LEO routing, message storage. `send_federation_message` LEO tool with Zod schema.
+- [x] **LEO Federation Awareness** — `FederatedContext` type in `leoProcessMessage.ts`. System prompt injection via `buildFederationContextSection()` in `ConversationEngine.ts` — LEO knows when it's responding to a federation peer. Cross-tenant message volume added to `federation_pulse` tool.
+- [x] **ROADMAP + Version Bump** — Sprint 36 section, updated stats.
+
+### Stats
+- 176+ new tests across 8 new test files
+- `send_federation_message` LEO tool (#93)
+- POST `/api/federation/message` endpoint
+- Dead code removed: 2 scaffold files + stale imports
+- TypeScript clean, all tests passing
+
+### Architecture Note
+The federation messaging path: `sendFederatedMessage()` → Ed25519 JWT (5-min TTL) → HTTPS POST with retry → `federationMessageHandler()` → JWT verify → trust check (≥ vouched) → dedup by `jti` → `leoProcessMessage()` with `FederatedContext` → LEO responds with federation awareness → response returned to sender. Platform IS the mesh. HTTPS IS the transport. JWT IS the envelope. Constitution IS the ACL.
+
+---
+
 ## Sprint 35 — The Vigil: Operational Excellence (Done)
 
 ### Goal
@@ -135,10 +160,10 @@ Harden the operational layer before scaling. Add retry logic to every outbound s
 - 44 files changed, +5,991 / -774 lines
 - TypeScript clean, all tests passing
 
-### Remaining (Deferred)
-- [ ] **Engine Edge-Case Tests** — Additional adversarial tests for Sprint 5 + 32 engines
-- [ ] **MessageProcessor stubs** — 4 placeholder methods in MessageProcessor.ts
-- [ ] **BusinessIntelligenceProcessor** — Scaffold with no tests, 2 TODOs
+### Remaining (Deferred → Done in Sprint 36)
+- [x] **Engine Edge-Case Tests** — 119 adversarial tests (Sprint 36)
+- [x] **MessageProcessor stubs** — Removed dead code (Sprint 36)
+- [x] **BusinessIntelligenceProcessor** — Removed dead code (Sprint 36)
 
 ---
 
@@ -481,7 +506,7 @@ Any Enterprise operator can see their federation status, discover other holons v
 | Enterprise Registry | Done | Ministry lifecycle, probation, vouching |
 | Angel Token Queue | Done | Zero-manufacturer launch with paid-claim tokens |
 | Equipment Matching | Done | First-class routing dimension for CNC, 3D printing, etc. |
-| Federated AI Bus | TODO | Platform-as-mesh, JWT-signed cross-tenant messaging |
+| Federated AI Bus | **Done** | **Ed25519 JWT cross-tenant messaging, LEO-to-LEO AI Bus, trust enforcement (Sprint 36)** |
 | Local Model Support (Ollama) | TODO | Complete sovereignty option |
 | Justice Fund Operational | TODO | Real Stripe disbursements to guardians |
 | Stripe Connect (Ultimate Fair) | TODO | Full payment splitting live |
@@ -636,6 +661,7 @@ pnpm dev                      # http://localhost:3000
 | 33 | LEO Speaks on Discord | 2,482 | Multi-tenant Discord bots, Discord OAuth, webhook endpoint, formatter (~95 tests) |
 | 34 | Multi-Channel Bridge Hardening | 2,482 | WhatsApp sig fix, shared bridge helpers, Telegram + SMS webhooks, Connector Admin UI |
 | 35 | The Vigil: Operational Excellence | 2,620 | Retry engine, Zod validation, Slack connector, health cron, booking notifications, 138 tests |
+| 36 | The Crossing: Federation AI Bus | 2,768+ | Federated AI Bus (JWT cross-tenant messaging), dead code cleanup, 119 engine edge-case tests, site export endpoint, 176+ tests |
 
 ---
 

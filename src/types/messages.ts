@@ -1,6 +1,6 @@
 /**
  * Message content types for AI Bus / AT Protocol style messages.
- * Used by AppointmentMessageService, CalendarMessageService, BusinessIntelligenceProcessor, etc.
+ * Used by AppointmentMessageService, CalendarMessageService, ConversationEngine, etc.
  */
 
 /** Widget shape in message content (e.g. for BI or UI blocks). */
@@ -27,6 +27,5 @@ export interface MessageContent {
     importance?: string
     intent?: import('./conversation').DetectedIntent
   }
-  intelligenceData?: import('./business-intelligence').BusinessIntelligenceData
   widgets?: DynamicWidget[]
 }

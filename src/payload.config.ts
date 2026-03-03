@@ -121,7 +121,9 @@ import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
+import { federationMessageHandler } from '@/endpoints/federation-message'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
+import { authGithubInitHandler, authGithubCallbackHandler } from '@/endpoints/auth-github'
 import { discordWebhookHandler } from '@/endpoints/discord-webhook'
 import { whatsappWebhookHandler, whatsappWebhookVerifyHandler } from '@/endpoints/whatsapp-webhook'
 import { telegramWebhookHandler } from '@/endpoints/telegram-webhook'
@@ -756,6 +758,12 @@ export default buildConfig({
       method: 'get',
       handler: federationPulseHandler,
     },
+    // ─── Sprint 36: Federation AI Bus ──────────────────────────
+    {
+      path: '/federation/message',
+      method: 'post',
+      handler: federationMessageHandler,
+    },
     // ─── Sprint 33: Discord Integration ───────────────────────
     {
       path: '/auth/discord',
@@ -771,6 +779,17 @@ export default buildConfig({
       path: '/discord/webhook',
       method: 'post',
       handler: discordWebhookHandler,
+    },
+    // ─── Sprint 37: GitHub Integration ──────────────────────
+    {
+      path: '/auth/github',
+      method: 'get',
+      handler: authGithubInitHandler,
+    },
+    {
+      path: '/auth/github/callback',
+      method: 'get',
+      handler: authGithubCallbackHandler,
     },
     // ─── WhatsApp Cloud API Webhook ────────────────────────────
     {

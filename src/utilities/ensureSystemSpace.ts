@@ -1,6 +1,3 @@
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
-
 /** Slug for the system-created AI Bus space */
 export const AI_BUS_SPACE_SLUG = 'ai-bus'
 export const AI_BUS_SPACE_NAME = 'AI Bus'
@@ -40,6 +37,9 @@ export async function ensureSystemSpace(
   tenantId: number | string,
 ): Promise<string | undefined> {
   try {
+    // Lazy import: avoids pulling @payload-config into every module that imports this file
+    const { getPayload } = await import('payload')
+    const configPromise = (await import('@payload-config')).default
     const payload = await getPayload({ config: configPromise })
 
     // Check if AI Bus space already exists for this tenant
@@ -91,7 +91,8 @@ export async function ensureSystemSpace(
  * and backfilling tenant IDs on orphaned channels (self-healing).
  */
 async function ensureChannels(
-  payload: Awaited<ReturnType<typeof getPayload>>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: { find: (...args: any[]) => Promise<any>; create: (...args: any[]) => Promise<any>; update: (...args: any[]) => Promise<any> },
   spaceId: string | number,
   tenantId: number | string,
 ): Promise<void> {
@@ -105,11 +106,11 @@ async function ensureChannels(
   })
 
   const existingBySlug = new Map(
-    existingChannels.docs.map((ch) => [ch.slug, ch]),
+    existingChannels.docs.map((ch: any) => [ch.slug, ch]),
   )
 
   for (const template of AI_BUS_CHANNELS) {
-    const existing = existingBySlug.get(template.slug)
+    const existing = existingBySlug.get(template.slug) as any
 
     if (existing) {
       // Self-heal: backfill tenant if missing (fixes orphaned channels)
@@ -160,6 +161,8 @@ export async function ensureDMSpace(
   tenantId: number | string,
 ): Promise<string | undefined> {
   try {
+    const { getPayload } = await import('payload')
+    const configPromise = (await import('@payload-config')).default
     const payload = await getPayload({ config: configPromise })
 
     // Check if DMs space already exists for this tenant
@@ -209,6 +212,8 @@ export async function ensureDMSpaceMembership(
   tenantId: number | string,
 ): Promise<void> {
   try {
+    const { getPayload } = await import('payload')
+    const configPromise = (await import('@payload-config')).default
     const payload = await getPayload({ config: configPromise })
 
     // Check existing membership
