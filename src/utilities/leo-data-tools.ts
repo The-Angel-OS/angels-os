@@ -2194,6 +2194,29 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'request_endeavor_migration',
+    description:
+      'Transport an Endeavor from this Enterprise to another. The Endeavor\'s suitcase is packed, cryptographically signed, and sent directly to the destination Enterprise via the federation protocol. Federation identity (federationId) is PRESERVED — the network sees the same Endeavor on a new host, like a ship docking at a new port. Requires user confirmation before initiating. The destination Enterprise must be an active federation member.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        tenantSlug: {
+          type: 'string',
+          description: 'Slug of the tenant/Endeavor to migrate (e.g., "clearwater-cruisin")',
+        },
+        destinationDomain: {
+          type: 'string',
+          description: 'Domain of the destination Enterprise (e.g., "partner.angelos.app")',
+        },
+        reason: {
+          type: 'string',
+          description: 'Why the Endeavor is being migrated (for audit trail)',
+        },
+      },
+      required: ['tenantSlug', 'destinationDomain'],
+    },
+  },
+  {
     name: 'leo_handoff',
     description:
       'Hand off a user or context to another LEO instance (on a different Endeavor). Use during provisioning: after creating an Endeavor, hand off to the new Endeavor\'s LEO so it can welcome the user. Also used for cross-Endeavor delegation ("talk to the marketing Endeavor about this"). The receiving LEO gets the handoff context and can continue the conversation.',
@@ -2959,6 +2982,8 @@ export async function executeToolCall(
         return await handleSendFederationMessage(payload, toolInput, ctx)
       case 'broadcast_federation_message':
         return await handleBroadcastFederationMessage(payload, toolInput, ctx)
+      case 'request_endeavor_migration':
+        return await handleRequestEndeavorMigration(payload, toolInput, ctx)
       case 'leo_handoff':
         return await handleLeoHandoff(payload, toolInput, ctx)
       // Phase 6: Analytics & Intelligence
@@ -9147,6 +9172,189 @@ async function handleBroadcastFederationMessage(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error broadcasting: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * Request Endeavor Migration — transport an Endeavor to another Enterprise.
+ *
+ * This is the "ship docking at a new port" pattern: the Endeavor's suitcase
+ * is packed, signed, and sent directly to the destination Enterprise.
+ * Federation identity is PRESERVED — the network sees the same Endeavor.
+ */
+async function handleRequestEndeavorMigration(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantSlug = (input.tenantSlug as string)?.trim()
+  const destinationDomain = (input.destinationDomain as string)?.trim()
+  const reason = (input.reason as string)?.trim() || 'Operator-initiated migration'
+
+  if (!tenantSlug) return 'Error: tenantSlug is required.'
+  if (!destinationDomain) return 'Error: destinationDomain is required.'
+
+  try {
+    // 1. Resolve source tenant
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { slug: { equals: tenantSlug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const tenant = tenants.docs?.[0]
+    if (!tenant) return `Error: tenant "${tenantSlug}" not found.`
+    const tenantId = tenant.id
+
+    // 2. Get the Endeavor + federation identity
+    const endeavors = await payload.find({
+      collection: 'endeavors',
+      where: { tenant: { equals: tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const endeavor = endeavors.docs?.[0] as any
+    if (!endeavor?.federation?.federationId) {
+      return 'Error: this Endeavor has no federation identity. Sign the constitution first.'
+    }
+
+    const federationId = endeavor.federation.federationId
+
+    // 3. Export suitcase data
+    const [spaces, posts, products] = await Promise.all([
+      payload.find({
+        collection: 'spaces',
+        where: { tenant: { equals: tenantId } },
+        limit: 10000, depth: 0, overrideAccess: true,
+      }),
+      payload.find({
+        collection: 'posts',
+        where: { tenant: { equals: tenantId } },
+        limit: 10000, depth: 0, overrideAccess: true,
+      }),
+      payload.find({
+        collection: 'products' as any,
+        where: { tenant: { equals: tenantId } },
+        limit: 10000, depth: 0, overrideAccess: true,
+      }),
+    ])
+
+    const suitcaseData = {
+      spaces: spaces.docs,
+      posts: posts.docs,
+      products: products.docs,
+      endeavor,
+    }
+
+    const manifest = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      sourceMinistry: federationId,
+      tenant: {
+        name: (tenant as any).name,
+        slug: (tenant as any).slug,
+        domain: (tenant as any).domain,
+      },
+      contents: {
+        spaces: spaces.totalDocs,
+        posts: posts.totalDocs,
+        products: products.totalDocs,
+      },
+      constitutional: {
+        isAngel: true,
+        revenueModel: 'toward-53',
+        antiDemonic: true,
+      },
+    }
+
+    // 4. Sign the migration request
+    const { signData } = await import('@/federation/protocol')
+    const privateKeyHex = endeavor.federation?.privateKey
+    if (!privateKeyHex) {
+      return 'Error: no federation private key found. Cannot sign migration request.'
+    }
+
+    const signedPayload = JSON.stringify({
+      action: 'endeavor-migrate',
+      sourceFederationId: federationId,
+      sourceEnterpriseName: (tenant as any).name,
+      sourceDomain: (tenant as any).domain,
+      timestamp: manifest.exportedAt,
+    })
+
+    const signature = signData(signedPayload, privateKeyHex)
+    const publicKey = endeavor.federation?.publicKey
+
+    // 5. Send to destination Enterprise
+    const destUrl = destinationDomain.startsWith('http')
+      ? destinationDomain
+      : `https://${destinationDomain}`
+
+    const res = await fetch(`${destUrl}/api/federation/migrate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Angel-OS-Version': '1.1',
+      },
+      body: JSON.stringify({
+        sourceFederationId: federationId,
+        sourceEnterpriseName: (tenant as any).name,
+        sourceDomain: (tenant as any).domain,
+        signature,
+        publicKey,
+        manifest,
+        data: suitcaseData,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      return `Migration request rejected by ${destinationDomain} (${res.status}): ${errBody.slice(0, 200)}`
+    }
+
+    const result = await res.json() as any
+
+    // 6. Audit log
+    await payload.create({
+      collection: 'federation-audit-log' as any,
+      data: {
+        action: 'migration-sent',
+        federationId,
+        details: {
+          destinationDomain,
+          reason,
+          imported: result.imported,
+          preservedFederationId: federationId,
+        },
+        timestamp: new Date().toISOString(),
+      } as any,
+      overrideAccess: true,
+    })
+
+    const lines = [
+      `## Endeavor Migration Complete`,
+      '',
+      `**Endeavor:** ${(tenant as any).name} (${tenantSlug})`,
+      `**Federation ID:** ${federationId} (PRESERVED)`,
+      `**Destination:** ${destinationDomain}`,
+      `**Reason:** ${reason}`,
+      '',
+      '**Transported:**',
+      `- Spaces: ${result.imported?.spaces ?? 0}`,
+      `- Posts: ${result.imported?.posts ?? 0}`,
+      `- Products: ${result.imported?.products ?? 0}`,
+      `- Endeavor identity: ${result.imported?.endeavor ? 'preserved' : 'n/a'}`,
+      '',
+      '_The Endeavor is now live on the destination Enterprise. Federation identity is unchanged — the network sees the same node at a new address._',
+    ]
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Migration error: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 

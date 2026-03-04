@@ -121,6 +121,7 @@ import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
+import { federationMigrateHandler } from '@/endpoints/federation-migrate'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { federationMessageHandler } from '@/endpoints/federation-message'
@@ -743,6 +744,11 @@ export default buildConfig({
       path: '/federation/suitcase/import',
       method: 'post',
       handler: federationSuitcaseImportHandler,
+    },
+    {
+      path: '/federation/migrate',
+      method: 'post',
+      handler: federationMigrateHandler,
     },
     // ─── Social Auth Endpoints (Sprint 23) ──────────────────────
     {
