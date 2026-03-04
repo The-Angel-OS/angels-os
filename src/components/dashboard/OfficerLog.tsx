@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 
 interface LogEntry {
   id: string
@@ -53,9 +53,9 @@ export function OfficerLog() {
   const [loading, setLoading] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const fetchLog = async () => {
+  const fetchLog = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/messages?where[messageType][equals]=ai_agent&limit=20&sort=-createdAt&depth=1')
+      const res = await fetch('/api/messages?where[messageType][equals]=ai_agent&limit=20&sort=-createdAt&depth=1', { signal })
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       const docs = data.docs || []
@@ -77,17 +77,21 @@ export function OfficerLog() {
         }),
       )
     } catch {
-      // API may not be available yet — show empty
+      // API may not be available yet or request aborted — show empty
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    fetchLog()
-    const interval = setInterval(fetchLog, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    const controller = new AbortController()
+    fetchLog(controller.signal)
+    const interval = setInterval(() => fetchLog(), 30000)
+    return () => {
+      controller.abort()
+      clearInterval(interval)
+    }
+  }, [fetchLog])
 
   return (
     <div className="space-y-3">

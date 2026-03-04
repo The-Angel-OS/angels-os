@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 
 interface BridgeOfficerStatusProps {
   agentName?: string
@@ -11,6 +12,7 @@ export function BridgeOfficerStatus({
   agentName = 'LEO',
   isOnline = true,
 }: BridgeOfficerStatusProps) {
+  const router = useRouter()
   return (
     <div
       className="rounded-lg border p-4"
@@ -65,8 +67,8 @@ export function BridgeOfficerStatus({
           border: '1px solid rgba(245, 166, 35, 0.2)',
         }}
         onClick={() => {
-          // Navigate to spaces where LEO lives
-          window.location.href = '/dashboard/spaces'
+          // Navigate to spaces where LEO lives — use Next.js router for locale-aware navigation
+          router.push('/dashboard/spaces')
         }}
         onMouseOver={(e) => {
           e.currentTarget.style.background = 'rgba(245, 166, 35, 0.2)'

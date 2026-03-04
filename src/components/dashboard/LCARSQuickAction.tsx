@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 
 interface LCARSQuickActionProps {
   label: string
@@ -18,7 +19,7 @@ export function LCARSQuickAction({
   accentColor = 'var(--lcars-amber)',
 }: LCARSQuickActionProps) {
   return (
-    <a
+    <Link
       href={href}
       className="group relative block rounded-lg border p-4 transition-all hover:scale-[1.02]"
       style={{
@@ -59,6 +60,6 @@ export function LCARSQuickAction({
           )}
         </div>
       </div>
-    </a>
+    </Link>
   )
 }

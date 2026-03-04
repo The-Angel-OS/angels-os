@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 
 interface LCARSStatCardProps {
   label: string
@@ -70,9 +71,9 @@ export function LCARSStatCard({
 
   if (href) {
     return (
-      <a href={href} className="block no-underline">
+      <Link href={href} className="block no-underline">
         {content}
-      </a>
+      </Link>
     )
   }
 

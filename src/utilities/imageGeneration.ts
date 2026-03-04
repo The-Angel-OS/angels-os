@@ -551,9 +551,20 @@ export async function uploadGeneratedImage(
 
     if (imageSource.startsWith('data:')) {
       // Base64 data URL
-      const [header, base64Data] = imageSource.split(',')
-      contentType = header?.match(/data:([^;]+)/)?.[1] || 'image/png'
+      const commaIdx = imageSource.indexOf(',')
+      if (commaIdx < 0) {
+        return { error: 'Malformed data URL: missing comma separator' }
+      }
+      const header = imageSource.slice(0, commaIdx)
+      const base64Data = imageSource.slice(commaIdx + 1)
+      if (!base64Data || base64Data.length < 10) {
+        return { error: 'Malformed data URL: empty or invalid base64 payload' }
+      }
+      contentType = header.match(/data:([^;]+)/)?.[1] || 'image/png'
       buffer = Buffer.from(base64Data, 'base64')
+      if (buffer.length === 0) {
+        return { error: 'Decoded image buffer is empty — invalid base64 data' }
+      }
     } else {
       // HTTP URL — fetch the image
       const response = await fetch(imageSource)
@@ -817,12 +828,15 @@ function deepReplaceMediaId(
   newId: number,
 ): boolean {
   let replaced = false
+  // Support both number and string comparisons (serialized docs may have string IDs)
+  const matchesOldId = (v: unknown): boolean =>
+    v === oldId || (typeof v === 'string' && v === String(oldId))
 
   for (const key of Object.keys(obj)) {
     const val = obj[key]
 
     // Direct ID reference (e.g., gallery[].image, meta.image)
-    if (val === oldId) {
+    if (matchesOldId(val)) {
       obj[key] = newId
       replaced = true
     }
@@ -835,7 +849,7 @@ function deepReplaceMediaId(
     // Array
     else if (Array.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
-        if (val[i] === oldId) {
+        if (matchesOldId(val[i])) {
           val[i] = newId
           replaced = true
         } else if (val[i] && typeof val[i] === 'object') {

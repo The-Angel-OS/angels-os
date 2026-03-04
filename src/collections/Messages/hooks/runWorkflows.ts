@@ -29,8 +29,9 @@ export const runWorkflows: CollectionAfterChangeHook = async ({
       channel: (doc as { channel?: string }).channel,
       space: spaceId,
     }, tenantId)
-  } catch {
+  } catch (err) {
     // Log but don't fail the message create
+    req.payload.logger?.error?.({ err, msg: `runWorkflows failed for message ${doc.id}` })
   }
 
   return doc

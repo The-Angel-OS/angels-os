@@ -28,9 +28,12 @@ export function StandingOrders() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) setOrders(JSON.parse(stored))
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) setOrders(parsed)
+      }
     } catch {
-      // ignore
+      // ignore corrupted data
     }
     setLoaded(true)
   }, [])

@@ -9,7 +9,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
   previousDoc,
   req: { payload, context },
 }) => {
-  if (!context.disableRevalidate) {
+  if (!context?.disableRevalidate) {
     try {
       if (doc._status === 'published') {
         const path = doc.slug === 'home' ? '/' : `/${doc.slug}`
@@ -37,7 +37,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
 }
 
 export const revalidateDelete: CollectionAfterDeleteHook<Page> = ({ doc, req: { context } }) => {
-  if (!context.disableRevalidate) {
+  if (!context?.disableRevalidate) {
     try {
       const path = doc?.slug === 'home' ? '/' : `/${doc?.slug}`
       revalidatePath(path)

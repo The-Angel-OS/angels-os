@@ -2116,11 +2116,11 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
         text: {
           type: 'string',
-          description: 'Message text to send. Used for free-form messages within the 24-hour customer service window.',
+          description: 'Message text to send. Used for free-form messages within the 24-hour customer service window. Required unless sending a template.',
         },
         templateName: {
           type: 'string',
-          description: 'Template name for sending outside the 24-hour window (optional). If the free-form send fails with a "24-hour" error, suggest using a template.',
+          description: 'Template name for sending outside the 24-hour window. If the free-form send fails with a "24-hour" error, suggest using a template.',
         },
         templateParameters: {
           type: 'array',
@@ -2128,7 +2128,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           description: 'Positional parameters for the template body (optional).',
         },
       },
-      required: ['to', 'text'],
+      required: ['to'],
     },
   },
   {
@@ -2670,7 +2670,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         collection: {
           type: 'string',
           description:
-            'The collection slug to query (e.g., "header", "footer", "categories", "contacts", "workflows", "spaces", "channels", "events", "pages", "posts", "products", "bookings", "reviews", "comments", "media", "endeavors", "quests", "board-members", "connectors", "availability", "projects", "event-registrations", "street-signs")',
+            'The collection slug to query (e.g., "header", "footer", "categories", "contacts", "workflows", "spaces", "channels", "events", "pages", "posts", "products", "bookings", "reviews", "comments", "media", "endeavors", "quests", "board-members", "availability", "projects", "event-registrations", "street-signs")',
         },
         where: {
           type: 'object',
@@ -2864,7 +2864,7 @@ export async function executeToolCall(
       case 'create_booking':
         return await createBooking(payload, toolInput, ctx)
       case 'update_booking_status':
-        return await updateBookingStatus(payload, toolInput)
+        return await updateBookingStatus(payload, toolInput, ctx)
       case 'check_available_slots':
         return await checkAvailableSlots(payload, toolInput, ctx)
       case 'cancel_booking':
@@ -2937,7 +2937,7 @@ export async function executeToolCall(
       case 'update_page':
         return await updatePage(payload, toolInput, ctx)
       case 'query_media':
-        return await queryMedia(payload, toolInput)
+        return await queryMedia(payload, toolInput, ctx)
       case 'manage_categories':
         return await manageCategories(payload, toolInput, ctx)
       // ─── Sprint 17: Leo Wizard Tools ──────────────────────────
@@ -2958,7 +2958,7 @@ export async function executeToolCall(
         return await handleQueryKnowledge(payload, toolInput, ctx)
       // ─── Sprint 19: Theme Management & Image Placement ─────────
       case 'add_calendar_to_page':
-        return await addCalendarToPage(payload, toolInput)
+        return await addCalendarToPage(payload, toolInput, ctx)
       case 'get_theme_settings':
         return await handleGetThemeSettings(payload, ctx)
       case 'update_theme_settings':
@@ -2988,7 +2988,7 @@ export async function executeToolCall(
       case 'track_inventory_movement':
         return await handleTrackInventoryMovement(payload, toolInput, ctx)
       case 'set_low_stock_alert':
-        return await handleSetLowStockAlert(payload, toolInput)
+        return await handleSetLowStockAlert(payload, toolInput, ctx)
       case 'query_inventory_history':
         return await handleQueryInventoryHistory(payload, toolInput, ctx)
       // Phase 3: Financial Operations
@@ -3154,8 +3154,8 @@ async function queryProducts(
 
   const products = result.docs.map((p) => {
     const title = str(p, 'title', 'Untitled')
-    const price = num(p, 'priceInUSD')
-    const priceStr = price != null ? `$${price}` : 'Price not set'
+    const priceCents = num(p, 'priceInUSD')
+    const priceStr = priceCents != null ? `$${(priceCents / 100).toFixed(2)}` : 'Price not set'
     const slug = str(p, 'slug')
     return `- **${title}** (${priceStr})${slug ? ` — /products/${slug}` : ''}`
   })
@@ -3882,8 +3882,8 @@ async function addToCart(
     }
 
     const title = str(product, 'title', 'Untitled')
-    const price = num(product, 'priceInUSD')
-    const priceStr = price != null ? `$${price}` : 'Price not set'
+    const priceCents = num(product, 'priceInUSD')
+    const priceStr = priceCents != null ? `$${(priceCents / 100).toFixed(2)}` : 'Price not set'
     const slug = str(product, 'slug')
 
     // Use Payload's ecommerce plugin cart API
@@ -3983,20 +3983,20 @@ async function viewCart(
       return 'Your cart is empty. Say "show me products" to browse, or tell me what you\'re looking for!'
     }
 
-    let totalPrice = 0
+    let totalCents = 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = cartItems.map((item: any) => {
       const product = typeof item.product === 'object' ? item.product : null
       const qty = item.quantity || 1
       const title = product ? str(product, 'title', 'Unknown product') : `Product #${item.product}`
-      const price = product ? num(product, 'priceInUSD') : undefined
-      const subtotal = price != null ? price * qty : 0
-      totalPrice += subtotal
-      const priceStr = price != null ? `$${price}` : 'N/A'
-      return `- **${title}** × ${qty} — ${priceStr} each${subtotal ? ` ($${subtotal.toFixed(2)})` : ''}`
+      const priceCents = product ? num(product, 'priceInUSD') : undefined
+      const subtotalCents = priceCents != null ? priceCents * qty : 0
+      totalCents += subtotalCents
+      const priceStr = priceCents != null ? `$${(priceCents / 100).toFixed(2)}` : 'N/A'
+      return `- **${title}** × ${qty} — ${priceStr} each${subtotalCents ? ` ($${(subtotalCents / 100).toFixed(2)})` : ''}`
     })
 
-    return `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):\n${items.join('\n')}\n\n**Subtotal: $${totalPrice.toFixed(2)}**\n\nReady to check out? Head to /checkout or say "remove [item]" to update your cart.`
+    return `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):\n${items.join('\n')}\n\n**Subtotal: $${(totalCents / 100).toFixed(2)}**\n\nReady to check out? Head to /checkout or say "remove [item]" to update your cart.`
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error loading cart: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -4006,6 +4006,7 @@ async function viewCart(
 async function updateBookingStatus(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const bookingId = Number(input.bookingId)
   const status = input.status as string
@@ -4030,6 +4031,16 @@ async function updateBookingStatus(
 
     if (!existing) {
       return `Error: Booking #${bookingId} not found.`
+    }
+
+    // Verify booking belongs to current tenant
+    if (ctx.tenantId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const docTenant = (existing as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This booking belongs to a different tenant.'
+      }
     }
 
     const oldStatus = str(existing, 'status', 'unknown')
@@ -4487,10 +4498,13 @@ async function handleGenerateImage(
     // Auto-attach to product if productName provided and image was saved
     if (productName && autoAttach && result.mediaId) {
       try {
+        // Build tenant-scoped where clause to prevent cross-tenant attachment
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tenantFilter: any = tenantId ? { tenant: { equals: tenantId } } : {}
         // Try exact match first, then fall back to substring
         let products = await payload.find({
           collection: 'products',
-          where: { title: { equals: productName } },
+          where: { and: [{ title: { equals: productName } }, tenantFilter] } as Where,
           limit: 1,
           depth: 0,
           overrideAccess: true,
@@ -4498,7 +4512,7 @@ async function handleGenerateImage(
         if (products.docs.length === 0) {
           products = await payload.find({
             collection: 'products',
-            where: { title: { contains: productName } },
+            where: { and: [{ title: { contains: productName } }, tenantFilter] } as Where,
             limit: 1,
             depth: 0,
             overrideAccess: true,
@@ -4833,7 +4847,7 @@ async function handleBrowseNetwork(
 
     const results = products.docs.map((p: any, i: number) => {
       const tenant = typeof p.tenant === 'object' ? p.tenant?.name || p.tenant?.slug : 'Unknown vendor'
-      const price = p.priceInUSD ? `$${p.priceInUSD.toFixed(2)}` : 'Price TBD'
+      const price = p.priceInUSD ? `$${(p.priceInUSD / 100).toFixed(2)}` : 'Price TBD'
       const caps = (p.requiredCapabilities || []).map((c: any) => c.skill).join(', ')
       return `${i + 1}. **${p.title}** — ${price} | By: ${tenant}${caps ? ` | Requires: ${caps}` : ''}`
     })
@@ -6464,6 +6478,21 @@ async function updatePost(
   const postId = Number(input.postId)
   if (!postId) return 'Error: postId is required. Use query_posts to find the post ID first.'
 
+  // Verify post belongs to current tenant before modifying
+  if (ctx.tenantId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existing = await (payload.findByID as any)({ collection: 'posts', id: postId, depth: 0, overrideAccess: true })
+      const docTenant = existing?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This post belongs to a different tenant.'
+      }
+    } catch {
+      return `Error: Post #${postId} not found.`
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData: Record<string, any> = {}
 
@@ -6591,6 +6620,21 @@ async function updatePage(
   const pageId = Number(input.pageId)
   if (!pageId) return 'Error: pageId is required.'
 
+  // Verify page belongs to current tenant before modifying
+  if (ctx.tenantId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existing = await (payload.findByID as any)({ collection: 'pages', id: pageId, depth: 0, overrideAccess: true })
+      const docTenant = existing?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This page belongs to a different tenant.'
+      }
+    } catch {
+      return `Error: Page #${pageId} not found.`
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData: Record<string, any> = {}
 
@@ -6642,10 +6686,16 @@ async function updatePage(
 async function queryMedia(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 10, 20)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
+
+  // Tenant scoping — only show media belonging to the current tenant
+  if (ctx.tenantId) {
+    conditions.push({ tenant: { equals: ctx.tenantId } })
+  }
 
   if (input.search && typeof input.search === 'string') {
     conditions.push({
@@ -8117,6 +8167,7 @@ async function handleTrackSoul(
 async function addCalendarToPage(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const targetId = Number(input.targetId)
   if (!targetId) return 'Error: targetId is required.'
@@ -8137,6 +8188,16 @@ async function addCalendarToPage(
     depth: 0,
     overrideAccess: true,
   })
+
+  // Verify document belongs to tenant
+  if (ctx.tenantId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docTenant = (existing as any)?.tenant
+    const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+    if (tenantVal && tenantVal !== ctx.tenantId) {
+      return 'Error: This document belongs to a different tenant.'
+    }
+  }
 
   if (!existing) return `Error: ${collection} #${targetId} not found.`
 
@@ -8545,6 +8606,7 @@ async function handleTrackInventoryMovement(
 async function handleSetLowStockAlert(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const productId = input.productId as number
   const threshold = input.threshold as number
@@ -8561,6 +8623,14 @@ async function handleSetLowStockAlert(
       depth: 0,
       overrideAccess: true,
     }) as any
+
+    // Verify product belongs to current tenant
+    if (ctx.tenantId) {
+      const docTenant = typeof product?.tenant === 'object' ? product.tenant?.id : product?.tenant
+      if (docTenant && docTenant !== ctx.tenantId) {
+        return 'Error: This product belongs to a different tenant.'
+      }
+    }
 
     await payload.update({
       collection: 'products',
@@ -8930,7 +9000,7 @@ async function handleQueryFederation(
       results.push(`### Network Products (${products.docs.length})`)
       for (const p of products.docs as any[]) {
         const vendor = typeof p.vendor === 'object' ? p.vendor?.name || p.vendor?.slug : p.vendor
-        const price = p.price ? `$${(p.price / 100).toFixed(2)}` : 'Price TBD'
+        const price = p.priceInUSD ? `$${(p.priceInUSD / 100).toFixed(2)}` : 'Price TBD'
         results.push(`- **${p.title}** — ${price} (vendor: ${vendor || 'unknown'})`)
       }
       results.push('')
@@ -10252,7 +10322,7 @@ async function handleRecommendProducts(
 
     const lines = [`## Product Recommendations${context ? ` for "${context}"` : ''}`, '']
     for (const p of products.docs as any[]) {
-      const price = p.price ? `$${(p.price / 100).toFixed(2)}` : 'Price TBD'
+      const price = p.priceInUSD ? `$${(p.priceInUSD / 100).toFixed(2)}` : 'Price TBD'
       const stock = p.inventory !== undefined ? ` (${p.inventory} in stock)` : ''
       lines.push(`- **${p.title}** — ${price}${stock}`)
       if (p.description) lines.push(`  ${String(p.description).slice(0, 80)}`)
@@ -11564,17 +11634,21 @@ async function handlePayloadDelete(
 
   // Verify doc belongs to tenant before deleting
   if (ctx.tenantId) {
-    const existing = await payload.findByID({
-      collection: collection as any,
-      id,
-      depth: 0,
-      overrideAccess: true,
-    })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const docTenant = (existing as any)?.tenant
-    const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
-    if (tenantVal && tenantVal !== ctx.tenantId) {
-      return `Cannot delete: document belongs to a different tenant.`
+    try {
+      const existing = await payload.findByID({
+        collection: collection as any,
+        id,
+        depth: 0,
+        overrideAccess: true,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const docTenant = (existing as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return `Cannot delete: document belongs to a different tenant.`
+      }
+    } catch {
+      return `Error: ${collection} #${id} not found.`
     }
   }
 
