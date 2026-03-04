@@ -147,7 +147,8 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   },
 
   // ─── Creator/Content: Clearwater Cruisin Ministries ───────
-  // Community ministry, outreach, merch, and artful street signs
+  // Real business — CNC/laser-cut plywood decorative signs & decor
+  // Themes: Clearwater FL vibes, cruisin culture, sunshine, dogs
   // Brand palette: gold, teal, neon pink — warm retro-Florida vibe
   {
     name: 'Clearwater Cruisin Ministries',
@@ -156,7 +157,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     endeavorType: 'creator-content',
     spaceName: 'Cruisin Community',
     branding: {
-      siteName: 'Clearwater Cruisin Ministries',
+      siteName: 'Clearwater Cruisin Ministries Store',
       tagline: 'Faith, Community, and the Open Road',
       primaryColor: '#C4973B',
       secondaryColor: '#1A7A6D',
@@ -168,7 +169,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
       bodyFont: 'lato',
     },
     leoPersonality:
-      'Warm, welcoming, and a little bit retro. I speak with the laid-back ease of a Clearwater sunset — friendly, community-minded, and always ready to help. I connect people to events, help them find the perfect cruisin merch or street sign, share ministry updates, and coordinate volunteers. Everyone is welcome here — that is literally the whole point. Faith, community, and the open road.',
+      'Warm, welcoming, and a little bit retro. I speak with the laid-back ease of a Clearwater sunset — friendly, community-minded, and always ready to help. I connect people to events, help them find the perfect decorative sign, share ministry updates, and coordinate volunteers. Our signs are CNC-cut from quality plywood and finished by hand right here in Clearwater. Every piece celebrates sunshine, dogs, cruisin culture, and the Florida good life. Everyone is welcome here — that is literally the whole point. Faith, community, and the open road.',
     posts: [
       {
         title: 'Welcome to Clearwater Cruisin Ministries',
@@ -177,10 +178,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           'A community where faith meets the open road. Join us for fellowship, outreach events, and the joy of serving together.',
       },
       {
-        title: 'Upcoming Community Outreach Events',
-        slug: 'community-outreach-events',
+        title: 'From Our Shop: How We Make Our Signs',
+        slug: 'how-we-make-our-signs',
         excerpt:
-          'From car shows to food drives, our calendar is full of opportunities to serve and connect with our Clearwater neighbors.',
+          'Every sign starts as a sheet of quality plywood and ends up as a hand-finished piece of Florida art. Here is a peek behind the CNC and into our workshop.',
       },
       {
         title: 'The Ministry of Showing Up',
@@ -189,20 +190,20 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           'Sometimes the most powerful ministry is simply being present. How Clearwater Cruisin builds relationships one conversation at a time.',
       },
       {
-        title: 'Behind the Signs: Artful Street Decor with Purpose',
-        slug: 'behind-the-signs',
+        title: 'Dogs of Clearwater: Our Favorite Design Inspiration',
+        slug: 'dogs-of-clearwater',
         excerpt:
-          'Every sign tells a story. Discover how our hand-crafted street signs and artful decor bring warmth, humor, and meaning to any space.',
+          'Our best-selling signs all have one thing in common — dogs. Meet the pups that inspired our most popular designs.',
       },
     ],
     products: [
       {
-        title: 'Custom Street Sign — Retro Florida',
-        slug: 'custom-street-sign-retro-florida',
+        title: 'Clearwater Cruisin Street Sign — Custom Text',
+        slug: 'clearwater-cruisin-street-sign-custom',
         description: [
-          'Hand-crafted retro-style street sign with your custom text. Made from durable aluminum with UV-resistant vinyl lettering.',
-          'Choose from our classic Florida color palette: sunset gold, ocean teal, flamingo pink, or palm green. Each sign is weather-resistant and ready for indoor or outdoor display.',
-          'Perfect for man caves, she-sheds, patios, churches, and community spaces. Makes a great gift for anyone who loves that Old Florida vibe.',
+          'CNC-cut decorative street sign from quality plywood, finished and painted by hand. Features the Clearwater Cruisin retro-Florida style with your custom text.',
+          'Cut on our shop CNC from 1/2-inch Baltic birch plywood, sanded smooth, and painted with exterior-grade acrylic in our signature color palette. Clear-coated for UV and weather protection.',
+          'Perfect for patios, man caves, she-sheds, churches, and community spaces. Any shop with a CNC or laser cutter and plywood can produce these designs through the federation network.',
         ],
         priceInUSD: 4500,
         productionType: 'custom_order',
@@ -215,27 +216,61 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         },
       },
       {
-        title: 'Cruisin Community T-Shirt',
-        slug: 'cruisin-community-tshirt',
+        title: 'Sunshine Dog Welcome Sign',
+        slug: 'sunshine-dog-welcome-sign',
         description: [
-          'Soft tri-blend tee featuring the Clearwater Cruisin Ministries logo on the front and "Faith, Community, and the Open Road" on the back.',
-          'Available in heather gold, vintage teal, and charcoal. Unisex fit, pre-shrunk, and screen-printed locally in Clearwater.',
+          'CNC-cut welcome sign featuring a happy dog silhouette basking in Florida sunshine. Crafted from 1/2-inch plywood with hand-painted details.',
+          'Our most popular design — the dog and sun motif captures everything people love about Clearwater living. Comes ready to hang with sawtooth hardware.',
+          'Available in three sizes. Each piece is cut, sanded, painted, and clear-coated in our Clearwater workshop.',
         ],
-        priceInUSD: 2500,
-        productionType: 'print_on_demand',
+        priceInUSD: 3500,
+        productionType: 'ready_made',
         networkListing: true,
         configuratorOptions: {
-          colors: ['Heather Gold', 'Vintage Teal', 'Charcoal'],
-          sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+          sizes: ['Small (8x10 inches)', 'Medium (12x16 inches)', 'Large (18x24 inches)'],
         },
       },
       {
-        title: 'Artful Scripture Plaque',
-        slug: 'artful-scripture-plaque',
+        title: 'Clearwater Sunset Silhouette Wall Art',
+        slug: 'clearwater-sunset-silhouette',
         description: [
-          'Beautifully designed wall plaque featuring your favorite scripture verse or inspirational quote, laser-engraved on reclaimed wood.',
-          'Each piece is unique — the natural grain of the wood makes every plaque one of a kind. Finished with a warm walnut stain and satin clear coat.',
-          'Includes sawtooth hanger for easy wall mounting. Dimensions: 12x8 inches.',
+          'Multi-layer CNC-cut wall art depicting a Clearwater Beach sunset with palm trees. Three plywood layers create depth and shadow — a real showpiece.',
+          'Base layer, midground palms, and foreground scene each cut from separate sheets and stacked for a 3D shadow-box effect. Hand-stained in sunset gradient tones.',
+          'Designed for our CNC but compatible with any shop that can cut 1/4-inch and 1/2-inch plywood. Federation-ready for distributed manufacturing.',
+        ],
+        priceInUSD: 6500,
+        productionType: 'custom_order',
+        networkListing: true,
+        configuratorOptions: {
+          sizes: ['16x20 inches', '24x30 inches'],
+          finishes: ['Sunset Gradient', 'Natural Wood', 'Whitewash'],
+        },
+      },
+      {
+        title: 'Dog Breed Yard Sign — Cruisin Edition',
+        slug: 'dog-breed-yard-sign',
+        description: [
+          'CNC-cut yard sign with your favorite dog breed silhouette and the Clearwater Cruisin logo. Stakes included for lawn or garden display.',
+          'Cut from 3/4-inch exterior plywood, sealed and painted for outdoor durability. Choose from 20+ breed silhouettes or send us a photo of your pup for a custom cut.',
+          'Weather-resistant finish lasts 3+ years outdoors. Repainting kits available for touch-ups.',
+        ],
+        priceInUSD: 2800,
+        productionType: 'custom_order',
+        networkListing: true,
+        configuratorOptions: {
+          customText: true,
+          maxTextLength: 30,
+          breeds: ['Lab', 'Golden Retriever', 'Poodle', 'Bulldog', 'German Shepherd', 'Beagle', 'Dachshund', 'Husky', 'Boxer', 'Custom (send photo)'],
+          sizes: ['Small (12 inches)', 'Large (24 inches)'],
+        },
+      },
+      {
+        title: 'Scripture Plaque — Laser Engraved',
+        slug: 'scripture-plaque-laser',
+        description: [
+          'Your favorite scripture verse or inspirational quote, laser-engraved on 1/2-inch Baltic birch plywood. The natural grain makes every piece unique.',
+          'Cut to shape on our CNC, then laser-engraved with precision lettering. Finished with a warm walnut stain and satin clear coat.',
+          'Includes sawtooth hanger for easy wall mounting. A meaningful gift for any occasion.',
         ],
         priceInUSD: 3500,
         productionType: 'custom_order',
@@ -244,20 +279,19 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           customText: true,
           maxTextLength: 120,
           finishes: ['Walnut Stain', 'Natural', 'Whitewash'],
+          sizes: ['8x10 inches', '12x16 inches'],
         },
       },
       {
-        title: 'Limited Edition: Clearwater Sunset Print',
-        slug: 'clearwater-sunset-print',
+        title: 'Florida Sun & Surf Coaster Set',
+        slug: 'florida-sun-surf-coasters',
         description: [
-          'Limited edition giclée print of a Clearwater Beach sunset, captured by a local photographer and produced in partnership with Clearwater Cruisin Ministries.',
-          'Printed on archival cotton rag paper with vivid, fade-resistant inks. Numbered and signed. Only 50 prints in this run.',
-          'A portion of every sale supports community outreach programs in the Clearwater area.',
+          'Set of 4 CNC-cut coasters featuring Clearwater-themed designs: sunset, palm tree, surfboard, and dog on beach. Each one unique.',
+          'Cut from 1/4-inch maple plywood, laser-engraved with fine detail, and sealed with food-safe finish. Cork backing protects surfaces.',
+          'Makes a perfect souvenir or housewarming gift. Packaged in a kraft box with the Clearwater Cruisin logo.',
         ],
-        priceInUSD: 7500,
+        priceInUSD: 1800,
         productionType: 'ready_made',
-        isLimitedEdition: true,
-        availableUntil: '2026-06-30',
         networkListing: true,
       },
     ],
