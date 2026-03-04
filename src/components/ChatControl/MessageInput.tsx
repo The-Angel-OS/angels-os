@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film } from 'lucide-react'
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film, Image as ImageIcon } from 'lucide-react'
 
 /** Max file size per attachment: 25 MB */
 const MAX_FILE_SIZE = 25 * 1024 * 1024
@@ -23,6 +23,99 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+/** Category → accent color for file chip styling */
+const FILE_CHIP_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  document: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20' },
+  video: { bg: 'bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20' },
+  archive: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20' },
+  spreadsheet: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
+  other: { bg: 'bg-gray-500/10', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-500/20' },
+}
+
+/** Gemini-style file chip for non-image attachments */
+function FileChip({
+  file,
+  onRemove,
+}: {
+  file: File
+  onRemove: () => void
+}) {
+  const category = getFileCategory(file)
+  const colors = FILE_CHIP_COLORS[category] || FILE_CHIP_COLORS.other
+  const ext = file.name.split('.').pop()?.toUpperCase() || '?'
+  const displayName = file.name.length > 18 ? `${file.name.slice(0, 15)}…` : file.name
+
+  const Icon = category === 'video' ? Film
+    : category === 'archive' ? FileArchive
+    : category === 'spreadsheet' ? FileSpreadsheet
+    : FileText
+
+  return (
+    <div
+      className={`group relative flex items-center gap-2 rounded-xl border px-3 py-2 transition-all duration-200 hover:shadow-sm ${colors.bg} ${colors.border}`}
+    >
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colors.bg} ${colors.text}`}>
+        <Icon size={16} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-foreground">{displayName}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {ext} · {formatFileSize(file.size)}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-foreground/60 opacity-0 transition-all group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
+        aria-label={`Remove ${file.name}`}
+      >
+        <X size={10} />
+      </button>
+    </div>
+  )
+}
+
+/** Gemini-style image thumbnail for image attachments */
+function ImageThumbnail({
+  file,
+  onRemove,
+}: {
+  file: File
+  onRemove: () => void
+}) {
+  const url = useMemo(() => URL.createObjectURL(file), [file])
+
+  useEffect(() => {
+    return () => URL.revokeObjectURL(url)
+  }, [url])
+
+  return (
+    <div className="group relative shrink-0 overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30">
+      <img
+        src={url}
+        alt={file.name}
+        className="h-16 w-16 object-cover"
+        loading="lazy"
+      />
+      {/* Gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      {/* Remove button */}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm opacity-0 transition-all group-hover:opacity-100 hover:bg-destructive"
+        aria-label={`Remove ${file.name}`}
+      >
+        <X size={10} />
+      </button>
+      {/* Filename badge */}
+      <span className="absolute bottom-0.5 left-0.5 right-0.5 truncate rounded-md bg-black/50 px-1 py-0.5 text-[8px] text-white/90 backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100">
+        {file.name.length > 12 ? `${file.name.slice(0, 10)}…` : file.name}
+      </span>
+    </div>
+  )
+}
+
 interface MessageInputProps {
   onSend: (content: string, attachments?: File[]) => void
   disabled?: boolean
@@ -39,8 +132,10 @@ export function MessageInput({
 }: MessageInputProps) {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const handleSubmit = useCallback(() => {
     if ((!value.trim() && attachments.length === 0) || disabled) return
@@ -82,22 +177,32 @@ export function MessageInput({
 
   const [fileError, setFileError] = useState<string | null>(null)
 
+  const addFiles = useCallback(
+    (files: File[]) => {
+      setFileError(null)
+      const oversized = files.filter((f) => f.size > MAX_FILE_SIZE)
+      if (oversized.length > 0) {
+        setFileError(`${oversized.map((f) => f.name).join(', ')} exceeds 25 MB limit`)
+      }
+      const valid = files.filter((f) => f.size <= MAX_FILE_SIZE)
+      if (valid.length > 0) {
+        setAttachments((prev) => [...prev, ...valid])
+        // Scroll to end of thumbnail bar after adding
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo({
+            left: scrollContainerRef.current.scrollWidth,
+            behavior: 'smooth',
+          })
+        })
+      }
+    },
+    [],
+  )
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
-    setFileError(null)
-
-    const newFiles = Array.from(files)
-    const oversized = newFiles.filter((f) => f.size > MAX_FILE_SIZE)
-    if (oversized.length > 0) {
-      setFileError(`${oversized.map((f) => f.name).join(', ')} exceeds 25 MB limit`)
-      // Still add the valid files
-      const valid = newFiles.filter((f) => f.size <= MAX_FILE_SIZE)
-      if (valid.length > 0) setAttachments((prev) => [...prev, ...valid])
-    } else {
-      setAttachments((prev) => [...prev, ...newFiles])
-    }
-    // Reset so the same file can be re-selected
+    addFiles(Array.from(files))
     e.target.value = ''
   }
 
@@ -105,27 +210,33 @@ export function MessageInput({
     (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      setIsDragOver(false)
       if (disabled) return
-      setFileError(null)
-      const files = Array.from(e.dataTransfer.files)
-      const oversized = files.filter((f) => f.size > MAX_FILE_SIZE)
-      if (oversized.length > 0) {
-        setFileError(`${oversized.map((f) => f.name).join(', ')} exceeds 25 MB limit`)
-      }
-      const valid = files.filter((f) => f.size <= MAX_FILE_SIZE)
-      if (valid.length > 0) setAttachments((prev) => [...prev, ...valid])
+      addFiles(Array.from(e.dataTransfer.files))
     },
-    [disabled],
+    [disabled, addFiles],
   )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    setIsDragOver(true)
   }, [])
 
-  const removeAttachment = (index: number) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const removeAttachment = useCallback((index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
-  }
+  }, [])
+
+  // Split attachments into images and files for Gemini-style layout
+  const images = attachments.filter((f) => getFileCategory(f) === 'image')
+  const files = attachments.filter((f) => getFileCategory(f) !== 'image')
+  const hasAttachments = attachments.length > 0
 
   const attachButton = (
     <button
@@ -140,50 +251,52 @@ export function MessageInput({
     </button>
   )
 
-  const thumbnailRow = attachments.length > 0 && (
-    <div className="flex flex-col gap-1 px-3 py-2">
+  // Gemini-style attachment preview bar (inside the input container)
+  const attachmentBar = hasAttachments && (
+    <div className="px-3 pt-3 pb-1 space-y-2">
+      {/* Error message */}
       {fileError && (
-        <p className="text-xs text-destructive">{fileError}</p>
+        <p className="text-xs text-destructive animate-in fade-in duration-200">{fileError}</p>
       )}
-      <div className="flex flex-wrap gap-2">
-        {attachments.map((file, i) => {
-          const category = getFileCategory(file)
-          return (
-            <div key={`${file.name}-${i}`} className="relative group">
-              {category === 'image' ? (
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="h-14 w-14 rounded-lg object-cover border border-border"
-                />
-              ) : (
-                <div className="flex h-14 w-14 flex-col items-center justify-center rounded-lg border border-border bg-muted/50 text-muted-foreground">
-                  {category === 'video' ? <Film size={20} /> :
-                   category === 'archive' ? <FileArchive size={20} /> :
-                   category === 'spreadsheet' ? <FileSpreadsheet size={20} /> :
-                   <FileText size={20} />}
-                  <span className="mt-0.5 text-[8px] uppercase">{file.name.split('.').pop()}</span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAttachment(i)}
-                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label={`Remove ${file.name}`}
-              >
-                <X size={12} />
-              </button>
-              <span className="absolute bottom-0 left-0 right-0 truncate bg-black/60 text-[9px] text-white px-1 rounded-b-lg">
-                {file.name.length > 10 ? `${file.name.slice(0, 8)}...` : file.name}
-              </span>
-            </div>
-          )
-        })}
+
+      {/* Horizontal scrollable thumbnail row */}
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-2 overflow-x-auto scrollbar-none pb-1"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* Image thumbnails first */}
+        {images.map((file, i) => (
+          <ImageThumbnail
+            key={`img-${file.name}-${file.size}-${i}`}
+            file={file}
+            onRemove={() => removeAttachment(attachments.indexOf(file))}
+          />
+        ))}
+        {/* File chips after images */}
+        {files.map((file, i) => (
+          <div key={`file-${file.name}-${file.size}-${i}`} className="shrink-0">
+            <FileChip
+              file={file}
+              onRemove={() => removeAttachment(attachments.indexOf(file))}
+            />
+          </div>
+        ))}
       </div>
-      <p className="text-[10px] text-muted-foreground">
-        {attachments.length} file{attachments.length !== 1 ? 's' : ''} &middot;{' '}
-        {formatFileSize(attachments.reduce((sum, f) => sum + f.size, 0))}
-      </p>
+
+      {/* Summary line */}
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+        <span>
+          {attachments.length} file{attachments.length !== 1 ? 's' : ''} · {formatFileSize(attachments.reduce((sum, f) => sum + f.size, 0))}
+        </span>
+        <button
+          type="button"
+          onClick={() => { setAttachments([]); setFileError(null) }}
+          className="text-muted-foreground/40 hover:text-destructive transition-colors"
+        >
+          Clear all
+        </button>
+      </div>
     </div>
   )
 
@@ -198,66 +311,123 @@ export function MessageInput({
     />
   )
 
+  // Drag overlay indicator
+  const dragOverlay = isDragOver && (
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/5 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-1 text-primary">
+        <ImageIcon size={24} />
+        <span className="text-sm font-medium">Drop files here</span>
+      </div>
+    </div>
+  )
+
   if (fullPage) {
     return (
-      <div className="border-t border-border bg-background/80 backdrop-blur-sm" onDrop={handleDrop} onDragOver={handleDragOver}>
-        {thumbnailRow}
-        <div className="mx-auto flex max-w-3xl items-end gap-3 px-4 py-4">
-          {attachButton}
-          <textarea
-            ref={inputRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
-            placeholder={placeholder}
-            disabled={disabled}
-            rows={1}
-            className="flex-1 resize-none rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-50"
-            style={{ maxHeight: `${maxHeight}px` }}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={disabled || (!value.trim() && attachments.length === 0)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
-            aria-label="Send message"
+      <div
+        className="relative border-t border-border bg-background/80 backdrop-blur-sm"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        {dragOverlay}
+        <div className="mx-auto max-w-3xl px-4 py-3">
+          {/* Unified input container with attachments inside */}
+          <div
+            className={`rounded-2xl border bg-muted/30 transition-all duration-200 ${
+              isDragOver
+                ? 'border-primary shadow-lg shadow-primary/10'
+                : hasAttachments
+                  ? 'border-border shadow-sm'
+                  : 'border-border'
+            }`}
           >
-            <Send size={18} />
-          </button>
+            {attachmentBar}
+            <div className="flex items-end gap-3 px-3 pb-3 pt-2">
+              {attachButton}
+              <textarea
+                ref={inputRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onInput={handleInput}
+                placeholder={placeholder}
+                disabled={disabled}
+                rows={1}
+                className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:opacity-50"
+                style={{ maxHeight: `${maxHeight}px` }}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={disabled || (!value.trim() && attachments.length === 0)}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                  value.trim() || hasAttachments
+                    ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md'
+                    : 'bg-muted text-muted-foreground'
+                } disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none`}
+                aria-label="Send message"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+          <div className="mt-1.5 text-center text-[10px] text-muted-foreground/30">
+            Press Enter to send · Shift+Enter for new line
+          </div>
         </div>
         {hiddenFileInput}
-        <div className="pb-2 text-center text-[10px] text-muted-foreground/30">
-          Press Enter to send &middot; Shift+Enter for new line
-        </div>
       </div>
     )
   }
 
+  // Compact mode (sidebar/floating bubble)
   return (
-    <div className="border-t border-border" onDrop={handleDrop} onDragOver={handleDragOver}>
-      {thumbnailRow}
-      <div className="flex items-end gap-2 p-3">
-        {attachButton}
-        <textarea
-          ref={inputRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder={placeholder}
-          disabled={disabled}
-          rows={1}
-          className="flex-1 resize-none rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 text-base md:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
-          style={{ maxHeight: '120px', fontSize: '16px' }}
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={disabled || (!value.trim() && attachments.length === 0)}
-          className="flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Send message"
+    <div
+      className="relative border-t border-border"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
+      {dragOverlay}
+      <div className="p-2">
+        {/* Unified input container */}
+        <div
+          className={`rounded-xl border transition-all duration-200 ${
+            isDragOver
+              ? 'border-primary shadow-md shadow-primary/10'
+              : hasAttachments
+                ? 'border-border shadow-sm'
+                : 'border-border bg-muted/50'
+          }`}
         >
-          <Send size={18} className="md:h-4 md:w-4" />
-        </button>
+          {attachmentBar}
+          <div className="flex items-end gap-2 px-2 pb-2 pt-1.5">
+            {attachButton}
+            <textarea
+              ref={inputRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onInput={handleInput}
+              placeholder={placeholder}
+              disabled={disabled}
+              rows={1}
+              className="flex-1 resize-none bg-transparent text-base md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+              style={{ maxHeight: '120px', fontSize: '16px' }}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={disabled || (!value.trim() && attachments.length === 0)}
+              className={`flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                value.trim() || hasAttachments
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80'
+                  : 'bg-muted text-muted-foreground'
+              } disabled:cursor-not-allowed disabled:opacity-40`}
+              aria-label="Send message"
+            >
+              <Send size={18} className="md:h-4 md:w-4" />
+            </button>
+          </div>
+        </div>
       </div>
       {hiddenFileInput}
     </div>

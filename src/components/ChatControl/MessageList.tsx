@@ -241,6 +241,25 @@ function MessageImages({ images }: { images: NonNullable<ChatMessage['images']> 
   )
 }
 
+/** File type category detection from mime type */
+function getMimeCategory(mimeType?: string): 'document' | 'video' | 'archive' | 'spreadsheet' | 'other' {
+  if (!mimeType) return 'other'
+  if (mimeType.startsWith('video/')) return 'video'
+  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('tar') || mimeType.includes('gz')) return 'archive'
+  if (mimeType.includes('spreadsheet') || mimeType.includes('csv') || mimeType.includes('excel')) return 'spreadsheet'
+  if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('text') || mimeType.includes('word')) return 'document'
+  return 'other'
+}
+
+/** Category → accent color for rendered file chips */
+const RENDERED_CHIP_COLORS: Record<string, string> = {
+  document: 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400',
+  video: 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400',
+  archive: 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400',
+  spreadsheet: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+  other: 'bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-400',
+}
+
 function MessageAttachments({ attachments }: { attachments: NonNullable<ChatMessage['attachments']> }) {
   if (attachments.length === 0) return null
 
@@ -252,26 +271,39 @@ function MessageAttachments({ attachments }: { attachments: NonNullable<ChatMess
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-1.5">
-      {attachments.map((att, i) => (
-        <a
-          key={`${att.url}-${i}`}
-          href={att.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm transition-colors hover:bg-muted/60 hover:border-primary/30"
-        >
-          <span className="text-muted-foreground">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          </span>
-          <span className="flex-1 truncate font-medium">{att.filename}</span>
-          {att.filesize && (
-            <span className="shrink-0 text-xs text-muted-foreground">{formatSize(att.filesize)}</span>
-          )}
-        </a>
-      ))}
+    <div className="mt-2 flex flex-wrap gap-2">
+      {attachments.map((att, i) => {
+        const category = getMimeCategory(att.mimeType)
+        const ext = att.filename?.split('.').pop()?.toUpperCase() || '?'
+        const colors = RENDERED_CHIP_COLORS[category] || RENDERED_CHIP_COLORS.other
+        const displayName = att.filename && att.filename.length > 22
+          ? `${att.filename.slice(0, 19)}…`
+          : att.filename || 'File'
+
+        return (
+          <a
+            key={`${att.url}-${i}`}
+            href={att.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`group flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm transition-all hover:shadow-sm hover:border-primary/30 ${colors}`}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-current/10">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-foreground group-hover:text-primary transition-colors">
+                {displayName}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {ext}{att.filesize ? ` · ${formatSize(att.filesize)}` : ''}
+              </p>
+            </div>
+          </a>
+        )
+      })}
     </div>
   )
 }
