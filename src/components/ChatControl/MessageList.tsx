@@ -8,12 +8,64 @@ import { TOOL_LABELS } from '@/constants/toolLabels'
 import { ImageLightbox } from './ImageLightbox'
 
 // ---------------------------------------------------------------------------
-// Message action buttons (copy, share, vote/dispute)
+// Message action buttons (copy, speak, vote, share, dispute)
 // ---------------------------------------------------------------------------
 
-function MessageActions({ message }: { message: ChatMessage }) {
+/** TTS speak/pause toggle using Web Speech API */
+function useSpeech() {
+  const [speaking, setSpeaking] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+
+  const toggle = useCallback((text: string) => {
+    const synth = window.speechSynthesis
+    if (!synth) return
+
+    if (speaking) {
+      synth.cancel()
+      setSpeaking(false)
+      return
+    }
+
+    // Cancel anything else playing
+    synth.cancel()
+
+    const utt = new SpeechSynthesisUtterance(text)
+    utt.rate = 1.0
+    utt.pitch = 1.0
+    // Prefer a natural voice if available
+    const voices = synth.getVoices()
+    const preferred = voices.find(
+      (v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Google')),
+    )
+    if (preferred) utt.voice = preferred
+
+    utt.onend = () => setSpeaking(false)
+    utt.onerror = () => setSpeaking(false)
+    utteranceRef.current = utt
+    synth.speak(utt)
+    setSpeaking(true)
+  }, [speaking])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel()
+    }
+  }, [])
+
+  return { speaking, toggle }
+}
+
+function MessageActions({
+  message,
+  onDispute,
+}: {
+  message: ChatMessage
+  onDispute?: (message: ChatMessage) => void
+}) {
   const [copied, setCopied] = useState(false)
   const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+  const { speaking, toggle: toggleSpeak } = useSpeech()
 
   const handleCopy = async () => {
     try {
@@ -21,7 +73,6 @@ function MessageActions({ message }: { message: ChatMessage }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Fallback for older browsers / non-HTTPS
       const textarea = document.createElement('textarea')
       textarea.value = message.content
       textarea.style.position = 'fixed'
@@ -41,16 +92,9 @@ function MessageActions({ message }: { message: ChatMessage }) {
   }
 
   const handleDispute = () => {
-    // Open a dispute / Pipedream vote request flow
-    const subject = encodeURIComponent(`Dispute: ${message.content.slice(0, 60)}...`)
-    const body = encodeURIComponent(
-      `I'd like to dispute this response:\n\n"${message.content.slice(0, 300)}"\n\nReason:\n`,
-    )
-    // Open the dispute in a new composed message (can be swapped for a modal / Pipedream webhook)
-    window.open(
-      `mailto:support@spacesangels.com?subject=${subject}&body=${body}`,
-      '_blank',
-    )
+    if (onDispute) {
+      onDispute(message)
+    }
   }
 
   return (
@@ -69,6 +113,28 @@ function MessageActions({ message }: { message: ChatMessage }) {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
             <path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h2.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 1 .439 1.061V9.5A1.5 1.5 0 0 1 12 11V8.621a3 3 0 0 0-.879-2.121L9 4.379A3 3 0 0 0 6.879 3.5H5.5Z" />
             <path d="M4 5a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 4 14h5a1.5 1.5 0 0 0 1.5-1.5V8.621a1.5 1.5 0 0 0-.44-1.06L7.94 5.439A1.5 1.5 0 0 0 6.878 5H4Z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Speak / TTS toggle */}
+      <button
+        onClick={() => toggleSpeak(message.content)}
+        className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
+          speaking ? 'text-primary' : 'text-muted-foreground/50'
+        }`}
+        title={speaking ? 'Stop speaking' : 'Read aloud'}
+      >
+        {speaking ? (
+          /* Pause icon */
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+            <path d="M4.5 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5h-2Zm5 0a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5h-2Z" />
+          </svg>
+        ) : (
+          /* Speaker icon */
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+            <path d="M7.557 2.066A.75.75 0 0 1 8 2.75v10.5a.75.75 0 0 1-1.248.56L3.59 11H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.59l3.162-2.81a.75.75 0 0 1 .805-.124ZM12.95 3.05a.75.75 0 1 0-1.06 1.06 5.5 5.5 0 0 1 0 7.78.75.75 0 1 0 1.06 1.06 7 7 0 0 0 0-9.9Z" />
+            <path d="M10.828 5.172a.75.75 0 1 0-1.06 1.06 2.5 2.5 0 0 1 0 3.536.75.75 0 1 0 1.06 1.06 4 4 0 0 0 0-5.656Z" />
           </svg>
         )}
       </button>
@@ -99,10 +165,9 @@ function MessageActions({ message }: { message: ChatMessage }) {
         </svg>
       </button>
 
-      {/* Share (placeholder) */}
+      {/* Share */}
       <button
         onClick={() => {
-          // TODO: Generate shareable page link for this response
           navigator.clipboard.writeText(
             `${window.location.origin}/shared/response/${message.id}`,
           )
@@ -115,16 +180,82 @@ function MessageActions({ message }: { message: ChatMessage }) {
         </svg>
       </button>
 
-      {/* Dispute / Pipedream Vote */}
+      {/* Dispute / Community Vote */}
       <button
         onClick={handleDispute}
         className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
-        title="Dispute / Vote"
+        title="Dispute — request community vote"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
           <path fillRule="evenodd" d="M2.75 2a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5A.75.75 0 0 1 2.75 2Zm3.5 1.842a2.25 2.25 0 0 1 1.218-.362h.932c1.149 0 2.221.521 2.934 1.414l.357.447a.75.75 0 0 1-.074 1.024L9.833 7.9l1.882 2.695a.75.75 0 0 1-.106 1.003l-.543.476A2.25 2.25 0 0 1 9.583 12.7H6.25V3.842Z" clipRule="evenodd" />
         </svg>
       </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dispute Dialog — inline community vote request (replaces mailto)
+// ---------------------------------------------------------------------------
+
+function DisputeDialog({
+  message,
+  onClose,
+  onSubmit,
+}: {
+  message: ChatMessage
+  onClose: () => void
+  onSubmit: (reason: string) => void
+}) {
+  const [reason, setReason] = useState('')
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="mb-1 text-sm font-semibold text-foreground">Dispute This Response</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Request a community vote on whether this response is accurate, helpful, or appropriate.
+        </p>
+
+        {/* Quoted content */}
+        <div className="mb-3 max-h-24 overflow-y-auto rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          &ldquo;{message.content.slice(0, 300)}{message.content.length > 300 ? '...' : ''}&rdquo;
+        </div>
+
+        {/* Reason */}
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Why should this be disputed? (inaccurate, harmful, off-topic...)"
+          className="mb-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          rows={3}
+          autoFocus
+        />
+
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground">
+            Disputes are reviewed by the community
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { onSubmit(reason); onClose() }}
+              disabled={!reason.trim()}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              Submit Dispute
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -468,6 +599,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
   const prevScrollHeight = useRef<number>(0)
   const prevCountRef = useRef(messages.length)
   const [showNewBadge, setShowNewBadge] = useState(false)
+  const [disputeMsg, setDisputeMsg] = useState<ChatMessage | null>(null)
 
   // Smart scroll — only auto-scroll if user is near bottom
   useEffect(() => {
@@ -584,11 +716,23 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
             </div>
             {/* Action buttons — LEO messages only, visible on hover */}
             {msg.role === 'leo' && !msg.isStreaming && msg.content && (
-              <MessageActions message={msg} />
+              <MessageActions message={msg} onDispute={setDisputeMsg} />
             )}
           </div>
         </div>
       ))}
+
+      {/* Dispute dialog */}
+      {disputeMsg && (
+        <DisputeDialog
+          message={disputeMsg}
+          onClose={() => setDisputeMsg(null)}
+          onSubmit={(reason) => {
+            // TODO: POST to /api/disputes with { messageId, reason }
+            console.log('[dispute]', disputeMsg.id, reason)
+          }}
+        />
+      )}
 
       {isLoading && (
         <div className="flex justify-start">
@@ -645,6 +789,7 @@ function FullPageMessageList({
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const prevScrollHeight = useRef<number>(0)
+  const [disputeMsg, setDisputeMsg] = useState<ChatMessage | null>(null)
 
   // Auto-scroll to bottom on new messages (unless user scrolled up)
   useEffect(() => {
@@ -859,7 +1004,7 @@ function FullPageMessageList({
 
                       {/* Action buttons — LEO messages only, visible on hover */}
                       {isLeo && !msg.isStreaming && msg.content && (
-                        <MessageActions message={msg} />
+                        <MessageActions message={msg} onDispute={setDisputeMsg} />
                       )}
 
                       {isLast && (
@@ -900,6 +1045,18 @@ function FullPageMessageList({
 
         <div ref={bottomRef} />
       </div>
+
+      {/* Dispute dialog */}
+      {disputeMsg && (
+        <DisputeDialog
+          message={disputeMsg}
+          onClose={() => setDisputeMsg(null)}
+          onSubmit={(reason) => {
+            // TODO: POST to /api/disputes with { messageId, reason }
+            console.log('[dispute]', disputeMsg.id, reason)
+          }}
+        />
+      )}
     </div>
   )
 }
