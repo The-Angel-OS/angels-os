@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "angel-os": {
+      "command": "npx",
+      "args": ["tsx", "mcp-server/index.ts"],
+      "cwd": "C:\\Dev\\angels-os",
+      "env": {
+        "ANGEL_OS_URL": "https://www.spacesangels.com",
+        "ANGEL_OS_TENANT": "default"
+      }
+    }
+  }
+}

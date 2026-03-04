@@ -7,6 +7,128 @@ import type { ChatMessage } from './types'
 import { TOOL_LABELS } from '@/constants/toolLabels'
 import { ImageLightbox } from './ImageLightbox'
 
+// ---------------------------------------------------------------------------
+// Message action buttons (copy, share, vote/dispute)
+// ---------------------------------------------------------------------------
+
+function MessageActions({ message }: { message: ChatMessage }) {
+  const [copied, setCopied] = useState(false)
+  const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback for older browsers / non-HTTPS
+      const textarea = document.createElement('textarea')
+      textarea.value = message.content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleVote = (direction: 'up' | 'down') => {
+    setVoted((prev) => (prev === direction ? null : direction))
+    // TODO: POST to /api/feedback with { messageId, vote: direction }
+  }
+
+  const handleDispute = () => {
+    // Open a dispute / Pipedream vote request flow
+    const subject = encodeURIComponent(`Dispute: ${message.content.slice(0, 60)}...`)
+    const body = encodeURIComponent(
+      `I'd like to dispute this response:\n\n"${message.content.slice(0, 300)}"\n\nReason:\n`,
+    )
+    // Open the dispute in a new composed message (can be swapped for a modal / Pipedream webhook)
+    window.open(
+      `mailto:support@spacesangels.com?subject=${subject}&body=${body}`,
+      '_blank',
+    )
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/msg:opacity-100">
+      {/* Copy */}
+      <button
+        onClick={handleCopy}
+        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        title={copied ? 'Copied!' : 'Copy response'}
+      >
+        {copied ? (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-green-500">
+            <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+            <path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h2.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 1 .439 1.061V9.5A1.5 1.5 0 0 1 12 11V8.621a3 3 0 0 0-.879-2.121L9 4.379A3 3 0 0 0 6.879 3.5H5.5Z" />
+            <path d="M4 5a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 4 14h5a1.5 1.5 0 0 0 1.5-1.5V8.621a1.5 1.5 0 0 0-.44-1.06L7.94 5.439A1.5 1.5 0 0 0 6.878 5H4Z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Thumbs up */}
+      <button
+        onClick={() => handleVote('up')}
+        className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
+          voted === 'up' ? 'text-green-500' : 'text-muted-foreground/50'
+        }`}
+        title="Helpful"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+          <path d="M2.09 15a1 1 0 0 0 1-1V8a1 1 0 1 0-2 0v6a1 1 0 0 0 1 1ZM5.765 13H4.09V8.665l2.585-4.525a.5.5 0 0 1 .69-.182l.004.002a1.252 1.252 0 0 1 .476 1.637l-.967 1.903h4.212a1.5 1.5 0 0 1 1.46 1.842l-1.084 4.55A1.5 1.5 0 0 1 10.006 15H5.765v-2Z" />
+        </svg>
+      </button>
+
+      {/* Thumbs down */}
+      <button
+        onClick={() => handleVote('down')}
+        className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
+          voted === 'down' ? 'text-red-500' : 'text-muted-foreground/50'
+        }`}
+        title="Not helpful"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+          <path d="M13.91 1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V2a1 1 0 0 0-1-1ZM10.235 3H11.91v4.335L9.325 11.86a.5.5 0 0 1-.69.182l-.004-.002a1.252 1.252 0 0 1-.476-1.637l.967-1.903H4.91a1.5 1.5 0 0 1-1.46-1.842l1.084-4.55A1.5 1.5 0 0 1 5.994 1h4.24v2Z" />
+        </svg>
+      </button>
+
+      {/* Share (placeholder) */}
+      <button
+        onClick={() => {
+          // TODO: Generate shareable page link for this response
+          navigator.clipboard.writeText(
+            `${window.location.origin}/shared/response/${message.id}`,
+          )
+        }}
+        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        title="Share response"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+          <path d="M12.5 2.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-6 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm6 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM5.968 6.257l4.564-2.47M5.968 8.743l4.564 2.47" />
+        </svg>
+      </button>
+
+      {/* Dispute / Pipedream Vote */}
+      <button
+        onClick={handleDispute}
+        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        title="Dispute / Vote"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+          <path fillRule="evenodd" d="M2.75 2a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5A.75.75 0 0 1 2.75 2Zm3.5 1.842a2.25 2.25 0 0 1 1.218-.362h.932c1.149 0 2.221.521 2.934 1.414l.357.447a.75.75 0 0 1-.074 1.024L9.833 7.9l1.882 2.695a.75.75 0 0 1-.106 1.003l-.543.476A2.25 2.25 0 0 1 9.583 12.7H6.25V3.842Z" clipRule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 interface MessageListProps {
   messages: ChatMessage[]
   isLoading?: boolean
@@ -404,28 +526,34 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
       {messages.map((msg, index) => (
         <div
           key={msg.id}
-          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          className={`group/msg flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
-          <div
-            className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-              msg.role === 'user'
-                ? 'bg-primary text-primary-foreground'
-                : msg.role === 'system'
-                  ? 'border border-border bg-muted/50 text-muted-foreground italic'
-                  : 'bg-muted text-foreground'
-            }`}
-          >
-            {msg.role === 'leo' && msg.authorName && (
-              <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
-            )}
-            {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
-            <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
-            {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
-            {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
-            {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
-            <div className="mt-1 text-[10px] opacity-50">
-              {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <div className="max-w-[80%]">
+            <div
+              className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : msg.role === 'system'
+                    ? 'border border-border bg-muted/50 text-muted-foreground italic'
+                    : 'bg-muted text-foreground'
+              }`}
+            >
+              {msg.role === 'leo' && msg.authorName && (
+                <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
+              )}
+              {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
+              <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
+              {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
+              {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
+              {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
+              <div className="mt-1 text-[10px] opacity-50">
+                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
+            {/* Action buttons — LEO messages only, visible on hover */}
+            {msg.role === 'leo' && !msg.isStreaming && msg.content && (
+              <MessageActions message={msg} />
+            )}
           </div>
         </div>
       ))}
@@ -643,7 +771,7 @@ function FullPageMessageList({
                   return (
                     <div
                       key={msg.id}
-                      className={`max-w-[85%] ${isSystem ? 'mx-auto text-center' : ''}`}
+                      className={`group/msg max-w-[85%] ${isSystem ? 'mx-auto text-center' : ''}`}
                     >
                       {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
 
@@ -696,6 +824,11 @@ function FullPageMessageList({
                           <MessageImages images={msg.images} />
                         )}
                       </div>
+
+                      {/* Action buttons — LEO messages only, visible on hover */}
+                      {isLeo && !msg.isStreaming && msg.content && (
+                        <MessageActions message={msg} />
+                      )}
 
                       {isLast && (
                         <div
