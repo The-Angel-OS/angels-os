@@ -675,8 +675,10 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             files.map(async (file) => {
               const formData = new FormData()
               formData.append('file', file)
-              formData.append('alt', file.name)
-              if (uploadTenantId) formData.append('tenant', uploadTenantId)
+              // Payload 3.x requires non-file fields as a single JSON `_payload` field
+              const payloadFields: Record<string, unknown> = { alt: file.name }
+              if (uploadTenantId) payloadFields.tenant = uploadTenantId
+              formData.append('_payload', JSON.stringify(payloadFields))
               const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
                 method: 'POST',
                 credentials: 'include',
