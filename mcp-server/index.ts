@@ -7,22 +7,100 @@
  * Angel OS data (products, posts, orders, spaces).
  *
  * Transport: stdio (standard for Claude Code)
- * Auth: Bearer token via ANGEL_OS_API_KEY env var
+ * Auth: Auto-derives JWT from PAYLOAD_SECRET (zero-config) or
+ *        falls back to ANGEL_OS_API_KEY bearer token
  *
- * Usage (Claude Code auto-starts via .claude/settings.local.json):
+ * Usage (Claude Code auto-starts via .mcp.json):
  *   npx tsx mcp-server/index.ts
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+
+// ---------------------------------------------------------------------------
+// Load .env.local / .env (same as `npx vercel env pull`)
+// ---------------------------------------------------------------------------
+
+function loadEnvFile(filePath: string): void {
+  if (!fs.existsSync(filePath)) return
+  const content = fs.readFileSync(filePath, 'utf-8')
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx === -1) continue
+    const key = trimmed.slice(0, eqIdx).trim()
+    let value = trimmed.slice(eqIdx + 1).trim()
+    // Strip surrounding quotes
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1)
+    }
+    if (!process.env[key]) process.env[key] = value
+  }
+}
+
+const cwd = process.cwd()
+loadEnvFile(path.join(cwd, '.env.local'))
+loadEnvFile(path.join(cwd, '.env'))
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
 const BASE_URL = process.env.ANGEL_OS_URL || 'https://www.spacesangels.com'
-const API_KEY = process.env.ANGEL_OS_API_KEY || ''
 const TENANT_SLUG = process.env.ANGEL_OS_TENANT || 'default'
+
+// ---------------------------------------------------------------------------
+// JWT Auto-Auth — derive token from PAYLOAD_SECRET when no API key is set
+// ---------------------------------------------------------------------------
+
+let AUTH_TOKEN = process.env.ANGEL_OS_API_KEY || ''
+
+async function deriveAuthToken(): Promise<string> {
+  const payloadSecret = process.env.PAYLOAD_SECRET
+  if (!payloadSecret) return ''
+
+  try {
+    // Payload hashes the secret internally:
+    // crypto.createHash('sha256').update(secret).digest('hex').slice(0, 32)
+    const hashedSecret = crypto.createHash('sha256').update(payloadSecret).digest('hex').slice(0, 32)
+    const secretBytes = new TextEncoder().encode(hashedSecret)
+
+    // Use jose (dynamic import — it's already in the project)
+    const { SignJWT } = await import('jose')
+
+    const token = await new SignJWT({
+      email: 'leo-default@system.angel-os.local',
+      collection: 'users',
+      isSystemUser: true,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(secretBytes)
+
+    return token
+  } catch (err) {
+    process.stderr.write(`[angel-os-mcp] JWT auto-auth failed: ${err}\n`)
+    return ''
+  }
+}
+
+// Initialize auth token before first request
+let authReady: Promise<void> | null = null
+if (!AUTH_TOKEN) {
+  authReady = deriveAuthToken().then((token) => {
+    AUTH_TOKEN = token
+    if (token) {
+      process.stderr.write('[angel-os-mcp] Auto-authenticated via PAYLOAD_SECRET\n')
+    } else {
+      process.stderr.write('[angel-os-mcp] No auth configured (set ANGEL_OS_API_KEY or PAYLOAD_SECRET)\n')
+    }
+  })
+}
 
 // ---------------------------------------------------------------------------
 // HTTP helpers
@@ -35,6 +113,12 @@ interface FetchOptions {
 }
 
 async function api(path: string, opts: FetchOptions = {}): Promise<unknown> {
+  // Ensure auth token is ready (first call may await JWT derivation)
+  if (authReady) {
+    await authReady
+    authReady = null
+  }
+
   const url = new URL(path, BASE_URL)
   if (opts.params) {
     for (const [k, v] of Object.entries(opts.params)) {
@@ -46,7 +130,7 @@ async function api(path: string, opts: FetchOptions = {}): Promise<unknown> {
     Accept: 'application/json',
     'x-tenant-id': TENANT_SLUG,
   }
-  if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`
+  if (AUTH_TOKEN) headers.Authorization = `Bearer ${AUTH_TOKEN}`
   if (opts.body) headers['Content-Type'] = 'application/json'
 
   const res = await fetch(url.toString(), {

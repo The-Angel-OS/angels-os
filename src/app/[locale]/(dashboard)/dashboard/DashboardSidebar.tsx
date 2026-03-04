@@ -397,8 +397,8 @@ export function DashboardSidebar({
             <NavLink href={`${prefix}/dashboard/admin/connectors`} icon={<PlugIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/connectors')}>
               Connectors
             </NavLink>
-            <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/ai-settings')}>
-              AI Settings
+            <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<GearIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/ai-settings')}>
+              Settings
             </NavLink>
             <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={isCollapsed} active={pathname.includes('/dashboard/admin/error-logs')}>
               Error Logs
