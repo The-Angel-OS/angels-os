@@ -239,9 +239,10 @@ server.tool(
     const docs = result?.docs || []
 
     const lines = docs.map((p: any) => {
-      const price = p.basePrice ?? p.price
+      const price = p.priceInUSD ?? p.basePrice ?? p.price
       const priceStr = price != null ? `$${(price / 100).toFixed(2)}` : 'N/A'
-      return `- **${p.title || 'Untitled'}** (ID: ${p.id}) — ${priceStr} | Stock: ${p.inventory?.stock ?? '?'} | Status: ${p._status || 'published'}`
+      const stock = typeof p.inventory === 'number' ? p.inventory : p.inventory?.stock ?? '?'
+      return `- **${p.title || 'Untitled'}** (ID: ${p.id}) — ${priceStr} | Stock: ${stock} | Status: ${p._status || 'published'}`
     })
 
     return {
