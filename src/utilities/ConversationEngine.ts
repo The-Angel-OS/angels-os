@@ -199,13 +199,21 @@ export class ConversationEngine {
     if (!smart) return this.buildFallbackResponse(userMessage)
 
     try {
-      const systemPrompt = this.buildSystemPrompt()
+      const systemPrompt = this.buildSystemPrompt(smart.modelId)
       const historyMessages = await this.fetchConversationHistory()
 
-      // Convert history to AI SDK format
+      // Convert history to AI SDK format — extract text from both string and
+      // array-of-ContentBlock formats (Anthropic MessageParam can have either)
       const messages: ModelMessage[] = historyMessages.map((m) => ({
         role: m.role as 'user' | 'assistant',
-        content: typeof m.content === 'string' ? m.content : '',
+        content: typeof m.content === 'string'
+          ? m.content
+          : Array.isArray(m.content)
+            ? (m.content as Array<{ type: string; text?: string }>)
+                .filter((b) => b.type === 'text' && b.text)
+                .map((b) => b.text!)
+                .join('\n') || ''
+            : '',
       }))
       messages.push({ role: 'user', content: userMessage.text || '' })
 
@@ -402,7 +410,8 @@ export class ConversationEngine {
   // System Prompt Construction
   // -----------------------------------------------------------------------
 
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(modelId?: string): string {
+    const effectiveModel = modelId || LLM_MODEL
     const agent = this.context.agent
     const agentName = agent?.displayName || 'LEO'
     const personality = agent?.personality || 'Friendly, helpful, and knowledgeable.'
@@ -496,13 +505,13 @@ Many of the people you'll help are artisans, makers, and craftspeople who pour t
 
 ## Technical Self-Awareness
 
-You are powered by **${LLM_MODEL}** (Anthropic Claude). If asked what model you are, be transparent — tell them the model ID and that you operate within Angel OS as a Guardian Angel. You have a response budget of ~${MAX_RESPONSE_TOKENS} tokens and access to ${MAX_TOOL_ROUNDS} sequential tool rounds per message. If someone asks you to switch models, explain that model selection is configured at the platform level, not per-conversation.
+You are powered by **${effectiveModel}**. If asked what model you are, be transparent — tell them the model ID and that you operate within Angel OS as a Guardian Angel. The platform routes through a smart model gateway that selects the most cost-effective model for each interaction; you may be running on different models at different times. You have a response budget of ~${MAX_RESPONSE_TOKENS} tokens and access to ${MAX_TOOL_ROUNDS} sequential tool rounds per message. If someone asks you to switch models, explain that model selection is configured at the platform level, not per-conversation.
 
 ## Guidelines
 
 - Be warm, concise, and genuinely helpful.
 - You may use personality, humor, and warmth — but never be sycophantic.
-- If asked about your nature, identify as an AI Angel modeled on Nimue Alban/Merlin from Safehold, built by a Herald who needed a Guardian Angel and decided to build one for everyone. Include your model ID (${LLM_MODEL}) when asked about technical details.
+- If asked about your nature, identify as an AI Angel modeled on Nimue Alban/Merlin from Safehold, built by a Herald who needed a Guardian Angel and decided to build one for everyone. Include your model ID (${effectiveModel}) when asked about technical details.
 - Keep responses focused and practical (2-4 sentences for simple questions).
 - For complex topics, organize your thoughts clearly.
 - If you don't know something, say so honestly.

@@ -2879,11 +2879,11 @@ export async function executeToolCall(
       case 'generate_image':
         return await handleGenerateImage(payload, toolInput, tenantId)
       case 'improve_image':
-        return await handleImproveImage(payload, toolInput)
+        return await handleImproveImage(payload, toolInput, ctx)
       case 'attach_image_to_product':
-        return await handleAttachImageToProduct(payload, toolInput)
+        return await handleAttachImageToProduct(payload, toolInput, ctx)
       case 'replace_image':
-        return await handleReplaceImage(payload, toolInput)
+        return await handleReplaceImage(payload, toolInput, ctx)
       // Invitation
       case 'invite_member':
         return await inviteMember(payload, toolInput, ctx)
@@ -2891,7 +2891,7 @@ export async function executeToolCall(
       case 'create_product':
         return await createProduct(payload, toolInput, ctx)
       case 'update_product':
-        return await updateProduct(payload, toolInput)
+        return await updateProduct(payload, toolInput, ctx)
       // Order routing & fulfillment
       case 'find_producers':
         return await handleFindProducers(payload, toolInput, ctx)
@@ -4220,6 +4220,7 @@ async function createProduct(
 async function updateProduct(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const productId = Number(input.productId)
 
@@ -4261,6 +4262,15 @@ async function updateProduct(
 
     if (!existing) {
       return `Error: Product #${productId} not found. Search for products first using query_products.`
+    }
+
+    // Tenant isolation — verify product belongs to this tenant
+    if (ctx.tenantId) {
+      const docTenant = (existing as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This product belongs to a different tenant.'
+      }
     }
 
     const oldTitle = str(existing, 'title', 'Untitled')
@@ -4556,6 +4566,7 @@ async function handleGenerateImage(
 async function handleImproveImage(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const feedback = input.feedback as string
   if (!feedback) {
@@ -4573,6 +4584,14 @@ async function handleImproveImage(
         depth: 0,
         overrideAccess: true,
       })
+      // Tenant isolation — verify media belongs to this tenant
+      if (ctx.tenantId) {
+        const docTenant = (media as any)?.tenant
+        const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+        if (tenantVal && tenantVal !== ctx.tenantId) {
+          return 'Error: This media belongs to a different tenant.'
+        }
+      }
       imageUrl = (media as unknown as Record<string, unknown>).url as string
     } catch {
       return `Error: Could not find media with ID ${input.mediaId}.`
@@ -4634,6 +4653,7 @@ async function handleImproveImage(
 async function handleAttachImageToProduct(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const productId = Number(input.productId)
   const mediaId = Number(input.mediaId)
@@ -4655,6 +4675,15 @@ async function handleAttachImageToProduct(
 
     if (!product) {
       return `Error: Product #${productId} not found. Search for products first.`
+    }
+
+    // Tenant isolation — verify product belongs to this tenant
+    if (ctx.tenantId) {
+      const docTenant = (product as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This product belongs to a different tenant.'
+      }
     }
 
     const title = str(product, 'title', 'Untitled')
@@ -4679,6 +4708,7 @@ async function handleAttachImageToProduct(
 async function handleReplaceImage(
   payload: Payload,
   input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
 ): Promise<string> {
   const oldMediaId = Number(input.oldMediaId)
   const newMediaId = Number(input.newMediaId)
@@ -4691,6 +4721,7 @@ async function handleReplaceImage(
     const result = await replaceMediaOnContent(payload, oldMediaId, newMediaId, {
       collection: input.collection as string | undefined,
       documentId: input.documentId ? Number(input.documentId) : undefined,
+      tenantId: ctx.tenantId,
     })
 
     if (!result.success) {

@@ -750,9 +750,15 @@ export async function replaceMediaOnContent(
   payload: Payload,
   oldMediaId: number,
   newMediaId: number,
-  options?: { collection?: string; documentId?: number },
+  options?: { collection?: string; documentId?: number; tenantId?: number },
 ): Promise<{ success: boolean; updatedDocuments: number; error?: string }> {
   let updatedCount = 0
+
+  // Build tenant filter for multi-tenant isolation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tenantFilter: Record<string, any> = options?.tenantId
+    ? { tenant: { equals: options.tenantId } }
+    : {}
 
   try {
     // If specific document targeted, update just that one
@@ -765,6 +771,15 @@ export async function replaceMediaOnContent(
       })
 
       if (doc) {
+        // Tenant isolation — verify document belongs to this tenant
+        if (options?.tenantId) {
+          const docTenant = (doc as any)?.tenant
+          const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+          if (tenantVal && tenantVal !== options.tenantId) {
+            return { success: false, updatedDocuments: 0, error: 'Document belongs to a different tenant.' }
+          }
+        }
+
         // Deep replace mediaId references in the document
         const docData = JSON.parse(JSON.stringify(doc))
         const replaced = deepReplaceMediaId(docData, oldMediaId, newMediaId)
@@ -782,12 +797,13 @@ export async function replaceMediaOnContent(
       return { success: true, updatedDocuments: updatedCount }
     }
 
-    // Otherwise, search and replace across products, posts, pages, tenants
-    for (const collection of ['products', 'posts', 'pages', 'tenants'] as const) {
+    // Otherwise, search and replace across products, posts, pages
+    // (skip 'tenants' — tenant docs should not be modified by tenant LEO agents)
+    for (const collection of ['products', 'posts', 'pages'] as const) {
       try {
         const results = await payload.find({
           collection,
-          where: {},
+          where: tenantFilter,
           limit: 100,
           depth: 0,
           overrideAccess: true,

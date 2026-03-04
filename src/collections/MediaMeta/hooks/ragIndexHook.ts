@@ -181,6 +181,11 @@ export const ragIndexHook: CollectionAfterChangeHook = async ({
   operation,
   req,
 }) => {
+  // Skip if this update was triggered by our own ragIndexed write
+  if (req.context?.skipRagIndex) {
+    return doc
+  }
+
   // Only index when transitioning TO 'complete'
   const wasComplete = previousDoc?.status === 'complete'
   const isComplete = doc.status === 'complete'

@@ -90,12 +90,14 @@ export async function POST(request: Request) {
 
   const setCookie = `payload-token=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${securePart}${domainPart}`
 
-  console.log('[Auth Set-Cookie] Setting cookie:', {
-    host,
-    effectiveCookieDomain: effectiveCookieDomain || '(host-only)',
-    secure: isProduction,
-    tokenLength: token.length,
-  })
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Auth Set-Cookie] Setting cookie:', {
+      host,
+      effectiveCookieDomain: effectiveCookieDomain || '(host-only)',
+      secure: isProduction,
+      tokenLength: token.length,
+    })
+  }
 
   const headers = new Headers()
   headers.set('Content-Type', 'application/json')

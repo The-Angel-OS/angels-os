@@ -86,7 +86,7 @@ export function OfficerLog() {
   useEffect(() => {
     const controller = new AbortController()
     fetchLog(controller.signal)
-    const interval = setInterval(() => fetchLog(), 30000)
+    const interval = setInterval(() => fetchLog(controller.signal), 30000)
     return () => {
       controller.abort()
       clearInterval(interval)
