@@ -151,6 +151,29 @@ export const Posts: CollectionConfig = {
         description: 'Related posts for internal linking',
       },
     },
+    {
+      name: 'sourceUrl',
+      type: 'text',
+      admin: {
+        position: 'sidebar',
+        description: 'Original URL if ingested from external source (YouTube, etc.)',
+      },
+      index: true,
+    },
+    {
+      name: 'sourceType',
+      type: 'select',
+      options: [
+        { label: 'YouTube', value: 'youtube' },
+        { label: 'Vimeo', value: 'vimeo' },
+        { label: 'RSS Feed', value: 'rss' },
+        { label: 'Manual', value: 'manual' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'Where this post was sourced from',
+      },
+    },
     simpleSlugField,
   ],
   hooks: {

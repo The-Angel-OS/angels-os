@@ -58,6 +58,11 @@ import {
   type OrderRequirement,
   type FulfillmentStatus,
 } from './orderRoutingEngine'
+import {
+  fetchYouTubeVideoMeta,
+  fetchYouTubeChannelFeed,
+  extractChannelId,
+} from './youtubeMetadata'
 
 // ---------------------------------------------------------------------------
 // Navigation Directive Helper — LEO Navigation Bridge
@@ -965,6 +970,61 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['title'],
+    },
+  },
+  {
+    name: 'ingest_youtube_url',
+    description:
+      'Ingest a YouTube video URL and create a blog post from it. Fetches video metadata (title, thumbnail, channel), creates a post with embedded video, and stores the source URL for deduplication. Skips if the video was already ingested.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'YouTube video URL (watch, youtu.be, or embed format)' },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'Publication status — defaults to "draft"',
+        },
+        categories: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Category names to assign (optional)',
+        },
+        additionalContent: {
+          type: 'string',
+          description: 'Extra text to add below the video embed (optional)',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'ingest_youtube_channel',
+    description:
+      'Ingest recent videos from a YouTube channel and create blog posts for each. Uses the public RSS feed (no API key needed). Skips videos that were already ingested. Returns a summary of what was created.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        channelId: {
+          type: 'string',
+          description: 'YouTube channel ID (starts with UC...) or channel URL',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max videos to ingest (default 5, max 15)',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'published'],
+          description: 'Publication status for created posts — defaults to "published"',
+        },
+        categories: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Category names to assign to all ingested posts (optional)',
+        },
+      },
+      required: ['channelId'],
     },
   },
   {
@@ -2793,6 +2853,10 @@ export async function executeToolCall(
       // ─── Sprint 14: Content Management ────────────────────────────────────
       case 'create_post':
         return await createPost(payload, toolInput, ctx)
+      case 'ingest_youtube_url':
+        return await ingestYouTubeUrl(payload, toolInput, ctx)
+      case 'ingest_youtube_channel':
+        return await ingestYouTubeChannel(payload, toolInput, ctx)
       case 'update_post':
         return await updatePost(payload, toolInput, ctx)
       case 'create_page':
@@ -5569,6 +5633,214 @@ async function createPost(
   if (slug) lines.push(`- URL: /posts/${slug}`)
   if (postData.categories?.length) lines.push(`- Categories: ${categoryNames?.join(', ')}`)
   if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
+
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
+}
+
+// ---------------------------------------------------------------------------
+// YouTube Ingestion Tools
+// ---------------------------------------------------------------------------
+
+/**
+ * ingest_youtube_url — Fetch metadata from a YouTube video and create a blog post.
+ * Deduplicates via sourceUrl field.
+ */
+async function ingestYouTubeUrl(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const url = (input.url as string)?.trim()
+  if (!url) return 'Error: YouTube URL is required.'
+
+  // Fetch metadata
+  const meta = await fetchYouTubeVideoMeta(url)
+  if (!meta || !meta.videoId) return `Error: Could not extract YouTube video from URL: ${url}`
+
+  // Check for duplicate (already ingested)
+  const existing = await payload.find({
+    collection: 'posts',
+    where: { sourceUrl: { equals: meta.sourceUrl } } as Where,
+    limit: 1,
+    overrideAccess: true,
+  })
+  if (existing.docs[0]) {
+    const existingPost = existing.docs[0] as any
+    return `This video was already ingested as "${existingPost.title}" (Post ID: ${existingPost.id}). Skipping duplicate.`
+  }
+
+  const title = meta.title || `Video: ${meta.videoId}`
+  const status = (input.status as string) || 'draft'
+  if (status !== 'draft' && status !== 'published') {
+    return 'Error: Status must be "draft" or "published".'
+  }
+
+  // Build post content: video embed + description
+  const contentParts: string[] = []
+  if (meta.channelName) contentParts.push(`From **${meta.channelName}**`)
+  contentParts.push(`[Watch on YouTube](${meta.sourceUrl})`)
+  if (meta.description) contentParts.push('', meta.description)
+  const additionalContent = input.additionalContent as string | undefined
+  if (additionalContent) contentParts.push('', additionalContent)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const postData: Record<string, any> = {
+    title,
+    _status: status,
+    sourceUrl: meta.sourceUrl,
+    sourceType: 'youtube',
+    layout: textToContentLayout(contentParts.join('\n\n')),
+  }
+
+  if (ctx.tenantId) postData.tenant = ctx.tenantId
+
+  // Resolve categories
+  const categoryNames = input.categories as string[] | undefined
+  if (categoryNames?.length) {
+    const categoryIds: (number | string)[] = []
+    for (const name of categoryNames) {
+      const found = await payload.find({
+        collection: 'categories',
+        where: { title: { contains: name } } as Where,
+        limit: 1,
+        overrideAccess: true,
+      })
+      if (found.docs[0]) categoryIds.push(found.docs[0].id)
+    }
+    if (categoryIds.length) postData.categories = categoryIds
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.create as any)({
+    collection: 'posts',
+    data: postData,
+    overrideAccess: true,
+  })
+
+  const slug = str(result, 'slug')
+  const lines = [
+    `YouTube video ingested successfully!`,
+    `- **${title}**`,
+    `- Channel: ${meta.channelName || 'Unknown'}`,
+    `- Post ID: ${result.id} (${status})`,
+  ]
+  if (slug) lines.push(`- URL: /posts/${slug}`)
+  if (meta.thumbnailUrl) lines.push(`- Thumbnail: ${meta.thumbnailUrl}`)
+  lines.push(`- Source: ${meta.sourceUrl}`)
+
+  return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
+}
+
+/**
+ * ingest_youtube_channel — Fetch recent videos from a channel's RSS feed
+ * and create posts for each. Deduplicates via sourceUrl.
+ */
+async function ingestYouTubeChannel(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const channelInput = (input.channelId as string)?.trim()
+  if (!channelInput) return 'Error: channelId is required (YouTube channel ID starting with UC... or channel URL).'
+
+  const channelId = extractChannelId(channelInput)
+  if (!channelId) {
+    return `Error: Could not extract a YouTube channel ID from "${channelInput}". Please provide a channel ID starting with "UC" or a youtube.com/channel/ URL.`
+  }
+
+  const limit = Math.min(Math.max(Number(input.limit) || 5, 1), 15)
+  const status = (input.status as string) || 'published'
+  if (status !== 'draft' && status !== 'published') {
+    return 'Error: Status must be "draft" or "published".'
+  }
+
+  // Fetch the RSS feed
+  const feed = await fetchYouTubeChannelFeed(channelId, limit)
+  if (feed.length === 0) {
+    return `No videos found for channel ${channelId}. The channel may not exist or has no public videos.`
+  }
+
+  // Resolve categories once
+  const categoryNames = input.categories as string[] | undefined
+  const categoryIds: (number | string)[] = []
+  if (categoryNames?.length) {
+    for (const name of categoryNames) {
+      const found = await payload.find({
+        collection: 'categories',
+        where: { title: { contains: name } } as Where,
+        limit: 1,
+        overrideAccess: true,
+      })
+      if (found.docs[0]) categoryIds.push(found.docs[0].id)
+    }
+  }
+
+  const created: string[] = []
+  const skipped: string[] = []
+  const failed: string[] = []
+
+  for (const video of feed) {
+    // Check for duplicate
+    const existing = await payload.find({
+      collection: 'posts',
+      where: { sourceUrl: { equals: video.sourceUrl } } as Where,
+      limit: 1,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) {
+      skipped.push(video.title)
+      continue
+    }
+
+    try {
+      const contentParts = [
+        `From **${video.channelName || 'YouTube'}**`,
+        `[Watch on YouTube](${video.sourceUrl})`,
+      ]
+      if (video.description) contentParts.push('', video.description)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const postData: Record<string, any> = {
+        title: video.title || `Video: ${video.videoId}`,
+        _status: status,
+        sourceUrl: video.sourceUrl,
+        sourceType: 'youtube',
+        publishedOn: video.publishedAt || undefined,
+        layout: textToContentLayout(contentParts.join('\n\n')),
+      }
+
+      if (ctx.tenantId) postData.tenant = ctx.tenantId
+      if (categoryIds.length) postData.categories = categoryIds
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.create as any)({
+        collection: 'posts',
+        data: postData,
+        overrideAccess: true,
+      })
+      created.push(video.title)
+    } catch (err: any) {
+      failed.push(`${video.title}: ${err.message || err}`)
+    }
+  }
+
+  const lines = [
+    `## YouTube Channel Ingestion Complete`,
+    `Channel: **${feed[0]?.channelName || channelId}**`,
+    '',
+  ]
+  if (created.length) {
+    lines.push(`**${created.length} post(s) created** (${status}):`)
+    for (const t of created) lines.push(`  - ${t}`)
+  }
+  if (skipped.length) {
+    lines.push(`\n**${skipped.length} skipped** (already ingested):`)
+    for (const t of skipped) lines.push(`  - ${t}`)
+  }
+  if (failed.length) {
+    lines.push(`\n**${failed.length} failed**:`)
+    for (const t of failed) lines.push(`  - ${t}`)
+  }
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
