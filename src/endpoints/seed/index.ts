@@ -361,6 +361,7 @@ Be excellent to each other. Party on, dudes.`,
 
     const tenant = await findOrCreateTenant(payload, req, {
       name: uc.name, slug: uc.slug, domain: uc.domain, type: 'tenant', branding: uc.branding,
+      ...(uc.businessType ? { businessType: uc.businessType } : {}),
     })
     payload.logger.info(`  ✓ Tenant: ${tenant.name} id=${tenant.id}`)
 
@@ -563,7 +564,7 @@ Be excellent to each other. Party on, dudes.`,
 
   // Get the Lucas Productions space for AI Bus announcements
   const lucasInfo = tenantMap['lucas-productions']
-  const haysInfo = tenantMap['hays-cactus-farm']
+  const haysInfo = tenantMap['hays-cactus']
 
   const eventSamples: Array<{
     title: string

@@ -27,7 +27,7 @@ const SYSTEM_EMAIL_DOMAIN = 'system.spacesangels.com'
 export async function findOrCreateTenant(
   payload: Payload,
   req: PayloadRequest,
-  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant' },
+  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant'; businessType?: string },
 ): Promise<{ id: number | string; name: string; slug: string }> {
   const existing = await payload.find({
     collection: 'tenants',
@@ -50,7 +50,8 @@ export async function findOrCreateTenant(
   }
   const created = await payload.create({
     collection: 'tenants',
-    data: { ...data, status: 'active', type: data.type || 'tenant' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- seed helper: businessType enum may include values not yet in generated types
+    data: { ...data, status: 'active', type: data.type || 'tenant' } as any,
     req,
     overrideAccess: true,
   })

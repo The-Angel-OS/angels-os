@@ -11,6 +11,7 @@ import * as migration_20260220_051631_add_tenant_to_soul_collections from './202
 import * as migration_20260223_013326 from './20260223_013326';
 import * as migration_20260223_232507_sprint17 from './20260223_232507_sprint17';
 import * as migration_20260224_031440_contacts_crm from './20260224_031440_contacts_crm';
+import * as migration_20260304_152233 from './20260304_152233';
 
 export const migrations = [
   {
@@ -76,6 +77,11 @@ export const migrations = [
   {
     up: migration_20260224_031440_contacts_crm.up,
     down: migration_20260224_031440_contacts_crm.down,
-    name: '20260224_031440_contacts_crm'
+    name: '20260224_031440_contacts_crm',
+  },
+  {
+    up: migration_20260304_152233.up,
+    down: migration_20260304_152233.down,
+    name: '20260304_152233'
   },
 ];

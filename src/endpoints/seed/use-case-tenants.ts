@@ -19,6 +19,8 @@ export interface UseCaseTenant {
   slug: string
   domain: string
   endeavorType: EndeavorType
+  /** Maps to the Tenants collection `businessType` select field */
+  businessType?: string
   spaceName: string
   branding: {
     siteName: string
@@ -65,6 +67,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'celersoft',
     domain: `celersoft.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
+    businessType: 'professional_services',
     spaceName: 'Celersoft Hub',
     branding: {
       siteName: 'Celersoft',
@@ -109,6 +112,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'lucas-productions',
     domain: `lucas-productions.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
+    businessType: 'service',
     spaceName: 'Lucas Productions Studio',
     branding: {
       siteName: 'Lucas Productions',
@@ -155,6 +159,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'clearwater-cruisin',
     domain: `clearwater-cruisin.${DOMAIN_SUFFIX}`,
     endeavorType: 'creator-content',
+    businessType: 'ministry',
     spaceName: 'Cruisin Community',
     branding: {
       siteName: 'Clearwater Cruisin Ministries Store',
@@ -303,6 +308,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'serenity-massage',
     domain: `serenity-massage.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
+    businessType: 'service',
     spaceName: 'Serenity Wellness Hub',
     branding: {
       siteName: 'Serenity Massage',
@@ -346,6 +352,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'hays-cactus',
     domain: `hays-cactus.${DOMAIN_SUFFIX}`,
     endeavorType: 'retail-commerce',
+    businessType: 'retail',
     spaceName: 'Cactus Community',
     branding: {
       siteName: 'Hays Cactus Farm',
@@ -442,6 +449,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     slug: 'helpdna',
     domain: `helpdna.${DOMAIN_SUFFIX}`,
     endeavorType: 'creator-content',
+    businessType: 'nonprofit',
     spaceName: 'HelpDNA Advocacy Network',
     branding: {
       siteName: 'HelpDNA',

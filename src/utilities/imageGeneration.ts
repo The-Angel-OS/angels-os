@@ -614,16 +614,33 @@ export async function uploadGeneratedImage(
 // ---------------------------------------------------------------------------
 
 /**
- * Attaches a Media document to a product's gallery.
+ * Attaches a Media document to a product's gallery array.
  * Can append to existing gallery or replace a specific image.
+ *
+ * Gallery schema: array of { image: upload(media), variantOption?: rel }
+ * At depth:0, image field is a numeric media ID.
+ * We preserve all existing array row properties (including Payload's `id`
+ * field) so Payload recognizes them as existing rows and doesn't orphan them.
  */
 export async function attachImageToProduct(
   payload: Payload,
   productId: number,
   mediaId: number,
   options?: { replaceIndex?: number },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; galleryCount?: number; error?: string }> {
   try {
+    // Verify media exists first
+    const media = await payload.findByID({
+      collection: 'media',
+      id: mediaId,
+      depth: 0,
+      overrideAccess: true,
+    }).catch(() => null)
+
+    if (!media) {
+      return { success: false, error: `Media #${mediaId} not found — it may have been deleted.` }
+    }
+
     const product = await payload.findByID({
       collection: 'products',
       id: productId,
@@ -635,24 +652,43 @@ export async function attachImageToProduct(
       return { success: false, error: `Product #${productId} not found.` }
     }
 
-    // Build updated gallery
-    const existingGallery = (product as unknown as Record<string, unknown>).gallery as
-      | Array<{ image: number; id?: string }>
-      | undefined
+    // Gallery is an array of objects. At depth:0, each item looks like:
+    // { id: 'row-uuid', image: <mediaId:number>, variantOption?: <id:number> }
+    // We MUST preserve all properties (especially `id`) so Payload knows
+    // these are existing rows. New items get auto-assigned an id by Payload.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawGallery = (product as any).gallery
+    const existingGallery: Array<Record<string, unknown>> = Array.isArray(rawGallery) ? rawGallery : []
 
-    let updatedGallery: Array<{ image: number; id?: string }>
+    // Check for duplicate — don't add the same media ID twice
+    const alreadyAttached = existingGallery.some((item) => {
+      const imgId = typeof item.image === 'object' && item.image !== null
+        ? (item.image as { id?: number }).id
+        : item.image
+      return imgId === mediaId
+    })
 
-    if (options?.replaceIndex !== undefined && existingGallery) {
-      // Replace a specific image in the gallery
-      updatedGallery = [...existingGallery]
-      if (options.replaceIndex >= 0 && options.replaceIndex < updatedGallery.length) {
-        updatedGallery[options.replaceIndex] = { image: mediaId }
-      } else {
-        updatedGallery.push({ image: mediaId })
+    if (alreadyAttached) {
+      return { success: true, galleryCount: existingGallery.length }
+    }
+
+    let updatedGallery: Array<Record<string, unknown>>
+
+    if (options?.replaceIndex !== undefined && existingGallery.length > 0) {
+      // Replace a specific image in the gallery — preserve the row ID
+      updatedGallery = existingGallery.map((item, i) => {
+        if (i === options.replaceIndex) {
+          return { ...item, image: mediaId }
+        }
+        return item
+      })
+      // If replaceIndex is out of bounds, append instead
+      if (options.replaceIndex < 0 || options.replaceIndex >= existingGallery.length) {
+        updatedGallery = [...existingGallery, { image: mediaId }]
       }
     } else {
       // Append to gallery
-      updatedGallery = [...(existingGallery || []), { image: mediaId }]
+      updatedGallery = [...existingGallery, { image: mediaId }]
     }
 
     await (payload.update as any)({ // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -662,7 +698,28 @@ export async function attachImageToProduct(
       overrideAccess: true,
     })
 
-    return { success: true }
+    // Verify the attachment stuck
+    const updated = await payload.findByID({
+      collection: 'products',
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finalGallery = Array.isArray((updated as any).gallery) ? (updated as any).gallery : []
+    const attached = finalGallery.some((item: Record<string, unknown>) => {
+      const imgId = typeof item.image === 'object' && item.image !== null
+        ? (item.image as { id?: number }).id
+        : item.image
+      return imgId === mediaId
+    })
+
+    if (!attached) {
+      console.error(`[ImageGeneration] Gallery update did NOT persist for product #${productId}. Sent ${updatedGallery.length} items, got ${finalGallery.length} back.`)
+      return { success: false, galleryCount: finalGallery.length, error: `Gallery update did not persist — the image may not have been saved. Try attaching it manually via the admin panel.` }
+    }
+
+    return { success: true, galleryCount: finalGallery.length }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[ImageGeneration] Attach error:', msg)
