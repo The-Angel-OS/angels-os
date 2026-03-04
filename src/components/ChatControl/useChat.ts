@@ -662,12 +662,21 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
           attachments = []
           const failedUploads: string[] = []
 
+          // Resolve tenant ID for the multi-tenant media collection.
+          // Falls back to payload-tenant cookie (set by multi-tenant plugin).
+          let uploadTenantId = opts?.tenantId || ''
+          if (!uploadTenantId && typeof document !== 'undefined') {
+            const match = document.cookie.match(/payload-tenant=([^;]+)/)
+            if (match) uploadTenantId = match[1]
+          }
+
           // Upload files in parallel
           const uploadResults = await Promise.allSettled(
             files.map(async (file) => {
               const formData = new FormData()
               formData.append('file', file)
               formData.append('alt', file.name)
+              if (uploadTenantId) formData.append('tenant', uploadTenantId)
               const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
                 method: 'POST',
                 credentials: 'include',
