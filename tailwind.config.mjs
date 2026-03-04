@@ -155,6 +155,26 @@ export default {
           '20%': { opacity: 1 },
           '100% ': { opacity: 0.2 },
         },
+        'prayer-wheel': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        'prayer-wheel-counter': {
+          from: { transform: 'rotate(360deg)' },
+          to: { transform: 'rotate(0deg)' },
+        },
+        'lcars-glow': {
+          '0%, 100%': { opacity: '0.6' },
+          '50%': { opacity: '1' },
+        },
+        'lcars-fade-up': {
+          from: { opacity: '0', transform: 'translateY(12px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'lcars-heartbeat': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.7' },
+          '50%': { transform: 'scale(1.15)', opacity: '1' },
+        },
       },
       animation: {
         in: 'in 0.2s ease-out',
@@ -169,6 +189,12 @@ export default {
         blink: 'blink 1.4s both infinite',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'prayer-wheel': 'prayer-wheel 30s linear infinite',
+        'prayer-wheel-fast': 'prayer-wheel 18s linear infinite',
+        'prayer-wheel-counter': 'prayer-wheel-counter 24s linear infinite',
+        'lcars-glow': 'lcars-glow 3s ease-in-out infinite',
+        'lcars-fade-up': 'lcars-fade-up 0.5s ease-out forwards',
+        'lcars-heartbeat': 'lcars-heartbeat 2s ease-in-out infinite',
       },
     },
   },

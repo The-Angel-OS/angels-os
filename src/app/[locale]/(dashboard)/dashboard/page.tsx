@@ -22,6 +22,9 @@ import {
   FederationActivityChart,
   JusticeFundChart,
 } from '@/components/charts/DashboardCharts'
+import { LCARSStatCard } from '@/components/dashboard/LCARSStatCard'
+import { LCARSQuickAction } from '@/components/dashboard/LCARSQuickAction'
+import { BridgeOfficerStatus } from '@/components/dashboard/BridgeOfficerStatus'
 
 /**
  * Dashboard Overview – Rev 2 style stat cards + quick access.
@@ -240,37 +243,101 @@ export default async function DashboardPage({
   // Unseeded = no spaces AND no products (tenants may exist from initial migration)
   const isSeeded = stats.spaces > 0 || stats.products > 0
 
+  // Stardate display: YYYY.DDD format
+  const now = new Date()
+  const startOfYear = new Date(now.getFullYear(), 0, 0)
+  const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000)
+  const stardate = `${now.getFullYear()}.${String(dayOfYear).padStart(3, '0')}`
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Onboarding Guide — first-time walkthrough, dismissible via localStorage */}
       <OnboardingGuide role={userRole} prefix={prefix} />
 
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
 
-      {/* Platform Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">{tenantName}</h1>
-        <div className="mt-2 inline-flex items-center gap-2">
-          <span
-            className={`inline-block h-2.5 w-2.5 rounded-full ${
-              tenantStatus === 'active' ? 'bg-emerald-500' : 'bg-amber-500'
-            }`}
-          />
-          <span className="text-sm text-muted-foreground">
-            Platform {tenantStatus === 'active' ? 'Active' : 'Provisioning'}
-          </span>
+      {/* LCARS Command Center Header */}
+      <div className="flex items-center gap-3">
+        <div
+          className="h-8 w-3 rounded-full flex-shrink-0"
+          style={{ background: 'var(--lcars-amber)' }}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1
+                className="text-lg font-mono font-bold uppercase tracking-wider"
+                style={{ color: 'var(--lcars-amber)' }}
+              >
+                {tenantName} — Command Center
+              </h1>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{
+                    background: tenantStatus === 'active' ? 'var(--lcars-green)' : 'var(--lcars-amber)',
+                    animation: 'lcars-heartbeat 2s ease-in-out infinite',
+                  }}
+                />
+                <span
+                  className="text-[10px] font-mono uppercase"
+                  style={{ color: 'var(--lcars-text-muted)' }}
+                >
+                  {tenantStatus === 'active' ? 'Systems Online' : 'Provisioning'}
+                </span>
+              </div>
+            </div>
+            <span
+              className="text-xs font-mono hidden sm:block"
+              style={{ color: 'var(--lcars-text-muted)' }}
+            >
+              STARDATE {stardate}
+            </span>
+          </div>
+          {/* LCARS decorative bars */}
+          <div className="flex gap-1 mt-1">
+            <div className="h-0.5 flex-1 rounded-full" style={{ background: 'rgba(245, 166, 35, 0.3)' }} />
+            <div className="h-0.5 w-12 rounded-full" style={{ background: 'rgba(153, 204, 255, 0.3)' }} />
+            <div className="h-0.5 w-6 rounded-full" style={{ background: 'rgba(204, 153, 204, 0.3)' }} />
+          </div>
         </div>
       </div>
 
-      {/* Stat Cards – top row, tenant-scoped for non-super-admins */}
+      {/* Stat Cards – LCARS styled, tenant-scoped */}
       <div className={`grid grid-cols-2 gap-4 ${isSuperAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {isSuperAdmin && (
-          <StatCard count={stats.tenants} label="Active Tenants" color="text-purple-500" />
+          <LCARSStatCard
+            label="Federation Tenants"
+            value={stats.tenants}
+            icon={<NetworkIcon />}
+            accentColor="var(--lcars-lavender)"
+            delay={0}
+          />
         )}
-        <StatCard count={stats.spaces} label="Collaboration Spaces" color="text-blue-500" />
-        <StatCard count={stats.users} label="Platform Users" color="text-emerald-500" />
-        <StatCard count={stats.products} label="Products Listed" color="text-orange-500" />
+        <LCARSStatCard
+          label="Comm Channels"
+          value={stats.spaces}
+          icon={<ChatIcon />}
+          accentColor="var(--lcars-blue)"
+          href={`${prefix}/dashboard/spaces`}
+          delay={100}
+        />
+        <LCARSStatCard
+          label="Crew Manifest"
+          value={stats.users}
+          icon={<UsersIcon />}
+          accentColor="var(--lcars-green)"
+          delay={200}
+        />
+        <LCARSStatCard
+          label="Cargo Bay"
+          value={stats.products}
+          icon={<CubeIcon />}
+          accentColor="var(--lcars-orange)"
+          href={`${prefix}/shop`}
+          delay={300}
+        />
       </div>
 
       {/* Bootstrap Fee Status */}
@@ -278,106 +345,195 @@ export default async function DashboardPage({
         <BootstrapFeeCard feeStatus={feeStatus} platformLiability={platformLiability} isSuperAdmin={isSuperAdmin} />
       )}
 
-      {/* Charts — Revenue + Order Volume side by side */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <RevenueChart data={revenueData} />
-        <OrderVolumeChart data={orderData} />
+      {/* Charts — LCARS panel wrapper */}
+      <div
+        className="rounded-lg border p-4"
+        style={{
+          background: 'rgba(17, 17, 34, 0.3)',
+          borderColor: 'rgba(245, 166, 35, 0.08)',
+        }}
+      >
+        <p
+          className="text-xs font-mono uppercase tracking-wider mb-3"
+          style={{ color: 'var(--lcars-text-muted)' }}
+        >
+          Sensor Readings — 30 Day Window
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <RevenueChart data={revenueData} />
+          <OrderVolumeChart data={orderData} />
+        </div>
       </div>
 
       {/* Admin-only charts — Federation + Justice Fund */}
       {isAdmin && (federationData.length > 0 || justiceFundData.length > 0) && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <FederationActivityChart data={federationData} />
-          <JusticeFundChart data={justiceFundData} />
-        </div>
-      )}
-
-      {/* Growth Stats — admin only */}
-      {isAdmin && (growthStats.pendingInvites > 0 || growthStats.activeMembers > 0 || growthStats.federationPeers > 0) && (
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">Network Growth</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg border bg-card p-4 text-center">
-              <p className="text-2xl font-bold text-amber-500">{growthStats.pendingInvites}</p>
-              <p className="text-sm text-muted-foreground">Pending Invites</p>
-            </div>
-            <div className="rounded-lg border bg-card p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-500">{growthStats.activeMembers}</p>
-              <p className="text-sm text-muted-foreground">Active Members</p>
-            </div>
-            <div className="rounded-lg border bg-card p-4 text-center">
-              <p className="text-2xl font-bold text-blue-500">{growthStats.federationPeers}</p>
-              <p className="text-sm text-muted-foreground">Federation Peers</p>
-            </div>
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            background: 'rgba(17, 17, 34, 0.3)',
+            borderColor: 'rgba(153, 204, 255, 0.08)',
+          }}
+        >
+          <p
+            className="text-xs font-mono uppercase tracking-wider mb-3"
+            style={{ color: 'var(--lcars-blue)' }}
+          >
+            Federation Telemetry
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FederationActivityChart data={federationData} />
+            <JusticeFundChart data={justiceFundData} />
           </div>
         </div>
       )}
 
-      {/* Quick Access */}
+      {/* Bridge Officer Status + Growth Stats row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <BridgeOfficerStatus />
+
+        {/* Growth Stats — LCARS styled */}
+        {isAdmin && (growthStats.pendingInvites > 0 || growthStats.activeMembers > 0 || growthStats.federationPeers > 0) && (
+          <div
+            className="rounded-lg border p-4"
+            style={{
+              background: 'rgba(17, 17, 34, 0.6)',
+              backdropFilter: 'blur(8px)',
+              borderColor: 'rgba(245, 166, 35, 0.1)',
+            }}
+          >
+            <p
+              className="text-xs font-mono uppercase tracking-wider mb-3"
+              style={{ color: 'var(--lcars-amber)' }}
+            >
+              Network Growth
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center">
+                <p
+                  className="text-2xl font-mono font-bold tabular-nums"
+                  style={{ color: 'var(--lcars-amber)', textShadow: '0 0 12px rgba(245, 166, 35, 0.25)' }}
+                >
+                  {growthStats.pendingInvites}
+                </p>
+                <p className="text-[10px] font-mono uppercase" style={{ color: 'var(--lcars-text-muted)' }}>
+                  Pending Hails
+                </p>
+              </div>
+              <div className="text-center">
+                <p
+                  className="text-2xl font-mono font-bold tabular-nums"
+                  style={{ color: 'var(--lcars-green)', textShadow: '0 0 12px rgba(76, 175, 80, 0.25)' }}
+                >
+                  {growthStats.activeMembers}
+                </p>
+                <p className="text-[10px] font-mono uppercase" style={{ color: 'var(--lcars-text-muted)' }}>
+                  Active Crew
+                </p>
+              </div>
+              <div className="text-center">
+                <p
+                  className="text-2xl font-mono font-bold tabular-nums"
+                  style={{ color: 'var(--lcars-blue)', textShadow: '0 0 12px rgba(153, 204, 255, 0.25)' }}
+                >
+                  {growthStats.federationPeers}
+                </p>
+                <p className="text-[10px] font-mono uppercase" style={{ color: 'var(--lcars-text-muted)' }}>
+                  Federation Peers
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Quick Access — LCARS Console Actions */}
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Quick Access</h2>
-        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
-          <QuickAccessCard
+        <p
+          className="text-xs font-mono uppercase tracking-wider mb-3"
+          style={{ color: 'var(--lcars-text-muted)' }}
+        >
+          Console Actions
+        </p>
+        <div className={`grid gap-3 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} sm:grid-cols-2`}>
+          <LCARSQuickAction
             href={`${prefix}/dashboard/spaces`}
             icon={<ChatIcon />}
-            iconColor="text-emerald-500"
-            title="Spaces"
-            subtitle="AI Chat + Collaboration"
+            label="Comms"
+            description="AI Chat + Collaboration"
+            accentColor="var(--lcars-green)"
           />
-          <QuickAccessCard
+          <LCARSQuickAction
             href={`${prefix}/dashboard/events`}
             icon={<CalendarIcon />}
-            iconColor="text-blue-500"
-            title="Events"
-            subtitle="Meetups & Workshops"
+            label="Ops Log"
+            description="Meetups & Workshops"
+            accentColor="var(--lcars-blue)"
           />
-          <QuickAccessCard
+          <LCARSQuickAction
             href={`${prefix}/shop`}
             icon={<CubeIcon />}
-            iconColor="text-purple-500"
-            title="Products"
-            subtitle="E-commerce Catalog"
+            label="Cargo Bay"
+            description="E-commerce Catalog"
+            accentColor="var(--lcars-lavender)"
           />
-          <QuickAccessCard
+          <LCARSQuickAction
             href={`${prefix}/federation/discover`}
             icon={<NetworkIcon />}
-            iconColor="text-indigo-500"
-            title="Discover"
-            subtitle="Federation Network"
+            label="Long Range Sensors"
+            description="Federation Network"
+            accentColor="var(--lcars-purple)"
           />
           {isAdmin && (
-            <QuickAccessCard
+            <LCARSQuickAction
               href={`${prefix}/dashboard/admin/invitations`}
               icon={<UsersIcon />}
-              iconColor="text-amber-500"
-              title="Invite People"
-              subtitle="Grow your community"
+              label="Crew Manifest"
+              description="Grow your community"
+              accentColor="var(--lcars-amber)"
             />
           )}
         </div>
       </div>
 
-      {/* Secondary Stats Row */}
-      <div className="grid grid-cols-3 gap-4">
-        <MiniStat count={stats.posts} label="Posts" href={`${prefix}/posts`} />
-        <MiniStat
-          count={stats.bookings}
-          label="Bookings"
-          href={`${prefix}/admin/collections/bookings`}
+      {/* Secondary Stats Row — LCARS mini cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <LCARSStatCard
+          label="Ship's Log"
+          value={stats.posts}
+          icon={<PostsIcon />}
+          accentColor="var(--lcars-peach)"
+          href={`${prefix}/posts`}
+          delay={400}
         />
-        <MiniStat
-          count={stats.projects}
+        <LCARSStatCard
+          label="Bookings"
+          value={stats.bookings}
+          icon={<CalendarIcon />}
+          accentColor="var(--lcars-blue)"
+          href={`${prefix}/admin/collections/bookings`}
+          delay={500}
+        />
+        <LCARSStatCard
           label="Projects"
+          value={stats.projects}
+          icon={<CubeIcon />}
+          accentColor="var(--lcars-lavender)"
           href={`${prefix}/admin/collections/projects`}
+          delay={600}
         />
       </div>
 
-      {/* Admin Panel link – Rev 2 style centered button */}
+      {/* Admin Panel link — LCARS styled */}
       {isAdmin && (
         <div className="flex justify-center">
           <Link
             href={`${prefix}/dashboard/admin`}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-mono uppercase tracking-wider transition-all hover:scale-[1.02]"
+            style={{
+              borderColor: 'rgba(245, 166, 35, 0.2)',
+              color: 'var(--lcars-amber)',
+              background: 'rgba(17, 17, 34, 0.5)',
+            }}
           >
             <GearIcon />
             Admin Panel
@@ -386,54 +542,6 @@ export default async function DashboardPage({
         </div>
       )}
     </div>
-  )
-}
-
-// ─── Sub-components ──────────────────────────────────────────────
-
-function StatCard({ count, label, color }: { count: number; label: string; color: string }) {
-  return (
-    <div className="rounded-lg border border-border p-5 text-center">
-      <p className={`text-3xl font-bold ${color}`}>{count}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-    </div>
-  )
-}
-
-function QuickAccessCard({
-  href,
-  icon,
-  iconColor,
-  title,
-  subtitle,
-}: {
-  href: string
-  icon: React.ReactNode
-  iconColor: string
-  title: string
-  subtitle: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center rounded-lg border border-border p-6 text-center transition-colors hover:bg-muted/50"
-    >
-      <span className={iconColor}>{icon}</span>
-      <h3 className="mt-3 font-semibold">{title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-    </Link>
-  )
-}
-
-function MiniStat({ count, label, href }: { count: number; label: string; href: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-lg border border-border p-4 text-center transition-colors hover:bg-muted/50"
-    >
-      <p className="text-xl font-semibold">{count}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </Link>
   )
 }
 
@@ -527,6 +635,19 @@ function ChevronRightIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+function PostsIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+      />
     </svg>
   )
 }

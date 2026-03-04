@@ -209,6 +209,16 @@ export function DashboardSidebar({
           <NavLink href={`${prefix}/dashboard`} icon={<GridIcon />} collapsed={isCollapsed} active={pathname === `${prefix}/dashboard` || pathname === '/dashboard'}>
             Dashboard
           </NavLink>
+          {(isAdmin || isBusinessOwner) && (
+            <NavLink
+              href={`${prefix}/dashboard/bridge`}
+              icon={<HelmIcon />}
+              collapsed={isCollapsed}
+              active={pathname.includes('/dashboard/bridge')}
+            >
+              Bridge
+            </NavLink>
+          )}
           {isAdmin && (
             <NavLink href={`${prefix}/admin`} icon={<GearIcon />} collapsed={isCollapsed} active={false}>
               Payload Admin
@@ -530,6 +540,16 @@ function MobileNavContent({
         <NavLink href={`${prefix}/dashboard`} icon={<GridIcon />} collapsed={false} active={pathname === `${prefix}/dashboard` || pathname === '/dashboard'}>
           Dashboard
         </NavLink>
+        {(isAdmin || isBusinessOwner) && (
+          <NavLink
+            href={`${prefix}/dashboard/bridge`}
+            icon={<HelmIcon />}
+            collapsed={false}
+            active={pathname.includes('/dashboard/bridge')}
+          >
+            Bridge
+          </NavLink>
+        )}
         {isAdmin && (
           <NavLink href={`${prefix}/admin`} icon={<GearIcon />} collapsed={false} active={false}>
             Payload Admin
@@ -954,6 +974,16 @@ function NetworkIcon() {
       <circle cx="5" cy="18" r="1.5" strokeWidth={1.5} />
       <circle cx="19" cy="18" r="1.5" strokeWidth={1.5} />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.5 7.5L10 10m4 4l2.5 2.5M10 14l-3.5 2.5M14 10l3.5-2.5" />
+    </svg>
+  )
+}
+
+function HelmIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="3" strokeWidth={1.5} />
+      <path strokeLinecap="round" strokeWidth={1.5} d="M12 3v6m0 6v6M3 12h6m6 0h6M5.636 5.636l4.243 4.243m4.242 4.242l4.243 4.243M18.364 5.636l-4.243 4.243m-4.242 4.242L5.636 18.364" />
     </svg>
   )
 }

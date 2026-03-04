@@ -54,7 +54,7 @@ export const LoginForm: React.FC = () => {
   )
 
   return (
-    <form className="" onSubmit={handleSubmit(onSubmit)}>
+    <form className="font-mono" onSubmit={handleSubmit(onSubmit)}>
       <Message className="classes.message" error={error} />
       <div className="flex flex-col gap-8">
         <FormItem>
@@ -98,7 +98,7 @@ export const LoginForm: React.FC = () => {
 
       <div className="relative my-8">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <span className="w-full border-t" style={{ borderColor: 'rgba(245, 166, 35, 0.2)' }} />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
