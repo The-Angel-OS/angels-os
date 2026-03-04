@@ -821,8 +821,8 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
         businessType: {
           type: 'string',
-          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'custom'],
-          description: 'What kind of business this is. Use "gift_shop" for gift shops, "ministry" for churches or faith-based orgs, "nonprofit" for charities and foundations.',
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'artisan_maker', 'custom'],
+          description: 'What kind of business this is. Use "artisan_maker" for craftspeople, woodworkers, custom furniture/cabinet makers, potters, metalworkers, etc. Use "gift_shop" for gift shops, "ministry" for churches or faith-based orgs.',
         },
         tagline: { type: 'string', description: 'Short tagline or motto' },
         description: { type: 'string', description: 'Brief description of the business' },
@@ -860,7 +860,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         ownerEmail: { type: 'string', description: 'Email for the vendor account' },
         businessType: {
           type: 'string',
-          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'custom'],
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'artisan_maker', 'custom'],
           description: 'Type of business',
         },
         tagline: { type: 'string', description: 'Short business tagline' },
@@ -872,16 +872,20 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'suggest_products',
     description:
-      'Generate product ideas based on a vendor description, business type, and capabilities. Use when a new vendor asks what they should sell or needs product inspiration.',
+      'Generate product ideas based on a vendor description, business type, and capabilities. Returns starter catalog templates specific to their industry plus custom suggestions. Use when a new vendor asks what they should sell, needs product inspiration, or when helping an artisan showcase their work.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        vendorDescription: { type: 'string', description: 'Description of what the vendor does or makes' },
-        businessType: { type: 'string', description: 'Type of business' },
+        vendorDescription: { type: 'string', description: 'Description of what the vendor does or makes — be specific about their craft, materials, and who they serve' },
+        businessType: {
+          type: 'string',
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'artisan_maker', 'custom'],
+          description: 'Type of business — use artisan_maker for craftspeople, woodworkers, custom furniture, etc.',
+        },
         skills: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Vendor capabilities/skills (e.g., "screen-printing", "woodworking")',
+          description: 'Vendor capabilities/skills (e.g., "woodworking", "cabinetry", "metalwork", "pottery")',
         },
         count: { type: 'number', description: 'Number of suggestions to generate (default 5)' },
       },
@@ -5294,6 +5298,7 @@ async function handleConfigureBusiness(
       professional_services: 'Professional Services',
       gift_shop: 'Gift Shop',
       ministry: 'Church / Ministry',
+      artisan_maker: 'Artisan / Maker',
       custom: 'Custom',
     }
 
@@ -5509,32 +5514,424 @@ async function handleOnboardVendor(
   }
 }
 
+// ─── Starter Catalog Templates ──────────────────────────────────────────────
+// Industry-specific product templates to help artisans and new vendors
+// build their first product listings. LEO uses these as a foundation
+// and personalizes them based on the vendor's specific craft.
+
+interface StarterProduct {
+  title: string
+  description: string
+  priceRange: string
+  suggestedPrice: number
+  productionType: 'ready_made' | 'custom_order' | 'print_on_demand' | 'digital'
+  category: string
+}
+
+const STARTER_CATALOGS: Record<string, StarterProduct[]> = {
+  artisan_maker: [
+    {
+      title: 'Custom Storage Cabinet',
+      description: 'Handcrafted solid wood cabinet designed for your specific storage needs. Built to order with your choice of wood species, finish, and interior configuration.',
+      priceRange: '$800–$3,500',
+      suggestedPrice: 1800,
+      productionType: 'custom_order',
+      category: 'Furniture',
+    },
+    {
+      title: 'Professional Filing System',
+      description: 'Purpose-built filing cabinet for professional offices. Smooth-glide drawers, reinforced joinery, and a finish that complements any office décor.',
+      priceRange: '$600–$2,000',
+      suggestedPrice: 1200,
+      productionType: 'custom_order',
+      category: 'Furniture',
+    },
+    {
+      title: 'Wall-Mounted Organizer Unit',
+      description: 'Space-saving wall-mounted storage with adjustable shelving. Perfect for small offices, workshops, or home studios.',
+      priceRange: '$300–$900',
+      suggestedPrice: 550,
+      productionType: 'custom_order',
+      category: 'Furniture',
+    },
+    {
+      title: 'Display Shelf Collection',
+      description: 'Floating shelves or freestanding display unit showcasing fine craftsmanship. Ideal for retail, galleries, or living spaces.',
+      priceRange: '$200–$800',
+      suggestedPrice: 450,
+      productionType: 'ready_made',
+      category: 'Furniture',
+    },
+    {
+      title: 'Consultation & Design Session',
+      description: 'One-on-one consultation to discuss your storage needs, review materials, and create a custom design plan.',
+      priceRange: '$75–$200',
+      suggestedPrice: 150,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+  ],
+
+  retail: [
+    {
+      title: 'Featured Product',
+      description: 'Our signature item — the product that defines what we do.',
+      priceRange: '$15–$75',
+      suggestedPrice: 35,
+      productionType: 'ready_made',
+      category: 'Featured',
+    },
+    {
+      title: 'Gift Bundle',
+      description: 'A curated collection of our best items, beautifully packaged and ready to give.',
+      priceRange: '$40–$120',
+      suggestedPrice: 65,
+      productionType: 'ready_made',
+      category: 'Gifts',
+    },
+    {
+      title: 'Seasonal Collection Item',
+      description: 'Limited-edition item available this season only. Get it while it lasts.',
+      priceRange: '$20–$80',
+      suggestedPrice: 40,
+      productionType: 'ready_made',
+      category: 'Seasonal',
+    },
+    {
+      title: 'Starter Kit',
+      description: 'Everything you need to get started, bundled together at a great value.',
+      priceRange: '$25–$60',
+      suggestedPrice: 45,
+      productionType: 'ready_made',
+      category: 'Bundles',
+    },
+    {
+      title: 'Gift Card',
+      description: 'Let them choose exactly what they want. Available in any amount.',
+      priceRange: '$10–$200',
+      suggestedPrice: 50,
+      productionType: 'digital',
+      category: 'Gifts',
+    },
+  ],
+
+  service: [
+    {
+      title: 'Initial Consultation',
+      description: 'A free or low-cost introductory session to understand your needs and how we can help.',
+      priceRange: '$0–$75',
+      suggestedPrice: 50,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+    {
+      title: 'Standard Service Package',
+      description: 'Our most popular service tier — everything most clients need.',
+      priceRange: '$100–$500',
+      suggestedPrice: 200,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+    {
+      title: 'Premium Service Package',
+      description: 'The full experience — priority scheduling, extended service, and premium support.',
+      priceRange: '$300–$1,000',
+      suggestedPrice: 500,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+    {
+      title: 'Maintenance Plan',
+      description: 'Ongoing care and support to keep everything running smoothly.',
+      priceRange: '$50–$200/month',
+      suggestedPrice: 100,
+      productionType: 'custom_order',
+      category: 'Plans',
+    },
+    {
+      title: 'Express Service',
+      description: 'Need it fast? Our expedited service gets the job done in half the time.',
+      priceRange: '$150–$600',
+      suggestedPrice: 300,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+  ],
+
+  gift_shop: [
+    {
+      title: 'Local Artisan Gift Box',
+      description: 'A handpicked selection of locally made goods, beautifully boxed and ready to delight.',
+      priceRange: '$35–$100',
+      suggestedPrice: 55,
+      productionType: 'ready_made',
+      category: 'Gift Boxes',
+    },
+    {
+      title: 'Seasonal Gift Set',
+      description: 'Themed gift collection perfect for the current season or upcoming holiday.',
+      priceRange: '$25–$80',
+      suggestedPrice: 45,
+      productionType: 'ready_made',
+      category: 'Seasonal',
+    },
+    {
+      title: 'Custom Gift Basket',
+      description: 'Tell us who it\'s for and we\'ll curate the perfect combination of goodies.',
+      priceRange: '$40–$150',
+      suggestedPrice: 75,
+      productionType: 'custom_order',
+      category: 'Custom',
+    },
+    {
+      title: 'Greeting Card Collection',
+      description: 'Handmade or locally designed cards for every occasion.',
+      priceRange: '$4–$8',
+      suggestedPrice: 5,
+      productionType: 'ready_made',
+      category: 'Cards & Stationery',
+    },
+    {
+      title: 'Gift Certificate',
+      description: 'The perfect gift when you want them to pick their own treasure.',
+      priceRange: '$10–$200',
+      suggestedPrice: 50,
+      productionType: 'digital',
+      category: 'Gifts',
+    },
+  ],
+
+  content_creator: [
+    {
+      title: 'Digital Course',
+      description: 'Learn from our expertise — video lessons, worksheets, and community access.',
+      priceRange: '$29–$199',
+      suggestedPrice: 79,
+      productionType: 'digital',
+      category: 'Courses',
+    },
+    {
+      title: 'Membership / Subscription',
+      description: 'Monthly access to exclusive content, community, and resources.',
+      priceRange: '$5–$25/month',
+      suggestedPrice: 10,
+      productionType: 'digital',
+      category: 'Memberships',
+    },
+    {
+      title: 'Digital Download Pack',
+      description: 'Templates, presets, guides, or other digital resources ready for instant download.',
+      priceRange: '$5–$50',
+      suggestedPrice: 19,
+      productionType: 'digital',
+      category: 'Downloads',
+    },
+    {
+      title: 'One-on-One Coaching Session',
+      description: 'Personalized guidance and mentorship via video call.',
+      priceRange: '$50–$300',
+      suggestedPrice: 150,
+      productionType: 'custom_order',
+      category: 'Coaching',
+    },
+    {
+      title: 'Branded Merchandise',
+      description: 'Show your support — high-quality merch featuring our brand.',
+      priceRange: '$15–$50',
+      suggestedPrice: 30,
+      productionType: 'print_on_demand',
+      category: 'Merch',
+    },
+  ],
+
+  nonprofit: [
+    {
+      title: 'General Donation',
+      description: 'Support our mission with a contribution of any amount. Every dollar makes a difference.',
+      priceRange: '$5–$500',
+      suggestedPrice: 25,
+      productionType: 'digital',
+      category: 'Donations',
+    },
+    {
+      title: 'Monthly Sustainer',
+      description: 'Become a monthly supporter and help us plan for the future.',
+      priceRange: '$5–$50/month',
+      suggestedPrice: 15,
+      productionType: 'digital',
+      category: 'Recurring',
+    },
+    {
+      title: 'Event Ticket',
+      description: 'Join us for our next fundraising event or community gathering.',
+      priceRange: '$10–$100',
+      suggestedPrice: 35,
+      productionType: 'digital',
+      category: 'Events',
+    },
+    {
+      title: 'Sponsorship Package',
+      description: 'Partner with us and get visibility while supporting a cause you believe in.',
+      priceRange: '$100–$5,000',
+      suggestedPrice: 500,
+      productionType: 'custom_order',
+      category: 'Sponsorship',
+    },
+    {
+      title: 'Awareness Merchandise',
+      description: 'Wear your support — all proceeds go directly to our programs.',
+      priceRange: '$15–$40',
+      suggestedPrice: 25,
+      productionType: 'print_on_demand',
+      category: 'Merch',
+    },
+  ],
+
+  ministry: [
+    {
+      title: 'Tithes & Offerings',
+      description: 'Support the work of the ministry through your generous giving.',
+      priceRange: '$5–$500',
+      suggestedPrice: 25,
+      productionType: 'digital',
+      category: 'Giving',
+    },
+    {
+      title: 'Building Fund Contribution',
+      description: 'Help us build, maintain, and improve our worship and gathering spaces.',
+      priceRange: '$10–$1,000',
+      suggestedPrice: 50,
+      productionType: 'digital',
+      category: 'Giving',
+    },
+    {
+      title: 'Event Registration',
+      description: 'Register for upcoming retreats, conferences, workshops, or community events.',
+      priceRange: '$0–$100',
+      suggestedPrice: 25,
+      productionType: 'digital',
+      category: 'Events',
+    },
+    {
+      title: 'Study Materials',
+      description: 'Books, devotionals, workbooks, and study guides for personal or group study.',
+      priceRange: '$5–$30',
+      suggestedPrice: 15,
+      productionType: 'ready_made',
+      category: 'Resources',
+    },
+    {
+      title: 'Mission Trip Support',
+      description: 'Sponsor a missionary or contribute to an upcoming mission trip.',
+      priceRange: '$25–$500',
+      suggestedPrice: 100,
+      productionType: 'digital',
+      category: 'Missions',
+    },
+  ],
+
+  professional_services: [
+    {
+      title: 'Discovery Call',
+      description: 'A complimentary introductory call to discuss your needs and see if we\'re a good fit.',
+      priceRange: '$0',
+      suggestedPrice: 0,
+      productionType: 'custom_order',
+      category: 'Consultations',
+    },
+    {
+      title: 'Standard Engagement',
+      description: 'Our core service offering — professional expertise applied to your specific situation.',
+      priceRange: '$200–$2,000',
+      suggestedPrice: 750,
+      productionType: 'custom_order',
+      category: 'Services',
+    },
+    {
+      title: 'Retainer Package',
+      description: 'Ongoing professional support with priority access and dedicated hours each month.',
+      priceRange: '$500–$5,000/month',
+      suggestedPrice: 1500,
+      productionType: 'custom_order',
+      category: 'Retainers',
+    },
+    {
+      title: 'Workshop / Training',
+      description: 'Group or individual training sessions to build capacity in your organization.',
+      priceRange: '$100–$500',
+      suggestedPrice: 250,
+      productionType: 'custom_order',
+      category: 'Training',
+    },
+    {
+      title: 'Document / Deliverable Package',
+      description: 'A defined scope of work resulting in specific documents, reports, or deliverables.',
+      priceRange: '$500–$5,000',
+      suggestedPrice: 2000,
+      productionType: 'custom_order',
+      category: 'Projects',
+    },
+  ],
+}
+
 /**
  * suggest_products — Generates product ideas based on vendor description.
- * Returns structured suggestions the user can act on.
+ * Uses industry-specific STARTER_CATALOGS as a foundation, then returns
+ * structured suggestions the LLM can personalize to the vendor's specific craft.
  */
 async function handleSuggestProducts(
   input: Record<string, unknown>,
 ): Promise<string> {
   const description = input.vendorDescription as string
+  const businessType = (input.businessType as string) || ''
   const skills = (input.skills as string[]) || []
   const count = Math.min(Number(input.count) || 5, 10)
 
   if (!description) {
-    return 'Tell me about your business — what do you make or offer? I\'ll suggest products based on that.'
+    return 'Tell me about your business — what do you make or offer? I\'ll suggest products that showcase your work beautifully.'
   }
 
-  // Return a structured prompt for the LLM to expand on
-  // (The actual creativity comes from Claude's next response)
-  const skillsList = skills.length > 0 ? `\nCapabilities: ${skills.join(', ')}` : ''
-  return `Based on the vendor description: "${description}"${skillsList}\n\n` +
-    `I'll suggest ${count} product ideas. For each product, I'll include:\n` +
-    `- Product name and description\n` +
-    `- Suggested price range\n` +
-    `- Production type (ready-made, print-on-demand, custom order, or digital)\n` +
-    `- Whether it's suitable for network listing\n` +
-    `- Configurator options if applicable\n\n` +
-    `[LEO will now generate ${count} specific product suggestions in the response]`
+  // Look up starter catalog for the business type
+  const catalog = STARTER_CATALOGS[businessType] || null
+  const skillsList = skills.length > 0 ? `\nSpecific skills: ${skills.join(', ')}` : ''
+
+  let response = `Based on the vendor description: "${description}"${skillsList}\n`
+  response += `Business type: ${businessType || 'not specified'}\n\n`
+
+  if (catalog) {
+    response += `## Starter Catalog Templates\n\n`
+    response += `Here are ${catalog.length} industry-specific product templates as a starting point. ` +
+      `Personalize these based on the vendor's specific craft, materials, and clientele:\n\n`
+
+    catalog.forEach((product, i) => {
+      response += `### ${i + 1}. ${product.title}\n`
+      response += `- **Description:** ${product.description}\n`
+      response += `- **Price range:** ${product.priceRange} (suggested: $${product.suggestedPrice})\n`
+      response += `- **Type:** ${product.productionType.replace(/_/g, ' ')}\n`
+      response += `- **Category:** ${product.category}\n\n`
+    })
+
+    response += `---\n\n`
+    response += `Use these templates as inspiration. Adapt the titles, descriptions, and prices ` +
+      `to match what this specific vendor actually makes. For example, if they build custom ` +
+      `cabinets for medical offices, rename "Custom Storage Cabinet" to something like ` +
+      `"Medical Records Filing Cabinet — Cherry Wood" and adjust the description to highlight ` +
+      `HIPAA-compliant storage, specific wood species they use, and the love they put into each piece.\n\n`
+    response += `Ask the vendor which products resonate most, then offer to create them one at a time. ` +
+      `Generate ${count} personalized suggestions in your response.`
+  } else {
+    response += `No starter catalog for type "${businessType}". ` +
+      `Generate ${count} custom product suggestions based on the vendor's description.\n\n` +
+      `For each product, include:\n` +
+      `- Product name (specific to their craft)\n` +
+      `- Description highlighting craftsmanship and care\n` +
+      `- Suggested price\n` +
+      `- Production type (ready-made, custom order, print-on-demand, or digital)\n` +
+      `- Recommended category\n\n` +
+      `Lead with their best work. Celebrate the craft.`
+  }
+
+  return response
 }
 
 /**

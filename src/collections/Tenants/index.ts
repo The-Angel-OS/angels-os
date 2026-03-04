@@ -179,6 +179,7 @@ export const Tenants: CollectionConfig = {
         { label: 'Nonprofit / Foundation', value: 'nonprofit' },
         { label: 'Church / Ministry', value: 'ministry' },
         { label: 'Professional Services', value: 'professional_services' },
+        { label: 'Artisan / Maker / Custom Manufacturing', value: 'artisan_maker' },
         { label: 'Custom / Other', value: 'custom' },
       ],
     },
