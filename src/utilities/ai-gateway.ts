@@ -26,9 +26,9 @@ import path from 'path'
 // ---------------------------------------------------------------------------
 
 export const MODEL_CATALOG = {
-  // Anthropic Claude
-  'claude-sonnet': 'anthropic/claude-sonnet-4-20250514',
-  'claude-opus': 'anthropic/claude-opus-4-20250514',
+  // Anthropic Claude (updated to latest 4.6 generation)
+  'claude-sonnet': 'anthropic/claude-sonnet-4-6',
+  'claude-opus': 'anthropic/claude-opus-4-6',
   'claude-haiku': 'anthropic/claude-haiku-4-5-20251001',
 
   // Google Gemini
@@ -46,7 +46,7 @@ export type ModelAlias = keyof typeof MODEL_CATALOG
 export const DEFAULT_MODEL = 'google/gemini-2.5-flash'
 
 /** Fallback model when primary is unavailable */
-export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-20250514'
+export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-6'
 
 // ---------------------------------------------------------------------------
 // Task-Based Model Tiers — "Models as Commodities"
@@ -76,17 +76,17 @@ export const TASK_MODEL_MAP: Record<TaskComplexity, {
   /** Product queries, booking workflows, standard chat, tool orchestration */
   medium: {
     primary: 'google/gemini-2.5-flash',
-    fallbacks: ['google/gemini-3.1-pro', 'anthropic/claude-sonnet-4-20250514'],
+    fallbacks: ['google/gemini-3.1-pro', 'anthropic/claude-sonnet-4-6'],
   },
   /** Complex reasoning, multi-step analysis, enterprise reports */
   high: {
     primary: 'google/gemini-3.1-pro',
-    fallbacks: ['anthropic/claude-sonnet-4-20250514'],
+    fallbacks: ['anthropic/claude-sonnet-4-6'],
   },
   /** Board-level strategy, nuanced creative work, critical decisions */
   critical: {
-    primary: 'anthropic/claude-sonnet-4-20250514',
-    fallbacks: ['anthropic/claude-opus-4-20250514', 'google/gemini-3.1-pro'],
+    primary: 'anthropic/claude-sonnet-4-6',
+    fallbacks: ['anthropic/claude-opus-4-6', 'google/gemini-3.1-pro'],
   },
 }
 
@@ -354,6 +354,7 @@ export function getModel(modelId?: string): LanguageModel | null {
 /**
  * Returns a fallback model (Claude Sonnet 4.6) for when the primary model errors.
  * @deprecated Prefer `getSmartModel()` which uses gateway-native fallback chains.
+ * @see MODEL_CATALOG for current model IDs
  */
 export function getFallbackModel(): LanguageModel | null {
   const apiKey = resolveGatewayKey()

@@ -811,14 +811,18 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'configure_business',
     description:
-      'Configure the tenant business profile. Use when a user describes their business type, wants to set up their storefront, or answers business setup questions. This is the core of the "5 minutes to running" wizard flow.',
+      'Configure the tenant business profile. Use when a user describes their business type, wants to set up their storefront, or answers business setup questions. This is the core of the "5 minutes to running" wizard flow. Can also rename the business and update the site name.',
     input_schema: {
       type: 'object' as const,
       properties: {
+        businessName: {
+          type: 'string',
+          description: 'Name of the business / storefront. Updates both the tenant name and site name.',
+        },
         businessType: {
           type: 'string',
-          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'custom'],
-          description: 'What kind of business this is',
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'custom'],
+          description: 'What kind of business this is. Use "gift_shop" for gift shops, "ministry" for churches or faith-based orgs, "nonprofit" for charities and foundations.',
         },
         tagline: { type: 'string', description: 'Short tagline or motto' },
         description: { type: 'string', description: 'Brief description of the business' },
@@ -830,7 +834,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         eventsEnabled: { type: 'boolean', description: 'Whether to enable events' },
         digitalProductsEnabled: { type: 'boolean', description: 'Whether to enable digital products' },
       },
-      required: ['businessType'],
+      required: [],
     },
   },
   {
@@ -856,7 +860,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         ownerEmail: { type: 'string', description: 'Email for the vendor account' },
         businessType: {
           type: 'string',
-          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'custom'],
+          enum: ['retail', 'service', 'content_creator', 'nonprofit', 'professional_services', 'gift_shop', 'ministry', 'custom'],
           description: 'Type of business',
         },
         tagline: { type: 'string', description: 'Short business tagline' },
@@ -5215,21 +5219,32 @@ async function handleConfigureBusiness(
     return 'Error: No tenant context available. Please ensure you are operating within a tenant.'
   }
 
-  const businessType = input.businessType as string
-  if (!businessType) {
-    return 'Error: businessType is required.'
+  const businessType = input.businessType as string | undefined
+  const businessName = input.businessName as string | undefined
+
+  // At least one field should be provided
+  if (!businessType && !businessName && !input.tagline && !input.description) {
+    return 'Error: Please provide at least a businessType, businessName, tagline, or description to update.'
   }
 
   try {
     // Build update data from input
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: Record<string, any> = {
-      businessType,
+    const updateData: Record<string, any> = {}
+
+    if (businessType) {
+      updateData.businessType = businessType
+    }
+
+    // Business name updates both tenant name and site name
+    if (businessName) {
+      updateData.name = businessName
+      // Also set the site name in settings for consistent branding
+      updateData.siteName = businessName
     }
 
     // Storefront fields
     const storefrontUpdate: Record<string, unknown> = {}
-    if (input.tagline) storefrontUpdate.description = undefined // will set below
     if (input.description) storefrontUpdate.description = input.description
     if (input.contactEmail) storefrontUpdate.contactEmail = input.contactEmail
     if (input.contactPhone) storefrontUpdate.contactPhone = input.contactPhone
@@ -5270,7 +5285,17 @@ async function handleConfigureBusiness(
       content_creator: 'Content Creator',
       nonprofit: 'Nonprofit / Ministry',
       professional_services: 'Professional Services',
+      gift_shop: 'Gift Shop',
+      ministry: 'Church / Ministry',
       custom: 'Custom',
+    }
+
+    const parts: string[] = []
+    if (businessName) {
+      parts.push(`Business renamed to "${businessName}".`)
+    }
+    if (businessType) {
+      parts.push(`Type set to "${typeLabels[businessType] || businessType}".`)
     }
 
     const enabledFeatures: string[] = []
@@ -5279,13 +5304,18 @@ async function handleConfigureBusiness(
     if (input.eventsEnabled) enabledFeatures.push('events')
     if (input.digitalProductsEnabled) enabledFeatures.push('digital products')
 
-    let response = `Business configured as "${typeLabels[businessType] || businessType}".`
     if (enabledFeatures.length > 0) {
-      response += ` Enabled: ${enabledFeatures.join(', ')}.`
+      parts.push(`Enabled: ${enabledFeatures.join(', ')}.`)
     }
     if (input.tagline) {
-      response += ` Tagline: "${input.tagline}".`
+      parts.push(`Tagline: "${input.tagline}".`)
     }
+    if (input.description) {
+      parts.push('Description updated.')
+    }
+
+    let response = parts.join(' ')
+    if (!response) response = 'Business profile updated.'
     response += ' Your storefront is taking shape! Next steps: add products, set up availability, or connect Stripe for payments.'
 
     return response + navDirective('/dashboard/enterprise', 'View Enterprise')

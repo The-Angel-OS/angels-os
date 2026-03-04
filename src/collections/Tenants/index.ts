@@ -173,9 +173,11 @@ export const Tenants: CollectionConfig = {
       },
       options: [
         { label: 'Retail / E-Commerce', value: 'retail' },
+        { label: 'Gift Shop', value: 'gift_shop' },
         { label: 'Service Business', value: 'service' },
         { label: 'Content Creator', value: 'content_creator' },
-        { label: 'Nonprofit / Enterprise', value: 'nonprofit' },
+        { label: 'Nonprofit / Foundation', value: 'nonprofit' },
+        { label: 'Church / Ministry', value: 'ministry' },
         { label: 'Professional Services', value: 'professional_services' },
         { label: 'Custom / Other', value: 'custom' },
       ],
