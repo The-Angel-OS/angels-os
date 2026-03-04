@@ -570,7 +570,11 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
    * Fallback: send via batch /api/leo endpoint
    */
   const sendViaBatch = useCallback(
-    async (content: string, leoMsgId: string) => {
+    async (
+      content: string,
+      leoMsgId: string,
+      images?: Array<{ url: string; mediaId?: number; alt?: string }>,
+    ) => {
       try {
         const leoRes = await fetch(`${SERVER_URL}/api/leo`, {
           method: 'POST',
@@ -581,6 +585,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             conversationId: conversationIdRef.current,
             channelSlug: activeChannel,
             spaceId,
+            ...(images && images.length > 0 ? { images } : {}),
           }),
         })
 
@@ -655,7 +660,9 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
         if (files && files.length > 0) {
           attachments = []
-          // Upload files in parallel for better performance
+          const failedUploads: string[] = []
+
+          // Upload files in parallel
           const uploadResults = await Promise.allSettled(
             files.map(async (file) => {
               const formData = new FormData()
@@ -666,18 +673,52 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                 credentials: 'include',
                 body: formData,
               })
-              if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.statusText}`)
-              return uploadRes.json()
+              if (!uploadRes.ok) {
+                const errText = await uploadRes.text().catch(() => uploadRes.statusText)
+                throw new Error(`Upload "${file.name}" failed (${uploadRes.status}): ${errText}`)
+              }
+              return { file, data: await uploadRes.json() }
             }),
           )
           for (const result of uploadResults) {
             if (result.status === 'fulfilled') {
-              const mediaDoc = result.value
+              const mediaDoc = result.value.data
               const mediaId = mediaDoc.doc?.id || mediaDoc.id
-              attachments.push({ media: mediaId, caption: mediaDoc.doc?.filename || mediaDoc.filename })
-              const mediaUrl = mediaDoc.doc?.url || mediaDoc.url || `/api/media/file/${mediaDoc.doc?.filename || mediaDoc.filename}`
-              uploadedImageUrls.push({ url: mediaUrl, mediaId, alt: mediaDoc.doc?.filename || mediaDoc.filename })
+              if (mediaId) {
+                attachments.push({ media: mediaId, caption: mediaDoc.doc?.filename || mediaDoc.filename })
+                const mediaUrl = mediaDoc.doc?.url || mediaDoc.url || `/api/media/file/${mediaDoc.doc?.filename || mediaDoc.filename}`
+                uploadedImageUrls.push({ url: mediaUrl, mediaId, alt: mediaDoc.doc?.filename || mediaDoc.filename })
+              } else {
+                failedUploads.push(result.value.file.name)
+                console.error(`[useChat] Upload returned no mediaId for "${result.value.file.name}":`, mediaDoc)
+              }
+            } else {
+              // Extract filename from the error message or use generic name
+              const errMsg = result.reason?.message || String(result.reason)
+              const nameMatch = errMsg.match(/Upload "(.+?)" failed/)
+              failedUploads.push(nameMatch?.[1] || 'file')
+              console.error(`[useChat] File upload failed:`, errMsg)
             }
+          }
+
+          // Warn user about failed uploads
+          if (failedUploads.length > 0) {
+            const names = failedUploads.join(', ')
+            const warnMsg =
+              failedUploads.length === files.length
+                ? `All ${files.length} file(s) failed to upload: ${names}. Message sent without attachments.`
+                : `${failedUploads.length} of ${files.length} file(s) failed to upload: ${names}.`
+            console.warn(`[useChat] ${warnMsg}`)
+            // Show warning as a system message
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `warn_${Date.now()}`,
+                role: 'system',
+                content: `⚠️ ${warnMsg}`,
+                timestamp: new Date(),
+              },
+            ])
           }
         }
 
@@ -731,7 +772,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         const leoMsgId = `leo_${Date.now()}`
         const streamed = await sendViaStream(content.trim(), leoMsgId, uploadedImageUrls)
         if (!streamed) {
-          await sendViaBatch(content.trim(), leoMsgId)
+          await sendViaBatch(content.trim(), leoMsgId, uploadedImageUrls)
         }
       } catch (err) {
         console.error('Failed to send message:', err)
