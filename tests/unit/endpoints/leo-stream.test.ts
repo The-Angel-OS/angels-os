@@ -84,6 +84,13 @@ vi.mock('@/utilities/pheromone-engine', () => ({
 vi.mock('@anthropic-ai/sdk', () => ({
   default: mockAnthropicConstructor,
 }))
+// Mock fs so resolveAnthropicKey() cannot read .env files from disk.
+// Without this, the handler finds a real API key in .env and skips the 503 path.
+vi.mock('fs', () => ({
+  default: { existsSync: vi.fn().mockReturnValue(false), readFileSync: vi.fn() },
+  existsSync: vi.fn().mockReturnValue(false),
+  readFileSync: vi.fn(),
+}))
 
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 

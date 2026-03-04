@@ -148,7 +148,8 @@ describe('orderCancelHandler', () => {
   })
 
   it('returns 200 on success when STRIPE_SECRET_KEY is not set (no refund, stripeRefundId: null)', async () => {
-    // STRIPE_SECRET_KEY intentionally not stubbed — should be absent
+    // Explicitly clear STRIPE_SECRET_KEY — the real .env may have it set
+    vi.stubEnv('STRIPE_SECRET_KEY', '')
     const req = makeReq({ orderId: 1, orderItemIndex: 0 })
     const res = await orderCancelHandler(req)
     expect(res.status).toBe(200)

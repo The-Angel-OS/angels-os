@@ -41,6 +41,9 @@ vi.mock('@/utilities/federationEngine', () => ({
   getSentinels: vi.fn().mockReturnValue([]),
   electCoordinator: vi.fn().mockReturnValue(null),
 }))
+vi.mock('@/utilities/streetSigns', () => ({
+  buildStreetSigns: vi.fn().mockResolvedValue(undefined),
+}))
 
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
 
@@ -101,6 +104,9 @@ describe('federationHeartbeatCronHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env = { ...originalEnv }
+    // Clear CRON_SECRET so the auth guard is skipped by default — tests that
+    // need cron auth set it explicitly.
+    delete process.env.CRON_SECRET
     mockGetActiveConstitution.mockReturnValue({ version: '1.0.0', checksum: 'abc123' })
     mockGetOrCreateFederationKeyPair.mockResolvedValue({ publicKey: 'pub-key-hex', privateKey: 'priv-key-hex' })
     mockSendHeartbeat.mockResolvedValue({ acknowledged: true })
