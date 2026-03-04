@@ -465,7 +465,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'generate_image',
     description:
-      'Generate an AI image using Flux 2, Gemini, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. After generating, you can attach the image to a product or save it as media. Always describe what you\'re generating before calling this tool.',
+      'Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. When productName is provided with autoAttach=true (default), the image is automatically attached to that product\'s gallery — no separate attach step needed. Always describe what you\'re generating before calling this tool.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -477,12 +477,12 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         productName: {
           type: 'string',
           description:
-            'If generating for a specific product, its name (used to enhance the prompt and filename)',
+            'If generating for a specific product, its name. The image will be auto-attached to this product\'s gallery when autoAttach is true (default).',
         },
         category: {
           type: 'string',
           description:
-            'Product category for style optimization: candles, jewelry, clothing, food, electronics, art, wellness, massage, cactus',
+            'Product category for style optimization: signs, decor, woodwork, crafts, outdoor, candles, jewelry, clothing, food, electronics, art, wellness, massage, cactus',
         },
         brandStyle: {
           type: 'string',
@@ -495,7 +495,12 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         autoSave: {
           type: 'boolean',
           description:
-            'If true, automatically upload the generated image to the media library. Default: true for product images.',
+            'If true, automatically upload the generated image to the media library. Default: true.',
+        },
+        autoAttach: {
+          type: 'boolean',
+          description:
+            'If true and productName is provided, automatically attach the generated image to the product\'s gallery. Default: true. Set to false to generate without attaching.',
         },
       },
       required: ['prompt'],
@@ -4383,13 +4388,15 @@ async function handleGenerateImage(
   }
 
   const autoSave = input.autoSave !== false // Default true
+  const autoAttach = input.autoAttach !== false // Default true
+  const productName = input.productName as string | undefined
 
   try {
     const result = await generateImage(
       {
         prompt,
         enhancementContext: {
-          productName: input.productName as string | undefined,
+          productName,
           category: input.category as string | undefined,
           brandStyle: input.brandStyle as string | undefined,
           backgroundColor: input.backgroundColor as string | undefined,
@@ -4400,7 +4407,12 @@ async function handleGenerateImage(
       autoSave ? payload : undefined,
     )
     if (!result.success) {
-      return `Image generation failed: ${result.error}`
+      const errorParts = [`Image generation failed: ${result.error}`]
+      if (result.modelText) {
+        errorParts.push(`\nModel response: ${result.modelText.slice(0, 200)}`)
+      }
+      errorParts.push('\n💡 Tips: Try a simpler prompt, specify a different category (signs, decor, woodwork, art), or try again — AI image models can be intermittent.')
+      return errorParts.join('\n')
     }
 
     const parts: string[] = ['Image generated successfully! 🎨']
@@ -4427,9 +4439,44 @@ async function handleGenerateImage(
       parts.push(`\n⚠️ ${result.uploadWarning}`)
     }
 
-    if (input.productName) {
-      parts.push(`\nWould you like me to attach this image to the "${input.productName}" product?`)
-    } else {
+    // Auto-attach to product if productName provided and image was saved
+    if (productName && autoAttach && result.mediaId) {
+      try {
+        // Find the product by title (fuzzy match)
+        const products = await payload.find({
+          collection: 'products',
+          where: {
+            title: { contains: productName },
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+
+        if (products.docs.length > 0) {
+          const product = products.docs[0]
+          const attachResult = await attachImageToProduct(
+            payload,
+            product.id as number,
+            result.mediaId,
+          )
+          if (attachResult.success) {
+            parts.push(`\n✅ Image automatically attached to "${product.title}" product gallery.`)
+          } else {
+            parts.push(`\n⚠️ Image saved but could not attach to product: ${attachResult.error}`)
+            parts.push(`You can manually attach Media ID ${result.mediaId} to the product.`)
+          }
+        } else {
+          parts.push(`\n⚠️ Product "${productName}" not found — image saved to media library (Media ID: ${result.mediaId}).`)
+          parts.push('You can ask me to attach it to a specific product by ID.')
+        }
+      } catch (attachErr) {
+        parts.push(`\n⚠️ Image saved but auto-attach failed: ${attachErr instanceof Error ? attachErr.message : 'Unknown error'}`)
+        parts.push(`Media ID: ${result.mediaId} — you can ask me to attach it manually.`)
+      }
+    } else if (productName && !autoAttach) {
+      parts.push(`\nWould you like me to attach this image to the "${productName}" product?`)
+    } else if (!productName) {
       parts.push('\nYou can ask me to attach this to a specific product or save it for later.')
     }
 

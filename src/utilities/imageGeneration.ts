@@ -27,12 +27,13 @@ import { getImageModel, isGatewayAvailable } from './ai-gateway'
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 /** Default OpenRouter image model (fallback path) */
-const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-image'
+const DEFAULT_OPENROUTER_MODEL = 'google/gemini-3-pro-image-preview'
 
 /** Fallback OpenRouter models in priority order */
 const OPENROUTER_FALLBACK_MODELS = [
-  'google/gemini-2.5-flash-image',
   'google/gemini-3-pro-image-preview',
+  'google/gemini-3.1-flash-image-preview',
+  'google/gemini-2.5-flash-image',
   'openai/gpt-5-image-mini',
 ]
 
@@ -128,6 +129,11 @@ function enhancePromptForProduct(
       wellness: 'Serene natural setting, soft earth tones, mindful lifestyle photography.',
       massage: 'Spa environment, calming earth tones, warm lighting, relaxation lifestyle.',
       cactus: 'Desert botanical photography, natural sunlight, rustic southwestern aesthetic.',
+      signs: 'CNC-cut wood sign product photography, rustic wood grain texture visible, clean workshop or outdoor Florida setting, warm natural sunlight, slight shadow depth showing laser-cut edges and layers.',
+      decor: 'Handcrafted home decor product photography, warm interior setting, natural wood grain and painted details visible, lifestyle staging with complementary props.',
+      woodwork: 'CNC and laser-cut plywood craft photography, workshop or lifestyle setting, visible wood texture and precision-cut edges, warm lighting showcasing three-dimensional layering.',
+      crafts: 'Handmade artisan product photography, warm lifestyle setting, detailed close-up showing craftsmanship and materials, natural daylight.',
+      outdoor: 'Outdoor product photography, Florida sunshine, tropical or coastal setting, vibrant colors, natural dappled sunlight.',
     }
     const style =
       categoryStyles[context.category.toLowerCase()] ||
