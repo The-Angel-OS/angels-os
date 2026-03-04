@@ -54,28 +54,57 @@ const BASE_URL = process.env.ANGEL_OS_URL || 'https://www.spacesangels.com'
 const TENANT_SLUG = process.env.ANGEL_OS_TENANT || 'default'
 
 // ---------------------------------------------------------------------------
-// JWT Auto-Auth — derive token from PAYLOAD_SECRET when no API key is set
+// JWT Auto-Auth — obtain session-backed token from PAYLOAD_SECRET
 // ---------------------------------------------------------------------------
 
 let AUTH_TOKEN = process.env.ANGEL_OS_API_KEY || ''
 
+/**
+ * Obtain a proper JWT with session ID by calling /api/auth/system-token.
+ *
+ * The endpoint validates the PAYLOAD_SECRET hash and creates a session
+ * in the database, returning a JWT that Payload 3.77+ accepts (has `sid`).
+ *
+ * Fallback: if the endpoint isn't available yet (pre-deploy), sign a
+ * basic JWT locally (works for unauthenticated endpoints like list_products).
+ */
 async function deriveAuthToken(): Promise<string> {
   const payloadSecret = process.env.PAYLOAD_SECRET
   if (!payloadSecret) return ''
 
-  try {
-    // Payload hashes the secret internally:
-    // crypto.createHash('sha256').update(secret).digest('hex').slice(0, 32)
-    const hashedSecret = crypto.createHash('sha256').update(payloadSecret).digest('hex').slice(0, 32)
-    const secretBytes = new TextEncoder().encode(hashedSecret)
+  const secretHash = crypto.createHash('sha256').update(payloadSecret).digest('hex').slice(0, 32)
 
-    // Use jose (dynamic import — it's already in the project)
+  // Try the system-token endpoint first (gives us a session-backed JWT)
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/system-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secretHash, tenantSlug: TENANT_SLUG }),
+    })
+
+    if (res.ok) {
+      const data = (await res.json()) as { token: string; user: { id: number; email: string }; expiresAt: string }
+      process.stderr.write(
+        `[angel-os-mcp] Authenticated as ${data.user.email} (session expires ${data.expiresAt})\n`,
+      )
+      return data.token
+    }
+
+    process.stderr.write(
+      `[angel-os-mcp] system-token returned ${res.status} — falling back to local JWT\n`,
+    )
+  } catch (err) {
+    process.stderr.write(`[angel-os-mcp] system-token endpoint unreachable — falling back to local JWT\n`)
+  }
+
+  // Fallback: sign a basic JWT locally (no session — works for public/unauthenticated endpoints)
+  try {
+    const secretBytes = new TextEncoder().encode(secretHash)
     const { SignJWT } = await import('jose')
 
     const token = await new SignJWT({
-      email: 'leo-default@system.angel-os.local',
+      email: `leo-${TENANT_SLUG}@system.spacesangels.com`,
       collection: 'users',
-      isSystemUser: true,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -84,7 +113,7 @@ async function deriveAuthToken(): Promise<string> {
 
     return token
   } catch (err) {
-    process.stderr.write(`[angel-os-mcp] JWT auto-auth failed: ${err}\n`)
+    process.stderr.write(`[angel-os-mcp] JWT fallback failed: ${err}\n`)
     return ''
   }
 }

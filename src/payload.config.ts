@@ -118,6 +118,7 @@ import { federationElectionHandler } from '@/endpoints/federation-election'
 import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
+import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
@@ -758,6 +759,11 @@ export default buildConfig({
       path: '/auth/token-relay',
       method: 'get',
       handler: authTokenRelayHandler,
+    },
+    {
+      path: '/auth/system-token',
+      method: 'post',
+      handler: authSystemTokenHandler,
     },
     {
       path: '/auth/social-unlink',
