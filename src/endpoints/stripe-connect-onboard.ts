@@ -130,6 +130,20 @@ export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to create Stripe onboarding link'
+
+    // Stripe requires the platform profile to be accepted before creating Connect accounts.
+    // Surface a user-friendly message instead of the raw Stripe API error.
+    if (message.includes('platform-profile') || message.includes('managing losses')) {
+      return Response.json(
+        {
+          error:
+            'Stripe requires the platform owner to complete the Connect platform profile first. ' +
+            'Please visit https://dashboard.stripe.com/settings/connect/platform-profile to review and accept.',
+        },
+        { status: 503 },
+      )
+    }
+
     return Response.json({ error: message }, { status: 500 })
   }
 }

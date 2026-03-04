@@ -127,6 +127,16 @@ export function PaymentsAdmin({
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950 p-4">
           <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          {error.includes('platform-profile') || error.includes('platform profile') ? (
+            <a
+              href="https://dashboard.stripe.com/settings/connect/platform-profile"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-red-700 underline hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
+            >
+              Open Stripe Platform Profile →
+            </a>
+          ) : null}
         </div>
       )}
 
