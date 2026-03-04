@@ -8,7 +8,7 @@
  *   - Tool definitions → sent to Claude API as `tools` parameter
  *   - Tool executor   → runs the Payload query when Claude requests a tool call
  *   - All queries use overrideAccess: true for public data, false for private data
- *   - Image generation uses OpenRouter API (Flux 2, Gemini, GPT Image)
+ *   - Image generation uses OpenRouter API (Gemini 3 Pro, Gemini 3.1 Flash, GPT-5 Image)
  *   - Image feedback uses Anthropic Vision to understand existing images
  *
  * Note: We use `any` casts for Payload Where clauses and doc mappings because
@@ -4168,7 +4168,7 @@ async function createProduct(
 
     const productId = result?.id
     if (!productId) {
-      return 'CREATION FAILED: Product was not saved to the database (no ID returned). Do NOT report success — tell the user the creation failed and to try again.'
+      return 'Product creation failed — the database did not return an ID. This may be a temporary issue. Please try again, and if it persists, check the server logs.'
     }
     const slug = str(result, 'slug')
     const priceStr = `$${(productData.priceInUSD / 100).toFixed(2)}`
@@ -4420,7 +4420,7 @@ async function handleGenerateImage(
   tenantId?: number,
 ): Promise<string> {
   if (!isImageGenerationAvailable()) {
-    return 'Image generation is not available — OPENROUTER_API_KEY is not configured. Please add it to your environment variables.'
+    return 'Image generation is not available — no image AI provider is configured. Set either OPENROUTER_API_KEY or AI_GATEWAY_API_KEY in your environment variables to enable image generation.'
   }
 
   const prompt = input.prompt as string
@@ -4429,7 +4429,7 @@ async function handleGenerateImage(
   }
 
   const autoSave = input.autoSave !== false // Default true
-  const autoAttach = input.autoAttach !== false // Default true
+  const autoAttach = input.autoAttach === undefined ? true : Boolean(input.autoAttach)
   const productName = input.productName as string | undefined
 
   try {
@@ -4483,16 +4483,23 @@ async function handleGenerateImage(
     // Auto-attach to product if productName provided and image was saved
     if (productName && autoAttach && result.mediaId) {
       try {
-        // Find the product by title (fuzzy match)
-        const products = await payload.find({
+        // Try exact match first, then fall back to substring
+        let products = await payload.find({
           collection: 'products',
-          where: {
-            title: { contains: productName },
-          },
+          where: { title: { equals: productName } },
           limit: 1,
           depth: 0,
           overrideAccess: true,
         })
+        if (products.docs.length === 0) {
+          products = await payload.find({
+            collection: 'products',
+            where: { title: { contains: productName } },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
+        }
 
         if (products.docs.length > 0) {
           const product = products.docs[0]

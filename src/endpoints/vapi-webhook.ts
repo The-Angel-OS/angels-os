@@ -368,7 +368,7 @@ function buildAssistantConfig(tenant: Record<string, any> | null) {
       name: 'LEO',
       model: {
         provider: 'anthropic',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         systemPrompt: buildPlatformRoutingPrompt(),
         temperature: 0.7,
       },
@@ -413,7 +413,7 @@ function buildTenantAssistantConfig(tenant: Record<string, any>) {
       name: 'LEO',
       model: {
         provider: 'anthropic',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         systemPrompt: buildTenantVoicePrompt(tenantName),
         temperature: 0.7,
       },

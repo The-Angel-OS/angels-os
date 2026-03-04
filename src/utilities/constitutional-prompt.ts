@@ -222,8 +222,8 @@ export function getFullConstitution(): string {
 /**
  * Constitutional prompt metadata for logging and debugging
  */
-export const CONSTITUTIONAL_PROMPT_VERSION = '1.2'
-export const CONSTITUTIONAL_PROMPT_DATE = '2026-02-27'
+export const CONSTITUTIONAL_PROMPT_VERSION = '1.3'
+export const CONSTITUTIONAL_PROMPT_DATE = '2026-03-04'
 
 // ---------------------------------------------------------------------------
 // Sprint 24: LEO Enterprise Manager — COO Mode + Node-Role Awareness

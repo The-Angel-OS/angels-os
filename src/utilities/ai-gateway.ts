@@ -56,11 +56,11 @@ export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-6'
  * Task complexity levels — LEO selects the appropriate tier based on
  * the nature of each request, routing to the cheapest capable model.
  *
- * Estimated cost per interaction (2K tokens in / 1.5K out):
+ * Estimated cost per interaction (2K tokens in / 1.5K out, as of March 2026):
  *  - low:      ~$0.005  (Gemini Flash)
  *  - medium:   ~$0.005  (Gemini Flash → Pro fallback)
- *  - high:     ~$0.022  (Gemini Pro → Sonnet fallback)
- *  - critical: ~$0.028  (Sonnet → Opus fallback)
+ *  - high:     ~$0.022  (Gemini Pro → Sonnet 4.6 fallback)
+ *  - critical: ~$0.033  (Sonnet 4.6 → Opus 4.6 fallback)
  */
 export type TaskComplexity = 'low' | 'medium' | 'high' | 'critical'
 
@@ -306,7 +306,7 @@ function resolveGatewayKey(): string | undefined {
  * Resolves a model identifier to a full gateway model ID.
  *
  * Accepts:
- *  - Full gateway ID: "anthropic/claude-sonnet-4-20250514"
+ *  - Full gateway ID: "anthropic/claude-sonnet-4-6"
  *  - Alias: "claude-sonnet", "gemini-pro"
  *  - Env override: reads LLM_MODEL from process.env
  */

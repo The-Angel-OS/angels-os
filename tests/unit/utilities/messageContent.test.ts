@@ -127,7 +127,7 @@ describe('createBIInsightContent', () => {
 
 describe('createVoiceCallContent', () => {
   it('creates a voice_call UMS envelope', () => {
-    const ums = createVoiceCallContent('Call started', { roomSid: 'RM123' })
+    const ums = createVoiceCallContent('Call started', { role: 'assistant', roomSid: 'RM123' })
     expect(ums.type).toBe('voice_call')
     expect(ums.text).toBe('Call started')
   })

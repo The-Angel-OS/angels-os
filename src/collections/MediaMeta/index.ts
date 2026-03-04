@@ -196,7 +196,7 @@ export const MediaMeta: CollectionConfig = {
       name: 'processedBy',
       type: 'text',
       admin: {
-        description: 'Model or service that performed the analysis (e.g., "claude-sonnet-4-20250514", "tesseract-5")',
+        description: 'Model or service that performed the analysis (e.g., "claude-sonnet-4-6", "tesseract-5")',
       },
     },
     {

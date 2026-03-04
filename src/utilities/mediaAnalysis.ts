@@ -90,7 +90,7 @@ export interface MediaAnalysisOptions {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const VISION_MODEL = 'claude-sonnet-4-20250514'
+const VISION_MODEL = 'claude-sonnet-4-6'
 
 /** Image MIME types we can analyze with Vision */
 const ANALYZABLE_IMAGE_TYPES = [

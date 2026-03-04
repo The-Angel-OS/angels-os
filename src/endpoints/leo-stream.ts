@@ -51,7 +51,7 @@ import type { TaskComplexity } from '@/utilities/ai-gateway'
 const MAX_HISTORY_TURNS = 8
 const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 3
-const LLM_MODEL = 'claude-sonnet-4-20250514'
+const LLM_MODEL = 'claude-sonnet-4-6'
 
 // ---------------------------------------------------------------------------
 // Slash command handler
@@ -381,7 +381,7 @@ You have access to the platform's data through tools. When users ask about produ
 - **view_cart** — show current cart contents with prices and totals
 
 ### Image Generation & Media Management:
-- **generate_image** — create AI-generated images (product photos, content images, illustrations) via Flux 2/Gemini
+- **generate_image** — create AI-generated images (product photos, content images, illustrations) via Gemini / OpenRouter. Auto-attaches to products when productName is provided.
 - **improve_image** — analyze an existing image with Vision AI and generate an improved version from feedback
 - **attach_image_to_product** — add a generated image to a product's gallery
 - **replace_image** — swap an old image for a new one across all content

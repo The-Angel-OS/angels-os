@@ -62,7 +62,7 @@ describe('generateMeta', () => {
       meta: {
         image: { url: 'https://cdn.example.com/img.jpg' },
       },
-    }
+    } as any
     const meta = await generateMeta({ doc })
     const images = (meta.openGraph as any)?.images
     if (images) {
@@ -75,7 +75,7 @@ describe('generateMeta', () => {
       meta: {
         image: { url: '/uploads/img.jpg' },
       },
-    }
+    } as any
     const meta = await generateMeta({ doc })
     const images = (meta.openGraph as any)?.images
     if (images) {
@@ -84,7 +84,7 @@ describe('generateMeta', () => {
   })
 
   it('handles array slug by joining with slash', async () => {
-    const doc = { slug: ['products', 'widgets'] }
+    const doc = { slug: ['products', 'widgets'] } as any
     const meta = await generateMeta({ doc })
     expect((meta.openGraph as any)?.url).toBe('products/widgets')
   })

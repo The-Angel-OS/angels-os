@@ -15,7 +15,7 @@ const mockIsGatewayAvailable = vi.hoisted(() => vi.fn().mockReturnValue(false))
 const mockGetModel = vi.hoisted(() => vi.fn())
 const mockGetFallbackModel = vi.hoisted(() => vi.fn())
 const mockConvertToolsForAISDK = vi.hoisted(() => vi.fn().mockReturnValue([]))
-const mockResolveModelId = vi.hoisted(() => vi.fn().mockReturnValue('claude-sonnet-4-20250514'))
+const mockResolveModelId = vi.hoisted(() => vi.fn().mockReturnValue('claude-sonnet-4-6'))
 const mockGetSmartModel = vi.hoisted(() => vi.fn())
 const mockCheckCredits = vi.hoisted(() => vi.fn().mockResolvedValue({ hasCredits: true, remaining: 100 }))
 const mockStreamText = vi.hoisted(() => vi.fn())
@@ -44,8 +44,8 @@ vi.mock('@/utilities/ai-gateway', () => ({
   resolveModelId: mockResolveModelId,
   getSmartModel: mockGetSmartModel,
   checkCredits: mockCheckCredits,
-  MODEL_CATALOG: { sonnet: 'claude-sonnet-4-20250514' },
-  DEFAULT_MODEL: 'claude-sonnet-4-20250514',
+  MODEL_CATALOG: { sonnet: 'claude-sonnet-4-6' },
+  DEFAULT_MODEL: 'claude-sonnet-4-6',
   FALLBACK_MODEL: 'claude-haiku-4-5-20251001',
   TASK_MODEL_MAP: {},
 }))

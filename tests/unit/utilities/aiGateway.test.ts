@@ -127,12 +127,12 @@ describe('AI Gateway', () => {
     it('medium tier uses Gemini Flash with Pro + Sonnet fallbacks', () => {
       expect(TASK_MODEL_MAP.medium.primary).toBe('google/gemini-2.5-flash')
       expect(TASK_MODEL_MAP.medium.fallbacks).toContain('google/gemini-3.1-pro')
-      expect(TASK_MODEL_MAP.medium.fallbacks).toContain('anthropic/claude-sonnet-4-20250514')
+      expect(TASK_MODEL_MAP.medium.fallbacks).toContain('anthropic/claude-sonnet-4-6')
     })
 
     it('high tier uses Gemini Pro with Sonnet fallback', () => {
       expect(TASK_MODEL_MAP.high.primary).toBe('google/gemini-3.1-pro')
-      expect(TASK_MODEL_MAP.high.fallbacks).toContain('anthropic/claude-sonnet-4-20250514')
+      expect(TASK_MODEL_MAP.high.fallbacks).toContain('anthropic/claude-sonnet-4-6')
     })
 
     it('critical tier uses Claude Sonnet with Opus + Pro fallbacks', () => {
@@ -247,14 +247,14 @@ describe('AI Gateway', () => {
     })
 
     it('resolves alias to full gateway ID', () => {
-      expect(resolveModelId('claude-sonnet')).toBe('anthropic/claude-sonnet-4-20250514')
+      expect(resolveModelId('claude-sonnet')).toBe('anthropic/claude-sonnet-4-6')
       expect(resolveModelId('gemini-flash')).toBe('google/gemini-2.5-flash')
       expect(resolveModelId('gpt-4o')).toBe('openai/gpt-4o')
     })
 
     it('passes through full gateway IDs unchanged', () => {
-      expect(resolveModelId('anthropic/claude-sonnet-4-20250514')).toBe(
-        'anthropic/claude-sonnet-4-20250514',
+      expect(resolveModelId('anthropic/claude-sonnet-4-6')).toBe(
+        'anthropic/claude-sonnet-4-6',
       )
       expect(resolveModelId('google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash')
     })
@@ -271,7 +271,7 @@ describe('AI Gateway', () => {
 
     it('prefers explicit argument over env', () => {
       process.env.LLM_MODEL = 'openai/gpt-4o'
-      expect(resolveModelId('claude-sonnet')).toBe('anthropic/claude-sonnet-4-20250514')
+      expect(resolveModelId('claude-sonnet')).toBe('anthropic/claude-sonnet-4-6')
       delete process.env.LLM_MODEL
     })
 

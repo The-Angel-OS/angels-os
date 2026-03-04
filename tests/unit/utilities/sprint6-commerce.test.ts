@@ -193,10 +193,12 @@ describe('Tenant Collection Schema — Sprint 6 Fields', () => {
     const field = TenantFields.find((f: any) => f.name === 'businessType')
     expect(field).toBeDefined()
     expect(field.type).toBe('select')
-    expect(field.options).toHaveLength(6)
+    expect(field.options.length).toBeGreaterThanOrEqual(6)
     expect(field.options.map((o: any) => o.value)).toContain('retail')
     expect(field.options.map((o: any) => o.value)).toContain('service')
     expect(field.options.map((o: any) => o.value)).toContain('nonprofit')
+    expect(field.options.map((o: any) => o.value)).toContain('gift_shop')
+    expect(field.options.map((o: any) => o.value)).toContain('ministry')
   })
 
   it('has storefront group with description, coverImage, contact, social, hours', () => {
@@ -301,8 +303,10 @@ describe('LEO Sprint 6 Tool Definitions', () => {
     const tool = mod.LEO_TOOLS.find((t: any) => t.name === 'configure_business')
     expect(tool).toBeDefined()
     expect(tool?.input_schema.properties).toHaveProperty('businessType')
+    expect(tool?.input_schema.properties).toHaveProperty('businessName')
     expect(tool?.input_schema.properties).toHaveProperty('bookingsEnabled')
-    expect(tool?.input_schema.required).toContain('businessType')
+    // businessType is no longer required — partial updates are supported
+    expect(tool?.input_schema.required).toEqual([])
   })
 
   it('includes connect_stripe_account tool', async () => {

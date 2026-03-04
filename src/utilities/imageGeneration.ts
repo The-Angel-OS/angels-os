@@ -52,7 +52,7 @@ export type ImageGenerationOptions = {
     backgroundColor?: string
     existingImageDescription?: string
   }
-  /** Which model to use (defaults to Flux 2 Pro) */
+  /** Which model to use (defaults to Gemini 3 Pro Image Preview via OpenRouter) */
   model?: string
   /** Whether to auto-upload to Payload Media */
   autoUpload?: boolean
@@ -484,7 +484,7 @@ Respond in this exact JSON format:
     })
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       messages: [
         {

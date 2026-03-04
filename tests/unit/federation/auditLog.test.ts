@@ -110,8 +110,8 @@ describe('logFromVerification', () => {
         trustLevel: 'active',
         reason: undefined,
         ministry: null,
-      },
-      'skill_list',
+      } as any,
+      'skill_list' as any,
     )
     const data = payload.create.mock.calls[0][0].data
     expect(data.sourceFederationId).toBe('fed-xyz')
@@ -123,7 +123,7 @@ describe('logFromVerification', () => {
     const payload = makePayload()
     await logFromVerification(
       payload,
-      { verified: true, federationId: 'fed-1', trustLevel: 'probationary', reason: undefined, ministry: null },
+      { verified: true, federationId: 'fed-1', trustLevel: 'probationary', reason: undefined, ministry: null } as any,
       'catalog_browse',
     )
     expect(payload.create.mock.calls[0][0].data.direction).toBe('inbound')
@@ -133,7 +133,7 @@ describe('logFromVerification', () => {
     const payload = makePayload()
     await logFromVerification(
       payload,
-      { verified: true, federationId: 'fed-1', trustLevel: 'probationary', reason: undefined, ministry: null },
+      { verified: true, federationId: 'fed-1', trustLevel: 'probationary', reason: undefined, ministry: null } as any,
       'catalog_browse',
       { direction: 'outbound' },
     )
@@ -144,8 +144,8 @@ describe('logFromVerification', () => {
     const payload = makePayload()
     await logFromVerification(
       payload,
-      { verified: false, federationId: 'fed-bad', trustLevel: 'none', reason: 'unknown federation id', ministry: null },
-      'skill_list',
+      { verified: false, federationId: 'fed-bad', trustLevel: 'none', reason: 'unknown federation id', ministry: null } as any,
+      'skill_list' as any,
     )
     const data = payload.create.mock.calls[0][0].data
     expect(data.allowed).toBe(false)
@@ -156,8 +156,8 @@ describe('logFromVerification', () => {
     const payload = makePayload()
     await logFromVerification(
       payload,
-      { verified: true, federationId: 'fed-1', trustLevel: 'active', reason: undefined, ministry: null },
-      'skill_list',
+      { verified: true, federationId: 'fed-1', trustLevel: 'active', reason: undefined, ministry: null } as any,
+      'skill_list' as any,
       { responseTimeMs: 42, metadata: { requestId: 'r1' } },
     )
     const data = payload.create.mock.calls[0][0].data
