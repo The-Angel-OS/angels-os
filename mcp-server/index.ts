@@ -451,11 +451,11 @@ server.tool(
 
 server.tool(
   'search_content',
-  'Full-text search across Angel OS content (products, posts, pages).',
+  'Full-text search across Angel OS content (products, posts, pages, events).',
   {
     query: z.string().describe('Search query'),
     collection: z
-      .enum(['products', 'posts', 'pages'])
+      .enum(['products', 'posts', 'pages', 'events'])
       .optional()
       .default('products')
       .describe('Collection to search'),
@@ -482,6 +482,221 @@ server.tool(
           text: lines.length
             ? `**Search results in ${collection}** for "${query}":\n${lines.join('\n')}`
             : `No results in ${collection} for "${query}".`,
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: list_events
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'list_events',
+  'List events from Angel OS (tour stops, meetups, workshops, livestreams). Returns title, date, location, type, and status.',
+  {
+    limit: z.number().optional().default(10).describe('Max results'),
+    status: z
+      .enum(['draft', 'upcoming', 'live', 'completed', 'cancelled'])
+      .optional()
+      .describe('Filter by event status'),
+    eventType: z
+      .enum(['meetup', 'workshop', 'livestream', 'conference', 'screening', 'custom'])
+      .optional()
+      .describe('Filter by event type'),
+  },
+  async ({ limit, status, eventType }) => {
+    const params: Record<string, string | number | undefined> = { limit, depth: 1 }
+    if (status) params['where[status][equals]'] = status
+    if (eventType) params['where[eventType][equals]'] = eventType
+
+    const result = (await api('/api/events', { params })) as any
+    const docs = result?.docs || []
+
+    const lines = docs.map((e: any) => {
+      const start = e.startDateTime
+        ? new Date(e.startDateTime).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        : 'TBD'
+      const locType = e.location?.type || 'in-person'
+      const venue = e.location?.venueName || e.location?.remotePlatform || ''
+      const city = e.location?.address?.city ? `, ${e.location.address.city}` : ''
+      return `- **${e.title || 'Untitled'}** (ID: ${e.id}) — ${e.eventType || '?'} | ${e.status || 'draft'} | ${start} | ${locType}${venue ? ': ' + venue : ''}${city}`
+    })
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: lines.length
+            ? `**Events** (${docs.length} of ${result.totalDocs ?? '?'}):\n${lines.join('\n')}`
+            : 'No events found.',
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: get_event
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'get_event',
+  'Get full details of a single event by ID, including registrations count and location.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Event ID'),
+  },
+  async ({ id }) => {
+    const result = (await api(`/api/events/${id}`, { params: { depth: 2 } })) as any
+
+    if (result?.errors) {
+      return {
+        content: [{ type: 'text' as const, text: `Event ${id} not found.` }],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: create_event
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'create_event',
+  'Create a new event in Angel OS (tour stop, meetup, workshop, etc.).',
+  {
+    title: z.string().describe('Event title'),
+    eventType: z
+      .enum(['meetup', 'workshop', 'livestream', 'conference', 'screening', 'custom'])
+      .optional()
+      .default('meetup')
+      .describe('Event type'),
+    startDateTime: z.string().describe('Start date/time in ISO 8601 format (e.g. 2026-04-15T19:00:00-05:00)'),
+    duration: z.number().optional().default(120).describe('Duration in minutes (default 120)'),
+    locationType: z
+      .enum(['in-person', 'virtual', 'hybrid'])
+      .optional()
+      .default('in-person')
+      .describe('Location type'),
+    venueName: z.string().optional().describe('Venue name (for in-person/hybrid)'),
+    city: z.string().optional().describe('City'),
+    state: z.string().optional().describe('State/province'),
+    isFree: z.boolean().optional().default(true).describe('Whether the event is free'),
+    amount: z.number().optional().describe('Ticket price in cents if not free'),
+    maxAttendees: z.number().optional().default(0).describe('Max attendees (0 = unlimited)'),
+    status: z
+      .enum(['draft', 'upcoming'])
+      .optional()
+      .default('upcoming')
+      .describe('Event status'),
+  },
+  async ({ title, eventType, startDateTime, duration, locationType, venueName, city, state, isFree, amount, maxAttendees, status }) => {
+    const body: Record<string, unknown> = {
+      title,
+      eventType,
+      startDateTime,
+      duration,
+      status,
+      capacity: { maxAttendees: maxAttendees || 0, waitlistEnabled: true },
+      pricing: { isFree: isFree ?? true },
+      location: {
+        type: locationType || 'in-person',
+      },
+    }
+
+    if (venueName) (body.location as any).venueName = venueName
+    if (city || state) {
+      ;(body.location as any).address = {}
+      if (city) (body.location as any).address.city = city
+      if (state) (body.location as any).address.state = state
+    }
+    if (!isFree && amount) {
+      ;(body.pricing as any).amount = amount
+      ;(body.pricing as any).currency = 'usd'
+    }
+
+    const result = (await api('/api/events', { body })) as any
+
+    if (result?.errors) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Failed to create event: ${result.errors.map((e: any) => e.message).join(', ')}`,
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Event created: **${result.doc?.title || title}** (ID: ${result.doc?.id || '?'}) — ${eventType} on ${new Date(startDateTime).toLocaleDateString()}`,
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: list_event_registrations
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'list_event_registrations',
+  'List registrations for a specific event. Shows attendee names, status, and check-in times.',
+  {
+    eventId: z.union([z.string(), z.number()]).describe('Event ID'),
+    limit: z.number().optional().default(50).describe('Max results'),
+    status: z
+      .enum(['registered', 'waitlisted', 'checked-in', 'cancelled', 'no-show'])
+      .optional()
+      .describe('Filter by registration status'),
+  },
+  async ({ eventId, limit, status }) => {
+    const params: Record<string, string | number | undefined> = {
+      'where[event][equals]': String(eventId),
+      limit,
+      depth: 1,
+    }
+    if (status) params['where[status][equals]'] = status
+
+    const result = (await api('/api/event-registrations', { params })) as any
+    const docs = result?.docs || []
+
+    const lines = docs.map((r: any) => {
+      const name = r.attendee?.name || r.name || r.attendee?.email || r.email || 'Anonymous'
+      const checkin = r.checkedInAt ? ` | Checked in: ${new Date(r.checkedInAt).toLocaleTimeString()}` : ''
+      return `- **${name}** — ${r.status || '?'} | ${r.attendanceMode || 'in-person'}${checkin}`
+    })
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: lines.length
+            ? `**Registrations for Event #${eventId}** (${docs.length} of ${result.totalDocs ?? '?'}):\n${lines.join('\n')}`
+            : `No registrations found for event #${eventId}.`,
         },
       ],
     }
