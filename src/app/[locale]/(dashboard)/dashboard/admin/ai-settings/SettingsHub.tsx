@@ -577,7 +577,11 @@ function DeveloperTab() {
             ['list_orders', 'View orders with status and customer info'],
             ['list_posts', 'Browse blog posts'],
             ['list_spaces', 'List collaboration spaces'],
-            ['search_content', 'Full-text search across products, posts, and pages'],
+            ['list_events', 'List events (tour stops, meetups, workshops, livestreams)'],
+            ['get_event', 'Get full details of a single event'],
+            ['create_event', 'Create new events (meetups, workshops, etc.)'],
+            ['list_event_registrations', 'View registrations for an event'],
+            ['search_content', 'Full-text search across products, posts, pages, and events'],
           ].map(([name, desc]) => (
             <div key={name} className="flex items-start gap-2 text-sm">
               <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono">{name}</code>

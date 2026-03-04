@@ -699,8 +699,8 @@ function MobileNavContent({
           <NavLink href={`${prefix}/dashboard/admin/connectors`} icon={<PlugIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/connectors')}>
             Connectors
           </NavLink>
-          <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<SparkleIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/ai-settings')}>
-            AI Settings
+          <NavLink href={`${prefix}/dashboard/admin/ai-settings`} icon={<GearIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/ai-settings')}>
+            Settings
           </NavLink>
           <NavLink href={`${prefix}/dashboard/admin/error-logs`} icon={<AlertIcon />} collapsed={false} active={pathname.includes('/dashboard/admin/error-logs')}>
             Error Logs
