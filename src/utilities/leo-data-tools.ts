@@ -953,7 +953,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'create_post',
     description:
-      'Create a new blog post or article. Use when the user wants to publish content, write an article, or add a post. Always confirm the title and content before creating. Created as draft by default.',
+      'Create a new blog post or article. Use when the user wants to publish content, write an article, or add a post. Always confirm the title and content before creating. Created as draft by default. Set generateHeroImage=true to auto-generate and attach a hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -972,6 +972,16 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           type: 'array',
           items: { type: 'string' },
           description: 'Category names to assign (optional)',
+        },
+        generateHeroImage: {
+          type: 'boolean',
+          description:
+            'If true, auto-generate a hero image based on the post title and content, and attach it. Default: false.',
+        },
+        heroImagePrompt: {
+          type: 'string',
+          description:
+            'Custom prompt for the hero image. If omitted, auto-generates from title. Only used when generateHeroImage is true.',
         },
       },
       required: ['title'],
@@ -1035,7 +1045,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_post',
     description:
-      'Update an existing blog post. Use query_posts first to find the post ID. Always confirm changes with the user before updating.',
+      'Update an existing blog post. Use query_posts first to find the post ID. Always confirm changes with the user before updating. Set generateHeroImage=true to auto-generate a new hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1053,6 +1063,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           items: { type: 'string' },
           description: 'Replacement category names (optional)',
         },
+        generateHeroImage: {
+          type: 'boolean',
+          description:
+            'If true, auto-generate a hero image based on the post title and attach it. Default: false.',
+        },
+        heroImagePrompt: {
+          type: 'string',
+          description: 'Custom prompt for the hero image (optional).',
+        },
       },
       required: ['postId'],
     },
@@ -1060,7 +1079,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'create_page',
     description:
-      'Create a new static page (About, Services, Contact, etc.). Use when the user wants to add a page to their site. Created as draft by default.',
+      'Create a new static page (About, Services, Contact, etc.). Use when the user wants to add a page to their site. Created as draft by default. Set generateHeroImage=true to auto-generate and attach a hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1078,6 +1097,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           enum: ['draft', 'published'],
           description: 'Publication status — defaults to "draft"',
         },
+        generateHeroImage: {
+          type: 'boolean',
+          description:
+            'If true, auto-generate a hero image based on the page title and attach it. Default: false.',
+        },
+        heroImagePrompt: {
+          type: 'string',
+          description: 'Custom prompt for the hero image (optional).',
+        },
       },
       required: ['title'],
     },
@@ -1085,7 +1113,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_page',
     description:
-      'Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating.',
+      'Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1097,6 +1125,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           type: 'string',
           enum: ['draft', 'published'],
           description: 'New publication status (optional)',
+        },
+        generateHeroImage: {
+          type: 'boolean',
+          description:
+            'If true, auto-generate a hero image based on the page title and attach it. Default: false.',
+        },
+        heroImagePrompt: {
+          type: 'string',
+          description: 'Custom prompt for the hero image (optional).',
         },
       },
       required: ['pageId'],
@@ -5645,6 +5682,60 @@ function textToContentLayout(text: string): any[] {
 }
 
 /**
+ * Shared helper: generate a hero image for a post or page and attach it.
+ * Returns status lines to append to the tool response.
+ */
+async function generateAndAttachHeroImage(
+  payload: Payload,
+  collection: 'posts' | 'pages',
+  docId: number,
+  title: string,
+  customPrompt?: string,
+  tenantId?: number,
+): Promise<string[]> {
+  const lines: string[] = []
+  try {
+    const prompt = customPrompt || `Hero image for "${title}". Professional, engaging, wide cinematic composition suitable as a blog header or page banner.`
+    const result = await generateImage(
+      {
+        prompt,
+        enhancementContext: { brandStyle: 'hero banner' },
+        autoUpload: true,
+        tenantId,
+      },
+      payload,
+    )
+    if (!result.success) {
+      lines.push(`\n⚠️ Hero image generation failed: ${result.error}`)
+      return lines
+    }
+    if (!result.mediaId) {
+      lines.push('\n⚠️ Hero image generated but could not be saved to media library.')
+      return lines
+    }
+
+    // Attach to hero.media and meta.image on the document
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection,
+      id: docId,
+      data: {
+        hero: { type: 'highImpact', media: result.mediaId },
+        meta: { image: result.mediaId },
+      },
+      overrideAccess: true,
+    })
+
+    lines.push(`\n🎨 Hero image generated and attached!`)
+    if (result.permanentUrl) lines.push(`   Image URL: ${result.permanentUrl}`)
+    lines.push(`   Media ID: ${result.mediaId}`)
+  } catch (err) {
+    lines.push(`\n⚠️ Hero image generation error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  }
+  return lines
+}
+
+/**
  * create_post — Creates a new blog post with title, body, and optional categories.
  */
 async function createPost(
@@ -5704,6 +5795,17 @@ async function createPost(
   ]
   if (slug) lines.push(`- URL: /posts/${slug}`)
   if (postData.categories?.length) lines.push(`- Categories: ${categoryNames?.join(', ')}`)
+
+  // Auto-generate hero image if requested
+  if (input.generateHeroImage === true) {
+    const heroLines = await generateAndAttachHeroImage(
+      payload, 'posts', result.id as number, title,
+      input.heroImagePrompt as string | undefined,
+      ctx.tenantId,
+    )
+    lines.push(...heroLines)
+  }
+
   if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
@@ -5973,6 +6075,17 @@ async function updatePost(
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
   if (slug) lines.push(`- URL: /posts/${slug}`)
 
+  // Auto-generate hero image if requested
+  if (input.generateHeroImage === true) {
+    const postTitle = (updateData.title || str(result, 'title') || 'Post') as string
+    const heroLines = await generateAndAttachHeroImage(
+      payload, 'posts', postId, postTitle,
+      input.heroImagePrompt as string | undefined,
+      ctx.tenantId,
+    )
+    lines.push(...heroLines)
+  }
+
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
 
@@ -6017,6 +6130,17 @@ async function createPage(
     `- Page ID: ${result.id}`,
   ]
   if (slug) lines.push(`- URL: /${slug}`)
+
+  // Auto-generate hero image if requested
+  if (input.generateHeroImage === true) {
+    const heroLines = await generateAndAttachHeroImage(
+      payload, 'pages', result.id as number, title,
+      input.heroImagePrompt as string | undefined,
+      ctx.tenantId,
+    )
+    lines.push(...heroLines)
+  }
+
   if (status === 'draft') lines.push(`\nThe page is saved as a draft. Say "publish page ${result.id}" to make it live.`)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
@@ -6063,6 +6187,17 @@ async function updatePage(
   if (updateData.title) lines.push(`- New title: ${updateData.title}`)
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
   if (slug) lines.push(`- URL: /${slug}`)
+
+  // Auto-generate hero image if requested
+  if (input.generateHeroImage === true) {
+    const pageTitle = (updateData.title || str(result, 'title') || 'Page') as string
+    const heroLines = await generateAndAttachHeroImage(
+      payload, 'pages', pageId, pageTitle,
+      input.heroImagePrompt as string | undefined,
+      ctx.tenantId,
+    )
+    lines.push(...heroLines)
+  }
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
