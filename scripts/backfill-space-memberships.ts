@@ -50,12 +50,12 @@ async function backfillSpaceMemberships() {
   let errors = 0
 
   for (const [tenantId, userIds] of tenantMap) {
-    // Find the main space for this tenant (oldest one)
+    // Find ALL spaces for this tenant (not just the oldest)
     const spaces = await payload.find({
       collection: 'spaces',
       where: { tenant: { equals: tenantId } },
       sort: 'createdAt',
-      limit: 1,
+      limit: 100,
       depth: 0,
       overrideAccess: true,
     })
@@ -66,64 +66,72 @@ async function backfillSpaceMemberships() {
       continue
     }
 
-    const mainSpace = spaces.docs[0]
-    console.log(`\n📍 Tenant ${tenantId} → Main Space: "${mainSpace.name}" (id: ${mainSpace.id})`)
+    console.log(`\n📍 Tenant ${tenantId} → ${spaces.totalDocs} space(s) found`)
 
     for (const userId of userIds) {
+      // Look up user email for logging
+      let user: any
       try {
-        // Check if membership already exists
-        const existing = await payload.find({
-          collection: 'space-memberships',
-          where: {
-            user: { equals: userId },
-            space: { equals: mainSpace.id },
-          },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
-
-        if (existing.totalDocs > 0) {
-          const status = (existing.docs[0] as any).status
-          console.log(`  ✓ User ${userId}: already a member (status: ${status})`)
-          skipped++
-          continue
-        }
-
-        // Look up user email for logging
-        const user = await payload.findByID({
+        user = await payload.findByID({
           collection: 'users',
           id: userId,
           depth: 0,
           overrideAccess: true,
         })
-
-        // Skip system users
-        if (user.isSystemUser) {
-          console.log(`  ⏭ User ${userId} (${user.email}): system user, skipping`)
-          skipped++
-          continue
-        }
-
-        // Create the space membership
-        await payload.create({
-          collection: 'space-memberships',
-          data: {
-            user: userId,
-            space: mainSpace.id as number,
-            role: 'member',
-            status: 'active',
-            joinedAt: new Date().toISOString(),
-            tenant: tenantId,
-          },
-          overrideAccess: true,
-        })
-
-        console.log(`  ✅ User ${userId} (${user.email}): joined "${mainSpace.name}"`)
-        created++
       } catch (err) {
-        console.error(`  ❌ User ${userId}: failed - ${err}`)
+        console.error(`  ❌ User ${userId}: lookup failed - ${err}`)
         errors++
+        continue
+      }
+
+      // Skip system users
+      if (user.isSystemUser) {
+        console.log(`  ⏭ User ${userId} (${user.email}): system user, skipping`)
+        skipped++
+        continue
+      }
+
+      for (const space of spaces.docs) {
+        try {
+          // Check if membership already exists
+          const existing = await payload.find({
+            collection: 'space-memberships',
+            where: {
+              user: { equals: userId },
+              space: { equals: space.id },
+            },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
+
+          if (existing.totalDocs > 0) {
+            const status = (existing.docs[0] as any).status
+            console.log(`  ✓ User ${userId} (${user.email}): already in "${space.name}" (status: ${status})`)
+            skipped++
+            continue
+          }
+
+          // Create the space membership
+          await payload.create({
+            collection: 'space-memberships',
+            data: {
+              user: userId,
+              space: space.id as number,
+              role: 'member',
+              status: 'active',
+              joinedAt: new Date().toISOString(),
+              tenant: tenantId,
+            },
+            overrideAccess: true,
+          })
+
+          console.log(`  ✅ User ${userId} (${user.email}): joined "${space.name}"`)
+          created++
+        } catch (err) {
+          console.error(`  ❌ User ${userId} → "${space.name}": failed - ${err}`)
+          errors++
+        }
       }
     }
   }

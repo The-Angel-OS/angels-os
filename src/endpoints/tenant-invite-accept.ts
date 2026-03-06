@@ -117,27 +117,25 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // Auto-join user to the tenant's main space
+    // Auto-join user to ALL tenant spaces (not just the main one)
     if (tenantId) {
       try {
         const spaces = await payload.find({
           collection: 'spaces',
           where: { tenant: { equals: tenantId } },
           sort: 'createdAt',
-          limit: 1,
+          limit: 100,
           depth: 0,
           overrideAccess: true,
         })
 
-        if (spaces.totalDocs > 0) {
-          const mainSpace = spaces.docs[0]
-
+        for (const space of spaces.docs) {
           // Check if already a member (idempotent)
           const existingMembership = await payload.find({
             collection: 'space-memberships',
             where: {
               user: { equals: user.id },
-              space: { equals: mainSpace.id },
+              space: { equals: space.id },
             },
             limit: 1,
             depth: 0,
@@ -149,7 +147,7 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
               collection: 'space-memberships',
               data: {
                 user: user.id as number,
-                space: mainSpace.id as number,
+                space: space.id as number,
                 role: 'member',
                 status: 'active',
                 joinedAt: new Date().toISOString(),
@@ -158,7 +156,7 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
               overrideAccess: true,
             })
             payload.logger.info(
-              `[tenant-invite-accept] User ${(user as any).email} auto-joined space "${mainSpace.name}" (tenant ${tenantId})`,
+              `[tenant-invite-accept] User ${(user as any).email} auto-joined space "${space.name}" (tenant ${tenantId})`,
             )
           }
         }

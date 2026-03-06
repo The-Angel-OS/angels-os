@@ -817,7 +817,11 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       properties: {
         businessName: {
           type: 'string',
-          description: 'Name of the business / storefront. Updates both the tenant name and site name.',
+          description: 'Name of the business / storefront. Updates both the tenant name and site name. Can also use siteName as an alias.',
+        },
+        siteName: {
+          type: 'string',
+          description: 'Alias for businessName — sets the tenant name and site name.',
         },
         businessType: {
           type: 'string',
@@ -845,6 +849,21 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       type: 'object' as const,
       properties: {},
       required: [],
+    },
+  },
+  {
+    name: 'disconnect_stripe_account',
+    description:
+      'Disconnect the current Stripe account from this tenant, allowing re-onboarding with a different account. Use when a user says they connected the wrong Stripe account, wants to switch Stripe accounts, or needs to start the Stripe setup over. After disconnecting, guide them to use connect_stripe_account to link the correct one.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        confirm: {
+          type: 'boolean',
+          description: 'Must be true to confirm disconnection. Always confirm with the user first.',
+        },
+      },
+      required: ['confirm'],
     },
   },
   // ─── Sprint 11: Vendor Onboarding & Production ─────────────────
@@ -2912,6 +2931,8 @@ export async function executeToolCall(
         return await handleConfigureBusiness(payload, toolInput, ctx)
       case 'connect_stripe_account':
         return await handleConnectStripe(payload, toolInput, ctx)
+      case 'disconnect_stripe_account':
+        return await handleDisconnectStripe(payload, toolInput, ctx)
       // ─── Sprint 11: Vendor Onboarding & Production ────────────
       case 'onboard_vendor':
         return await handleOnboardVendor(payload, toolInput, ctx)
@@ -5276,11 +5297,12 @@ async function handleConfigureBusiness(
   }
 
   const businessType = input.businessType as string | undefined
-  const businessName = input.businessName as string | undefined
+  // Accept siteName as alias for businessName (LEO sometimes uses siteName)
+  const businessName = (input.businessName || input.siteName) as string | undefined
 
   // At least one field should be provided
   if (!businessType && !businessName && !input.tagline && !input.description) {
-    return 'Error: Please provide at least a businessType, businessName, tagline, or description to update.'
+    return 'Error: Please provide at least a businessType, businessName/siteName, tagline, or description to update.'
   }
 
   try {
@@ -5417,6 +5439,62 @@ async function handleConnectStripe(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error checking Stripe status: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * disconnect_stripe_account — Removes the Stripe Connect link from the tenant.
+ * Allows re-onboarding with a different Stripe account.
+ */
+async function handleDisconnectStripe(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  if (!tenantId) {
+    return 'Error: No tenant context available. Please ensure you are operating within a tenant.'
+  }
+
+  if (!input.confirm) {
+    return 'Please confirm that you want to disconnect the current Stripe account. This will allow you to reconnect with a different account. Say "yes, disconnect Stripe" to proceed.'
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0 }) as any
+    const previousAccountId = tenant?.stripeConnect?.stripeAccountId
+
+    if (!previousAccountId) {
+      return 'No Stripe account is currently connected to this tenant. You can use connect_stripe_account to set one up.'
+    }
+
+    // Clear the Stripe Connect data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'tenants',
+      id: tenantId,
+      data: {
+        stripeConnect: {
+          stripeAccountId: '',
+          stripeOnboardingComplete: false,
+          stripeChargesEnabled: false,
+          stripePayoutsEnabled: false,
+          connectedAt: null,
+        },
+      },
+      overrideAccess: true,
+    })
+
+    payload.logger.info(
+      `[disconnect_stripe] Tenant ${tenantId} disconnected Stripe account ${previousAccountId}`,
+    )
+
+    return `Stripe account ${previousAccountId} has been disconnected from this tenant. You can now reconnect with the correct Stripe account by visiting your Payments dashboard or asking me to connect Stripe.` + navDirective('/dashboard/admin/payments', 'Reconnect Stripe')
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Error disconnecting Stripe: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
@@ -10821,9 +10899,19 @@ async function handleCheckEnterpriseHealth(
           depth: 0,
           overrideAccess: true,
         })
-        const stripeConnected = Boolean((tenant as any)?.stripe?.accountId)
+        // Check both possible field paths: stripeConnect.stripeAccountId (primary)
+        // and stripe.accountId (legacy) for backward compatibility
+        const stripeConnect = (tenant as any)?.stripeConnect
+        const stripeLegacy = (tenant as any)?.stripe
+        const stripeConnected = Boolean(stripeConnect?.stripeAccountId || stripeLegacy?.accountId)
+        const chargesEnabled = Boolean(stripeConnect?.stripeChargesEnabled)
+        const payoutsEnabled = Boolean(stripeConnect?.stripePayoutsEnabled)
         report.push(`### 💳 Payments`)
         report.push(`- Stripe: ${stripeConnected ? '✅ connected' : '❌ not connected'}`)
+        if (stripeConnected) {
+          report.push(`- Charges: ${chargesEnabled ? '✅ enabled' : '⏳ pending'}`)
+          report.push(`- Payouts: ${payoutsEnabled ? '✅ enabled' : '⏳ pending'}`)
+        }
         report.push('')
       } catch {
         report.push('### Payments: Unable to query\n')

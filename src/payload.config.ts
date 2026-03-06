@@ -94,6 +94,7 @@ import { makerOpportunitiesHandler } from '@/endpoints/maker-opportunities'
 import { stripeConnectOnboardHandler } from '@/endpoints/stripe-connect-onboard'
 import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callback'
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
+import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disconnect'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
@@ -601,6 +602,11 @@ export default buildConfig({
       path: '/stripe/connect/dashboard-link',
       method: 'post',
       handler: stripeConnectDashboardHandler,
+    },
+    {
+      path: '/stripe/connect/disconnect',
+      method: 'post',
+      handler: stripeConnectDisconnectHandler,
     },
     {
       path: '/stripe/webhooks',

@@ -6,11 +6,11 @@ import type { User } from '@/payload-types'
  *
  * When a new user is created (not a system user), this hook:
  * 1. Looks up the user's active tenant memberships
- * 2. For each tenant, finds the oldest (main) space
- * 3. Creates a space-membership with 'member' role and 'active' status
+ * 2. For each tenant, finds ALL spaces
+ * 3. Creates a space-membership with 'member' role and 'active' status for each
  *
  * This ensures every onboarded user can immediately see and participate
- * in the main space channels (general, support, welcome, etc.)
+ * in all tenant spaces (community, support, etc.)
  *
  * Non-fatal — if space lookup or membership creation fails,
  * the user can still log in and join spaces manually.
@@ -52,51 +52,51 @@ export const autoJoinTenantSpaces: CollectionAfterChangeHook<User> = async ({
       if (!tenantId) continue
 
       try {
-        // Find the oldest (main) space for this tenant
+        // Find ALL spaces for this tenant (not just the oldest)
         const spaces = await payload.find({
           collection: 'spaces',
           where: { tenant: { equals: tenantId } },
           sort: 'createdAt',
-          limit: 1,
+          limit: 100,
           depth: 0,
           overrideAccess: true,
         })
 
         if (spaces.totalDocs === 0) continue
 
-        const mainSpace = spaces.docs[0]
+        for (const space of spaces.docs) {
+          // Check if membership already exists (idempotent)
+          const existing = await payload.find({
+            collection: 'space-memberships',
+            where: {
+              user: { equals: doc.id },
+              space: { equals: space.id },
+            },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
 
-        // Check if membership already exists (idempotent)
-        const existing = await payload.find({
-          collection: 'space-memberships',
-          where: {
-            user: { equals: doc.id },
-            space: { equals: mainSpace.id },
-          },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
+          if (existing.totalDocs > 0) continue // Already a member
 
-        if (existing.totalDocs > 0) continue // Already a member
+          // Create space membership
+          await payload.create({
+            collection: 'space-memberships',
+            data: {
+              user: doc.id as number,
+              space: space.id as number,
+              role: 'member',
+              status: 'active',
+              joinedAt: new Date().toISOString(),
+              tenant: tenantId,
+            },
+            overrideAccess: true,
+          })
 
-        // Create space membership
-        await payload.create({
-          collection: 'space-memberships',
-          data: {
-            user: doc.id as number,
-            space: mainSpace.id as number,
-            role: 'member',
-            status: 'active',
-            joinedAt: new Date().toISOString(),
-            tenant: tenantId,
-          },
-          overrideAccess: true,
-        })
-
-        payload.logger.info(
-          `[autoJoinTenantSpaces] User ${doc.email} auto-joined space "${mainSpace.name}" (tenant ${tenantId})`,
-        )
+          payload.logger.info(
+            `[autoJoinTenantSpaces] User ${doc.email} auto-joined space "${space.name}" (tenant ${tenantId})`,
+          )
+        }
       } catch (err) {
         // Non-fatal — log and continue to next tenant
         payload.logger.warn(

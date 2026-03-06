@@ -1,7 +1,7 @@
 /**
  * autoJoinTenantSpaces Hook — Unit Tests
  *
- * Tests that newly created users are automatically added to the main space
+ * Tests that newly created users are automatically added to ALL spaces
  * of each tenant they belong to via TenantMemberships.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -92,14 +92,22 @@ describe('autoJoinTenantSpaces', () => {
 
   // ── happy path ────────────────────────────────────────────────────────────
 
-  it('creates space-membership for first space of the tenant', async () => {
-    const p = makePayload({
-      memberships: [{ id: 1, tenant: 10, status: 'active' }],
-      spaces: [{ id: 50, name: 'Main Space', tenant: 10 }],
-    })
+  it('creates space-membership for all spaces of the tenant', async () => {
+    const p = {
+      ...makePayload(),
+      find: vi.fn().mockImplementation(({ collection }: any) => {
+        if (collection === 'tenant-memberships') return Promise.resolve({ docs: [{ id: 1, tenant: 10, status: 'active' }], totalDocs: 1 })
+        if (collection === 'spaces') return Promise.resolve({ docs: [{ id: 50, name: 'Main Space', tenant: 10 }, { id: 51, name: 'Support Space', tenant: 10 }], totalDocs: 2 })
+        if (collection === 'space-memberships') return Promise.resolve({ docs: [], totalDocs: 0 })
+        return Promise.resolve({ docs: [], totalDocs: 0 })
+      }),
+      create: vi.fn().mockResolvedValue({ id: 100 }),
+      logger: { info: vi.fn(), warn: vi.fn() },
+    }
     const args = makeArgs({}, p)
     await autoJoinTenantSpaces(args as any)
 
+    expect(p.create).toHaveBeenCalledTimes(2)
     expect(p.create).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'space-memberships',
@@ -112,13 +120,32 @@ describe('autoJoinTenantSpaces', () => {
         }),
       }),
     )
+    expect(p.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'space-memberships',
+        data: expect.objectContaining({
+          user: 1,
+          space: 51,
+          role: 'member',
+          status: 'active',
+          tenant: 10,
+        }),
+      }),
+    )
   })
 
   it('handles tenant as object { id }', async () => {
-    const p = makePayload({
-      memberships: [{ id: 1, tenant: { id: 20 }, status: 'active' }],
-      spaces: [{ id: 60, name: 'Space', tenant: 20 }],
-    })
+    const p = {
+      ...makePayload(),
+      find: vi.fn().mockImplementation(({ collection }: any) => {
+        if (collection === 'tenant-memberships') return Promise.resolve({ docs: [{ id: 1, tenant: { id: 20 }, status: 'active' }], totalDocs: 1 })
+        if (collection === 'spaces') return Promise.resolve({ docs: [{ id: 60, name: 'Space', tenant: 20 }], totalDocs: 1 })
+        if (collection === 'space-memberships') return Promise.resolve({ docs: [], totalDocs: 0 })
+        return Promise.resolve({ docs: [], totalDocs: 0 })
+      }),
+      create: vi.fn().mockResolvedValue({ id: 100 }),
+      logger: { info: vi.fn(), warn: vi.fn() },
+    }
     const args = makeArgs({}, p)
     await autoJoinTenantSpaces(args as any)
 
@@ -132,11 +159,17 @@ describe('autoJoinTenantSpaces', () => {
   // ── idempotency ───────────────────────────────────────────────────────────
 
   it('skips space-membership creation when already a member', async () => {
-    const p = makePayload({
-      memberships: [{ id: 1, tenant: 10, status: 'active' }],
-      spaces: [{ id: 50, name: 'Main Space' }],
-      existingMembership: true,
-    })
+    const p = {
+      ...makePayload(),
+      find: vi.fn().mockImplementation(({ collection }: any) => {
+        if (collection === 'tenant-memberships') return Promise.resolve({ docs: [{ id: 1, tenant: 10, status: 'active' }], totalDocs: 1 })
+        if (collection === 'spaces') return Promise.resolve({ docs: [{ id: 50, name: 'Main Space' }], totalDocs: 1 })
+        if (collection === 'space-memberships') return Promise.resolve({ docs: [{ id: 999 }], totalDocs: 1 })
+        return Promise.resolve({ docs: [], totalDocs: 0 })
+      }),
+      create: vi.fn().mockResolvedValue({ id: 100 }),
+      logger: { info: vi.fn(), warn: vi.fn() },
+    }
     const args = makeArgs({}, p)
     await autoJoinTenantSpaces(args as any)
     expect(p.create).not.toHaveBeenCalled()
@@ -144,7 +177,7 @@ describe('autoJoinTenantSpaces', () => {
 
   // ── multiple tenants ──────────────────────────────────────────────────────
 
-  it('processes multiple tenant memberships', async () => {
+  it('processes multiple tenant memberships with multiple spaces each', async () => {
     const p = {
       ...makePayload(),
       find: vi.fn().mockImplementation(({ collection, where }: any) => {
@@ -156,8 +189,14 @@ describe('autoJoinTenantSpaces', () => {
         }
         if (collection === 'spaces') {
           const tenantId = where?.tenant?.equals
+          if (tenantId === 10) {
+            return Promise.resolve({
+              docs: [{ id: 50, name: 'Main', tenant: 10 }, { id: 51, name: 'Support', tenant: 10 }],
+              totalDocs: 2,
+            })
+          }
           return Promise.resolve({
-            docs: [{ id: tenantId === 10 ? 50 : 60, name: 'Space', tenant: tenantId }],
+            docs: [{ id: 60, name: 'Space', tenant: tenantId }],
             totalDocs: 1,
           })
         }
@@ -171,7 +210,8 @@ describe('autoJoinTenantSpaces', () => {
     }
     const args = makeArgs({}, p)
     await autoJoinTenantSpaces(args as any)
-    expect(p.create).toHaveBeenCalledTimes(2)
+    // 2 spaces for tenant 10 + 1 space for tenant 20 = 3 memberships
+    expect(p.create).toHaveBeenCalledTimes(3)
   })
 
   // ── error resilience ──────────────────────────────────────────────────────

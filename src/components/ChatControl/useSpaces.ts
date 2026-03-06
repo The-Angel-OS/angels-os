@@ -25,9 +25,22 @@ export function useSpaces(initialSpaces?: ChatSpace[]) {
     setIsLoading(true)
     setError(null)
     try {
-      // Fetch active memberships with space populated
+      // Resolve current user ID so we only fetch OUR memberships (not all users')
+      let userId: string | undefined
+      try {
+        const meRes = await fetch(`${SERVER_URL}/api/users/me`, { credentials: 'include' })
+        if (meRes.ok) {
+          const meData = await meRes.json()
+          userId = meData.user?.id ? String(meData.user.id) : undefined
+        }
+      } catch {
+        // Fall through — query without user filter (access control still applies)
+      }
+
+      // Fetch active memberships with space populated, filtered to current user
+      const userFilter = userId ? `&where[user][equals]=${userId}` : ''
       const res = await fetch(
-        `${SERVER_URL}/api/space-memberships?where[status][equals]=active&depth=1&limit=100`,
+        `${SERVER_URL}/api/space-memberships?where[status][equals]=active${userFilter}&depth=1&limit=100`,
         { credentials: 'include' },
       )
 
