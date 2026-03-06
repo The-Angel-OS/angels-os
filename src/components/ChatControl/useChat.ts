@@ -149,6 +149,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollIntervalRef = useRef(POLL_MIN_MS)
   const lastMessageIdRef = useRef<string | null>(null)
+  /** Tracks auth failures — resets on channel/space switch so users aren't permanently locked out */
   const authFailedRef = useRef(false)
   /** Abort controller for in-flight SSE stream — cancel on channel switch */
   const streamAbortRef = useRef<AbortController | null>(null)
@@ -167,6 +168,18 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       if (res.status === 401 || res.status === 403) {
         authFailedRef.current = true
         setIsLoadingChannels(false)
+        // Show the user what happened instead of silently failing
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === 'auth_error')) return prev
+          return [...prev, {
+            id: 'auth_error',
+            role: 'system' as const,
+            content: res.status === 401
+              ? 'You need to sign in to access this space.'
+              : 'You don\'t have access to this space yet. Ask an admin to invite you.',
+            timestamp: new Date(),
+          }]
+        })
         return
       }
       if (res.ok) {
@@ -887,6 +900,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     streamAbortRef.current?.abort()
     streamAbortRef.current = null
     streamDoneAtRef.current = 0
+    // Reset auth failure flag so users aren't permanently locked out after a 401/403
+    authFailedRef.current = false
     resetPollInterval()
     setActiveChannel(slug)
     setMessages([])
