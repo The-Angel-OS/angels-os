@@ -83,6 +83,33 @@ export function useSpaces(initialSpaces?: ChatSpace[]) {
         })
       }
 
+      // Also fetch public spaces the user may not have joined yet
+      // (mirrors fetchUserSpaces server-side logic for consistency)
+      try {
+        const pubRes = await fetch(
+          `${SERVER_URL}/api/spaces?where[visibility][equals]=public&depth=0&limit=50`,
+          { credentials: 'include' },
+        )
+        if (pubRes.ok) {
+          const pubData = await pubRes.json()
+          for (const space of pubData.docs || []) {
+            const id = String(space.id)
+            if (seen.has(id)) continue
+            seen.add(id)
+            extracted.push({
+              id,
+              name: String(space.name || ''),
+              slug: String(space.slug || ''),
+              description: space.description ? String(space.description) : undefined,
+              visibility: 'public',
+              isSystem: String(space.slug || '') === AI_BUS_SPACE_SLUG,
+            })
+          }
+        }
+      } catch {
+        // Non-critical — user still sees spaces they're explicitly members of
+      }
+
       // Sort: regular spaces alphabetically, AI Bus at the end
       extracted.sort((a, b) => {
         if (a.isSystem && !b.isSystem) return 1
