@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { checkRole } from '@/access/utilities'
 import { syncUserTenants } from './hooks/syncUserTenants'
+import { autoJoinSpaces } from './hooks/autoJoinSpaces'
 
 /**
  * User–tenant membership with role-based permissions.
@@ -15,7 +16,7 @@ import { syncUserTenants } from './hooks/syncUserTenants'
 export const TenantMemberships: CollectionConfig = {
   slug: 'tenant-memberships',
   hooks: {
-    afterChange: [syncUserTenants],
+    afterChange: [syncUserTenants, autoJoinSpaces],
   },
   admin: {
     group: 'Angel OS',
