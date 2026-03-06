@@ -36,8 +36,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 108 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(108)
+  it('has exactly 109 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(109)
   })
 
   it('every tool has a unique name', () => {
