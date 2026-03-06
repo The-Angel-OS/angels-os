@@ -19,6 +19,7 @@ import { ChatProvider } from '@/components/ChatControl/ChatProvider'
 import type { ChatSpace } from '@/components/ChatControl/types'
 import type { Media } from '@/payload-types'
 import { LeoNavigationBridge } from './LeoNavigationBridge'
+import { TenantCookieSync } from '@/components/TenantCookieSync'
 
 /**
  * Dashboard layout — Rev 5 (tenant branding + space context).
@@ -190,6 +191,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         spaces={chatSpaces}
         userId={userId ? String(userId) : ''}
       >
+        {/* Sync payload-tenant cookie to current tenant for REST API scoping */}
+        {tenant?.id && <TenantCookieSync tenantId={String(tenant.id)} />}
         {/* LEO Navigation Bridge — auto-navigates when LEO tools mutate data */}
         <LeoNavigationBridge />
 

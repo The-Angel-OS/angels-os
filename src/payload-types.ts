@@ -315,7 +315,19 @@ export interface Tenant {
   /**
    * What kind of endeavor is this tenant?
    */
-  businessType?: ('retail' | 'service' | 'content_creator' | 'nonprofit' | 'professional_services' | 'custom') | null;
+  businessType?:
+    | (
+        | 'retail'
+        | 'gift_shop'
+        | 'service'
+        | 'content_creator'
+        | 'nonprofit'
+        | 'ministry'
+        | 'professional_services'
+        | 'artisan_maker'
+        | 'custom'
+      )
+    | null;
   /**
    * Public-facing storefront configuration
    */
@@ -384,7 +396,7 @@ export interface Tenant {
      */
     digitalProductsEnabled?: boolean | null;
     /**
-     * Tax-exempt organization (e.g. 501(c)(3) ministry, nonprofit)
+     * Tax-exempt organization (e.g. 501(c)(3), nonprofit)
      */
     isTaxExempt?: boolean | null;
     /**
@@ -444,7 +456,7 @@ export interface Tenant {
      */
     assistantId?: string | null;
     /**
-     * Optional: ElevenLabs voice ID override. Default: Adam (pNInz6obpgDQGcFmaJgB)
+     * Optional: ElevenLabs voice ID override. Default: Alice (Xb7hH8MSUJpSbSDYk0k2)
      */
     voiceId?: string | null;
     /**
@@ -741,7 +753,7 @@ export interface User {
    */
   socialProviders?:
     | {
-        provider: 'google' | 'github' | 'apple' | 'discord';
+        provider: 'google' | 'github' | 'apple' | 'discord' | 'whatsapp' | 'telegram';
         /**
          * Unique user ID from the provider
          */
@@ -2296,7 +2308,9 @@ export interface Channel {
    * Explicit channel members (required for DMs, optional for regular channels)
    */
   members?: (number | User)[] | null;
-  source?: ('native' | 'whatsapp' | 'email' | 'google_chat' | 'sms') | null;
+  source?:
+    | ('native' | 'whatsapp' | 'email' | 'google_chat' | 'sms' | 'discord' | 'telegram' | 'slack' | 'federation')
+    | null;
   /**
    * Workflows that run on messages in this channel (e.g. inventory_from_image)
    */
@@ -2438,6 +2452,12 @@ export interface Message {
         | 'widget'
         | 'ethical_assessment'
         | 'voice_call'
+        | 'discord_message'
+        | 'whatsapp_message'
+        | 'email_message'
+        | 'sms_message'
+        | 'telegram_message'
+        | 'federation_message'
       )
     | null;
   /**
@@ -3219,6 +3239,14 @@ export interface Post {
    */
   relatedPosts?: (number | Post)[] | null;
   /**
+   * Original URL if ingested from external source (YouTube, etc.)
+   */
+  sourceUrl?: string | null;
+  /**
+   * Where this post was sourced from
+   */
+  sourceType?: ('youtube' | 'vimeo' | 'rss' | 'manual') | null;
+  /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
@@ -3699,7 +3727,8 @@ export interface Connector {
     | 'webhook'
     | 'livekit'
     | 'discord'
-    | 'telegram';
+    | 'telegram'
+    | 'slack';
   /**
    * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
    */
@@ -4049,7 +4078,7 @@ export interface MediaMeta {
    */
   processedAt?: string | null;
   /**
-   * Model or service that performed the analysis (e.g., "claude-sonnet-4-20250514", "tesseract-5")
+   * Model or service that performed the analysis (e.g., "claude-sonnet-4-6", "tesseract-5")
    */
   processedBy?: string | null;
   /**
@@ -6273,6 +6302,8 @@ export interface PostsSelect<T extends boolean = true> {
       };
   categories?: T;
   relatedPosts?: T;
+  sourceUrl?: T;
+  sourceType?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
