@@ -1,6 +1,6 @@
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
+import { cache } from 'react'
 import { headers } from 'next/headers'
+import { fetchTenantBySlug } from './fetchTenantBySlug'
 import { buildTenantFilter } from './buildTenantFilter'
 import type { Where } from 'payload'
 
@@ -15,40 +15,29 @@ import type { Where } from 'payload'
  * returns `{ tenant: { exists: false } }` so queries only return platform-level
  * content. This prevents cross-tenant data leakage.
  *
- * This replaces the repeated pattern across page routes of:
- *   1. Reading x-tenant-id from headers
- *   2. Looking up tenant by slug
- *   3. Falling back to "default" tenant (which was a leakage vector!)
+ * Uses fetchTenantBySlug (60s/120s TTL cache) to avoid per-request DB hits.
+ * Wrapped in React.cache() for request-level deduplication — pages that call
+ * this from both generateMetadata and the page component only resolve once.
  */
-export async function resolveTenantFromHeaders(): Promise<{
+export const resolveTenantFromHeaders = cache(async (): Promise<{
   tenantId: number | undefined
   tenantFilter: Where
-}> {
+}> => {
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
 
   if (!tenantSlug) {
-    // Platform context — no tenant header means we're on a platform domain.
-    // Return undefined tenantId and a filter that only shows platform-level content.
     return {
       tenantId: undefined,
       tenantFilter: buildTenantFilter(undefined),
     }
   }
 
-  const payload = await getPayload({ config: configPromise })
-
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: tenantSlug } },
-    limit: 1,
-    depth: 0,
-  })
-
-  const tenantId = tenants.docs?.[0]?.id
+  const tenant = await fetchTenantBySlug(tenantSlug)
+  const tenantId = tenant?.id
 
   return {
     tenantId,
     tenantFilter: buildTenantFilter(tenantId),
   }
-}
+})

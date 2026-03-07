@@ -9,9 +9,10 @@ import { RegisterForm } from './RegisterForm'
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const payload = await getPayload({ config: configPromise })
+  const { tenantFilter } = await resolveTenantFromHeaders()
   const events = await payload.find({
     collection: 'events',
-    where: { slug: { equals: slug } },
+    where: { and: [{ slug: { equals: slug } }, tenantFilter] },
     limit: 1,
     depth: 0,
     overrideAccess: true,

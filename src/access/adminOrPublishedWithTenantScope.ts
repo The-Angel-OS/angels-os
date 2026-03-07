@@ -2,6 +2,7 @@ import type { Access } from 'payload'
 
 import { checkRole } from '@/access/utilities'
 import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
+import { buildTenantFilter } from '@/utilities/buildTenantFilter'
 
 /**
  * Access control for draft-enabled, tenant-scoped collections (Pages, Posts).
@@ -38,6 +39,6 @@ export const adminOrPublishedWithTenantScope: Access = async ({ req }) => {
   // Without this, unauthenticated requests without x-tenant-id would see
   // pages from ALL tenants, leaking cross-tenant content.
   return {
-    and: [publishedOnly, { tenant: { exists: false } }],
+    and: [publishedOnly, buildTenantFilter(undefined)],
   }
 }
