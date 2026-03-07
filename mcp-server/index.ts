@@ -733,6 +733,243 @@ server.tool(
 )
 
 // ---------------------------------------------------------------------------
+// Tool: list_tenants
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'list_tenants',
+  'List all tenants in the Angel OS federation. Returns name, slug, domain, status, branding, and business type.',
+  {
+    limit: z.number().optional().default(20).describe('Max results'),
+    status: z.string().optional().describe('Filter by status (e.g. active, inactive)'),
+  },
+  async ({ limit, status }) => {
+    const params: Record<string, string | number | undefined> = { limit, depth: 0 }
+    if (status) params['where[status][equals]'] = status
+
+    const result = (await api('/api/tenants', { params })) as any
+    const docs = result?.docs || []
+
+    const lines = docs.map((t: any) => {
+      const siteName = t.branding?.siteName || t.name || 'Unnamed'
+      const domain = t.domain || 'none'
+      return `- **${siteName}** (ID: ${t.id}, slug: \`${t.slug}\`) — ${t.status || '?'} | domain: ${domain} | type: ${t.businessType || '?'}`
+    })
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: lines.length
+            ? `**Tenants** (${docs.length} of ${result.totalDocs ?? '?'}):\n${lines.join('\n')}`
+            : 'No tenants found.',
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: get_tenant
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'get_tenant',
+  'Get full details of a tenant by ID or slug, including branding, commerce config, and domain setup.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Tenant ID or slug'),
+  },
+  async ({ id }) => {
+    // Try direct ID first, fall back to slug query
+    let result = (await api(`/api/tenants/${id}`, { params: { depth: 1 } })) as any
+
+    if (result?.errors || !result?.id) {
+      // Try by slug
+      const slugResult = (await api('/api/tenants', {
+        params: { 'where[slug][equals]': String(id), limit: 1, depth: 1 },
+      })) as any
+      result = slugResult?.docs?.[0]
+    }
+
+    if (!result?.id) {
+      return {
+        content: [{ type: 'text' as const, text: `Tenant "${id}" not found.` }],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: list_endeavors
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'list_endeavors',
+  'List all Endeavors (enterprises) in the Angel OS federation. Shows name, type, federation status, and tenant linkage.',
+  {
+    limit: z.number().optional().default(20).describe('Max results'),
+    networkVisible: z.boolean().optional().describe('Filter by federation network visibility'),
+  },
+  async ({ limit, networkVisible }) => {
+    const params: Record<string, string | number | undefined> = { limit, depth: 1 }
+    if (networkVisible !== undefined) {
+      params['where[federation.networkVisible][equals]'] = networkVisible ? 'true' : 'false'
+    }
+
+    const result = (await api('/api/endeavors', { params })) as any
+    const docs = result?.docs || []
+
+    const lines = docs.map((e: any) => {
+      const tenantName = typeof e.tenant === 'object' ? (e.tenant?.name || e.tenant?.slug) : `#${e.tenant}`
+      const visible = e.federation?.networkVisible ? '🌐 visible' : '🔒 hidden'
+      const ministry = e.federation?.ministryStatus || 'none'
+      const types = Array.isArray(e.holonTypes) ? e.holonTypes.join(', ') : e.endeavorType || '?'
+      return `- **${e.name}** (ID: ${e.id}) — tenant: ${tenantName} | ${visible} | ministry: ${ministry} | types: ${types}`
+    })
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: lines.length
+            ? `**Endeavors** (${docs.length} of ${result.totalDocs ?? '?'}):\n${lines.join('\n')}`
+            : 'No endeavors found.',
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: get_endeavor
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'get_endeavor',
+  'Get full details of an Endeavor by ID, including federation config, capabilities, and region.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Endeavor ID'),
+  },
+  async ({ id }) => {
+    const result = (await api(`/api/endeavors/${id}`, { params: { depth: 2 } })) as any
+
+    if (result?.errors) {
+      return {
+        content: [{ type: 'text' as const, text: `Endeavor ${id} not found.` }],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: update_endeavor
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'update_endeavor',
+  'Update an Endeavor\'s fields — name, tagline, description, federation settings, capabilities, etc.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Endeavor ID'),
+    data: z.record(z.unknown()).describe(
+      'Fields to update. Common fields: name, tagline, description, endeavorType, ' +
+      'holonTypes (array), capabilities (array of {name,description}), ' +
+      'federation.networkVisible (boolean), federation.ministryStatus, ' +
+      'region.city, region.state, region.country',
+    ),
+  },
+  async ({ id, data }) => {
+    const result = (await api(`/api/endeavors/${id}`, {
+      method: 'PATCH',
+      body: data as Record<string, unknown>,
+    })) as any
+
+    if (result?.errors) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Failed to update endeavor: ${result.errors.map((e: any) => e.message).join(', ')}`,
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Endeavor updated: **${result.doc?.name || result.name || '?'}** (ID: ${result.doc?.id || result.id || id})`,
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Tool: update_tenant
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'update_tenant',
+  'Update a tenant\'s fields — branding, domain, business type, commerce settings, etc.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Tenant ID'),
+    data: z.record(z.unknown()).describe(
+      'Fields to update. Common fields: branding.siteName, branding.tagline, ' +
+      'branding.primaryColor, domain, businessType, status',
+    ),
+  },
+  async ({ id, data }) => {
+    const result = (await api(`/api/tenants/${id}`, {
+      method: 'PATCH',
+      body: data as Record<string, unknown>,
+    })) as any
+
+    if (result?.errors) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Failed to update tenant: ${result.errors.map((e: any) => e.message).join(', ')}`,
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Tenant updated: **${result.doc?.name || result.name || '?'}** (ID: ${result.doc?.id || result.id || id})`,
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 

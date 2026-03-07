@@ -10,7 +10,7 @@ import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 export { leoSystemUserEmail, leoLegacyEmail }
 
 export const INITIAL_USER_EMAILS = {
-  admin: 'kenneth.courtney@gmail.com',
+  admin: 'hello@spacesangels.com',
   devAdmin: 'admin@spacesangels.com',
   customer: 'customer@spacesangels.com',
   vendor: 'vendor@spacesangels.com',

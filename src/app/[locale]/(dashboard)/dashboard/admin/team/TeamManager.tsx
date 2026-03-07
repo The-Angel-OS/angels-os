@@ -2,12 +2,12 @@
 
 import React, { useState, useMemo, useTransition } from 'react'
 import {
-  sendQuickInvite,
   updateMember,
   suspendMember,
   revokeMember,
   reactivateMember,
 } from './actions'
+import { sendQuickInvite } from '../invitations/actions'
 import {
   ALL_PERMISSIONS,
   ROLE_DEFAULT_PERMISSIONS,

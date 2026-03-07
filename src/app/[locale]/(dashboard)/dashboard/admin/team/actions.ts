@@ -15,8 +15,8 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { ALL_PERMISSION_KEYS } from '@/constants/permissions'
 import type { TenantRole } from '@/constants/permissions'
 
-// Re-export sendQuickInvite so the Team page can use a single import
-export { sendQuickInvite } from '../invitations/actions'
+// NOTE: sendQuickInvite lives in ../invitations/actions — import directly from there.
+// Re-exports are NOT allowed in 'use server' files (Turbopack treats them as non-async).
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

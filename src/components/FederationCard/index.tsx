@@ -17,6 +17,12 @@ export interface FederationHolon {
   federation: { federationId: string; ministryStatus: string }
   logo: string | null
   coverImage: string | null
+  /** Tenant branding context — links card to the storefront */
+  tenant?: {
+    slug: string
+    siteName: string | null
+    domain: string | null
+  } | null
 }
 
 const HOLON_LABELS: Record<string, string> = {
@@ -149,12 +155,17 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
           <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{holon.description}</p>
         )}
 
-        {/* Federation ID */}
-        {holon.federation.federationId && (
-          <div className="text-xs text-muted-foreground/60">
-            Federation: <code className="rounded bg-muted px-1">{holon.federation.federationId.slice(0, 12)}...</code>
-          </div>
-        )}
+        {/* Storefront + Federation ID */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground/60">
+          {holon.tenant?.slug && (
+            <span className="truncate" title={holon.tenant.domain || holon.tenant.slug}>
+              🏪 {holon.tenant.siteName || holon.tenant.slug}
+            </span>
+          )}
+          {holon.federation.federationId && (
+            <code className="rounded bg-muted px-1 text-[10px]">{holon.federation.federationId.slice(0, 12)}...</code>
+          )}
+        </div>
       </div>
     </Link>
   )
