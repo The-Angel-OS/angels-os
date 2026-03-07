@@ -65,10 +65,10 @@ export function DashboardSidebar({
   const isMobile = useIsMobile()
   const pathname = usePathname() || ''
 
-  // Prefer context values when available (hydrated), fall back to server-passed props
+  // Read role state from context (always available — DashboardProvider wraps this)
   const dashboard = useDashboard()
-  const isAdmin = dashboard.userRole ? dashboard.isAdmin : isAdminProp
-  const isBusinessOwner = dashboard.userRole ? dashboard.isBusinessOwner : isBusinessOwnerProp
+  const isAdmin = dashboard.isAdmin || isAdminProp
+  const isBusinessOwner = dashboard.isBusinessOwner || isBusinessOwnerProp
 
   // Build visibility context for nav items
   const visCtx: NavVisibilityContext = useMemo(
@@ -91,13 +91,11 @@ export function DashboardSidebar({
     setSectionState((prev) => ({ ...prev, [key]: !prev[key] }))
   }, [])
 
-  // Auto-expand section containing current route
+  // Auto-expand section containing current route (only on navigation)
   useEffect(() => {
     for (const section of NAV_SECTIONS) {
       if (section.collapsible) {
-        const hasActiveItem = section.items.some(
-          (item) => item.visible(visCtx) && item.isActive(pathname, prefix),
-        )
+        const hasActiveItem = section.items.some((item) => item.isActive(pathname, prefix))
         if (hasActiveItem) {
           setSectionState((prev) => {
             if (prev[section.key] === false) return { ...prev, [section.key]: true }
@@ -106,7 +104,8 @@ export function DashboardSidebar({
         }
       }
     }
-  }, [pathname, prefix, visCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run on navigation
+  }, [pathname, prefix])
 
   // Close mobile nav on route change
   useEffect(() => {

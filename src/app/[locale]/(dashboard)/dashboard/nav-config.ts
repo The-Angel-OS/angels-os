@@ -46,7 +46,8 @@ const always = () => true
 const adminOnly = (ctx: NavVisibilityContext) => ctx.isAdmin
 const businessOwner = (ctx: NavVisibilityContext) => ctx.isBusinessOwner
 const adminOrBusinessOwner = (ctx: NavVisibilityContext) => ctx.isAdmin || ctx.isBusinessOwner
-const includes = (path: string) => (pathname: string) => pathname.includes(path)
+/** isActive shorthand — matches if pathname includes the given path segment */
+const active = (path: string) => (pathname: string, _prefix: string) => pathname.includes(path)
 
 // ─── Navigation Sections ────────────────────────────────────────
 
@@ -79,7 +80,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Bridge',
         icon: 'helm',
         href: (p) => `${p}/dashboard/bridge`,
-        isActive: (pn) => pn.includes('/dashboard/bridge'),
+        isActive: active('/dashboard/bridge'),
         visible: adminOrBusinessOwner,
       },
       {
@@ -95,7 +96,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Spaces',
         icon: 'bot',
         href: (p) => `${p}/dashboard/spaces`,
-        isActive: (pn) => pn.includes('/dashboard/spaces'),
+        isActive: active('/dashboard/spaces'),
         visible: always,
       },
       {
@@ -103,7 +104,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'My Orders',
         icon: 'shopping-bag',
         href: (p) => `${p}/dashboard/my-orders`,
-        isActive: (pn) => pn.includes('/dashboard/my-orders'),
+        isActive: active('/dashboard/my-orders'),
         visible: always,
       },
       {
@@ -111,7 +112,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Documentation',
         icon: 'book-open',
         href: (p) => `${p}/dashboard/docs`,
-        isActive: (pn) => pn.includes('/dashboard/docs'),
+        isActive: active('/dashboard/docs'),
         visible: always,
       },
       {
@@ -119,7 +120,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Learn',
         icon: 'sparkle',
         href: (p) => `${p}/dashboard/learn`,
-        isActive: (pn) => pn.includes('/dashboard/learn'),
+        isActive: active('/dashboard/learn'),
         visible: always,
       },
       {
@@ -127,7 +128,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Federation',
         icon: 'network',
         href: (p) => `${p}/dashboard/federation-network`,
-        isActive: (pn) => pn.includes('/dashboard/federation-network'),
+        isActive: active('/dashboard/federation-network'),
         visible: always,
         badge: { text: 'Live', color: 'bg-amber-500' },
       },
@@ -136,7 +137,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Enterprise Setup',
         icon: 'wand',
         href: (p) => `${p}/dashboard/setup`,
-        isActive: (pn) => pn.includes('/dashboard/setup'),
+        isActive: active('/dashboard/setup'),
         visible: (ctx) => !ctx.wizardComplete && ctx.isAdmin,
         badge: { text: 'Setup', color: 'bg-primary' },
       },
@@ -163,7 +164,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Connections',
         icon: 'link-chain',
         href: (p) => `${p}/dashboard/account/connections`,
-        isActive: (pn) => pn.includes('/dashboard/account/connections'),
+        isActive: active('/dashboard/account/connections'),
         visible: always,
       },
       {
@@ -171,7 +172,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Addresses',
         icon: 'map-pin',
         href: (p) => `${p}/dashboard/account/addresses`,
-        isActive: (pn) => pn.includes('/dashboard/account/addresses'),
+        isActive: active('/dashboard/account/addresses'),
         visible: always,
       },
     ],
@@ -189,7 +190,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Products',
         icon: 'cube',
         href: (p) => `${p}/dashboard/products`,
-        isActive: (pn) => pn.includes('/dashboard/products'),
+        isActive: active('/dashboard/products'),
         visible: always,
       },
       {
@@ -197,7 +198,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Orders',
         icon: 'clipboard',
         href: (p) => `${p}/dashboard/orders`,
-        isActive: (pn) => pn.includes('/dashboard/orders'),
+        isActive: active('/dashboard/orders'),
         visible: always,
       },
       {
@@ -205,7 +206,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Events',
         icon: 'calendar-event',
         href: (p) => `${p}/dashboard/events`,
-        isActive: (pn) => pn.includes('/dashboard/events'),
+        isActive: active('/dashboard/events'),
         visible: always,
       },
       {
@@ -213,7 +214,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Appointments',
         icon: 'calendar',
         href: (p) => `${p}/dashboard/appointments`,
-        isActive: (pn) => pn.includes('/dashboard/appointments'),
+        isActive: active('/dashboard/appointments'),
         visible: always,
       },
       {
@@ -221,7 +222,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Holon Node',
         icon: 'holon',
         href: (p) => `${p}/dashboard/holon`,
-        isActive: (pn) => pn.includes('/dashboard/holon'),
+        isActive: active('/dashboard/holon'),
         visible: always,
       },
     ],
@@ -239,7 +240,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Projects',
         icon: 'folder',
         href: (p) => `${p}/dashboard/projects`,
-        isActive: (pn) => pn.includes('/dashboard/projects'),
+        isActive: active('/dashboard/projects'),
         visible: always,
       },
       {
@@ -247,7 +248,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Availability',
         icon: 'clock',
         href: (p) => `${p}/dashboard/availability`,
-        isActive: (pn) => pn.includes('/dashboard/availability'),
+        isActive: active('/dashboard/availability'),
         visible: always,
       },
     ],
@@ -265,7 +266,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Pages',
         icon: 'file',
         href: (p) => `${p}/dashboard/pages`,
-        isActive: (pn) => pn.includes('/dashboard/pages'),
+        isActive: active('/dashboard/pages'),
         visible: always,
       },
       {
@@ -273,7 +274,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Posts',
         icon: 'article',
         href: (p) => `${p}/dashboard/posts`,
-        isActive: (pn) => pn.includes('/dashboard/posts'),
+        isActive: active('/dashboard/posts'),
         visible: always,
       },
       {
@@ -281,7 +282,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Media',
         icon: 'image',
         href: (p) => `${p}/dashboard/media`,
-        isActive: (pn) => pn.includes('/dashboard/media'),
+        isActive: active('/dashboard/media'),
         visible: always,
       },
       {
@@ -289,7 +290,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Comments',
         icon: 'comment',
         href: (p) => `${p}/dashboard/admin/comments`,
-        isActive: (pn) => pn.includes('/dashboard/admin/comments'),
+        isActive: active('/dashboard/admin/comments'),
         visible: always,
       },
     ],
@@ -318,7 +319,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Team',
         icon: 'users',
         href: (p) => `${p}/dashboard/admin/team`,
-        isActive: (pn) => pn.includes('/dashboard/admin/team'),
+        isActive: active('/dashboard/admin/team'),
         visible: always,
       },
       {
@@ -326,7 +327,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Endeavor Setup',
         icon: 'wand',
         href: (p) => `${p}/dashboard/endeavor`,
-        isActive: (pn) => pn.includes('/dashboard/endeavor'),
+        isActive: active('/dashboard/endeavor'),
         visible: always,
       },
       {
@@ -350,7 +351,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Payments',
         icon: 'credit-card',
         href: (p) => `${p}/dashboard/admin/payments`,
-        isActive: (pn) => pn.includes('/dashboard/admin/payments'),
+        isActive: active('/dashboard/admin/payments'),
         visible: always,
       },
       {
@@ -358,7 +359,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Payouts',
         icon: 'banknote',
         href: (p) => `${p}/dashboard/admin/payouts`,
-        isActive: (pn) => pn.includes('/dashboard/admin/payouts'),
+        isActive: active('/dashboard/admin/payouts'),
         visible: always,
       },
       {
@@ -366,7 +367,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Bookings',
         icon: 'calendar-event',
         href: (p) => `${p}/dashboard/admin/bookings`,
-        isActive: (pn) => pn.includes('/dashboard/admin/bookings'),
+        isActive: active('/dashboard/admin/bookings'),
         visible: always,
       },
       {
@@ -374,7 +375,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Invitations',
         icon: 'mail',
         href: (p) => `${p}/dashboard/admin/invitations`,
-        isActive: (pn) => pn.includes('/dashboard/admin/invitations'),
+        isActive: active('/dashboard/admin/invitations'),
         visible: always,
       },
       {
@@ -382,7 +383,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Contacts',
         icon: 'book-open',
         href: (p) => `${p}/dashboard/admin/contacts`,
-        isActive: (pn) => pn.includes('/dashboard/admin/contacts'),
+        isActive: active('/dashboard/admin/contacts'),
         visible: always,
       },
       {
@@ -390,7 +391,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Connectors',
         icon: 'plug',
         href: (p) => `${p}/dashboard/admin/connectors`,
-        isActive: (pn) => pn.includes('/dashboard/admin/connectors'),
+        isActive: active('/dashboard/admin/connectors'),
         visible: always,
       },
       {
@@ -398,7 +399,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Settings',
         icon: 'gear',
         href: (p) => `${p}/dashboard/admin/ai-settings`,
-        isActive: (pn) => pn.includes('/dashboard/admin/ai-settings'),
+        isActive: active('/dashboard/admin/ai-settings'),
         visible: always,
       },
       {
@@ -406,7 +407,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Error Logs',
         icon: 'alert',
         href: (p) => `${p}/dashboard/admin/error-logs`,
-        isActive: (pn) => pn.includes('/dashboard/admin/error-logs'),
+        isActive: active('/dashboard/admin/error-logs'),
         visible: always,
       },
       {
@@ -414,7 +415,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         label: 'Federation',
         icon: 'federation',
         href: (p) => `${p}/dashboard/admin/federation`,
-        isActive: (pn) => pn.includes('/dashboard/admin/federation'),
+        isActive: active('/dashboard/admin/federation'),
         visible: always,
       },
     ],

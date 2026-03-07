@@ -1,14 +1,19 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
+import React, { useState, useMemo, useTransition } from 'react'
 import {
   sendQuickInvite,
-  updateMemberRole,
-  updateMemberPermissions,
+  updateMember,
   suspendMember,
   revokeMember,
   reactivateMember,
 } from './actions'
+import {
+  ALL_PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_LABELS,
+} from '@/constants/permissions'
+import type { TenantPermission, TenantRole } from '@/constants/permissions'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -33,35 +38,11 @@ interface TeamManagerProps {
 
 // ─── Constants ──────────────────────────────────────────────────
 
-const ROLE_LABELS: Record<string, string> = {
-  tenant_admin: 'Admin',
-  tenant_manager: 'Manager',
-  tenant_member: 'Member',
-}
-
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active: { label: 'Active', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300' },
   pending: { label: 'Pending', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' },
   suspended: { label: 'Suspended', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
   revoked: { label: 'Revoked', color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' },
-}
-
-const ALL_PERMISSIONS = [
-  { key: 'manage_users', label: 'Manage Users' },
-  { key: 'manage_spaces', label: 'Manage Spaces' },
-  { key: 'manage_content', label: 'Manage Content' },
-  { key: 'manage_products', label: 'Manage Products' },
-  { key: 'manage_orders', label: 'Manage Orders' },
-  { key: 'view_analytics', label: 'View Analytics' },
-  { key: 'manage_settings', label: 'Manage Settings' },
-  { key: 'manage_billing', label: 'Manage Billing' },
-  { key: 'export_data', label: 'Export Data' },
-]
-
-const ROLE_DEFAULT_PERMS: Record<string, string[]> = {
-  tenant_admin: ALL_PERMISSIONS.map((p) => p.key),
-  tenant_manager: ['manage_spaces', 'manage_content', 'manage_products', 'manage_orders', 'view_analytics'],
-  tenant_member: ['view_analytics'],
 }
 
 type FilterTab = 'all' | 'active' | 'pending' | 'suspended'
@@ -79,18 +60,27 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
     setTimeout(() => setToast(null), 3000)
   }
 
-  const filtered = members.filter((m) => {
-    if (filter === 'all') return true
-    if (filter === 'suspended') return m.status === 'suspended' || m.status === 'revoked'
-    return m.status === filter
-  })
+  const filtered = useMemo(
+    () =>
+      members.filter((m) => {
+        if (filter === 'all') return true
+        if (filter === 'suspended') return m.status === 'suspended' || m.status === 'revoked'
+        return m.status === filter
+      }),
+    [members, filter],
+  )
 
-  const counts = {
-    all: members.length,
-    active: members.filter((m) => m.status === 'active').length,
-    pending: members.filter((m) => m.status === 'pending').length,
-    suspended: members.filter((m) => m.status === 'suspended' || m.status === 'revoked').length,
-  }
+  const counts = useMemo(() => {
+    let active = 0
+    let pending = 0
+    let suspended = 0
+    for (const m of members) {
+      if (m.status === 'active') active++
+      else if (m.status === 'pending') pending++
+      else if (m.status === 'suspended' || m.status === 'revoked') suspended++
+    }
+    return { all: members.length, active, pending, suspended }
+  }, [members])
 
   return (
     <div className="space-y-6">
@@ -165,7 +155,7 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm">{ROLE_LABELS[member.role] || member.role}</span>
+                    <span className="text-sm">{ROLE_LABELS[member.role as TenantRole] || member.role}</span>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <StatusBadge status={member.status} />
@@ -317,7 +307,7 @@ function MemberEditor({
   const [isPending, startTransition] = useTransition()
   const [confirmRevoke, setConfirmRevoke] = useState(false)
 
-  const roleDefaults = ROLE_DEFAULT_PERMS[editRole] || []
+  const roleDefaults = ROLE_DEFAULT_PERMISSIONS[editRole as TenantRole] || []
 
   const togglePerm = (key: string) => {
     setEditPerms((prev) => (prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]))
@@ -325,22 +315,14 @@ function MemberEditor({
 
   const handleSave = () => {
     startTransition(async () => {
-      // Update role if changed
-      if (editRole !== member.role) {
-        const roleResult = await updateMemberRole(member.id, editRole)
-        if (!roleResult.success) {
-          onError(roleResult.error || 'Failed to update role')
-          return
-        }
-      }
-
-      // Update permissions
-      const permResult = await updateMemberPermissions(member.id, editPerms)
-      if (!permResult.success) {
-        onError(permResult.error || 'Failed to update permissions')
+      const result = await updateMember(member.id, {
+        role: editRole !== member.role ? editRole : undefined,
+        permissions: editPerms,
+      })
+      if (!result.success) {
+        onError(result.error || 'Failed to update member')
         return
       }
-
       onUpdate({ ...member, role: editRole, permissions: editPerms })
     })
   }

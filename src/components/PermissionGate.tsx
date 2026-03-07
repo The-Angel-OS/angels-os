@@ -2,10 +2,11 @@
 
 import type { ReactNode } from 'react'
 import { useDashboard } from '@/providers/DashboardContext'
+import type { TenantPermission } from '@/constants/permissions'
 
 interface PermissionGateProps {
   /** Permission key to check (e.g., 'manage_users', 'manage_products') */
-  permission: string
+  permission: TenantPermission
   /** Optional fallback when permission denied */
   fallback?: ReactNode
   children: ReactNode

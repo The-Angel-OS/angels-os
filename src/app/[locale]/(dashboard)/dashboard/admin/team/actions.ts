@@ -12,6 +12,8 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { ALL_PERMISSION_KEYS } from '@/constants/permissions'
+import type { TenantRole } from '@/constants/permissions'
 
 // Re-export sendQuickInvite so the Team page can use a single import
 export { sendQuickInvite } from '../invitations/actions'
@@ -63,7 +65,8 @@ async function getAuthorizedUser() {
 
     const doc = membership.docs[0] as any
     const isTA = doc?.role === 'tenant_admin'
-    const hasPermission = Array.isArray(doc?.permissions) && doc.permissions.includes('manage_users')
+    const hasPermission =
+      Array.isArray(doc?.permissions) && doc.permissions.includes('manage_users')
 
     if (!isTA && !hasPermission) {
       return { payload, user, tenantId, error: 'Insufficient permissions' }
@@ -73,96 +76,70 @@ async function getAuthorizedUser() {
   return { payload, user, tenantId, error: null }
 }
 
-// ── Update Role ──────────────────────────────────────────────────────────────
+// ── Shared: verify membership belongs to tenant ──────────────────────────────
 
-export async function updateMemberRole(
+async function verifyMembershipTenant(
+  payload: Awaited<ReturnType<typeof getPayload>>,
   membershipId: number | string,
-  newRole: string,
+  tenantId: number | string,
+) {
+  const existing = await payload.findByID({
+    collection: 'tenant-memberships',
+    id: membershipId,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const existingTenant =
+    typeof (existing as any).tenant === 'object'
+      ? (existing as any).tenant?.id
+      : (existing as any).tenant
+  if (String(existingTenant) !== String(tenantId)) {
+    return { verified: false as const, error: 'Membership not found in this tenant' }
+  }
+  return { verified: true as const }
+}
+
+// ── Update Member (role + permissions in one call) ───────────────────────────
+
+const VALID_ROLES: TenantRole[] = ['tenant_admin', 'tenant_manager', 'tenant_member']
+
+export async function updateMember(
+  membershipId: number | string,
+  data: { role?: string; permissions?: string[] },
 ): Promise<ActionResult> {
   const { payload, tenantId, error } = await getAuthorizedUser()
   if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
 
-  const validRoles = ['tenant_admin', 'tenant_manager', 'tenant_member']
-  if (!validRoles.includes(newRole)) {
+  // Validate inputs
+  if (data.role && !VALID_ROLES.includes(data.role as TenantRole)) {
     return { success: false, error: 'Invalid role' }
   }
 
   try {
-    // Verify the membership belongs to this tenant
-    const existing = await payload.findByID({
-      collection: 'tenant-memberships',
-      id: membershipId,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const existingTenant =
-      typeof (existing as any).tenant === 'object'
-        ? (existing as any).tenant?.id
-        : (existing as any).tenant
-    if (String(existingTenant) !== String(tenantId)) {
-      return { success: false, error: 'Membership not found in this tenant' }
+    const check = await verifyMembershipTenant(payload, membershipId, tenantId)
+    if (!check.verified) return { success: false, error: check.error }
+
+    // Build update payload — only include changed fields
+    const updateData: Record<string, unknown> = {}
+    if (data.role) updateData.role = data.role
+    if (data.permissions) {
+      updateData.permissions = data.permissions.filter((p) =>
+        ALL_PERMISSION_KEYS.includes(p as any),
+      )
     }
 
-    await payload.update({
-      collection: 'tenant-memberships',
-      id: membershipId,
-      data: { role: newRole } as any,
-      overrideAccess: true,
-    })
+    if (Object.keys(updateData).length > 0) {
+      await payload.update({
+        collection: 'tenant-memberships',
+        id: membershipId,
+        data: updateData as any,
+        overrideAccess: true,
+      })
+    }
 
     return { success: true }
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to update role' }
-  }
-}
-
-// ── Update Permissions ───────────────────────────────────────────────────────
-
-export async function updateMemberPermissions(
-  membershipId: number | string,
-  permissions: string[],
-): Promise<ActionResult> {
-  const { payload, tenantId, error } = await getAuthorizedUser()
-  if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
-
-  const validPermissions = [
-    'manage_users',
-    'manage_spaces',
-    'manage_content',
-    'manage_products',
-    'manage_orders',
-    'view_analytics',
-    'manage_settings',
-    'manage_billing',
-    'export_data',
-  ]
-  const filtered = permissions.filter((p) => validPermissions.includes(p))
-
-  try {
-    const existing = await payload.findByID({
-      collection: 'tenant-memberships',
-      id: membershipId,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const existingTenant =
-      typeof (existing as any).tenant === 'object'
-        ? (existing as any).tenant?.id
-        : (existing as any).tenant
-    if (String(existingTenant) !== String(tenantId)) {
-      return { success: false, error: 'Membership not found in this tenant' }
-    }
-
-    await payload.update({
-      collection: 'tenant-memberships',
-      id: membershipId,
-      data: { permissions: filtered } as any,
-      overrideAccess: true,
-    })
-
-    return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to update permissions' }
+    return { success: false, error: err?.message || 'Failed to update member' }
   }
 }
 
@@ -176,19 +153,8 @@ async function changeStatus(
   if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
 
   try {
-    const existing = await payload.findByID({
-      collection: 'tenant-memberships',
-      id: membershipId,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const existingTenant =
-      typeof (existing as any).tenant === 'object'
-        ? (existing as any).tenant?.id
-        : (existing as any).tenant
-    if (String(existingTenant) !== String(tenantId)) {
-      return { success: false, error: 'Membership not found in this tenant' }
-    }
+    const check = await verifyMembershipTenant(payload, membershipId, tenantId)
+    if (!check.verified) return { success: false, error: check.error }
 
     await payload.update({
       collection: 'tenant-memberships',

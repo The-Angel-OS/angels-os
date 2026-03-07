@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
+import { ROLE_DEFAULT_PERMISSIONS } from '@/constants/permissions'
+import type { TenantPermission, TenantRole } from '@/constants/permissions'
 
 /**
  * Dashboard-wide context — spaces + user roles + permissions.
@@ -25,34 +27,9 @@ export interface DashboardSpace {
 
 export interface DashboardUserRole {
   platformRoles: string[]
-  tenantRole: string | null // tenant_admin | tenant_manager | tenant_member
-  tenantPermissions: string[] // manage_users, manage_spaces, etc.
+  tenantRole: TenantRole | null
+  tenantPermissions: TenantPermission[]
   membershipId: string | null
-}
-
-// ─── Role-implied permission defaults ───────────────────────────
-// Permissions granted by tenant role regardless of explicit permissions array.
-
-const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  tenant_admin: [
-    'manage_users',
-    'manage_spaces',
-    'manage_content',
-    'manage_products',
-    'manage_orders',
-    'view_analytics',
-    'manage_settings',
-    'manage_billing',
-    'export_data',
-  ],
-  tenant_manager: [
-    'manage_spaces',
-    'manage_content',
-    'manage_products',
-    'manage_orders',
-    'view_analytics',
-  ],
-  tenant_member: ['view_analytics'],
 }
 
 // ─── Context Shape ──────────────────────────────────────────────
@@ -70,7 +47,7 @@ interface DashboardContextValue {
   isBusinessOwner: boolean // any platform role except customer
   isTenantAdmin: boolean // tenantRole === 'tenant_admin'
   /** Check if current user has a specific tenant permission (or inherits it from role) */
-  canManage: (permission: string) => boolean
+  canManage: (permission: TenantPermission) => boolean
 }
 
 const DashboardCtx = createContext<DashboardContextValue>({
@@ -114,7 +91,7 @@ export function DashboardProvider({
 
   // Permission checker: explicit permissions + role defaults + super_admin bypass
   const canManage = useCallback(
-    (permission: string): boolean => {
+    (permission: TenantPermission): boolean => {
       if (!userRole) return false
       // Super admins bypass all checks
       if (userRole.platformRoles.includes('super_admin')) return true
@@ -127,8 +104,11 @@ export function DashboardProvider({
       // Explicit permissions on the membership
       if (userRole.tenantPermissions.includes(permission)) return true
       // Role-implied defaults
-      const defaults = ROLE_DEFAULT_PERMISSIONS[userRole.tenantRole || ''] || []
-      return defaults.includes(permission)
+      if (userRole.tenantRole) {
+        const defaults = ROLE_DEFAULT_PERMISSIONS[userRole.tenantRole] || []
+        return defaults.includes(permission)
+      }
+      return false
     },
     [userRole],
   )
