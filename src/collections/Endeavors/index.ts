@@ -389,6 +389,74 @@ export const Endeavors: CollectionConfig = {
       ],
     },
 
+    // ── Crew Configuration (Sprint 40) ────────────────────────────
+    {
+      name: 'crew',
+      type: 'group',
+      admin: {
+        description:
+          'Ship crew configuration — departments, command structure, watch rotation. ' +
+          'The Endeavor is the ship; CrewAssignments are the duty roster.',
+      },
+      fields: [
+        {
+          name: 'activeDepartments',
+          type: 'select',
+          hasMany: true,
+          options: [
+            { label: 'Bridge (Command)', value: 'bridge' },
+            { label: 'Engineering', value: 'engineering' },
+            { label: 'Operations', value: 'operations' },
+            { label: 'Science', value: 'science' },
+            { label: 'Communications', value: 'communications' },
+            { label: 'Medical', value: 'medical' },
+            { label: 'Security', value: 'security' },
+            { label: 'Logistics', value: 'logistics' },
+          ],
+          admin: {
+            description: 'Which departments are active on this ship',
+          },
+        },
+        {
+          name: 'maxCrewSize',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: 'Maximum crew complement (0 = unlimited)',
+          },
+        },
+        {
+          name: 'watchRotation',
+          type: 'select',
+          defaultValue: 'flexible',
+          options: [
+            { label: 'Fixed (assigned watches)', value: 'fixed' },
+            { label: 'Rotating (auto-cycle)', value: 'rotating' },
+            { label: 'Flexible (self-schedule)', value: 'flexible' },
+          ],
+          admin: {
+            description: 'How watch/shift rotation is managed',
+          },
+        },
+        {
+          name: 'commandingOfficer',
+          type: 'relationship',
+          relationTo: 'crew-assignments' as any,
+          admin: {
+            description: 'The Captain — commanding officer of this vessel',
+          },
+        },
+        {
+          name: 'executiveOfficer',
+          type: 'relationship',
+          relationTo: 'crew-assignments' as any,
+          admin: {
+            description: 'First Officer — executive officer / second in command',
+          },
+        },
+      ],
+    },
+
     // ── Branding ──────────────────────────────────────────────────
     {
       name: 'logo',

@@ -65,6 +65,7 @@ import { QuestParticipations } from '@/collections/QuestParticipations'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { Pheromones, WorkUnits } from '@/collections/Intelligence'
+import { CrewAssignments } from '@/collections/CrewAssignments'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
@@ -126,6 +127,8 @@ import { federationMigrateHandler } from '@/endpoints/federation-migrate'
 import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-work'
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { federationMessageHandler } from '@/endpoints/federation-message'
+import { cicStatusHandler } from '@/endpoints/cic-status'
+import { vercelSpendWebhookHandler } from '@/endpoints/vercel-spend-webhook'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
 import { authGithubInitHandler, authGithubCallbackHandler } from '@/endpoints/auth-github'
 import { discordWebhookHandler } from '@/endpoints/discord-webhook'
@@ -217,6 +220,7 @@ export default buildConfig({
     Shipments,
     Pheromones,
     WorkUnits,
+    CrewAssignments,
   ],
   db: postgresAdapter({
     pool: {
@@ -268,6 +272,7 @@ export default buildConfig({
         connectors: {},
         // ─── Sprint 20: Federation ──────────────────────────
         endeavors: {},
+        'crew-assignments': {},
         'street-signs': {},
         // ─── Sprint 23: Quests ──────────────────────────────
         quests: {},
@@ -860,6 +865,18 @@ export default buildConfig({
       path: '/slack/webhook',
       method: 'post',
       handler: slackWebhookHandler,
+    },
+    // ─── CIC Status (Sprint 40) ───────────────────────────────
+    {
+      path: '/cic/status',
+      method: 'get',
+      handler: cicStatusHandler,
+    },
+    // ─── Vercel Spend Webhook (Sprint 40) ─────────────────────
+    {
+      path: '/webhooks/vercel-spend',
+      method: 'post',
+      handler: vercelSpendWebhookHandler,
     },
   ],
   globals: [],

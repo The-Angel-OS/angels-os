@@ -970,6 +970,360 @@ server.tool(
 )
 
 // ---------------------------------------------------------------------------
+// Crew Assignment Tools (Sprint 40 — Endeavor Crews)
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'list_crew',
+  'List crew assignments for an Endeavor. Shows department, station, rank, duty status, and capabilities.',
+  {
+    endeavorId: z.union([z.string(), z.number()]).optional().describe('Filter by Endeavor ID'),
+    department: z
+      .enum([
+        'bridge',
+        'engineering',
+        'operations',
+        'science',
+        'communications',
+        'medical',
+        'security',
+        'logistics',
+      ])
+      .optional()
+      .describe('Filter by department'),
+    dutyStatus: z
+      .enum(['active_duty', 'shore_leave', 'detached', 'reserve'])
+      .optional()
+      .describe('Filter by duty status'),
+    limit: z.number().optional().describe('Max results (default 50)'),
+  },
+  async ({ endeavorId, department, dutyStatus, limit }) => {
+    const where: Record<string, unknown> = {}
+    if (endeavorId) where['endeavor'] = { equals: endeavorId }
+    if (department) where['department'] = { equals: department }
+    if (dutyStatus) where['dutyStatus'] = { equals: dutyStatus }
+
+    const params = new URLSearchParams()
+    params.set('limit', String(limit || 50))
+    params.set('depth', '1')
+    params.set('sort', 'department')
+    for (const [key, val] of Object.entries(where)) {
+      const cond = val as { equals: unknown }
+      params.set(`where[${key}][equals]`, String(cond.equals))
+    }
+
+    const result = (await api(`/api/crew-assignments?${params}`)) as any
+    const docs = result?.docs || []
+
+    if (docs.length === 0) {
+      return {
+        content: [
+          { type: 'text' as const, text: 'No crew assignments found matching the filters.' },
+        ],
+      }
+    }
+
+    const lines = docs.map((d: any) => {
+      const memberName =
+        typeof d.membership === 'object'
+          ? d.membership?.user?.email || d.membership?.id
+          : d.membership
+      const caps = (d.capabilities || [])
+        .map((c: any) => `${c.skill}(${c.proficiency})`)
+        .join(', ')
+      return `• [${d.department}] ${d.station || '?'} — ${d.rank} | ${d.dutyStatus}${d.watchSection ? ` | Watch: ${d.watchSection}` : ''}${caps ? ` | Skills: ${caps}` : ''} (ID: ${d.id}, Member: ${memberName})`
+    })
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Crew roster (${docs.length}/${result.totalDocs || '?'} total):\n\n${lines.join('\n')}`,
+        },
+      ],
+    }
+  },
+)
+
+server.tool(
+  'assign_crew_member',
+  'Create a new crew assignment — assign a team member to a department, station, and rank within an Endeavor.',
+  {
+    membershipId: z
+      .union([z.string(), z.number()])
+      .describe('TenantMembership ID of the person being assigned'),
+    endeavorId: z
+      .union([z.string(), z.number()])
+      .describe('Endeavor ID this crew assignment belongs to'),
+    department: z
+      .enum([
+        'bridge',
+        'engineering',
+        'operations',
+        'science',
+        'communications',
+        'medical',
+        'security',
+        'logistics',
+      ])
+      .describe('Department assignment'),
+    station: z.string().describe('Station title (e.g., "Captain", "Chief Engineer", "Ops Chief")'),
+    rank: z
+      .enum(['captain', 'commander', 'lt_commander', 'lieutenant', 'ensign', 'specialist', 'cadet'])
+      .describe('Rank'),
+    dutyStatus: z
+      .enum(['active_duty', 'shore_leave', 'detached', 'reserve'])
+      .optional()
+      .describe('Duty status (default: active_duty)'),
+    watchSection: z
+      .enum(['alpha', 'beta', 'gamma', 'delta'])
+      .optional()
+      .describe('Watch section assignment'),
+    capabilities: z
+      .array(
+        z.object({
+          skill: z.string(),
+          proficiency: z.enum(['expert', 'proficient', 'learning']),
+        }),
+      )
+      .optional()
+      .describe('Array of skills and proficiency levels'),
+  },
+  async ({ membershipId, endeavorId, department, station, rank, dutyStatus, watchSection, capabilities }) => {
+    const body: Record<string, unknown> = {
+      membership: membershipId,
+      endeavor: endeavorId,
+      department,
+      station,
+      rank,
+      dutyStatus: dutyStatus || 'active_duty',
+      assignedAt: new Date().toISOString(),
+    }
+    if (watchSection) body.watchSection = watchSection
+    if (capabilities) body.capabilities = capabilities
+
+    const result = (await api('/api/crew-assignments', {
+      method: 'POST',
+      body,
+    })) as any
+
+    if (result?.errors) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Failed to create crew assignment: ${result.errors.map((e: any) => e.message).join(', ')}`,
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    const doc = result?.doc || result
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Crew assignment created:\n• Station: ${doc.station || station}\n• Department: ${doc.department || department}\n• Rank: ${doc.rank || rank}\n• Duty: ${doc.dutyStatus || 'active_duty'}\n• ID: ${doc.id}`,
+        },
+      ],
+    }
+  },
+)
+
+server.tool(
+  'update_crew_member',
+  'Update an existing crew assignment — change duty status, watch section, department, rank, or capabilities.',
+  {
+    id: z.union([z.string(), z.number()]).describe('Crew assignment ID'),
+    data: z.record(z.unknown()).describe(
+      'Fields to update. Common: dutyStatus, watchSection, department, station, rank, capabilities',
+    ),
+  },
+  async ({ id, data }) => {
+    const result = (await api(`/api/crew-assignments/${id}`, {
+      method: 'PATCH',
+      body: data as Record<string, unknown>,
+    })) as any
+
+    if (result?.errors) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Failed to update crew assignment: ${result.errors.map((e: any) => e.message).join(', ')}`,
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    const doc = result?.doc || result
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Crew assignment updated: ${doc.station || '?'} [${doc.department || '?'}] — ${doc.rank || '?'} | ${doc.dutyStatus || '?'} (ID: ${doc.id || id})`,
+        },
+      ],
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// CIC + Vercel Billing Tools (Sprint 40 — Universal Transport Bus)
+// ---------------------------------------------------------------------------
+
+server.tool(
+  'cic_status',
+  'Get the CIC (Command Information Center) status — crew readiness, work queue, federation status, platform connections.',
+  {},
+  async () => {
+    const result = (await api('/api/cic/status')) as any
+
+    if (result?.error) {
+      return {
+        content: [{ type: 'text' as const, text: `CIC error: ${result.error}` }],
+        isError: true,
+      }
+    }
+
+    const c = result.crew || {}
+    const w = result.workQueue || {}
+    const f = result.federation || {}
+    const platforms = (result.platforms || []) as { name: string; status: string; detail?: string }[]
+
+    const lines = [
+      `CIC Status — ${result.endeavorName || 'Unknown'} (${result.endeavorStatus || '?'})`,
+      `Updated: ${result.timestamp || 'unknown'}`,
+      '',
+      `── Crew ──`,
+      `Total: ${c.totalCrew || 0} | Active: ${c.activeDuty || 0} | Reserve: ${c.reserve || 0} | Shore: ${c.shoreLeave || 0}`,
+      ...(c.departments || []).map(
+        (d: any) => `  ${d.department}: ${d.activeCount}/${d.totalCount} active`,
+      ),
+      '',
+      `── Work Queue ──`,
+      `Pending: ${w.pending || 0} | Executing: ${w.executing || 0}`,
+      `24h: ${w.completed24h || 0} completed, ${w.failed24h || 0} failed`,
+      `Avg exec: ${w.avgExecutionMs ? `${(w.avgExecutionMs / 1000).toFixed(1)}s` : '—'}`,
+      '',
+      `── Federation ──`,
+      `Visible: ${f.networkVisible ? 'Yes' : 'No'} | Status: ${f.ministryStatus || '?'}`,
+      f.federationId ? `ID: ${f.federationId.slice(0, 20)}...` : '',
+      '',
+      `── Platforms ──`,
+      ...platforms.map(
+        (p: any) => `  ${p.status === 'connected' ? '✓' : '✗'} ${p.name}${p.detail ? ` — ${p.detail}` : ''}`,
+      ),
+    ]
+
+    return {
+      content: [{ type: 'text' as const, text: lines.filter(Boolean).join('\n') }],
+    }
+  },
+)
+
+server.tool(
+  'vercel_spend_check',
+  'Check current Vercel billing charges and remaining credits. Requires VERCEL_TOKEN env var.',
+  {
+    planLimit: z
+      .number()
+      .optional()
+      .describe('Monthly plan limit in dollars (e.g., 20 for Hobby, 150 for Pro)'),
+  },
+  async ({ planLimit }) => {
+    const token = process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN || ''
+    if (!token) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Vercel API token not configured. Set VERCEL_TOKEN or VERCEL_API_TOKEN environment variable.',
+          },
+        ],
+        isError: true,
+      }
+    }
+
+    const teamId = process.env.VERCEL_TEAM_ID || ''
+    const teamParam = teamId ? `?teamId=${teamId}` : ''
+
+    try {
+      // Fetch billing data directly (avoid importing from src/ which may not be available in MCP context)
+      const res = await fetch(`https://api.vercel.com/v1/billing/usage${teamParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!res.ok) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Vercel billing API returned ${res.status}: ${res.statusText}`,
+            },
+          ],
+          isError: true,
+        }
+      }
+
+      const data = await res.json() as any
+      const charges = data.charges || data.items || data.usage || {}
+      let total = 0
+      const byResource: Record<string, number> = {}
+
+      if (Array.isArray(charges)) {
+        for (const item of charges) {
+          const name = item.name || item.resourceType || 'other'
+          const amt = item.total || item.amount || 0
+          byResource[name] = (byResource[name] || 0) + amt
+          total += amt
+        }
+      } else if (typeof data.total === 'number') {
+        total = data.total
+      }
+
+      const lines = [
+        `Vercel Billing Summary`,
+        `Total charges: $${total.toFixed(2)}`,
+      ]
+
+      if (planLimit) {
+        const pct = ((total / planLimit) * 100).toFixed(1)
+        const remaining = Math.max(0, planLimit - total)
+        lines.push(
+          `Plan limit: $${planLimit.toFixed(2)}`,
+          `Remaining: $${remaining.toFixed(2)} (${pct}% used)`,
+        )
+        if (total / planLimit >= 0.75) {
+          lines.push(`⚠️ WARNING: Spend exceeds 75% of plan limit!`)
+        }
+      }
+
+      const resources = Object.entries(byResource)
+      if (resources.length > 0) {
+        lines.push('', 'By resource:')
+        for (const [name, amt] of resources.sort((a, b) => b[1] - a[1])) {
+          lines.push(`  ${name}: $${amt.toFixed(2)}`)
+        }
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: lines.join('\n') }],
+      }
+    } catch (err: any) {
+      return {
+        content: [
+          { type: 'text' as const, text: `Vercel billing check failed: ${err.message}` },
+        ],
+        isError: true,
+      }
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 

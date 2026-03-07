@@ -84,6 +84,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: adminOrBusinessOwner,
       },
       {
+        key: 'cic',
+        label: 'CIC',
+        icon: 'radar',
+        href: (p) => `${p}/dashboard/cic`,
+        isActive: active('/dashboard/cic'),
+        visible: adminOrBusinessOwner,
+      },
+      {
         key: 'payload-admin',
         label: 'Payload Admin',
         icon: 'gear',
@@ -320,6 +328,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'users',
         href: (p) => `${p}/dashboard/admin/team`,
         isActive: active('/dashboard/admin/team'),
+        visible: always,
+      },
+      {
+        key: 'crew',
+        label: 'Crew',
+        icon: 'anchor',
+        href: (p) => `${p}/dashboard/admin/crew`,
+        isActive: active('/dashboard/admin/crew'),
         visible: always,
       },
       {

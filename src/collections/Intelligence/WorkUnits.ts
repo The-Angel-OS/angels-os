@@ -345,5 +345,17 @@ export const WorkUnits: CollectionConfig = {
         description: 'Node ID that executed the work (may differ from assignedNode on retry).',
       },
     },
+
+    // ── Crew Assignment (Sprint 40) ─────────────────────────────────
+    {
+      name: 'assignedCrewMember',
+      type: 'relationship',
+      relationTo: 'crew-assignments' as any,
+      admin: {
+        description:
+          'Crew member assigned to this work unit (intra-ship routing). ' +
+          'Set by the Crew Routing Engine after the Workload Engine picks the node.',
+      },
+    },
   ],
 }

@@ -292,6 +292,26 @@ function FederationIcon() {
   )
 }
 
+function RadarIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="6" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="2" strokeWidth={1.5} />
+      <path strokeLinecap="round" strokeWidth={1.5} d="M12 2v4m0 12v4" />
+    </svg>
+  )
+}
+
+function AnchorIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="5" r="3" strokeWidth={1.5} />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0 0l-4-2m4 2l4-2M5 12H2a10 10 0 0020 0h-3" />
+    </svg>
+  )
+}
+
 function ChevronDownIcon() {
   return (
     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -336,6 +356,8 @@ export const NAV_ICONS: Record<string, React.ComponentType> = {
   plug: PlugIcon,
   alert: AlertIcon,
   federation: FederationIcon,
+  radar: RadarIcon,
+  anchor: AnchorIcon,
   'chevron-down': ChevronDownIcon,
 }
 

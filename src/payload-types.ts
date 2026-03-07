@@ -113,6 +113,7 @@ export interface Config {
     shipments: Shipment;
     pheromones: Pheromone;
     'work-units': WorkUnit;
+    'crew-assignments': CrewAssignment;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -183,6 +184,7 @@ export interface Config {
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     pheromones: PheromonesSelect<false> | PheromonesSelect<true>;
     'work-units': WorkUnitsSelect<false> | WorkUnitsSelect<true>;
+    'crew-assignments': CrewAssignmentsSelect<false> | CrewAssignmentsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1919,6 +1921,42 @@ export interface Endeavor {
       }[]
     | null;
   /**
+   * Ship crew configuration — departments, command structure, watch rotation. The Endeavor is the ship; CrewAssignments are the duty roster.
+   */
+  crew?: {
+    /**
+     * Which departments are active on this ship
+     */
+    activeDepartments?:
+      | (
+          | 'bridge'
+          | 'engineering'
+          | 'operations'
+          | 'science'
+          | 'communications'
+          | 'medical'
+          | 'security'
+          | 'logistics'
+        )[]
+      | null;
+    /**
+     * Maximum crew complement (0 = unlimited)
+     */
+    maxCrewSize?: number | null;
+    /**
+     * How watch/shift rotation is managed
+     */
+    watchRotation?: ('fixed' | 'rotating' | 'flexible') | null;
+    /**
+     * The Captain — commanding officer of this vessel
+     */
+    commandingOfficer?: (number | null) | CrewAssignment;
+    /**
+     * First Officer — executive officer / second in command
+     */
+    executiveOfficer?: (number | null) | CrewAssignment;
+  };
+  /**
    * Primary logo for network catalog display
    */
   logo?: (number | null) | Media;
@@ -1966,6 +2004,127 @@ export interface Space {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Naval crew assignments — maps members to departments, stations, and watches within an Endeavor.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crew-assignments".
+ */
+export interface CrewAssignment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The tenant membership this crew assignment belongs to
+   */
+  membership: number | TenantMembership;
+  /**
+   * The Endeavor (ship) this crew member serves on
+   */
+  endeavor: number | Endeavor;
+  /**
+   * Functional division: Bridge (command), Engineering (tech/product), Operations (logistics/fulfillment), Science (analytics/research), Communications (marketing/content), Medical (support/wellness), Security (compliance/trust), Logistics (supply chain/fleet)
+   */
+  department:
+    | 'bridge'
+    | 'engineering'
+    | 'operations'
+    | 'science'
+    | 'communications'
+    | 'medical'
+    | 'security'
+    | 'logistics';
+  /**
+   * Specific position within the department
+   */
+  station: string;
+  /**
+   * Crew rank — determines chain of command priority
+   */
+  rank: 'captain' | 'commander' | 'lt_commander' | 'lieutenant' | 'ensign' | 'specialist' | 'cadet';
+  /**
+   * Current duty status — affects work routing eligibility
+   */
+  dutyStatus: 'active_duty' | 'shore_leave' | 'detached' | 'reserve';
+  /**
+   * Watch/shift rotation assignment (Alpha through Delta)
+   */
+  watchSection?: ('alpha' | 'beta' | 'gamma' | 'delta') | null;
+  /**
+   * Individual skills and proficiency levels — used by the Crew Routing Engine
+   */
+  capabilities?:
+    | {
+        skill: string;
+        proficiency?: ('expert' | 'proficient' | 'learning') | null;
+        id?: string | null;
+      }[]
+    | null;
+  assignedAt?: string | null;
+  assignedBy?: (number | null) | User;
+  /**
+   * Additional notes about this assignment
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenant-memberships".
+ */
+export interface TenantMembership {
+  id: number;
+  /**
+   * User who belongs to this tenant
+   */
+  user: number | User;
+  /**
+   * Tenant this membership applies to
+   */
+  tenant: number | Tenant;
+  /**
+   * Role within this tenant
+   */
+  role: 'tenant_admin' | 'tenant_manager' | 'tenant_member';
+  /**
+   * Granular permissions (optional override)
+   */
+  permissions?:
+    | (
+        | 'manage_users'
+        | 'manage_spaces'
+        | 'manage_content'
+        | 'manage_products'
+        | 'manage_orders'
+        | 'view_analytics'
+        | 'manage_settings'
+        | 'manage_billing'
+        | 'export_data'
+      )[]
+    | null;
+  status?: ('active' | 'pending' | 'suspended' | 'revoked') | null;
+  /**
+   * User who sent the invitation
+   */
+  invitedBy?: (number | null) | User;
+  joinedAt?: string | null;
+  /**
+   * For pending invitations
+   */
+  invitationDetails?: {
+    invitationToken?: string | null;
+    invitationExpiresAt?: string | null;
+    invitationMessage?: string | null;
+    /**
+     * Email of invited user (may not have an account yet)
+     */
+    invitationEmail?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -2201,63 +2360,6 @@ export interface Address {
     | 'SE'
     | 'CH';
   phone?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tenant-memberships".
- */
-export interface TenantMembership {
-  id: number;
-  /**
-   * User who belongs to this tenant
-   */
-  user: number | User;
-  /**
-   * Tenant this membership applies to
-   */
-  tenant: number | Tenant;
-  /**
-   * Role within this tenant
-   */
-  role: 'tenant_admin' | 'tenant_manager' | 'tenant_member';
-  /**
-   * Granular permissions (optional override)
-   */
-  permissions?:
-    | (
-        | 'manage_users'
-        | 'manage_spaces'
-        | 'manage_content'
-        | 'manage_products'
-        | 'manage_orders'
-        | 'view_analytics'
-        | 'manage_settings'
-        | 'manage_billing'
-        | 'export_data'
-      )[]
-    | null;
-  status?: ('active' | 'pending' | 'suspended' | 'revoked') | null;
-  /**
-   * User who sent the invitation
-   */
-  invitedBy?: (number | null) | User;
-  joinedAt?: string | null;
-  /**
-   * For pending invitations
-   */
-  invitationDetails?: {
-    invitationToken?: string | null;
-    invitationExpiresAt?: string | null;
-    invitationMessage?: string | null;
-    /**
-     * Email of invited user (may not have an account yet)
-     */
-    invitationEmail?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -4927,6 +5029,10 @@ export interface WorkUnit {
    * Node ID that executed the work (may differ from assignedNode on retry).
    */
   executedBy?: string | null;
+  /**
+   * Crew member assigned to this work unit (intra-ship routing). Set by the Crew Routing Engine after the Workload Engine picks the node.
+   */
+  assignedCrewMember?: (number | null) | CrewAssignment;
   updatedAt: string;
   createdAt: string;
 }
@@ -5339,6 +5445,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'work-units';
         value: number | WorkUnit;
+      } | null)
+    | ({
+        relationTo: 'crew-assignments';
+        value: number | CrewAssignment;
       } | null)
     | ({
         relationTo: 'forms';
@@ -6660,6 +6770,15 @@ export interface EndeavorsSelect<T extends boolean = true> {
         designatedAt?: T;
         id?: T;
       };
+  crew?:
+    | T
+    | {
+        activeDepartments?: T;
+        maxCrewSize?: T;
+        watchRotation?: T;
+        commandingOfficer?: T;
+        executiveOfficer?: T;
+      };
   logo?: T;
   coverImage?: T;
   region?:
@@ -7131,6 +7250,33 @@ export interface WorkUnitsSelect<T extends boolean = true> {
   parentWorkUnitId?: T;
   executionTimeMs?: T;
   executedBy?: T;
+  assignedCrewMember?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crew-assignments_select".
+ */
+export interface CrewAssignmentsSelect<T extends boolean = true> {
+  tenant?: T;
+  membership?: T;
+  endeavor?: T;
+  department?: T;
+  station?: T;
+  rank?: T;
+  dutyStatus?: T;
+  watchSection?: T;
+  capabilities?:
+    | T
+    | {
+        skill?: T;
+        proficiency?: T;
+        id?: T;
+      };
+  assignedAt?: T;
+  assignedBy?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
