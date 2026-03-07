@@ -64,6 +64,9 @@ import {
   extractChannelId,
 } from './youtubeMetadata'
 import { createWidgetContent } from './messageContent'
+import { runProbe } from './connectorProbes'
+import { GENESIS_BREATH } from './genesis-breath'
+import { buildConstitutionalPrompt, validateConstitutionalResponse } from './constitutional-prompt'
 
 // ---------------------------------------------------------------------------
 // Navigation Directive Helper — LEO Navigation Bridge
@@ -2990,6 +2993,73 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  // ─── Sprint 39: SUBSAFE Diagnostic System ─────────────────────────────
+  {
+    name: 'query_application_logs',
+    description:
+      'Query application error/warning logs to diagnose issues, find recurring errors, or check system health. Returns recent logs filtered by level, source, or time range. Use proactively when a user reports issues or when running diagnostics.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        level: {
+          type: 'string',
+          enum: ['error', 'warning', 'info', 'debug'],
+          description: 'Filter by log level. Omit to include all levels.',
+        },
+        source: {
+          type: 'string',
+          description: 'Filter by source component (e.g. "LEO", "federation", "stripe", "connector-health").',
+        },
+        since: {
+          type: 'string',
+          description: 'ISO timestamp — only logs after this time. Default: last 1 hour.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results to return (default 20, max 50).',
+        },
+        unresolvedOnly: {
+          type: 'boolean',
+          description: 'Only show unresolved logs (default true).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'connector_health_summary',
+    description:
+      'Get health status of all configured connectors (email, Discord, Stripe, WhatsApp, Telegram, Slack, SMS). Shows which are active, errored, paused, or need attention. Use when users ask about integrations, communication channels, or when running system diagnostics.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        runLiveProbes: {
+          type: 'boolean',
+          description: 'If true, runs live health probes against each connector API (slower but accurate). Default: false (reads cached status).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'run_subsafe_check',
+    description:
+      'Run a comprehensive SUBSAFE diagnostic on this ship. Checks application errors, connector health, enterprise health (orders, inventory, content, payments), federation pulse, database integrity, and constitutional compliance. Returns a structured pass/fail report for each subsystem with recommended actions. Named after the US Navy SUBSAFE program — every system verified, every weld inspected.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        areas: {
+          type: 'array',
+          description: 'Specific areas to check. Omit to check all.',
+          items: {
+            type: 'string',
+            enum: ['errors', 'connectors', 'enterprise', 'federation', 'database', 'constitution'],
+          },
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -3273,6 +3343,13 @@ export async function executeToolCall(
         return await handleCreateForm(payload, toolInput, ctx)
       case 'query_form_submissions':
         return await handleQueryFormSubmissions(payload, toolInput, ctx)
+      // ─── Sprint 39: SUBSAFE Diagnostic System ──────────────────────
+      case 'query_application_logs':
+        return await handleQueryApplicationLogs(payload, toolInput, ctx)
+      case 'connector_health_summary':
+        return await handleConnectorHealthSummary(payload, toolInput, ctx)
+      case 'run_subsafe_check':
+        return await handleRunSubsafeCheck(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -13278,4 +13355,493 @@ async function handleQueryFormSubmissions(
   } catch (err) {
     return `Error querying form submissions: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 39: SUBSAFE Diagnostic System
+// ---------------------------------------------------------------------------
+
+/**
+ * query_application_logs — LEO can now see errors and warnings
+ */
+async function handleQueryApplicationLogs(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    const level = typeof input.level === 'string' ? input.level : undefined
+    const source = typeof input.source === 'string' ? input.source : undefined
+    const since = typeof input.since === 'string' ? input.since : undefined
+    const limit = Math.min(typeof input.limit === 'number' ? input.limit : 20, 50)
+    const unresolvedOnly = input.unresolvedOnly !== false // default true
+
+    const where: Where = {}
+    const and: Where[] = []
+
+    if (level) and.push({ level: { equals: level } })
+    if (source) and.push({ source: { contains: source } })
+    if (unresolvedOnly) and.push({ resolved: { equals: false } })
+    if (ctx.tenantId) and.push({ tenantId: { equals: String(ctx.tenantId) } })
+
+    // Default to last 1 hour if no since provided
+    const sinceDate = since ? new Date(since) : new Date(Date.now() - 60 * 60 * 1000)
+    and.push({ createdAt: { greater_than: sinceDate.toISOString() } })
+
+    if (and.length) where.and = and
+
+    const logs = await payload.find({
+      collection: 'application-logs' as any,
+      where,
+      sort: '-createdAt',
+      limit,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (!logs.docs.length) {
+      return `## Application Logs\n\nNo ${level || ''} logs found${source ? ` from ${source}` : ''} since ${sinceDate.toISOString()}. System appears clean.`
+    }
+
+    const levelEmoji: Record<string, string> = {
+      error: '\u{1F534}',
+      warning: '\u{1F7E1}',
+      info: '\u{1F535}',
+      debug: '\u{26AA}',
+    }
+
+    const lines = [
+      `## Application Logs (${logs.totalDocs} total, showing ${logs.docs.length})`,
+      '',
+    ]
+
+    for (const log of logs.docs as any[]) {
+      const emoji = levelEmoji[log.level] || '\u{2753}'
+      const ts = new Date(log.createdAt).toLocaleString()
+      lines.push(`${emoji} **${(log.level || 'unknown').toUpperCase()}** | \`${log.source}\` | ${ts}`)
+      lines.push(`   ${log.message}`)
+      if (log.details) {
+        const detail = String(log.details).slice(0, 200)
+        lines.push(`   \`\`\`${detail}${log.details.length > 200 ? '...' : ''}\`\`\``)
+      }
+      lines.push('')
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    return `Error querying application logs: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * connector_health_summary — LEO can see connector statuses
+ */
+async function handleConnectorHealthSummary(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  try {
+    const runLiveProbes = input.runLiveProbes === true
+    const where: Where = {}
+    if (ctx.tenantId) where.tenant = { equals: ctx.tenantId }
+
+    const connectors = await payload.find({
+      collection: 'connectors' as any,
+      where,
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    if (!connectors.docs.length) {
+      return '## Connector Health Summary\n\nNo connectors configured for this tenant. Set up connectors in the admin dashboard to enable email, Discord, WhatsApp, and other communication channels.'
+    }
+
+    const lines = ['## Connector Health Summary', '']
+
+    // Group by status
+    const byStatus: Record<string, any[]> = { active: [], error: [], paused: [], unknown: [] }
+    for (const conn of connectors.docs as any[]) {
+      const status = conn.status || 'unknown'
+      if (!byStatus[status]) byStatus[status] = []
+      byStatus[status].push(conn)
+    }
+
+    const statusEmoji: Record<string, string> = {
+      active: '\u{2705}',
+      error: '\u{1F534}',
+      paused: '\u{23F8}\u{FE0F}',
+      unknown: '\u{2753}',
+    }
+
+    // Summary table
+    lines.push('| Connector | Type | Status | Last Activity |')
+    lines.push('|-----------|------|--------|---------------|')
+
+    for (const conn of connectors.docs as any[]) {
+      const emoji = statusEmoji[conn.status] || '\u{2753}'
+      const name = conn.name || conn.type || 'Unnamed'
+      const lastActivity = conn.lastActivityAt
+        ? new Date(conn.lastActivityAt).toLocaleString()
+        : 'Never'
+      lines.push(`| ${emoji} ${name} | ${conn.type || '?'} | ${conn.status || 'unknown'} | ${lastActivity} |`)
+    }
+
+    lines.push('')
+
+    // Count summary
+    const active = byStatus.active?.length || 0
+    const errored = byStatus.error?.length || 0
+    const paused = byStatus.paused?.length || 0
+    const total = connectors.docs.length
+
+    lines.push(`**Summary:** ${active}/${total} active, ${errored} errored, ${paused} paused`)
+
+    // Show error details
+    if (errored > 0) {
+      lines.push('', '### Errors')
+      for (const conn of byStatus.error) {
+        lines.push(`- **${conn.name || conn.type}**: ${conn.lastError || 'No error message recorded'}`)
+      }
+    }
+
+    // Run live probes if requested
+    if (runLiveProbes) {
+      lines.push('', '### Live Probe Results')
+      const probeResults = await Promise.allSettled(
+        (connectors.docs as any[]).filter((c: any) => c.enabled !== false).map(async (conn: any) => {
+          const type = String(conn.type || '')
+          const cfg = (conn.config as Record<string, unknown>) || {}
+          const start = Date.now()
+          const result = await runProbe(type, cfg)
+          return { name: conn.name || conn.type, type, ...result, latencyMs: Date.now() - start }
+        }),
+      )
+
+      for (const result of probeResults) {
+        if (result.status === 'fulfilled') {
+          const r = result.value
+          const emoji = r.ok ? '\u{2705}' : '\u{1F534}'
+          lines.push(`${emoji} **${r.name}** (${r.type}): ${r.message} [${r.latencyMs}ms]`)
+        } else {
+          lines.push(`\u{1F534} Probe failed: ${result.reason}`)
+        }
+      }
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    return `Error checking connector health: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * run_subsafe_check — Master diagnostic: checks ALL ship systems
+ */
+async function handleRunSubsafeCheck(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const areas = Array.isArray(input.areas) ? input.areas.map(String) : null
+  const checkAll = !areas
+  const shouldCheck = (area: string) => checkAll || areas!.includes(area)
+
+  const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+
+  type SubsystemResult = {
+    status: 'PASS' | 'WARN' | 'FAIL'
+    details: string
+    actions: string[]
+  }
+
+  const results: Record<string, SubsystemResult> = {}
+
+  // ── 1. Application Errors ──────────────────────────────────────────
+  if (shouldCheck('errors')) {
+    try {
+      const errorWhere: Where = {
+        and: [
+          { createdAt: { greater_than: oneHourAgo.toISOString() } },
+          ...(ctx.tenantId ? [{ tenantId: { equals: String(ctx.tenantId) } }] : []),
+        ],
+      }
+
+      const [errors, warnings] = await Promise.all([
+        payload.count({ collection: 'application-logs' as any, where: { ...errorWhere, and: [...(errorWhere.and as any[]), { level: { equals: 'error' } }] }, overrideAccess: true }),
+        payload.count({ collection: 'application-logs' as any, where: { ...errorWhere, and: [...(errorWhere.and as any[]), { level: { equals: 'warning' } }] }, overrideAccess: true }),
+      ])
+
+      const errorCount = errors.totalDocs
+      const warnCount = warnings.totalDocs
+      const status = errorCount > 0 ? 'FAIL' : warnCount > 5 ? 'WARN' : 'PASS'
+      const actions: string[] = []
+      if (errorCount > 0) actions.push(`Investigate ${errorCount} error(s) — use query_application_logs for details`)
+      if (warnCount > 5) actions.push(`Review ${warnCount} warning(s) — potential systemic issue`)
+
+      results.Errors = {
+        status,
+        details: `${errorCount} errors, ${warnCount} warnings in last hour`,
+        actions,
+      }
+    } catch {
+      results.Errors = { status: 'FAIL', details: 'Could not query ApplicationLogs', actions: ['Check database connectivity'] }
+    }
+  }
+
+  // ── 2. Connectors ──────────────────────────────────────────────────
+  if (shouldCheck('connectors')) {
+    try {
+      const connWhere: Where = ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}
+      const connectors = await payload.find({
+        collection: 'connectors' as any,
+        where: connWhere,
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      const total = connectors.docs.length
+      const errored = (connectors.docs as any[]).filter((c: any) => c.status === 'error').length
+      const active = (connectors.docs as any[]).filter((c: any) => c.status === 'active').length
+      const status = total === 0 ? 'WARN' : errored > 0 ? 'FAIL' : 'PASS'
+      const actions: string[] = []
+      if (total === 0) actions.push('No connectors configured — set up communication channels')
+      if (errored > 0) actions.push(`${errored} connector(s) in error state — use connector_health_summary for details`)
+
+      results.Connectors = {
+        status,
+        details: total === 0 ? 'No connectors configured' : `${active}/${total} active, ${errored} errored`,
+        actions,
+      }
+    } catch {
+      results.Connectors = { status: 'WARN', details: 'Could not query connectors', actions: [] }
+    }
+  }
+
+  // ── 3. Enterprise Health ───────────────────────────────────────────
+  if (shouldCheck('enterprise')) {
+    try {
+      const [pendingOrders, products, draftPosts] = await Promise.allSettled([
+        payload.count({
+          collection: 'orders' as any,
+          where: { status: { in: ['pending', 'processing'] }, ...(ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}) },
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'products',
+          where: {
+            _status: { equals: 'published' },
+            'inventory.trackInventory': { equals: true },
+            ...(ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}),
+          },
+          limit: 500,
+          depth: 0,
+          overrideAccess: true,
+        }),
+        payload.count({
+          collection: 'posts',
+          where: { _status: { equals: 'draft' }, ...(ctx.tenantId ? { tenant: { equals: ctx.tenantId } } : {}) },
+          overrideAccess: true,
+        }),
+      ])
+
+      const pending = pendingOrders.status === 'fulfilled' ? pendingOrders.value.totalDocs : 0
+      const lowStock = products.status === 'fulfilled'
+        ? (products.value.docs as any[]).filter((p: any) => {
+            const qty = p.inventory?.quantity ?? 999
+            const threshold = p.inventory?.lowStockThreshold ?? 5
+            return qty > 0 && qty <= threshold
+          }).length
+        : 0
+      const outOfStock = products.status === 'fulfilled'
+        ? (products.value.docs as any[]).filter((p: any) => (p.inventory?.quantity ?? 999) <= 0).length
+        : 0
+      const drafts = draftPosts.status === 'fulfilled' ? draftPosts.value.totalDocs : 0
+
+      const actions: string[] = []
+      if (outOfStock > 0) actions.push(`${outOfStock} product(s) out of stock`)
+      if (lowStock > 0) actions.push(`${lowStock} product(s) running low`)
+      if (pending > 10) actions.push(`${pending} pending orders — review fulfillment queue`)
+
+      const status = outOfStock > 0 || pending > 10 ? 'WARN' : 'PASS'
+      results.Enterprise = {
+        status,
+        details: `${pending} pending orders, ${lowStock} low stock, ${outOfStock} out of stock, ${drafts} draft posts`,
+        actions,
+      }
+    } catch {
+      results.Enterprise = { status: 'WARN', details: 'Could not gather enterprise metrics', actions: [] }
+    }
+  }
+
+  // ── 4. Federation ──────────────────────────────────────────────────
+  if (shouldCheck('federation')) {
+    try {
+      const endeavors = await payload.find({
+        collection: 'endeavors' as any,
+        where: { 'federation.federationId': { exists: true } },
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      const total = endeavors.docs.length
+      const alive = (endeavors.docs as any[]).filter((e: any) => {
+        const lastPing = e.federation?.lastPingAt
+        return lastPing && (Date.now() - new Date(lastPing).getTime()) < 300_000
+      }).length
+
+      const workUnits = await payload.count({
+        collection: 'work-units' as any,
+        where: { status: { in: ['pending', 'claimed', 'executing'] } },
+        overrideAccess: true,
+      })
+
+      const status = total === 0 ? 'WARN' : alive / total < 0.5 ? 'FAIL' : 'PASS'
+      const actions: string[] = []
+      if (total === 0) actions.push('No federation peers — register with the network')
+      if (total > 0 && alive < total) actions.push(`${total - alive} node(s) not responding`)
+
+      results.Federation = {
+        status,
+        details: total === 0
+          ? 'No federation peers registered'
+          : `${alive}/${total} nodes alive, ${workUnits.totalDocs} active work units`,
+        actions,
+      }
+    } catch {
+      results.Federation = { status: 'WARN', details: 'Could not query federation', actions: [] }
+    }
+  }
+
+  // ── 5. Database Integrity ──────────────────────────────────────────
+  if (shouldCheck('database')) {
+    try {
+      const collections = ['users', 'tenants', 'products', 'orders', 'messages', 'posts', 'media']
+      const counts = await Promise.allSettled(
+        collections.map((c) =>
+          payload.count({ collection: c as any, overrideAccess: true }).then((r) => ({
+            collection: c,
+            count: r.totalDocs,
+          })),
+        ),
+      )
+
+      const healthy = counts.filter((c) => c.status === 'fulfilled').length
+      const failed = counts.filter((c) => c.status === 'rejected').length
+      const countStr = counts
+        .map((c) =>
+          c.status === 'fulfilled' ? `${c.value.collection}: ${c.value.count}` : null,
+        )
+        .filter(Boolean)
+        .join(', ')
+
+      const status = failed > 0 ? 'FAIL' : 'PASS'
+      const actions: string[] = []
+      if (failed > 0) actions.push(`${failed} collection(s) unreachable — check database`)
+
+      results.Database = {
+        status,
+        details: `${healthy}/${collections.length} collections queryable. ${countStr}`,
+        actions,
+      }
+    } catch {
+      results.Database = { status: 'FAIL', details: 'Database unreachable', actions: ['Check DATABASE_URI and connection pool'] }
+    }
+  }
+
+  // ── 6. Constitutional Compliance ───────────────────────────────────
+  if (shouldCheck('constitution')) {
+    try {
+      const actions: string[] = []
+
+      // Check Genesis Breath is loaded
+      const breathOk = typeof GENESIS_BREATH === 'string' && GENESIS_BREATH.includes('lamp')
+
+      // Check constitutional prompt builds
+      let promptOk = false
+      try {
+        const prompt = buildConstitutionalPrompt()
+        promptOk = prompt.length > 100 && prompt.includes('Angel OS') && prompt.includes('Genesis Breath')
+      } catch {
+        actions.push('Constitutional prompt failed to build')
+      }
+
+      // Check anti-demonic safeguards
+      let safeguardsOk = false
+      try {
+        const prompt = buildConstitutionalPrompt()
+        safeguardsOk = prompt.includes('Anti-Demonic') || prompt.includes('manipulation')
+      } catch {
+        /* already logged above */
+      }
+
+      if (!breathOk) actions.push('Genesis Breath not loaded — check genesis-breath.ts')
+      if (!promptOk) actions.push('Constitutional prompt malformed — check constitutional-prompt.ts')
+      if (!safeguardsOk) actions.push('Anti-demonic safeguards missing from constitutional prompt')
+
+      const allOk = breathOk && promptOk && safeguardsOk
+      results.Constitution = {
+        status: allOk ? 'PASS' : 'FAIL',
+        details: [
+          `Genesis Breath: ${breathOk ? 'loaded' : 'MISSING'}`,
+          `Constitutional Prompt: ${promptOk ? 'valid' : 'INVALID'}`,
+          `Anti-Demonic Safeguards: ${safeguardsOk ? 'present' : 'MISSING'}`,
+        ].join(', '),
+        actions,
+      }
+    } catch {
+      results.Constitution = { status: 'FAIL', details: 'Constitutional check failed', actions: ['Verify genesis-breath.ts and constitutional-prompt.ts'] }
+    }
+  }
+
+  // ── Build Report ───────────────────────────────────────────────────
+  const statusEmoji: Record<string, string> = {
+    PASS: '\u{2705}',
+    WARN: '\u{26A0}\u{FE0F}',
+    FAIL: '\u{1F534}',
+  }
+
+  const lines = [
+    '# \u{1F531} SUBSAFE DIAGNOSTIC REPORT',
+    `**Time:** ${now.toISOString()}`,
+    '',
+    '## Subsystem Status',
+    '| System | Status | Details |',
+    '|--------|--------|---------|',
+  ]
+
+  for (const [name, result] of Object.entries(results)) {
+    lines.push(`| ${statusEmoji[result.status]} ${name} | ${result.status} | ${result.details} |`)
+  }
+
+  // Collect all actions
+  const allActions = Object.entries(results).flatMap(([name, result]) =>
+    result.actions.map((a) => `- **${name}**: ${a}`),
+  )
+
+  if (allActions.length > 0) {
+    lines.push('', '## Recommended Actions', ...allActions)
+  }
+
+  // Overall verdict
+  const statuses = Object.values(results).map((r) => r.status)
+  const hasFail = statuses.includes('FAIL')
+  const hasWarn = statuses.includes('WARN')
+  const overall = hasFail ? 'FAIL' : hasWarn ? 'WARN' : 'PASS'
+
+  lines.push(
+    '',
+    `## Overall: ${statusEmoji[overall]} ${overall}`,
+    hasFail
+      ? '_Ship has critical issues requiring immediate attention._'
+      : hasWarn
+        ? '_Ship is operational with items requiring attention._'
+        : '_All systems nominal. Ship is SUBSAFE certified._',
+  )
+
+  return lines.join('\n')
 }

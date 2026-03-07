@@ -8,6 +8,7 @@ import { z } from 'zod'
 
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
+import { executeToolCall } from '@/utilities/leo-data-tools'
 
 export const mcpPluginConfig = mcpPlugin({
   /**
@@ -38,6 +39,10 @@ export const mcpPluginConfig = mcpPlugin({
     return await getDefaultMcpAccessSettings()
   },
   collections: {
+    'application-logs': {
+      enabled: { find: true, create: false, update: false, delete: false },
+      description: 'Application error/warning/info logs (read-only for diagnostics)',
+    } as any,
     posts: {
       enabled: { find: true, create: true, update: true, delete: true },
       description: 'Blog posts and articles',
@@ -125,6 +130,68 @@ export const mcpPluginConfig = mcpPlugin({
               },
             ],
           }
+        },
+      },
+      {
+        name: 'run_subsafe',
+        description:
+          'Run SUBSAFE diagnostic on this Angel OS instance. Checks errors, connectors, enterprise health, federation pulse, database integrity, and constitutional compliance.',
+        parameters: z.object({
+          areas: z
+            .array(z.string())
+            .optional()
+            .describe('Specific areas to check (errors, connectors, enterprise, federation, database, constitution). Omit for all.'),
+        }).shape as any,
+        handler: async (args, req) => {
+          const tenantSlug = req.headers.get('x-tenant-id')
+          let tenantId: number | undefined
+          if (tenantSlug) {
+            const tenants = await req.payload.find({
+              collection: 'tenants',
+              where: { slug: { equals: tenantSlug } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+            tenantId = tenants.docs?.[0]?.id
+          }
+
+          const result = await executeToolCall(
+            'run_subsafe_check',
+            { areas: args.areas },
+            { payload: req.payload, tenantId },
+          )
+          return { content: [{ type: 'text' as const, text: result }] }
+        },
+      },
+      {
+        name: 'query_errors',
+        description: 'Query recent application error/warning logs for diagnostics.',
+        parameters: z.object({
+          level: z.enum(['error', 'warning', 'info']).optional(),
+          since: z.string().optional().describe('ISO timestamp — logs after this time'),
+          limit: z.number().optional().describe('Max results (default 20)'),
+        }).shape as any,
+        handler: async (args, req) => {
+          const tenantSlug = req.headers.get('x-tenant-id')
+          let tenantId: number | undefined
+          if (tenantSlug) {
+            const tenants = await req.payload.find({
+              collection: 'tenants',
+              where: { slug: { equals: tenantSlug } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+            tenantId = tenants.docs?.[0]?.id
+          }
+
+          const result = await executeToolCall(
+            'query_application_logs',
+            { level: args.level, since: args.since, limit: args.limit },
+            { payload: req.payload, tenantId },
+          )
+          return { content: [{ type: 'text' as const, text: result }] }
         },
       },
     ],
