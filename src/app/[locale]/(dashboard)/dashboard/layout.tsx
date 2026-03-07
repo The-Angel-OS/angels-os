@@ -4,8 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { fetchUserSpaces } from '@/utilities/fetchUserSpaces'
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
@@ -36,13 +35,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const locale = await getLocale()
   const prefix = locale === 'en' ? '' : `/${locale}`
 
-  // Server-side: resolve tenant + default space for LEO sidebar
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant } = await resolveTenantFromHeaders()
+
+  // Server-side: resolve auth + space context
   const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  const host = headersList.get('host') ?? ''
-  const tenant =
-    (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-    (await fetchTenantByDomain(host))
 
   // Serialize tenant branding for sidebar
   const tenantBranding = tenant

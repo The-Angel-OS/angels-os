@@ -269,39 +269,71 @@ export function ChatProvider({
     [dmSpaceId, tenantId, chat],
   )
 
-  // ─── Context Value ──────────────────────────────────────────
-
-  const value: ChatContextValue = {
-    activeSpaceId,
-    activeChannelSlug: chat.activeChannel,
-    setActiveSpace,
-    setActiveChannel,
-
-    spaces,
-    channels: chat.channels,
-    dmChannels,
-    isLoadingChannels: chat.isLoadingChannels,
-
-    messages: chat.messages,
-    isLoading: chat.isLoading,
-    isLoadingMore: chat.isLoadingMore,
-    hasMore: chat.hasMore,
-    sendMessage: chat.sendMessage,
-    loadMoreMessages: chat.loadMoreMessages,
-
-    leoDMChannel,
-    openDM,
-
-    activeView,
-    setActiveView,
-
-    createChannel: chat.createChannel,
-    deleteChannel: chat.deleteChannel,
-    switchChannel: (slug: string) => {
+  // ─── Memoized switchChannel ─────────────────────────────────
+  // Stable reference prevents consumer re-renders from inline function churn.
+  const switchChannel = useCallback(
+    (slug: string) => {
       setActiveChannelSlugLocal(slug)
       chat.switchChannel(slug)
     },
-  }
+    [chat.switchChannel],
+  )
+
+  // ─── Context Value ──────────────────────────────────────────
+  // Memoized to prevent cascading re-renders across all consumers.
+  const value: ChatContextValue = useMemo(
+    () => ({
+      activeSpaceId,
+      activeChannelSlug: chat.activeChannel,
+      setActiveSpace,
+      setActiveChannel,
+
+      spaces,
+      channels: chat.channels,
+      dmChannels,
+      isLoadingChannels: chat.isLoadingChannels,
+
+      messages: chat.messages,
+      isLoading: chat.isLoading,
+      isLoadingMore: chat.isLoadingMore,
+      hasMore: chat.hasMore,
+      sendMessage: chat.sendMessage,
+      loadMoreMessages: chat.loadMoreMessages,
+
+      leoDMChannel,
+      openDM,
+
+      activeView,
+      setActiveView,
+
+      createChannel: chat.createChannel,
+      deleteChannel: chat.deleteChannel,
+      switchChannel,
+    }),
+    [
+      activeSpaceId,
+      chat.activeChannel,
+      setActiveSpace,
+      setActiveChannel,
+      spaces,
+      chat.channels,
+      dmChannels,
+      chat.isLoadingChannels,
+      chat.messages,
+      chat.isLoading,
+      chat.isLoadingMore,
+      chat.hasMore,
+      chat.sendMessage,
+      chat.loadMoreMessages,
+      leoDMChannel,
+      openDM,
+      activeView,
+      setActiveView,
+      chat.createChannel,
+      chat.deleteChannel,
+      switchChannel,
+    ],
+  )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
 }

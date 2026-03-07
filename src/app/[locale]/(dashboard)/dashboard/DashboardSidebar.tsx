@@ -96,10 +96,11 @@ export function DashboardSidebar({
         {/* Backdrop */}
         <Backdrop isOpen={isMobileOpen} onClick={() => setIsMobileOpen(false)} zIndex="z-50" opacity="bg-black/40" />
 
-        {/* Sidebar overlay */}
+        {/* Sidebar overlay — pointer-events-none when collapsed to prevent
+            iOS Safari from hit-testing fixed+transformed elements at pre-transform coords */}
         <aside
           className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
-            isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+            isMobileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
           }`}
         >
           {/* Logo / Brand — with close button */}

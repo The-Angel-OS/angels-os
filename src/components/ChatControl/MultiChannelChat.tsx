@@ -198,8 +198,10 @@ export function MultiChannelChat({
             />
           </div>
 
-          {/* Channel tabs (horizontal scroll) — includes DMs */}
-          <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none">
+          {/* Channel tabs (horizontal scroll) — includes DMs.
+              touch-action:manipulation prevents 300ms delay on mobile browsers
+              and ensures taps inside the scrollable container fire reliably. */}
+          <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none" style={{ touchAction: 'manipulation' }}>
             {isLoadingChannels ? (
               <div className="flex gap-2 px-2">
                 {[1, 2, 3].map((i) => (
@@ -208,12 +210,12 @@ export function MultiChannelChat({
               </div>
             ) : (
               <>
-                {/* Regular channels */}
+                {/* Regular channels — py-2 for 44px min touch target */}
                 {channels.filter((c) => c.type !== 'dm').map((ch) => (
                   <button
                     key={ch.id}
                     onClick={() => handleSwitchChannel(ch.slug)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
                       ch.slug === activeChannel
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground active:bg-muted/80'
@@ -228,7 +230,7 @@ export function MultiChannelChat({
                   <button
                     key={ch.id}
                     onClick={() => handleSwitchChannel(ch.slug)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
                       ch.slug === activeChannel
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground active:bg-muted/80'
@@ -242,7 +244,7 @@ export function MultiChannelChat({
             )}
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex shrink-0 items-center justify-center rounded-full bg-muted p-1.5 text-muted-foreground active:bg-muted/80"
+              className="flex shrink-0 items-center justify-center rounded-full bg-muted p-2 text-muted-foreground active:bg-muted/80"
               aria-label="Add channel"
             >
               <Plus size={14} />

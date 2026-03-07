@@ -102,11 +102,14 @@ export function SidebarChat({
       {/* Mobile backdrop */}
       <Backdrop isOpen={isMobile && isExpanded} onClick={() => setIsExpanded(false)} zIndex="z-30" opacity="bg-black/40" />
 
-      {/* Chat Panel — full-width on mobile, w-96 on desktop */}
+      {/* Chat Panel — full-width on mobile, w-96 on desktop.
+          pointer-events-none when collapsed prevents the off-screen panel from
+          intercepting touches on mobile (iOS Safari hit-tests fixed+transformed
+          elements at their pre-transform position). */}
       <div
         className={`fixed right-0 top-0 z-30 h-full transform border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-in-out ${
           isMobile ? 'w-full' : 'w-96'
-        } ${isExpanded ? 'translate-x-0' : 'translate-x-full'} ${className}`}
+        } ${isExpanded ? 'translate-x-0' : 'translate-x-full pointer-events-none'} ${className}`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
