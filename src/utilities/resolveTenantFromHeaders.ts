@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { fetchTenantBySlug } from './fetchTenantBySlug'
 import { fetchTenantByDomain } from './fetchTenantByDomain'
 import { buildTenantFilter } from './buildTenantFilter'
+import type { Tenant } from '@/payload-types'
 import type { Where } from 'payload'
 
 /**
@@ -13,7 +14,8 @@ import type { Where } from 'payload'
  *   2. host header (domain)     → fetchTenantByDomain (domain → subdomain → DEFAULT_TENANT_SLUG)
  *   3. Neither resolves         → buildTenantFilter(undefined) → { tenant: { exists: false } }
  *
- * Returns { tenantId, tenantFilter } where:
+ * Returns { tenant, tenantId, tenantFilter } where:
+ * - tenant: the full Tenant object (hydrated to depth 2 via fetchTenantBy*), or null
  * - tenantId: the numeric tenant ID, or undefined if truly platform-only context
  * - tenantFilter: a Where clause that enforces tenant isolation
  *
@@ -27,6 +29,7 @@ import type { Where } from 'payload'
  * this from both generateMetadata and the page component only resolve once.
  */
 export const resolveTenantFromHeaders = cache(async (): Promise<{
+  tenant: Tenant | null
   tenantId: number | undefined
   tenantFilter: Where
 }> => {
@@ -37,7 +40,7 @@ export const resolveTenantFromHeaders = cache(async (): Promise<{
   if (tenantSlug) {
     const tenant = await fetchTenantBySlug(tenantSlug)
     const tenantId = tenant?.id
-    return { tenantId, tenantFilter: buildTenantFilter(tenantId) }
+    return { tenant, tenantId, tenantFilter: buildTenantFilter(tenantId) }
   }
 
   // 2. No header — resolve by domain (handles platform domains like spacesangels.com)
@@ -47,10 +50,10 @@ export const resolveTenantFromHeaders = cache(async (): Promise<{
     const tenant = await fetchTenantByDomain(host)
     const tenantId = tenant?.id
     if (tenantId != null) {
-      return { tenantId, tenantFilter: buildTenantFilter(tenantId) }
+      return { tenant, tenantId, tenantFilter: buildTenantFilter(tenantId) }
     }
   }
 
   // 3. Neither resolved — true platform-only context (no tenant data)
-  return { tenantId: undefined, tenantFilter: buildTenantFilter(undefined) }
+  return { tenant: null, tenantId: undefined, tenantFilter: buildTenantFilter(undefined) }
 })

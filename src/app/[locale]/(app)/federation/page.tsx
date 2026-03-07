@@ -3,8 +3,6 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
-import { headers } from 'next/headers'
 
 export const metadata = {
   title: 'Federation — Angel OS',
@@ -21,77 +19,51 @@ export default async function FederationPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant (cached)
-  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
-  // Get this site's Endeavor
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let endeavor: any = null
-  if (tenantId) {
-    try {
-      const endeavors = await payload.find({
-        collection: 'endeavors',
-        where: tenantFilter,
-        limit: 1,
-        depth: 1,
-        overrideAccess: true,
-      })
-      endeavor = endeavors.docs?.[0]
-    } catch {
-      // Endeavor may not exist yet
-    }
-  }
-
-  // Get federation stats
-  let peerCount = 0
-  try {
-    const peers = await payload.find({
+  // Run all three independent queries in parallel
+  const [endeavorResult, peersResult, signsResult] = await Promise.all([
+    // Get this site's Endeavor
+    tenantId
+      ? payload.find({
+          collection: 'endeavors',
+          where: tenantFilter,
+          limit: 1,
+          depth: 1,
+          overrideAccess: true,
+        }).catch(() => null)
+      : Promise.resolve(null),
+    // Get federation stats (cross-tenant — counts all network-visible endeavors)
+    payload.find({
       collection: 'endeavors',
-      where: {
-        'federation.networkVisible': { equals: true },
-      },
+      where: { 'federation.networkVisible': { equals: true } },
       limit: 0,
       depth: 0,
       overrideAccess: true,
-    })
-    peerCount = peers.totalDocs
-  } catch {
-    // Non-critical
-  }
-
-  // Get a sample of StreetSigns from peers
-  let streetSigns: Array<{
-    id: string
-    title: string
-    description: string
-    contentType: string
-    sourceName: string
-    thumbnail: string | null
-  }> = []
-  try {
-    const signs = await payload.find({
+    }).catch(() => null),
+    // Get a sample of StreetSigns from peers
+    payload.find({
       collection: 'street-signs',
       where: { status: { equals: 'active' } },
       limit: 6,
       depth: 1,
       overrideAccess: true,
       sort: '-createdAt',
-    })
-    streetSigns = signs.docs.map((doc: any) => ({
-      id: String(doc.id),
-      title: doc.title || 'Untitled',
-      description: doc.description || '',
-      contentType: doc.contentType || 'product',
-      sourceName: doc.source?.dioceseName || 'Unknown',
-      thumbnail: doc.thumbnail?.url || doc.thumbnail?.filename || null,
-    }))
-  } catch {
-    // StreetSigns collection may not exist yet
-  }
+    }).catch(() => null),
+  ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const endeavor: any = endeavorResult?.docs?.[0] ?? null
+  const peerCount = peersResult?.totalDocs ?? 0
+  const streetSigns = (signsResult?.docs || []).map((doc: any) => ({
+    id: String(doc.id),
+    title: doc.title || 'Untitled',
+    description: doc.description || '',
+    contentType: doc.contentType || 'product',
+    sourceName: doc.source?.dioceseName || 'Unknown',
+    thumbnail: doc.thumbnail?.url || doc.thumbnail?.filename || null,
+  }))
 
   const endeavorName = endeavor?.name || tenant?.name || 'This Enterprise'
   const endeavorTagline = endeavor?.tagline || ''

@@ -1,10 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { ConnectorsAdmin } from './ConnectorsAdmin'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export default async function DashboardConnectorsPage({
   params,
@@ -16,12 +14,8 @@ export default async function DashboardConnectorsPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant (cached)
-  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
   // Fetch all connectors for this tenant
   interface ConnectorItem {

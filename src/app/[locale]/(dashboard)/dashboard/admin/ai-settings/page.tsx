@@ -1,10 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { SettingsHub } from './SettingsHub'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export default async function DashboardSettingsPage({
   params,
@@ -16,16 +14,12 @@ export default async function DashboardSettingsPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant (cached)
-  const { tenantId } = await resolveTenantFromHeaders()
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant, tenantId } = await resolveTenantFromHeaders()
 
-  const aiConfig = (tenant as any)?.aiConfig || {}
-  const branding = (tenant as any)?.branding || {}
-  const commerce = (tenant as any)?.commerce || {}
+  const aiConfig = tenant?.aiConfig || {}
+  const branding = tenant?.branding || {}
+  const commerce = tenant?.commerce || {}
 
   return (
     <SettingsHub

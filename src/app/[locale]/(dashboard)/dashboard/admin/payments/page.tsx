@@ -2,8 +2,6 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
-import { headers } from 'next/headers'
 import { PaymentsAdmin } from './PaymentsAdmin'
 import { getJusticeFundGrowth, getRevenueTimeSeries } from '@/utilities/chartData'
 import { SplitDonutChart, JusticeFundChart, RevenueChart } from '@/components/charts/DashboardCharts'
@@ -17,13 +15,8 @@ export default async function DashboardPaymentsPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
-
-  // Resolve full tenant object for Stripe Connect data
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
   // Fetch Justice Fund stats
   let justiceFundTotal = 0
@@ -44,7 +37,7 @@ export default async function DashboardPaymentsPage({
     // Collection may not be populated yet
   }
 
-  const stripeConnect = (tenant as any)?.stripeConnect || {}
+  const stripeConnect = tenant?.stripeConnect || {}
 
   // Fetch recent transactions
   interface RecentTx {
@@ -60,6 +53,7 @@ export default async function DashboardPaymentsPage({
   try {
     const txResult = await payload.find({
       collection: 'transactions' as any,
+      where: tenantFilter,
       limit: 10,
       sort: '-createdAt',
       depth: 0,
