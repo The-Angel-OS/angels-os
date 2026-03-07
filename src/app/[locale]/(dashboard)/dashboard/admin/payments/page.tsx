@@ -18,28 +18,9 @@ export default async function DashboardPaymentsPage({
   // Resolve tenant (cached, React.cache deduped)
   const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
-  // Fetch Justice Fund stats
-  let justiceFundTotal = 0
-  let justiceFundCount = 0
-  try {
-    const jfTransactions = await payload.find({
-      collection: 'justice-fund-transactions',
-      where: {
-        and: [tenantFilter, { status: { equals: 'completed' } }],
-      },
-      limit: 0,
-      overrideAccess: true,
-    })
-    justiceFundCount = jfTransactions.totalDocs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    justiceFundTotal = jfTransactions.docs.reduce((sum: number, doc: any) => sum + (doc.amountCents || 0), 0)
-  } catch {
-    // Collection may not be populated yet
-  }
-
   const stripeConnect = tenant?.stripeConnect || {}
 
-  // Fetch recent transactions
+  // Run all queries in parallel — catch individually so one failure doesn't kill all
   interface RecentTx {
     id: number | string
     amount: number
@@ -49,34 +30,39 @@ export default async function DashboardPaymentsPage({
     customerEmail: string | null
     createdAt: string
   }
-  let recentTransactions: RecentTx[] = []
-  try {
-    const txResult = await payload.find({
+
+  const [jfResult, txResult, jfGrowth, revData] = await Promise.all([
+    payload.find({
+      collection: 'justice-fund-transactions',
+      where: { and: [tenantFilter, { status: { equals: 'completed' } }] },
+      limit: 0,
+      overrideAccess: true,
+    }).catch(() => null),
+    payload.find({
       collection: 'transactions' as any,
       where: tenantFilter,
       limit: 10,
       sort: '-createdAt',
       depth: 0,
       overrideAccess: true,
-    })
-    recentTransactions = txResult.docs.map((doc: any) => ({
-      id: doc.id,
-      amount: doc.amount || 0,
-      currency: doc.currency || 'USD',
-      status: doc.status || 'unknown',
-      paymentMethod: doc.paymentMethod || null,
-      customerEmail: doc.customerEmail || null,
-      createdAt: doc.createdAt,
-    }))
-  } catch {
-    // Transactions collection may not exist yet
-  }
-
-  // Fetch chart data
-  const [jfGrowth, revData] = await Promise.all([
+    }).catch(() => null),
     getJusticeFundGrowth(payload, 30).catch(() => []),
     getRevenueTimeSeries(payload, 30).catch(() => []),
   ])
+
+  const justiceFundCount = jfResult?.totalDocs ?? 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const justiceFundTotal = (jfResult?.docs ?? []).reduce((sum: number, doc: any) => sum + (doc.amountCents || 0), 0)
+
+  const recentTransactions: RecentTx[] = (txResult?.docs ?? []).map((doc: any) => ({
+    id: doc.id,
+    amount: doc.amount || 0,
+    currency: doc.currency || 'USD',
+    status: doc.status || 'unknown',
+    paymentMethod: doc.paymentMethod || null,
+    customerEmail: doc.customerEmail || null,
+    createdAt: doc.createdAt,
+  }))
 
   return (
     <div className="space-y-8">

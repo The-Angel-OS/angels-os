@@ -2,8 +2,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { fetchUserSpaces, type SerializedSpace } from '@/utilities/fetchUserSpaces'
 import { SpaceSettingsClient } from './SpaceSettingsClient'
 
@@ -21,19 +20,15 @@ export default async function SpaceSettingsPage({
   const { locale } = await params
   setRequestLocale(locale)
 
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  const host = headersList.get('host') ?? ''
-  const tenant =
-    (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-    (await fetchTenantByDomain(host))
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant, tenantId } = await resolveTenantFromHeaders()
 
-  const tenantId = tenant?.id
   let userId: number | string | undefined
   let userRoles: string[] = []
 
   try {
     const payload = await getPayload({ config: configPromise })
+    const headersList = await headers()
     const { user } = await payload.auth({ headers: headersList })
     userId = user?.id
     userRoles = ((user as any)?.roles as string[]) || []

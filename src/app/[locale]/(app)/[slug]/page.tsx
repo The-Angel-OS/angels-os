@@ -5,10 +5,9 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode, headers } from 'next/headers'
+import { draftMode } from 'next/headers'
 import { homeStaticData } from '@/endpoints/seed/home-static'
 import { tenantHomeData } from '@/utilities/tenantHomeData'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 
@@ -34,13 +33,9 @@ export default async function Page({ params }: Args) {
 
   // Fallback home page: tenant-branded if tenant is resolved, else generic Angel OS
   if (!page && slug === 'home') {
-    const headersList = await headers()
-    const tenantSlug = headersList.get('x-tenant-id')
-    if (tenantSlug) {
-      const tenant = await fetchTenantBySlug(tenantSlug)
-      if (tenant) {
-        page = tenantHomeData(tenant) as Page
-      }
+    const { tenant } = await resolveTenantFromHeaders()
+    if (tenant) {
+      page = tenantHomeData(tenant) as Page
     }
     if (!page) {
       page = homeStaticData() as Page

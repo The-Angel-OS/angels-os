@@ -4,8 +4,7 @@ import type { Where } from 'payload'
 import config from '@payload-config'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { BridgeConsole } from '@/components/dashboard/BridgeConsole'
 
 /**
@@ -52,12 +51,8 @@ export default async function BridgePage({
       redirect(`${prefix}/dashboard`)
     }
 
-    // Resolve current tenant
-    const tenantSlug = headersList.get('x-tenant-id')
-    const host = headersList.get('host') ?? ''
-    const currentTenant =
-      (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-      (await fetchTenantByDomain(host))
+    // Resolve current tenant (cached, React.cache deduped)
+    const { tenant: currentTenant } = await resolveTenantFromHeaders()
 
     const isSuperAdmin = Boolean(roles?.includes('super_admin'))
     const tenantFilter: Where | undefined =

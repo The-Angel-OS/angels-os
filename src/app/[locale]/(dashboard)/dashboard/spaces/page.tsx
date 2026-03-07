@@ -1,7 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { ensureSystemSpace } from '@/utilities/ensureSystemSpace'
 import { SpacesChat } from './SpacesChat'
 
@@ -19,13 +17,8 @@ export default async function SpacesPage({
   const { locale } = await params
   setRequestLocale(locale)
 
-  // Resolve tenant for ensureSystemSpace
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  const host = headersList.get('host') ?? ''
-  const tenant =
-    (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-    (await fetchTenantByDomain(host))
+  // Resolve tenant (cached, React.cache deduped)
+  const { tenant } = await resolveTenantFromHeaders()
 
   // Ensure AI Bus system space exists for this tenant
   if (tenant?.id) {

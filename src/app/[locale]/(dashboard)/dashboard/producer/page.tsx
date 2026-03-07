@@ -22,10 +22,9 @@ export default async function DashboardProducerPage({
   const payload = await getPayload({ config: configPromise })
   const { tenantId } = await resolveTenantFromHeaders()
 
-  // Load products for this tenant (vendor = tenantId)
-  let products: any[] = []
-  try {
-    const result = await payload.find({
+  // Load products + orders in parallel (independent queries)
+  const [productsResult, ordersResult] = await Promise.all([
+    payload.find({
       collection: 'products',
       where: tenantId != null
         ? { or: [{ vendor: { equals: tenantId } }, { tenant: { equals: tenantId } }] }
@@ -34,28 +33,20 @@ export default async function DashboardProducerPage({
       depth: 1,
       sort: '-createdAt',
       overrideAccess: true,
-    })
-    products = result.docs as any[]
-  } catch {
-    products = []
-  }
-
-  // Load orders where this tenant is the vendor
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let orders: any[] = []
-  try {
-    const result = await payload.find({
+    }).catch(() => ({ docs: [] as any[] })),
+    payload.find({
       collection: 'orders' as any,
       where: buildTenantFilter(tenantId),
       limit: 100,
       depth: 2,
       sort: '-createdAt',
       overrideAccess: true,
-    })
-    orders = result.docs as any[]
-  } catch {
-    orders = []
-  }
+    }).catch(() => ({ docs: [] as any[] })),
+  ])
+
+  const products = productsResult.docs as any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orders = ordersResult.docs as any[]
 
   // Categorize orders by status
   const pendingOrders = orders.filter((o) => ['pending', 'pending_match', 'matched'].includes(o.status))

@@ -7,8 +7,7 @@ import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
 import OnboardingGuide from '@/components/OnboardingGuide'
-import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
 import {
   getRevenueTimeSeries,
@@ -90,12 +89,8 @@ export default async function DashboardPage({
     const headersList = await headers()
     const { user } = await payload.auth({ headers: headersList })
 
-    // Resolve current tenant from middleware header
-    const tenantSlug = headersList.get('x-tenant-id')
-    const host = headersList.get('host') ?? ''
-    const currentTenant =
-      (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-      (await fetchTenantByDomain(host))
+    // Resolve current tenant (cached, React.cache deduped)
+    const { tenant: currentTenant } = await resolveTenantFromHeaders()
 
     if (user) {
       const roles = (user as any).roles as string[] | undefined
@@ -127,10 +122,10 @@ export default async function DashboardPage({
     // Use current tenant for header display
     if (currentTenant) {
       tenantName =
-        (currentTenant as any).branding?.siteName ||
-        (currentTenant as any).name ||
+        currentTenant.branding?.siteName ||
+        currentTenant.name ||
         'Angel OS'
-      tenantStatus = (currentTenant as any).status || 'active'
+      tenantStatus = currentTenant.status || 'active'
     }
 
     // Tenant-scoped filter: super_admins see everything, others see their tenant only
