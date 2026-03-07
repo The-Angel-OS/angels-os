@@ -541,7 +541,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                   }
 
                   case 'error':
-                    // Mark as error
+                    // Mark as error — use server message if available, keep partial text if any
                     setMessages((prev) =>
                       prev.map((m) =>
                         m.id === leoMsgId
@@ -549,7 +549,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                               ...m,
                               content:
                                 m.content ||
-                                "I'm having trouble right now. Please try again.",
+                                String(data.message || "I'm having trouble right now. Please try again."),
                               isStreaming: false,
                               activeToolCall: undefined,
                             }

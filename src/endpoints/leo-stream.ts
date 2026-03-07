@@ -499,7 +499,8 @@ async function fetchConversationHistory(
     }
 
     return messages
-  } catch {
+  } catch (historyErr) {
+    console.warn('[LEO Stream] Failed to load conversation history — responding without context:', historyErr instanceof Error ? historyErr.message : historyErr)
     return []
   }
 }
@@ -697,6 +698,14 @@ async function gatherHealthContext(
       payload.find({ collection: 'spaces', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
       payload.find({ collection: 'space-memberships', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
     ])
+
+    // Log any failed health queries so they don't silently show false zeros
+    const healthQueries = { pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes }
+    for (const [name, result] of Object.entries(healthQueries)) {
+      if (result.status === 'rejected') {
+        console.warn(`[LEO Health] ${name} query failed (using 0):`, (result as PromiseRejectedResult).reason?.message || (result as PromiseRejectedResult).reason)
+      }
+    }
 
     const pendingOrders = pendingOrdersRes.status === 'fulfilled' ? pendingOrdersRes.value.totalDocs : 0
     const overdueOrders = overdueOrdersRes.status === 'fulfilled' ? overdueOrdersRes.value.totalDocs : 0
@@ -1013,7 +1022,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         if (useGateway) {
           // ─── Path 1: Vercel AI Gateway via AI SDK ───────────────────
           try {
-            fullText = await streamViaGateway({
+            const gwResult = await streamViaGateway({
               controller,
               encoder,
               systemPrompt,
@@ -1027,6 +1036,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               isWizardMode,
               wizardStep: wizardStep as number,
             })
+            fullText = gwResult.text
+            if (gwResult.hadStreamError) hadError = true
           } catch (gwErr) {
             // Gateway failed — log to AI Bus then try Anthropic fallback
             const gwErrMsg = gwErr instanceof Error ? gwErr.message : String(gwErr)
@@ -1161,8 +1172,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
             } as any,
             overrideAccess: true,
           })
-        } catch {
-          // Best-effort cleanup
+        } catch (cleanupErr) {
+          console.error('[LEO Stream] Failed to update pre-created message with error state:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
         }
       }
 
@@ -1230,7 +1241,7 @@ async function streamViaGateway(opts: {
   userId?: number
   isWizardMode: boolean
   wizardStep: number
-}): Promise<string> {
+}): Promise<{ text: string; hadStreamError: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -1339,6 +1350,7 @@ async function streamViaGateway(opts: {
 
   // Stream text deltas to SSE — capture fullText even on partial failure
   let fullText = ''
+  let streamHadError = false
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'text-delta') {
@@ -1353,14 +1365,28 @@ async function streamViaGateway(opts: {
           encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'executed' })),
         )
       } else if (part.type === 'error') {
-        console.error('[LEO Stream] AI SDK stream error part:', (part as any).error)
+        const errDetail = (part as any).error
+        console.error('[LEO Stream] AI SDK stream error part:', errDetail)
+        streamHadError = true
+        // Notify client so they can display a meaningful error
+        controller.enqueue(
+          encoder.encode(
+            sseEvent('error', {
+              message: errDetail instanceof Error ? errDetail.message : 'An error occurred during processing',
+            }),
+          ),
+        )
       }
     }
   } catch (streamErr) {
     console.error('[LEO Stream] Gateway stream interrupted:', streamErr instanceof Error ? streamErr.message : streamErr)
+    streamHadError = true
     if (fullText.trim()) {
-      // Return partial text instead of losing it
-      return fullText
+      // Return partial text instead of losing it — but notify client of the interruption
+      controller.enqueue(
+        encoder.encode(sseEvent('error', { message: 'Stream interrupted — partial response returned' })),
+      )
+      return { text: fullText, hadStreamError: true }
     }
     // Retry with high-tier model if primary stream produced no output
     const retrySmart = await getSmartModel('high', {
@@ -1386,7 +1412,7 @@ async function streamViaGateway(opts: {
           controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
         }
       }
-      if (fullText.trim()) return fullText
+      if (fullText.trim()) return { text: fullText, hadStreamError: true }
     }
     throw streamErr
   }
@@ -1406,7 +1432,7 @@ async function streamViaGateway(opts: {
     )
   }
 
-  return fullText
+  return { text: fullText, hadStreamError: streamHadError }
 }
 
 // ---------------------------------------------------------------------------
