@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import Link from 'next/link'
 
 export default async function DashboardPagesPage({
@@ -13,38 +13,11 @@ export default async function DashboardPagesPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   const pages = await payload.find({
     collection: 'pages',
-    where: {
-      ...(tenantId != null ? { tenant: { equals: tenantId } } : {}),
-    },
+    where: tenantFilter,
     limit: 100,
     depth: 0,
     sort: '-updatedAt',

@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BookingPage } from './BookingPage'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export const metadata = {
   title: 'Book a Service',
@@ -19,32 +21,12 @@ export default async function BookPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant
+  // Resolve tenant (cached)
+  const { tenantFilter } = await resolveTenantFromHeaders()
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-  }
-  if (!tenant) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   // Fetch active availability slots
   let availabilitySlots: Array<{
@@ -64,7 +46,7 @@ export default async function BookPage({
     const avResult = await payload.find({
       collection: 'availability',
       where: {
-        isActive: { equals: true },
+        and: [tenantFilter, { isActive: { equals: true } }],
       },
       limit: 100,
       depth: 0,
@@ -99,9 +81,7 @@ export default async function BookPage({
   try {
     const endeavors = await payload.find({
       collection: 'endeavors',
-      where: {
-        ...(tenant?.id ? { tenant: { equals: tenant.id } } : {}),
-      },
+      where: tenantFilter,
       limit: 1,
       depth: 0,
       overrideAccess: true,

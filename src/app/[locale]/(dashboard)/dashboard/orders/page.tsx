@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { VendorOrders } from './VendorOrders'
 
 /**
@@ -21,38 +21,13 @@ export default async function DashboardOrdersPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
   // Find holons for this tenant
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const holonDocs = await payload.find({
     collection: 'holon-capabilities' as any,
-    where: { tenant: { equals: tenantId } },
+    where: tenantFilter,
     limit: 50,
     depth: 0,
     overrideAccess: true,

@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { SettingsHub } from './SettingsHub'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export default async function DashboardSettingsPage({
   params,
@@ -14,35 +16,12 @@ export default async function DashboardSettingsPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant
+  // Resolve tenant (cached)
+  const { tenantId } = await resolveTenantFromHeaders()
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-    tenantId = tenant?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-    tenantId = tenant?.id
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   const aiConfig = (tenant as any)?.aiConfig || {}
   const branding = (tenant as any)?.branding || {}

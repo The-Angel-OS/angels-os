@@ -23,6 +23,7 @@ import type { PayloadHandler } from 'payload'
 import { searchCatalog, rankCatalogEntries } from '@/utilities/federationEngine'
 import type { FederationCatalogEntry } from '@/utilities/federationEngine'
 import { logFederationAction } from '@/federation/auditLog'
+import { buildTenantFilter } from '@/utilities/buildTenantFilter'
 
 /**
  * Resolve the host tenant for this request.
@@ -78,16 +79,9 @@ async function resolveHostTenant(
   })
   if (byDefault.docs[0]) return byDefault.docs[0] as unknown as Record<string, unknown>
 
-  // 4. Fallback — first non-platform tenant
-  const fallback = await req.payload.find({
-    collection: 'tenants',
-    where: { type: { not_equals: 'platform' } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-    sort: 'id',
-  })
-  return (fallback.docs[0] as unknown as Record<string, unknown>) || undefined
+  // No further fallback — exposing a random tenant's catalog is a data leak.
+  // If no domain/slug/default match, return undefined → caller handles gracefully.
+  return undefined
 }
 
 export const federationCatalogHandler: PayloadHandler = async (req) => {
@@ -123,7 +117,7 @@ export const federationCatalogHandler: PayloadHandler = async (req) => {
       where: {
         and: [
           { _status: { equals: 'published' } },
-          ...(tenantId ? [{ tenant: { equals: tenantId } }] : []),
+          buildTenantFilter(tenantId),
           ...(q ? [{ title: { contains: q } }] : []),
         ],
       },

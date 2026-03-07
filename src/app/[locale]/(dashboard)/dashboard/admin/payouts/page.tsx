@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { PayoutsAdmin } from './PayoutsAdmin'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export default async function DashboardPayoutsPage({
   params,
@@ -14,32 +16,12 @@ export default async function DashboardPayoutsPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant
+  // Resolve tenant (cached)
+  const { tenantFilter } = await resolveTenantFromHeaders()
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-  }
-  if (!tenant) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   const stripeConnect = (tenant as any)?.stripeConnect || {}
 
@@ -55,9 +37,7 @@ export default async function DashboardPayoutsPage({
   try {
     const ordersResult = await payload.find({
       collection: 'orders',
-      where: {
-        ...(tenant?.id ? { tenant: { equals: tenant.id } } : {}),
-      },
+      where: tenantFilter,
       limit: 20,
       sort: '-createdAt',
       depth: 1,

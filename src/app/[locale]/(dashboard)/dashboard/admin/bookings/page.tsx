@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BookingsAdmin } from './BookingsAdmin'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export default async function DashboardBookingsPage({
   params,
@@ -14,32 +16,12 @@ export default async function DashboardBookingsPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant + current user
+  // Resolve tenant (cached)
+  const { tenantFilter } = await resolveTenantFromHeaders()
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-  }
-  if (!tenant) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   // Fetch existing availability slots
   let availabilitySlots: Array<{
@@ -56,6 +38,7 @@ export default async function DashboardBookingsPage({
   try {
     const avResult = await payload.find({
       collection: 'availability',
+      where: tenantFilter,
       limit: 50,
       sort: 'createdAt',
       depth: 0,
@@ -88,6 +71,7 @@ export default async function DashboardBookingsPage({
   try {
     const bookResult = await payload.find({
       collection: 'bookings',
+      where: tenantFilter,
       limit: 20,
       sort: '-createdAt',
       depth: 1,

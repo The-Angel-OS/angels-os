@@ -1,7 +1,9 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { headers } from 'next/headers'
 import { PaymentsAdmin } from './PaymentsAdmin'
 import { getJusticeFundGrowth, getRevenueTimeSeries } from '@/utilities/chartData'
 import { SplitDonutChart, JusticeFundChart, RevenueChart } from '@/components/charts/DashboardCharts'
@@ -15,36 +17,13 @@ export default async function DashboardPaymentsPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
+  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
-  // Resolve tenant
+  // Resolve full tenant object for Stripe Connect data
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-    tenantId = tenant?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-    tenantId = tenant?.id
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   // Fetch Justice Fund stats
   let justiceFundTotal = 0
@@ -53,8 +32,7 @@ export default async function DashboardPaymentsPage({
     const jfTransactions = await payload.find({
       collection: 'justice-fund-transactions',
       where: {
-        ...(tenantId != null ? { tenant: { equals: tenantId } } : {}),
-        status: { equals: 'completed' },
+        and: [tenantFilter, { status: { equals: 'completed' } }],
       },
       limit: 0,
       overrideAccess: true,

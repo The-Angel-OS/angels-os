@@ -1,5 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
@@ -13,39 +13,12 @@ export default async function DashboardAppointmentsPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   // Fetch bookings sorted by start time
   const bookings = await payload.find({
     collection: 'bookings',
-    where: {
-      ...(tenantId != null ? { tenant: { equals: tenantId } } : {}),
-    },
+    where: tenantFilter,
     limit: 100,
     depth: 2,
     sort: 'startDateTime',

@@ -72,18 +72,9 @@ async function resolveTenant(
     }
   }
 
-  // Fallback: default tenant
-  const result = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: 'default' } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  if (result.docs?.[0]) {
-    return { tenantId: result.docs[0].id, domain: host || 'localhost' }
-  }
-
+  // No fallback — federation messages MUST resolve to a specific tenant
+  // via slug header or domain match. Falling back to 'default' would
+  // route foreign messages to the wrong tenant.
   return null
 }
 

@@ -1,7 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { buildTenantFilter } from '@/utilities/buildTenantFilter'
 import { HolonRegistration } from './HolonRegistration'
 
 /**
@@ -19,32 +20,7 @@ export default async function DashboardHolonPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantId } = await resolveTenantFromHeaders()
 
   // Check for existing registration
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +28,7 @@ export default async function DashboardHolonPage({
   if (tenantId) {
     const existing = await payload.find({
       collection: 'holon-capabilities',
-      where: { tenant: { equals: tenantId } },
+      where: buildTenantFilter(tenantId),
       limit: 1,
       depth: 0,
       overrideAccess: true,

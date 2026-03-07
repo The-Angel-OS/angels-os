@@ -1,7 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { buildTenantFilter } from '@/utilities/buildTenantFilter'
 import { ProducerPanel } from './ProducerPanel'
 
 /**
@@ -19,44 +20,16 @@ export default async function DashboardProducerPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantId } = await resolveTenantFromHeaders()
 
   // Load products for this tenant (vendor = tenantId)
   let products: any[] = []
   try {
     const result = await payload.find({
       collection: 'products',
-      where: {
-        or: [
-          { vendor: { equals: tenantId } },
-          { tenant: { equals: tenantId } },
-        ],
-      },
+      where: tenantId != null
+        ? { or: [{ vendor: { equals: tenantId } }, { tenant: { equals: tenantId } }] }
+        : buildTenantFilter(undefined),
       limit: 50,
       depth: 1,
       sort: '-createdAt',
@@ -73,7 +46,7 @@ export default async function DashboardProducerPage({
   try {
     const result = await payload.find({
       collection: 'orders' as any,
-      where: { tenant: { equals: tenantId } },
+      where: buildTenantFilter(tenantId),
       limit: 100,
       depth: 2,
       sort: '-createdAt',

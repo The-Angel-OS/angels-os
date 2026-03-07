@@ -1,8 +1,10 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { headers } from 'next/headers'
 
 export const metadata = {
   title: 'Federation — Angel OS',
@@ -19,43 +21,21 @@ export default async function FederationPage({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant
+  // Resolve tenant (cached)
+  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tenant: any = null
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = tenants.docs?.[0]
-  }
-  if (!tenant) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenant = defaults.docs?.[0]
-  }
+  const tenant: any = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
 
   // Get this site's Endeavor
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let endeavor: any = null
-  if (tenant?.id) {
+  if (tenantId) {
     try {
       const endeavors = await payload.find({
         collection: 'endeavors',
-        where: {
-          tenant: { equals: tenant.id },
-        },
+        where: tenantFilter,
         limit: 1,
         depth: 1,
         overrideAccess: true,

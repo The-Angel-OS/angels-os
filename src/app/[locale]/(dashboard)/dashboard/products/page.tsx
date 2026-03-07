@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { ProductManager } from './ProductManager'
 
 export default async function DashboardProductsPage({
@@ -13,39 +13,12 @@ export default async function DashboardProductsPage({
   setRequestLocale(locale)
 
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   // Fetch products for this tenant
   const products = await payload.find({
     collection: 'products',
-    where: {
-      ...(tenantId != null ? { tenant: { equals: tenantId } } : {}),
-    },
+    where: tenantFilter,
     limit: 100,
     depth: 1,
     sort: '-createdAt',
