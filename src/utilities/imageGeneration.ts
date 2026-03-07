@@ -221,6 +221,8 @@ async function generateViaGateway(
       model: imageModel,
       prompt,
       n: 1,
+      // Image generation can take 30-60s — allow up to 120s before aborting
+      abortSignal: AbortSignal.timeout(120_000),
     })
 
     if (!response.images || response.images.length === 0) {
@@ -291,6 +293,8 @@ async function generateViaOpenRouter(
         ],
         modalities: ['image', 'text'],
       }),
+      // Image generation can take 30-60s — allow up to 120s before aborting
+      signal: AbortSignal.timeout(120_000),
     })
 
     if (!response.ok) {

@@ -11,6 +11,13 @@ import {
   REST_PUT,
 } from '@payloadcms/next/routes'
 
+/**
+ * Allow long-running SSE streams (LEO, AI Bus) and tool-heavy requests
+ * (image generation ~60s, multi-step tool chains) to complete.
+ * Vercel Pro default is 60s — far too short for image gen + upload flows.
+ */
+export const maxDuration = 300
+
 export const GET = REST_GET(config)
 export const POST = REST_POST(config)
 export const DELETE = REST_DELETE(config)
