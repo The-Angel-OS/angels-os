@@ -5,7 +5,8 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode, headers } from 'next/headers'
+import { draftMode } from 'next/headers'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 
 import { notFound } from 'next/navigation'
@@ -78,49 +79,21 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 
 async function queryPostBySlug({ slug }: { slug: string }) {
   const { isEnabled: draft } = await draftMode()
-
+  const { tenantFilter } = await resolveTenantFromHeaders()
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant from middleware-injected header (matches posts/page.tsx pattern)
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-
-  // Fallback to default tenant
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
 
   const result = await payload.find({
     collection: 'posts',
     draft,
     depth: 1,
     limit: 1,
-    overrideAccess: true, // Public posts must be readable without auth — multi-tenant access control blocks otherwise
+    overrideAccess: true, // Public posts must be readable without auth
     pagination: false,
     where: {
       and: [
         { slug: { equals: slug } },
         ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        tenantFilter,
       ],
     },
   })

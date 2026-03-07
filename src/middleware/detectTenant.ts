@@ -23,9 +23,12 @@ export function detectTenantFromHostname(hostname: string): string | null {
     }
   }
 
-  // Development fallback — exact localhost
+  // Development — exact localhost is platform context (no tenant).
+  // Use *.localhost subdomains (e.g. clearwater-cruisin.localhost) to test
+  // tenant-specific pages locally. Set DEFAULT_TENANT_SLUG only if you want
+  // bare localhost to always resolve to a specific tenant.
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return process.env.DEFAULT_TENANT_SLUG || 'default'
+    return process.env.DEFAULT_TENANT_SLUG || null
   }
 
   // Development subdomain — e.g. clearwater-cruisin.localhost
@@ -50,9 +53,9 @@ export function detectTenantFromHostname(hostname: string): string | null {
   // e.g., clearwater-wellness.kendev.co → clearwater-wellness
   const parts = hostname.replace(/:\d+$/, '').split('.')
 
-  // Reject bare IP addresses (e.g. 192.168.1.1) — return default tenant
+  // Reject bare IP addresses (e.g. 192.168.1.1) — platform context
   if (parts.every((p) => /^\d+$/.test(p))) {
-    return process.env.DEFAULT_TENANT_SLUG || 'default'
+    return process.env.DEFAULT_TENANT_SLUG || null
   }
 
   // If we have at least 3 parts (subdomain.domain.tld), extract subdomain

@@ -2,7 +2,7 @@ import { Grid } from '@/components/Grid'
 import { ProductGridItem } from '@/components/ProductGridItem'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { headers } from 'next/headers'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 
 export const metadata = {
@@ -28,39 +28,12 @@ type Props = {
 export default async function ShopPage({ searchParams }: Props) {
   const { q: searchValue, sort, category } = await searchParams
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant from middleware-injected header
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-
-  // Fallback to "default" tenant if slug didn't match
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   const products = await payload.find({
     collection: 'products',
     draft: false,
-    overrideAccess: true, // Bypass multi-tenant plugin — we filter explicitly
+    overrideAccess: true,
     select: {
       title: true,
       slug: true,
@@ -73,7 +46,7 @@ export default async function ShopPage({ searchParams }: Props) {
     where: {
       and: [
         { _status: { equals: 'published' } } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        tenantFilter,
         ...(searchValue ? [{ title: { like: searchValue } }] : []),
         ...(category ? [{ categories: { contains: category } }] : []),
       ],

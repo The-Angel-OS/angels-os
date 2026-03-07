@@ -33,6 +33,11 @@ export const adminOrPublishedWithTenantScope: Access = async ({ req }) => {
     return mergeWithTenantScope(publishedOnly, tenantWhere)
   }
 
-  // No tenant context (e.g. platform-level request) — return published only
-  return publishedOnly
+  // No tenant context (e.g. platform-level request) — only return published
+  // pages that have no tenant assigned (platform-level content).
+  // Without this, unauthenticated requests without x-tenant-id would see
+  // pages from ALL tenants, leaking cross-tenant content.
+  return {
+    and: [publishedOnly, { tenant: { exists: false } }],
+  }
 }

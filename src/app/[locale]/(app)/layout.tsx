@@ -62,11 +62,24 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   // Graceful tenant resolution — if the DB is temporarily unavailable the layout
   // still renders (header/footer will simply be empty).
+  //
+  // TENANT ISOLATION: Only resolve a tenant when middleware set x-tenant-id.
+  // When x-tenant-id is absent (platform domains like spacesangels.com,
+  // angels-os.kendev.co), we are in platform context — tenant MUST stay null.
+  // The previous fallback to fetchTenantByDomain(host) caused tenant leakage:
+  // it always returned some tenant via DEFAULT_TENANT_SLUG, so platform pages
+  // would render with a random tenant's branding, header, and footer.
   let tenant: Awaited<ReturnType<typeof fetchTenantByDomain>> = null
   try {
-    tenant =
-      (tenantSlug ? await fetchTenantBySlug(tenantSlug) : null) ??
-      (await fetchTenantByDomain(host))
+    if (tenantSlug) {
+      tenant = await fetchTenantBySlug(tenantSlug)
+      // If slug didn't resolve (e.g. DB timeout), try domain as last resort
+      // but ONLY because we know a tenant was intended (header was present)
+      if (!tenant) {
+        tenant = await fetchTenantByDomain(host)
+      }
+    }
+    // When tenantSlug is null → platform context → tenant stays null
   } catch (err) {
     console.error('[AppLayout] Tenant resolution failed — rendering without tenant:', err)
   }

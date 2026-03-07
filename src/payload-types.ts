@@ -687,7 +687,7 @@ export interface User {
         )[]
       | null;
     /**
-     * Custom rules/conditions for response generation (JSON)
+     * Custom rules/conditions for response generation (JSON). Include "modelStrategy" key to override escalation rhythm.
      */
     responseRules?:
       | {
@@ -698,6 +698,27 @@ export interface User {
       | number
       | boolean
       | null;
+    /**
+     * Model escalation rhythm — controls how often this agent uses a more powerful "deep think" model. Leave defaults for the standard 4:1 rhythm.
+     */
+    modelStrategy?: {
+      /**
+       * Enable the escalation rhythm (alternate between fast and deep-think models)
+       */
+      enabled?: boolean | null;
+      /**
+       * Number of fast rounds between each deep-think round (default: 4)
+       */
+      standardRounds?: number | null;
+      /**
+       * Model tier for standard (non-escalated) rounds
+       */
+      standardTier?: ('low' | 'medium' | 'high' | 'critical') | null;
+      /**
+       * Model tier for deep-think (escalated) rounds
+       */
+      escalationTier?: ('low' | 'medium' | 'high' | 'critical') | null;
+    };
     /**
      * Escalate to this user/agent when unable to help
      */
@@ -4946,6 +4967,12 @@ export interface PayloadMcpApiKey {
    * The purpose of the API key.
    */
   description?: string | null;
+  applicationLogs?: {
+    /**
+     * Allow clients to find application-logs.
+     */
+    find?: boolean | null;
+  };
   posts?: {
     /**
      * Allow clients to find posts.
@@ -5113,6 +5140,14 @@ export interface PayloadMcpApiKey {
      * Send a message to LEO (Angel OS conversational AI). Use for chat, navigation, content queries, or assistance. LEO can list posts, products, and help with tenant operations.
      */
     leoRespond?: boolean | null;
+    /**
+     * Run SUBSAFE diagnostic on this Angel OS instance. Checks errors, connectors, enterprise health, federation pulse, database integrity, and constitutional compliance.
+     */
+    runSubsafe?: boolean | null;
+    /**
+     * Query recent application error/warning logs for diagnostics.
+     */
+    queryErrors?: boolean | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -5547,6 +5582,14 @@ export interface UsersSelect<T extends boolean = true> {
         personality?: T;
         capabilities?: T;
         responseRules?: T;
+        modelStrategy?:
+          | T
+          | {
+              enabled?: T;
+              standardRounds?: T;
+              standardTier?: T;
+              escalationTier?: T;
+            };
         handoffTo?: T;
         appearance?:
           | T
@@ -7517,6 +7560,11 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
   user?: T;
   label?: T;
   description?: T;
+  applicationLogs?:
+    | T
+    | {
+        find?: T;
+      };
   posts?:
     | T
     | {
@@ -7593,6 +7641,8 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
     | T
     | {
         leoRespond?: T;
+        runSubsafe?: T;
+        queryErrors?: T;
       };
   updatedAt?: T;
   createdAt?: T;

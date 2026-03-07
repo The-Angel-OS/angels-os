@@ -1,6 +1,6 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { headers } from 'next/headers'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 import Link from 'next/link'
 
@@ -11,33 +11,7 @@ export const metadata = {
 
 export default async function EventsPage() {
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant from middleware-injected header
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   let events: { docs: any[]; totalDocs: number } = { docs: [], totalDocs: 0 }
   try {
@@ -49,7 +23,7 @@ export default async function EventsPage() {
       where: {
         and: [
           { status: { in: ['upcoming', 'live', 'completed'] } },
-          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+          tenantFilter,
         ],
       },
       sort: 'startDateTime',

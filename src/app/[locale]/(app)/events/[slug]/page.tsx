@@ -2,6 +2,7 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 import { RegisterForm } from './RegisterForm'
 
@@ -30,39 +31,14 @@ export default async function EventDetailPage({
 }) {
   const { slug } = await params
   const payload = await getPayload({ config: configPromise })
-
-  // Resolve tenant
-  const headersList = await headers()
-  const tenantSlug = headersList.get('x-tenant-id')
-  let tenantId: number | undefined
-
-  if (tenantSlug) {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id
-  }
-  if (!tenantId) {
-    const defaults = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: 'default' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = defaults.docs?.[0]?.id
-  }
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   const events = await payload.find({
     collection: 'events',
     where: {
       and: [
         { slug: { equals: slug } },
-        ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+        tenantFilter,
       ],
     },
     limit: 1,
@@ -86,6 +62,7 @@ export default async function EventDetailPage({
   })
 
   // Resolve logged-in user to prefill registration form
+  const headersList = await headers()
   let regUser: { name?: string; email?: string } | null = null
   try {
     const { user } = await payload.auth({ headers: headersList })

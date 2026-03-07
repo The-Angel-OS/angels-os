@@ -9,6 +9,7 @@ import { draftMode, headers } from 'next/headers'
 import { homeStaticData } from '@/endpoints/seed/home-static'
 import { tenantHomeData } from '@/utilities/tenantHomeData'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 
 import type { Page } from '@/payload-types'
@@ -73,22 +74,8 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 const queryPageBySlug = async ({ slug }: { slug: string }) => {
   try {
     const { isEnabled: draft } = await draftMode()
-    const headersList = await headers()
-    const tenantSlug = headersList.get('x-tenant-id')
-
+    const { tenantFilter } = await resolveTenantFromHeaders()
     const payload = await getPayload({ config: configPromise })
-
-    // Resolve tenant ID from slug for multi-tenant filtering
-    let tenantId: number | undefined
-    if (tenantSlug) {
-      const tenants = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: tenantSlug } },
-        limit: 1,
-        depth: 0,
-      })
-      tenantId = tenants.docs?.[0]?.id
-    }
 
     const result = await payload.find({
       collection: 'pages',
@@ -100,7 +87,7 @@ const queryPageBySlug = async ({ slug }: { slug: string }) => {
         and: [
           { slug: { equals: slug } },
           ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+          tenantFilter,
         ],
       },
     })

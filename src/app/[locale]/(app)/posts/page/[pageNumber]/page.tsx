@@ -1,9 +1,9 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { PaginatedDocs } from 'payload'
-import { headers } from 'next/headers'
 import React from 'react'
 import { notFound } from 'next/navigation'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 import type { Post } from '@/payload-types'
 import { CollectionArchive, POSTS_PER_PAGE } from '@/components/CollectionArchive'
@@ -28,33 +28,7 @@ export default async function PostsPageNumber({ params }: Args) {
 
   try {
     const payload = await getPayload({ config: configPromise })
-
-    // Resolve tenant from middleware-injected header
-    const headersList = await headers()
-    const tenantSlug = headersList.get('x-tenant-id')
-    let tenantId: number | undefined
-
-    if (tenantSlug) {
-      const tenants = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: tenantSlug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      tenantId = tenants.docs?.[0]?.id
-    }
-
-    if (!tenantId) {
-      const defaults = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: 'default' } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      tenantId = defaults.docs?.[0]?.id
-    }
+    const { tenantFilter } = await resolveTenantFromHeaders()
 
     posts = (await payload.find({
       collection: 'posts',
@@ -67,7 +41,7 @@ export default async function PostsPageNumber({ params }: Args) {
       where: {
         and: [
           { _status: { equals: 'published' } },
-          ...(tenantId != null ? [{ tenant: { equals: tenantId } }] : []),
+          tenantFilter,
         ],
       },
       select: {
