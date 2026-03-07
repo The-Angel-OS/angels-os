@@ -53,6 +53,9 @@ const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 5
 const LLM_MODEL = 'claude-sonnet-4-6'
 
+// Track health queries that have already warned to avoid log spam (once per deployment)
+const _healthQueryWarned = new Set<string>()
+
 // ---------------------------------------------------------------------------
 // Slash command handler
 // ---------------------------------------------------------------------------
@@ -700,9 +703,11 @@ async function gatherHealthContext(
     ])
 
     // Log any failed health queries so they don't silently show false zeros
+    // Rate-limited: only warn once per query name per deployment to avoid log spam
     const healthQueries = { pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes }
     for (const [name, result] of Object.entries(healthQueries)) {
-      if (result.status === 'rejected') {
+      if (result.status === 'rejected' && !_healthQueryWarned.has(name)) {
+        _healthQueryWarned.add(name)
         console.warn(`[LEO Health] ${name} query failed (using 0):`, (result as PromiseRejectedResult).reason?.message || (result as PromiseRejectedResult).reason)
       }
     }
