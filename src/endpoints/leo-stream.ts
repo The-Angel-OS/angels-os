@@ -41,8 +41,8 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits } from '@/utilities/ai-gateway'
-import type { TaskComplexity } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from '@/utilities/ai-gateway'
+import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -139,10 +139,34 @@ async function handleSlashCommand(msg: string, userRoles?: string[]): Promise<st
     return lines.join('\n')
   }
 
+  if (cmd === '/escalation' || cmd === '/rhythm') {
+    const strat = DEFAULT_ESCALATION
+    const lines = [
+      '**🧠 Model Escalation Rhythm**\n',
+      `Status: ${strat.enabled ? '✅ **Enabled**' : '⏸️ **Disabled**'}`,
+      `Standard rounds: **${strat.standardRounds}** (${strat.standardTier} tier — fast/cheap)`,
+      `Escalation round: every **${strat.standardRounds + 1}th** turn (${strat.escalationTier} tier — deep think)`,
+      '',
+      '**How it works:**',
+      `Turns 1-${strat.standardRounds}: \`${TASK_MODEL_MAP[strat.standardTier].primary}\` (fast responses)`,
+      `Turn ${strat.standardRounds + 1}: \`${TASK_MODEL_MAP[strat.escalationTier].primary}\` (**deep thinking**)`,
+      `Then repeats...`,
+      '',
+      '**Why:** Most conversations need snappy responses, but periodically LEO',
+      'escalates to a more powerful model for deeper reasoning, then drops back.',
+      'This balances cost efficiency with intelligence.',
+    ]
+    if (isSuperAdmin) {
+      lines.push('', '*Per-agent overrides available in agent config → Model Strategy.*')
+    }
+    return lines.join('\n')
+  }
+
   if (cmd === '/help') {
     return [
       '**LEO Commands**\n',
       '• `/models` — List available AI models + smart routing tiers',
+      '• `/escalation` — View model escalation rhythm (deep think schedule)',
       ...(isSuperAdmin ? ['• `/model <alias>` — Switch to a different model (super admin only)'] : []),
       ...(isSuperAdmin ? ['• `/credits` — Check AI Gateway credit balance (super admin only)'] : []),
       '• `/help` — Show this help',
@@ -1024,6 +1048,44 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           ...(preCreatedMsgId ? { messageId: preCreatedMsgId } : {}),
         })))
 
+        // ─── Model Escalation Rhythm ─────────────────────────────────
+        // Count user turns in conversation history to determine if this is
+        // a "deep think" escalation round (e.g., every 5th turn uses a
+        // more powerful model for complex reasoning).
+        const userTurnCount = historyMessages.filter(m => m.role === 'user').length + 1 // +1 for current message
+
+        // Resolve escalation strategy — per-agent override (dedicated field or responseRules fallback)
+        const agentStrategy = parseAgentEscalation(
+          (agent as any)?.modelStrategy || (agent as any)?.responseRules?.modelStrategy || null,
+        )
+        const escalationStrategy = agentStrategy || DEFAULT_ESCALATION
+        const escalatedTier = getEscalatedComplexity(userTurnCount, escalationStrategy)
+        const isEscalationRound = escalatedTier !== escalationStrategy.standardTier
+
+        if (isEscalationRound) {
+          console.info(`[LEO Stream] 🧠 Deep think round (turn ${userTurnCount}) — using ${TASK_MODEL_MAP[escalatedTier]?.primary || escalatedTier} tier`)
+          // Inject deep-think context into system prompt so the model knows it has
+          // extra reasoning capacity this round
+          systemPrompt += `\n\n## 🧠 Deep Think Mode (Turn ${userTurnCount})
+
+This is a deep-thinking round. You are running on a more powerful model (${TASK_MODEL_MAP[escalatedTier]?.primary || escalatedTier}) for this turn. Take advantage of this by:
+- Providing more thorough, nuanced analysis
+- Catching issues or opportunities you might miss in a quick response
+- Offering strategic suggestions, not just tactical answers
+- Connecting dots across the conversation so far
+- Being more creative and insightful in your recommendations
+
+After this turn, you'll return to the faster model for responsive day-to-day interactions.`
+        }
+
+        // Emit escalation tier in start event so UI can show "Deep thinking..."
+        controller.enqueue(encoder.encode(sseEvent('tier', {
+          tier: escalatedTier,
+          isDeepThink: isEscalationRound,
+          turnNumber: userTurnCount,
+          model: TASK_MODEL_MAP[escalatedTier]?.primary || 'unknown',
+        })))
+
         if (useGateway) {
           // ─── Path 1: Vercel AI Gateway via AI SDK ───────────────────
           try {
@@ -1040,6 +1102,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
               userId: req.user?.id as number | undefined,
               isWizardMode,
               wizardStep: wizardStep as number,
+              complexity: escalatedTier,
+              isEscalationRound,
             })
             fullText = gwResult.text
             if (gwResult.hadStreamError) hadError = true
@@ -1246,18 +1310,27 @@ async function streamViaGateway(opts: {
   userId?: number
   isWizardMode: boolean
   wizardStep: number
+  /** Escalated complexity tier (from turn-based rhythm). Default: 'medium' */
+  complexity?: TaskComplexity
+  /** Whether this round is an escalation (deep think) round */
+  isEscalationRound?: boolean
 }): Promise<{ text: string; hadStreamError: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
-    isWizardMode, wizardStep,
+    isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
   } = opts
 
   // Smart model selection: credit-aware tier + gateway-native fallback chain
-  const smart = await getSmartModel('medium', {
+  // The complexity is determined by the escalation rhythm (turn-based rotation)
+  const smart = await getSmartModel(complexity, {
     tenantId,
     userId,
-    tags: ['leo-stream', isWizardMode ? 'wizard' : 'chat'],
+    tags: [
+      'leo-stream',
+      isWizardMode ? 'wizard' : 'chat',
+      ...(isEscalationRound ? ['deep-think'] : []),
+    ],
   })
   if (!smart) throw new Error('AI Gateway model could not be created')
   const { model, providerOptions: smartProviderOptions } = smart

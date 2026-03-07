@@ -141,8 +141,64 @@ export const Users: CollectionConfig = {
           name: 'responseRules',
           type: 'json',
           admin: {
-            description: 'Custom rules/conditions for response generation (JSON)',
+            description: 'Custom rules/conditions for response generation (JSON). Include "modelStrategy" key to override escalation rhythm.',
           },
+        },
+        {
+          name: 'modelStrategy',
+          type: 'group',
+          admin: {
+            description: 'Model escalation rhythm — controls how often this agent uses a more powerful "deep think" model. Leave defaults for the standard 4:1 rhythm.',
+            condition: (_data, siblingData) => Boolean(siblingData?.agentType),
+          },
+          fields: [
+            {
+              name: 'enabled',
+              type: 'checkbox',
+              defaultValue: true,
+              admin: {
+                description: 'Enable the escalation rhythm (alternate between fast and deep-think models)',
+              },
+            },
+            {
+              name: 'standardRounds',
+              type: 'number',
+              defaultValue: 4,
+              min: 1,
+              max: 20,
+              admin: {
+                description: 'Number of fast rounds between each deep-think round (default: 4)',
+              },
+            },
+            {
+              name: 'standardTier',
+              type: 'select',
+              defaultValue: 'medium',
+              options: [
+                { label: 'Low (Budget — Gemini Flash)', value: 'low' },
+                { label: 'Medium (Standard — Gemini Flash w/ Pro fallback)', value: 'medium' },
+                { label: 'High (Premium — Gemini Pro)', value: 'high' },
+                { label: 'Critical (Top — Sonnet 4.6)', value: 'critical' },
+              ],
+              admin: {
+                description: 'Model tier for standard (non-escalated) rounds',
+              },
+            },
+            {
+              name: 'escalationTier',
+              type: 'select',
+              defaultValue: 'critical',
+              options: [
+                { label: 'Low (Budget — Gemini Flash)', value: 'low' },
+                { label: 'Medium (Standard — Gemini Flash w/ Pro fallback)', value: 'medium' },
+                { label: 'High (Premium — Gemini Pro)', value: 'high' },
+                { label: 'Critical (Top — Sonnet 4.6)', value: 'critical' },
+              ],
+              admin: {
+                description: 'Model tier for deep-think (escalated) rounds',
+              },
+            },
+          ],
         },
         {
           name: 'handoffTo',

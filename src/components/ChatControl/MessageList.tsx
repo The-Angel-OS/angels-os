@@ -704,7 +704,12 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
               }`}
             >
               {msg.role === 'leo' && msg.authorName && (
-                <div className="mb-1 text-xs font-medium opacity-70">{msg.authorName}</div>
+                <div className="mb-1 text-xs font-medium opacity-70">
+                  {msg.authorName}
+                  {msg.isDeepThink && !msg.isStreaming && (
+                    <span className="ml-1 text-[10px] opacity-60" title="Deep think response">🧠</span>
+                  )}
+                </div>
               )}
               {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
               <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />

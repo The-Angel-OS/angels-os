@@ -91,6 +91,101 @@ export const TASK_MODEL_MAP: Record<TaskComplexity, {
 }
 
 // ---------------------------------------------------------------------------
+// Model Escalation Strategy — "Deep Think" Rhythm
+// ---------------------------------------------------------------------------
+
+/**
+ * Controls the periodic escalation to a more powerful model.
+ *
+ * Default rhythm: 4 standard rounds on the fast/cheap tier, then every 5th
+ * round escalates to the "deep think" tier (Sonnet 4.6 / critical) for
+ * complex reasoning, then drops back to the standard tier.
+ *
+ * This gives agents like LEO, Nemo, and Merlin the best of both worlds:
+ * snappy responses most of the time, with periodic deep-reasoning bursts.
+ */
+export interface EscalationStrategy {
+  /** Number of standard-tier rounds between each escalation round. Default: 4 */
+  standardRounds: number
+  /** Tier to use for standard (non-escalated) rounds. Default: 'medium' */
+  standardTier: TaskComplexity
+  /** Tier to use for escalation rounds (deep thinking). Default: 'critical' */
+  escalationTier: TaskComplexity
+  /** Enable/disable escalation rhythm. Default: true */
+  enabled: boolean
+}
+
+/** Default escalation: 4 standard rounds → 1 deep-think round → repeat */
+export const DEFAULT_ESCALATION: EscalationStrategy = {
+  standardRounds: 4,
+  standardTier: 'medium',
+  escalationTier: 'critical',
+  enabled: true,
+}
+
+/**
+ * Determines the model complexity tier for a given conversation turn number.
+ *
+ * Turn numbering is 1-based (first user message = turn 1).
+ * With default settings (standardRounds=4):
+ *   Turn 1-4: medium (fast/cheap)
+ *   Turn 5:   critical (deep think)
+ *   Turn 6-9: medium
+ *   Turn 10:  critical
+ *   ...
+ *
+ * @param turnNumber - 1-based conversation turn count (number of user messages)
+ * @param strategy - Escalation configuration (defaults to DEFAULT_ESCALATION)
+ * @returns The task complexity tier to use for this turn
+ */
+export function getEscalatedComplexity(
+  turnNumber: number,
+  strategy: EscalationStrategy = DEFAULT_ESCALATION,
+): TaskComplexity {
+  if (!strategy.enabled || turnNumber <= 0) return strategy.standardTier
+
+  const cycleLength = strategy.standardRounds + 1
+  const positionInCycle = turnNumber % cycleLength
+
+  // Position 0 in the cycle = the escalation round (every Nth turn)
+  const isEscalationRound = positionInCycle === 0
+  return isEscalationRound ? strategy.escalationTier : strategy.standardTier
+}
+
+/**
+ * Parses an agent-level model strategy override from agentConfig.
+ * Returns null if the agent has no custom strategy (use default).
+ */
+export function parseAgentEscalation(
+  agentModelStrategy?: Record<string, unknown> | null,
+): EscalationStrategy | null {
+  if (!agentModelStrategy || typeof agentModelStrategy !== 'object') return null
+
+  const hasAnyField = 'enabled' in agentModelStrategy ||
+    'standardRounds' in agentModelStrategy ||
+    'standardTier' in agentModelStrategy ||
+    'escalationTier' in agentModelStrategy
+  if (!hasAnyField) return null
+
+  return {
+    enabled: agentModelStrategy.enabled !== false,
+    standardRounds: typeof agentModelStrategy.standardRounds === 'number'
+      ? agentModelStrategy.standardRounds
+      : DEFAULT_ESCALATION.standardRounds,
+    standardTier: isValidTier(agentModelStrategy.standardTier)
+      ? agentModelStrategy.standardTier
+      : DEFAULT_ESCALATION.standardTier,
+    escalationTier: isValidTier(agentModelStrategy.escalationTier)
+      ? agentModelStrategy.escalationTier
+      : DEFAULT_ESCALATION.escalationTier,
+  }
+}
+
+function isValidTier(val: unknown): val is TaskComplexity {
+  return typeof val === 'string' && ['low', 'medium', 'high', 'critical'].includes(val)
+}
+
+// ---------------------------------------------------------------------------
 // Credit Balance Monitoring
 // ---------------------------------------------------------------------------
 
@@ -192,6 +287,8 @@ export interface SmartModelResult {
   modelId: string
   complexity: TaskComplexity
   effectiveComplexity: TaskComplexity
+  /** Whether this round is an escalation (deep think) round */
+  isEscalationRound?: boolean
 }
 
 /**

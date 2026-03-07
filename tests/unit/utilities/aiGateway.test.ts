@@ -60,7 +60,11 @@ import {
   checkCredits,
   IMAGE_MODEL_CATALOG,
   DEFAULT_IMAGE_MODEL,
+  getEscalatedComplexity,
+  parseAgentEscalation,
+  DEFAULT_ESCALATION,
   type TaskComplexity,
+  type EscalationStrategy,
 } from '@/utilities/ai-gateway'
 
 // ---------------------------------------------------------------------------
@@ -661,6 +665,135 @@ describe('AI Gateway', () => {
       expect(second).toBeNull()
 
       delete process.env.AI_GATEWAY_API_KEY
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Model Escalation Rhythm — "Deep Think" strategy
+  // ---------------------------------------------------------------------------
+
+  describe('DEFAULT_ESCALATION', () => {
+    it('has standard 4:1 rhythm configuration', () => {
+      expect(DEFAULT_ESCALATION.standardRounds).toBe(4)
+      expect(DEFAULT_ESCALATION.standardTier).toBe('medium')
+      expect(DEFAULT_ESCALATION.escalationTier).toBe('critical')
+      expect(DEFAULT_ESCALATION.enabled).toBe(true)
+    })
+  })
+
+  describe('getEscalatedComplexity', () => {
+    it('returns standard tier for turns 1-4 (default strategy)', () => {
+      expect(getEscalatedComplexity(1)).toBe('medium')
+      expect(getEscalatedComplexity(2)).toBe('medium')
+      expect(getEscalatedComplexity(3)).toBe('medium')
+      expect(getEscalatedComplexity(4)).toBe('medium')
+    })
+
+    it('returns escalation tier on turn 5 (every 5th turn)', () => {
+      expect(getEscalatedComplexity(5)).toBe('critical')
+    })
+
+    it('returns standard tier for turns 6-9, escalates again on 10', () => {
+      expect(getEscalatedComplexity(6)).toBe('medium')
+      expect(getEscalatedComplexity(7)).toBe('medium')
+      expect(getEscalatedComplexity(8)).toBe('medium')
+      expect(getEscalatedComplexity(9)).toBe('medium')
+      expect(getEscalatedComplexity(10)).toBe('critical')
+    })
+
+    it('continues the rhythm: 15 = escalation, 20 = escalation', () => {
+      expect(getEscalatedComplexity(15)).toBe('critical')
+      expect(getEscalatedComplexity(20)).toBe('critical')
+    })
+
+    it('returns standard tier for turn 0 or negative', () => {
+      expect(getEscalatedComplexity(0)).toBe('medium')
+      expect(getEscalatedComplexity(-1)).toBe('medium')
+    })
+
+    it('respects disabled strategy', () => {
+      const disabled: EscalationStrategy = {
+        ...DEFAULT_ESCALATION,
+        enabled: false,
+      }
+      expect(getEscalatedComplexity(5, disabled)).toBe('medium') // Would be critical if enabled
+      expect(getEscalatedComplexity(10, disabled)).toBe('medium')
+    })
+
+    it('respects custom standard rounds', () => {
+      const custom: EscalationStrategy = {
+        enabled: true,
+        standardRounds: 2,
+        standardTier: 'low',
+        escalationTier: 'high',
+      }
+      // Cycle: 2 standard + 1 escalation = 3
+      expect(getEscalatedComplexity(1, custom)).toBe('low')
+      expect(getEscalatedComplexity(2, custom)).toBe('low')
+      expect(getEscalatedComplexity(3, custom)).toBe('high') // Escalation!
+      expect(getEscalatedComplexity(4, custom)).toBe('low')
+      expect(getEscalatedComplexity(5, custom)).toBe('low')
+      expect(getEscalatedComplexity(6, custom)).toBe('high') // Escalation again!
+    })
+
+    it('works with standardRounds=1 (every other turn is deep think)', () => {
+      const fast: EscalationStrategy = {
+        enabled: true,
+        standardRounds: 1,
+        standardTier: 'medium',
+        escalationTier: 'critical',
+      }
+      // Cycle: 1 standard + 1 escalation = 2
+      expect(getEscalatedComplexity(1, fast)).toBe('medium')
+      expect(getEscalatedComplexity(2, fast)).toBe('critical')
+      expect(getEscalatedComplexity(3, fast)).toBe('medium')
+      expect(getEscalatedComplexity(4, fast)).toBe('critical')
+    })
+  })
+
+  describe('parseAgentEscalation', () => {
+    it('returns null for undefined/null input', () => {
+      expect(parseAgentEscalation(undefined)).toBeNull()
+      expect(parseAgentEscalation(null)).toBeNull()
+    })
+
+    it('returns null for empty object', () => {
+      expect(parseAgentEscalation({})).toBeNull()
+    })
+
+    it('parses full strategy config', () => {
+      const result = parseAgentEscalation({
+        enabled: true,
+        standardRounds: 3,
+        standardTier: 'low',
+        escalationTier: 'high',
+      })
+      expect(result).toEqual({
+        enabled: true,
+        standardRounds: 3,
+        standardTier: 'low',
+        escalationTier: 'high',
+      })
+    })
+
+    it('uses defaults for missing fields', () => {
+      const result = parseAgentEscalation({ enabled: false })
+      expect(result).toEqual({
+        enabled: false,
+        standardRounds: 4,
+        standardTier: 'medium',
+        escalationTier: 'critical',
+      })
+    })
+
+    it('rejects invalid tier values', () => {
+      const result = parseAgentEscalation({
+        enabled: true,
+        standardTier: 'invalid',
+        escalationTier: 'also_invalid',
+      })
+      expect(result?.standardTier).toBe('medium') // Falls back to default
+      expect(result?.escalationTier).toBe('critical') // Falls back to default
     })
   })
 })

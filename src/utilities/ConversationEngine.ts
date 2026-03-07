@@ -30,8 +30,8 @@ import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
-import { isGatewayAvailable, convertToolsForAISDK, getSmartModel } from './ai-gateway'
-import type { TaskComplexity } from './ai-gateway'
+import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from './ai-gateway'
+import type { TaskComplexity, EscalationStrategy } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Minimal env-file parser — avoids dotenv import issues with bundler resolution.
@@ -188,19 +188,30 @@ export class ConversationEngine {
   private async generateViaGateway(
     userMessage: MessageContent,
   ): Promise<MessageContent | null> {
-    // Smart model selection: credit-aware, with gateway-native fallback chain
+    // Smart model selection with escalation rhythm:
+    // Count conversation turns to determine if this is a "deep think" round
     const tenantId = this.context.sessionMemory?.tenantId as number | undefined
     const userId = (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id
-    const smart = await getSmartModel('medium', {
+
+    // Determine escalated complexity based on turn history
+    const historyMessages = await this.fetchConversationHistory()
+    const userTurnCount = historyMessages.filter(m => m.role === 'user').length + 1
+
+    // Per-agent escalation override or platform default
+    const agentModelStrategy = this.context.agent?.responseRules?.modelStrategy as
+      Record<string, unknown> | undefined
+    const strategy = parseAgentEscalation(agentModelStrategy) || DEFAULT_ESCALATION
+    const complexity = getEscalatedComplexity(userTurnCount, strategy)
+
+    const smart = await getSmartModel(complexity, {
       tenantId,
       userId,
-      tags: ['leo-chat'],
+      tags: ['leo-chat', ...(complexity !== strategy.standardTier ? ['deep-think'] : [])],
     })
     if (!smart) return this.buildFallbackResponse(userMessage)
 
     try {
       const systemPrompt = this.buildSystemPrompt(smart.modelId)
-      const historyMessages = await this.fetchConversationHistory()
 
       // Convert history to AI SDK format — extract text from both string and
       // array-of-ContentBlock formats (Anthropic MessageParam can have either)

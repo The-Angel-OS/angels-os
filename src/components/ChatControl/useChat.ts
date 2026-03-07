@@ -473,6 +473,24 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                     )
                     break
 
+                  case 'tier':
+                    // Model escalation tier info — show "Deep thinking..." when escalated
+                    if (data.isDeepThink) {
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.id === leoMsgId
+                            ? {
+                                ...m,
+                                lastDeltaAt: Date.now(),
+                                activeToolCall: '🧠 Deep thinking...',
+                                isDeepThink: true,
+                              }
+                            : m,
+                        ),
+                      )
+                    }
+                    break
+
                   case 'tool_call':
                     // Show tool call status + update liveness timestamp
                     setMessages((prev) =>

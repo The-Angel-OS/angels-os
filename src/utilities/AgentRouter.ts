@@ -22,6 +22,13 @@ export interface AgentContext {
     keywords?: Array<{ keyword: string }>
     isDefault?: boolean
   }
+  /** Per-agent model escalation strategy override */
+  modelStrategy?: {
+    enabled?: boolean
+    standardRounds?: number
+    standardTier?: string
+    escalationTier?: string
+  }
 }
 
 export interface RoutingContext {
@@ -65,6 +72,12 @@ export async function routeToAgent(
       displayName?: string
       personality?: string
       capabilities?: string[]
+      modelStrategy?: {
+        enabled?: boolean
+        standardRounds?: number
+        standardTier?: string
+        escalationTier?: string
+      }
       responseRules?: Record<string, unknown>
       handoffTo?: number | string
       routingRules?: {
@@ -172,6 +185,12 @@ function mapToAgentContext(agent: {
     capabilities?: string[]
     responseRules?: Record<string, unknown>
     handoffTo?: number | string
+    modelStrategy?: {
+      enabled?: boolean
+      standardRounds?: number
+      standardTier?: string
+      escalationTier?: string
+    }
     routingRules?: {
       channels?: Array<{ channelSlug: string }>
       keywords?: Array<{ keyword: string }>
@@ -190,5 +209,6 @@ function mapToAgentContext(agent: {
     responseRules: agent.agentConfig?.responseRules,
     handoffTo: agent.agentConfig?.handoffTo,
     routingRules: agent.agentConfig?.routingRules,
+    modelStrategy: agent.agentConfig?.modelStrategy,
   }
 }
