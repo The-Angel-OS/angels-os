@@ -1,5 +1,6 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
+import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
 
 /**
  * autoCreateOwnerMembership — When a new Tenant is created, auto-create
@@ -72,6 +73,18 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
     } catch (pageErr) {
       payload.logger.warn(
         `[autoCreateOwnerMembership] Non-critical: failed to create default pages for tenant ${doc.id}: ${pageErr}`,
+      )
+    }
+
+    // Create default header/footer navigation so the site has proper nav menus
+    try {
+      await createDefaultTenantNavigation(payload, doc.id)
+      payload.logger.info(
+        `[autoCreateOwnerMembership] Created default navigation for tenant "${doc.name}" (${doc.id})`,
+      )
+    } catch (navErr) {
+      payload.logger.warn(
+        `[autoCreateOwnerMembership] Non-critical: failed to create default navigation for tenant ${doc.id}: ${navErr}`,
       )
     }
   } catch (err) {
