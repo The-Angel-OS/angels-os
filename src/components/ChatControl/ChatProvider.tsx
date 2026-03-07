@@ -17,7 +17,6 @@ export interface ChatContextValue {
   activeSpaceId: string | null
   activeChannelSlug: string
   setActiveSpace: (spaceId: string) => void
-  setActiveChannel: (slug: string) => void
 
   // Spaces + Channels
   spaces: ChatSpace[]
@@ -93,6 +92,9 @@ export function ChatProvider({
   const [dmChannels, setDmChannels] = useState<ChatChannel[]>([])
   const [leoDMChannel, setLeoDMChannel] = useState<ChatChannel | null>(null)
   const leoResolvedRef = useRef(false)
+  // Local channel slug — NOT redundant with chat.activeChannel.
+  // Breaks the circular dependency: effectiveSpaceId → useChat → effectiveSpaceId.
+  // Updated synchronously in switchChannel before chat.switchChannel propagates.
   const [activeChannelSlugLocal, setActiveChannelSlugLocal] = useState<string>('')
 
   // ─── Effective Space ID ───────────────────────────────────────
@@ -223,12 +225,15 @@ export function ChatProvider({
     [],
   )
 
-  const setActiveChannel = useCallback(
+  // switchChannel is the single API for changing channels.
+  // Updates local slug (for effectiveSpaceId) and delegates to chat.switchChannel
+  // which aborts in-flight streams and resets messages/poll state.
+  const switchChannel = useCallback(
     (slug: string) => {
       setActiveChannelSlugLocal(slug)
       chat.switchChannel(slug)
     },
-    [chat],
+    [chat.switchChannel],
   )
 
   const openDM = useCallback(
@@ -266,17 +271,7 @@ export function ChatProvider({
           console.warn('[ChatProvider] openDM failed:', err)
         })
     },
-    [dmSpaceId, tenantId, chat],
-  )
-
-  // ─── Memoized switchChannel ─────────────────────────────────
-  // Stable reference prevents consumer re-renders from inline function churn.
-  const switchChannel = useCallback(
-    (slug: string) => {
-      setActiveChannelSlugLocal(slug)
-      chat.switchChannel(slug)
-    },
-    [chat.switchChannel],
+    [dmSpaceId, tenantId, chat.switchChannel],
   )
 
   // ─── Context Value ──────────────────────────────────────────
@@ -286,7 +281,6 @@ export function ChatProvider({
       activeSpaceId,
       activeChannelSlug: chat.activeChannel,
       setActiveSpace,
-      setActiveChannel,
 
       spaces,
       channels: chat.channels,
@@ -314,7 +308,6 @@ export function ChatProvider({
       activeSpaceId,
       chat.activeChannel,
       setActiveSpace,
-      setActiveChannel,
       spaces,
       chat.channels,
       dmChannels,

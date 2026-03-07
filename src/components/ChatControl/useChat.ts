@@ -157,8 +157,19 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   const authFailedRef = useRef(false)
   /** Abort controller for in-flight SSE stream — cancel on channel switch */
   const streamAbortRef = useRef<AbortController | null>(null)
+  /** Oldest message timestamp for loadMoreMessages cursor — avoids `messages` dep in callback */
+  const oldestTimestampRef = useRef<string | null>(null)
   /** Timestamp when last stream finished — prevents poll from clobbering during grace period */
   const streamDoneAtRef = useRef<number>(0)
+
+  // Keep oldest-message cursor ref in sync (avoids messages dep in loadMoreMessages)
+  useEffect(() => {
+    if (messages.length > 0) {
+      oldestTimestampRef.current = messages[0].timestamp.toISOString()
+    } else {
+      oldestTimestampRef.current = null
+    }
+  }, [messages])
 
   // Fetch channels for a space
   const loadChannels = useCallback(async () => {
@@ -347,19 +358,20 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     }
   }, [spaceId, activeChannel, mapMessage])
 
-  // Load more (older) messages for infinite scroll — cursor-based
+  // Load more (older) messages for infinite scroll — cursor-based.
+  // Uses oldestTimestampRef instead of messages array to keep this callback
+  // stable across message updates (prevents context memo churn in ChatProvider).
   const loadMoreMessages = useCallback(async () => {
     if (!spaceId || !activeChannel || isLoadingMore || !hasMore || authFailedRef.current) return
 
     setIsLoadingMore(true)
     try {
-      // Use the oldest message's timestamp as cursor
-      const oldestMsg = messages[0]
-      if (!oldestMsg) {
+      // Use the oldest message's timestamp as cursor (via ref, not state)
+      const cursor = oldestTimestampRef.current
+      if (!cursor) {
         setIsLoadingMore(false)
         return
       }
-      const cursor = oldestMsg.timestamp.toISOString()
 
       const res = await fetch(
         `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&where[createdAt][less_than]=${encodeURIComponent(cursor)}&sort=-createdAt&limit=30&depth=1`,
@@ -381,7 +393,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     } finally {
       setIsLoadingMore(false)
     }
-  }, [spaceId, activeChannel, isLoadingMore, hasMore, messages, mapMessage])
+  }, [spaceId, activeChannel, isLoadingMore, hasMore, mapMessage])
 
   // ─── Decaying poll: reset callback (declared early for dependency refs) ──
   const resetPollInterval = useCallback(() => {

@@ -19,6 +19,15 @@ import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps, ChatChannel } from './types'
 import { DEFAULT_APPLETS } from './types'
 
+/** Hoisted style to avoid per-render allocation in scrollable touch container */
+const TOUCH_MANIPULATION: React.CSSProperties = { touchAction: 'manipulation' }
+
+/** Shared className for mobile channel tab pills (44px min touch target) */
+const channelPillClass = (isActive: boolean) =>
+  `flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
+    isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground active:bg-muted/80'
+  }`
+
 /** Source icons for external DM channels */
 const SOURCE_ICONS: Record<string, string> = {
   whatsapp: '\uD83D\uDCF1',
@@ -201,7 +210,7 @@ export function MultiChannelChat({
           {/* Channel tabs (horizontal scroll) — includes DMs.
               touch-action:manipulation prevents 300ms delay on mobile browsers
               and ensures taps inside the scrollable container fire reliably. */}
-          <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none" style={{ touchAction: 'manipulation' }}>
+          <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 scrollbar-none" style={TOUCH_MANIPULATION}>
             {isLoadingChannels ? (
               <div className="flex gap-2 px-2">
                 {[1, 2, 3].map((i) => (
@@ -215,11 +224,7 @@ export function MultiChannelChat({
                   <button
                     key={ch.id}
                     onClick={() => handleSwitchChannel(ch.slug)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
-                      ch.slug === activeChannel
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground active:bg-muted/80'
-                    }`}
+                    className={channelPillClass(ch.slug === activeChannel)}
                   >
                     <Hash size={12} className="shrink-0" />
                     <span>{ch.name}</span>
@@ -230,11 +235,7 @@ export function MultiChannelChat({
                   <button
                     key={ch.id}
                     onClick={() => handleSwitchChannel(ch.slug)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
-                      ch.slug === activeChannel
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground active:bg-muted/80'
-                    }`}
+                    className={channelPillClass(ch.slug === activeChannel)}
                   >
                     {ch.slug.endsWith('-leo') ? <Bot size={12} /> : <User size={12} />}
                     <span>{ch.slug.endsWith('-leo') ? 'LEO' : ch.name}</span>
