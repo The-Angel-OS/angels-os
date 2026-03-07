@@ -1,4 +1,5 @@
 import type { CollectionAfterChangeHook } from 'payload'
+import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 
 /**
  * autoCreateOwnerMembership — When a new Tenant is created, auto-create
@@ -58,6 +59,21 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
     payload.logger.info(
       `[autoCreateOwnerMembership] User ${userId} linked as tenant_admin to new tenant "${doc.name}" (${doc.id})`,
     )
+
+    // Create default CMS pages (home, contact) so the admin panel isn't empty
+    try {
+      await createDefaultTenantPages(payload, doc.id, {
+        siteName: doc.branding?.siteName || doc.name || 'Welcome',
+        tagline: typeof doc.branding?.tagline === 'string' ? doc.branding.tagline : '',
+      })
+      payload.logger.info(
+        `[autoCreateOwnerMembership] Created default pages for tenant "${doc.name}" (${doc.id})`,
+      )
+    } catch (pageErr) {
+      payload.logger.warn(
+        `[autoCreateOwnerMembership] Non-critical: failed to create default pages for tenant ${doc.id}: ${pageErr}`,
+      )
+    }
   } catch (err) {
     // Non-fatal — tenant is created regardless
     req.payload.logger.warn(
