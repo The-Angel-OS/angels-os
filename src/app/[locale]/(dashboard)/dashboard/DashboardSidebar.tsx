@@ -249,6 +249,14 @@ export function DashboardSidebar({
             Documentation
           </NavLink>
           <NavLink
+            href={`${prefix}/dashboard/learn`}
+            icon={<SparkleIcon />}
+            collapsed={isCollapsed}
+            active={pathname.includes('/dashboard/learn')}
+          >
+            Learn
+          </NavLink>
+          <NavLink
             href={`${prefix}/dashboard/federation-network`}
             icon={<NetworkIcon />}
             collapsed={isCollapsed}
@@ -578,6 +586,14 @@ function MobileNavContent({
           active={pathname.includes('/dashboard/docs')}
         >
           Documentation
+        </NavLink>
+        <NavLink
+          href={`${prefix}/dashboard/learn`}
+          icon={<SparkleIcon />}
+          collapsed={false}
+          active={pathname.includes('/dashboard/learn')}
+        >
+          Learn
         </NavLink>
         <NavLink
           href={`${prefix}/dashboard/federation-network`}

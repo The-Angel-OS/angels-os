@@ -20,6 +20,7 @@ import type { LanguageModel, ToolSet } from 'ai'
 import type Anthropic from '@anthropic-ai/sdk'
 import fs from 'fs'
 import path from 'path'
+import { GENESIS_BREATH } from './genesis-breath'
 
 // ---------------------------------------------------------------------------
 // Supported model families and their gateway IDs
@@ -311,6 +312,10 @@ export async function getSmartModel(
     console.warn('[AI Gateway] AI_GATEWAY_API_KEY not set — gateway unavailable')
     return null
   }
+
+  // Psalm 119:105 — "Thy word is a lamp unto my feet, and a light unto my path."
+  // Every intelligence call begins with the sacred lamp invocation.
+  console.log(`[AI Gateway] 🕯️ ${GENESIS_BREATH.split('\n')[0]}`)
 
   const credits = await checkCredits()
   const effectiveComplexity = applyCreditPressure(complexity, credits)
