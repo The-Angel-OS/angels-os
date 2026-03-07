@@ -4,7 +4,8 @@ import React, { useState, useCallback } from 'react'
 import { Headphones, PhoneOff, Loader2, Mic, Video } from 'lucide-react'
 import { LiveKitRoom } from './LiveKitRoom'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Relative URLs — see useChat.ts for why NEXT_PUBLIC_SERVER_URL breaks on subdomains
+const SERVER_URL = ''
 
 interface LiveKitButtonProps {
   spaceId: string

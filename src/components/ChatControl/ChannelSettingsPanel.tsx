@@ -6,7 +6,8 @@ import { Backdrop } from '@/components/Backdrop'
 import type { ChatChannel } from './types'
 import { DEFAULT_APPLETS } from './types'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Relative URLs — see useChat.ts for why NEXT_PUBLIC_SERVER_URL breaks on subdomains
+const SERVER_URL = ''
 
 /** Channel type options matching the Payload schema */
 const CHANNEL_TYPES = [

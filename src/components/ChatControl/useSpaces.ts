@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { ChatSpace } from './types'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Relative URLs — see useChat.ts for why NEXT_PUBLIC_SERVER_URL breaks on subdomains
+const SERVER_URL = ''
 
 /** Slug used for the system-created AI Bus space */
 export const AI_BUS_SPACE_SLUG = 'ai-bus'

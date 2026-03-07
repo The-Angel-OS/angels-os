@@ -3,7 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ChatMessage, ChatChannel } from './types'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Use relative URLs so fetch always targets the current domain/subdomain.
+// Previously used NEXT_PUBLIC_SERVER_URL which was baked at build time to
+// www.spacesangels.com — breaking cross-origin on tenant subdomains like
+// clearwater-cruisin.spacesangels.com (requests went to wrong host → 503).
+const SERVER_URL = ''
 
 /**
  * Grace period (ms) after streaming finishes before allowing poll to overwrite.

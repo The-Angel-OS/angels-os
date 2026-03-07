@@ -5,7 +5,10 @@ import type { ReactNode } from 'react'
 import { useChat } from './useChat'
 import type { ChatMessage, ChatChannel, ChatSpace } from './types'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Use relative URLs so fetch always targets the current domain/subdomain.
+// See useChat.ts for full explanation — NEXT_PUBLIC_SERVER_URL breaks on
+// tenant subdomains because it's baked at build time to the main domain.
+const SERVER_URL = ''
 
 // ─── Context Shape ───────────────────────────────────────────────
 
