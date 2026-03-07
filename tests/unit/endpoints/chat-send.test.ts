@@ -103,6 +103,30 @@ describe('chatSendHandler', () => {
     expect(body.message).toMatch(/content/i)
   })
 
+  it('returns 400 for whitespace-only text content', async () => {
+    const req = makeReq({ id: 1 }, { space: 5, channel: 'general', content: { type: 'text', text: '   \n  ' } })
+    const res = await chatSendHandler(req)
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.message).toMatch(/empty/i)
+  })
+
+  it('returns 400 for message exceeding length limit', async () => {
+    const longText = 'a'.repeat(51_000)
+    const req = makeReq({ id: 1 }, { space: 5, channel: 'general', content: { type: 'text', text: longText } })
+    const res = await chatSendHandler(req)
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.message).toMatch(/too long/i)
+  })
+
+  it('allows message just under the length limit', async () => {
+    const okText = 'a'.repeat(50_000)
+    const req = makeReq({ id: 1, roles: ['admin'] }, { space: 5, channel: 'general', content: { type: 'text', text: okText } })
+    const res = await chatSendHandler(req)
+    expect(res.status).toBe(201)
+  })
+
   it('returns 404 when space is not found', async () => {
     const req = makeReq({ id: 1 }, VALID_BODY, {
       findByID: vi.fn().mockResolvedValue(null),

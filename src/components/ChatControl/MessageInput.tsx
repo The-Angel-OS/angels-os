@@ -6,6 +6,9 @@ import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film, Image
 /** Max file size per attachment: 25 MB */
 const MAX_FILE_SIZE = 25 * 1024 * 1024
 
+/** Max message length (chars) — matches server-side limit */
+const MAX_MESSAGE_LENGTH = 50_000
+
 /** File type categories for preview rendering */
 function getFileCategory(file: File): 'image' | 'video' | 'document' | 'archive' | 'spreadsheet' | 'other' {
   const type = file.type
@@ -137,8 +140,10 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  const isOverLimit = value.length > MAX_MESSAGE_LENGTH
+
   const handleSubmit = useCallback(() => {
-    if ((!value.trim() && attachments.length === 0) || disabled) return
+    if ((!value.trim() && attachments.length === 0) || disabled || isOverLimit) return
     onSend(value.trim(), attachments.length > 0 ? attachments : undefined)
     setValue('')
     setAttachments([])
@@ -148,7 +153,7 @@ export function MessageInput({
         inputRef.current.style.height = 'auto'
       }
     })
-  }, [value, attachments, disabled, onSend])
+  }, [value, attachments, disabled, isOverLimit, onSend])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -358,11 +363,13 @@ export function MessageInput({
               />
               <button
                 onClick={handleSubmit}
-                disabled={disabled || (!value.trim() && attachments.length === 0)}
+                disabled={disabled || isOverLimit || (!value.trim() && attachments.length === 0)}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
-                  value.trim() || hasAttachments
-                    ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md'
-                    : 'bg-muted text-muted-foreground'
+                  isOverLimit
+                    ? 'bg-destructive text-destructive-foreground'
+                    : value.trim() || hasAttachments
+                      ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md'
+                      : 'bg-muted text-muted-foreground'
                 } disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none`}
                 aria-label="Send message"
               >
@@ -370,8 +377,13 @@ export function MessageInput({
               </button>
             </div>
           </div>
-          <div className="mt-1.5 text-center text-[10px] text-muted-foreground/30">
-            Press Enter to send · Shift+Enter for new line
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px] text-muted-foreground/30">
+            <span>Press Enter to send · Shift+Enter for new line</span>
+            {value.length > MAX_MESSAGE_LENGTH * 0.9 && (
+              <span className={isOverLimit ? 'text-destructive font-medium' : 'text-amber-500'}>
+                {value.length.toLocaleString()}/{MAX_MESSAGE_LENGTH.toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
         {hiddenFileInput}
@@ -416,11 +428,13 @@ export function MessageInput({
             />
             <button
               onClick={handleSubmit}
-              disabled={disabled || (!value.trim() && attachments.length === 0)}
+              disabled={disabled || isOverLimit || (!value.trim() && attachments.length === 0)}
               className={`flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
-                value.trim() || hasAttachments
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80'
-                  : 'bg-muted text-muted-foreground'
+                isOverLimit
+                  ? 'bg-destructive text-destructive-foreground'
+                  : value.trim() || hasAttachments
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80'
+                    : 'bg-muted text-muted-foreground'
               } disabled:cursor-not-allowed disabled:opacity-40`}
               aria-label="Send message"
             >

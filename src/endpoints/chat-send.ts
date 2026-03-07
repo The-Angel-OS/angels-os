@@ -50,6 +50,33 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Missing required field: content' }, { status: 400 })
   }
 
+  // Validate content is not whitespace-only and enforce length limits
+  const MAX_MESSAGE_LENGTH = 50_000 // 50K characters — generous but prevents abuse
+  if (typeof content === 'object' && content !== null) {
+    const textContent = (content as Record<string, unknown>).text
+    if (typeof textContent === 'string') {
+      if (!textContent.trim()) {
+        return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
+      }
+      if (textContent.length > MAX_MESSAGE_LENGTH) {
+        return Response.json(
+          { message: `Message too long (${textContent.length} chars). Maximum is ${MAX_MESSAGE_LENGTH}.` },
+          { status: 400 },
+        )
+      }
+    }
+  } else if (typeof content === 'string') {
+    if (!content.trim()) {
+      return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
+    }
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      return Response.json(
+        { message: `Message too long (${content.length} chars). Maximum is ${MAX_MESSAGE_LENGTH}.` },
+        { status: 400 },
+      )
+    }
+  }
+
   const spaceId = typeof space === 'string' ? Number(space) || space : space
 
   // Look up the space to resolve its tenant

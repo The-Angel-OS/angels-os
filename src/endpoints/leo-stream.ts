@@ -803,6 +803,15 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
   }
 
+  // Enforce message length limit — prevents abuse and keeps within LLM context bounds
+  const MAX_LEO_MESSAGE_LENGTH = 50_000
+  if (message.length > MAX_LEO_MESSAGE_LENGTH) {
+    return Response.json(
+      { message: `Message too long (${message.length} chars). Maximum is ${MAX_LEO_MESSAGE_LENGTH}.` },
+      { status: 400 },
+    )
+  }
+
   // Parse image attachments
   const userImages: Array<{ url: string; mediaId?: number; alt?: string }> = []
   if (Array.isArray(bodyImages)) {
