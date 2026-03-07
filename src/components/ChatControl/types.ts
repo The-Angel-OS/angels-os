@@ -36,6 +36,11 @@ export interface ChatMessage {
     conversationId?: string
     messageType?: string
   }
+  /** UMS widget configurations (inline forms, cards, etc.) */
+  widgets?: Array<{
+    widgetType: string
+    [key: string]: unknown
+  }>
 }
 
 export interface ChatChannel {

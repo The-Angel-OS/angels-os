@@ -266,6 +266,13 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       }
     }
 
+    // Extract UMS widgets (inline forms, cards, etc.) from structured content
+    const rawContent = msg.content as Record<string, unknown> | string
+    const widgets: ChatMessage['widgets'] | undefined =
+      typeof rawContent === 'object' && rawContent !== null && Array.isArray((rawContent as Record<string, unknown>)?.widgets)
+        ? ((rawContent as Record<string, unknown>).widgets as ChatMessage['widgets'])
+        : undefined
+
     // Also extract images from message text content
     const content = extractText(msg.content)
     const textImages = extractImagesFromText(content)
@@ -289,6 +296,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       authorName,
       ...(allImages.length > 0 ? { images: allImages } : {}),
       ...(fileAttachments.length > 0 ? { attachments: fileAttachments } : {}),
+      ...(widgets?.length ? { widgets } : {}),
       metadata: {
         messageType: String(msg.messageType || 'user'),
         agentName: msgMeta?.agentName as string | undefined,

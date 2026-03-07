@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from './types'
 import { TOOL_LABELS } from '@/constants/toolLabels'
 import { ImageLightbox } from './ImageLightbox'
+import { InlineChatForm } from './InlineChatForm'
 
 // ---------------------------------------------------------------------------
 // Message action buttons (copy, speak, vote, share, dispute)
@@ -710,6 +711,11 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
               {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
               {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
               {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
+              {msg.widgets?.map((w, i) =>
+                w.widgetType === 'inline_form' ? (
+                  <InlineChatForm key={`widget-${i}`} config={w} />
+                ) : null,
+              )}
               <div className="mt-1 text-[10px] opacity-50">
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
@@ -999,6 +1005,11 @@ function FullPageMessageList({
                         )}
                         {msg.images && msg.images.length > 0 && (
                           <MessageImages images={msg.images} />
+                        )}
+                        {msg.widgets?.map((w, i) =>
+                          w.widgetType === 'inline_form' ? (
+                            <InlineChatForm key={`widget-${i}`} config={w} />
+                          ) : null,
                         )}
                       </div>
 

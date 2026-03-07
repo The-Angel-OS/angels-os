@@ -6,6 +6,7 @@ import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/
 import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { angelOsStripeAdapter } from '@/lib/angel-os-stripe-adapter'
+import { routeFormToAIBus } from '@/hooks/routeFormToAIBus'
 
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -39,6 +40,9 @@ export const plugins: Plugin[] = [
     formSubmissionOverrides: {
       admin: {
         group: 'Content',
+      },
+      hooks: {
+        afterChange: [routeFormToAIBus],
       },
     },
     formOverrides: {

@@ -36,8 +36,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 109 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(109)
+  it('has exactly 114 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(114)
   })
 
   it('every tool has a unique name', () => {
@@ -185,7 +185,9 @@ describe('LEO Tool Categories', () => {
       'update_post',
       'create_page',
       'update_page',
+      'get_page_hero',
       'set_page_hero',
+      'edit_image_text',
       'manage_categories',
     ])('includes %s', (name) => {
       expect(toolNames()).toContain(name)
@@ -255,6 +257,16 @@ describe('LEO Tool Categories', () => {
     it.each([
       'query_navigation',
       'update_navigation',
+    ])('includes %s', (name) => {
+      expect(toolNames()).toContain(name)
+    })
+  })
+
+  describe('Form Builder Integration tools (Sprint 37)', () => {
+    it.each([
+      'send_inline_form',
+      'create_form',
+      'query_form_submissions',
     ])('includes %s', (name) => {
       expect(toolNames()).toContain(name)
     })

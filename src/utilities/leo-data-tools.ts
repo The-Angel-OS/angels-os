@@ -63,6 +63,7 @@ import {
   fetchYouTubeChannelFeed,
   extractChannelId,
 } from './youtubeMetadata'
+import { createWidgetContent } from './messageContent'
 
 // ---------------------------------------------------------------------------
 // Navigation Directive Helper — LEO Navigation Bridge
@@ -509,7 +510,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'improve_image',
     description:
-      'Analyze an existing image and generate an improved version based on user feedback. Use when a user says "make it warmer", "I don\'t like the background", "can you change the lighting", or gives any feedback about an existing image. LEO will analyze the current image with Anthropic Vision, understand what needs to change, and generate a better version.',
+      'Analyze an existing image and generate an ENTIRELY NEW image based on feedback. This does NOT edit the existing image in place — it creates a brand new one inspired by it. Use for style changes, composition adjustments, or complete redesigns (e.g. "make it warmer", "change the lighting"). For fixing TEXT within an image, use edit_image_text instead.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1491,6 +1492,52 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: 'get_page_hero',
+    description:
+      'Read a page\'s current hero section — returns hero type, hero image details (URL, alt text, Media ID), hero rich text content, and CTA links. Use this BEFORE modifying a hero to understand what\'s currently there. Defaults to the homepage (slug "home") if no page is specified. When a user mentions "the banner" or "the hero image" without specifying a page, use this tool with no arguments to check the homepage first.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: {
+          type: 'number',
+          description: 'The ID of the page to read (use this OR slug)',
+        },
+        slug: {
+          type: 'string',
+          description: 'The slug of the page (e.g. "home", "about"). Defaults to "home" if neither pageId nor slug provided.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'edit_image_text',
+    description:
+      'Fix or change text that appears IN an image (baked into the pixels, not HTML overlay text). This tool analyzes the current image, understands its full composition, and generates a new version with the corrected text while preserving the overall look. Use when a user says text in their banner/image is wrong (e.g. "frictly citizens" should be "Friendly People"). Provide the mediaId of the current image and describe what text to change. The tool will generate a new image and return the new Media ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaId: {
+          type: 'number',
+          description: 'Media ID of the image containing the text to fix (required)',
+        },
+        oldText: {
+          type: 'string',
+          description: 'The incorrect text currently in the image (e.g. "frictly citizens")',
+        },
+        newText: {
+          type: 'string',
+          description: 'The correct text to replace it with (e.g. "Friendly People")',
+        },
+        additionalInstructions: {
+          type: 'string',
+          description: 'Any other changes to make while regenerating (e.g. "make the font larger", "change background to blue")',
+        },
+      },
+      required: ['mediaId', 'newText'],
     },
   },
   {
@@ -2835,6 +2882,114 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['target', 'action'],
     },
   },
+  // ─── Sprint 37: Form Builder Integration ─────────────────────────
+  {
+    name: 'send_inline_form',
+    description:
+      'Send an interactive form directly in the chat for the user to fill out. Use this to collect information (contact details, feedback, RSVPs, custom data). Fields can be pre-filled with data you already know. The form renders inline in the chat message and submits to the form-submissions collection. Best for one-off data collection during conversation. For persistent forms that live on pages, use create_form instead.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        formTitle: {
+          type: 'string',
+          description: 'Form title shown above the fields',
+        },
+        fields: {
+          type: 'array',
+          description:
+            'Field definitions. Each: { name: string (unique key), blockType: "text"|"email"|"number"|"textarea"|"select"|"checkbox", label: string, required?: boolean, options?: [{label,value}] for select fields }',
+          items: { type: 'object' },
+        },
+        prefilled: {
+          type: 'object',
+          description:
+            'Pre-populated values keyed by field name (e.g. { email: "user@example.com", "full-name": "John Doe" }). Use this to save the user time by filling in data you already know.',
+        },
+        submitButtonLabel: {
+          type: 'string',
+          description: 'Custom submit button text (default: "Submit")',
+        },
+        message: {
+          type: 'string',
+          description: 'Text shown above the form explaining what it is for',
+        },
+      },
+      required: ['formTitle', 'fields'],
+    },
+  },
+  {
+    name: 'create_form',
+    description:
+      'Create a persistent form in the forms collection. Use when you need a reusable form that can be placed on pages via the FormBlock, sent in emails, or referenced by ID. For one-off forms in chat, use send_inline_form instead. Returns the new form ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Form title (displayed as heading)',
+        },
+        fields: {
+          type: 'array',
+          description:
+            'Field definitions matching Payload Form Builder format. Each: { blockType: "text"|"email"|"number"|"textarea"|"select"|"checkbox"|"country"|"state"|"message", name: string, label?: string, required?: boolean, width?: number (1-100), defaultValue?: string, options?: [{label,value}] for select }',
+          items: { type: 'object' },
+        },
+        submitButtonLabel: {
+          type: 'string',
+          description: 'Submit button text (default: "Submit")',
+        },
+        confirmationType: {
+          type: 'string',
+          enum: ['message', 'redirect'],
+          description: 'What happens after submission (default: "message")',
+        },
+        confirmationMessage: {
+          type: 'string',
+          description: 'Thank-you message shown after submission (for confirmationType "message")',
+        },
+        redirect: {
+          type: 'string',
+          description: 'URL to redirect to after submission (for confirmationType "redirect")',
+        },
+      },
+      required: ['title', 'fields'],
+    },
+  },
+  {
+    name: 'query_form_submissions',
+    description:
+      'Read form submissions — filter by form ID, form title, date range, or specific field values. Returns a formatted summary of submissions with all field data. Use to review customer feedback, contact requests, RSVPs, survey results, or any data collected through forms.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        formId: {
+          type: 'number',
+          description: 'Filter by specific form ID',
+        },
+        formTitle: {
+          type: 'string',
+          description: 'Filter by form title (partial match, case-insensitive)',
+        },
+        since: {
+          type: 'string',
+          description: 'Only submissions after this date (ISO 8601, e.g. "2025-01-01")',
+        },
+        until: {
+          type: 'string',
+          description: 'Only submissions before this date (ISO 8601)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results to return (default: 20, max: 100)',
+        },
+        fieldFilter: {
+          type: 'object',
+          description: 'Filter by field values. Keys are field names, values are the expected values (e.g. { "status": "interested" })',
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -2984,6 +3139,10 @@ export async function executeToolCall(
         return await handleGetThemeSettings(payload, ctx)
       case 'update_theme_settings':
         return await handleUpdateThemeSettings(payload, toolInput, ctx)
+      case 'get_page_hero':
+        return await handleGetPageHero(payload, toolInput, ctx)
+      case 'edit_image_text':
+        return await handleEditImageText(payload, toolInput, ctx)
       case 'set_page_hero':
         return await handleSetPageHero(payload, toolInput, ctx)
       case 'generate_theme_aware_image':
@@ -3107,6 +3266,13 @@ export async function executeToolCall(
         return await handleQueryNavigation(payload, toolInput, ctx)
       case 'update_navigation':
         return await handleUpdateNavigation(payload, toolInput, ctx)
+      // ─── Sprint 37: Form Builder Integration ────────────────────────
+      case 'send_inline_form':
+        return await handleSendInlineForm(payload, toolInput, ctx)
+      case 'create_form':
+        return await handleCreateForm(payload, toolInput, ctx)
+      case 'query_form_submissions':
+        return await handleQueryFormSubmissions(payload, toolInput, ctx)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -7780,6 +7946,249 @@ async function handleUpdateThemeSettings(
 }
 
 /**
+ * get_page_hero — Reads a page's current hero section (type, image, text, links).
+ * Defaults to homepage (slug "home") if no page specified.
+ */
+async function handleGetPageHero(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const pageId = input.pageId as number | undefined
+  let slug = input.slug as string | undefined
+
+  // Default to homepage if neither provided
+  if (!pageId && !slug) {
+    slug = 'home'
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let page: any
+
+    if (pageId) {
+      page = await payload.findByID({
+        collection: 'pages',
+        id: pageId,
+        depth: 1, // Resolve media relationship
+        overrideAccess: true,
+      })
+    } else {
+      // Build tenant-scoped query
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conditions: any[] = [{ slug: { equals: slug } }]
+      if (ctx.tenantId) {
+        conditions.push({ tenant: { equals: ctx.tenantId } })
+      }
+      const result = await payload.find({
+        collection: 'pages',
+        where: conditions.length > 1 ? { and: conditions } : conditions[0],
+        limit: 1,
+        depth: 1,
+        overrideAccess: true,
+      })
+      page = result.docs[0]
+    }
+
+    if (!page) {
+      return `Error: Page not found${slug ? ` with slug "${slug}"` : ` with ID ${pageId}`}.${slug === 'home' ? ' This tenant may not have a homepage yet.' : ''}`
+    }
+
+    // Tenant isolation check
+    if (ctx.tenantId && page.tenant) {
+      const pageTenant = typeof page.tenant === 'object' ? page.tenant?.id : page.tenant
+      if (pageTenant && pageTenant !== ctx.tenantId) {
+        return 'Error: This page belongs to a different tenant.'
+      }
+    }
+
+    const hero = page.hero || {}
+    const parts: string[] = [`## Hero — "${page.title || page.slug || `Page #${page.id}`}"`]
+    parts.push(`- **Page ID:** ${page.id}`)
+    parts.push(`- **Slug:** ${page.slug || '(none)'}`)
+    parts.push(`- **Hero Type:** ${hero.type || 'none'}`)
+
+    // Media info
+    if (hero.media) {
+      const media = typeof hero.media === 'object' ? hero.media : null
+      if (media) {
+        parts.push(`- **Hero Image Media ID:** ${media.id}`)
+        parts.push(`- **Image URL:** ${media.url || '(no URL)'}`)
+        parts.push(`- **Alt Text:** ${media.alt || '(none)'}`)
+        if (media.filename) parts.push(`- **Filename:** ${media.filename}`)
+        if (media.mimeType) parts.push(`- **Type:** ${media.mimeType}`)
+        if (media.width && media.height) parts.push(`- **Dimensions:** ${media.width}×${media.height}`)
+
+        // Auto-describe the image using Claude Vision so LEO knows what it looks like
+        if (media.url && typeof media.url === 'string') {
+          try {
+            const imageUrl = media.url.startsWith('http')
+              ? media.url
+              : `${process.env.NEXT_PUBLIC_SERVER_URL || ''}${media.url}`
+            const visionResult = await analyzeImageForFeedback({
+              imageUrl,
+              feedback: 'Describe this image in 2-3 sentences. Note any text visible in the image, the overall scene/subject, color palette, and mood.',
+              context: 'Hero banner image description for content management',
+            })
+            if (visionResult?.analysis) {
+              parts.push(`- **Visual Description:** ${visionResult.analysis.substring(0, 500)}`)
+            }
+          } catch {
+            // Non-critical: skip visual description if analysis fails
+            parts.push(`- **Visual Description:** (could not auto-analyze — use analyze_image tool with Media ID ${media.id} for details)`)
+          }
+        }
+      } else {
+        parts.push(`- **Hero Image Media ID:** ${hero.media} (not resolved)`)
+      }
+    } else {
+      parts.push(`- **Hero Image:** (none set)`)
+    }
+
+    // Rich text summary
+    if (hero.richText?.root?.children?.length) {
+      try {
+        // Extract plain text from Lexical nodes
+        const extractText = (nodes: unknown[]): string => {
+          return nodes
+            .map((node: any) => {
+              if (node.text) return node.text
+              if (node.children) return extractText(node.children)
+              return ''
+            })
+            .filter(Boolean)
+            .join(' ')
+        }
+        const text = extractText(hero.richText.root.children).trim()
+        if (text) {
+          parts.push(`- **Hero Text:** "${text.substring(0, 200)}${text.length > 200 ? '...' : ''}"`)
+        }
+      } catch {
+        parts.push(`- **Hero Text:** (present but could not extract)`)
+      }
+    } else {
+      parts.push(`- **Hero Text:** (none)`)
+    }
+
+    // Links/CTAs
+    if (hero.links?.length) {
+      const linkDescs = hero.links.map((link: any, i: number) => {
+        const l = link?.link || link
+        return `  ${i + 1}. "${l?.label || '(no label)'}" → ${l?.url || l?.reference?.value?.slug || '(no URL)'}`
+      })
+      parts.push(`- **CTA Links:**\n${linkDescs.join('\n')}`)
+    }
+
+    return parts.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/get_page_hero', err).catch(() => {})
+    return `Error reading page hero: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * edit_image_text — Analyzes an image, understands its composition, and generates
+ * a new version with corrected text while preserving the overall look.
+ */
+async function handleEditImageText(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const mediaId = Number(input.mediaId)
+  const oldText = (input.oldText as string) || ''
+  const newText = input.newText as string
+  const additionalInstructions = (input.additionalInstructions as string) || ''
+
+  if (!mediaId) {
+    return 'Error: mediaId is required — provide the Media ID of the image with text to fix.'
+  }
+  if (!newText) {
+    return 'Error: newText is required — what should the text say?'
+  }
+
+  if (!isImageGenerationAvailable()) {
+    return 'Error: Image generation is not available — no AI image provider is configured.'
+  }
+
+  try {
+    // Step 1: Fetch the media item
+    const media = await payload.findByID({
+      collection: 'media',
+      id: mediaId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Tenant isolation
+    if (ctx.tenantId) {
+      const docTenant = (media as any)?.tenant
+      const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
+      if (tenantVal && tenantVal !== ctx.tenantId) {
+        return 'Error: This media belongs to a different tenant.'
+      }
+    }
+
+    const imageUrl = (media as unknown as Record<string, unknown>).url as string
+    if (!imageUrl) {
+      return `Error: Media #${mediaId} has no URL — cannot analyze it.`
+    }
+
+    // Step 2: Use Claude Vision to analyze the image and build a corrected prompt
+    const textChangeDesc = oldText
+      ? `Replace the text "${oldText}" with "${newText}".`
+      : `Change the text to read "${newText}".`
+
+    const feedback = [
+      textChangeDesc,
+      'Keep EVERYTHING else the same — same composition, colors, style, layout, all other visual elements.',
+      'The new text must be clearly legible and match the style/font of the original.',
+      additionalInstructions,
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    const feedbackResult = await analyzeImageForFeedback({
+      imageUrl,
+      feedback,
+      context: 'Image text correction — preserving original design while fixing text content.',
+    })
+
+    // Step 3: Generate the corrected image
+    const result = await generateImage(
+      { prompt: feedbackResult.improvedPrompt, autoUpload: true },
+      payload,
+    )
+
+    if (!result.success) {
+      return `Image text correction failed: ${result.error}\n\n💡 The image was analyzed but generation failed. You can try again or use generate_image with a manual prompt.`
+    }
+
+    const parts: string[] = ['## Image Text Corrected ✨']
+    if (oldText) {
+      parts.push(`- **Changed:** "${oldText}" → "${newText}"`)
+    } else {
+      parts.push(`- **New text:** "${newText}"`)
+    }
+    parts.push(`- **Analysis:** ${feedbackResult.analysis.substring(0, 300)}`)
+
+    if (result.mediaId) {
+      parts.push(`- **New Media ID:** ${result.mediaId}`)
+    }
+    if (result.permanentUrl) {
+      parts.push(`- **New URL:** ${result.permanentUrl}`)
+    }
+
+    parts.push(`\nThe original image (Media #${mediaId}) is unchanged. To replace it on a page hero, use set_page_hero with the new Media ID ${result.mediaId || '(check above)'}.`)
+
+    return parts.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/edit_image_text', err).catch(() => {})
+    return `Error editing image text: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
  * set_page_hero — Sets or updates a page's hero type and/or image.
  * Auto-promotes to highImpact if an image is assigned to a lowImpact/none hero.
  */
@@ -7837,21 +8246,25 @@ async function handleSetPageHero(
       }
     }
 
-    // Build hero update
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const heroUpdate: Record<string, any> = { ...(page.hero || {}) }
+    // Build a minimal hero update — only include fields we're actually changing.
+    // Spreading the full hero object from depth:0 causes validation errors because
+    // complex nested structures (Lexical richText) don't round-trip cleanly.
+    // Payload merges group field updates, so unchanged fields are preserved.
+    const existingHero = page.hero || {}
     const changes: string[] = []
 
     // Determine hero type
-    let newType = heroType || heroUpdate.type || 'lowImpact'
+    let newType = heroType || existingHero.type || 'lowImpact'
     if (mediaId !== undefined && (newType === 'lowImpact' || newType === 'none')) {
-      // Auto-promote: assigning an image to a lowImpact/none hero makes it highImpact
       newType = 'highImpact'
       changes.push(`- **Hero type:** auto-promoted to highImpact (image assigned)`)
-    } else if (heroType && heroType !== heroUpdate.type) {
-      changes.push(`- **Hero type:** ${heroUpdate.type || '(not set)'} → ${heroType}`)
+    } else if (heroType && heroType !== existingHero.type) {
+      changes.push(`- **Hero type:** ${existingHero.type || '(not set)'} → ${heroType}`)
     }
-    heroUpdate.type = newType
+
+    // Only include the specific fields we want to change
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const heroUpdate: Record<string, any> = { type: newType }
 
     if (mediaId !== undefined) {
       heroUpdate.media = mediaId
@@ -12534,4 +12947,335 @@ async function handleDiscoverFederationProducts(
   lines.push('_For live product details, use `query_peer_catalog` with a peer\'s domain._')
 
   return lines.join('\n')
+}
+
+// ─── Sprint 37: Form Builder Integration ────────────────────────────────────
+
+/**
+ * Send an interactive inline form in the chat.
+ * Creates a Message with messageType 'widget' containing the form config as a UMS widget.
+ */
+async function handleSendInlineForm(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const formTitle = (input.formTitle as string) || 'Form'
+  const fields = input.fields as Array<Record<string, unknown>> | undefined
+  const prefilled = input.prefilled as Record<string, unknown> | undefined
+  const submitButtonLabel = (input.submitButtonLabel as string) || 'Submit'
+  const message = (input.message as string) || `Please fill out the form below: **${formTitle}**`
+
+  if (!fields || !Array.isArray(fields) || fields.length === 0) {
+    return 'Error: fields array is required and must contain at least one field definition.'
+  }
+
+  // Validate field definitions
+  const validBlockTypes = ['text', 'email', 'number', 'textarea', 'select', 'checkbox']
+  for (const field of fields) {
+    if (!field.name || typeof field.name !== 'string') {
+      return `Error: Every field must have a 'name' (string). Got: ${JSON.stringify(field)}`
+    }
+    if (!field.blockType || !validBlockTypes.includes(field.blockType as string)) {
+      return `Error: Field "${field.name}" has invalid blockType "${field.blockType}". Must be one of: ${validBlockTypes.join(', ')}`
+    }
+  }
+
+  if (!ctx.tenantId) {
+    return 'Error: No tenant context available.'
+  }
+
+  // Find LEO user and space for this tenant
+  const leoUserId = await findLeoUser(payload, ctx.tenantId)
+  const space = await resolveSpace(payload, ctx.tenantId)
+
+  if (!leoUserId || !space) {
+    return 'Error: Could not resolve LEO user or space for this tenant.'
+  }
+
+  // Build the widget config
+  const widgetConfig: Record<string, unknown> = {
+    widgetType: 'inline_form',
+    formTitle,
+    fields,
+    submitButtonLabel,
+    ...(prefilled ? { prefilled } : {}),
+  }
+
+  // Create the UMS widget content
+  const content = createWidgetContent(message, widgetConfig)
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg = await (payload.create as any)({
+      collection: 'messages',
+      data: {
+        content,
+        messageType: 'widget',
+        sender: leoUserId,
+        space: space.id,
+        tenant: ctx.tenantId,
+        channel: 'ai-bus',
+      },
+      overrideAccess: true,
+      depth: 0,
+    })
+
+    return [
+      `✅ Inline form "${formTitle}" sent to chat (Message #${msg.id}).`,
+      `Fields: ${fields.map((f) => f.label || f.name).join(', ')}`,
+      prefilled
+        ? `Pre-filled: ${Object.keys(prefilled).join(', ')}`
+        : '',
+      'The user will see the form in their chat and can fill it out.',
+    ]
+      .filter(Boolean)
+      .join('\n')
+  } catch (err) {
+    return `Error sending inline form: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * Create a persistent form in the forms collection.
+ * For reusable forms that can live on pages via FormBlock.
+ */
+async function handleCreateForm(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = input.title as string
+  const fields = input.fields as Array<Record<string, unknown>> | undefined
+  const submitButtonLabel = (input.submitButtonLabel as string) || 'Submit'
+  const confirmationType = (input.confirmationType as string) || 'message'
+  const confirmationMessage = (input.confirmationMessage as string) ||
+    'Thank you for your submission!'
+  const redirect = input.redirect as string | undefined
+
+  if (!title) {
+    return 'Error: title is required.'
+  }
+  if (!fields || !Array.isArray(fields) || fields.length === 0) {
+    return 'Error: fields array is required and must contain at least one field definition.'
+  }
+
+  // Ensure each field has required Payload Form Builder structure
+  const validBlockTypes = [
+    'text', 'email', 'number', 'textarea', 'select',
+    'checkbox', 'country', 'state', 'message',
+  ]
+  const processedFields = fields.map((field, idx) => {
+    const blockType = (field.blockType as string) || 'text'
+    if (!validBlockTypes.includes(blockType)) {
+      throw new Error(
+        `Field ${idx} has invalid blockType "${blockType}". Must be one of: ${validBlockTypes.join(', ')}`,
+      )
+    }
+    return {
+      blockType,
+      name: (field.name as string) || `field_${idx}`,
+      label: (field.label as string) || (field.name as string) || `Field ${idx + 1}`,
+      required: field.required === true,
+      ...(field.width ? { width: Number(field.width) } : {}),
+      ...(field.defaultValue ? { defaultValue: field.defaultValue } : {}),
+      // Select options
+      ...(blockType === 'select' && Array.isArray(field.options)
+        ? {
+            options: (field.options as Array<Record<string, unknown>>).map((opt) => ({
+              label: (opt.label as string) || (opt.value as string) || '',
+              value: (opt.value as string) || (opt.label as string) || '',
+            })),
+          }
+        : {}),
+    }
+  })
+
+  // Build confirmation config
+  const confirmationConfig: Record<string, unknown> =
+    confirmationType === 'redirect' && redirect
+      ? { type: 'redirect', url: redirect }
+      : {
+          type: 'message',
+          message: [
+            {
+              type: 'paragraph',
+              children: [{ type: 'text', text: confirmationMessage }],
+            },
+          ],
+        }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const form = await (payload.create as any)({
+      collection: 'forms',
+      data: {
+        title,
+        fields: processedFields,
+        submitButtonLabel,
+        confirmationType: confirmationConfig.type,
+        ...(confirmationConfig.type === 'message'
+          ? { confirmationMessage: confirmationConfig.message }
+          : { redirect: confirmationConfig.url }),
+        ...(ctx.tenantId ? { tenant: ctx.tenantId } : {}),
+      },
+      overrideAccess: true,
+      depth: 0,
+    })
+
+    return [
+      `✅ Form "${title}" created successfully (ID: ${form.id}).`,
+      `Fields: ${processedFields.map((f) => `${f.label} (${f.blockType}${f.required ? ', required' : ''})`).join(', ')}`,
+      `Submit button: "${submitButtonLabel}"`,
+      `Confirmation: ${confirmationType === 'redirect' ? `Redirect to ${redirect}` : confirmationMessage}`,
+      '',
+      `You can now add this form to a page using the FormBlock, or reference it by ID ${form.id} in send_inline_form.`,
+    ].join('\n')
+  } catch (err) {
+    return `Error creating form: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * Query form submissions with various filters.
+ * Returns formatted summaries of submitted form data.
+ */
+async function handleQueryFormSubmissions(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const formId = input.formId as number | undefined
+  const formTitle = input.formTitle as string | undefined
+  const since = input.since as string | undefined
+  const until = input.until as string | undefined
+  const limit = Math.min(Math.max((input.limit as number) || 20, 1), 100)
+  const fieldFilter = input.fieldFilter as Record<string, unknown> | undefined
+
+  // Build where clause
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = []
+
+  // If we have a formId, filter directly
+  if (formId) {
+    conditions.push({ form: { equals: formId } })
+  }
+
+  // Date filters on createdAt
+  if (since) {
+    conditions.push({ createdAt: { greater_than_equal: since } })
+  }
+  if (until) {
+    conditions.push({ createdAt: { less_than_equal: until } })
+  }
+
+  const where: Where =
+    conditions.length > 0 ? { and: conditions } : {}
+
+  try {
+    // If filtering by title, resolve form IDs first
+    let formIds: number[] | undefined
+    if (formTitle) {
+      const forms = await payload.find({
+        collection: 'forms',
+        where: {
+          title: { contains: formTitle },
+        },
+        limit: 50,
+        depth: 0,
+        overrideAccess: true,
+      })
+      formIds = forms.docs.map((f) => f.id as number)
+      if (formIds.length === 0) {
+        return `No forms found matching title "${formTitle}".`
+      }
+      // Add form filter
+      if (formIds.length === 1) {
+        conditions.push({ form: { equals: formIds[0] } })
+      } else {
+        conditions.push({ form: { in: formIds } })
+      }
+    }
+
+    const finalWhere: Where =
+      conditions.length > 0 ? { and: conditions } : {}
+
+    const submissions = await payload.find({
+      collection: 'form-submissions',
+      where: finalWhere,
+      limit,
+      sort: '-createdAt',
+      depth: 1, // Resolve form relationship for title
+      overrideAccess: true,
+    })
+
+    if (submissions.docs.length === 0) {
+      const filters = []
+      if (formId) filters.push(`form ID ${formId}`)
+      if (formTitle) filters.push(`title "${formTitle}"`)
+      if (since) filters.push(`since ${since}`)
+      if (until) filters.push(`until ${until}`)
+      return `No form submissions found${filters.length ? ` matching: ${filters.join(', ')}` : ''}.`
+    }
+
+    // Format results
+    const lines: string[] = [
+      `## Form Submissions (${submissions.docs.length} of ${submissions.totalDocs})`,
+      '',
+    ]
+
+    for (const sub of submissions.docs) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s = sub as any
+      const formRef = s.form
+      const fTitle =
+        typeof formRef === 'object' && formRef !== null
+          ? formRef.title as string
+          : `Form #${formRef}`
+      const submissionData = s.submissionData as
+        | Array<{ field: string; value: string }>
+        | undefined
+      const createdAt = s.createdAt as string
+
+      lines.push(`### Submission #${sub.id} — ${fTitle}`)
+      lines.push(`_Submitted: ${createdAt ? new Date(createdAt).toLocaleString() : 'unknown'}_`)
+
+      if (submissionData && Array.isArray(submissionData)) {
+        // Apply field filter if provided
+        let matchesFilter = true
+        if (fieldFilter) {
+          for (const [key, val] of Object.entries(fieldFilter)) {
+            const fieldEntry = submissionData.find(
+              (d) => d.field?.toLowerCase() === key.toLowerCase(),
+            )
+            if (
+              !fieldEntry ||
+              String(fieldEntry.value).toLowerCase() !== String(val).toLowerCase()
+            ) {
+              matchesFilter = false
+              break
+            }
+          }
+        }
+        if (!matchesFilter) continue
+
+        for (const entry of submissionData) {
+          lines.push(`- **${entry.field}**: ${entry.value || '_(empty)_'}`)
+        }
+      } else {
+        lines.push('_No field data available_')
+      }
+      lines.push('')
+    }
+
+    if (submissions.totalDocs > limit) {
+      lines.push(
+        `_Showing ${submissions.docs.length} of ${submissions.totalDocs} total submissions. Increase limit to see more._`,
+      )
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    return `Error querying form submissions: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
 }
