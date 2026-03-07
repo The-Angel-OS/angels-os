@@ -13,7 +13,7 @@ import { DashboardHeader } from './DashboardHeader'
 import { DashboardLEOSidebar } from './DashboardLEOSidebar'
 import { checkSetupRequired } from './setup/actions'
 import { DashboardProvider } from '@/providers/DashboardContext'
-import type { DashboardSpace } from '@/providers/DashboardContext'
+import type { DashboardSpace, DashboardUserRole } from '@/providers/DashboardContext'
 import { ChatProvider } from '@/components/ChatControl/ChatProvider'
 import type { ChatSpace } from '@/components/ChatControl/types'
 import type { Media } from '@/payload-types'
@@ -62,17 +62,18 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let userInitials = ''
   let userEmail = ''
   let userId: number | string | undefined
+  let platformRoles: string[] = []
 
   try {
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: headersList })
     if (user) {
       userId = user.id
-      const roles = (user as any).roles as string[] | undefined
+      platformRoles = ((user as any).roles as string[]) || []
       isAdmin = Boolean(
-        roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
+        platformRoles.includes('super_admin') || platformRoles.includes('admin') || platformRoles.includes('archangel'),
       )
-      isBusinessOwner = isAdmin || Boolean(roles?.some((r: string) => r !== 'customer'))
+      isBusinessOwner = isAdmin || Boolean(platformRoles.some((r: string) => r !== 'customer'))
       userName = (user as any).name || (user as any).email || ''
       userEmail = (user as any).email || ''
       userInitials = userName
@@ -122,6 +123,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     primaryColor: string | null
   }
   let userTenants: TenantInfo[] = []
+  let userRoleData: DashboardUserRole | null = null
 
   if (userId) {
     try {
@@ -153,6 +155,23 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           }
         })
         .filter(Boolean) as TenantInfo[]
+
+      // Extract current tenant membership for role/permission context
+      if (tenant?.id) {
+        const currentMembership = (memberships.docs || []).find((m: any) => {
+          const t = m.tenant
+          const tId = typeof t === 'object' ? t?.id : t
+          return String(tId) === String(tenant.id)
+        }) as any
+        if (currentMembership) {
+          userRoleData = {
+            platformRoles,
+            tenantRole: currentMembership.role || null,
+            tenantPermissions: currentMembership.permissions || [],
+            membershipId: currentMembership.id ? String(currentMembership.id) : null,
+          }
+        }
+      }
     } catch {
       // Failed to fetch tenant memberships — non-critical
     }
@@ -180,7 +199,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }))
 
   return (
-    <DashboardProvider initialSpaces={userSpaces} defaultSpaceId={defaultSpaceId}>
+    <DashboardProvider initialSpaces={userSpaces} defaultSpaceId={defaultSpaceId} userRole={userRoleData}>
       <ChatProvider
         tenantId={tenant?.id ? String(tenant.id) : ''}
         dmSpaceId={dmSpaceId}
