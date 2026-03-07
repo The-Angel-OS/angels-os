@@ -119,9 +119,9 @@ function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_HISTORY_TURNS = 8
+const MAX_HISTORY_TURNS = 12
 const MAX_RESPONSE_TOKENS = 1500
-const MAX_TOOL_ROUNDS = 3
+const MAX_TOOL_ROUNDS = 5
 const LLM_MODEL = 'claude-sonnet-4-6'
 
 // ---------------------------------------------------------------------------

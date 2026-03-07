@@ -48,9 +48,9 @@ import type { TaskComplexity } from '@/utilities/ai-gateway'
 // Constants (mirrored from ConversationEngine for consistency)
 // ---------------------------------------------------------------------------
 
-const MAX_HISTORY_TURNS = 8
+const MAX_HISTORY_TURNS = 12
 const MAX_RESPONSE_TOKENS = 1500
-const MAX_TOOL_ROUNDS = 3
+const MAX_TOOL_ROUNDS = 5
 const LLM_MODEL = 'claude-sonnet-4-6'
 
 // ---------------------------------------------------------------------------
@@ -1336,12 +1336,17 @@ async function streamViaGateway(opts: {
           allToolNames.push((tc as any).toolName)
         }
       }
-      // Track tool results for image URL extraction
+      // Track tool results for image URL extraction + error monitoring
       if (step.toolResults) {
         for (const tr of step.toolResults) {
           const output = (tr as any).output
+          const toolName = (tr as any).toolName || 'unknown'
           if (typeof output === 'string') {
             allToolResults.push(output)
+            // Log tool execution errors for observability (they don't throw but return error strings)
+            if (output.startsWith('Error') || output.startsWith('Input validation failed')) {
+              console.warn(`[LEO Stream] Tool ${toolName} returned error:`, output.slice(0, 200))
+            }
           }
         }
       }
