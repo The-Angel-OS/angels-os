@@ -96,12 +96,48 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     // Auth system unavailable — continue as anonymous
   }
 
-  // Fetch all spaces the user belongs to for dashboard context
+  // ── Parallel data fetching ─────────────────────────────────────
+  // These queries are independent (only depend on auth result above).
+  // Running in parallel saves 3 sequential DB round-trips per dashboard load.
+  interface TenantInfo {
+    id: number | string
+    name: string
+    slug: string
+    domain: string
+    logoUrl: string | null
+    primaryColor: string | null
+  }
+
+  const [spacesResult, membershipsResult, dmResult, setupResult] = await Promise.allSettled([
+    // 1. Fetch user spaces
+    userId && tenant?.id
+      ? fetchUserSpaces(userId, tenant.id)
+      : Promise.resolve(null),
+    // 2. Fetch tenant memberships for tenant chooser
+    userId
+      ? getPayload({ config }).then((pl) =>
+          pl.find({
+            collection: 'tenant-memberships',
+            where: { user: { equals: userId }, status: { equals: 'active' } },
+            depth: 2,
+            limit: 50,
+          }),
+        )
+      : Promise.resolve(null),
+    // 3. Ensure DM space (authenticated only)
+    isAuthenticated && tenant?.id
+      ? ensureDMSpace(tenant.id)
+      : Promise.resolve(undefined),
+    // 4. Check wizard completion
+    checkSetupRequired().catch(() => false),
+  ])
+
+  // Process spaces result
   let userSpaces: DashboardSpace[] = []
   let defaultSpaceId: string | undefined
-  if (userId && tenant?.id) {
-    const serialized = await fetchUserSpaces(userId, tenant.id)
-    userSpaces = serialized.map((s) => ({
+  const spacesData = spacesResult.status === 'fulfilled' ? spacesResult.value : null
+  if (spacesData) {
+    userSpaces = spacesData.map((s) => ({
       id: s.id,
       name: s.name,
       slug: s.slug,
@@ -111,86 +147,56 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }))
     defaultSpaceId =
       userSpaces.find((s) => !s.isSystem)?.id ??
-      (await fetchDefaultSpaceId(tenant.id)) ??
+      (await fetchDefaultSpaceId(tenant!.id)) ??
       undefined
   } else if (tenant?.id) {
-    const fallbackId = await fetchDefaultSpaceId(tenant.id)
-    defaultSpaceId = fallbackId ?? undefined
+    defaultSpaceId = (await fetchDefaultSpaceId(tenant.id)) ?? undefined
   }
 
-  // Fetch user's tenant memberships for tenant chooser
-  interface TenantInfo {
-    id: number | string
-    name: string
-    slug: string
-    domain: string
-    logoUrl: string | null
-    primaryColor: string | null
-  }
+  // Process memberships result
   let userTenants: TenantInfo[] = []
   let userRoleData: DashboardUserRole | null = null
-
-  if (userId) {
-    try {
-      const payload = await getPayload({ config })
-      const memberships = await payload.find({
-        collection: 'tenant-memberships',
-        where: {
-          user: { equals: userId },
-          status: { equals: 'active' },
-        },
-        depth: 2,
-        limit: 50,
+  const membershipsData = membershipsResult.status === 'fulfilled' ? membershipsResult.value : null
+  if (membershipsData && 'docs' in membershipsData) {
+    userTenants = (membershipsData.docs || [])
+      .map((m: any) => {
+        const t = m.tenant
+        if (!t || typeof t !== 'object') return null
+        return {
+          id: t.id,
+          name: t.branding?.siteName || t.name || 'Unknown',
+          slug: t.slug || '',
+          domain: t.domain || '',
+          logoUrl:
+            typeof t.branding?.logo === 'object' && t.branding?.logo?.url
+              ? t.branding.logo.url
+              : null,
+          primaryColor: t.branding?.primaryColor || null,
+        }
       })
+      .filter(Boolean) as TenantInfo[]
 
-      userTenants = (memberships.docs || [])
-        .map((m: any) => {
-          const t = m.tenant
-          if (!t || typeof t !== 'object') return null
-          return {
-            id: t.id,
-            name: t.branding?.siteName || t.name || 'Unknown',
-            slug: t.slug || '',
-            domain: t.domain || '',
-            logoUrl:
-              typeof t.branding?.logo === 'object' && t.branding?.logo?.url
-                ? t.branding.logo.url
-                : null,
-            primaryColor: t.branding?.primaryColor || null,
-          }
-        })
-        .filter(Boolean) as TenantInfo[]
-
-      // Extract current tenant membership for role/permission context
-      if (tenant?.id) {
-        const currentMembership = (memberships.docs || []).find((m: any) => {
-          const t = m.tenant
-          const tId = typeof t === 'object' ? t?.id : t
-          return String(tId) === String(tenant.id)
-        }) as any
-        if (currentMembership) {
-          userRoleData = {
-            platformRoles,
-            tenantRole: currentMembership.role || null,
-            tenantPermissions: currentMembership.permissions || [],
-            membershipId: currentMembership.id ? String(currentMembership.id) : null,
-          }
+    // Extract current tenant membership for role/permission context
+    if (tenant?.id) {
+      const currentMembership = (membershipsData.docs || []).find((m: any) => {
+        const t = m.tenant
+        const tId = typeof t === 'object' ? t?.id : t
+        return String(tId) === String(tenant.id)
+      }) as any
+      if (currentMembership) {
+        userRoleData = {
+          platformRoles,
+          tenantRole: currentMembership.role || null,
+          tenantPermissions: currentMembership.permissions || [],
+          membershipId: currentMembership.id ? String(currentMembership.id) : null,
         }
       }
-    } catch {
-      // Failed to fetch tenant memberships — non-critical
     }
   }
 
-  // Ensure DM space exists for this tenant (non-blocking, auto-provision)
-  // Only for authenticated users — anonymous users don't need DM spaces
-  let dmSpaceId: string | undefined
-  if (isAuthenticated && tenant?.id) {
-    dmSpaceId = await ensureDMSpace(tenant.id)
-  }
-
-  // Check if the Leo Wizard is complete — controls "Enterprise Setup" nav link
-  const setupRequired = await checkSetupRequired().catch(() => false)
+  // Process DM space + wizard results
+  const dmSpaceId = dmResult.status === 'fulfilled' ? dmResult.value : undefined
+  const setupRequired = setupResult.status === 'fulfilled' ? setupResult.value : false
   const wizardComplete = !setupRequired
 
   // Map DashboardSpace[] to ChatSpace[] for ChatProvider

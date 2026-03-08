@@ -312,21 +312,18 @@ function MemberEditor({
 
   // Space memberships
   const [memberSpaces, setMemberSpaces] = useState<{ spaceId: string; spaceName: string; membershipId: string; role: string }[]>([])
-  const spacesLoadedRef = React.useRef(false)
   const [spacesLoading, setSpacesLoading] = useState(false)
 
   const loadSpaces = useCallback(async () => {
-    if (spacesLoadedRef.current) return
     setSpacesLoading(true)
     const result = await fetchMemberSpaces(member.userId)
     if (result.success && result.spaces) {
       setMemberSpaces(result.spaces)
     }
-    spacesLoadedRef.current = true
     setSpacesLoading(false)
   }, [member.userId])
 
-  // Load spaces when editor opens
+  // Load spaces when editor opens or member changes
   React.useEffect(() => { loadSpaces() }, [loadSpaces])
 
   const roleDefaults = ROLE_DEFAULT_PERMISSIONS[editRole as TenantRole] || []

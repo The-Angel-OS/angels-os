@@ -1,6 +1,6 @@
 import type { Access } from 'payload'
 
-import { checkRole } from '@/access/utilities'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * Access control for draft-enabled collections.
@@ -18,7 +18,7 @@ import { checkRole } from '@/access/utilities'
 export const adminOrPublishedStatus: Access = ({ req }) => {
   const { user } = req
 
-  if (user && checkRole(['super_admin', 'admin', 'archangel'], user)) {
+  if (user && checkRole(ADMIN_ROLES, user)) {
     return true
   }
 

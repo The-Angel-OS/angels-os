@@ -8,8 +8,7 @@ import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
 import { User } from '@/payload-types'
 import Link from 'next/link'
-
-const ADMIN_ROLES: string[] = ['super_admin', 'admin', 'archangel']
+import { ADMIN_ROLES } from '@/access/utilities'
 
 const collectionLabels = {
   pages: {

@@ -92,27 +92,41 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       )
     }
 
-    if (spaceResult.status === 'fulfilled' && spaceResult.value?.created) {
+    if (spaceResult.status === 'fulfilled' && spaceResult.value?.spaceId) {
       try {
-        // Make the creating user a space_admin of the new main space
-        await payload.create({
+        // Ensure the creating user is space_admin — whether the space was just
+        // created or already existed (e.g. from a prior partial provision attempt)
+        const existing = await payload.find({
           collection: 'space-memberships',
-          data: {
-            user: userId as number,
-            space: Number(spaceResult.value.spaceId),
-            role: 'space_admin',
-            status: 'active',
-            joinedAt: new Date().toISOString(),
-            tenant: doc.id as number,
-          } as any,
+          where: {
+            user: { equals: userId },
+            space: { equals: Number(spaceResult.value.spaceId) },
+          },
+          limit: 1,
+          depth: 0,
           overrideAccess: true,
         })
+        if (existing.totalDocs === 0) {
+          await payload.create({
+            collection: 'space-memberships',
+            data: {
+              user: userId as number,
+              space: Number(spaceResult.value.spaceId),
+              role: 'space_admin',
+              status: 'active',
+              joinedAt: new Date().toISOString(),
+              tenant: doc.id as number,
+            } as any,
+            overrideAccess: true,
+          })
+        }
+        const verb = spaceResult.value.created ? 'Created' : 'Found existing'
         payload.logger.info(
-          `[autoCreateOwnerMembership] Created main space for tenant "${doc.name}" (${doc.id}) with ${spaceResult.value.channelIds.length} channels`,
+          `[autoCreateOwnerMembership] ${verb} main space for tenant "${doc.name}" (${doc.id})${spaceResult.value.created ? ` with ${spaceResult.value.channelIds.length} channels` : ''}`,
         )
       } catch (memberErr) {
         payload.logger.warn(
-          `[autoCreateOwnerMembership] Non-critical: main space created but failed to add owner as space_admin for tenant ${doc.id}: ${memberErr}`,
+          `[autoCreateOwnerMembership] Non-critical: main space ready but failed to add owner as space_admin for tenant ${doc.id}: ${memberErr}`,
         )
       }
     } else if (spaceResult.status === 'rejected') {

@@ -1,6 +1,6 @@
 import type { Access } from 'payload'
 
-import { checkRole } from '@/access/utilities'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
 import { buildTenantFilter } from '@/utilities/buildTenantFilter'
 
@@ -22,7 +22,7 @@ export const adminOrPublishedWithTenantScope: Access = async ({ req }) => {
   const { user } = req
 
   // Admin users get full access — multiTenantPlugin handles their tenant filtering
-  if (user && checkRole(['super_admin', 'admin', 'archangel'], user)) {
+  if (user && checkRole(ADMIN_ROLES, user)) {
     return true
   }
 

@@ -271,29 +271,29 @@ export async function addMemberToAllSpaces(
   if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
 
   try {
-    // Get all tenant spaces
-    const spaces = await payload.find({
-      collection: 'spaces',
-      where: { tenant: { equals: tenantId } },
-      limit: 100,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    // Get existing memberships for this user
-    const existingMemberships = await payload.find({
-      collection: 'space-memberships',
-      where: {
-        and: [
-          { user: { equals: userId } },
-          { tenant: { equals: tenantId } },
-          { status: { equals: 'active' } },
-        ],
-      },
-      limit: 100,
-      depth: 0,
-      overrideAccess: true,
-    })
+    // Parallel reads — these two queries are independent
+    const [spaces, existingMemberships] = await Promise.all([
+      payload.find({
+        collection: 'spaces',
+        where: { tenant: { equals: tenantId } },
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+      }),
+      payload.find({
+        collection: 'space-memberships',
+        where: {
+          and: [
+            { user: { equals: userId } },
+            { tenant: { equals: tenantId } },
+            { status: { equals: 'active' } },
+          ],
+        },
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+      }),
+    ])
 
     const existingSpaceIds = new Set(
       existingMemberships.docs.map((d: any) =>
@@ -305,7 +305,7 @@ export async function addMemberToAllSpaces(
     const now = new Date().toISOString()
 
     // Parallel writes — avoids N+1 sequential DB round-trips
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       toAdd.map((space) =>
         payload.create({
           collection: 'space-memberships',
@@ -321,6 +321,11 @@ export async function addMemberToAllSpaces(
         }),
       ),
     )
+
+    const failed = results.filter((r) => r.status === 'rejected')
+    if (failed.length > 0) {
+      console.warn(`[addMemberToAllSpaces] ${failed.length}/${toAdd.length} additions failed`)
+    }
 
     return { success: true }
   } catch (err: any) {

@@ -1,6 +1,6 @@
 import type { Access } from 'payload'
 
-import { checkRole } from '@/access/utilities'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * Atomic access checker that verifies if the user owns the document being accessed.
@@ -13,7 +13,7 @@ import { checkRole } from '@/access/utilities'
  */
 export const isDocumentOwner: Access = ({ req }) => {
   // Admin has full access
-  if (req.user && checkRole(['super_admin', 'admin', 'archangel'], req.user)) {
+  if (req.user && checkRole(ADMIN_ROLES, req.user)) {
     return true
   }
 
