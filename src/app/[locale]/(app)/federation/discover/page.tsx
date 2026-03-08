@@ -30,12 +30,26 @@ export default async function FederationDiscoverPage({
     sort: '-updatedAt',
   })
 
+  // Build base URL from server environment for storefront URL resolution
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const serverHost = new URL(serverUrl).host // e.g. spacesangels.com or localhost:3000
+
   const holons = endeavors.docs.map((doc: any) => {
     // Resolve tenant branding (multiTenantPlugin injects 'tenant' relation)
     const tenant = typeof doc.tenant === 'object' ? doc.tenant : null
     const siteName = tenant?.branding?.siteName || null
     const tenantSlug = tenant?.slug || null
     const tenantDomain = tenant?.domain || null
+
+    // Build canonical storefront URL for this Endeavor's tenant
+    let storefrontUrl: string | null = null
+    if (tenantDomain && !tenantDomain.endsWith('.local')) {
+      // Real domain (e.g. hays-cactus.spacesangels.com, or custom domain)
+      storefrontUrl = `https://${tenantDomain}`
+    } else if (tenantSlug && tenantSlug !== 'default' && tenantSlug !== 'platform') {
+      // Dev/local: construct subdomain URL from slug + server host
+      storefrontUrl = `https://${tenantSlug}.${serverHost.replace(/:\d+$/, '')}`
+    }
 
     return {
       id: doc.id,
@@ -62,7 +76,8 @@ export default async function FederationDiscoverPage({
       },
       logo: doc.logo?.url || doc.logo?.filename || null,
       coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
-      // Tenant branding context — lets the card link to the storefront
+      storefrontUrl,
+      // Tenant branding context
       tenant: tenantSlug
         ? {
             slug: tenantSlug,
