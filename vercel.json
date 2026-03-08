@@ -16,6 +16,10 @@
     {
       "path": "/api/connectors/health",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/youtube/poll",
+      "schedule": "0 * * * *"
     }
   ],
   "headers": [

@@ -3927,7 +3927,8 @@ export interface Connector {
     | 'livekit'
     | 'discord'
     | 'telegram'
-    | 'slack';
+    | 'slack'
+    | 'youtube_channel';
   /**
    * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
    */
@@ -3948,6 +3949,7 @@ export interface Connector {
    * • webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
    * • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
    * • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
+   * • youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
    */
   config?:
     | {

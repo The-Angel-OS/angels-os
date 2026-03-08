@@ -36,7 +36,9 @@ export async function getTenantsList(): Promise<{
     }
 
     // Check role - only platform admins can see all tenants
-    if (!checkRole(ADMIN_ROLES, user)) {
+    const isAdmin = checkRole(ADMIN_ROLES, user)
+
+    if (!isAdmin) {
       return { tenants: [], error: 'Insufficient permissions' }
     }
 

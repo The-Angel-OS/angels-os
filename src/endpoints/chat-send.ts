@@ -80,8 +80,9 @@ export const chatSendHandler: PayloadHandler = async (req) => {
 
   const spaceId = typeof space === 'string' ? Number(space) || space : space
 
-  // Look up the space to resolve its tenant
+  // Look up the space to resolve its tenant + visibility
   let tenantId: number | string | undefined
+  let spaceVisibility: string | undefined
   try {
     const spaceDoc = await req.payload.findByID({
       collection: 'spaces',
@@ -96,6 +97,7 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       typeof spaceDoc.tenant === 'object' && spaceDoc.tenant !== null
         ? (spaceDoc.tenant as { id: number | string }).id
         : (spaceDoc.tenant as number | string)
+    spaceVisibility = (spaceDoc as any).visibility
   } catch (err) {
     console.error('[chat-send] Failed to resolve space:', err)
     return Response.json({ message: `Space ${spaceId} not found` }, { status: 404 })
@@ -118,10 +120,12 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
-    // Allow if user has membership, or if user is a platform admin
+    // Allow if user has membership, or if user is a platform admin,
+    // or if the space has public visibility (any authenticated user can post)
     const isAdmin = checkRole(ADMIN_ROLES, req.user)
+    const isPublicSpace = spaceVisibility === 'public'
 
-    if (!membership.docs?.length && !isAdmin) {
+    if (!membership.docs?.length && !isAdmin && !isPublicSpace) {
       return Response.json({ message: 'You do not have access to this space' }, { status: 403 })
     }
   } catch (err) {

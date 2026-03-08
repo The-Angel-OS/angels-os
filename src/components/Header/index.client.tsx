@@ -94,12 +94,11 @@ export function HeaderClient({ header, tenant }: Props) {
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
-    if (user) {
-      if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
-      if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
-    }
+    // Dashboard & Spaces are always visible — the dashboard layout handles auth redirect
+    if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
+    if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     return items
-  }, [navItems, user])
+  }, [navItems])
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()

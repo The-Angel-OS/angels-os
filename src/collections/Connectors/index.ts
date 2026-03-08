@@ -58,6 +58,7 @@ export const Connectors: CollectionConfig = {
         { label: 'Discord', value: 'discord' },
         { label: 'Telegram', value: 'telegram' },
         { label: 'Slack', value: 'slack' },
+        { label: 'YouTube Channel', value: 'youtube_channel' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',
@@ -102,7 +103,8 @@ export const Connectors: CollectionConfig = {
 • stripe: { "accountId": "acct_xxx", "mode": "direct" }
 • webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
 • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
-• telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }`,
+• telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
+• youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }`,
       },
     },
     // ─── Routing ───────────────────────────────────────────────

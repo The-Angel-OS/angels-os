@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { parseCSV, parseJSON } from '@/utilities/csvParser'
 import {
   generateInvitationToken,
@@ -10,7 +11,6 @@ import {
   isValidEmail,
 } from '@/utilities/invitationSystem'
 import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
-import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,7 +74,9 @@ async function getAuthenticatedAdmin() {
     return { payload, user: null, tenantId: null, error: 'Not authenticated' }
   }
 
-  if (!checkRole(ADMIN_ROLES, user)) {
+  const isAdmin = checkRole(ADMIN_ROLES, user)
+
+  if (!isAdmin) {
     return { payload, user, tenantId: null, error: 'Insufficient permissions' }
   }
 

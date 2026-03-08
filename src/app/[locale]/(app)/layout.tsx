@@ -14,6 +14,7 @@ import React from 'react'
 import { TenantFonts } from '@/components/TenantFonts'
 import { TenantStyles } from '@/components/TenantStyles'
 import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
+import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
@@ -147,6 +148,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <main>{children}</main>
           <Footer tenant={tenant} />
           <FloatingBubble spaceId={defaultSpaceId} />
+          {tenant?.id && <TenantCookieSync tenantId={String(tenant.id)} />}
           <Analytics />
           <SpeedInsights />
         </Providers>

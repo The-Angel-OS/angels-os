@@ -95,6 +95,20 @@ describe('runProbe', () => {
     expect(result.message).toContain('botToken')
   })
 
+  // ── youtube_channel — missing channelId path ────────────────────────────
+
+  it('youtube_channel: returns ok=false when channelId is missing', async () => {
+    const result = await runProbe('youtube_channel', {})
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('channelId')
+  })
+
+  it('youtube_channel: returns ok=false when channelId is empty string', async () => {
+    const result = await runProbe('youtube_channel', { channelId: '  ' })
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('channelId')
+  })
+
   // ── result shape ──────────────────────────────────────────────────────────
 
   it('always returns an object with ok (boolean) and message (string)', async () => {

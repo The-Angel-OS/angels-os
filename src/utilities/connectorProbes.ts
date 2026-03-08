@@ -34,6 +34,8 @@ export async function runProbe(
       return probeDiscord(cfg)
     case 'slack':
       return probeSlack(cfg)
+    case 'youtube_channel':
+      return probeYouTubeChannel(cfg)
     case 'email_inbound':
       return { ok: true, message: 'IMAP probe not implemented (requires TCP connection)' }
     default:
@@ -129,6 +131,39 @@ async function probeDiscord(cfg: Record<string, unknown>): Promise<ProbeResult> 
 
   const data = (await res.json()) as { username?: string }
   return { ok: true, message: `Connected: ${data.username || 'bot'}` }
+}
+
+async function probeYouTubeChannel(cfg: Record<string, unknown>): Promise<ProbeResult> {
+  const channelId = String(cfg.channelId || '').trim()
+  if (!channelId) return { ok: false, message: 'Missing channelId in config' }
+
+  // Probe: fetch the RSS feed and check it has entries
+  const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
+  try {
+    const res = await fetch(feedUrl, {
+      headers: { 'User-Agent': 'AngelOS/1.0 (Health Probe)' },
+    })
+
+    if (!res.ok) {
+      return { ok: false, message: `YouTube RSS ${res.status}: Channel ${channelId} may not exist` }
+    }
+
+    const xml = await res.text()
+    // Check for at least one <entry> in the feed
+    const hasEntries = xml.includes('<entry>')
+    const titleMatch = xml.match(/<title>([^<]+)<\/title>/)
+    const channelName = titleMatch ? titleMatch[1] : channelId
+
+    return {
+      ok: true,
+      message: `Connected: ${channelName}${hasEntries ? '' : ' (no videos)'}`,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      message: `YouTube RSS fetch failed: ${err instanceof Error ? err.message : 'unknown'}`,
+    }
+  }
 }
 
 async function probeSlack(cfg: Record<string, unknown>): Promise<ProbeResult> {

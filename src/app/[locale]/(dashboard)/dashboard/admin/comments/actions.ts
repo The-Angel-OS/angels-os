@@ -48,7 +48,9 @@ async function getAuthenticatedAdmin() {
     return { payload, user: null, tenantId: null, error: 'Not authenticated' }
   }
 
-  if (!checkRole(ADMIN_ROLES, user)) {
+  const isAdmin = checkRole(ADMIN_ROLES, user)
+
+  if (!isAdmin) {
     return { payload, user, tenantId: null, error: 'Insufficient permissions' }
   }
 

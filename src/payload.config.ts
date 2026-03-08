@@ -105,6 +105,7 @@ import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import { connectorTestHandler } from '@/endpoints/connector-test'
 import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
 import { emailPollHandler } from '@/endpoints/email-poll'
+import { youtubePollHandler } from '@/endpoints/youtube-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
@@ -671,6 +672,14 @@ export default buildConfig({
       path: '/email/poll',
       method: 'get',
       handler: emailPollHandler,
+    },
+    // ─── YouTube Channel Poll (Vercel Cron: 0 * * * *) ───────────
+    // Polls YouTube RSS feeds for all youtube_channel connectors,
+    // creates Posts for new videos with deduplication via sourceUrl.
+    {
+      path: '/youtube/poll',
+      method: 'get',
+      handler: youtubePollHandler,
     },
     // ─── Documentation Endpoint ──────────────────────────────────
     {

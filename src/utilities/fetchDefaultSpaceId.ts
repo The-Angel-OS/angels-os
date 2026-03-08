@@ -22,6 +22,7 @@ export async function fetchDefaultSpaceId(
       limit: 1,
       depth: 0,
       sort: 'createdAt',
+      overrideAccess: true, // Server-side utility — bypass Spaces read access (requires user)
     })
     if (spaces.docs?.[0]) {
       return String(spaces.docs[0].id)
