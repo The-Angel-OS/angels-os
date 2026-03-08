@@ -125,5 +125,23 @@ export const TenantMemberships: CollectionConfig = {
         },
       ],
     },
+    // ── Propagation Layer (Sprint 42) ─────────────────────────────
+    {
+      name: 'propagationTrigger',
+      type: 'select',
+      admin: {
+        description:
+          'What caused this membership to be created automatically. Null for manually-created memberships (invitations, admin, seed).',
+        readOnly: true,
+      },
+      options: [
+        { label: 'Purchase', value: 'purchase' },
+        { label: 'Booking', value: 'booking' },
+        { label: 'Event Registration', value: 'event_registration' },
+        { label: 'Space Join', value: 'space_join' },
+        { label: 'Federation Interaction', value: 'federation_interaction' },
+        { label: 'Manual', value: 'manual' },
+      ],
+    },
   ],
 }

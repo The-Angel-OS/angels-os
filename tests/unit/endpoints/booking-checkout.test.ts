@@ -204,7 +204,9 @@ describe('bookingCheckoutHandler', () => {
     const createMock = vi.fn().mockResolvedValue({ id: 77 })
     const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, { create: createMock })
     await bookingCheckoutHandler(req)
-    expect(createMock).toHaveBeenCalledOnce()
+    // First create call is always the booking; additional calls may come from
+    // Sprint 42 user propagation (ensureTenantMembership) — that's expected.
+    expect(createMock).toHaveBeenCalled()
     const createArgs = createMock.mock.calls[0][0]
     expect(createArgs.collection).toBe('bookings')
     expect(createArgs.data.status).toBe('pending')

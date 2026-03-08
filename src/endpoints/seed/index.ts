@@ -172,6 +172,25 @@ export const seed = async ({
   const defaultTenantId = defaultTenant.id as number
   payload.logger.info(`— Default Tenant: ${defaultTenant.name} (${defaultTenant.slug}) id=${defaultTenantId}`)
 
+  // ── Commission the Flagship (Sprint 42) ─────────────────────────
+  try {
+    await payload.update({
+      collection: 'tenants',
+      id: defaultTenantId,
+      data: {
+        setup: {
+          isFlagship: true,
+          commissionedAt: '2026-03-08T12:00:00.000Z', // Commissioning Day — St. Alfred's, Palm Harbor
+        },
+      } as any,
+      overrideAccess: true,
+      req,
+    })
+    payload.logger.info(`— Flagship commissioned: ${defaultTenant.name} ⚓`)
+  } catch (err) {
+    payload.logger.warn(`— Flagship commissioning failed (non-fatal): ${err}`)
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // PHASE 2: Clear Collections
   // ═══════════════════════════════════════════════════════════════

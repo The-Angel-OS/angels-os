@@ -576,6 +576,26 @@ export const Tenants: CollectionConfig = {
             readOnly: true,
           },
         },
+        // ── Flagship Commissioning (Sprint 42) ────────────────────
+        {
+          name: 'isFlagship',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description:
+              'Constitutional Article VII: The Flagship is the founding node and federation steward, not the governor. Only one tenant should have this set.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'commissionedAt',
+          type: 'date',
+          admin: {
+            description: 'When this Enterprise was formally commissioned into the federation',
+            readOnly: true,
+            date: { pickerAppearance: 'dayAndTime' },
+          },
+        },
       ],
     },
     // ─── Bootstrap-Phase Platform Fees ────────────────────────────

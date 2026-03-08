@@ -463,7 +463,7 @@ export async function findOrCreateTenantMembership(
   await payload.create({
     collection: 'tenant-memberships',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- seed helper
-    data: { user: data.userId, tenant: data.tenantId, role: data.role, status: 'active', joinedAt: new Date().toISOString() } as any,
+    data: { user: data.userId, tenant: data.tenantId, role: data.role, status: 'active', joinedAt: new Date().toISOString(), propagationTrigger: 'manual' } as any,
     depth: 0,
     req,
     overrideAccess: true,

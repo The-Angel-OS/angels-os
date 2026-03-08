@@ -150,6 +150,14 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
+    // ── User Propagation: client → provider's tenant (Sprint 42) ──
+    try {
+      const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
+      await ensureTenantMembership(payload, user.id, tenant.id, 'booking')
+    } catch {
+      // Non-fatal: booking proceeds regardless of propagation
+    }
+
     // Initialize Stripe
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY
     if (!stripeSecretKey) {
@@ -192,6 +200,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
           date,
           time,
           duration: String(slotDuration),
+          tenantSlug,
           angelOs_splitEnabled: 'true',
           angelOs_chargeModel: 'direct',
           angelOs_applicationFee: String(applicationFee),

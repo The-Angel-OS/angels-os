@@ -713,7 +713,7 @@ async function gatherHealthContext(
 
     // Detect node role — flagship if domain matches or setup flag
     const domain = (tenant as any)?.domains?.[0]?.domain || ''
-    const isFlagship = domain === 'spacesangels.com' || Boolean((tenant as any)?.setup?.isFlagship)
+    const isFlagship = domain === 'spacesangels.com' || Boolean((tenant as any)?.setup?.isFlagship) // Sprint 42: `as any` removable after type regen
 
     // Quick parallel queries for health metrics (non-blocking, best-effort)
     const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes] = await Promise.allSettled([

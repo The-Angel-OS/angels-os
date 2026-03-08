@@ -208,6 +208,31 @@ async function handlePaymentIntentSucceeded(
       // Order may not exist or have different status field — non-fatal
     }
 
+    // ── User Propagation: buyer → seller's tenant (Sprint 42) ──
+    try {
+      const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = await (payload.findByID as any)({
+        collection: 'orders',
+        id: orderId,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const orderTenantId = order?.tenant
+        ? (typeof order.tenant === 'object' ? order.tenant.id : order.tenant)
+        : undefined
+      const orderUserId = order?.orderedBy
+        ? (typeof order.orderedBy === 'object' ? order.orderedBy.id : order.orderedBy)
+        : (order?.customer
+          ? (typeof order.customer === 'object' ? order.customer.id : order.customer)
+          : undefined)
+      if (orderTenantId && orderUserId) {
+        await ensureTenantMembership(payload, orderUserId, orderTenantId, 'purchase')
+      }
+    } catch {
+      // Non-fatal: propagation failure must never break payment handling
+    }
+
     // Send order confirmation email
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

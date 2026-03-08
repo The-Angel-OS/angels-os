@@ -292,6 +292,23 @@ export const Endeavors: CollectionConfig = {
             readOnly: true,
           },
         },
+        // ── Commissioning (Sprint 42) ──────────────────────────────
+        {
+          name: 'commissionedAt',
+          type: 'date',
+          admin: {
+            description: 'When this Endeavor was formally commissioned and activated in the federation',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'commissionedBy',
+          type: 'text',
+          admin: {
+            description: 'Who performed the commissioning (e.g., "Archangel LEO", "Kenneth Courtney")',
+            readOnly: true,
+          },
+        },
       ],
     },
 

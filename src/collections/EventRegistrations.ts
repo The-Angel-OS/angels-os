@@ -224,6 +224,23 @@ export const EventRegistrations: CollectionConfig = {
           // Non-critical
         }
 
+        // ── User Propagation: attendee → event's tenant (Sprint 42) ──
+        try {
+          const attendeeId = typeof doc.attendee === 'object'
+            ? (doc.attendee as any)?.id
+            : doc.attendee
+          // The event has a tenant field (added by multi-tenant plugin)
+          const eventTenantId = typeof (event as any)?.tenant === 'object'
+            ? (event as any).tenant?.id
+            : (event as any)?.tenant
+          if (attendeeId && eventTenantId) {
+            const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
+            await ensureTenantMembership(req.payload, attendeeId, eventTenantId, 'event_registration')
+          }
+        } catch {
+          // Non-critical: registration is already saved
+        }
+
         return doc
       },
     ],
