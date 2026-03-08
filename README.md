@@ -7,24 +7,27 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 **Live:** [spacesangels.com](https://spacesangels.com)
 
 [![CI](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml/badge.svg)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/version-v0.39.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-4%2C857%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
+[![Status](https://img.shields.io/badge/version-v0.42.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-4%2C995%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-217%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-220%20test%20files-blue)]()
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
 [![Leo Tools](https://img.shields.io/badge/Leo_Tools-105+-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-72+-purple)]()
-[![Collections](https://img.shields.io/badge/Collections-40-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-39-ff69b4)]()
+[![Collections](https://img.shields.io/badge/Collections-42-orange)]()
+[![Sprints](https://img.shields.io/badge/Sprints-42-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
+[![MCP](https://img.shields.io/badge/MCP-23%20tools-teal)]()
+[![Flagship](https://img.shields.io/badge/Flagship-Commissioned-gold)]()
+[![Propagation](https://img.shields.io/badge/User_Propagation-Live-brightgreen)]()
 
 ---
 
-## The Model (Updated — Sprint 33)
+## The Model (Updated — Sprint 42)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -53,9 +56,33 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 39 — Order Journey + Street Signs Gossip
+## What's New: Sprint 42 — User Propagation + Flagship Commissioning
 
-### Sprint 39: Order Journey + Street Signs Gossip (Current)
+### Sprint 42: User Propagation Layer + Flagship Commissioning (Current)
+- **User Propagation Layer** (`src/utilities/ensureTenantMembership.ts`) — Automatic cross-Endeavor TenantMembership creation. When a user purchases, books, or registers for an event on another Endeavor, they're silently enrolled as a `tenant_member`. Idempotent, non-fatal, triggers the existing `syncUserTenants` + `autoJoinSpaces` hook chain. Three integration points wired: `stripe-webhooks.ts` (purchase), `booking-checkout.ts` (booking), `EventRegistrations.ts` (event registration).
+- **Flagship Commissioning** — Clearwater (spacesangels.com) formally commissioned as the Flagship per Constitution Article VII. `isFlagship` checkbox + `commissionedAt` date on Tenants schema. Endeavors gain `commissionedAt` + `commissionedBy` in their federation group. Commissioning Day: 2026-03-08, St. Alfred's Church, Palm Harbor.
+- **`propagationTrigger` audit trail** — New field on TenantMemberships tracking WHY a membership was created: `purchase`, `booking`, `event_registration`, `space_join`, `federation_interaction`, or `manual`.
+- **Federation Discover cards** — Cards now link to the Endeavor's actual storefront URL (derived from tenant domain). Gear icon on hover for quick navigation to Endeavor configuration.
+- **Dashboard as universal nav link** — Dashboard replaces Account in all header nav items.
+- **DB migration** — `20260308_191006_sprint42_propagation.ts` adds 5 new columns across 3 tables.
+- **4,995 unit tests across 220 files** — 25 new `ensureTenantMembership` tests + booking-checkout test fix.
+
+### Sprint 41: Admin Dashboard + White-Labeling + Anonymous Access
+- **Space Onboarding Fix** — When Leo provisions Spaces via `create_space` tool, the Space slug is now auto-set from name, preventing "missing slug" errors that broke space navigation.
+- **Anonymous Dashboard** — Public dashboard pages (Home, Bridge, CIC, Federation Discover) are now viewable without authentication. LEO sidebar hidden for anonymous users.
+- **SiteSettings Collection** — Per-tenant site configuration: `siteName`, `tagline`, `logo`, `heroTitle`, `heroSubtitle`, `ctaLabel`, `ctaUrl`, and `footerText`. Powers branding without touching code.
+- **Admin White-Labeling** — AdminBar shows tenant branding (logo, site name, primary color). Dashboard header adapts to tenant context.
+- **Dashboard Widgets** — LCARS-styled Command Center with stat cards (Federation Tenants, Comm Channels, Crew Manifest, Cargo Bay), 30-day revenue/order charts, activity feed ("Ship's Log"), Quick Access Console.
+- **Tenant Isolation Audit** — 15 cross-tenant data leaks closed. ADMIN_ROLES centralized. Access control locked down.
+
+### Sprint 40: Booking Engine + Calendar + Forms
+- **BookingEngine** (`src/utilities/bookingEngine.ts`) — Full appointment scheduling with slot generation, conflict detection, harmonic resolution, cancel/reschedule flows.
+- **LEO Booking Tools** — `create_booking`, `check_available_slots`, `cancel_booking`, `reschedule_booking` (engine-backed).
+- **Calendar Block** — CMS page block rendering event calendars (manual or product-sourced).
+- **Form Builder** — Dynamic form creation and submission via LEO (`create_form`, `send_inline_form`, `query_form_submissions`).
+- **Featured Endeavors Block** — Homepage block for showcasing highlighted Endeavors (grid, carousel, featured layouts).
+
+### Sprint 39: Order Journey + Street Signs Gossip
 - **Order Detail Page** (`/dashboard/my-orders/[id]`) — Full drill-down view for a customer order. Angel Token badge (amber=active, green=redeemed), 6-step fulfillment timeline stepper (Queued → Matched → Accepted → Being Made → Shipped → Delivered), configuration definition list, tracking info, and CancelConfirmDialog. Cards on the order list now link to detail.
 - **Street Signs Gossip Protocol** (`src/utilities/streetSigns.ts`) — Lightweight product gossip piggybacked on federation heartbeats. Every node broadcasts a compact `StreetSignsPayload` (product count, top categories, 10 featured items with prices + capabilities) in its outbound heartbeat. Receiving nodes cache it in memory. Zero outbound HTTP for consumers.
 - **`discover_federation_products`** LEO tool — Reads the local Street Signs cache and formats a table of peer products, filtered by category, capability, or max price. Instant — no HTTP.
@@ -126,12 +153,12 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's Working (v0.33.0-dev)
+## What's Working (v0.42.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 88+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
+| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 105+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
@@ -241,7 +268,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Live Capacity Heartbeats** | **Done** | Real WorkUnit queries in heartbeats (not mocked), peers see actual work counts |
 | **Federation Pulse API** | **Done** | GET /api/federation/pulse — real-time health dashboard, capacity snapshots, pheromone summaries |
 | **Synchronicity Engine** | **Done** | Meaningful coincidence detection: temporal clustering, spatial convergence, thematic resonance |
-| **3 New Leo Tools (S32)** | **Done** | federation_pulse, query_synchronicity, federation_weather_report (total: 88 tools) |
+| **3 New Leo Tools (S32)** | **Done** | federation_pulse, query_synchronicity, federation_weather_report |
 | **Full-Stack Booking** | **Done** | LEO-powered scheduling, cancellation, rescheduling with availability checking |
 | **Branding Update** | **Done** | Ministry → Enterprise throughout UI, "Join Angel OS" → "Join the Federation" |
 | **Discord Multi-Tenant Bots** | **Done** | BotManager runs N Discord.js clients, one per connector. 60s sync poll. Graceful shutdown |
@@ -249,8 +276,24 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Discord Webhook** | **Done** | POST /api/discord/webhook — per-connector HMAC auth, guest user creation, AI Bus persistence |
 | **Discord Formatter** | **Done** | LEO markdown → Discord markdown, 2000-char message splitting |
 | **Connectors: Discord + Telegram** | **Done** | `discord` and `telegram` types added to multi-tenant Connectors collection |
+| **Street Signs Gossip Protocol** | **Done** | Cross-node product discovery piggybacked on federation heartbeats. Zero outbound HTTP (Sprint 39) |
+| **Order Detail Page** | **Done** | `/dashboard/my-orders/[id]` — Angel Token badge, 6-step fulfillment timeline, cancel dialog (Sprint 39) |
+| **Booking Engine** | **Done** | Full appointment scheduling: slot generation, conflict detection, harmonic resolution, cancel/reschedule (Sprint 40) |
+| **LEO Booking Tools** | **Done** | create_booking, check_available_slots, cancel_booking, reschedule_booking — engine-backed (Sprint 40) |
+| **Calendar Block** | **Done** | CMS page block rendering event calendars (manual or product-sourced, Sprint 40) |
+| **Form Builder** | **Done** | Dynamic form creation via LEO: create_form, send_inline_form, query_form_submissions (Sprint 40) |
+| **Anonymous Dashboard** | **Done** | Public dashboard pages (Home, Bridge, CIC, Federation Discover) without auth (Sprint 41) |
+| **SiteSettings Collection** | **Done** | Per-tenant site config: siteName, tagline, logo, hero, CTA, footer — white-label without code (Sprint 41) |
+| **Admin White-Labeling** | **Done** | AdminBar + dashboard header adapt to tenant branding (logo, colors, Sprint 41) |
+| **LCARS Dashboard Widgets** | **Done** | Command Center: stat cards, 30-day charts, Ship's Log activity feed, Quick Access Console (Sprint 41) |
+| **Tenant Isolation Audit** | **Done** | 15 cross-tenant leaks closed, ADMIN_ROLES centralized, access control locked (Sprint 41) |
+| **User Propagation Layer** | **Done** | Auto TenantMembership on cross-Endeavor purchase/booking/event. Idempotent, non-fatal (Sprint 42) |
+| **Flagship Commissioning** | **Done** | `isFlagship` + `commissionedAt` on Tenants — Constitution Article VII formalized (Sprint 42) |
+| **`propagationTrigger` Audit** | **Done** | Tracks WHY a membership was created: purchase, booking, event_registration, etc. (Sprint 42) |
+| **Federation Discover Cards** | **Done** | Cards link to storefront URL, gear icon for config navigation (Sprint 42) |
+| **MCP Server (23 tools)** | **Done** | Claude Code ↔ Angel OS stdio bridge. Zero-config JWT auth. `talk_to_merlin` bridges to LEO's 105+ internal tools |
 
-### Leo's 88+ Tools
+### Leo's 105+ Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -260,7 +303,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 **Reviews (1):** draft review response
 **Media (3):** generate image, improve image (vision feedback), attach/replace image
 **Knowledge (3):** analyze image (Claude Vision), extract PDF pages, query knowledge base (RAG)
-**Federation (5):** sign constitution, ping federation, check maker queue, claim orders (for vendor AI agents)
+**Federation (8):** sign constitution, ping federation, check maker queue, claim orders, browse_federation_peers, query_peer_catalog, search_federation_wide, discover_federation_products *(Sprint 38-39)*
 **Communication (4):** send message, send DM, create announcement, moderate content *(Sprint 21)*
 **Inventory (4):** update inventory, track movement, set low-stock alert, query inventory history *(Sprint 21)*
 **Financial (3):** generate invoice, query financial reports, issue refund *(Sprint 21)*
@@ -269,8 +312,11 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 **Analytics (2):** analyze trends, recommend products *(Sprint 21)*
 **Workflow (4):** delegate task, escalate issue, send emergency alert, document incident *(Sprint 21)*
 **Email (1):** send_email *(Sprint 22)*
-**Booking (3):** create booking, cancel booking, reschedule booking *(Sprint 32)*
+**Booking (4):** create booking, check available slots, cancel booking, reschedule booking *(Sprint 32/40)*
 **Federation Intelligence (3):** federation_pulse, query_synchronicity, federation_weather_report *(Sprint 32)*
+**Forms (3):** create_form, send_inline_form, query_form_submissions *(Sprint 40)*
+**Events (3):** create_event, update_event, query_event_registrations *(Sprint 40)*
+**Endeavors (5):** create_endeavor, update_endeavor, list_endeavors, configure_endeavor, commission_endeavor *(Sprint 41-42)*
 
 ### 15 Utility Engines (Zero Payload Imports — Edge Ready)
 
@@ -287,19 +333,19 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | Holon Capabilities | Node types, capability matching, compliance | 49 |
 | AI Gateway | Credit-aware 4-tier model routing, dynamic provider selection, fallback chains | 65 |
 | Logistics Engine | Bread-Breaker local delivery + Soul Fleet long-haul, transport matching | 55 |
-| Booking Engine | Availability, slot management, booking lifecycle | 22 |
+| Booking Engine | Availability, slot generation, conflict detection, harmonic resolution, cancel/reschedule | 22 |
 | Pheromone Engine | Swarm intelligence, trail deposit/decay/reinforce, Game of Life lifecycle | 70 |
 | Workload Engine | Distributed work routing, 5-dimension scoring, backpressure, capacity | 91 |
 | Synchronicity Engine | Meaningful coincidence detection, temporal clustering, thematic resonance | 30 |
 
-### 52+ API Endpoints
+### 72+ API Endpoints
 
 **AI & Chat (5):** Leo chat, Leo stream, chat send, AI Bus poll, AI Bus stream
 **Orders (8):** route, accept, fulfill, ship, vendor list, claimable, claim, cancel
 **Spaces (4):** create, invite, invite resend, member remove
 **Federation (14):** ping, heartbeat, heartbeat cron, catalog, skills, vouch, governance-sync, sentinel election, election propose/vote (POST), election list (GET), suitcase export, suitcase import, dispatch-work, pulse
 **Stripe (4):** connect onboard, connect callback, dashboard link, webhooks
-**Auth (5):** Google OAuth init, Google OAuth callback, Discord OAuth init, Discord OAuth callback, social unlink
+**Auth (6):** Google OAuth init, Google OAuth callback, Discord OAuth init, Discord OAuth callback, GitHub OAuth init/callback, social unlink
 **Invites (2):** invite accept, tenant invite accept
 **Content (3):** docs, comments add, export site
 **Communication (3):** DM find-or-create, LiveKit token, bridge inbound
@@ -307,8 +353,14 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 **Media (1):** media analyze (progressive analysis trigger)
 **Maker (1):** maker opportunities (public)
 **Vapi (1):** Vapi webhook (voice AI)
+**Bookings (3):** available-slots, booking-checkout, booking-reschedule *(Sprint 40)*
+**Forms (2):** form submission, form query *(Sprint 40)*
+**Events (2):** event registration, event check-in *(Sprint 40)*
+**Endeavors (3):** endeavor create, endeavor update, endeavor commission *(Sprint 41-42)*
+**Site Settings (2):** site-settings get, site-settings update *(Sprint 41)*
+**MCP (1):** MCP stdio server (23 tools, Claude Code bridge)
 **Health (1):** health check
-**Cron (1):** email poll
+**Cron (2):** email poll, health cron
 
 ---
 
@@ -353,7 +405,7 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-pnpm test:unit                # 2,482 tests across 53 unit test files
+pnpm test:unit                # 4,995 tests across 220 unit test files
 pnpm test:int                 # Integration tests (needs DB, ~23s boot)
 pnpm test:e2e                 # 14 E2E suites with Playwright (needs server + Chromium)
 npx tsc --noEmit              # TypeScript check (zero errors)

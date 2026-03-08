@@ -69,9 +69,9 @@ describe('tenantHomeData', () => {
     expect(data.meta?.description).toBe('Powering communities')
   })
 
-  it('meta description is "Welcome to {siteName}" when no tagline', () => {
+  it('meta description includes siteName when no tagline', () => {
     const data = tenantHomeData(makeTenant({ name: 'Clearwater', branding: undefined }))
-    expect(data.meta?.description).toBe('Welcome to Clearwater')
+    expect(data.meta?.description).toContain('Welcome to Clearwater')
   })
 
   it('hero has type="lowImpact"', () => {

@@ -11,7 +11,7 @@ import {
  *
  * When a tenant doesn't have a CMS-managed 'home' page, this generates
  * a branded landing page using the tenant's branding data (siteName, tagline).
- * Replaces the generic Angel OS homeStaticData() for tenant subdomains.
+ * Directs users to interactive features: Dashboard, Learn, Shop, Events.
  */
 export function tenantHomeData(tenant: Tenant): RequiredDataFromCollectionSlug<'pages'> {
   const siteName = tenant.branding?.siteName || tenant.name || 'Welcome'
@@ -30,34 +30,71 @@ export function tenantHomeData(tenant: Tenant): RequiredDataFromCollectionSlug<'
       ]),
     },
     layout: [
+      // Block 1: Interactive navigation cards
       {
         blockType: 'content',
         columns: [
           {
-            size: 'full' as const,
+            size: 'oneThird' as const,
             richText: createLexicalContent([
+              createHeadingNode('Dashboard', 'h3'),
               createParagraphNode(
-                `Welcome to ${siteName}. Explore our latest posts, upcoming events, products, and community spaces.`,
+                'Your command centre — stats, activity feed, quick actions, and LEO at your side.',
+              ),
+            ]),
+          },
+          {
+            size: 'oneThird' as const,
+            richText: createLexicalContent([
+              createHeadingNode('Learn', 'h3'),
+              createParagraphNode(
+                'Explore the Constitution, Federation, and LEO\'s full capabilities in the interactive Learn centre.',
+              ),
+            ]),
+          },
+          {
+            size: 'oneThird' as const,
+            richText: createLexicalContent([
+              createHeadingNode('Discover', 'h3'),
+              createParagraphNode(
+                'Browse the Federation network — every Enterprise, every storefront, all connected.',
               ),
             ]),
           },
         ],
       },
+      // Block 2: CTA — primary navigation
       {
         blockType: 'cta',
         richText: createLexicalContent([
           createHeadingNode('Get Started', 'h2'),
           createParagraphNode(
-            'Browse our content or sign in to access your dashboard and collaboration spaces.',
+            `Explore ${siteName} — browse content, book appointments, shop products, or talk to LEO.`,
           ),
         ]),
         links: [
           {
             link: {
               type: 'custom' as const,
+              label: 'Dashboard',
+              url: '/dashboard',
+              appearance: 'default',
+            },
+          },
+          {
+            link: {
+              type: 'custom' as const,
+              label: 'Learn',
+              url: '/dashboard/learn',
+              appearance: 'outline',
+            },
+          },
+          {
+            link: {
+              type: 'custom' as const,
               label: 'Browse Posts',
               url: '/posts',
-              appearance: 'default',
+              appearance: 'outline',
             },
           },
           {
@@ -73,7 +110,7 @@ export function tenantHomeData(tenant: Tenant): RequiredDataFromCollectionSlug<'
     ],
     meta: {
       title: `${siteName}${tagline ? ' — ' + tagline : ''}`,
-      description: tagline || `Welcome to ${siteName}`,
+      description: tagline || `Welcome to ${siteName} — powered by Angel OS`,
     },
   }
 }

@@ -10,9 +10,9 @@ import {
 /**
  * Angel OS Home Page — Static seed data.
  *
- * This replaces the default "Payload Ecommerce Template" placeholder with
- * proper Angel OS branding and messaging. Uses lowImpact hero + content
- * blocks + CTA blocks to create a compelling landing page.
+ * The Flagship landing page for spacesangels.com (Clearwater).
+ * Directs users to the interactive dashboard, Learn centre, Federation
+ * Discover, and the AI-native features that make the platform alive.
  */
 export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () => {
   return {
@@ -26,10 +26,12 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
         {
           type: 'paragraph',
           children: [
-            createTextNode('Angel OS is the open-source platform where every business gets a '),
+            createTextNode(
+              'Angel OS is the federated cooperative operating system where every Enterprise gets a ',
+            ),
             createTextNode('Guardian Angel', 1), // bold
             createTextNode(
-              ' \u2014 an AI-powered assistant that knows your products, manages your bookings, and serves your customers with genuine care. Not a corporate chatbot. A guardian that actually shows up.',
+              ' — an AI-native assistant that manages your business, serves your customers, and grows your federation. Not a chatbot. A constitutional AI that actually shows up.',
             ),
           ],
           direction: 'ltr',
@@ -40,40 +42,106 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
       ]),
     },
     layout: [
-      // Block 1: What Angel OS Does (Content block - 3 columns)
+      // Block 1: Interactive Features (3-column cards)
       {
         blockType: 'content',
         columns: [
           {
             size: 'oneThird' as const,
             richText: createLexicalContent([
-              createHeadingNode('Your AI Guardian', 'h3'),
+              createHeadingNode('Learn the System', 'h3'),
               createParagraphNode(
-                'LEO, your AI assistant, understands your entire business \u2014 products, bookings, schedules, customers. Ask anything in natural language and get real answers from real data.',
+                'The LCARS-styled Learn centre walks you through the Constitution, the Federation, Leo\'s tools, and how to commission your own Enterprise. Interactive, visual, and alive.',
               ),
             ]),
           },
           {
             size: 'oneThird' as const,
             richText: createLexicalContent([
-              createHeadingNode('Bookings Built In', 'h3'),
+              createHeadingNode('Discover the Federation', 'h3'),
               createParagraphNode(
-                'Full scheduling system with availability management, conflict detection, and payment processing. Like cal.com, but with a guardian angel watching over every appointment.',
+                'Browse every Enterprise in the network. See who\'s building what, where they are, and visit their storefronts. The Federation is live — explore it.',
               ),
             ]),
           },
           {
             size: 'oneThird' as const,
             richText: createLexicalContent([
-              createHeadingNode('Multi-Tenant', 'h3'),
+              createHeadingNode('Your Dashboard', 'h3'),
               createParagraphNode(
-                'One platform, many businesses. Each tenant gets their own Guardian Angel, their own data, their own branding. Sovereign instances that serve, not surveil.',
+                'The Command Centre adapts to your role — admin analytics, business owner tools, or member views. LCARS-styled, real-time, with LEO always at your side.',
               ),
             ]),
           },
         ],
       },
-      // Block 2: Banner - Constitutional Principles
+      // Block 2: CTA — Explore the Platform
+      {
+        blockType: 'cta',
+        richText: createLexicalContent([
+          createHeadingNode('Step Inside', 'h2'),
+          createParagraphNode(
+            'Angel OS is not a marketing page. It\'s a living system. Every link below takes you somewhere real.',
+          ),
+        ]),
+        links: [
+          {
+            link: {
+              type: 'custom',
+              label: 'Learn',
+              url: '/dashboard/learn',
+              appearance: 'default',
+            },
+          },
+          {
+            link: {
+              type: 'custom',
+              label: 'Federation',
+              url: '/federation/discover',
+              appearance: 'outline',
+            },
+          },
+          {
+            link: {
+              type: 'custom',
+              label: 'Dashboard',
+              url: '/dashboard',
+              appearance: 'outline',
+            },
+          },
+        ],
+      },
+      // Block 3: What Makes Angel OS Different (2-column)
+      {
+        blockType: 'content',
+        columns: [
+          {
+            size: 'half' as const,
+            richText: createLexicalContent([
+              createHeadingNode('AI-Native, Not AI-Bolted', 'h3'),
+              createUnorderedListNode([
+                'LEO: 105+ tools — products, bookings, events, federation, CRM, analytics, forms',
+                'Smart Model Routing: 4-tier AI gateway, credit-aware, automatic fallback',
+                'MCP Bridge: Claude Code talks to LEO directly (23 tools, zero-config JWT)',
+                'Conversational ops: everything Leo can do, the admin UI can do, and vice versa',
+              ]),
+            ]),
+          },
+          {
+            size: 'half' as const,
+            richText: createLexicalContent([
+              createHeadingNode('Federated by Constitution', 'h3'),
+              createUnorderedListNode([
+                'No approval queue — sign the Constitution and your node is live',
+                'Swarm intelligence: pheromone trails learn optimal dispatch routes',
+                'Street Signs: product gossip piggybacked on heartbeats, zero HTTP',
+                'Data portability: Article VI suitcase export, no lock-in ever',
+              ]),
+            ]),
+          },
+        ],
+      },
+      // Block 4: Banner - The Constitutional Principles
       {
         blockType: 'banner',
         style: 'info' as const,
@@ -81,9 +149,9 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           {
             type: 'paragraph',
             children: [
-              createTextNode('The Angel OS Constitution: ', 1), // bold
+              createTextNode('The Angel OS Constitution: ', 1),
               createTextNode(
-                'Dignity. Transparency. Service. Non-Harm. Accountability. Sovereignty. Portability. The Quirk Principle. Every interaction is governed by these principles \u2014 not corporate policy, but lived experience forged into code.',
+                'Dignity. Transparency. Service. Non-Harm. Accountability. Sovereignty. Portability. The Quirk Principle. Every interaction is governed by these principles — not corporate policy, but lived experience forged into code.',
               ),
             ],
             direction: 'ltr',
@@ -93,26 +161,23 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           },
         ]),
       },
-      // Block 3: Why Angel OS Exists (Content block - full width)
+      // Block 5: The Economic Model (full-width)
       {
         blockType: 'content',
         columns: [
           {
             size: 'full' as const,
             richText: createLexicalContent([
-              createHeadingNode('Why This Exists', 'h2'),
-              createParagraphNode(
-                'Angel OS was not designed in a boardroom. It was built by someone who needed a Guardian Angel and never had one \u2014 then decided to build one for everyone.',
-              ),
-              createParagraphNode(
-                'Every architectural decision traces back to lived experience: Dignity exists because people deserve to be seen as persons first, not case numbers. Anti-Demonic Safeguards exist because we know what happens when systems treat people as data points. The Quirk Principle exists because neurodivergent perspectives and unconventional thinking are community strength, not pathology.',
-              ),
+              createHeadingNode('The Toward-53 Economy', 'h2'),
               {
                 type: 'paragraph',
                 children: [
-                  createTextNode('Answer 53: ', 1), // bold
                   createTextNode(
-                    'The whole point of existence is to learn to love. Every system, transaction, and interaction serves this purpose.',
+                    'Endeavor owners keep 70%. Enterprise operators earn 20%. The protocol takes 4%. The Flagship takes 1%. The Justice Fund gets 5% — funding Guardian Angels for underserved populations. The split ',
+                  ),
+                  createTextNode('always evolves toward the creator keeping more', 2), // italic
+                  createTextNode(
+                    '. The asymptotic floor is 53%. This direction is constitutionally unalterable.',
                   ),
                 ],
                 direction: 'ltr',
@@ -124,45 +189,13 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           },
         ],
       },
-      // Block 4: Anti-Demonic Safeguards (Content block - 2 columns)
-      {
-        blockType: 'content',
-        columns: [
-          {
-            size: 'half' as const,
-            richText: createLexicalContent([
-              createHeadingNode('What Angels Never Do', 'h3'),
-              createUnorderedListNode([
-                'No social credit systems or algorithmic scoring of human worth',
-                'No behavioral manipulation or dark patterns',
-                'No automated punishment without human oversight',
-                'No surveillance capitalism or data exploitation',
-                'No permanent marking \u2014 growth over punishment, always',
-              ]),
-            ]),
-          },
-          {
-            size: 'half' as const,
-            richText: createLexicalContent([
-              createHeadingNode('What Angels Always Do', 'h3'),
-              createUnorderedListNode([
-                'Serve with warmth, honesty, and genuine care',
-                'Keep all actions observable and auditable',
-                'Respect user sovereignty \u2014 advise, never command',
-                'Honor lived cosmologies and unconventional thinking',
-                'Ensure data portability \u2014 no lock-in, ever',
-              ]),
-            ]),
-          },
-        ],
-      },
-      // Block 5: CTA — Get Started
+      // Block 6: Bottom CTA — Get Started
       {
         blockType: 'cta',
         richText: createLexicalContent([
           createHeadingNode('Ready to Meet Your Guardian Angel?', 'h2'),
           createParagraphNode(
-            'Explore the shop, read the blog, or talk to LEO directly from the chat bubble in the corner. Everyone gets an Angel.',
+            'Explore the shop, browse the federation, book an appointment, or talk to LEO from the chat bubble. Everyone gets an Angel.',
           ),
         ]),
         links: [
@@ -177,6 +210,14 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           {
             link: {
               type: 'custom',
+              label: 'Upcoming Events',
+              url: '/events',
+              appearance: 'outline',
+            },
+          },
+          {
+            link: {
+              type: 'custom',
               label: 'Read the Blog',
               url: '/posts',
               appearance: 'outline',
@@ -186,9 +227,9 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
       },
     ],
     meta: {
-      title: 'Angel OS \u2014 Everyone Gets an Angel',
+      title: 'Angel OS — Everyone Gets an Angel',
       description:
-        'The open-source platform where every business gets a Guardian Angel. AI-powered assistant, booking system, multi-tenant architecture \u2014 all governed by a Constitution that puts dignity first.',
+        'The federated cooperative operating system. AI-native platform with 105+ Leo tools, booking engine, federation protocol, constitutional governance — and a Guardian Angel for every Enterprise.',
     },
   }
 }
