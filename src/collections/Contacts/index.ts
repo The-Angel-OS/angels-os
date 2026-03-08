@@ -12,7 +12,7 @@ import { enforceUniqueEmailPerTenant } from './hooks/enforceUniqueEmailPerTenant
 export const Contacts: CollectionConfig = {
   slug: 'contacts',
   admin: {
-    group: 'Angel OS',
+    group: 'Configuration',
     useAsTitle: 'email',
     defaultColumns: ['email', 'name', 'source', 'contactStatus', 'inviteStatus'],
     description: 'CRM contact records for invite management',

@@ -94,7 +94,7 @@ const readMessages: Access = async ({ req }) => {
 export const Messages: CollectionConfig = {
   slug: 'messages',
   admin: {
-    group: 'Angel OS',
+    group: 'Spaces',
     useAsTitle: 'id',
     defaultColumns: ['messageType', 'space', 'channel', 'visibility', 'author', 'createdAt'],
   },

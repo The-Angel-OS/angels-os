@@ -39,6 +39,7 @@ interface DashboardSidebarProps {
   prefix: string
   isAdmin: boolean
   isBusinessOwner: boolean
+  isAuthenticated?: boolean
   userName: string
   userEmail: string
   userInitials: string
@@ -52,6 +53,7 @@ export function DashboardSidebar({
   prefix,
   isAdmin: isAdminProp,
   isBusinessOwner: isBusinessOwnerProp,
+  isAuthenticated = true,
   userName,
   userEmail,
   userInitials,
@@ -73,13 +75,14 @@ export function DashboardSidebar({
   // Build visibility context for nav items
   const visCtx: NavVisibilityContext = useMemo(
     () => ({
+      isAuthenticated,
       isAdmin,
       isBusinessOwner,
       wizardComplete,
       permissions: dashboard.userRole?.tenantPermissions || [],
       tenantRole: dashboard.userRole?.tenantRole || null,
     }),
-    [isAdmin, isBusinessOwner, wizardComplete, dashboard.userRole],
+    [isAuthenticated, isAdmin, isBusinessOwner, wizardComplete, dashboard.userRole],
   )
 
   // ─── Collapsible section state ──────────────────────────────────

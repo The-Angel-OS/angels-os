@@ -10,7 +10,7 @@ import { simpleSlugField } from '@/fields/simpleSlugField'
 export const Spaces: CollectionConfig = {
   slug: 'spaces',
   admin: {
-    group: 'Angel OS',
+    group: 'Spaces',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'tenant', 'visibility'],
     description: 'Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.',
@@ -49,6 +49,15 @@ export const Spaces: CollectionConfig = {
         { label: 'Invite only', value: 'invite_only' },
         { label: 'Private', value: 'private' },
       ],
+    },
+    {
+      name: 'isMain',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description:
+          'Primary community space for this tenant. Auto-joined by all new members on onboarding.',
+      },
     },
     {
       name: 'enabledApplets',

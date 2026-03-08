@@ -21,7 +21,7 @@ import type { CollectionConfig } from 'payload'
 export const StreetSigns: CollectionConfig = {
   slug: 'street-signs',
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'title',
     defaultColumns: ['title', 'contentType', 'sourceEnterprise', 'status', 'impressions'],
     description:

@@ -6,7 +6,7 @@ import { authenticated } from '@/access/authenticated'
 export const QuestParticipations: CollectionConfig = {
   slug: 'quest-participations',
   admin: {
-    group: 'Quests',
+    group: 'Intelligence',
     defaultColumns: ['quest', 'participant', 'status', 'createdAt'],
     description: 'Quest participation records — tracks evidence, objectives, review, and payout for each participant.',
   },

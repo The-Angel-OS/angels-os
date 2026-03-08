@@ -1,3 +1,10 @@
+/* =========================================================
+ * Angel OS — LCARS Admin Theme
+ * Overrides Payload CMS admin panel with LCARS dark palette.
+ * Deep space blacks, amber accents, and clean type.
+ * ========================================================= */
+
+/* ----- Utility ----- */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -7,4 +14,256 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+/* ----- LCARS Palette Tokens ----- */
+:root {
+  --lcars-amber: #f5a623;
+  --lcars-amber-dim: #c4841c;
+  --lcars-amber-glow: #ffc857;
+  --lcars-peach: #ff9966;
+  --lcars-lilac: #cc99cc;
+  --lcars-blue: #99ccff;
+  --lcars-sky: #6699cc;
+  --lcars-bg-deep: #0a0a1a;
+  --lcars-bg-panel: #111127;
+  --lcars-bg-card: #161638;
+  --lcars-border: #1e1e3f;
+  --lcars-text: #e8e8f0;
+  --lcars-text-dim: #9999bb;
+  --lcars-text-muted: #7788aa;
+  --lcars-panel-bg: #0f0f1e;
+}
+
+/* =========================================================
+ * Dark mode overrides
+ * Payload's dark theme uses html[data-theme='dark'].
+ * We override the elevation scale and accent colors to
+ * produce the LCARS deep-space aesthetic.
+ * ========================================================= */
+html[data-theme='dark'] {
+  /* Background scale — deep space blacks and dark navy */
+  --theme-elevation-0: var(--lcars-bg-deep);
+  --theme-elevation-50: #0c0c20;
+  --theme-elevation-100: var(--lcars-bg-panel);
+  --theme-elevation-150: var(--lcars-border);
+  --theme-elevation-200: #222250;
+  --theme-elevation-250: #2a2a5c;
+  --theme-elevation-300: #333368;
+  --theme-elevation-350: #3d3d74;
+  --theme-elevation-400: #4a4a80;
+  --theme-elevation-450: #55558c;
+  --theme-elevation-500: #606098;
+
+  /* Text scale — warm off-whites */
+  --theme-elevation-600: #7777a4;
+  --theme-elevation-650: var(--lcars-text-dim);
+  --theme-elevation-700: #b0b0cc;
+  --theme-elevation-750: #c4c4d8;
+  --theme-elevation-800: #d4d4e4;
+  --theme-elevation-850: var(--lcars-text);
+  --theme-elevation-900: #f0f0f8;
+  --theme-elevation-950: #f8f8fc;
+  --theme-elevation-1000: #ffffff;
+
+  /* Core theme surfaces */
+  --theme-bg: var(--lcars-bg-deep);
+  --theme-text: var(--lcars-text);
+  --theme-input-bg: var(--lcars-bg-panel);
+  --theme-border-color: var(--lcars-border);
+
+  /* Success → LCARS blue */
+  --theme-success-500: var(--lcars-blue);
+  --theme-success-600: var(--lcars-sky);
+
+  /* Warning → LCARS amber */
+  --theme-warning-500: var(--lcars-amber);
+  --theme-warning-600: var(--lcars-amber-dim);
+
+  /* Error — keep visible red but softer */
+  --theme-error-500: #e05555;
+  --theme-error-600: #cc4444;
+}
+
+/* =========================================================
+ * Nav / Sidebar
+ * ========================================================= */
+html[data-theme='dark'] {
+  .nav {
+    background: var(--lcars-bg-panel);
+    border-right-color: var(--lcars-border);
+  }
+
+  /* Nav group labels — amber caps */
+  .nav-group__label,
+  .nav__label {
+    color: var(--lcars-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Active nav link — amber underline */
+  .nav-group__link--active,
+  .nav-group__link.active {
+    color: var(--lcars-amber-glow);
+    background: rgba(245, 166, 35, 0.08);
+
+    &::before {
+      background: var(--lcars-amber);
+    }
+  }
+}
+
+/* =========================================================
+ * App Header
+ * ========================================================= */
+html[data-theme='dark'] {
+  .app-header {
+    background: var(--lcars-bg-panel);
+    border-bottom-color: var(--lcars-border);
+  }
+}
+
+/* =========================================================
+ * Buttons — amber accent for primary actions
+ * ========================================================= */
+html[data-theme='dark'] {
+  /* Primary / "save" buttons */
+  .btn--style-primary,
+  .btn--style-pill {
+    background: var(--lcars-amber);
+    color: var(--lcars-bg-deep);
+    border-color: var(--lcars-amber);
+    font-weight: 600;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--lcars-amber-glow);
+      border-color: var(--lcars-amber-glow);
+    }
+  }
+
+  /* Secondary buttons — outlined amber */
+  .btn--style-secondary {
+    border-color: var(--lcars-amber-dim);
+    color: var(--lcars-amber);
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(245, 166, 35, 0.1);
+    }
+  }
+}
+
+/* =========================================================
+ * Cards & Document drawers
+ * ========================================================= */
+html[data-theme='dark'] {
+  .card,
+  .document-drawer__content {
+    background: var(--lcars-bg-card);
+    border-color: var(--lcars-border);
+  }
+}
+
+/* =========================================================
+ * Table rows — subtle LCARS zebra
+ * ========================================================= */
+html[data-theme='dark'] {
+  .row-1:nth-child(even),
+  .table .row:nth-child(even) {
+    background: rgba(17, 17, 39, 0.5);
+  }
+}
+
+/* =========================================================
+ * Pill / badge — amber chip style
+ * ========================================================= */
+html[data-theme='dark'] {
+  .pill {
+    background: rgba(245, 166, 35, 0.12);
+    color: var(--lcars-amber);
+    border-color: rgba(245, 166, 35, 0.25);
+  }
+
+  .status-indicator--published {
+    background: var(--lcars-blue);
+  }
+
+  .status-indicator--draft {
+    background: var(--lcars-amber);
+  }
+}
+
+/* =========================================================
+ * Login page — centered with LCARS glow
+ * ========================================================= */
+html[data-theme='dark'] {
+  .login {
+    background: var(--lcars-bg-deep);
+  }
+
+  .login__brand {
+    /* Let the AdminLogo component handle the SVG rendering */
+    margin-bottom: 2rem;
+  }
+}
+
+/* =========================================================
+ * Global scrollbar — subtle, matches dark theme
+ * ========================================================= */
+html[data-theme='dark'] {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--lcars-bg-deep);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--lcars-border);
+    border-radius: 4px;
+
+    &:hover {
+      background: var(--lcars-amber-dim);
+    }
+  }
+}
+
+/* =========================================================
+ * Field labels — dim text with slight amber tint
+ * ========================================================= */
+html[data-theme='dark'] {
+  .field-label,
+  label {
+    color: var(--lcars-text-dim);
+  }
+}
+
+/* =========================================================
+ * Step nav / breadcrumbs — amber links
+ * ========================================================= */
+html[data-theme='dark'] {
+  .step-nav a {
+    color: var(--lcars-amber);
+
+    &:hover {
+      color: var(--lcars-amber-glow);
+    }
+  }
+}
+
+/* =========================================================
+ * Collection group headers in sidebar — LCARS section bars
+ * ========================================================= */
+html[data-theme='dark'] {
+  .nav-group__toggle {
+    &::after {
+      border-color: var(--lcars-amber-dim);
+    }
+  }
 }

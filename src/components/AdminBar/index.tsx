@@ -3,10 +3,13 @@
 import type { PayloadAdminBarProps } from '@payloadcms/admin-bar'
 
 import { cn } from '@/utilities/cn'
-import { useSelectedLayoutSegments } from 'next/navigation'
+import { useSelectedLayoutSegments, useParams } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState } from 'react'
 import { User } from '@/payload-types'
+import Link from 'next/link'
+
+const ADMIN_ROLES: string[] = ['super_admin', 'admin', 'archangel']
 
 const collectionLabels = {
   pages: {
@@ -25,22 +28,29 @@ const collectionLabels = {
 
 type CollectionKey = keyof typeof collectionLabels
 
-const Title: React.FC = () => <span>Dashboard</span>
+const Title: React.FC = () => <span>Angel OS</span>
 
 export const AdminBar: React.FC<{
   adminBarProps?: PayloadAdminBarProps
 }> = (props) => {
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [show, setShow] = useState(false)
   const segmentKey = segments?.[1] as CollectionKey | undefined
   const collection: CollectionKey = segmentKey && collectionLabels[segmentKey] ? segmentKey : 'pages'
 
   const onAuthChange = React.useCallback((user: unknown) => {
     const typedUser = user as User
-    const canSeeAdmin = typedUser?.roles && Array.isArray(typedUser?.roles) && typedUser?.roles?.includes('admin')
+    const canSeeAdmin =
+      typedUser?.roles &&
+      Array.isArray(typedUser.roles) &&
+      typedUser.roles.some((r) => ADMIN_ROLES.includes(r))
     setShow(Boolean(canSeeAdmin))
   }, [])
+
+  const cmsURL = process.env.NEXT_PUBLIC_SERVER_URL || ''
 
   return (
     <div
@@ -49,16 +59,16 @@ export const AdminBar: React.FC<{
         hidden: !show,
       })}
     >
-      <div className="container">
+      <div className="container flex items-center justify-between gap-4">
         <PayloadAdminBar
           {...adminBarProps}
-          className="py-2 text-white"
+          className="py-2 text-white flex-1"
           classNames={{
             controls: 'font-medium text-white',
             logo: 'text-white',
             user: 'text-white',
           }}
-          cmsURL={process.env.NEXT_PUBLIC_SERVER_URL || ''}
+          cmsURL={cmsURL}
           collectionLabels={{
             plural: collectionLabels[collection]?.plural || 'Pages',
             singular: collectionLabels[collection]?.singular || 'Page',
@@ -72,6 +82,22 @@ export const AdminBar: React.FC<{
             zIndex: 'unset',
           }}
         />
+
+        {/* Quick navigation buttons */}
+        <div className="flex items-center gap-2 text-xs">
+          <Link
+            href={`/${locale}/dashboard`}
+            className="rounded px-2 py-1 font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/admin"
+            className="rounded px-2 py-1 font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            Admin
+          </Link>
+        </div>
       </div>
     </div>
   )

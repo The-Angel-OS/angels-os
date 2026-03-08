@@ -13,7 +13,7 @@ import { checkRole } from '@/access/utilities'
  */
 export const isDocumentOwner: Access = ({ req }) => {
   // Admin has full access
-  if (req.user && checkRole(['admin'], req.user)) {
+  if (req.user && checkRole(['super_admin', 'admin', 'archangel'], req.user)) {
     return true
   }
 

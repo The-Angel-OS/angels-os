@@ -1,11 +1,14 @@
 'use client'
 
-import React, { useState, useMemo, useTransition } from 'react'
+import React, { useState, useMemo, useTransition, useCallback } from 'react'
 import {
   updateMember,
   suspendMember,
   revokeMember,
   reactivateMember,
+  fetchMemberSpaces,
+  addMemberToAllSpaces,
+  removeMemberFromSpace,
 } from './actions'
 import { sendQuickInvite } from '../invitations/actions'
 import {
@@ -307,6 +310,25 @@ function MemberEditor({
   const [isPending, startTransition] = useTransition()
   const [confirmRevoke, setConfirmRevoke] = useState(false)
 
+  // Space memberships
+  const [memberSpaces, setMemberSpaces] = useState<{ spaceId: string; spaceName: string; membershipId: string; role: string }[]>([])
+  const spacesLoadedRef = React.useRef(false)
+  const [spacesLoading, setSpacesLoading] = useState(false)
+
+  const loadSpaces = useCallback(async () => {
+    if (spacesLoadedRef.current) return
+    setSpacesLoading(true)
+    const result = await fetchMemberSpaces(member.userId)
+    if (result.success && result.spaces) {
+      setMemberSpaces(result.spaces)
+    }
+    spacesLoadedRef.current = true
+    setSpacesLoading(false)
+  }, [member.userId])
+
+  // Load spaces when editor opens
+  React.useEffect(() => { loadSpaces() }, [loadSpaces])
+
   const roleDefaults = ROLE_DEFAULT_PERMISSIONS[editRole as TenantRole] || []
 
   const togglePerm = (key: string) => {
@@ -359,6 +381,34 @@ function MemberEditor({
     })
   }
 
+  const handleAddToAllSpaces = () => {
+    startTransition(async () => {
+      const result = await addMemberToAllSpaces(member.userId)
+      if (result.success) {
+        // Direct re-fetch — avoids stale closure from ref guard
+        setSpacesLoading(true)
+        const fresh = await fetchMemberSpaces(member.userId)
+        if (fresh.success && fresh.spaces) {
+          setMemberSpaces(fresh.spaces)
+        }
+        setSpacesLoading(false)
+      } else {
+        onError(result.error || 'Failed to add to all spaces')
+      }
+    })
+  }
+
+  const handleRemoveFromSpace = (membershipId: string) => {
+    startTransition(async () => {
+      const result = await removeMemberFromSpace(membershipId)
+      if (result.success) {
+        setMemberSpaces((prev) => prev.filter((s) => s.membershipId !== membershipId))
+      } else {
+        onError(result.error || 'Failed to remove from space')
+      }
+    })
+  }
+
   return (
     <div className="space-y-4">
       {/* Role */}
@@ -373,6 +423,46 @@ function MemberEditor({
           <option value="tenant_manager">Manager</option>
           <option value="tenant_admin">Admin</option>
         </select>
+      </div>
+
+      {/* Space Memberships */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-xs font-medium text-muted-foreground">Spaces</label>
+          <button
+            onClick={handleAddToAllSpaces}
+            disabled={isPending}
+            className="text-[10px] font-medium text-primary hover:underline disabled:opacity-50"
+          >
+            + Add to all spaces
+          </button>
+        </div>
+        {spacesLoading ? (
+          <div className="flex gap-2">
+            {[1, 2].map((i) => <div key={i} className="h-6 w-24 animate-pulse rounded bg-muted" />)}
+          </div>
+        ) : memberSpaces.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Not in any spaces yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {memberSpaces.map((s) => (
+              <span
+                key={s.membershipId}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              >
+                {s.spaceName}
+                <button
+                  onClick={() => handleRemoveFromSpace(s.membershipId)}
+                  disabled={isPending}
+                  className="ml-0.5 hover:text-red-500 disabled:opacity-50"
+                  title={`Remove from ${s.spaceName}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Permissions */}

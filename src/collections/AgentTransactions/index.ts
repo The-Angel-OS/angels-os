@@ -20,7 +20,7 @@ import type { CollectionConfig } from 'payload'
 export const AgentTransactions: CollectionConfig = {
   slug: 'agent-transactions',
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'description',
     defaultColumns: ['type', 'amountCents', 'description', 'status', 'createdAt'],
     description: 'LEO agent wallet transaction ledger — every spend and earn across the federation',

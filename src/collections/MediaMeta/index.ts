@@ -33,7 +33,7 @@ import { ragIndexHook } from './hooks/ragIndexHook'
 export const MediaMeta: CollectionConfig = {
   slug: 'media-meta',
   admin: {
-    group: 'Angel OS',
+    group: 'Content',
     useAsTitle: 'summary',
     defaultColumns: ['media', 'status', 'extractionType', 'documentGroup', 'pageNumber', 'createdAt'],
     description: 'Progressive metadata extracted from uploaded media — vision analysis, OCR, document pages, RAG chunks.',

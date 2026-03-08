@@ -21,7 +21,7 @@ import { LeoNavigationBridge } from './LeoNavigationBridge'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
 
 /**
- * Dashboard layout — Rev 5 (tenant branding + space context).
+ * Dashboard layout — Rev 6 (anonymous access + tenant branding + space context).
  *
  * Desktop: full-screen dashboard with collapsible sidebar (left), main content (center),
  *          LEO chat sidebar (right, toggle).
@@ -30,6 +30,10 @@ import { TenantCookieSync } from '@/components/TenantCookieSync'
  *
  * NO brochure chrome (no Header, Footer, FloatingBubble).
  * This runs inside (dashboard) route group which provides its own HTML shell.
+ *
+ * Auth is OPTIONAL — anonymous users can view public dashboard pages
+ * (Home, Bridge, CIC, Federation). Auth-gated pages redirect themselves.
+ * LEO sidebar is hidden for anonymous users.
  */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale()
@@ -56,6 +60,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     : null
 
   // Server-side auth: extract user roles for dynamic nav
+  // Auth is OPTIONAL — anonymous users see public dashboard pages
+  let isAuthenticated = false
   let isAdmin = false
   let isBusinessOwner = false
   let userName = ''
@@ -68,6 +74,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: headersList })
     if (user) {
+      isAuthenticated = true
       userId = user.id
       platformRoles = ((user as any).roles as string[]) || []
       isAdmin = Boolean(
@@ -83,12 +90,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         .join('')
         .slice(0, 2)
         .toUpperCase()
-    } else {
-      redirect(`${prefix}/login?redirect=${encodeURIComponent(`${prefix}/dashboard`)}`)
     }
+    // No redirect — anonymous users can view public dashboard pages
   } catch {
-    // Auth system unavailable — redirect to login
-    redirect(`${prefix}/login?redirect=${encodeURIComponent(`${prefix}/dashboard`)}`)
+    // Auth system unavailable — continue as anonymous
   }
 
   // Fetch all spaces the user belongs to for dashboard context
@@ -178,8 +183,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   // Ensure DM space exists for this tenant (non-blocking, auto-provision)
+  // Only for authenticated users — anonymous users don't need DM spaces
   let dmSpaceId: string | undefined
-  if (tenant?.id) {
+  if (isAuthenticated && tenant?.id) {
     dmSpaceId = await ensureDMSpace(tenant.id)
   }
 
@@ -218,6 +224,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             prefix={prefix}
             isAdmin={isAdmin}
             isBusinessOwner={isBusinessOwner}
+            isAuthenticated={isAuthenticated}
             userName={userName}
             userEmail={userEmail}
             userInitials={userInitials}
@@ -230,14 +237,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {/* ─── Main Content (center) ─── */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* Dashboard Header Bar — title + user info */}
-            <DashboardHeader prefix={prefix} userName={userName} userInitials={userInitials} />
+            <DashboardHeader prefix={prefix} userName={userName} userInitials={userInitials} isAuthenticated={isAuthenticated} />
 
             {/* Page Content — reduced padding on mobile */}
             <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
           </div>
 
-          {/* ─── LEO Chat Sidebar (right, toggle) ─── */}
-          <DashboardLEOSidebar spaceId={defaultSpaceId} dmSpaceId={dmSpaceId} tenantId={tenant?.id ? String(tenant.id) : undefined} userId={userId ? String(userId) : undefined} />
+          {/* ─── LEO Chat Sidebar (right, toggle) — hidden for anonymous ─── */}
+          {isAuthenticated && (
+            <DashboardLEOSidebar spaceId={defaultSpaceId} dmSpaceId={dmSpaceId} tenantId={tenant?.id ? String(tenant.id) : undefined} userId={userId ? String(userId) : undefined} />
+          )}
         </div>
       </ChatProvider>
     </DashboardProvider>

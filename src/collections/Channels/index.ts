@@ -18,7 +18,7 @@ import { simpleSlugField } from '@/fields/simpleSlugField'
 export const Channels: CollectionConfig = {
   slug: 'channels',
   admin: {
-    group: 'Angel OS',
+    group: 'Spaces',
     useAsTitle: 'name',
     defaultColumns: ['name', 'space', 'type', 'isDefault'],
   },

@@ -22,7 +22,7 @@ export const HolonCapabilities: CollectionConfig = {
     afterChange: [afterHolonChange],
   },
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'nodeType',
     defaultColumns: ['tenant', 'nodeType', 'serviceRadius', 'constitutionalCompliance'],
   },

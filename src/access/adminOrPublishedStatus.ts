@@ -18,7 +18,7 @@ import { checkRole } from '@/access/utilities'
 export const adminOrPublishedStatus: Access = ({ req }) => {
   const { user } = req
 
-  if (user && checkRole(['admin'], user)) {
+  if (user && checkRole(['super_admin', 'admin', 'archangel'], user)) {
     return true
   }
 

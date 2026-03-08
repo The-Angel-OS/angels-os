@@ -13,7 +13,7 @@ import { checkRole } from '@/access/utilities'
 export const JusticeFundTransactions: CollectionConfig = {
   slug: 'justice-fund-transactions',
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'description',
     defaultColumns: ['type', 'amountCents', 'status', 'processedAt'],
   },

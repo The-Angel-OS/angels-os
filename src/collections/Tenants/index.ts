@@ -15,7 +15,7 @@ export const Tenants: CollectionConfig = {
     afterChange: [autoCreateOwnerMembership],
   },
   admin: {
-    group: 'Angel OS',
+    group: 'Core',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'domain', 'status'],
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),

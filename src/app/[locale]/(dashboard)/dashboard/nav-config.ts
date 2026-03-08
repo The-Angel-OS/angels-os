@@ -11,6 +11,7 @@ import type { NavIconKey } from './nav-icons'
 // ─── Visibility Context ─────────────────────────────────────────
 
 export interface NavVisibilityContext {
+  isAuthenticated: boolean
   isAdmin: boolean
   isBusinessOwner: boolean
   wizardComplete: boolean
@@ -43,9 +44,10 @@ export interface NavSectionConfig {
 // ─── Helpers ────────────────────────────────────────────────────
 
 const always = () => true
-const adminOnly = (ctx: NavVisibilityContext) => ctx.isAdmin
-const businessOwner = (ctx: NavVisibilityContext) => ctx.isBusinessOwner
-const adminOrBusinessOwner = (ctx: NavVisibilityContext) => ctx.isAdmin || ctx.isBusinessOwner
+const authenticated = (ctx: NavVisibilityContext) => ctx.isAuthenticated
+const adminOnly = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isAdmin
+const businessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isBusinessOwner
+const adminOrBusinessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && (ctx.isAdmin || ctx.isBusinessOwner)
 /** isActive shorthand — matches if pathname includes the given path segment */
 const active = (path: string) => (pathname: string, _prefix: string) => pathname.includes(path)
 
@@ -81,7 +83,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'helm',
         href: (p) => `${p}/dashboard/bridge`,
         isActive: active('/dashboard/bridge'),
-        visible: adminOrBusinessOwner,
+        visible: always, // Public — operational transparency
       },
       {
         key: 'cic',
@@ -89,7 +91,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'radar',
         href: (p) => `${p}/dashboard/cic`,
         isActive: active('/dashboard/cic'),
-        visible: adminOrBusinessOwner,
+        visible: always, // Public — command center is the viewport
       },
       {
         key: 'payload-admin',
@@ -105,7 +107,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'bot',
         href: (p) => `${p}/dashboard/spaces`,
         isActive: active('/dashboard/spaces'),
-        visible: always,
+        visible: authenticated,
       },
       {
         key: 'my-orders',
@@ -113,7 +115,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'shopping-bag',
         href: (p) => `${p}/dashboard/my-orders`,
         isActive: active('/dashboard/my-orders'),
-        visible: always,
+        visible: authenticated,
       },
       {
         key: 'docs',
@@ -157,7 +159,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
     key: 'account',
     label: 'ACCOUNT',
     collapsible: false,
-    visible: always,
+    visible: authenticated,
     items: [
       {
         key: 'profile',

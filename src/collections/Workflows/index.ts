@@ -9,7 +9,7 @@ import { authenticated } from '@/access/authenticated'
 export const Workflows: CollectionConfig = {
   slug: 'workflows',
   admin: {
-    group: 'Angel OS',
+    group: 'Configuration',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'triggerType', 'channelTypes', 'isActive'],
   },

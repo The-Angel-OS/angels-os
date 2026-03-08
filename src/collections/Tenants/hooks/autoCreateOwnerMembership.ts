@@ -1,6 +1,7 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
+import { ensureMainSpace } from '@/utilities/ensureMainSpace'
 
 /**
  * autoCreateOwnerMembership — When a new Tenant is created, auto-create
@@ -61,30 +62,62 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       `[autoCreateOwnerMembership] User ${userId} linked as tenant_admin to new tenant "${doc.name}" (${doc.id})`,
     )
 
-    // Create default CMS pages (home, contact) so the admin panel isn't empty
-    try {
-      await createDefaultTenantPages(payload, doc.id, {
+    // Pages, navigation, and main space creation are independent — run in parallel
+    const [pagesResult, navResult, spaceResult] = await Promise.allSettled([
+      createDefaultTenantPages(payload, doc.id, {
         siteName: doc.branding?.siteName || doc.name || 'Welcome',
         tagline: typeof doc.branding?.tagline === 'string' ? doc.branding.tagline : '',
-      })
+      }),
+      createDefaultTenantNavigation(payload, doc.id),
+      ensureMainSpace(payload, doc.id, doc.name, doc.slug),
+    ])
+
+    if (pagesResult.status === 'fulfilled') {
       payload.logger.info(
         `[autoCreateOwnerMembership] Created default pages for tenant "${doc.name}" (${doc.id})`,
       )
-    } catch (pageErr) {
+    } else {
       payload.logger.warn(
-        `[autoCreateOwnerMembership] Non-critical: failed to create default pages for tenant ${doc.id}: ${pageErr}`,
+        `[autoCreateOwnerMembership] Non-critical: failed to create default pages for tenant ${doc.id}: ${pagesResult.reason}`,
       )
     }
 
-    // Create default header/footer navigation so the site has proper nav menus
-    try {
-      await createDefaultTenantNavigation(payload, doc.id)
+    if (navResult.status === 'fulfilled') {
       payload.logger.info(
         `[autoCreateOwnerMembership] Created default navigation for tenant "${doc.name}" (${doc.id})`,
       )
-    } catch (navErr) {
+    } else {
       payload.logger.warn(
-        `[autoCreateOwnerMembership] Non-critical: failed to create default navigation for tenant ${doc.id}: ${navErr}`,
+        `[autoCreateOwnerMembership] Non-critical: failed to create default navigation for tenant ${doc.id}: ${navResult.reason}`,
+      )
+    }
+
+    if (spaceResult.status === 'fulfilled' && spaceResult.value?.created) {
+      try {
+        // Make the creating user a space_admin of the new main space
+        await payload.create({
+          collection: 'space-memberships',
+          data: {
+            user: userId as number,
+            space: Number(spaceResult.value.spaceId),
+            role: 'space_admin',
+            status: 'active',
+            joinedAt: new Date().toISOString(),
+            tenant: doc.id as number,
+          } as any,
+          overrideAccess: true,
+        })
+        payload.logger.info(
+          `[autoCreateOwnerMembership] Created main space for tenant "${doc.name}" (${doc.id}) with ${spaceResult.value.channelIds.length} channels`,
+        )
+      } catch (memberErr) {
+        payload.logger.warn(
+          `[autoCreateOwnerMembership] Non-critical: main space created but failed to add owner as space_admin for tenant ${doc.id}: ${memberErr}`,
+        )
+      }
+    } else if (spaceResult.status === 'rejected') {
+      payload.logger.warn(
+        `[autoCreateOwnerMembership] Non-critical: failed to create main space for tenant ${doc.id}: ${spaceResult.reason}`,
       )
     }
   } catch (err) {

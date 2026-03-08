@@ -90,7 +90,7 @@ export function SpaceSettingsClient({
 
       {/* Tab content */}
       {activeTab === 'general' && <GeneralTab spaceId={activeSpaceId} space={activeSpace} />}
-      {activeTab === 'members' && <MembersTab spaceId={activeSpaceId} isAdmin={isAdmin} />}
+      {activeTab === 'members' && <MembersTab spaceId={activeSpaceId} isAdmin={isAdmin} tenantId={tenantId} />}
       {activeTab === 'channels' && <ChannelsTab spaceId={activeSpaceId} />}
       {activeTab === 'danger' && <DangerTab spaceId={activeSpaceId} spaceName={activeSpace.name} />}
     </div>
@@ -197,9 +197,33 @@ function GeneralTab({ spaceId, space }: { spaceId: string; space: { name: string
 
 // ─── Members Tab ─────────────────────────────────────────────
 
-function MembersTab({ spaceId, isAdmin }: { spaceId: string; isAdmin: boolean }) {
+interface TenantMember {
+  userId: number
+  userName: string
+  userEmail: string
+}
+
+function MembersTab({ spaceId, isAdmin, tenantId }: { spaceId: string; isAdmin: boolean; tenantId?: string }) {
   const [members, setMembers] = useState<SpaceMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // "Add from Endeavor" state
+  const [eligibleMembers, setEligibleMembers] = useState<TenantMember[]>([])
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [addRole, setAddRole] = useState<string>('member')
+  const [isAdding, setIsAdding] = useState(false)
+  const [loadingEligible, setLoadingEligible] = useState(false)
+
+  // "Invite by email" state
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<string>('member')
+  const [inviteMessage, setInviteMessage] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+
+  // Remove confirmation
+  const [confirmRemoveId, setConfirmRemoveId] = useState<number | null>(null)
+  const [isRemoving, setIsRemoving] = useState(false)
 
   const fetchMembers = useCallback(async () => {
     setIsLoading(true)
@@ -231,7 +255,155 @@ function MembersTab({ spaceId, isAdmin }: { spaceId: string; isAdmin: boolean })
     }
   }, [spaceId])
 
+  // Fetch eligible tenant members (not already in this space)
+  const fetchEligible = useCallback(async () => {
+    if (!tenantId || !isAdmin) return
+    setLoadingEligible(true)
+    try {
+      const res = await fetch(
+        `${SERVER_URL}/api/tenant-memberships?where[tenant][equals]=${tenantId}&where[status][equals]=active&depth=1&limit=200`,
+        { credentials: 'include' },
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const allTenantMembers: TenantMember[] = (data.docs || []).map((doc: Record<string, unknown>) => {
+          const user = typeof doc.user === 'object' && doc.user !== null ? (doc.user as Record<string, unknown>) : null
+          return {
+            userId: (user?.id as number) || 0,
+            userName: (user?.name as string) || (user?.email as string) || 'Unknown',
+            userEmail: (user?.email as string) || '',
+          }
+        }).filter((m: TenantMember) => m.userId > 0)
+        setEligibleMembers(allTenantMembers)
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setLoadingEligible(false)
+    }
+  }, [tenantId, isAdmin])
+
   useEffect(() => { fetchMembers() }, [fetchMembers])
+  useEffect(() => { fetchEligible() }, [fetchEligible])
+
+  // Filter out members already in the space
+  const memberUserIds = new Set(members.map((m) => {
+    // userEmail is the key we can match on, but we need userId from the eligible list
+    return m.userEmail
+  }))
+  const addableMembers = eligibleMembers.filter((m) => !memberUserIds.has(m.userEmail))
+
+  const handleAddMember = async () => {
+    if (!selectedUserId || !tenantId) return
+    setIsAdding(true)
+    setFeedback(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/space-memberships`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: Number(selectedUserId),
+          space: Number(spaceId),
+          role: addRole,
+          status: 'active',
+          joinedAt: new Date().toISOString(),
+          tenant: Number(tenantId),
+        }),
+      })
+      if (res.ok) {
+        setFeedback({ type: 'success', text: 'Member added successfully.' })
+        setSelectedUserId('')
+        setAddRole('member')
+        fetchMembers()
+        fetchEligible()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setFeedback({ type: 'error', text: err.errors?.[0]?.message || 'Failed to add member.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Network error.' })
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  const handleRoleChange = async (membershipId: number, newRole: string) => {
+    setFeedback(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/space-memberships/${membershipId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      })
+      if (res.ok) {
+        setFeedback({ type: 'success', text: 'Role updated.' })
+        fetchMembers()
+      } else {
+        setFeedback({ type: 'error', text: 'Failed to update role.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Network error.' })
+    }
+  }
+
+  const handleRemoveMember = async (membershipId: number) => {
+    setIsRemoving(true)
+    setFeedback(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/spaces/members/remove`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membershipId, spaceId }),
+      })
+      if (res.ok) {
+        setFeedback({ type: 'success', text: 'Member removed.' })
+        setConfirmRemoveId(null)
+        fetchMembers()
+        fetchEligible()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setFeedback({ type: 'error', text: err.error || 'Failed to remove member.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Network error.' })
+    } finally {
+      setIsRemoving(false)
+    }
+  }
+
+  const handleInvite = async () => {
+    if (!inviteEmail) return
+    setIsInviting(true)
+    setFeedback(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/spaces/${spaceId}/invite`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail,
+          spaceId,
+          role: inviteRole,
+          message: inviteMessage || undefined,
+        }),
+      })
+      if (res.ok) {
+        setFeedback({ type: 'success', text: `Invitation sent to ${inviteEmail}.` })
+        setInviteEmail('')
+        setInviteMessage('')
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setFeedback({ type: 'error', text: err.error || 'Failed to send invitation.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Network error.' })
+    } finally {
+      setIsInviting(false)
+    }
+  }
 
   const roleBadge = (role: string) => {
     const colors: Record<string, string> = {
@@ -250,6 +422,57 @@ function MembersTab({ spaceId, isAdmin }: { spaceId: string; isAdmin: boolean })
 
   return (
     <div className="space-y-4">
+      {feedback && (
+        <div className={`rounded-md p-3 text-sm ${
+          feedback.type === 'success'
+            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+            : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+        }`}>
+          {feedback.text}
+        </div>
+      )}
+
+      {/* Add from Endeavor — admin only */}
+      {isAdmin && (
+        <Card title="Add from Endeavor" description="Add existing team members to this space.">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <select
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+              disabled={loadingEligible}
+            >
+              <option value="">
+                {loadingEligible ? 'Loading members...' : addableMembers.length === 0 ? 'All members already added' : 'Select a member...'}
+              </option>
+              {addableMembers.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.userName} ({m.userEmail})
+                </option>
+              ))}
+            </select>
+            <select
+              value={addRole}
+              onChange={(e) => setAddRole(e.target.value)}
+              className="w-32 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="member">Member</option>
+              <option value="moderator">Moderator</option>
+              <option value="guest">Guest</option>
+            </select>
+            <button
+              onClick={handleAddMember}
+              disabled={!selectedUserId || isAdding}
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+            >
+              {isAdding ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+              Add
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {/* Members list */}
       <Card title="Members" description={`${members.length} member${members.length !== 1 ? 's' : ''} in this space.`}>
         {isLoading ? (
           <div className="space-y-3">
@@ -276,12 +499,95 @@ function MembersTab({ spaceId, isAdmin }: { spaceId: string; isAdmin: boolean })
                   <p className="text-sm font-medium truncate">{m.userName}</p>
                   <p className="text-xs text-muted-foreground truncate">{m.userEmail}</p>
                 </div>
-                {roleBadge(m.role)}
+                {isAdmin ? (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={m.role}
+                      onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                      className="rounded border border-border bg-background px-2 py-1 text-xs"
+                    >
+                      <option value="space_admin">Admin</option>
+                      <option value="moderator">Mod</option>
+                      <option value="member">Member</option>
+                      <option value="guest">Guest</option>
+                    </select>
+                    {confirmRemoveId === m.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleRemoveMember(m.id)}
+                          disabled={isRemoving}
+                          className="rounded bg-red-600 px-2 py-1 text-[10px] text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {isRemoving ? '...' : 'Confirm'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted/80"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRemoveId(m.id)}
+                        className="rounded p-1 text-muted-foreground hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
+                        title="Remove member"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  roleBadge(m.role)
+                )}
               </div>
             ))}
           </div>
         )}
       </Card>
+
+      {/* Invite by email — admin only */}
+      {isAdmin && (
+        <Card title="Invite by Email" description="Send an invitation to someone outside your current team.">
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              />
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="w-32 rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="member">Member</option>
+                <option value="moderator">Moderator</option>
+                <option value="guest">Guest</option>
+              </select>
+            </div>
+            <textarea
+              value={inviteMessage}
+              onChange={(e) => setInviteMessage(e.target.value)}
+              rows={2}
+              placeholder="Optional personal message..."
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none resize-none"
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={handleInvite}
+                disabled={!inviteEmail || isInviting}
+                className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isInviting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                {isInviting ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

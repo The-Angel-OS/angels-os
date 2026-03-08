@@ -22,7 +22,7 @@ export const adminOrPublishedWithTenantScope: Access = async ({ req }) => {
   const { user } = req
 
   // Admin users get full access — multiTenantPlugin handles their tenant filtering
-  if (user && checkRole(['admin'], user)) {
+  if (user && checkRole(['super_admin', 'admin', 'archangel'], user)) {
     return true
   }
 

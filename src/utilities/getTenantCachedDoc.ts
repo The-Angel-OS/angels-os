@@ -3,7 +3,7 @@ import { getPayload } from 'payload'
 import { unstable_cache } from 'next/cache'
 import type { Header, Footer } from '@/payload-types'
 
-type TenantDocCollection = 'header' | 'footer'
+type TenantDocCollection = 'header' | 'footer' | 'site-settings'
 
 async function getTenantDoc<T extends Header | Footer>(
   collection: TenantDocCollection,
@@ -13,7 +13,7 @@ async function getTenantDoc<T extends Header | Footer>(
   const payload = await getPayload({ config: configPromise })
 
   const result = await payload.find({
-    collection,
+    collection: collection as any,
     where: { tenant: { equals: tenantId } },
     limit: 1,
     depth,

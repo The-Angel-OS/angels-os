@@ -63,7 +63,7 @@ export type WatchSection = (typeof WATCH_SECTIONS)[number]['value']
 export const CrewAssignments: CollectionConfig = {
   slug: 'crew-assignments',
   admin: {
-    group: 'Angel OS',
+    group: 'Core',
     useAsTitle: 'station',
     defaultColumns: ['station', 'department', 'rank', 'dutyStatus', 'watchSection'],
     description:

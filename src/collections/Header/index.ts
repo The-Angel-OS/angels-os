@@ -6,7 +6,7 @@ import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 export const Header: CollectionConfig = {
   slug: 'header',
   admin: {
-    group: 'Angel OS',
+    group: 'Configuration',
     useAsTitle: 'label',
     description: 'Site header navigation — one per tenant.',
   },

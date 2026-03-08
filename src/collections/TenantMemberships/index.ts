@@ -19,7 +19,7 @@ export const TenantMemberships: CollectionConfig = {
     afterChange: [syncUserTenants, autoJoinSpaces],
   },
   admin: {
-    group: 'Angel OS',
+    group: 'Core',
     useAsTitle: 'id',
     defaultColumns: ['user', 'tenant', 'role', 'status'],
     description: 'User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).',

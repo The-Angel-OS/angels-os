@@ -35,7 +35,7 @@ export const Endeavors: CollectionConfig = {
     beforeChange: [generateBeneficiaryTokens],
   },
   admin: {
-    group: 'Angel OS',
+    group: 'Federation',
     useAsTitle: 'name',
     defaultColumns: ['name', 'endeavorType', 'status', 'updatedAt'],
     description:

@@ -8,7 +8,9 @@
  * Naval metaphor: This is the data that feeds the bridge's main viewscreen.
  * Every department reports status. The CIC officer synthesizes it all.
  *
- * Auth: Requires authenticated user with admin or business owner role.
+ * Auth: Optional. Authenticated users get full details. Anonymous users get
+ * aggregated public data (department counts, queue depth, federation status)
+ * without PII (no names, emails, or assignee details).
  *
  * @see src/collections/CrewAssignments/index.ts — crew roster
  * @see src/collections/Intelligence/WorkUnits.ts — work queue
@@ -16,6 +18,8 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,12 +76,25 @@ export interface CICStatusResponse {
 export const cicStatusHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
 
-  if (!user) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
-  }
+  // Auth is optional — anonymous users get aggregated public data
+  const isAuthenticated = !!user
 
-  // Resolve tenant
-  const tenantId = req.headers.get('x-tenant-id')
+  // Resolve tenant — same chain as resolveTenantFromHeaders:
+  // 1. x-tenant-id header (slug, from middleware for subdomain tenants)
+  // 2. host header (domain-based lookup for platform domains like spacesangels.com)
+  let tenantId: number | null = null
+  const tenantSlug = req.headers.get('x-tenant-id')
+  if (tenantSlug) {
+    const tenant = await fetchTenantBySlug(tenantSlug)
+    tenantId = tenant?.id ?? null
+  }
+  if (!tenantId) {
+    const host = req.headers.get('host') || req.headers.get('x-forwarded-host')
+    if (host) {
+      const tenant = await fetchTenantByDomain(host)
+      tenantId = tenant?.id ?? null
+    }
+  }
   if (!tenantId) {
     return Response.json({ error: 'Tenant context required' }, { status: 400 })
   }
@@ -86,7 +103,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
     // ── Fetch Endeavor ─────────────────────────────────────────────
     const endeavors = await payload.find({
       collection: 'endeavors',
-      where: { tenant: { equals: Number(tenantId) } },
+      where: { tenant: { equals: tenantId } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
@@ -96,7 +113,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
     // ── Fetch Crew Assignments ─────────────────────────────────────
     const crewResult = await payload.find({
       collection: 'crew-assignments' as any,
-      where: { tenant: { equals: Number(tenantId) } },
+      where: { tenant: { equals: tenantId } },
       limit: 500,
       depth: 0,
       overrideAccess: true,
@@ -268,6 +285,15 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
         lastPingAt: endeavor?.federation?.lastPingAt || null,
       },
       platforms,
+    }
+
+    // For anonymous users, strip platform connection details and internal URLs
+    if (!isAuthenticated) {
+      response.platforms = response.platforms.map((p) => ({
+        name: p.name,
+        status: p.status,
+        // Omit 'detail' field which may contain internal URLs/cloud names
+      }))
     }
 
     return Response.json(response)

@@ -19,7 +19,7 @@ import { checkRole } from '@/access/utilities'
 export const Connectors: CollectionConfig = {
   slug: 'connectors',
   admin: {
-    group: 'Angel OS',
+    group: 'Configuration',
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'status', 'tenant', 'space'],
     hidden: ({ user }) =>

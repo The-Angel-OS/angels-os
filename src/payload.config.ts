@@ -35,6 +35,7 @@ import { Comments } from '@/collections/Comments'
 import { Channels } from '@/collections/Channels'
 import { Footer } from '@/collections/Footer'
 import { Header } from '@/collections/Header'
+import { SiteSettings } from '@/collections/SiteSettings'
 import { Media } from '@/collections/Media'
 import { Messages } from '@/collections/Messages'
 import { Pages } from '@/collections/Pages'
@@ -159,6 +160,9 @@ export default buildConfig({
     'http://localhost:3001',
   ],
   admin: {
+    meta: {
+      titleSuffix: ' — Angel OS',
+    },
     livePreview: {
       breakpoints: [
         { label: 'Mobile', name: 'mobile', width: 375, height: 667 },
@@ -168,11 +172,11 @@ export default buildConfig({
       collections: ['pages', 'products', 'posts'],
     },
     components: {
-      // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below and the import `BeforeLogin` statement on line 15.
+      graphics: {
+        Logo: '@/components/AdminLogo#AdminLogo',
+        Icon: '@/components/AdminIcon#AdminIcon',
+      },
       beforeLogin: ['@/components/BeforeLogin#BeforeLogin'],
-      // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below and the import `BeforeDashboard` statement on line 15.
       beforeDashboard: ['@/components/BeforeDashboard#BeforeDashboard'],
       afterNavLinks: ['@/components/PayloadAdminLEO#PayloadAdminLEO'],
       beforeNav: ['@/components/TenantAutoSelector#TenantAutoSelector'],
@@ -194,6 +198,7 @@ export default buildConfig({
     Availability,
     Header,
     Footer,
+    SiteSettings,
     Pages,
     Posts,
     Projects,
@@ -267,6 +272,7 @@ export default buildConfig({
         contacts: {},
         header: {},
         footer: {},
+        'site-settings': {},
         // ─── Sprint 18B/19/20 ──────────────────────────────
         'media-meta': {},
         connectors: {},

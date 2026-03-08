@@ -20,6 +20,7 @@ import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
+import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import type { Metadata } from 'next'
 import type { Media } from '@/payload-types'
 import './globals.css'
@@ -93,6 +94,19 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     console.error('[AppLayout] Default space resolution failed:', err)
   }
 
+  // Fetch SiteSettings for this tenant (announcement bar, social links, GA, maintenance mode)
+  let siteSettings: any = null
+  try {
+    if (tenant?.id) {
+      siteSettings = await getTenantCachedDoc('site-settings', tenant.id, 1)()
+    }
+  } catch {
+    // Non-critical — site works without settings
+  }
+
+  const announcementBar = siteSettings?.announcementBar
+  const showAnnouncement = announcementBar?.enabled && announcementBar?.text
+
   return (
     <html
       className={[GeistSans.variable, GeistMono.variable].filter(Boolean).join(' ')}
@@ -112,6 +126,22 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <Providers>
           <AdminBar />
           <LivePreviewListener />
+
+          {/* Announcement Bar — from SiteSettings */}
+          {showAnnouncement && (
+            <div
+              className="text-center text-sm font-medium py-2 px-4"
+              style={{ backgroundColor: announcementBar.backgroundColor || '#f5a623', color: '#000' }}
+            >
+              {announcementBar.link ? (
+                <a href={announcementBar.link} className="hover:underline">
+                  {announcementBar.text}
+                </a>
+              ) : (
+                announcementBar.text
+              )}
+            </div>
+          )}
 
           <Header tenant={tenant} />
           <main>{children}</main>

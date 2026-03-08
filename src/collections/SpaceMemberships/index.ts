@@ -6,7 +6,7 @@ import type { CollectionConfig } from 'payload'
 export const SpaceMemberships: CollectionConfig = {
   slug: 'space-memberships',
   admin: {
-    group: 'Angel OS',
+    group: 'Spaces',
     useAsTitle: 'id',
     defaultColumns: ['user', 'space', 'role', 'status'],
   },

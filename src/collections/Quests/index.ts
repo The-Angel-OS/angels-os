@@ -7,7 +7,7 @@ import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 export const Quests: CollectionConfig = {
   slug: 'quests',
   admin: {
-    group: 'Quests',
+    group: 'Intelligence',
     useAsTitle: 'title',
     defaultColumns: ['title', 'status', 'questType', 'payout.amount', 'createdAt'],
   },
