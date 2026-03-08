@@ -65,6 +65,11 @@ export default async function DashboardPage({
   // Growth stats (admin only)
   let growthStats = { pendingInvites: 0, activeMembers: 0, federationPeers: 0 }
 
+  // Recent activity (admin only)
+  let recentActivity: Array<{ action: string; detail?: string; createdAt: string; allowed?: boolean }> = []
+  // Content drafts count
+  let draftCount = 0
+
   let feeStatus: {
     tier: string
     freeTransactionsUsed: number
@@ -231,6 +236,36 @@ export default async function DashboardPage({
         federationPeers: peersResult.totalDocs,
       }
     }
+
+    // Recent activity feed + draft counts (parallel, non-critical)
+    const [activityResult, draftPagesResult, draftPostsResult] = await Promise.all([
+      isAdmin
+        ? payload.find({
+            collection: 'federation-audit-log',
+            sort: '-createdAt',
+            limit: 6,
+            depth: 0,
+            overrideAccess: true,
+          }).catch(() => ({ docs: [] }))
+        : Promise.resolve({ docs: [] }),
+      payload.count({
+        collection: 'pages',
+        where: { ...(tenantFilter ?? {}), _status: { equals: 'draft' } },
+        overrideAccess: true,
+      }).catch(() => ({ totalDocs: 0 })),
+      payload.count({
+        collection: 'posts',
+        where: { ...(tenantFilter ?? {}), _status: { equals: 'draft' } },
+        overrideAccess: true,
+      }).catch(() => ({ totalDocs: 0 })),
+    ])
+    recentActivity = (activityResult.docs || []).map((d: any) => ({
+      action: d.action || 'unknown',
+      detail: d.detail || d.sourceFederationId || '',
+      createdAt: d.createdAt || '',
+      allowed: d.allowed,
+    }))
+    draftCount = draftPagesResult.totalDocs + draftPostsResult.totalDocs
   } catch {
     // Not authenticated or DB not ready — show defaults
   }
@@ -333,6 +368,16 @@ export default async function DashboardPage({
           href={`${prefix}/shop`}
           delay={300}
         />
+        {draftCount > 0 && (
+          <LCARSStatCard
+            label="Drafts"
+            value={draftCount}
+            icon={<DraftIcon />}
+            accentColor="var(--lcars-peach, #ffab91)"
+            href="/admin/collections/pages"
+            delay={350}
+          />
+        )}
       </div>
 
       {/* Bootstrap Fee Status */}
@@ -440,6 +485,49 @@ export default async function DashboardPage({
           </div>
         )}
       </div>
+
+      {/* Recent Activity Feed — Ship's Log (admin only) */}
+      {isAdmin && recentActivity.length > 0 && (
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            background: 'rgba(17, 17, 34, 0.4)',
+            borderColor: 'rgba(245, 166, 35, 0.08)',
+          }}
+        >
+          <p
+            className="text-xs font-mono uppercase tracking-wider mb-3"
+            style={{ color: 'var(--lcars-amber)' }}
+          >
+            Ship&apos;s Log — Recent Activity
+          </p>
+          <div className="space-y-2">
+            {recentActivity.map((event, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 text-xs"
+                style={{ padding: '6px 0', borderBottom: i < recentActivity.length - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined }}
+              >
+                <span
+                  className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                  style={{
+                    background: event.allowed === false ? 'var(--lcars-peach, #ff6b6b)' : 'var(--lcars-green, #4caf50)',
+                  }}
+                />
+                <span className="font-mono uppercase tracking-wider" style={{ color: 'var(--lcars-amber)', minWidth: '120px' }}>
+                  {event.action.replace(/_/g, ' ')}
+                </span>
+                {event.detail && (
+                  <span className="text-muted-foreground truncate flex-1">{event.detail}</span>
+                )}
+                <span className="text-muted-foreground flex-shrink-0 tabular-nums">
+                  {formatActivityTime(event.createdAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Access — LCARS Console Actions */}
       <div>
@@ -645,6 +733,36 @@ function PostsIcon() {
       />
     </svg>
   )
+}
+
+function DraftIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+      />
+    </svg>
+  )
+}
+
+/** Format a timestamp for the activity feed (e.g., "2h ago", "3d ago") */
+function formatActivityTime(dateStr: string): string {
+  if (!dateStr) return ''
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return 'now'
+    if (diffMin < 60) return `${diffMin}m`
+    const diffHours = Math.floor(diffMin / 60)
+    if (diffHours < 24) return `${diffHours}h`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}d`
+  } catch {
+    return ''
+  }
 }
 
 // ─── Bootstrap Fee Card ─────────────────────────────────────────

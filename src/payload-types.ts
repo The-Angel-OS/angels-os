@@ -87,6 +87,7 @@ export interface Config {
     availability: Availability;
     header: Header;
     footer: Footer;
+    'site-settings': SiteSetting;
     pages: Page;
     posts: Post;
     projects: Project;
@@ -158,6 +159,7 @@ export interface Config {
     availability: AvailabilitySelect<false> | AvailabilitySelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
@@ -1993,6 +1995,10 @@ export interface Space {
   description?: string | null;
   visibility?: ('public' | 'invite_only' | 'private') | null;
   /**
+   * Primary community space for this tenant. Auto-joined by all new members on onboarding.
+   */
+  isMain?: boolean | null;
+  /**
    * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
    */
   enabledApplets?:
@@ -3284,6 +3290,76 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Site-wide settings — social links, SEO defaults, maintenance mode, and announcement bar. One per tenant.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Descriptive label (e.g. "Main Site Settings").
+   */
+  label?: string | null;
+  /**
+   * Social media links displayed in the site footer.
+   */
+  socialLinks?:
+    | {
+        platform:
+          | 'facebook'
+          | 'instagram'
+          | 'twitter'
+          | 'linkedin'
+          | 'youtube'
+          | 'tiktok'
+          | 'github'
+          | 'discord'
+          | 'bluesky';
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Google Analytics Measurement ID (e.g. G-XXXXXXXXXX).
+   */
+  googleAnalyticsId?: string | null;
+  /**
+   * Default Open Graph image used when pages have no specific OG image.
+   */
+  defaultOgImage?: (number | null) | Media;
+  /**
+   * Default meta description for pages without their own.
+   */
+  defaultMetaDescription?: string | null;
+  /**
+   * When enabled, visitors see a maintenance page instead of the site.
+   */
+  maintenanceMode?: boolean | null;
+  /**
+   * Message displayed during maintenance mode.
+   */
+  maintenanceMessage?: string | null;
+  /**
+   * Optional announcement banner displayed at the top of the site.
+   */
+  announcementBar?: {
+    enabled?: boolean | null;
+    text?: string | null;
+    /**
+     * Optional link URL for the announcement.
+     */
+    link?: string | null;
+    /**
+     * Background color (hex). Default: LCARS amber.
+     */
+    backgroundColor?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -5343,6 +5419,10 @@ export interface PayloadLockedDocument {
         value: number | Footer;
       } | null)
     | ({
+        relationTo: 'site-settings';
+        value: number | SiteSetting;
+      } | null)
+    | ({
         relationTo: 'pages';
         value: number | Page;
       } | null)
@@ -5798,6 +5878,7 @@ export interface SpacesSelect<T extends boolean = true> {
   slug?: T;
   description?: T;
   visibility?: T;
+  isMain?: T;
   enabledApplets?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -6177,6 +6258,36 @@ export interface FooterSelect<T extends boolean = true> {
               label?: T;
             };
         id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  label?: T;
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  googleAnalyticsId?: T;
+  defaultOgImage?: T;
+  defaultMetaDescription?: T;
+  maintenanceMode?: T;
+  maintenanceMessage?: T;
+  announcementBar?:
+    | T
+    | {
+        enabled?: T;
+        text?: T;
+        link?: T;
+        backgroundColor?: T;
       };
   updatedAt?: T;
   createdAt?: T;
