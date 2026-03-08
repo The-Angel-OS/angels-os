@@ -50,12 +50,13 @@ export const ordersVendorHandler: PayloadHandler = async (req) => {
     })
   }
 
-  // Query orders that have fulfillment entries assigned to our holons
+  // Query orders that have fulfillment entries assigned to our holons — scoped to user's tenants
   // We need to search orders with fulfillment.assignedHolon in our holon IDs
   const allOrders = await payload.find({
     collection: 'orders' as any,
     where: {
       'fulfillment.assignedHolon': { in: holonIds },
+      tenant: { in: userTenants },
     },
     limit: 100,
     depth: 2,

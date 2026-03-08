@@ -42,7 +42,7 @@ export async function runWorkflowsForMessage(
     where: {
       and: [
         { isActive: { equals: true } },
-        ...(tenantId ? [{ tenant: { equals: tenantId } }] : []),
+        { tenant: tenantId ? { equals: tenantId } : { exists: false } },
       ],
     },
     depth: 0,

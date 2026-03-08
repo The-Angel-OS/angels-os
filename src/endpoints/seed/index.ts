@@ -18,6 +18,7 @@ import {
   findOrCreateLeoUser,
   findOrCreateSystemAgent,
   findOrCreateSpaceMembership,
+  findOrCreateCategory,
   seedPlatformTenant,
   seedArchangelLeo,
   INITIAL_USER_EMAILS,
@@ -759,11 +760,12 @@ Be excellent to each other. Party on, dudes.`,
   const [imageHero, ...categoryDocs] = await Promise.all([
     payload.create({ collection: 'media', data: { ...imageHero1Data, tenant: defaultTenantId }, file: heroBuffer }),
     ...categories.map((category) =>
-      payload.create({ collection: 'categories', data: { title: category, slug: category.toLowerCase(), tenant: defaultTenantId } }),
+      findOrCreateCategory(payload, req, { title: category, slug: category.toLowerCase(), tenantId: defaultTenantId }),
     ),
   ])
 
-  const [servicesCategory, technologyCategory, eventsCategory] = categoryDocs
+  // Cast to any — product data helpers only use .id from category objects
+  const [servicesCategory, technologyCategory, eventsCategory] = categoryDocs as any[]
 
   payload.logger.info(`— Seeding products...`)
 

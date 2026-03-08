@@ -75,12 +75,13 @@ export const ordersClaimableHandler: PayloadHandler = async (req) => {
       })),
     )
 
-    // Query all queued Angel Tokens
+    // Query all queued Angel Tokens — scoped to user's tenants
     const queuedOrders = await payload.find({
       collection: 'orders' as any,
       where: {
         'fulfillment.fulfillmentStatus': { equals: 'pending_match' },
         'fulfillment.tokenStatus': { equals: 'active' },
+        tenant: { in: userTenantIds },
       },
       depth: 2,
       limit: 100,

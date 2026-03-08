@@ -470,6 +470,38 @@ export async function findOrCreateTenantMembership(
   })
 }
 
+/** Find Category by slug+tenant; create if not exists. Returns category with id. */
+export async function findOrCreateCategory(
+  payload: Payload,
+  req: PayloadRequest,
+  data: { title: string; slug: string; tenantId: number | string },
+): Promise<{ id: number | string; title: string; slug: string }> {
+  const existing = await payload.find({
+    collection: 'categories',
+    where: {
+      and: [
+        { slug: { equals: data.slug } },
+        { tenant: { equals: data.tenantId } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (existing.docs?.[0]) {
+    const c = existing.docs[0] as { id: number | string; title: string; slug: string }
+    return { id: c.id, title: c.title, slug: c.slug }
+  }
+  const created = await payload.create({
+    collection: 'categories',
+    data: { title: data.title, slug: data.slug, tenant: data.tenantId } as any,
+    depth: 0,
+    req,
+    overrideAccess: true,
+  })
+  return { id: created.id, title: (created as any).title, slug: (created as any).slug }
+}
+
 /** Find SpaceMembership by user+space; create if not exists. */
 export async function findOrCreateSpaceMembership(
   payload: Payload,

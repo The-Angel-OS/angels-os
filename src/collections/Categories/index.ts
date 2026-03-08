@@ -1,5 +1,6 @@
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { preventDuplicateSlug } from './hooks/preventDuplicateSlug'
 import type { CollectionConfig } from 'payload'
 
 export const Categories: CollectionConfig = {
@@ -19,4 +20,7 @@ export const Categories: CollectionConfig = {
     },
     simpleSlugField,
   ],
+  hooks: {
+    beforeValidate: [preventDuplicateSlug],
+  },
 }

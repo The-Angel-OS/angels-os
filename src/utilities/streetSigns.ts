@@ -87,9 +87,12 @@ export async function buildStreetSigns(
   }
 
   try {
-    // Fetch products — we only need a lightweight query
+    // Fetch products — we only need a lightweight query, scoped to tenant
     const result = await payload.find({
       collection: 'products' as any,
+      where: {
+        ...(_tenantId ? { tenant: { equals: _tenantId } } : {}),
+      },
       limit: 50,
       depth: 0,
       sort: '-createdAt',

@@ -27,13 +27,14 @@ export async function fetchUserSpaces(
   try {
     const payload = await getPayload({ config: configPromise })
 
-    // Fetch active memberships with space populated
+    // Fetch active memberships with space populated — scoped to tenant
     const memberships = await payload.find({
       collection: 'space-memberships',
       where: {
         and: [
           { user: { equals: userId } },
           { status: { equals: 'active' } },
+          { tenant: { equals: tenantId } },
         ],
       },
       depth: 1,

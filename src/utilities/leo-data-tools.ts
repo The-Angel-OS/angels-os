@@ -3390,10 +3390,8 @@ async function queryProducts(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
 
-  // Scope to current tenant
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
 
   if (input.search && typeof input.search === 'string') {
     conditions.push({ title: { contains: input.search } })
@@ -3402,7 +3400,7 @@ async function queryProducts(
     conditions.push({ 'categories.title': { contains: input.category } })
   }
 
-  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+  const where: Where = { and: conditions }
 
   const result = await payload.find({
     collection: 'products',
@@ -3436,9 +3434,9 @@ async function queryPosts(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ _status: { equals: 'published' } }]
 
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
+
   if (input.search && typeof input.search === 'string') {
     conditions.push({ title: { contains: input.search } })
   }
@@ -3522,9 +3520,9 @@ async function queryEvents(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
 
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
+
   if (input.status && typeof input.status === 'string') {
     conditions.push({ status: { equals: input.status } })
   }
@@ -3538,7 +3536,7 @@ async function queryEvents(
     conditions.push({ startDateTime: { greater_than: new Date().toISOString() } })
   }
 
-  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+  const where: Where = { and: conditions }
 
   const result = await payload.find({
     collection: 'events',
@@ -3599,9 +3597,9 @@ async function queryEventRegistrations(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ event: { equals: eventId } }]
 
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
+
   if (input.status && typeof input.status === 'string') {
     conditions.push({ status: { equals: input.status } })
   }
@@ -3637,11 +3635,10 @@ async function querySpaces(
 ): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = []
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
 
-  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+  const where: Where = { and: conditions }
 
   const result = await payload.find({
     collection: 'spaces',
@@ -3733,9 +3730,8 @@ async function queryAvailability(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditions: any[] = [{ isActive: { equals: true } }]
 
-  if (tenantId) {
-    conditions.push({ tenant: { equals: tenantId } })
-  }
+  // Always scope to tenant — if no tenantId, return nothing (fail closed)
+  conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
 
   if (input.providerId && typeof input.providerId === 'number') {
     conditions.push({ provider: { equals: input.providerId } })

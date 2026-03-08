@@ -73,6 +73,8 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
     }
 
     // Fetch all related data in parallel using Payload Local API
+    // CRITICAL: Every query uses explicit tenant filter to prevent cross-tenant data leakage.
+    // Even though the caller selects a tenantId, we must not fetch data from other tenants.
     const [spaces, channels, users, messages, posts, products, media] = await Promise.all([
       payload
         .find({
@@ -86,16 +88,12 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       payload
         .find({
           collection: 'channels',
+          where: { tenant: { equals: tenantId } },
           limit: 10000,
           depth: 1,
           overrideAccess: true,
         })
-        .then((r) =>
-          r.docs.filter((ch: any) => {
-            const spaceRef = ch.space
-            return typeof spaceRef === 'object' ? spaceRef?.tenant === tenantId : false
-          }),
-        ),
+        .then((r) => r.docs),
       payload
         .find({
           collection: 'tenant-memberships',
@@ -108,6 +106,7 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       payload
         .find({
           collection: 'messages',
+          where: { tenant: { equals: tenantId } },
           limit: 10000,
           depth: 0,
           overrideAccess: true,
@@ -116,6 +115,7 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       payload
         .find({
           collection: 'posts',
+          where: { tenant: { equals: tenantId } },
           limit: 1000,
           depth: 0,
           overrideAccess: true,
@@ -124,6 +124,7 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       payload
         .find({
           collection: 'products',
+          where: { tenant: { equals: tenantId } },
           limit: 1000,
           depth: 0,
           overrideAccess: true,
@@ -132,6 +133,7 @@ export async function exportTenantSuitcase(tenantId: string | number): Promise<{
       payload
         .find({
           collection: 'media',
+          where: { tenant: { equals: tenantId } },
           limit: 1000,
           depth: 0,
           overrideAccess: true,
