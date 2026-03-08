@@ -12,6 +12,7 @@ import * as migration_20260223_013326 from './20260223_013326';
 import * as migration_20260223_232507_sprint17 from './20260223_232507_sprint17';
 import * as migration_20260224_031440_contacts_crm from './20260224_031440_contacts_crm';
 import * as migration_20260304_152233 from './20260304_152233';
+import * as migration_20260308_191006_sprint42_propagation from './20260308_191006_sprint42_propagation';
 
 export const migrations = [
   {
@@ -83,5 +84,10 @@ export const migrations = [
     up: migration_20260304_152233.up,
     down: migration_20260304_152233.down,
     name: '20260304_152233'
+  },
+  {
+    up: migration_20260308_191006_sprint42_propagation.up,
+    down: migration_20260308_191006_sprint42_propagation.down,
+    name: '20260308_191006_sprint42_propagation',
   },
 ];
