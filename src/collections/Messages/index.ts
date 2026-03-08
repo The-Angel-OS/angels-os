@@ -1,4 +1,5 @@
 import type { Access, CollectionConfig } from 'payload'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
@@ -42,8 +43,7 @@ import { autoAnalyzeMedia } from './hooks/autoAnalyzeMedia'
 function isAdminOrSystem(user: any): boolean {
   if (!user) return false
   if (user.isSystemUser) return true
-  const roles = user.roles || []
-  return roles.includes('super_admin') || roles.includes('admin') || roles.includes('archangel')
+  return checkRole(ADMIN_ROLES, user)
 }
 
 /**

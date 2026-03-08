@@ -12,6 +12,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { ALL_PERMISSION_KEYS } from '@/constants/permissions'
 import type { TenantRole } from '@/constants/permissions'
 
@@ -42,10 +43,7 @@ async function getAuthorizedUser() {
   }
 
   // Check platform-level admin OR tenant-level manage_users permission
-  const roles = (user as any).roles as string[] | undefined
-  const isPlatformAdmin = Boolean(
-    roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
-  )
+  const isPlatformAdmin = checkRole(ADMIN_ROLES, user)
 
   if (!isPlatformAdmin) {
     // Check tenant membership for manage_users permission

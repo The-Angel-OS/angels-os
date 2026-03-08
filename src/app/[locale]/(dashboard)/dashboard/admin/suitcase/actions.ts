@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole } from '@/access/utilities'
 
 export interface SuitcaseManifest {
   version: '1.0.0'
@@ -203,8 +204,7 @@ export async function importTenantSuitcase(suitcaseJson: string): Promise<{
       return { success: false, error: 'Not authenticated' }
     }
 
-    const roles = (user as any).roles as string[] | undefined
-    if (!roles?.includes('super_admin') && !roles?.includes('archangel')) {
+    if (!checkRole(['super_admin', 'archangel'], user)) {
       return { success: false, error: 'Only super admins can import suitcases' }
     }
 

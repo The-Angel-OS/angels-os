@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { fetchUserSpaces } from '@/utilities/fetchUserSpaces'
 import { ensureDMSpace } from '@/utilities/ensureSystemSpace'
@@ -77,9 +78,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       isAuthenticated = true
       userId = user.id
       platformRoles = ((user as any).roles as string[]) || []
-      isAdmin = Boolean(
-        platformRoles.includes('super_admin') || platformRoles.includes('admin') || platformRoles.includes('archangel'),
-      )
+      isAdmin = checkRole(ADMIN_ROLES, user)
       isBusinessOwner = isAdmin || Boolean(platformRoles.some((r: string) => r !== 'customer'))
       userName = (user as any).name || (user as any).email || ''
       userEmail = (user as any).email || ''

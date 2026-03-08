@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { TeamManager } from './TeamManager'
 
 export const dynamic = 'force-dynamic'
@@ -30,10 +31,7 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
   if (!tenantId) redirect(`${prefix}/dashboard`)
 
   // Check platform admin first (avoids querying memberships for access check)
-  const roles = (user as any).roles as string[] | undefined
-  const isPlatformAdmin = Boolean(
-    roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
-  )
+  const isPlatformAdmin = checkRole(ADMIN_ROLES, user)
 
   // Fetch all tenant memberships (depth=1 to hydrate user) — single query for both
   // the member list AND the caller's own permission check

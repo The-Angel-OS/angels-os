@@ -125,6 +125,16 @@ function validateDispatchBody(body: unknown): { valid: true; data: DispatchReque
 export const federationDispatchWorkHandler: PayloadHandler = async (req) => {
   const startTime = Date.now()
 
+  // ── Authentication ──────────────────────────────────────────────
+  // Dispatch creates work units across the federation — require authenticated user
+  const { user } = await req.payload.auth({ headers: req.headers as unknown as Headers })
+  if (!user) {
+    return Response.json(
+      { success: false, error: 'Authentication required' },
+      { status: 401 },
+    )
+  }
+
   // ── Parse & validate body ───────────────────────────────────────
   let body: Record<string, unknown>
   try {

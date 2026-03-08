@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 export interface TenantDetail {
   id: string | number
@@ -78,13 +79,7 @@ async function requireAdmin() {
 
   if (!user) throw new Error('Not authenticated')
 
-  const roles = (user as any).roles as string[] | undefined
-  const isAdmin =
-    roles?.includes('super_admin') ||
-    roles?.includes('admin') ||
-    roles?.includes('archangel')
-
-  if (!isAdmin) throw new Error('Insufficient permissions')
+  if (!checkRole(ADMIN_ROLES, user)) throw new Error('Insufficient permissions')
 
   return { payload, user }
 }

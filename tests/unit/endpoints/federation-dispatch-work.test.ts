@@ -54,6 +54,8 @@ const DEFAULT_TENANT = {
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+const DEFAULT_USER = { id: 1, email: 'admin@test.com', roles: ['super_admin'] }
+
 function makePayload(overrides: Record<string, unknown> = {}) {
   return {
     find: vi.fn().mockImplementation(({ collection }: any) => {
@@ -63,6 +65,7 @@ function makePayload(overrides: Record<string, unknown> = {}) {
       return Promise.resolve({ docs: [], totalDocs: 0 })
     }),
     create: vi.fn().mockResolvedValue({ id: 999 }),
+    auth: vi.fn().mockResolvedValue({ user: DEFAULT_USER }),
     ...overrides,
   }
 }
@@ -88,6 +91,15 @@ describe('federationDispatchWorkHandler', () => {
     mockRouteWorkUnit.mockReturnValue(DEFAULT_ROUTING_DECISION)
     mockParseCapacitySnapshot.mockReturnValue(null) // no valid peer snapshots by default
     mockShouldShed.mockReturnValue({ shed: false })
+  })
+
+  it('returns 401 when not authenticated', async () => {
+    const req = makeReq(VALID_BODY, { auth: vi.fn().mockResolvedValue({ user: null }) })
+    const res = await federationDispatchWorkHandler(req)
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.success).toBe(false)
+    expect(body.error).toMatch(/authentication required/i)
   })
 
   it('returns 400 for invalid JSON body', async () => {

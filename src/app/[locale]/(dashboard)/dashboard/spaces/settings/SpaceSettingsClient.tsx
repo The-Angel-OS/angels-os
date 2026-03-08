@@ -16,6 +16,7 @@ type SettingsTab = 'general' | 'members' | 'channels' | 'danger'
 
 interface SpaceMember {
   id: number
+  userId: number
   userName: string
   userEmail: string
   role: string
@@ -238,6 +239,7 @@ function MembersTab({ spaceId, isAdmin, tenantId }: { spaceId: string; isAdmin: 
           const user = typeof doc.user === 'object' && doc.user !== null ? (doc.user as Record<string, unknown>) : null
           return {
             id: doc.id as number,
+            userId: (user?.id as number) || 0,
             userName: (user?.name as string) || (user?.email as string) || 'Unknown',
             userEmail: (user?.email as string) || '',
             role: (doc.role as string) || 'member',
@@ -286,12 +288,9 @@ function MembersTab({ spaceId, isAdmin, tenantId }: { spaceId: string; isAdmin: 
   useEffect(() => { fetchMembers() }, [fetchMembers])
   useEffect(() => { fetchEligible() }, [fetchEligible])
 
-  // Filter out members already in the space
-  const memberUserIds = new Set(members.map((m) => {
-    // userEmail is the key we can match on, but we need userId from the eligible list
-    return m.userEmail
-  }))
-  const addableMembers = eligibleMembers.filter((m) => !memberUserIds.has(m.userEmail))
+  // Filter out members already in the space (dedup by userId, not email)
+  const memberUserIds = new Set(members.map((m) => m.userId).filter(Boolean))
+  const addableMembers = eligibleMembers.filter((m) => !memberUserIds.has(m.userId))
 
   const handleAddMember = async () => {
     if (!selectedUserId || !tenantId) return

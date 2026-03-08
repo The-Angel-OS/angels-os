@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 export interface TenantSummary {
   id: string | number
@@ -34,11 +35,8 @@ export async function getTenantsList(): Promise<{
       return { tenants: [], error: 'Not authenticated' }
     }
 
-    // Check role - only super_admin and admin can see all tenants
-    const roles = (user as any).roles as string[] | undefined
-    const isAdmin = roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel')
-
-    if (!isAdmin) {
+    // Check role - only platform admins can see all tenants
+    if (!checkRole(ADMIN_ROLES, user)) {
       return { tenants: [], error: 'Insufficient permissions' }
     }
 
@@ -104,8 +102,7 @@ export async function updateTenantStatus(
       return { success: false, error: 'Not authenticated' }
     }
 
-    const roles = (user as any).roles as string[] | undefined
-    if (!roles?.includes('super_admin') && !roles?.includes('archangel')) {
+    if (!checkRole(['super_admin', 'archangel'], user)) {
       return { success: false, error: 'Only super admins can change tenant status' }
     }
 

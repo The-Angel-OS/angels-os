@@ -5,6 +5,7 @@ import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { fetchUserSpaces, type SerializedSpace } from '@/utilities/fetchUserSpaces'
 import { SpaceSettingsClient } from './SpaceSettingsClient'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * Space Settings — server component.
@@ -24,14 +25,14 @@ export default async function SpaceSettingsPage({
   const { tenant, tenantId } = await resolveTenantFromHeaders()
 
   let userId: number | string | undefined
-  let userRoles: string[] = []
+  let isAdmin = false
 
   try {
     const payload = await getPayload({ config: configPromise })
     const headersList = await headers()
     const { user } = await payload.auth({ headers: headersList })
     userId = user?.id
-    userRoles = ((user as any)?.roles as string[]) || []
+    isAdmin = checkRole(ADMIN_ROLES, user)
   } catch {
     // Not authenticated
   }
@@ -41,8 +42,6 @@ export default async function SpaceSettingsPage({
   if (userId && tenantId) {
     spaces = await fetchUserSpaces(userId, tenantId)
   }
-
-  const isAdmin = userRoles.includes('super_admin') || userRoles.includes('admin') || userRoles.includes('archangel')
 
   return (
     <SpaceSettingsClient

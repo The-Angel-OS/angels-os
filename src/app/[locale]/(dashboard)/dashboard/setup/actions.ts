@@ -10,6 +10,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -55,10 +56,7 @@ export async function checkIsAdmin(): Promise<boolean> {
     const headersList = await headers()
     const { user } = await payload.auth({ headers: headersList })
     if (!user) return false
-    const roles = (user as any).roles as string[] | undefined
-    return Boolean(
-      roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
-    )
+    return checkRole(ADMIN_ROLES, user)
   } catch {
     return false
   }

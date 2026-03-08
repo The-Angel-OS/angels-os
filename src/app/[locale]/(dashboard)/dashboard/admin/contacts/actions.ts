@@ -10,6 +10,7 @@ import {
   isValidEmail,
 } from '@/utilities/invitationSystem'
 import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,12 +74,7 @@ async function getAuthenticatedAdmin() {
     return { payload, user: null, tenantId: null, error: 'Not authenticated' }
   }
 
-  const roles = (user as any).roles as string[] | undefined
-  const isAdmin = Boolean(
-    roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
-  )
-
-  if (!isAdmin) {
+  if (!checkRole(ADMIN_ROLES, user)) {
     return { payload, user, tenantId: null, error: 'Insufficient permissions' }
   }
 

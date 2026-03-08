@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { BridgeConsole } from '@/components/dashboard/BridgeConsole'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * Enterprise Bridge — LEO command interface.
@@ -42,10 +43,8 @@ export default async function BridgePage({
     }
 
     // Only admins and business owners can access the Bridge
+    const isAdmin = checkRole(ADMIN_ROLES, user)
     const roles = (user as any).roles as string[] | undefined
-    const isAdmin = Boolean(
-      roles?.includes('super_admin') || roles?.includes('admin') || roles?.includes('archangel'),
-    )
     const isBusinessOwner = Boolean(roles?.includes('producer'))
     if (!isAdmin && !isBusinessOwner) {
       redirect(`${prefix}/dashboard`)

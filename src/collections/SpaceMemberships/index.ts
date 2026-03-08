@@ -1,7 +1,17 @@
 import type { CollectionConfig } from 'payload'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * User–space membership (Discord-style roles within a space).
+ *
+ * Access control:
+ *   - Read:   Authenticated users (tenant plugin scopes to their tenant)
+ *   - Create: Admin only via REST API (hooks/endpoints use overrideAccess)
+ *   - Update: Admin, OR user can update their OWN membership (e.g. leave)
+ *   - Delete: Admin only (prefer soft-delete via status='left')
+ *
+ * Space admins manage members through the space-members endpoint and
+ * SpaceSettingsClient UI, which use overrideAccess server-side.
  */
 export const SpaceMemberships: CollectionConfig = {
   slug: 'space-memberships',
@@ -11,10 +21,30 @@ export const SpaceMemberships: CollectionConfig = {
     defaultColumns: ['user', 'space', 'role', 'status'],
   },
   access: {
-    create: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
-    read: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      if (checkRole(ADMIN_ROLES, user)) return true
+      // Authenticated non-admin: tenant plugin scopes to their tenant
+      return true
+    },
+    create: ({ req: { user } }) => {
+      if (!user) return false
+      if (checkRole(ADMIN_ROLES, user)) return true
+      // Non-admin: must go through hooks (overrideAccess) or managed endpoints
+      return false
+    },
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      if (checkRole(ADMIN_ROLES, user)) return true
+      // Users can update their own membership (e.g. leave a space)
+      return { user: { equals: user.id } }
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      if (checkRole(ADMIN_ROLES, user)) return true
+      // Non-admin: use soft-delete via space-members endpoint
+      return false
+    },
   },
   fields: [
     {

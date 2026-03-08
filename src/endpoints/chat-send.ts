@@ -17,6 +17,7 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const chatSendHandler: PayloadHandler = async (req) => {
@@ -117,9 +118,8 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
-    // Allow if user has membership, or if user is an admin/super_admin
-    const roles = ((req.user as any).roles as string[]) || []
-    const isAdmin = roles.includes('super_admin') || roles.includes('admin') || roles.includes('archangel')
+    // Allow if user has membership, or if user is a platform admin
+    const isAdmin = checkRole(ADMIN_ROLES, req.user)
 
     if (!membership.docs?.length && !isAdmin) {
       return Response.json({ message: 'You do not have access to this space' }, { status: 403 })

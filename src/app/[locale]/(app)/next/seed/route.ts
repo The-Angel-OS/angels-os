@@ -2,6 +2,7 @@ import { createLocalReq, getPayload } from 'payload'
 import { seed } from '@/endpoints/seed'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /**
  * Seed endpoint — increased maxDuration to handle 9-phase seed with
@@ -40,14 +41,8 @@ export async function POST(): Promise<Response> {
       }
       payload.logger.info('Bootstrap mode: seeding without auth (no pages exist)')
     } else {
-      // Authenticated user: only super_admin, admin, or archangel can seed
-      const roles = (user as any).roles as string[] | undefined
-      const canSeed =
-        roles?.includes('super_admin') ||
-        roles?.includes('admin') ||
-        roles?.includes('archangel')
-
-      if (!canSeed) {
+      // Authenticated user: only platform admins can seed
+      if (!checkRole(ADMIN_ROLES, user)) {
         return Response.json(
           { success: false, error: 'Insufficient permissions — only admins can seed the database' },
           { status: 403 },

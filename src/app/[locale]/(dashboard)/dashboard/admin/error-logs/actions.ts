@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 export interface LogEntry {
   id: string | number
@@ -28,13 +29,7 @@ async function requireAdmin() {
     return { payload, user: null, error: 'Not authenticated' as const }
   }
 
-  const roles = (user as any).roles as string[] | undefined
-  const isAdmin =
-    roles?.includes('super_admin') ||
-    roles?.includes('admin') ||
-    roles?.includes('archangel')
-
-  if (!isAdmin) {
+  if (!checkRole(ADMIN_ROLES, user)) {
     return { payload, user, error: 'Insufficient permissions' as const }
   }
 
