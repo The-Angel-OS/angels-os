@@ -1,5 +1,5 @@
 /**
- * Order Accept Endpoint — POST /api/orders/accept
+ * Order Accept Endpoint — POST /api/order-ops/accept
  *
  * Vendor accepts an assigned order (status: matched → accepted).
  * Auth: user's tenant must own the assigned holon.

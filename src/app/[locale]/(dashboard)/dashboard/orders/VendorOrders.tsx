@@ -203,7 +203,7 @@ function AvailableOrdersTab({ locale }: { locale: string }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/orders/claimable')
+      const res = await fetch('/api/order-ops/claimable')
       const data = await res.json()
 
       if (!res.ok) {
@@ -230,7 +230,7 @@ function AvailableOrdersTab({ locale }: { locale: string }) {
     setClaiming(key)
 
     try {
-      const res = await fetch('/api/orders/claim', {
+      const res = await fetch('/api/order-ops/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, orderItemIndex }),

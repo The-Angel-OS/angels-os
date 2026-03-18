@@ -161,7 +161,7 @@ export function CreateSpaceDialog({ open, onClose, onCreated }: CreateSpaceDialo
     setIsSubmitting(true)
     try {
       const validInvites = invites.filter((r) => r.email.trim())
-      const res = await fetch('/api/spaces/create', {
+      const res = await fetch('/api/space-ops/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

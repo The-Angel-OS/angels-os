@@ -25,7 +25,7 @@ interface CancelConfirmDialogProps {
  * CancelConfirmDialog — Confirmation dialog for cancelling an Angel Token.
  *
  * Shown when the customer clicks "Cancel & Refund" on a queued order.
- * POSTs to /api/orders/cancel, then redirects back to the order list.
+ * POSTs to /api/order-ops/cancel, then redirects back to the order list.
  *
  * Sprint 39
  */
@@ -43,7 +43,7 @@ export function CancelConfirmDialog({
   const handleConfirm = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/orders/cancel', {
+      const res = await fetch('/api/order-ops/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, orderItemIndex }),

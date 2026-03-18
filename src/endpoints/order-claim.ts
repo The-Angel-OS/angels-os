@@ -1,5 +1,5 @@
 /**
- * Order Claim Endpoint — POST /api/orders/claim
+ * Order Claim Endpoint — POST /api/order-ops/claim
  *
  * Allows a vendor to claim a queued Angel Token order.
  * This is the vendor-initiated alternative to auto-matching —

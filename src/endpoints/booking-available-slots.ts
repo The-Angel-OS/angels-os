@@ -1,5 +1,5 @@
 /**
- * Available Slots Endpoint — POST /api/bookings/available-slots
+ * Available Slots Endpoint — POST /api/booking-ops/available-slots
  *
  * Public API for querying bookable time slots. Returns actual availability
  * from the BookingEngine — checking provider schedules, existing bookings,

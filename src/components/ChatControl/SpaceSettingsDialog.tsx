@@ -206,7 +206,7 @@ export function SpaceSettingsDialog({
     setIsInviting(true)
     setMembersMsg(null)
     try {
-      const res = await fetch('/api/spaces/invite', {
+      const res = await fetch('/api/space-ops/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -229,7 +229,7 @@ export function SpaceSettingsDialog({
 
   const removeMember = async (membershipId: number) => {
     try {
-      const res = await fetch('/api/spaces/members/remove', {
+      const res = await fetch('/api/space-ops/members/remove', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

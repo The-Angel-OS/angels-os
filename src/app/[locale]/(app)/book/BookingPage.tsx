@@ -103,7 +103,7 @@ export function BookingPage({ availabilitySlots, endeavorName }: BookingPageProp
     setBookingError('')
 
     try {
-      const res = await fetch('/api/bookings/checkout', {
+      const res = await fetch('/api/booking-ops/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

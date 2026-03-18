@@ -1,5 +1,5 @@
 /**
- * Order Ship Endpoint — POST /api/orders/ship
+ * Order Ship Endpoint — POST /api/order-ops/ship
  *
  * Convenience endpoint for the common "mark as shipped" flow.
  * Validates the in_production → shipped transition, sets tracking info,

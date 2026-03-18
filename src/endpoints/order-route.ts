@@ -1,5 +1,5 @@
 /**
- * Order Routing Endpoint — POST /api/orders/route
+ * Order Routing Endpoint — POST /api/order-ops/route
  *
  * Triggers the routing engine to find and assign the best vendor
  * for an order (or a specific item within an order).

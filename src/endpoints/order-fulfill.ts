@@ -1,5 +1,5 @@
 /**
- * Order Fulfillment Update Endpoint — POST /api/orders/fulfill
+ * Order Fulfillment Update Endpoint — POST /api/order-ops/fulfill
  *
  * Updates fulfillment status for an assigned order item.
  * Validates state machine transitions and required fields.

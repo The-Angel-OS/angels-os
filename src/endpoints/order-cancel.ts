@@ -1,5 +1,5 @@
 /**
- * Order Cancel Endpoint — POST /api/orders/cancel
+ * Order Cancel Endpoint — POST /api/order-ops/cancel
  *
  * Cancels a queued Angel Token and initiates a Stripe refund.
  * Only works for items still in pending_match status — once a maker

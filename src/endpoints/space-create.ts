@@ -1,5 +1,5 @@
 /**
- * Space Create Endpoint — POST /api/spaces/create
+ * Space Create Endpoint — POST /api/space-ops/create
  *
  * Atomic space creation: Space doc + space_admin membership + channels.
  * Optionally sends batch invitations to a list of emails.

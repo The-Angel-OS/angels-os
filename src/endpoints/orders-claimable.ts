@@ -1,5 +1,5 @@
 /**
- * Claimable Orders Endpoint — GET /api/orders/claimable
+ * Claimable Orders Endpoint — GET /api/order-ops/claimable
  *
  * Returns queued Angel Token orders that match the caller's Holon capabilities.
  * Vendors browse this list and claim orders they want to fulfill.

@@ -1,5 +1,5 @@
 /**
- * Space Members Endpoint — DELETE /api/spaces/members/remove
+ * Space Members Endpoint — DELETE /api/space-ops/members/remove
  *
  * Removes a member from a space (sets status to 'left').
  * Requires requester to be space_admin or moderator.

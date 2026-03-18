@@ -1,5 +1,5 @@
 /**
- * Invitation Resend Endpoint — POST /api/spaces/invite/resend
+ * Invitation Resend Endpoint — POST /api/space-ops/invite/resend
  *
  * Finds a pending invitation by membership ID, extends the expiry,
  * and re-sends the invitation email.

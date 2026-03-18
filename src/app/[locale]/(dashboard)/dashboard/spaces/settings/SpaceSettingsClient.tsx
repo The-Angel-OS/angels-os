@@ -351,7 +351,7 @@ function MembersTab({ spaceId, isAdmin, tenantId }: { spaceId: string; isAdmin: 
     setIsRemoving(true)
     setFeedback(null)
     try {
-      const res = await fetch(`${SERVER_URL}/api/spaces/members/remove`, {
+      const res = await fetch(`${SERVER_URL}/api/space-ops/members/remove`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

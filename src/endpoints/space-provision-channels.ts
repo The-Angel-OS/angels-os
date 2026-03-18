@@ -1,5 +1,5 @@
 /**
- * Space Provision Channels Endpoint — POST /api/spaces/provision-channels
+ * Space Provision Channels Endpoint — POST /api/space-ops/provision-channels
  *
  * Creates the default channel set (general, announcements) for an existing
  * space that was created without them (e.g. via Payload Admin or before

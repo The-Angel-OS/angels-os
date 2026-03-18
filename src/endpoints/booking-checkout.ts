@@ -1,5 +1,5 @@
 /**
- * Booking Checkout Endpoint — POST /api/bookings/checkout
+ * Booking Checkout Endpoint — POST /api/booking-ops/checkout
  *
  * Creates a Stripe PaymentIntent for a booking using the Direct Charges model.
  * The PaymentIntent is created ON the connected (seller) account with an

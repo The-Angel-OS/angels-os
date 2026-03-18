@@ -86,7 +86,7 @@ export function MyOrders({ orders, locale }: MyOrdersProps) {
     setCancelling(key)
 
     try {
-      const res = await fetch('/api/orders/cancel', {
+      const res = await fetch('/api/order-ops/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, orderItemIndex }),

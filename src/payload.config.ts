@@ -504,24 +504,26 @@ export default buildConfig({
       handler: aiBusStreamHandler,
     },
     // ─── Space Management Endpoints ──────────────────────────────
+    // Note: paths use /space-ops/ prefix to avoid collision with the
+    // 'spaces' collection REST API which intercepts /spaces/* POST routes.
     {
-      path: '/spaces/create',
+      path: '/space-ops/create',
       method: 'post',
       handler: spaceCreateHandler,
     },
     {
-      path: '/spaces/provision-channels',
+      path: '/space-ops/provision-channels',
       method: 'post',
       handler: spaceProvisionChannelsHandler,
     },
     // ─── Invitation System Endpoints ────────────────────────────
     {
-      path: '/spaces/invite',
+      path: '/space-ops/invite',
       method: 'post',
       handler: spaceInviteHandler,
     },
     {
-      path: '/spaces/invite/resend',
+      path: '/space-ops/invite/resend',
       method: 'post',
       handler: inviteResendHandler,
     },
@@ -531,7 +533,7 @@ export default buildConfig({
       handler: inviteAcceptHandler,
     },
     {
-      path: '/spaces/members/remove',
+      path: '/space-ops/members/remove',
       method: 'post',
       handler: spaceMembersRemoveHandler,
     },
@@ -542,55 +544,59 @@ export default buildConfig({
       handler: tenantInviteAcceptHandler,
     },
     // ─── Order Routing & Fulfillment Endpoints ──────────────────
+    // Note: paths use /order-ops/ prefix to avoid collision with the
+    // 'orders' collection REST API which intercepts /orders/* POST routes.
     {
-      path: '/orders/route',
+      path: '/order-ops/route',
       method: 'post',
       handler: orderRouteHandler,
     },
     {
-      path: '/orders/accept',
+      path: '/order-ops/accept',
       method: 'post',
       handler: orderAcceptHandler,
     },
     {
-      path: '/orders/fulfill',
+      path: '/order-ops/fulfill',
       method: 'post',
       handler: orderFulfillHandler,
     },
     {
-      path: '/orders/ship',
+      path: '/order-ops/ship',
       method: 'post',
       handler: orderShipHandler,
     },
     {
-      path: '/orders/vendor',
+      path: '/order-ops/vendor',
       method: 'get',
       handler: ordersVendorHandler,
     },
     // ─── Booking Endpoints ────────────────────────────────────────
+    // Note: paths use /booking-ops/ prefix to avoid collision with the
+    // 'bookings' collection REST API.
     {
-      path: '/bookings/available-slots',
+      path: '/booking-ops/available-slots',
       method: 'post',
       handler: bookingAvailableSlotsHandler,
     },
     {
-      path: '/bookings/checkout',
+      path: '/booking-ops/checkout',
       method: 'post',
       handler: bookingCheckoutHandler,
     },
     // ─── Angel Token & Maker Queue Endpoints ──────────────────────
     {
-      path: '/orders/claimable',
+      path: '/order-ops/claimable',
       method: 'get',
       handler: ordersClaimableHandler,
     },
     {
-      path: '/orders/claim',
+      path: '/order-ops/claim',
       method: 'post',
       handler: orderClaimHandler,
     },
     {
-      path: '/orders/cancel',
+      path: '/order-ops/cancel',
       method: 'post',
       handler: orderCancelHandler,
     },

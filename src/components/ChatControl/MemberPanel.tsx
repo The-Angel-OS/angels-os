@@ -91,7 +91,7 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
     setFeedback(null)
 
     try {
-      const res = await fetch('/api/spaces/invite', {
+      const res = await fetch('/api/space-ops/invite', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

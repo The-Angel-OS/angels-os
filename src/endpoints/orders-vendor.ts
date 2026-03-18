@@ -1,5 +1,5 @@
 /**
- * Vendor Orders Endpoint — GET /api/orders/vendor
+ * Vendor Orders Endpoint — GET /api/order-ops/vendor
  *
  * Returns the vendor's order inbox grouped by status + revenue summary.
  * Auth: user must have a registered holon.

@@ -84,7 +84,7 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
     setResendingId(membershipId)
     setToast(null)
     try {
-      const res = await fetch('/api/spaces/invite/resend', {
+      const res = await fetch('/api/space-ops/invite/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ membershipId }),

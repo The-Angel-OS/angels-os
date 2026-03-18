@@ -4,7 +4,7 @@
  * Order Cancel Button — Customer-Initiated Cancellation
  *
  * Renders a cancel button on the order detail page for items still in
- * pending_match status (queued Angel Tokens). Calls POST /api/orders/cancel
+ * pending_match status (queued Angel Tokens). Calls POST /api/order-ops/cancel
  * with orderId and orderItemIndex.
  *
  * Only shows for orders that have cancellable fulfillment entries.
@@ -41,7 +41,7 @@ export const OrderCancelButton: React.FC<OrderCancelButtonProps> = ({
     if (state === 'confirming') {
       setState('loading')
       try {
-        const res = await fetch('/api/orders/cancel', {
+        const res = await fetch('/api/order-ops/cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderId, orderItemIndex }),
