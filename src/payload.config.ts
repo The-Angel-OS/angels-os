@@ -98,6 +98,7 @@ import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callbac
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
 import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disconnect'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
+import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
 import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
@@ -630,6 +631,12 @@ export default buildConfig({
       path: '/stripe/webhooks',
       method: 'post',
       handler: stripeWebhooksHandler,
+    },
+    // ─── Donations (Sprint 43) ────────────────────────────────────
+    {
+      path: '/donation-ops/create-intent',
+      method: 'post',
+      handler: donationCreateIntentHandler,
     },
     // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {

@@ -483,6 +483,58 @@ Be excellent to each other. Party on, dudes.`,
         depth: 0,
       }),
     ])
+
+    // Seed a home page for Clearwater Cruisin with ministry content
+    if (uc.slug === 'clearwater-cruisin') {
+      await payload.create({
+        collection: 'pages',
+        depth: 0,
+        data: {
+          slug: 'home',
+          title: 'Home',
+          _status: 'published',
+          hero: {
+            type: 'lowImpact',
+            richText: buildRichText([
+              'Welcome to Clearwater Cruisin\' Ministries',
+            ]),
+          },
+          layout: [
+            {
+              blockType: 'content',
+              columns: [{
+                size: 'full' as const,
+                richText: buildRichText([
+                  'Soul Questing in the Ready Player Everyone Universe',
+                  'We\'re a non-denominational Christian ministry based in Clearwater, Florida — cruising the streets in Soul Van 1 (USS Enterprise), exploring dog parks, food pantries, and everyday beauty while documenting our journey through UHD dashcam footage, live reflections, and acts of radical kindness.',
+                  'At the heart of our mission is Ready Player Everyone — a real-life, MMORPG-style Soul Quest powered by our open-source spiritual operating system, Angel OS.',
+                  'We minister to people experiencing homelessness, volunteer at local pantries, and share meals with strangers. Every interaction becomes a quest — every drive, a pilgrimage. Our goal is to transmit consciousness forward, preserve the mythic story, and invite others to join the movement.',
+                ]),
+              }],
+            },
+            {
+              blockType: 'cta',
+              richText: buildRichText([
+                'Join the Quest',
+                'Browse our YouTube ministry content, visit the shop for handcrafted signs, or talk to LEO — our AI guardian angel.',
+              ]),
+              links: [
+                { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard', appearance: 'default' } },
+                { link: { type: 'custom' as const, label: 'Learn', url: '/dashboard/learn', appearance: 'outline' } },
+                { link: { type: 'custom' as const, label: 'Shop', url: '/shop', appearance: 'outline' } },
+                { link: { type: 'custom' as const, label: 'Posts', url: '/posts', appearance: 'outline' } },
+              ],
+            },
+          ],
+          meta: {
+            title: 'Clearwater Cruisin\' Ministries — Faith, Community, and the Open Road',
+            description: 'Non-denominational Christian ministry in Clearwater, FL. Soul Questing in the Ready Player Everyone Universe. Powered by Angel OS.',
+          },
+          tenant: tenant.id as number,
+        } as any,
+      })
+      payload.logger.info(`  ✓ Home page (Clearwater Cruisin ministry content)`)
+    }
   }
 
   payload.logger.info(`\n═══ Use-case tenants complete ═══\n`)

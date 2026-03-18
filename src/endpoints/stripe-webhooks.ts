@@ -151,14 +151,41 @@ async function handlePaymentIntentSucceeded(
   connectedAccountId?: string,
 ) {
   const amountCents = paymentIntent.amount
+  const metadata = paymentIntent.metadata || {}
   const isDirectCharge = Boolean(connectedAccountId)
-  const chargeModel = paymentIntent.metadata?.angelOs_chargeModel || (isDirectCharge ? 'direct' : 'platform')
+  const chargeModel = metadata.angelOs_chargeModel || (isDirectCharge ? 'direct' : 'platform')
 
   console.log(
     `[Stripe Webhook] Payment succeeded: ${paymentIntent.id} ` +
     `(${chargeModel} charge, $${(amountCents / 100).toFixed(2)})` +
     (connectedAccountId ? ` on account ${connectedAccountId}` : ''),
   )
+
+  // ── Sprint 43: Donation handling — 100% to Justice Fund ─────────
+  if (metadata.angelOs_type === 'donation') {
+    console.log(`[Stripe Webhook] Recording donation: $${(amountCents / 100).toFixed(2)}`)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.create as any)({
+        collection: 'justice-fund-transactions',
+        data: {
+          type: 'allocation',
+          amountCents,
+          sourcePaymentIntentId: paymentIntent.id,
+          sourceTotalCents: amountCents,
+          percentage: 100,
+          description: `Donation $${(amountCents / 100).toFixed(2)}${metadata.donorName ? ` from ${metadata.donorName}` : ''}${metadata.message ? `: ${metadata.message}` : ''}`,
+          status: 'completed',
+          processedAt: new Date().toISOString(),
+        },
+        overrideAccess: true,
+      })
+      console.log(`[Stripe Webhook] Donation recorded to Justice Fund`)
+    } catch (err) {
+      console.error('[Stripe Webhook] Failed to record donation:', err)
+    }
+    return // Donations don't have orders — exit early
+  }
 
   // For direct charges, the application_fee has already been split by Stripe.
   // The connected account received (amount - application_fee).

@@ -162,8 +162,8 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     businessType: 'ministry',
     spaceName: 'Cruisin Community',
     branding: {
-      siteName: 'Clearwater Cruisin Ministries Store',
-      tagline: 'Faith, Community, and the Open Road',
+      siteName: 'Clearwater Cruisin\' Ministries',
+      tagline: 'Soul Questing in the Ready Player Everyone Universe',
       primaryColor: '#C4973B',
       secondaryColor: '#1A7A6D',
       accentColor: '#FF6B9D',

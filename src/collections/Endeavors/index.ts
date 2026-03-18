@@ -292,6 +292,15 @@ export const Endeavors: CollectionConfig = {
             readOnly: true,
           },
         },
+        {
+          name: 'domain',
+          type: 'text',
+          admin: {
+            description:
+              'The FQDN of this peer Enterprise (persisted from heartbeat senderDomain)',
+            readOnly: true,
+          },
+        },
         // ── Commissioning (Sprint 42) ──────────────────────────────
         {
           name: 'commissionedAt',

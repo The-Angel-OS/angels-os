@@ -126,6 +126,8 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
           federation: {
             lastPingAt: new Date().toISOString(),
             networkVisible: true,
+            // Sprint 43: Persist peer domain for Discover page URL resolution
+            ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
             // Sprint 30: Store capacity snapshot from sender for workload routing
             ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
           },
@@ -145,6 +147,8 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
             ministryStatus: 'applicant',
             federationId: senderFedId,
             lastPingAt: new Date().toISOString(),
+            // Sprint 43: Persist peer domain for Discover page URL resolution
+            ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
           },
         } as any,
         overrideAccess: true,

@@ -31,7 +31,10 @@ export default async function FederationDiscoverPage({
   })
 
   // Build base URL from server environment for storefront URL resolution
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  // Sprint 43: Use VERCEL_PROJECT_PRODUCTION_URL as second fallback before localhost
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
+    || 'http://localhost:3000'
   const serverHost = new URL(serverUrl).host // e.g. spacesangels.com or localhost:3000
 
   const holons = endeavors.docs.map((doc: any) => {
@@ -40,12 +43,17 @@ export default async function FederationDiscoverPage({
     const siteName = tenant?.branding?.siteName || null
     const tenantSlug = tenant?.slug || null
     const tenantDomain = tenant?.domain || null
+    // Sprint 43: Use stored federation domain from heartbeat persistence
+    const federationDomain = (doc.federation?.domain as string) || null
 
     // Build canonical storefront URL for this Endeavor's tenant
     let storefrontUrl: string | null = null
     if (tenantDomain && !tenantDomain.endsWith('.local')) {
       // Real domain (e.g. hays-cactus.spacesangels.com, or custom domain)
       storefrontUrl = `https://${tenantDomain}`
+    } else if (federationDomain && !federationDomain.includes('localhost')) {
+      // Federated peer with stored domain from heartbeat
+      storefrontUrl = `https://${federationDomain}`
     } else if (tenantSlug && tenantSlug !== 'default' && tenantSlug !== 'platform') {
       // Dev/local: construct subdomain URL from slug + server host
       storefrontUrl = `https://${tenantSlug}.${serverHost.replace(/:\d+$/, '')}`

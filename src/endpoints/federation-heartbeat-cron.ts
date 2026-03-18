@@ -267,12 +267,9 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       const batchResults = await Promise.allSettled(
         batch.map(async (peer) => {
           const peerFederation = peer.federation as unknown as Record<string, unknown> | undefined
-          const peerDomain = peerFederation?.federationId
-            ? (peer.name as string) // We'd need the domain from discovery cache
-            : undefined
+          // Sprint 43: Use stored domain from heartbeat persistence (replaces Phase 2 TODO)
+          const peerDomain = (peerFederation?.domain as string) || undefined
 
-          // For now, we don't have a stored domain for peers. Skip unknown domains.
-          // This will be improved in Phase 2 when we have a catalog cache with domains.
           if (!peerDomain) {
             return { domain: String(peer.name), success: false, error: 'No domain known' }
           }
