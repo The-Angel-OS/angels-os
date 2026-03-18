@@ -541,6 +541,14 @@ export interface Tenant {
      * The Enterprise's immutable UUID in the Angel OS federation network. Assigned at constitution signing.
      */
     federationId?: string | null;
+    /**
+     * Constitutional Article VII: The Flagship is the founding node and federation steward, not the governor. Only one tenant should have this set.
+     */
+    isFlagship?: boolean | null;
+    /**
+     * When this Enterprise was formally commissioned into the federation
+     */
+    commissionedAt?: string | null;
   };
   /**
    * Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.
@@ -1880,6 +1888,14 @@ export interface Endeavor {
      * When this Enterprise last pinged the federation registry
      */
     lastPingAt?: string | null;
+    /**
+     * When this Endeavor was formally commissioned and activated in the federation
+     */
+    commissionedAt?: string | null;
+    /**
+     * Who performed the commissioning (e.g., "Archangel LEO", "Kenneth Courtney")
+     */
+    commissionedBy?: string | null;
   };
   /**
    * People this Endeavor serves — may be pre-registered before they onboard. Each beneficiary gets a unique claim token. When they create an account and present the token, they are verified and linked.
@@ -2131,6 +2147,12 @@ export interface TenantMembership {
      */
     invitationEmail?: string | null;
   };
+  /**
+   * What caused this membership to be created automatically. Null for manually-created memberships (invitations, admin, seed).
+   */
+  propagationTrigger?:
+    | ('purchase' | 'booking' | 'event_registration' | 'space_join' | 'federation_interaction' | 'manual')
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5738,6 +5760,8 @@ export interface TenantsSelect<T extends boolean = true> {
         constitutionSignedAt?: T;
         constitutionSignature?: T;
         federationId?: T;
+        isFlagship?: T;
+        commissionedAt?: T;
       };
   bootstrapFees?:
     | T
@@ -5866,6 +5890,7 @@ export interface TenantMembershipsSelect<T extends boolean = true> {
         invitationMessage?: T;
         invitationEmail?: T;
       };
+  propagationTrigger?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6868,6 +6893,8 @@ export interface EndeavorsSelect<T extends boolean = true> {
         constitutionSignature?: T;
         federationId?: T;
         lastPingAt?: T;
+        commissionedAt?: T;
+        commissionedBy?: T;
       };
   beneficiaries?:
     | T
