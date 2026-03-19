@@ -1,28 +1,60 @@
 # Angel OS — Status, Plan & What's Next
 
-> *Filed: March 3, 2026 — Sprint 38 Complete*
-> *Version: v0.38.0-dev*
+> *Filed: March 18, 2026 — Sprint 43 Complete*
+> *Version: v0.43.0-dev*
 
 ---
 
 ## Where We Are
 
-Angel OS is a live, federated cooperative operating system at [spacesangels.com](https://spacesangels.com). Thirty-eight sprints of development have produced a production platform with real users, real federation architecture, and a constitutional AI guardian angel named Leo.
+Angel OS is a live, federated cooperative operating system at [spacesangels.com](https://spacesangels.com). Forty-three sprints of development have produced a production platform with real users, real federation architecture, live Stripe payments, and a constitutional AI guardian angel named Leo.
 
 ### By the Numbers
 
 | Metric | Count |
 |--------|-------|
-| **Sprints completed** | 38 |
-| **Payload CMS collections** | 40 |
-| **Leo AI tools** | 104+ |
-| **API endpoints** | 72+ |
-| **Unit tests** | 4,842 across 216 files |
+| **Sprints completed** | 43 |
+| **Payload CMS collections** | 42 |
+| **Leo AI tools** | 105+ |
+| **API endpoints** | 74+ |
+| **Unit tests** | 5,017+ across 223 files |
 | **E2E test suites** | 14 (Playwright) |
-| **Total test files** | 229 |
+| **Total test files** | 237 |
 | **TypeScript errors** | 0 |
 | **Build status** | Passing |
 | **Deployment** | Vercel (serverless) |
+| **Stripe** | Live (Direct Charges + Donations) |
+| **Engines** | 15 |
+
+### What's New Since Last Status Update (Sprints 39-43)
+
+**Sprint 43 — Monetization Go-Live:**
+- Donation flow: `/donate` page, Stripe Elements, 100% to Justice Fund
+- Federation domain persistence: heartbeats store peer FQDN, Discover uses stored domain
+- Route shadowing fix: 15 dead endpoints fixed with `-ops` suffix pattern
+- YouTube sync: RSS polling, hourly cron, connector type
+- 28 new tests (donation + federation domain)
+
+**Sprint 42 — User Propagation + Flagship:**
+- Auto TenantMembership on purchase/booking/event registration
+- Flagship commissioning (Clearwater, 2026-03-08)
+- `propagationTrigger` audit trail on memberships
+- Federation Discover cards with storefront URLs
+
+**Sprint 41 — Admin Dashboard + White-Labeling:**
+- SiteSettings collection for per-tenant branding
+- AdminBar white-labeling, LCARS dashboard widgets
+- Anonymous dashboard access, tenant isolation audit
+
+**Sprint 40 — Booking Engine + Calendar:**
+- BookingEngine with slot generation, conflict detection, harmonic resolution
+- LEO booking tools (create, check, cancel, reschedule)
+- Calendar block, form builder, featured Endeavors block
+
+**Sprint 39 — Order Journey + Street Signs:**
+- Order detail page with fulfillment timeline stepper
+- Street Signs gossip protocol on federation heartbeats
+- `discover_federation_products` LEO tool
 
 ### What's Working
 

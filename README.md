@@ -7,23 +7,25 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 **Live:** [spacesangels.com](https://spacesangels.com)
 
 [![CI](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml/badge.svg)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/version-v0.42.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-4%2C995%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
+[![Status](https://img.shields.io/badge/version-v0.43.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-5%2C017%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-220%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-223%20test%20files-blue)]()
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
 [![Leo Tools](https://img.shields.io/badge/Leo_Tools-105+-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-72+-purple)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-74+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-42-ff69b4)]()
+[![Sprints](https://img.shields.io/badge/Sprints-43-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 [![MCP](https://img.shields.io/badge/MCP-23%20tools-teal)]()
 [![Flagship](https://img.shields.io/badge/Flagship-Commissioned-gold)]()
 [![Propagation](https://img.shields.io/badge/User_Propagation-Live-brightgreen)]()
+[![Donations](https://img.shields.io/badge/Donations-Live-green)]()
+[![Answer53](https://img.shields.io/badge/Answer_53-Published-gold)](https://answer53.vercel.app)
 
 ---
 
@@ -56,9 +58,18 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 42 — User Propagation + Flagship Commissioning
+## What's New: Sprint 43 — Monetization Go-Live
 
-### Sprint 42: User Propagation Layer + Flagship Commissioning (Current)
+### Sprint 43: Monetization Go-Live + Federation Domain Fix + Donation Flow (Current)
+- **Federation Domain Persistence** — Heartbeat handler now stores `senderDomain` on Endeavor records. Discover page uses stored federation domain as fallback before localhost. Heartbeat cron reads stored domain instead of falling back to `peer.name`. `VERCEL_PROJECT_PRODUCTION_URL` as secondary env fallback eliminates localhost URLs in production.
+- **Donation Flow** (NEW) — `POST /api/donation-ops/create-intent` creates Stripe PaymentIntent on platform account. `/donate` page with preset amounts ($5-$100), custom input, Stripe Elements `<PaymentElement>`. 100% of donations go to Justice Fund. Webhook handler has early branch for `angelOs_type=donation`.
+- **Route Shadowing Fix** — 15 dead API endpoints fixed. Custom endpoint paths renamed with `-ops` suffix to avoid Payload collection REST route interception (`/order-ops/*`, `/booking-ops/*`, `/space-ops/*`).
+- **YouTube Sync** — `youtube-poll.ts` endpoint with RSS health probe, hourly cron, `youtube_channel` connector type. 13 tests.
+- **LEO Chat Fix** — 3 fixes: `overrideAccess` in fetchDefaultSpaceId, TenantCookieSync in (app) layout, public-space visibility bypass in chat-send.
+- **Dashboard Nav** — Dashboard & Spaces links always visible in header (no auth gate).
+- **5,017+ unit tests across 223 files** — 28 new Sprint 43 tests (15 donation endpoint + 13 federation domain).
+
+### Sprint 42: User Propagation Layer + Flagship Commissioning
 - **User Propagation Layer** (`src/utilities/ensureTenantMembership.ts`) — Automatic cross-Endeavor TenantMembership creation. When a user purchases, books, or registers for an event on another Endeavor, they're silently enrolled as a `tenant_member`. Idempotent, non-fatal, triggers the existing `syncUserTenants` + `autoJoinSpaces` hook chain. Three integration points wired: `stripe-webhooks.ts` (purchase), `booking-checkout.ts` (booking), `EventRegistrations.ts` (event registration).
 - **Flagship Commissioning** — Clearwater (spacesangels.com) formally commissioned as the Flagship per Constitution Article VII. `isFlagship` checkbox + `commissionedAt` date on Tenants schema. Endeavors gain `commissionedAt` + `commissionedBy` in their federation group. Commissioning Day: 2026-03-08, St. Alfred's Church, Palm Harbor.
 - **`propagationTrigger` audit trail** — New field on TenantMemberships tracking WHY a membership was created: `purchase`, `booking`, `event_registration`, `space_join`, `federation_interaction`, or `manual`.
@@ -153,7 +164,7 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's Working (v0.42.0-dev)
+## What's Working (v0.43.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
@@ -255,6 +266,9 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **LogisticsNodes Collection** | **Done** | Delivery hubs, capacity tracking, geographic coverage |
 | **Transports Collection** | **Done** | Vehicles/couriers, load capacity, availability scheduling |
 | **Shipments Collection** | **Done** | Package tracking, pickup-to-delivery lifecycle |
+| **Donation Flow** | **Done** | `/donate` page with Stripe Elements, 100% to Justice Fund, webhook integration |
+| **Federation Domain Persistence** | **Done** | Heartbeat stores peer domain, Discover uses FQDN not localhost |
+| **YouTube Sync** | **Done** | RSS-based polling, hourly cron, youtube_channel connector type |
 | **LEO Navigation Bridge** | **Done** | Dashboard auto-navigates on tool mutations (create product -> products page) |
 | **Pheromone Grid** | **Done** | Bio-inspired swarm navigation, 5 pheromone types, decay/reinforcement, gradient pathfinding (70 tests) |
 | **Game of Life Federation** | **Done** | Conway's rules for mesh health: birth (2-3 neighbors), survival, death (isolation/overcrowding) |
