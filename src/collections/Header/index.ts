@@ -26,12 +26,28 @@ export const Header: CollectionConfig = {
     {
       name: 'navItems',
       type: 'array',
+      admin: {
+        description: 'Top-level navigation links. Each can optionally have child items for dropdown menus.',
+      },
       fields: [
         link({
           appearances: false,
         }),
+        {
+          name: 'children',
+          type: 'array',
+          admin: {
+            description: 'Dropdown child links under this parent item.',
+          },
+          fields: [
+            link({
+              appearances: false,
+            }),
+          ],
+          maxRows: 8,
+        },
       ],
-      maxRows: 6,
+      maxRows: 10,
     },
   ],
 }
