@@ -21,6 +21,14 @@ export interface UseCaseTenant {
   endeavorType: EndeavorType
   /** Maps to the Tenants collection `businessType` select field */
   businessType?: string
+  /** Tagline for Endeavor record (shown on Discover cards) */
+  tagline?: string
+  /** Description for Endeavor record */
+  description?: string
+  /** Holon types for Endeavor record (Discover filter chips) */
+  holonTypes?: string[]
+  /** Region for Endeavor record */
+  region?: { city?: string; state?: string; country?: string }
   spaceName: string
   branding: {
     siteName: string
@@ -68,6 +76,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     domain: `celersoft.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     businessType: 'professional_services',
+    tagline: 'Accelerating Digital Transformation',
+    description: 'IT consulting, cybersecurity assessments, and cloud migration services for businesses ready to modernize.',
+    holonTypes: ['manufacturer', 'retailer'],
+    region: { city: 'Clearwater', state: 'FL', country: 'US' },
     spaceName: 'Celersoft Hub',
     branding: {
       siteName: 'Celersoft',
@@ -113,6 +125,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     domain: `lucas-productions.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     businessType: 'service',
+    tagline: 'Reliable, Creative, and Easy to Work With',
+    description: 'Full-service AV production — corporate events, weddings, livestreams, LED video walls, and stage lighting.',
+    holonTypes: ['manufacturer', 'retailer'],
+    region: { city: 'Clearwater', state: 'FL', country: 'US' },
     spaceName: 'Lucas Productions Studio',
     branding: {
       siteName: 'Lucas Productions',
@@ -160,6 +176,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     domain: `clearwater-cruisin.${DOMAIN_SUFFIX}`,
     endeavorType: 'creator-content',
     businessType: 'ministry',
+    tagline: 'Soul Questing in the Ready Player Everyone Universe',
+    description: 'CNC signs, woodworking, ministry, and soul questing from Clearwater, Florida. Dogs welcome.',
+    holonTypes: ['creator', 'community'],
+    region: { city: 'Clearwater', state: 'FL', country: 'US' },
     spaceName: 'Cruisin Community',
     branding: {
       siteName: 'Clearwater Cruisin\' Ministries',
@@ -309,6 +329,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     domain: `serenity-massage.${DOMAIN_SUFFIX}`,
     endeavorType: 'service-provider',
     businessType: 'service',
+    tagline: 'Healing Hands, Peaceful Minds',
+    description: 'Licensed massage therapy and wellness services. Relaxation, deep tissue, and therapeutic treatments.',
+    holonTypes: ['retailer'],
+    region: { city: 'Clearwater', state: 'FL', country: 'US' },
     spaceName: 'Serenity Wellness Hub',
     branding: {
       siteName: 'Serenity Massage',
@@ -450,6 +474,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     domain: `helpdna.${DOMAIN_SUFFIX}`,
     endeavorType: 'creator-content',
     businessType: 'nonprofit',
+    tagline: 'Free Ernesto — Justice Through Science',
+    description: 'Wrongful conviction advocacy and innocence project. Donations fund DNA testing, legal representation, and public awareness campaigns.',
+    holonTypes: ['community', 'guardian-angel'],
+    region: { city: 'Clearwater', state: 'FL', country: 'US' },
     spaceName: 'HelpDNA Advocacy Network',
     branding: {
       siteName: 'HelpDNA',

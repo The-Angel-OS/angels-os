@@ -402,6 +402,39 @@ Be excellent to each other. Party on, dudes.`,
     )
     payload.logger.info(`  ✓ Space: "${uc.spaceName}" (${channelIds.length} channels)`)
 
+    // Create Endeavor record so tenant appears in Federation Discover
+    const existingEndeavors = await payload.find({
+      collection: 'endeavors',
+      where: { tenant: { equals: tenant.id } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existingEndeavors.docs.length === 0) {
+      await payload.create({
+        collection: 'endeavors',
+        data: {
+          name: uc.name,
+          tagline: uc.tagline || uc.branding.tagline || '',
+          description: uc.description || '',
+          endeavorType: uc.endeavorType,
+          holonTypes: uc.holonTypes || [],
+          status: 'active',
+          region: uc.region || { country: 'US' },
+          federation: {
+            networkVisible: true,
+            domain: uc.domain,
+          },
+          tenant: tenant.id,
+        } as any,
+        overrideAccess: true,
+        req,
+      })
+      payload.logger.info(`  ✓ Endeavor: "${uc.name}" (networkVisible: true)`)
+    } else {
+      payload.logger.info(`  ✓ Endeavor already exists for "${uc.name}"`)
+    }
+
     await findOrCreateTenantMembership(payload, req, { userId: adminUserId, tenantId: tenant.id, role: 'tenant_admin' })
     await findOrCreateSpaceMembership(payload, req, { userId: adminUserId, spaceId: ucSpaceId, role: 'space_admin', tenantId: tenant.id })
 
