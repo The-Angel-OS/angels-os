@@ -42,5 +42,32 @@ export const Media: CollectionConfig = {
   ],
   upload: {
     staticDir: path.resolve(dirname, '../../../public/media'),
+    // Generate responsive image variants for all uploads.
+    // These are served by Next.js Image optimization but having Payload
+    // pre-generate them ensures fast first-load and proper srcSet hints.
+    imageSizes: [
+      {
+        name: 'thumbnail',
+        width: 160,
+        height: 160,
+        position: 'centre',
+        formatOptions: { format: 'webp', options: { quality: 70 } },
+      },
+      {
+        name: 'card',
+        width: 480,
+        height: 480,
+        position: 'centre',
+        formatOptions: { format: 'webp', options: { quality: 80 } },
+      },
+      {
+        name: 'hero',
+        width: 1440,
+        height: undefined, // Preserve aspect ratio
+        formatOptions: { format: 'webp', options: { quality: 85 } },
+      },
+    ],
+    adminThumbnail: 'thumbnail',
+    focalPoint: true,
   },
 }
