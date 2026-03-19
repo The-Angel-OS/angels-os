@@ -125,14 +125,17 @@ export default function CICDashboard() {
   if (error && !data) {
     return (
       <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
-          <h2 className="mb-2 text-lg font-semibold text-red-800 dark:text-red-200">
-            CIC Offline
+        <div className="rounded-lg border border-amber-200/30 bg-amber-950/20 p-6">
+          <h2 className="mb-2 text-lg font-semibold text-amber-200">
+            CIC Warming Up
           </h2>
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-amber-400/70 mb-1">
+            The Combat Information Center is initializing. This is normal on first load or after a deploy.
+          </p>
+          <p className="text-xs text-muted-foreground">{error}</p>
           <button
             onClick={fetchStatus}
-            className="mt-3 rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
+            className="mt-3 rounded bg-amber-600 px-3 py-1 text-sm text-white hover:bg-amber-700"
           >
             Retry
           </button>
