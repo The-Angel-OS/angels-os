@@ -8,6 +8,9 @@ export const metadata = {
   description: 'Browse Enterprises in the Angel OS federation network.',
 }
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function FederationDiscoverPage({
   params,
 }: {
@@ -56,7 +59,10 @@ export default async function FederationDiscoverPage({
       storefrontUrl = `https://${federationDomain}`
     } else if (tenantSlug && tenantSlug !== 'default' && tenantSlug !== 'platform') {
       // Dev/local: construct subdomain URL from slug + server host
-      storefrontUrl = `https://${tenantSlug}.${serverHost.replace(/:\d+$/, '')}`
+      // Preserve port for localhost, use correct protocol
+      const isLocalhost = serverHost.includes('localhost') || serverHost.includes('127.0.0.1')
+      const protocol = isLocalhost ? 'http' : 'https'
+      storefrontUrl = `${protocol}://${tenantSlug}.${serverHost}`
     }
 
     return {

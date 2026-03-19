@@ -40,7 +40,7 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
     )
   }
 
-  const { amount, donorEmail, donorName, message } = body
+  const { amount, donorEmail, donorName, message, tenantSlug } = body
 
   // ── Validate amount ───────────────────────────────────────────
   if (typeof amount !== 'number' || !Number.isInteger(amount)) {
@@ -73,6 +73,7 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
       metadata: {
         angelOs_type: 'donation',
         angelOs_chargeModel: 'platform',
+        ...(typeof tenantSlug === 'string' ? { tenantSlug } : {}),
         ...(typeof donorEmail === 'string' ? { donorEmail } : {}),
         ...(typeof donorName === 'string' ? { donorName } : {}),
         ...(typeof message === 'string' ? { message: message.slice(0, 500) } : {}),

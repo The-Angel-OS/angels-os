@@ -72,7 +72,17 @@ function DonationForm({
   )
 }
 
-export const DonatePage: React.FC = () => {
+interface DonatePageProps {
+  tenantName?: string
+  tenantSlug?: string
+  donationsEnabled?: boolean
+}
+
+export const DonatePage: React.FC<DonatePageProps> = ({
+  tenantName = 'Angel OS',
+  tenantSlug = 'default',
+  donationsEnabled = true,
+}) => {
   const [selectedAmount, setSelectedAmount] = useState<number>(2500) // $25 default
   const [customAmount, setCustomAmount] = useState('')
   const [isCustom, setIsCustom] = useState(false)
@@ -82,6 +92,18 @@ export const DonatePage: React.FC = () => {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // ── Donations Disabled ───────────────────────────────────────
+  if (!donationsEnabled) {
+    return (
+      <div className="container mx-auto max-w-lg py-20 text-center">
+        <h1 className="mb-4 text-3xl font-bold">Donations</h1>
+        <p className="opacity-70">
+          Donations are not currently accepted for {tenantName}. Please check back later.
+        </p>
+      </div>
+    )
+  }
 
   // Check for success redirect
   const isSuccess =
@@ -106,6 +128,7 @@ export const DonatePage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amountCents,
+          tenantSlug,
           ...(donorEmail ? { donorEmail } : {}),
           ...(donorName ? { donorName } : {}),
           ...(message ? { message } : {}),
@@ -192,7 +215,7 @@ export const DonatePage: React.FC = () => {
   // ── Amount Selection State ────────────────────────────────────
   return (
     <div className="container mx-auto max-w-lg py-20">
-      <h1 className="mb-2 text-3xl font-bold">Donate to Angel OS</h1>
+      <h1 className="mb-2 text-3xl font-bold">Donate to {tenantName}</h1>
       <p className="mb-8 text-sm opacity-70">
         100% of every donation goes to the Justice Fund — community support, wrongful conviction
         advocacy, and guild infrastructure. No platform fees on donations. This is constitutional.

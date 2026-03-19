@@ -87,6 +87,16 @@ export const SiteSettings: CollectionConfig = {
         description: 'Default meta description for pages without their own.',
       },
     },
+    // ─── Donations ────────────────────────────────────────────
+    {
+      name: 'donationsEnabled',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description:
+          'Enable the /donate page for this Endeavor. Default: on. Donations go to the Justice Fund.',
+      },
+    },
     // ─── Maintenance Mode ─────────────────────────────────────
     {
       name: 'maintenanceMode',
