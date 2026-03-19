@@ -29,7 +29,7 @@ export const MediumImpactHero: React.FC<Page['hero']> = ({ links, media, richTex
           <div className="max-h-[60vh] overflow-hidden rounded-lg">
             <Media
               className="-mx-4 md:-mx-8 2xl:-mx-16"
-              imgClassName="w-full h-auto max-h-[60vh] object-cover"
+              imgClassName="w-full h-auto object-cover"
               priority
               resource={media}
               size="hero"
