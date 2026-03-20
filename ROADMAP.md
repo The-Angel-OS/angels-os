@@ -6,17 +6,53 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.38.0-dev
-**Tests:** 2,857 unit tests + 14 E2E suites across 73 test files
+**Version:** v0.43.0-dev
+**Tests:** 5,017+ unit tests + 14 E2E suites across 223 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
-**Leo Tools:** 104 (including browse_federation_peers, query_peer_catalog, search_federation_wide)
-**API Endpoints:** 72 registered routes
-**Collections:** 40
-**Last Updated:** March 3, 2026
+**Leo Tools:** 105+ (including browse_federation_peers, query_peer_catalog, search_federation_wide)
+**API Endpoints:** 74+ registered routes
+**Collections:** 42
+**Last Updated:** March 19, 2026
 
 ---
 
-## Current: v0.38.0-dev (Federation Browsing + GitHub OAuth)
+## Current: v0.43.0-dev (Monetization Go-Live + Visual Polish)
+
+### Sprint 43 (March 18-19, 2026) — Monetization Go-Live
+- Donation flow: `/donate` page, Stripe Elements, 100% to Justice Fund
+- Federation domain persistence: heartbeats store peer FQDN, Discover uses stored domain
+- Route shadowing fix: 15 dead endpoints renamed with `-ops` suffix
+- YouTube sync: RSS polling, hourly cron, `youtube_channel` connector type
+- CIC graceful degradation: "Warming Up" instead of alarming "Offline" error
+- Favicon: bold angel icon matching Payload admin, readable at 16px
+- Media: responsive imageSizes (thumbnail/card/hero), proper `sizes` attributes
+- Hero: constrained height (50-70vh), overflow hidden
+- Hierarchical navigation: Header dropdowns, Footer grouped columns
+- Docs: README/STATUS to Sprint 43, ARCHITECTURE_VISUAL.md (11 ASCII diagrams)
+
+### Sprint 42 (March 8-17, 2026) — User Propagation + Flagship
+- User propagation layer: auto TenantMembership on purchase/booking/event
+- Flagship commissioning: Clearwater (spacesangels.com), St. Alfred's, 2026-03-08
+- `propagationTrigger` audit trail on memberships
+- Federation Discover cards with storefront URLs
+- Dashboard as universal nav, LEO chat fix (3 fixes)
+
+### Sprint 41 — Admin Dashboard + White-Labeling
+- SiteSettings collection, AdminBar branding, anonymous dashboard
+- LCARS dashboard widgets, tenant isolation audit (15 leaks closed)
+
+### Sprint 40 — Booking Engine + Calendar + Forms
+- BookingEngine with slot generation, conflict detection, harmonic resolution
+- LEO booking tools, Calendar block, Form builder, Featured Endeavors block
+
+### Sprint 39 — Order Journey + Street Signs Gossip
+- Order detail page with fulfillment timeline stepper
+- Street Signs gossip protocol on federation heartbeats
+- `discover_federation_products` LEO tool
+
+---
+
+## Previous: v0.38.0-dev (Federation Browsing + GitHub OAuth)
 
 ### What's Built (Sprints 1-21)
 

@@ -29,7 +29,7 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 ---
 
-## The Model (Updated — Sprint 42)
+## The Model (Updated — Sprint 43)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
