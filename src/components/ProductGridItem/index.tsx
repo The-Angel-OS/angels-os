@@ -47,7 +47,7 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
             'transition duration-300 ease-in-out group-hover:scale-102': true,
           })}
           resource={image}
-          size="card"
+          size="(max-width: 768px) 100vw, 33vw"
           fill
         />
       ) : (

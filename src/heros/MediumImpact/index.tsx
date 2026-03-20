@@ -32,7 +32,7 @@ export const MediumImpactHero: React.FC<Page['hero']> = ({ links, media, richTex
               imgClassName="w-full h-auto object-cover"
               priority
               resource={media}
-              size="hero"
+              size="100vw"
             />
             {media?.caption && (
               <div className="mt-3">
