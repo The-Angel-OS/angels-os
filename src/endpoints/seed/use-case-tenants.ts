@@ -29,6 +29,12 @@ export interface UseCaseTenant {
   holonTypes?: string[]
   /** Region for Endeavor record */
   region?: { city?: string; state?: string; country?: string }
+  /** Mission statement for Endeavor */
+  missionStatement?: string
+  /** Operator info for Endeavor */
+  operator?: { name: string; email: string; role: string }
+  /** Capabilities for Endeavor (skill + description pairs) */
+  capabilities?: Array<{ skill: string; description: string }>
   spaceName: string
   branding: {
     siteName: string
@@ -180,6 +186,14 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     description: 'CNC signs, woodworking, ministry, and soul questing from Clearwater, Florida. Dogs welcome.',
     holonTypes: ['creator', 'community'],
     region: { city: 'Clearwater', state: 'FL', country: 'US' },
+    missionStatement: 'To serve others through creative expression, community fellowship, and the open road — proving that faith, craftsmanship, and genuine connection can change lives one conversation at a time.',
+    operator: { name: 'Kenneth Courtney', email: 'kenneth@clearwatercruisin.com', role: 'Ministry Lead' },
+    capabilities: [
+      { skill: 'CNC woodworking', description: 'Custom street signs, welcome signs, and decorative art cut from Baltic birch plywood on our shop CNC' },
+      { skill: 'Community ministry', description: 'Fellowship events, outreach, and soul questing in the Ready Player Everyone universe' },
+      { skill: 'Content creation', description: 'YouTube channel, blog posts, and social media celebrating Clearwater culture, dogs, and the cruisin life' },
+      { skill: 'Event coordination', description: 'Car shows, community gatherings, volunteer coordination, and ministry events' },
+    ],
     spaceName: 'Cruisin Community',
     branding: {
       siteName: 'Clearwater Cruisin\' Ministries',
