@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
@@ -365,6 +366,7 @@ export const Bookings: CollectionConfig = {
         {
           name: 'clientPreparation',
           type: 'richText',
+          editor: lexicalEditor({}),
           admin: {
             description: 'What the client should do to prepare',
           },
@@ -372,6 +374,7 @@ export const Bookings: CollectionConfig = {
         {
           name: 'cancellationPolicy',
           type: 'richText',
+          editor: lexicalEditor({}),
           admin: {
             description: 'Cancellation terms and timing requirements',
           },
@@ -379,6 +382,7 @@ export const Bookings: CollectionConfig = {
         {
           name: 'specialInstructions',
           type: 'richText',
+          editor: lexicalEditor({}),
           admin: {
             description: 'Any special requirements or instructions',
           },

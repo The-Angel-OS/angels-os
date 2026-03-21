@@ -28,6 +28,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
       where: { domain: { equals: domain } },
       limit: 1,
       depth: 2,
+      overrideAccess: true,
     })
 
     if (tenants.docs?.[0]) {
@@ -53,6 +54,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
         where: { slug: { equals: subSlug } },
         limit: 1,
         depth: 2,
+        overrideAccess: true,
       })
       if (bySlug.docs?.[0]) {
         tenantBySlugCache.set(subSlug, bySlug.docs[0])
@@ -73,6 +75,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
       where: { slug: { equals: fallbackSlug } },
       limit: 1,
       depth: 2,
+      overrideAccess: true,
     })
 
     const result = defaults.docs?.[0] ?? null

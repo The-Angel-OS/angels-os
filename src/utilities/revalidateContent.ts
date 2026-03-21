@@ -60,8 +60,9 @@ export function revalidateAfterMutation(opts: RevalidationOptions): void {
         if (opts.slug) {
           revalidatePath(`/products/${opts.slug}`)
         }
-        // Also bust the products listing page
+        // Also bust the products listing and shop pages
         revalidatePath('/products')
+        revalidatePath('/shop')
         break
       }
       case 'events': {
@@ -69,6 +70,15 @@ export function revalidateAfterMutation(opts: RevalidationOptions): void {
           revalidatePath(`/events/${opts.slug}`)
         }
         revalidatePath('/events')
+        break
+      }
+      case 'bookings':
+      case 'availability': {
+        revalidatePath('/book')
+        break
+      }
+      case 'endeavors': {
+        revalidatePath('/federation/discover')
         break
       }
       case 'media': {

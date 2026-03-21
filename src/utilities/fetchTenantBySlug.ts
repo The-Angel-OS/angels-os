@@ -31,8 +31,8 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
     }
     return result
   } catch (err) {
-    const errMsg = err instanceof Error ? `${err.name}: ${err.message.slice(0, 150)}` : String(err).slice(0, 150)
-    console.error(`[tenantSlug] FAIL "${slug}" ${errMsg}`)
+    const errMsg = err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200)
+    console.error(`[fetchTenantBySlug] Failed for "${slug}": ${errMsg}`)
 
     // Retry once with depth: 0 — deep population can fail on cold starts
     try {
@@ -51,7 +51,7 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
       }
       return result
     } catch (retryErr) {
-      console.error(`[tenantSlug] RETRY FAIL "${slug}":`, retryErr instanceof Error ? retryErr.message.slice(0, 100) : String(retryErr).slice(0, 100))
+      console.error(`[fetchTenantBySlug] Retry also failed for "${slug}":`, retryErr instanceof Error ? retryErr.message.slice(0, 200) : String(retryErr).slice(0, 200))
       return null
     }
   }
