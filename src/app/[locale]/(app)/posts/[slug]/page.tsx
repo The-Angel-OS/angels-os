@@ -78,25 +78,30 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 }
 
 async function queryPostBySlug({ slug }: { slug: string }) {
-  const { isEnabled: draft } = await draftMode()
-  const { tenantFilter } = await resolveTenantFromHeaders()
-  const payload = await getPayload({ config: configPromise })
+  try {
+    const { isEnabled: draft } = await draftMode()
+    const { tenantFilter } = await resolveTenantFromHeaders()
+    const payload = await getPayload({ config: configPromise })
 
-  const result = await payload.find({
-    collection: 'posts',
-    draft,
-    depth: 1,
-    limit: 1,
-    overrideAccess: true, // Public posts must be readable without auth
-    pagination: false,
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-        tenantFilter,
-      ],
-    },
-  })
+    const result = await payload.find({
+      collection: 'posts',
+      draft,
+      depth: 1,
+      limit: 1,
+      overrideAccess: true, // Public posts must be readable without auth
+      pagination: false,
+      where: {
+        and: [
+          { slug: { equals: slug } },
+          ...(draft ? [] : [{ _status: { equals: 'published' } }]),
+          tenantFilter,
+        ],
+      },
+    })
 
-  return result.docs?.[0] ?? null
+    return result.docs?.[0] ?? null
+  } catch (err) {
+    console.error('[queryPostBySlug] Query failed:', err)
+    return null
+  }
 }

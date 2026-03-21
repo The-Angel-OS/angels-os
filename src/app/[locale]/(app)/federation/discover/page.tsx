@@ -22,16 +22,22 @@ export default async function FederationDiscoverPage({
   const payload = await getPayload({ config: configPromise })
 
   // Fetch network-visible Endeavors (depth: 2 resolves tenant branding)
-  const endeavors = await payload.find({
-    collection: 'endeavors',
-    where: {
-      'federation.networkVisible': { equals: true },
-    },
-    limit: 100,
-    depth: 2,
-    overrideAccess: true,
-    sort: '-updatedAt',
-  })
+  let endeavors: Awaited<ReturnType<typeof payload.find>>
+  try {
+    endeavors = await payload.find({
+      collection: 'endeavors',
+      where: {
+        'federation.networkVisible': { equals: true },
+      },
+      limit: 100,
+      depth: 2,
+      overrideAccess: true,
+      sort: '-updatedAt',
+    })
+  } catch (err) {
+    console.error('[FederationDiscover] Query failed:', err)
+    return <FederationDiscover initialHolons={[]} total={0} />
+  }
 
   // Build base URL from server environment for storefront URL resolution
   // Sprint 43: Use VERCEL_PROJECT_PRODUCTION_URL as second fallback before localhost
