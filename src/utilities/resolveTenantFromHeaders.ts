@@ -39,8 +39,11 @@ export const resolveTenantFromHeaders = cache(async (): Promise<{
   // 1. Try slug from x-tenant-id header (set by middleware for subdomain tenants)
   if (tenantSlug) {
     const tenant = await fetchTenantBySlug(tenantSlug)
-    const tenantId = tenant?.id
-    return { tenant, tenantId, tenantFilter: buildTenantFilter(tenantId) }
+    if (tenant) {
+      return { tenant, tenantId: tenant.id, tenantFilter: buildTenantFilter(tenant.id) }
+    }
+    // Slug lookup failed (DB error or cold start) — fall through to domain lookup
+    console.warn(`[resolveTenantFromHeaders] Slug "${tenantSlug}" lookup failed — falling back to domain`)
   }
 
   // 2. No header — resolve by domain (handles platform domains like spacesangels.com)

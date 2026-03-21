@@ -22,13 +22,37 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
       where: { slug: { equals: slug } },
       limit: 1,
       depth: 2,
+      overrideAccess: true, // Tenant resolution must succeed regardless of auth context
     })
 
     const result = tenants.docs?.[0] ?? null
-    tenantBySlugCache.set(slug, result)
+    if (result) {
+      tenantBySlugCache.set(slug, result)
+    }
     return result
   } catch (err) {
-    console.error('[fetchTenantBySlug] DB query failed for slug:', slug, err)
-    return null
+    const errMsg = err instanceof Error ? err.message : String(err)
+    console.error(`[fetchTenantBySlug] FAILED slug="${slug}": ${errMsg}`)
+
+    // Retry once with depth: 0 — deep population can fail on cold starts
+    try {
+      const payload = await getPayload({ config: configPromise })
+      const retry = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: slug } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const result = retry.docs?.[0] ?? null
+      if (result) {
+        console.log(`[fetchTenantBySlug] Retry succeeded for slug="${slug}" (depth=0)`)
+        tenantBySlugCache.set(slug, result)
+      }
+      return result
+    } catch (retryErr) {
+      console.error(`[fetchTenantBySlug] Retry also failed for slug="${slug}":`, retryErr instanceof Error ? retryErr.message : retryErr)
+      return null
+    }
   }
 }
