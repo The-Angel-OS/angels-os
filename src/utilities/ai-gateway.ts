@@ -516,6 +516,91 @@ export function getImageModel(
 }
 
 // ---------------------------------------------------------------------------
+// Per-Tenant Image Provider Resolution (Sprint 44)
+// ---------------------------------------------------------------------------
+
+/** Shape of aiConfig stored on Tenants collection */
+export interface TenantAiConfig {
+  anthropicApiKey?: string
+  openrouterApiKey?: string
+  openaiApiKey?: string
+  googleAiApiKey?: string
+  cloudflareAccountId?: string
+  cloudflareAiToken?: string
+  preferredImageProvider?: 'auto' | 'openai' | 'google' | 'openrouter' | 'cloudflare'
+}
+
+export type ImageProvider = 'gateway' | 'openai' | 'google' | 'openrouter' | 'cloudflare'
+
+export interface ResolvedImageProvider {
+  provider: ImageProvider
+  apiKey: string
+  /** Cloudflare-specific account ID */
+  accountId?: string
+}
+
+/**
+ * Resolves which image generation provider to use based on tenant config.
+ *
+ * Priority:
+ *   1. Tenant's preferred provider (if they have a key for it)
+ *   2. Auto: Gateway → OpenRouter (tenant key) → OpenAI → Google → Cloudflare → OpenRouter (platform)
+ *   3. Falls back to null if nothing is available
+ */
+export function resolveImageProvider(
+  tenantConfig?: TenantAiConfig,
+): ResolvedImageProvider | null {
+  const pref = tenantConfig?.preferredImageProvider ?? 'auto'
+
+  // Helper: check if a specific provider has a valid key
+  const tryProvider = (p: ImageProvider): ResolvedImageProvider | null => {
+    switch (p) {
+      case 'gateway': {
+        const key = resolveGatewayKey()
+        return key ? { provider: 'gateway', apiKey: key } : null
+      }
+      case 'openai': {
+        const key = tenantConfig?.openaiApiKey || process.env.OPENAI_API_KEY
+        return key ? { provider: 'openai', apiKey: key } : null
+      }
+      case 'google': {
+        const key = tenantConfig?.googleAiApiKey || process.env.GOOGLE_AI_API_KEY
+        return key ? { provider: 'google', apiKey: key } : null
+      }
+      case 'openrouter': {
+        const key = tenantConfig?.openrouterApiKey || process.env.OPENROUTER_API_KEY
+        return key ? { provider: 'openrouter', apiKey: key } : null
+      }
+      case 'cloudflare': {
+        const token = tenantConfig?.cloudflareAiToken || process.env.CLOUDFLARE_AI_TOKEN
+        const accountId = tenantConfig?.cloudflareAccountId || process.env.CLOUDFLARE_ACCOUNT_ID
+        return token && accountId
+          ? { provider: 'cloudflare', apiKey: token, accountId }
+          : null
+      }
+      default:
+        return null
+    }
+  }
+
+  // If tenant specified a preferred provider, try it first
+  if (pref !== 'auto') {
+    const result = tryProvider(pref)
+    if (result) return result
+    // Fall through to auto if preferred provider's key is missing
+  }
+
+  // Auto: try providers in priority order
+  const autoOrder: ImageProvider[] = ['gateway', 'openrouter', 'openai', 'google', 'cloudflare']
+  for (const p of autoOrder) {
+    const result = tryProvider(p)
+    if (result) return result
+  }
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Tool converter — Anthropic format → AI SDK format
 // ---------------------------------------------------------------------------
 

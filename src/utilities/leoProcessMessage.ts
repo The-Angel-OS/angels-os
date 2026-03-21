@@ -85,14 +85,26 @@ export async function leoProcessMessage(
     }
   }
 
-  // Sprint 6: Resolve tenant AI config for BYOAI key support
+  // Sprint 6→44: Resolve tenant AI config for BYOAI key support (multi-provider)
   let tenantAnthropicApiKey: string | undefined
+  let tenantAiConfig: Record<string, unknown> | undefined
   if (payload && tenantId) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tenant = await payload.findByID({ collection: 'tenants', id: Number(tenantId), depth: 0 }) as any
-      if (tenant?.aiConfig?.anthropicApiKey) {
-        tenantAnthropicApiKey = tenant.aiConfig.anthropicApiKey
+      if (tenant?.aiConfig) {
+        const ac = tenant.aiConfig
+        if (ac.anthropicApiKey) tenantAnthropicApiKey = ac.anthropicApiKey
+        // Pass full aiConfig so image gen + tool executor can resolve providers
+        tenantAiConfig = {
+          anthropicApiKey: ac.anthropicApiKey || undefined,
+          openrouterApiKey: ac.openrouterApiKey || undefined,
+          openaiApiKey: ac.openaiApiKey || undefined,
+          googleAiApiKey: ac.googleAiApiKey || undefined,
+          cloudflareAccountId: ac.cloudflareAccountId || undefined,
+          cloudflareAiToken: ac.cloudflareAiToken || undefined,
+          preferredImageProvider: ac.preferredImageProvider || 'auto',
+        }
       }
     } catch {
       // Non-fatal — fall back to platform key
@@ -111,6 +123,7 @@ export async function leoProcessMessage(
           ...(channelSlug ? { channel: channelSlug } : {}),
           ...(userContext ? { userContext } : {}),
           ...(tenantAnthropicApiKey ? { tenantAnthropicApiKey } : {}),
+          ...(tenantAiConfig ? { tenantAiConfig } : {}),
           ...(pageContext ? { pageContext } : {}),
           ...(federatedContext ? { federatedContext } : {}),
         }
