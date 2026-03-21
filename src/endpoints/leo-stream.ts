@@ -51,6 +51,8 @@ import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 const MAX_HISTORY_TURNS = 12
 const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 5
+/** Truncate individual history messages to prevent context bloat from long tool results */
+const MAX_HISTORY_MESSAGE_CHARS = 2000
 const LLM_MODEL = 'claude-sonnet-4-6'
 
 // Track health queries that have already warned to avoid log spam (once per deployment)
@@ -509,7 +511,12 @@ async function fetchConversationHistory(
         (author.isSystemUser === true ||
           (Array.isArray(author.roles) && author.roles.includes('system')))
       const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-      const content = extractTextFromContent(msg.content)
+      let content = extractTextFromContent(msg.content)
+
+      // Truncate long messages (e.g. tool results echoed back) to prevent context bloat
+      if (content.length > MAX_HISTORY_MESSAGE_CHARS) {
+        content = content.slice(0, MAX_HISTORY_MESSAGE_CHARS) + '\n\n[...truncated for context efficiency]'
+      }
 
       if (content.trim()) {
         const lastMsg = messages[messages.length - 1]

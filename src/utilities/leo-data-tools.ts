@@ -847,6 +847,50 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'configure_endeavor',
+    description:
+      'Configure the Endeavor (constitutional identity) for this enterprise. Use when a user describes their mission, wants to set up their enterprise identity, set capabilities, update operator info, or configure federation settings. Complements configure_business (which sets operational/storefront config) — this sets the constitutional layer.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Enterprise name' },
+        tagline: { type: 'string', description: 'One-sentence mission tagline' },
+        description: { type: 'string', description: 'What the enterprise does' },
+        endeavorType: {
+          type: 'string',
+          enum: ['service-provider', 'retail-commerce', 'creator-content', 'booking-based', 'custom'],
+          description: 'Type of endeavor',
+        },
+        missionStatement: { type: 'string', description: 'What the enterprise serves — its reason for existing' },
+        holonTypes: {
+          type: 'array',
+          items: { type: 'string', enum: ['manufacturer', 'retailer', 'creator', 'community', 'guardian-angel'] },
+          description: 'Federation roles this enterprise fills',
+        },
+        capabilities: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              skill: { type: 'string', description: 'Capability name (e.g. "CNC woodworking")' },
+              description: { type: 'string', description: 'What this capability entails' },
+            },
+            required: ['skill', 'description'],
+          },
+          description: 'Skills and capabilities this enterprise offers',
+        },
+        operatorName: { type: 'string', description: 'Name of the enterprise operator' },
+        operatorEmail: { type: 'string', description: 'Operator contact email' },
+        operatorRole: { type: 'string', description: 'Operator role (e.g. "Founder", "Ministry Lead")' },
+        regionCity: { type: 'string', description: 'City' },
+        regionState: { type: 'string', description: 'State/province' },
+        regionCountry: { type: 'string', description: 'Country code (e.g. "US")' },
+        networkVisible: { type: 'boolean', description: 'Whether to appear in the federation network' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'connect_stripe_account',
     description:
       'Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.',
@@ -3093,6 +3137,7 @@ const CONTENT_MUTATION_TOOLS: Record<string, (input: Record<string, unknown>) =>
   replace_image: () => ({ collection: 'media' }),
   update_theme_settings: () => ({ collection: 'site-settings' }),
   update_navigation: () => ({ collection: 'header' }),
+  configure_endeavor: () => ({ collection: 'endeavors' }),
   payload_update: (i) => ({ collection: i.collection as string }),
   payload_create: (i) => ({ collection: i.collection as string }),
 }
@@ -3199,6 +3244,8 @@ async function executeToolSwitch(
       // ─── Sprint 6: Business Setup & Stripe ────────────────────
       case 'configure_business':
         return await handleConfigureBusiness(payload, toolInput, ctx)
+      case 'configure_endeavor':
+        return await handleConfigureEndeavor(payload, toolInput, ctx)
       case 'connect_stripe_account':
         return await handleConnectStripe(payload, toolInput, ctx)
       case 'disconnect_stripe_account':
@@ -5686,6 +5733,115 @@ async function handleConfigureBusiness(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error configuring business: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * configure_endeavor — Updates the Endeavor (constitutional identity) for this tenant.
+ */
+async function handleConfigureEndeavor(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  if (!tenantId) {
+    return 'Error: No tenant context available.'
+  }
+
+  try {
+    // Find existing endeavor
+    const existing = await payload.find({
+      collection: 'endeavors',
+      where: { tenant: { equals: tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {}
+
+    if (input.name) updateData.name = input.name
+    if (input.tagline) updateData.tagline = input.tagline
+    if (input.description) updateData.description = input.description
+    if (input.endeavorType) updateData.endeavorType = input.endeavorType
+    if (input.missionStatement) updateData.missionStatement = input.missionStatement
+    if (input.holonTypes) updateData.holonTypes = input.holonTypes
+    if (input.capabilities) updateData.capabilities = input.capabilities
+
+    // Operator fields
+    if (input.operatorName || input.operatorEmail || input.operatorRole) {
+      const existingOp = (existing.docs[0] as any)?.operator || {}
+      updateData.operator = {
+        name: (input.operatorName as string) || existingOp.name || '',
+        email: (input.operatorEmail as string) || existingOp.email || '',
+        role: (input.operatorRole as string) || existingOp.role || '',
+      }
+    }
+
+    // Region fields
+    if (input.regionCity || input.regionState || input.regionCountry) {
+      const existingRegion = (existing.docs[0] as any)?.region || {}
+      updateData.region = {
+        city: (input.regionCity as string) || existingRegion.city || '',
+        state: (input.regionState as string) || existingRegion.state || '',
+        country: (input.regionCountry as string) || existingRegion.country || 'US',
+      }
+    }
+
+    // Federation visibility
+    if (input.networkVisible !== undefined) {
+      const existingFed = (existing.docs[0] as any)?.federation || {}
+      updateData.federation = { ...existingFed, networkVisible: input.networkVisible }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return 'Error: Please provide at least one field to update (name, tagline, description, missionStatement, capabilities, etc.).'
+    }
+
+    if (existing.docs[0]) {
+      await (payload.update as any)({
+        collection: 'endeavors',
+        id: existing.docs[0].id,
+        data: updateData,
+        overrideAccess: true,
+      })
+    } else {
+      await (payload.create as any)({
+        collection: 'endeavors',
+        data: {
+          ...updateData,
+          tenant: tenantId,
+          name: (input.name as string) || 'My Enterprise',
+          endeavorType: (input.endeavorType as string) || 'custom',
+          status: 'forming',
+        },
+        overrideAccess: true,
+      })
+    }
+
+    const parts: string[] = []
+    if (input.name) parts.push(`Name: "${input.name}".`)
+    if (input.endeavorType) parts.push(`Type: ${input.endeavorType}.`)
+    if (input.missionStatement) parts.push('Mission statement updated.')
+    if (input.capabilities) parts.push(`${(input.capabilities as unknown[]).length} capabilities set.`)
+    if (input.operatorName || input.operatorEmail) parts.push('Operator info updated.')
+    if (input.regionCity || input.regionState) parts.push('Region updated.')
+    if (input.networkVisible !== undefined) parts.push(`Federation visibility: ${input.networkVisible ? 'on' : 'off'}.`)
+    if (input.holonTypes) parts.push(`Holon roles: ${(input.holonTypes as string[]).join(', ')}.`)
+    if (input.tagline) parts.push(`Tagline: "${input.tagline}".`)
+
+    let response = parts.join(' ') || 'Endeavor updated.'
+    response += existing.docs[0]
+      ? ' Your enterprise identity has been updated!'
+      : ' Your enterprise identity has been created!'
+
+    return response + navDirective('/dashboard/endeavor', 'View Endeavor')
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Error configuring endeavor: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
