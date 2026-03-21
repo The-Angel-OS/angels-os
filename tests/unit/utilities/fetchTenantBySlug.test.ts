@@ -73,11 +73,11 @@ describe('fetchTenantBySlug', () => {
     expect(result).toBeNull()
   })
 
-  it('stores null in cache when no tenant found', async () => {
+  it('does not cache null results (avoids caching transient failures)', async () => {
     mockCache.get.mockReturnValue(undefined)
     mockGetPayload.mockResolvedValue(makePayload([]))
     await fetchTenantBySlug('no-such-slug')
-    expect(mockCache.set).toHaveBeenCalledWith('no-such-slug', null)
+    expect(mockCache.set).not.toHaveBeenCalled()
   })
 
   it('returns null when payload.find throws', async () => {
