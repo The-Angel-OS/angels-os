@@ -896,6 +896,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
 
   // Resolve tenant
   let tenantId: number | undefined
+  let tenantAiConfig: Record<string, unknown> | undefined
   const tenantSlug =
     req.headers.get('x-tenant-id') || process.env.DEFAULT_TENANT_SLUG || 'default'
 
@@ -908,7 +909,21 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         depth: 0,
         overrideAccess: true,
       })
-      tenantId = tenants.docs?.[0]?.id
+      const tenantDoc = tenants.docs?.[0] as any
+      tenantId = tenantDoc?.id
+      // Sprint 44: extract AI config for multi-provider routing
+      if (tenantDoc?.aiConfig) {
+        const ac = tenantDoc.aiConfig
+        tenantAiConfig = {
+          anthropicApiKey: ac.anthropicApiKey || undefined,
+          openrouterApiKey: ac.openrouterApiKey || undefined,
+          openaiApiKey: ac.openaiApiKey || undefined,
+          googleAiApiKey: ac.googleAiApiKey || undefined,
+          cloudflareAccountId: ac.cloudflareAccountId || undefined,
+          cloudflareAiToken: ac.cloudflareAiToken || undefined,
+          preferredImageProvider: ac.preferredImageProvider || 'auto',
+        }
+      }
     } catch {
       // Non-critical
     }
@@ -1104,6 +1119,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               wizardStep: wizardStep as number,
               complexity: escalatedTier,
               isEscalationRound,
+              tenantAiConfig,
             })
             fullText = gwResult.text
             if (gwResult.hadStreamError) hadError = true
@@ -1137,6 +1153,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 isWizardMode,
                 wizardStep: wizardStep as number,
                 tenantSlug,
+                tenantAiConfig,
               })
               fullText = result.fullText
             } else {
@@ -1160,6 +1177,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             isWizardMode,
             wizardStep: wizardStep as number,
             tenantSlug,
+            tenantAiConfig,
           })
           fullText = result.fullText
         }
@@ -1314,11 +1332,14 @@ async function streamViaGateway(opts: {
   complexity?: TaskComplexity
   /** Whether this round is an escalation (deep think) round */
   isEscalationRound?: boolean
+  /** Sprint 44: Per-tenant AI config for multi-provider routing */
+  tenantAiConfig?: Record<string, unknown>
 }): Promise<{ text: string; hadStreamError: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
+    tenantAiConfig,
   } = opts
 
   // Smart model selection: credit-aware tier + gateway-native fallback chain
@@ -1392,6 +1413,7 @@ async function streamViaGateway(opts: {
     tenantId,
     spaceId: resolvedSpaceId,
     userId,
+    tenantAiConfig,
   }
   const tools = convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
 
@@ -1537,11 +1559,13 @@ async function streamViaAnthropic(opts: {
   isWizardMode: boolean
   wizardStep: number
   tenantSlug: string
+  /** Sprint 44: Per-tenant AI config for multi-provider routing */
+  tenantAiConfig?: Record<string, unknown>
 }): Promise<{ fullText: string }> {
   const {
     controller, encoder, client, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
-    isWizardMode, wizardStep,
+    isWizardMode, wizardStep, tenantAiConfig,
   } = opts
 
   // Build user content (with images if present)
@@ -1668,6 +1692,7 @@ async function streamViaAnthropic(opts: {
         tenantId,
         spaceId: resolvedSpaceId,
         userId,
+        tenantAiConfig,
       }
 
       for (const tool of toolUseBlocks) {

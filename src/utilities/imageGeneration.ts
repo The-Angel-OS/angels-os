@@ -18,7 +18,8 @@
  */
 
 import type { Payload } from 'payload'
-import { getImageModel, isGatewayAvailable } from './ai-gateway'
+import { getImageModel, isGatewayAvailable, resolveImageProvider } from './ai-gateway'
+import type { TenantAiConfig, ResolvedImageProvider } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -160,45 +161,101 @@ function enhancePromptForProduct(
 }
 
 // ---------------------------------------------------------------------------
-// Core Generation via OpenRouter
+// Core Generation — Multi-Provider Router (Sprint 44)
 // ---------------------------------------------------------------------------
 
 /**
- * Generate an image using Vercel AI Gateway (preferred) or OpenRouter (fallback).
+ * Generate an image using the best available provider.
  *
- * Path A: AI Gateway → AI SDK generateImage() → base64
- * Path B: OpenRouter → chat completions → extract image from response
+ * Provider resolution order (configurable per-tenant via aiConfig.preferredImageProvider):
+ *   1. Vercel AI Gateway (preferred — routes to any model)
+ *   2. OpenRouter (multi-model, tenant or platform key)
+ *   3. OpenAI DALL-E (tenant key)
+ *   4. Google Imagen / Gemini (tenant key)
+ *   5. Cloudflare Workers AI Flux (tenant key — free tier)
  *
  * Returns base64 image data — auto-uploads to Payload Media if requested.
+ *
+ * @param tenantOpenRouterKey — DEPRECATED: use tenantAiConfig instead (kept for backward compat)
  */
 export async function generateImage(
   options: ImageGenerationOptions,
   payload?: Payload,
   tenantOpenRouterKey?: string,
+  tenantAiConfig?: TenantAiConfig,
 ): Promise<ImageGenerationResult> {
   const enhancedPrompt = enhancePromptForProduct(options.prompt, options.enhancementContext)
 
-  // --- Path A: Vercel AI Gateway (preferred) ---
-  if (isGatewayAvailable()) {
-    try {
-      const result = await generateViaGateway(enhancedPrompt, options, payload)
-      if (result.success) return result
-      console.warn('[ImageGeneration] Gateway failed, trying OpenRouter fallback:', result.error)
-    } catch (err) {
-      console.warn('[ImageGeneration] Gateway error, falling back to OpenRouter:', err)
-    }
+  // Build effective config (merge legacy param into config)
+  const effectiveConfig: TenantAiConfig = {
+    ...tenantAiConfig,
+    ...(tenantOpenRouterKey && !tenantAiConfig?.openrouterApiKey
+      ? { openrouterApiKey: tenantOpenRouterKey }
+      : {}),
   }
 
-  // --- Path B: OpenRouter (fallback) ---
-  const apiKey = tenantOpenRouterKey || process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
+  // Resolve the best available provider
+  const resolved = resolveImageProvider(effectiveConfig)
+
+  if (!resolved) {
     return {
       success: false,
-      error: 'Image generation unavailable — neither AI_GATEWAY_API_KEY nor OPENROUTER_API_KEY is configured.',
+      error: 'Image generation unavailable — no AI provider keys configured.',
     }
   }
 
-  return generateViaOpenRouter(enhancedPrompt, apiKey, options, payload)
+  console.log(`[ImageGeneration] Using provider: ${resolved.provider}`)
+
+  switch (resolved.provider) {
+    case 'gateway':
+      return generateViaGatewayWithFallback(enhancedPrompt, options, payload, effectiveConfig)
+
+    case 'openai':
+      return generateViaOpenAI(enhancedPrompt, resolved.apiKey, options, payload)
+
+    case 'cloudflare':
+      return generateViaCloudflare(enhancedPrompt, resolved.apiKey, resolved.accountId!, options, payload)
+
+    case 'google':
+      // Google Gemini image gen goes through OpenRouter-style chat completions
+      return generateViaOpenRouter(enhancedPrompt, resolved.apiKey, options, payload, 'google/gemini-3-pro-image-preview')
+
+    case 'openrouter':
+    default:
+      return generateViaOpenRouter(enhancedPrompt, resolved.apiKey, options, payload)
+  }
+}
+
+/**
+ * Try AI Gateway first, fall back to next available provider on failure.
+ */
+async function generateViaGatewayWithFallback(
+  prompt: string,
+  options: ImageGenerationOptions,
+  payload: Payload | undefined,
+  config: TenantAiConfig,
+): Promise<ImageGenerationResult> {
+  try {
+    const result = await generateViaGateway(prompt, options, payload)
+    if (result.success) return result
+    console.warn('[ImageGeneration] Gateway failed, trying fallback:', result.error)
+  } catch (err) {
+    console.warn('[ImageGeneration] Gateway error, trying fallback:', err)
+  }
+
+  // Try OpenRouter next
+  const orKey = config.openrouterApiKey || process.env.OPENROUTER_API_KEY
+  if (orKey) return generateViaOpenRouter(prompt, orKey, options, payload)
+
+  // Try OpenAI
+  if (config.openaiApiKey) return generateViaOpenAI(prompt, config.openaiApiKey, options, payload)
+
+  // Try Cloudflare
+  if (config.cloudflareAiToken && config.cloudflareAccountId) {
+    return generateViaCloudflare(prompt, config.cloudflareAiToken, config.cloudflareAccountId, options, payload)
+  }
+
+  return { success: false, error: 'All image generation providers failed.' }
 }
 
 /**
@@ -377,6 +434,140 @@ async function generateViaOpenRouter(
     }
 
     return { success: false, error: `Image generation failed: ${msg}` }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OpenAI DALL-E Generation (Sprint 44)
+// ---------------------------------------------------------------------------
+
+const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations'
+
+/**
+ * Generate an image via OpenAI DALL-E API.
+ */
+async function generateViaOpenAI(
+  prompt: string,
+  apiKey: string,
+  options: ImageGenerationOptions,
+  payload?: Payload,
+): Promise<ImageGenerationResult> {
+  try {
+    const response = await fetch(OPENAI_IMAGE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model || 'dall-e-3',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      }),
+      signal: AbortSignal.timeout(120_000),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text()
+      console.error('[ImageGeneration] OpenAI DALL-E error:', response.status, errorBody)
+
+      if (response.status === 400 && errorBody.includes('content_policy')) {
+        return {
+          success: false,
+          error: 'The image prompt was flagged by content policy. Please try a different description.',
+        }
+      }
+
+      return { success: false, error: `OpenAI DALL-E failed (HTTP ${response.status}).` }
+    }
+
+    const data = await response.json()
+    const b64 = data?.data?.[0]?.b64_json
+
+    if (!b64) {
+      return { success: false, error: 'OpenAI DALL-E returned no image data.' }
+    }
+
+    const imageDataUrl = `data:image/png;base64,${b64}`
+    const result: ImageGenerationResult = {
+      success: true,
+      imageDataUrl,
+      modelUsed: 'openai/dall-e-3',
+    }
+
+    if (options.autoUpload && payload) {
+      await tryUploadToMedia(result, imageDataUrl, options, payload)
+    }
+
+    return result
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[ImageGeneration] OpenAI error:', msg)
+    return { success: false, error: `OpenAI DALL-E failed: ${msg}` }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cloudflare Workers AI Flux Generation (Sprint 44)
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate an image via Cloudflare Workers AI (Flux model — free tier).
+ *
+ * @see https://developers.cloudflare.com/workers-ai/models/flux-1-schnell/
+ */
+async function generateViaCloudflare(
+  prompt: string,
+  apiToken: string,
+  accountId: string,
+  options: ImageGenerationOptions,
+  payload?: Payload,
+): Promise<ImageGenerationResult> {
+  const model = options.model || '@cf/black-forest-labs/FLUX.1-schnell'
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        num_steps: 8,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text()
+      console.error('[ImageGeneration] Cloudflare AI error:', response.status, errorBody)
+      return { success: false, error: `Cloudflare Workers AI failed (HTTP ${response.status}).` }
+    }
+
+    // Cloudflare returns raw PNG bytes
+    const arrayBuffer = await response.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    const imageDataUrl = `data:image/png;base64,${base64}`
+
+    const result: ImageGenerationResult = {
+      success: true,
+      imageDataUrl,
+      modelUsed: `cloudflare/${model}`,
+    }
+
+    if (options.autoUpload && payload) {
+      await tryUploadToMedia(result, imageDataUrl, options, payload)
+    }
+
+    return result
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[ImageGeneration] Cloudflare error:', msg)
+    return { success: false, error: `Cloudflare Workers AI failed: ${msg}` }
   }
 }
 
@@ -890,8 +1081,19 @@ function deepReplaceMediaId(
 
 /**
  * Returns true if image generation is available.
- * Checks: AI Gateway (preferred) → OpenRouter → tenant BYOAI key.
+ * Checks all configured providers via resolveImageProvider().
+ *
+ * @param tenantOpenRouterKey — DEPRECATED: use tenantAiConfig instead
  */
-export function isImageGenerationAvailable(tenantOpenRouterKey?: string): boolean {
-  return isGatewayAvailable() || Boolean(tenantOpenRouterKey || process.env.OPENROUTER_API_KEY)
+export function isImageGenerationAvailable(
+  tenantOpenRouterKey?: string,
+  tenantAiConfig?: TenantAiConfig,
+): boolean {
+  const config: TenantAiConfig = {
+    ...tenantAiConfig,
+    ...(tenantOpenRouterKey && !tenantAiConfig?.openrouterApiKey
+      ? { openrouterApiKey: tenantOpenRouterKey }
+      : {}),
+  }
+  return resolveImageProvider(config) !== null
 }

@@ -45,6 +45,7 @@ import {
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
 import { logCaughtError } from './logError'
+import { revalidateAfterMutation } from './revalidateContent'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
 import { findOrCreateDM } from './dmChannels'
 import { ensureDMSpace } from './ensureSystemSpace'
@@ -3071,11 +3072,31 @@ export type ToolExecutorContext = {
   tenantId?: number
   spaceId?: number
   userId?: number
+  /** Sprint 44: Per-tenant AI provider config for multi-provider routing */
+  tenantAiConfig?: Record<string, unknown>
 }
 
 /**
  * Executes a tool call from Claude and returns the result as a string.
  */
+/** Tools that mutate content and need cache invalidation (Sprint 44) */
+const CONTENT_MUTATION_TOOLS: Record<string, (input: Record<string, unknown>) => { collection: string; slug?: string }> = {
+  update_product: (i) => ({ collection: 'products', slug: i.slug as string | undefined }),
+  create_product: (i) => ({ collection: 'products', slug: i.slug as string | undefined }),
+  update_post: (i) => ({ collection: 'posts', slug: i.slug as string | undefined }),
+  create_post: (i) => ({ collection: 'posts', slug: i.slug as string | undefined }),
+  update_page: (i) => ({ collection: 'pages', slug: i.slug as string | undefined }),
+  create_page: (i) => ({ collection: 'pages', slug: i.slug as string | undefined }),
+  generate_image: () => ({ collection: 'media' }),
+  set_page_hero: (i) => ({ collection: 'pages', slug: i.pageSlug as string | undefined }),
+  attach_image_to_product: () => ({ collection: 'products' }),
+  replace_image: () => ({ collection: 'media' }),
+  update_theme_settings: () => ({ collection: 'site-settings' }),
+  update_navigation: () => ({ collection: 'header' }),
+  payload_update: (i) => ({ collection: i.collection as string }),
+  payload_create: (i) => ({ collection: i.collection as string }),
+}
+
 export async function executeToolCall(
   toolName: string,
   toolInput: Record<string, unknown>,
@@ -3088,6 +3109,30 @@ export async function executeToolCall(
   if (validationError) return validationError
 
   try {
+    const result = await executeToolSwitch(toolName, toolInput, ctx, payload, tenantId)
+
+    // ── Sprint 44: Cache invalidation after content mutations ────────
+    const mutationMeta = CONTENT_MUTATION_TOOLS[toolName]
+    if (mutationMeta && tenantId) {
+      const { collection, slug } = mutationMeta(toolInput)
+      revalidateAfterMutation({ collection, slug, tenantId: Number(tenantId) })
+    }
+
+    return result
+  } catch (err) {
+    logCaughtError(`leo-tools/${toolName}`, err).catch(() => {})
+    return `Error querying data: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/** @internal — extracted from executeToolCall for Sprint 44 cache invalidation */
+async function executeToolSwitch(
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+  payload: Payload,
+  tenantId: number | undefined,
+): Promise<string> {
     switch (toolName) {
       case 'query_products':
         return await queryProducts(payload, toolInput, tenantId)
@@ -3121,7 +3166,7 @@ export async function executeToolCall(
         return await viewCart(payload, ctx)
       // Image generation & media management
       case 'generate_image':
-        return await handleGenerateImage(payload, toolInput, tenantId)
+        return await handleGenerateImage(payload, toolInput, tenantId, ctx)
       case 'improve_image':
         return await handleImproveImage(payload, toolInput, ctx)
       case 'attach_image_to_product':
@@ -3353,10 +3398,6 @@ export async function executeToolCall(
       default:
         return `Unknown tool: ${toolName}`
     }
-  } catch (err) {
-    logCaughtError(`leo-tools/${toolName}`, err).catch(() => {})
-    return `Error querying data: ${err instanceof Error ? err.message : 'Unknown error'}`
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -4703,9 +4744,12 @@ async function handleGenerateImage(
   payload: Payload,
   input: Record<string, unknown>,
   tenantId?: number,
+  ctx?: ToolExecutorContext,
 ): Promise<string> {
-  if (!isImageGenerationAvailable()) {
-    return 'Image generation is not available — no image AI provider is configured. Set either OPENROUTER_API_KEY or AI_GATEWAY_API_KEY in your environment variables to enable image generation.'
+  // Sprint 44: pass tenant AI config for multi-provider resolution
+  const aiConfig = ctx?.tenantAiConfig as import('./ai-gateway').TenantAiConfig | undefined
+  if (!isImageGenerationAvailable(undefined, aiConfig)) {
+    return 'Image generation is not available — no image AI provider is configured. Set either OPENROUTER_API_KEY or AI_GATEWAY_API_KEY in your environment variables, or configure provider keys in your Endeavor\'s AI settings.'
   }
 
   const prompt = input.prompt as string
@@ -4731,6 +4775,8 @@ async function handleGenerateImage(
         tenantId,
       },
       autoSave ? payload : undefined,
+      undefined, // tenantOpenRouterKey (deprecated)
+      aiConfig,  // Sprint 44: multi-provider config
     )
     if (!result.success) {
       const errorParts = [`Image generation failed: ${result.error}`]

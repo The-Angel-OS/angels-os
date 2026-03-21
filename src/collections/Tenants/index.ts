@@ -379,27 +379,71 @@ export const Tenants: CollectionConfig = {
         },
       ],
     },
-    // ─── AI Configuration (Sprint 6) ────────────────────────────
+    // ─── AI Configuration (Sprint 6 → expanded Sprint 44) ─────────
     {
       name: 'aiConfig',
       type: 'group',
       admin: {
-        description: 'Bring-your-own AI keys for LEO and image generation',
+        description: 'Bring-your-own AI keys for LEO, chat, and image generation. Leave blank to use platform defaults.',
       },
       fields: [
         {
           name: 'anthropicApiKey',
           type: 'text',
           admin: {
-            description: 'Anthropic API key (encrypted at rest). Leave blank to use platform key.',
+            description: 'Anthropic API key (Claude). Leave blank to use platform key.',
           },
         },
         {
           name: 'openrouterApiKey',
           type: 'text',
           admin: {
-            description: 'OpenRouter API key (encrypted at rest). Leave blank to use platform key.',
+            description: 'OpenRouter API key (multi-model routing). Leave blank to use platform key.',
           },
+        },
+        {
+          name: 'openaiApiKey',
+          type: 'text',
+          admin: {
+            description: 'OpenAI API key (GPT, DALL-E image generation). Leave blank to skip.',
+          },
+        },
+        {
+          name: 'googleAiApiKey',
+          type: 'text',
+          admin: {
+            description: 'Google AI API key (Gemini, Imagen). Leave blank to skip.',
+          },
+        },
+        {
+          name: 'cloudflareAccountId',
+          type: 'text',
+          admin: {
+            description: 'Cloudflare Account ID for Workers AI (Flux image gen — free tier).',
+          },
+        },
+        {
+          name: 'cloudflareAiToken',
+          type: 'text',
+          admin: {
+            description: 'Cloudflare Workers AI API token. Leave blank to skip.',
+            condition: (_, siblingData) => Boolean(siblingData?.cloudflareAccountId),
+          },
+        },
+        {
+          name: 'preferredImageProvider',
+          type: 'select',
+          defaultValue: 'auto',
+          admin: {
+            description: 'Which provider LEO uses for image generation. "Auto" picks the best available.',
+          },
+          options: [
+            { label: 'Auto (best available)', value: 'auto' },
+            { label: 'OpenAI (DALL-E)', value: 'openai' },
+            { label: 'Google (Imagen / Gemini)', value: 'google' },
+            { label: 'OpenRouter (multi-model)', value: 'openrouter' },
+            { label: 'Cloudflare (Flux — free)', value: 'cloudflare' },
+          ],
         },
       ],
     },

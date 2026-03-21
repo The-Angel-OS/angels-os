@@ -348,6 +348,7 @@ export class ConversationEngine {
             tenantId: this.context.sessionMemory?.tenantId as number | undefined,
             spaceId: this.context.sessionMemory?.spaceId as number | undefined,
             userId: (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id,
+            tenantAiConfig: this.context.sessionMemory?.tenantAiConfig as Record<string, unknown> | undefined,
           }
 
           for (const toolBlock of toolUseBlocks) {
