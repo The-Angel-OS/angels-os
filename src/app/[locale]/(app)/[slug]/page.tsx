@@ -33,7 +33,8 @@ export default async function Page({ params }: Args) {
 
   // Fallback home page: tenant-branded if tenant is resolved, else generic Angel OS
   if (!page && slug === 'home') {
-    const { tenant } = await resolveTenantFromHeaders()
+    const { tenant, tenantId } = await resolveTenantFromHeaders()
+    console.log(`[Page Route] Home fallback — tenant: ${tenant?.name || 'null'} (id=${tenantId}), slug=${tenant?.slug || 'none'}`)
     if (tenant) {
       page = tenantHomeData(tenant) as Page
     }
@@ -69,7 +70,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 const queryPageBySlug = async ({ slug }: { slug: string }) => {
   try {
     const { isEnabled: draft } = await draftMode()
-    const { tenantFilter } = await resolveTenantFromHeaders()
+    const { tenantFilter, tenantId } = await resolveTenantFromHeaders()
     const payload = await getPayload({ config: configPromise })
 
     const result = await payload.find({
@@ -86,6 +87,8 @@ const queryPageBySlug = async ({ slug }: { slug: string }) => {
         ],
       },
     })
+
+    console.log(`[queryPageBySlug] slug="${slug}" tenantId=${tenantId} filter=${JSON.stringify(tenantFilter)} found=${result.docs?.length || 0}`)
 
     return result.docs?.[0] || null
   } catch (err) {
