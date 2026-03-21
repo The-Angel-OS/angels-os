@@ -431,17 +431,37 @@ export interface Tenant {
     connectedAt?: string | null;
   };
   /**
-   * Bring-your-own AI keys for LEO and image generation
+   * Bring-your-own AI keys for LEO, chat, and image generation. Leave blank to use platform defaults.
    */
   aiConfig?: {
     /**
-     * Anthropic API key (encrypted at rest). Leave blank to use platform key.
+     * Anthropic API key (Claude). Leave blank to use platform key.
      */
     anthropicApiKey?: string | null;
     /**
-     * OpenRouter API key (encrypted at rest). Leave blank to use platform key.
+     * OpenRouter API key (multi-model routing). Leave blank to use platform key.
      */
     openrouterApiKey?: string | null;
+    /**
+     * OpenAI API key (GPT, DALL-E image generation). Leave blank to skip.
+     */
+    openaiApiKey?: string | null;
+    /**
+     * Google AI API key (Gemini, Imagen). Leave blank to skip.
+     */
+    googleAiApiKey?: string | null;
+    /**
+     * Cloudflare Account ID for Workers AI (Flux image gen — free tier).
+     */
+    cloudflareAccountId?: string | null;
+    /**
+     * Cloudflare Workers AI API token. Leave blank to skip.
+     */
+    cloudflareAiToken?: string | null;
+    /**
+     * Which provider LEO uses for image generation. "Auto" picks the best available.
+     */
+    preferredImageProvider?: ('auto' | 'openai' | 'google' | 'openrouter' | 'cloudflare') | null;
   };
   /**
    * Vapi Voice AI configuration — phone-based LEO access for this Enterprise
@@ -638,6 +658,32 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    hero?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1888,6 +1934,10 @@ export interface Endeavor {
      * When this Enterprise last pinged the federation registry
      */
     lastPingAt?: string | null;
+    /**
+     * The FQDN of this peer Enterprise (persisted from heartbeat senderDomain)
+     */
+    domain?: string | null;
     /**
      * When this Endeavor was formally commissioned and activated in the federation
      */
@@ -3266,6 +3316,9 @@ export interface Header {
    * Descriptive label for this header (e.g. "Main Header").
    */
   label?: string | null;
+  /**
+   * Top-level navigation links. Each can optionally have child items for dropdown menus.
+   */
   navItems?:
     | {
         link: {
@@ -3278,6 +3331,24 @@ export interface Header {
           url?: string | null;
           label: string;
         };
+        /**
+         * Dropdown child links under this parent item.
+         */
+        children?:
+          | {
+              link: {
+                type?: ('reference' | 'custom') | null;
+                newTab?: boolean | null;
+                reference?: {
+                  relationTo: 'pages';
+                  value: number | Page;
+                } | null;
+                url?: string | null;
+                label: string;
+              };
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -3297,6 +3368,9 @@ export interface Footer {
    * Descriptive label for this footer (e.g. "Main Footer").
    */
   label?: string | null;
+  /**
+   * Simple flat links. For grouped columns, use navGroups below.
+   */
   navItems?:
     | {
         link: {
@@ -3312,6 +3386,37 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Footer columns — each group becomes a column with a heading and child links.
+   */
+  navGroups?:
+    | {
+        /**
+         * Column heading (e.g. "Legal", "Resources", "Community")
+         */
+        heading: string;
+        items?:
+          | {
+              link: {
+                type?: ('reference' | 'custom') | null;
+                newTab?: boolean | null;
+                reference?: {
+                  relationTo: 'pages';
+                  value: number | Page;
+                } | null;
+                url?: string | null;
+                label: string;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Copyright text at the very bottom (e.g. "© 2026 Angel OS Federation").
+   */
+  bottomText?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3359,6 +3464,10 @@ export interface SiteSetting {
    * Default meta description for pages without their own.
    */
   defaultMetaDescription?: string | null;
+  /**
+   * Enable the /donate page for this Endeavor. Default: on. Donations go to the Justice Fund.
+   */
+  donationsEnabled?: boolean | null;
   /**
    * When enabled, visitors see a maintenance page instead of the site.
    */
@@ -5731,6 +5840,11 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         anthropicApiKey?: T;
         openrouterApiKey?: T;
+        openaiApiKey?: T;
+        googleAiApiKey?: T;
+        cloudflareAccountId?: T;
+        cloudflareAiToken?: T;
+        preferredImageProvider?: T;
       };
   vapi?:
     | T
@@ -6260,6 +6374,20 @@ export interface HeaderSelect<T extends boolean = true> {
               url?: T;
               label?: T;
             };
+        children?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    type?: T;
+                    newTab?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                  };
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;
@@ -6286,6 +6414,27 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  navGroups?:
+    | T
+    | {
+        heading?: T;
+        items?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    type?: T;
+                    newTab?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  bottomText?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6306,6 +6455,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   googleAnalyticsId?: T;
   defaultOgImage?: T;
   defaultMetaDescription?: T;
+  donationsEnabled?: T;
   maintenanceMode?: T;
   maintenanceMessage?: T;
   announcementBar?:
@@ -6750,6 +6900,40 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        hero?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6893,6 +7077,7 @@ export interface EndeavorsSelect<T extends boolean = true> {
         constitutionSignature?: T;
         federationId?: T;
         lastPingAt?: T;
+        domain?: T;
         commissionedAt?: T;
         commissionedBy?: T;
       };
