@@ -19,9 +19,18 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-})
+let _stripe: Stripe | null = null
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not configured')
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+    })
+  }
+  return _stripe
+}
 
 /** Minimum donation: $1.00 (100 cents) */
 const MIN_DONATION_CENTS = 100
@@ -66,7 +75,7 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
 
   // ── Create Stripe PaymentIntent (platform account) ────────────
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount,
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
