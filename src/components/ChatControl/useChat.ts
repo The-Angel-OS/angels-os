@@ -523,6 +523,27 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                     )
                     break
 
+                  case 'images': {
+                    // Mid-stream image delivery — append to message immediately
+                    const imgArr = Array.isArray(data.images)
+                      ? (data.images as Array<{ url: string; alt?: string; mediaId?: number }>)
+                      : []
+                    if (imgArr.length > 0) {
+                      setMessages((prev) =>
+                        prev.map((m) => {
+                          if (m.id !== leoMsgId) return m
+                          const existing = m.images || []
+                          const seenUrls = new Set(existing.map((i) => i.url))
+                          const newImgs = imgArr.filter((i) => !seenUrls.has(i.url))
+                          return newImgs.length > 0
+                            ? { ...m, images: [...existing, ...newImgs], lastDeltaAt: Date.now() }
+                            : m
+                        }),
+                      )
+                    }
+                    break
+                  }
+
                   case 'done': {
                     // Finalize message — extract images from text + SSE data
                     const finalText = String(data.text || '')
