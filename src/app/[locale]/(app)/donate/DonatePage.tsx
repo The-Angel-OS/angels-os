@@ -93,18 +93,6 @@ export const DonatePage: React.FC<DonatePageProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // ── Donations Disabled ───────────────────────────────────────
-  if (!donationsEnabled) {
-    return (
-      <div className="container mx-auto max-w-lg py-20 text-center">
-        <h1 className="mb-4 text-3xl font-bold">Donations</h1>
-        <p className="opacity-70">
-          Donations are not currently accepted for {tenantName}. Please check back later.
-        </p>
-      </div>
-    )
-  }
-
   // Check for success redirect
   const isSuccess =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('success')
@@ -149,6 +137,18 @@ export const DonatePage: React.FC<DonatePageProps> = ({
       setLoading(false)
     }
   }, [amountCents, donorEmail, donorName, message])
+
+  // ── Donations Disabled (after all hooks) ───────────────────────
+  if (!donationsEnabled) {
+    return (
+      <div className="container mx-auto max-w-lg py-20 text-center">
+        <h1 className="mb-4 text-3xl font-bold">Donations</h1>
+        <p className="opacity-70">
+          Donations are not currently accepted for {tenantName}. Please check back later.
+        </p>
+      </div>
+    )
+  }
 
   // ── Success State ─────────────────────────────────────────────
   if (isSuccess) {
