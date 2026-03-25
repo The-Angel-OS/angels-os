@@ -296,7 +296,7 @@ export function PaymentsAdmin({
         <h2 className="text-lg font-semibold">Recent Transactions</h2>
         {recentTransactions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No transactions yet. When customers make purchases, they'll appear here.
+            No transactions yet. When customers make purchases, they&apos;ll appear here.
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border">

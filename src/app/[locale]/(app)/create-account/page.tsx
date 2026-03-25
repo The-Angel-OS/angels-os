@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { RenderParams } from '@/components/RenderParams'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import React from 'react'
+import Link from 'next/link'
 import { headers as getHeaders } from 'next/headers'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -231,9 +232,9 @@ export default async function CreateAccount({
 
             <p className="text-xs text-center mt-6" style={{ color: 'var(--lcars-text-muted)' }}>
               By creating an account, you agree to Angel OS&apos;s{' '}
-              <a href="/terms" className="underline" style={{ color: 'var(--lcars-blue)' }}>Terms of Service</a>
+              <Link href="/terms" className="underline" style={{ color: 'var(--lcars-blue)' }}>Terms of Service</Link>
               {' '}and{' '}
-              <a href="/privacy" className="underline" style={{ color: 'var(--lcars-blue)' }}>Privacy Policy</a>.
+              <Link href="/privacy" className="underline" style={{ color: 'var(--lcars-blue)' }}>Privacy Policy</Link>.
             </p>
           </div>
         </div>

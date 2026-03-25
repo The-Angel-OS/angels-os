@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 
 interface PayoutsAdminProps {
   stripeAccountId: string | null
@@ -52,9 +53,9 @@ export function PayoutsAdmin({
             <h3 className="mb-1 font-semibold">Stripe Connect Not Set Up</h3>
             <p className="text-sm text-muted-foreground">
               Connect your Stripe account to start receiving payments. Go to{' '}
-              <a href="/dashboard/admin/payments" className="text-primary underline">
+              <Link href="/dashboard/admin/payments" className="text-primary underline">
                 Payments Settings
-              </a>{' '}
+              </Link>{' '}
               to begin onboarding.
             </p>
           </div>
@@ -96,12 +97,12 @@ export function PayoutsAdmin({
               </svg>
               Open Stripe Dashboard
             </a>
-            <a
+            <Link
               href="/dashboard/admin/payments"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
             >
               Payment Settings
-            </a>
+            </Link>
           </div>
         )}
       </div>

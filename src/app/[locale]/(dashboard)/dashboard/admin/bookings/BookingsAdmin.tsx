@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -82,9 +83,9 @@ export function BookingsAdmin({
             <p className="text-sm text-muted-foreground">
               Set up your weekly availability to start accepting bookings.
               Click &quot;+ Add Availability&quot; above or create slots in the{' '}
-              <a href="/admin/collections/availability" className="text-primary underline">
+              <Link href="/admin/collections/availability" className="text-primary underline">
                 admin panel
-              </a>.
+              </Link>.
             </p>
           </div>
         ) : (
@@ -171,9 +172,9 @@ export function BookingsAdmin({
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Edit slots in the{' '}
-            <a href="/admin/collections/availability" className="text-primary underline">
+            <Link href="/admin/collections/availability" className="text-primary underline">
               admin panel
-            </a>
+            </Link>
             .
           </p>
         </div>
@@ -242,9 +243,9 @@ function NewAvailabilityGuide() {
           </span>
           <span>
             Go to{' '}
-            <a href="/admin/collections/availability/create" className="text-primary underline">
+            <Link href="/admin/collections/availability/create" className="text-primary underline">
               Create Availability
-            </a>{' '}
+            </Link>{' '}
             in the admin panel
           </span>
         </li>
@@ -267,7 +268,7 @@ function NewAvailabilityGuide() {
           <span>Add exceptions for holidays or blackout dates</span>
         </li>
       </ol>
-      <a
+      <Link
         href="/admin/collections/availability/create"
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
@@ -275,7 +276,7 @@ function NewAvailabilityGuide() {
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
-      </a>
+      </Link>
     </div>
   )
 }

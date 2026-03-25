@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { Button } from '@/components/ui/button'
@@ -16,13 +16,9 @@ const PRESET_AMOUNTS = [500, 1000, 2500, 5000, 10000] // cents
 function DonationForm({
   amountCents,
   donorEmail,
-  donorName,
-  message,
 }: {
   amountCents: number
   donorEmail: string
-  donorName: string
-  message: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -136,7 +132,7 @@ export const DonatePage: React.FC<DonatePageProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [amountCents, donorEmail, donorName, message])
+  }, [amountCents, tenantSlug, donorEmail, donorName, message])
 
   // ── Donations Disabled (after all hooks) ───────────────────────
   if (!donationsEnabled) {
@@ -198,8 +194,6 @@ export const DonatePage: React.FC<DonatePageProps> = ({
           <DonationForm
             amountCents={amountCents}
             donorEmail={donorEmail}
-            donorName={donorName}
-            message={message}
           />
         </Elements>
         <button
