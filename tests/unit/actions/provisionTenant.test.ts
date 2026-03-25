@@ -280,25 +280,21 @@ describe('provisionTenant', () => {
     )
   })
 
-  it('creates space for all 5 endeavor types', async () => {
-    const types = ['service-provider', 'retail-commerce', 'creator-content', 'booking-based', 'custom']
-    for (const t of types) {
-      vi.clearAllMocks()
-      mockAuth.mockResolvedValue({ user: { id: 1, roles: ['customer'] } })
-      mockFindOrCreateTenant.mockResolvedValue({ id: 42, slug: 'test', name: 'Test' })
-      mockCreateSpaceFromTemplate.mockResolvedValue({ spaceId: 100 })
-      mockFindByID.mockResolvedValue({ id: 1, tenants: [], roles: ['customer'] })
-      mockUpdate.mockResolvedValue({})
-
-      await provisionTenant(makeWizardState({ endeavorType: t }))
-      expect(mockCreateSpaceFromTemplate).toHaveBeenCalledWith(
-        expect.anything(),
-        t,
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-      )
-    }
+  it.each([
+    'service-provider',
+    'retail-commerce',
+    'creator-content',
+    'booking-based',
+    'custom',
+  ] as const)('creates space for endeavor type %s', async (t) => {
+    await provisionTenant(makeWizardState({ endeavorType: t }))
+    expect(mockCreateSpaceFromTemplate).toHaveBeenCalledWith(
+      expect.anything(),
+      t,
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    )
   })
 
   it('creates default pages for the tenant', async () => {
@@ -315,16 +311,13 @@ describe('provisionTenant', () => {
     expect(mockCreateDefaultTenantNavigation).toHaveBeenCalledWith(mockPayload, 42)
   })
 
-  it('page creation failure is non-critical (does not fail provision)', async () => {
-    mockCreateDefaultTenantPages.mockRejectedValueOnce(new Error('Page creation failed'))
+  it.each([
+    ['page', mockCreateDefaultTenantPages],
+    ['nav', mockCreateDefaultTenantNavigation],
+  ] as const)('%s creation failure is non-critical (does not fail provision)', async (_, mockFn) => {
+    (mockFn as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Failed'))
     const result = await provisionTenant(makeWizardState())
-    expect(result.success).toBe(true) // Still succeeds
-  })
-
-  it('nav creation failure is non-critical (does not fail provision)', async () => {
-    mockCreateDefaultTenantNavigation.mockRejectedValueOnce(new Error('Nav creation failed'))
-    const result = await provisionTenant(makeWizardState())
-    expect(result.success).toBe(true) // Still succeeds
+    expect(result.success).toBe(true)
   })
 
   it('creates Nimue system agent with personality', async () => {

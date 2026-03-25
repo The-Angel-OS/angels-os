@@ -8,7 +8,7 @@
  *  - Different tenant contexts produce non-overlapping filters
  *  - Platform context (no tenant) only returns unassigned content
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 
 // ─── Mock Payload ────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ beforeEach(() => {
 describe('Cross-Tenant Filter Isolation', () => {
   let buildTenantFilter: typeof import('@/utilities/buildTenantFilter').buildTenantFilter
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/utilities/buildTenantFilter')
     buildTenantFilter = mod.buildTenantFilter
   })
@@ -100,7 +100,7 @@ describe('Cross-Tenant Filter Isolation', () => {
 describe('Middleware Tenant Detection Isolation', () => {
   let detectTenantFromHostname: typeof import('@/middleware/detectTenant').detectTenantFromHostname
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/middleware/detectTenant')
     detectTenantFromHostname = mod.detectTenantFromHostname
   })
@@ -178,7 +178,7 @@ describe('Tenant Resolution Chain (unit-level)', () => {
 
   let buildTenantFilter: typeof import('@/utilities/buildTenantFilter').buildTenantFilter
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/utilities/buildTenantFilter')
     buildTenantFilter = mod.buildTenantFilter
   })
@@ -233,7 +233,7 @@ describe('Tenant Resolution Chain (unit-level)', () => {
 describe('Access Control + Tenant Scoping Combined', () => {
   let mergeWithTenantScope: typeof import('@/access/tenantScope').mergeWithTenantScope
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/tenantScope')
     mergeWithTenantScope = mod.mergeWithTenantScope
   })
@@ -264,7 +264,7 @@ describe('Access Control + Tenant Scoping Combined', () => {
 describe('Tenant Isolation Edge Cases', () => {
   let buildTenantFilter: typeof import('@/utilities/buildTenantFilter').buildTenantFilter
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/utilities/buildTenantFilter')
     buildTenantFilter = mod.buildTenantFilter
   })

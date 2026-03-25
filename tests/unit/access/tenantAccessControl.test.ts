@@ -9,7 +9,7 @@
  *  - Tenant-scoped: publicWithTenantScope, adminOrPublishedWithTenantScope
  *  - Utilities: buildTenantFilter, tenantScope (resolveTenantIdFromRequest, buildTenantWhere, mergeWithTenantScope)
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 
 // ─── Mock Dependencies ───────────────────────────────────────────
 
@@ -54,7 +54,7 @@ describe('access/utilities', () => {
   let checkRole: typeof import('@/access/utilities').checkRole
   let ADMIN_ROLES: typeof import('@/access/utilities').ADMIN_ROLES
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/utilities')
     checkRole = mod.checkRole
     ADMIN_ROLES = mod.ADMIN_ROLES
@@ -102,7 +102,7 @@ describe('access/utilities', () => {
 describe('access/isAdmin', () => {
   let isAdmin: typeof import('@/access/isAdmin').isAdmin
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/isAdmin')
     isAdmin = mod.isAdmin
   })
@@ -131,7 +131,7 @@ describe('access/isAdmin', () => {
 describe('access/isSuperAdmin', () => {
   let isSuperAdmin: typeof import('@/access/isSuperAdmin').isSuperAdmin
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/isSuperAdmin')
     isSuperAdmin = mod.isSuperAdmin
   })
@@ -164,7 +164,7 @@ describe('access/isSuperAdmin', () => {
 describe('access/adminOnly', () => {
   let adminOnly: typeof import('@/access/adminOnly').adminOnly
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/adminOnly')
     adminOnly = mod.adminOnly
   })
@@ -198,7 +198,7 @@ describe('access/adminOnly', () => {
 describe('access/authenticated', () => {
   let authenticated: typeof import('@/access/authenticated').authenticated
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/authenticated')
     authenticated = mod.authenticated
   })
@@ -219,7 +219,7 @@ describe('access/authenticated', () => {
 describe('access/adminOrPublishedStatus', () => {
   let adminOrPublishedStatus: typeof import('@/access/adminOrPublishedStatus').adminOrPublishedStatus
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/adminOrPublishedStatus')
     adminOrPublishedStatus = mod.adminOrPublishedStatus
   })
@@ -246,7 +246,7 @@ describe('access/adminOrPublishedStatus', () => {
 describe('access/adminOrSelf', () => {
   let adminOrSelf: typeof import('@/access/adminOrSelf').adminOrSelf
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/adminOrSelf')
     adminOrSelf = mod.adminOrSelf
   })
@@ -273,7 +273,7 @@ describe('access/adminOrSelf', () => {
 describe('access/adminOrCustomerOwner', () => {
   let adminOrCustomerOwner: typeof import('@/access/adminOrCustomerOwner').adminOrCustomerOwner
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/adminOrCustomerOwner')
     adminOrCustomerOwner = mod.adminOrCustomerOwner
   })
@@ -300,7 +300,7 @@ describe('access/adminOrCustomerOwner', () => {
 describe('access/isDocumentOwner', () => {
   let isDocumentOwner: typeof import('@/access/isDocumentOwner').isDocumentOwner
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/isDocumentOwner')
     isDocumentOwner = mod.isDocumentOwner
   })
@@ -327,7 +327,7 @@ describe('access/isDocumentOwner', () => {
 describe('access/publicAccess', () => {
   let publicAccess: typeof import('@/access/publicAccess').publicAccess
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/publicAccess')
     publicAccess = mod.publicAccess
   })
@@ -348,7 +348,7 @@ describe('access/publicAccess', () => {
 describe('buildTenantFilter', () => {
   let buildTenantFilter: typeof import('@/utilities/buildTenantFilter').buildTenantFilter
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/utilities/buildTenantFilter')
     buildTenantFilter = mod.buildTenantFilter
   })
@@ -384,7 +384,7 @@ describe('tenantScope', () => {
   let buildTenantWhere: typeof import('@/access/tenantScope').buildTenantWhere
   let mergeWithTenantScope: typeof import('@/access/tenantScope').mergeWithTenantScope
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/tenantScope')
     resolveTenantIdFromRequest = mod.resolveTenantIdFromRequest
     buildTenantWhere = mod.buildTenantWhere
@@ -452,7 +452,7 @@ describe('tenantScope', () => {
 describe('access/publicWithTenantScope', () => {
   let publicWithTenantScope: typeof import('@/access/publicWithTenantScope').publicWithTenantScope
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/publicWithTenantScope')
     publicWithTenantScope = mod.publicWithTenantScope
   })
@@ -481,7 +481,7 @@ describe('access/publicWithTenantScope', () => {
 describe('access/authenticatedOrPublished', () => {
   let authenticatedOrPublished: typeof import('@/access/authenticatedOrPublished').authenticatedOrPublished
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/authenticatedOrPublished')
     authenticatedOrPublished = mod.authenticatedOrPublished
   })
@@ -516,7 +516,7 @@ describe('access/authenticatedOrPublished', () => {
 describe('access/adminOrPublishedWithTenantScope', () => {
   let adminOrPublishedWithTenantScope: typeof import('@/access/adminOrPublishedWithTenantScope').adminOrPublishedWithTenantScope
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const mod = await import('@/access/adminOrPublishedWithTenantScope')
     adminOrPublishedWithTenantScope = mod.adminOrPublishedWithTenantScope
   })

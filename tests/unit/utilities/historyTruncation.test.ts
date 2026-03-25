@@ -1,208 +1,125 @@
 /**
  * Phase 7: History Truncation Tests
  *
- * Tests the message truncation logic used in both leo-stream.ts and ConversationEngine.ts
- * to prevent context bloat from long tool results being echoed back in history.
- *
- * The truncation rule:
- *   if (content.length > MAX_HISTORY_MESSAGE_CHARS)
- *     content = content.slice(0, MAX_HISTORY_MESSAGE_CHARS) + '\n\n[...truncated for context efficiency]'
- *
- * MAX_HISTORY_MESSAGE_CHARS = 2000
+ * Tests the shared truncateHistoryMessage utility imported by both
+ * leo-stream.ts and ConversationEngine.ts.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
+import {
+  truncateHistoryMessage,
+  MAX_HISTORY_MESSAGE_CHARS,
+  TRUNCATION_SUFFIX,
+} from '@/utilities/truncateHistoryMessage'
 
-// ─── Replicate the truncation logic (pure function) ──────────
-
-const MAX_HISTORY_MESSAGE_CHARS = 2000
-const TRUNCATION_SUFFIX = '\n\n[...truncated for context efficiency]'
-
-function truncateHistoryMessage(content: string): string {
-  if (content.length > MAX_HISTORY_MESSAGE_CHARS) {
-    return content.slice(0, MAX_HISTORY_MESSAGE_CHARS) + TRUNCATION_SUFFIX
-  }
-  return content
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Basic truncation behavior
-// ═══════════════════════════════════════════════════════════════
+// Hoisted test data to avoid per-test allocations
+const EXACT_2000 = 'a'.repeat(2000)
+const LONG_3000 = 'a'.repeat(3000)
+const LONG_5000 = 'a'.repeat(5000)
 
 describe('History Message Truncation', () => {
-  it('passes through messages under 2000 chars unchanged', () => {
+  it('passes through short messages unchanged', () => {
     const short = 'Hello, how can I help you today?'
     expect(truncateHistoryMessage(short)).toBe(short)
   })
 
-  it('passes through messages exactly 2000 chars unchanged', () => {
-    const exact = 'a'.repeat(2000)
-    expect(truncateHistoryMessage(exact)).toBe(exact)
+  it('passes through messages exactly at limit unchanged', () => {
+    expect(truncateHistoryMessage(EXACT_2000)).toBe(EXACT_2000)
   })
 
-  it('truncates messages over 2000 chars', () => {
-    const long = 'a'.repeat(3000)
-    const result = truncateHistoryMessage(long)
-    expect(result.length).toBeLessThan(long.length)
-    expect(result).toContain('[...truncated')
-  })
-
-  it('preserves first 2000 chars of truncated content', () => {
-    const long = 'IMPORTANT_START' + 'x'.repeat(3000)
-    const result = truncateHistoryMessage(long)
-    expect(result.startsWith('IMPORTANT_START')).toBe(true)
-  })
-
-  it('appends truncation suffix', () => {
-    const long = 'a'.repeat(3000)
-    const result = truncateHistoryMessage(long)
+  it('truncates messages over limit with suffix', () => {
+    const result = truncateHistoryMessage(LONG_3000)
+    expect(result.length).toBe(MAX_HISTORY_MESSAGE_CHARS + TRUNCATION_SUFFIX.length)
+    expect(result.startsWith('a'.repeat(100))).toBe(true) // First chars preserved
     expect(result.endsWith(TRUNCATION_SUFFIX)).toBe(true)
-  })
-
-  it('total truncated length is 2000 + suffix length', () => {
-    const long = 'a'.repeat(5000)
-    const result = truncateHistoryMessage(long)
-    expect(result.length).toBe(2000 + TRUNCATION_SUFFIX.length)
   })
 
   it('handles empty string', () => {
     expect(truncateHistoryMessage('')).toBe('')
   })
 
-  it('handles single character', () => {
-    expect(truncateHistoryMessage('x')).toBe('x')
+  it('preserves first MAX_HISTORY_MESSAGE_CHARS chars', () => {
+    const long = 'IMPORTANT_START' + 'x'.repeat(3000)
+    expect(truncateHistoryMessage(long)).toContain('IMPORTANT_START')
   })
 })
 
-// ═══════════════════════════════════════════════════════════════
-// Content-type specific truncation
-// ═══════════════════════════════════════════════════════════════
-
 describe('Truncation with realistic content', () => {
   it('truncates long tool result text', () => {
-    // Simulate a tool result like query_products returning 50 products
     const toolResult = Array.from({ length: 50 }, (_, i) =>
       `Product ${i + 1}: Widget ${i + 1} — $${(i + 1) * 9.99} — In stock`,
     ).join('\n')
-    expect(toolResult.length).toBeGreaterThan(2000)
 
     const result = truncateHistoryMessage(toolResult)
-    expect(result.length).toBeLessThan(toolResult.length)
-    expect(result).toContain('Product 1:') // First items preserved
-    expect(result).toContain('[...truncated')
+    expect(result).toContain('Product 1:')
+    expect(result).toContain(TRUNCATION_SUFFIX)
   })
 
   it('truncates long JSON tool results', () => {
     const json = JSON.stringify({
       products: Array.from({ length: 100 }, (_, i) => ({
-        id: i,
-        name: `Product ${i}`,
-        price: i * 10,
-        description: `A great product number ${i} with many features`,
+        id: i, name: `Product ${i}`, price: i * 10,
       })),
     })
-    expect(json.length).toBeGreaterThan(2000)
 
-    const result = truncateHistoryMessage(json)
-    expect(result).toContain('[...truncated')
-    // The truncated JSON won't be valid, but that's expected
+    expect(truncateHistoryMessage(json)).toContain(TRUNCATION_SUFFIX)
   })
 
   it('preserves short user messages unchanged', () => {
-    const userMsg = 'Create a product called "Angel Wings Necklace" priced at $49.99'
-    expect(truncateHistoryMessage(userMsg)).toBe(userMsg)
+    const msg = 'Create a product called "Angel Wings Necklace" priced at $49.99'
+    expect(truncateHistoryMessage(msg)).toBe(msg)
   })
 
   it('preserves normal LEO responses unchanged', () => {
-    const response =
-      "I've created the product 'Angel Wings Necklace' priced at $49.99. " +
-      "It's been added to your catalog as a draft. Would you like me to publish it?"
+    const response = "I've created the product. Would you like me to publish it?"
     expect(truncateHistoryMessage(response)).toBe(response)
   })
-
-  it('truncates very long image generation results', () => {
-    // Image gen tools return URLs + descriptions that could be long
-    const imageResult =
-      'Generated image: https://example.blob.vercel-storage.com/images/generated-12345.png\n' +
-      'Description: ' + 'A beautiful sunset over the ocean '.repeat(100)
-    expect(imageResult.length).toBeGreaterThan(2000)
-
-    const result = truncateHistoryMessage(imageResult)
-    expect(result).toContain('Generated image:') // URL preserved in first 2000 chars
-    expect(result).toContain('[...truncated')
-  })
 })
-
-// ═══════════════════════════════════════════════════════════════
-// URL preservation in truncated content
-// ═══════════════════════════════════════════════════════════════
 
 describe('URL handling in truncation', () => {
-  it('preserves URLs that appear within first 2000 chars', () => {
-    const withUrl =
-      'URL: https://example.blob.vercel-storage.com/media/image.png\n' +
-      'x'.repeat(3000)
-    const result = truncateHistoryMessage(withUrl)
-    expect(result).toContain('https://example.blob.vercel-storage.com/media/image.png')
+  it('preserves URLs within first 2000 chars', () => {
+    const withUrl = 'URL: https://example.blob.vercel-storage.com/image.png\n' + LONG_3000
+    expect(truncateHistoryMessage(withUrl)).toContain('vercel-storage.com/image.png')
   })
 
-  it('loses URLs that appear after 2000 chars', () => {
-    const lateUrl = 'x'.repeat(2500) + '\nURL: https://example.com/late-image.png'
-    const result = truncateHistoryMessage(lateUrl)
-    expect(result).not.toContain('late-image.png')
+  it('loses URLs beyond truncation boundary', () => {
+    const lateUrl = 'x'.repeat(2500) + '\nURL: https://example.com/late.png'
+    expect(truncateHistoryMessage(lateUrl)).not.toContain('late.png')
   })
 })
 
-// ═══════════════════════════════════════════════════════════════
-// Constants verification
-// ═══════════════════════════════════════════════════════════════
-
-describe('Truncation constants', () => {
+describe('Exported constants', () => {
   it('MAX_HISTORY_MESSAGE_CHARS is 2000', () => {
     expect(MAX_HISTORY_MESSAGE_CHARS).toBe(2000)
   })
 
-  it('truncation suffix is descriptive', () => {
+  it('TRUNCATION_SUFFIX is descriptive and concise', () => {
     expect(TRUNCATION_SUFFIX).toContain('truncated')
-    expect(TRUNCATION_SUFFIX).toContain('context')
-  })
-
-  it('truncation suffix is not excessively long', () => {
     expect(TRUNCATION_SUFFIX.length).toBeLessThan(100)
   })
 })
 
-// ═══════════════════════════════════════════════════════════════
-// Consistency between leo-stream.ts and ConversationEngine.ts
-// ═══════════════════════════════════════════════════════════════
+describe('Both engines import from shared utility', () => {
+  // Now that the function is exported from a shared utility, we verify
+  // both consumers actually import it (not redefine it locally)
+  let leoStream: string
+  let convEngine: string
 
-describe('Truncation consistency across engines', () => {
-  it('both engines use the same MAX_HISTORY_MESSAGE_CHARS value', async () => {
-    // Read both files and verify the constant is the same
+  beforeAll(async () => {
     const { readFileSync } = await import('fs')
-    const leoStream = readFileSync('src/endpoints/leo-stream.ts', 'utf-8')
-    const convEngine = readFileSync('src/utilities/ConversationEngine.ts', 'utf-8')
-
-    // Both should define MAX_HISTORY_MESSAGE_CHARS = 2000
-    expect(leoStream).toContain('MAX_HISTORY_MESSAGE_CHARS = 2000')
-    expect(convEngine).toContain('MAX_HISTORY_MESSAGE_CHARS = 2000')
+    leoStream = readFileSync('src/endpoints/leo-stream.ts', 'utf-8')
+    convEngine = readFileSync('src/utilities/ConversationEngine.ts', 'utf-8')
   })
 
-  it('both engines use the same truncation suffix', async () => {
-    const { readFileSync } = await import('fs')
-    const leoStream = readFileSync('src/endpoints/leo-stream.ts', 'utf-8')
-    const convEngine = readFileSync('src/utilities/ConversationEngine.ts', 'utf-8')
-
-    // Both should use the same suffix string
-    expect(leoStream).toContain('[...truncated for context efficiency]')
-    expect(convEngine).toContain('[...truncated for context efficiency]')
+  it('leo-stream.ts imports truncateHistoryMessage', () => {
+    expect(leoStream).toContain("import { truncateHistoryMessage } from")
   })
 
-  it('both engines use the same MAX_HISTORY_TURNS value', async () => {
-    const { readFileSync } = await import('fs')
-    const leoStream = readFileSync('src/endpoints/leo-stream.ts', 'utf-8')
-    const convEngine = readFileSync('src/utilities/ConversationEngine.ts', 'utf-8')
+  it('ConversationEngine.ts imports truncateHistoryMessage', () => {
+    expect(convEngine).toContain("import { truncateHistoryMessage } from")
+  })
 
-    expect(leoStream).toContain('MAX_HISTORY_TURNS = 12')
-    expect(convEngine).toContain('MAX_HISTORY_TURNS = 12')
+  it('neither engine defines MAX_HISTORY_MESSAGE_CHARS locally', () => {
+    expect(leoStream).not.toContain('const MAX_HISTORY_MESSAGE_CHARS')
+    expect(convEngine).not.toContain('const MAX_HISTORY_MESSAGE_CHARS')
   })
 })

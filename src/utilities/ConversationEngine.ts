@@ -28,6 +28,7 @@ import { buildMinimalConstitutionalPrompt } from './constitutional-prompt'
 import { logError } from './logError'
 import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
+import { truncateHistoryMessage } from './truncateHistoryMessage'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
 import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from './ai-gateway'
@@ -122,8 +123,6 @@ function getAnthropicClient(tenantApiKey?: string): Anthropic | null {
 const MAX_HISTORY_TURNS = 12
 const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 5
-/** Truncate individual history messages to prevent context bloat from long tool results */
-const MAX_HISTORY_MESSAGE_CHARS = 2000
 const LLM_MODEL = 'claude-sonnet-4-6'
 
 // ---------------------------------------------------------------------------
@@ -663,9 +662,7 @@ You are responding on behalf of your Enterprise to a peer in the federation netw
         let content = extractTextFromContent(msg.content)
 
         // Truncate long messages (e.g. tool results echoed back) to prevent context bloat
-        if (content.length > MAX_HISTORY_MESSAGE_CHARS) {
-          content = content.slice(0, MAX_HISTORY_MESSAGE_CHARS) + '\n\n[...truncated for context efficiency]'
-        }
+        content = truncateHistoryMessage(content)
 
         if (content.trim()) {
           const lastMsg = messages[messages.length - 1]
