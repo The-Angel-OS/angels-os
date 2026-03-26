@@ -11,6 +11,7 @@ import { Content } from '@/blocks/Content/config'
 import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
+import { Donation } from '@/blocks/Donation/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
@@ -99,6 +100,7 @@ export const Pages: CollectionConfig = {
                 Banner,
                 FormBlock,
                 Calendar,
+                Donation,
                 FeaturedEndeavors,
               ],
               required: true,

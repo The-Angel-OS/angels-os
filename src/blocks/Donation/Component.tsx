@@ -1,0 +1,234 @@
+'use client'
+
+import React, { useCallback, useState } from 'react'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+import { RichText } from '@/components/RichText'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+const stripePromise = loadStripe(`${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`)
+
+function PaymentForm({ amountCents, donorEmail }: { amountCents: number; donorEmail: string }) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!stripe || !elements) return
+      setProcessing(true)
+      setError(null)
+
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        setError(submitError.message || 'Payment failed')
+        setProcessing(false)
+        return
+      }
+
+      const { error: confirmError } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/donate?success=true&amount=${amountCents}`,
+          ...(donorEmail ? { receipt_email: donorEmail } : {}),
+        },
+      })
+
+      if (confirmError) {
+        setError(confirmError.message || 'Payment failed')
+        setProcessing(false)
+      }
+    },
+    [stripe, elements, amountCents, donorEmail],
+  )
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      <Button type="submit" disabled={!stripe || processing} className="w-full" size="lg">
+        {processing ? 'Processing...' : `Donate $${(amountCents / 100).toFixed(2)}`}
+      </Button>
+    </form>
+  )
+}
+
+export const DonationBlock: React.FC<{
+  id?: string
+  richText?: any
+  presetAmounts?: string
+  showDonorFields?: boolean
+}> = ({ richText, presetAmounts = '5,10,25,50,100', showDonorFields = true }) => {
+  const amounts = (presetAmounts || '5,10,25,50,100')
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10) * 100)
+    .filter((n) => n > 0)
+
+  const [step, setStep] = useState<'amount' | 'info' | 'payment' | 'success'>('amount')
+  const [amountCents, setAmountCents] = useState(amounts[2] || 2500)
+  const [customAmount, setCustomAmount] = useState('')
+  const [donorName, setDonorName] = useState('')
+  const [donorEmail, setDonorEmail] = useState('')
+  const [donorMessage, setDonorMessage] = useState('')
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Check for success return from Stripe
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success') === 'true') {
+      setStep('success')
+      const returnedAmount = parseInt(params.get('amount') || '0', 10)
+      if (returnedAmount > 0) setAmountCents(returnedAmount)
+    }
+  }, [])
+
+  const handleSelectAmount = (cents: number) => {
+    setAmountCents(cents)
+    setCustomAmount('')
+  }
+
+  const handleCustomAmount = (val: string) => {
+    setCustomAmount(val)
+    const parsed = parseFloat(val)
+    if (!isNaN(parsed) && parsed >= 1) {
+      setAmountCents(Math.round(parsed * 100))
+    }
+  }
+
+  const handleContinue = async () => {
+    if (showDonorFields && step === 'amount') {
+      setStep('info')
+      return
+    }
+
+    setError(null)
+    try {
+      // Get tenant slug from cookie
+      const tenantSlug =
+        document.cookie
+          .split('; ')
+          .find((c) => c.startsWith('payload-tenant='))
+          ?.split('=')[1] || 'default'
+
+      const res = await fetch('/api/donation-ops/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountCents,
+          tenantSlug,
+          donorName: donorName || undefined,
+          donorEmail: donorEmail || undefined,
+          message: donorMessage || undefined,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create payment')
+
+      setClientSecret(data.clientSecret)
+      setStep('payment')
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong')
+    }
+  }
+
+  if (step === 'success') {
+    return (
+      <div className="container">
+        <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 text-center">
+          <div className="mb-4 text-5xl">&#10084;&#65039;</div>
+          <h2 className="mb-2 text-2xl font-bold">Thank You!</h2>
+          <p className="text-muted-foreground">
+            Your donation of <strong>${(amountCents / 100).toFixed(2)}</strong> has been received.
+            100% goes to the Justice Fund — no platform fees.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container">
+      <div className="mx-auto max-w-lg space-y-6">
+        {richText && <RichText data={richText} enableGutter={false} />}
+
+        {step === 'amount' && (
+          <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Choose an amount</h3>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {amounts.map((cents) => (
+                <Button
+                  key={cents}
+                  variant={amountCents === cents && !customAmount ? 'default' : 'outline'}
+                  onClick={() => handleSelectAmount(cents)}
+                  className="text-base"
+                >
+                  ${cents / 100}
+                </Button>
+              ))}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="custom-amount">Custom amount</Label>
+              <Input
+                id="custom-amount"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="Enter amount"
+                value={customAmount}
+                onChange={(e) => handleCustomAmount(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              100% of every donation goes to the Justice Fund — community support, advocacy, and infrastructure. No platform fees.
+            </p>
+            <Button onClick={handleContinue} className="w-full" size="lg">
+              Continue — ${(amountCents / 100).toFixed(2)}
+            </Button>
+          </div>
+        )}
+
+        {step === 'info' && (
+          <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Your info (optional)</h3>
+            <div className="space-y-2">
+              <Label htmlFor="donor-name">Name</Label>
+              <Input id="donor-name" value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="Your name" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="donor-email">Email (for receipt)</Label>
+              <Input id="donor-email" type="email" value={donorEmail} onChange={(e) => setDonorEmail(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="donor-message">Message</Label>
+              <Input id="donor-message" value={donorMessage} onChange={(e) => setDonorMessage(e.target.value)} placeholder="Optional message" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep('amount')} className="flex-1">
+                Back
+              </Button>
+              <Button onClick={handleContinue} className="flex-1" size="lg">
+                Continue — ${(amountCents / 100).toFixed(2)}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'payment' && clientSecret && (
+          <div className="rounded-lg border border-border bg-card p-6">
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <PaymentForm amountCents={amountCents} donorEmail={donorEmail} />
+            </Elements>
+          </div>
+        )}
+
+        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+      </div>
+    </div>
+  )
+}
