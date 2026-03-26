@@ -7,18 +7,18 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 **Live:** [spacesangels.com](https://spacesangels.com)
 
 [![CI](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml/badge.svg)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/version-v0.43.0--dev-blue)]()
-[![Tests](https://img.shields.io/badge/tests-5%2C017%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
+[![Status](https://img.shields.io/badge/version-v0.44.0--dev-blue)]()
+[![Tests](https://img.shields.io/badge/tests-5%2C210%20passing-brightgreen)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
 [![Constitutional](https://img.shields.io/badge/AI-constitutional-gold)]()
-[![TDD](https://img.shields.io/badge/TDD-223%20test%20files-blue)]()
+[![TDD](https://img.shields.io/badge/TDD-230%20test%20files-blue)]()
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-105+-emerald)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-118+-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-74+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
-[![Sprints](https://img.shields.io/badge/Sprints-43-ff69b4)]()
+[![Sprints](https://img.shields.io/badge/Sprints-44-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
 [![Federation](https://img.shields.io/badge/Federation-Live-gold)]()
 [![MCP](https://img.shields.io/badge/MCP-23%20tools-teal)]()
@@ -29,7 +29,7 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 
 ---
 
-## The Model (Updated — Sprint 43)
+## The Model (Updated — Sprint 44)
 
 Angel OS is not a platform with customers. It is a **federation of Enterprises**.
 
@@ -58,9 +58,22 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's New: Sprint 43 — Monetization Go-Live
+## What's New: Sprint 44 — Multi-Provider AI + Image Gen Routing
 
-### Sprint 43: Monetization Go-Live + Federation Domain Fix + Donation Flow (Current)
+### Sprint 44: Multi-Provider AI Auth + Image Gen Routing + Cache Invalidation (Current)
+- **Multi-Provider AI Auth** — Tenants `aiConfig` expanded with `openaiApiKey`, `googleAiApiKey`, `cloudflareAccountId`, `cloudflareAiToken`, `preferredImageProvider`. Each Enterprise can bring their own AI keys for any supported provider.
+- **Image Generation Routing** — `resolveImageProvider()` in ai-gateway.ts auto-selects the best image provider (auto/openai/google/openrouter/cloudflare). New generation paths: OpenAI DALL-E (`generateViaOpenAI`), Cloudflare Flux (`generateViaCloudflare`).
+- **Cache Invalidation** — `revalidateContent.ts` with `revalidateAfterMutation()` auto-busts Next.js caches after LEO content mutations. `CONTENT_MUTATION_TOOLS` map in leo-data-tools.ts covers 15 mutation tools.
+- **Tenant Isolation DB Fix** — Sprint 43-44 added Tenants columns (aiConfig.*) but no DB migration was applied. Payload SQL referenced non-existent columns causing all tenant queries to fail. Dev-mode push applied columns. `fetchTenantBySlug` now uses `overrideAccess:true` + depth=0 retry; `resolveTenantFromHeaders` falls through to domain lookup when slug fails.
+- **Chat Image Rendering Fix** — `leo-stream.ts` emits `event: images` SSE mid-stream, but `useChat.ts` had no `case 'images':` handler. Images silently dropped. Added handler to append images to streaming message immediately.
+- **`configure_endeavor` Tool** — New LEO tool for updating Endeavor configuration.
+- **History Truncation** — Shared `truncateHistoryMessage()` utility extracted for consistent conversation history management.
+- **DonatePage Hooks Fix** — Moved `donationsEnabled` check after hooks in DonatePage to comply with React rules of hooks.
+- **ESLint Cleanup** — Resolved all ESLint errors across 5 files.
+- **`tenantAiConfig` Threading** — AI config threaded through leo-stream -> ConversationEngine -> tool executor -> image gen for per-tenant provider selection.
+- **5,210+ unit tests across 230 files** — Sprint 44 additions: endeavor CRUD, history truncation, provision, access control, tenant isolation tests (170+ new tests).
+
+### Sprint 43: Monetization Go-Live + Federation Domain Fix + Donation Flow
 - **Federation Domain Persistence** — Heartbeat handler now stores `senderDomain` on Endeavor records. Discover page uses stored federation domain as fallback before localhost. Heartbeat cron reads stored domain instead of falling back to `peer.name`. `VERCEL_PROJECT_PRODUCTION_URL` as secondary env fallback eliminates localhost URLs in production.
 - **Donation Flow** (NEW) — `POST /api/donation-ops/create-intent` creates Stripe PaymentIntent on platform account. `/donate` page with preset amounts ($5-$100), custom input, Stripe Elements `<PaymentElement>`. 100% of donations go to Justice Fund. Webhook handler has early branch for `angelOs_type=donation`.
 - **Route Shadowing Fix** — 15 dead API endpoints fixed. Custom endpoint paths renamed with `-ops` suffix to avoid Payload collection REST route interception (`/order-ops/*`, `/booking-ops/*`, `/space-ops/*`).
@@ -164,16 +177,16 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## What's Working (v0.43.0-dev)
+## What's Working (v0.44.0-dev)
 
 | System | Status | Notes |
 |--------|--------|-------|
 | Multi-tenant / Enterprise architecture | **Done** | Subdomain routing, per-Enterprise header/footer/home, x-tenant-id injection to all API routes |
-| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 105+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
+| Leo AI Agent | **Done** | Gemini 3.1 Pro (primary) + Sonnet 4.6 (fallback) with 118+ tools, 3-round tool loop, SSE streaming, vision, /model switch, smart gateway routing |
 | SSE Streaming Chat | **Done** | Real-time streaming with tool call indicators, env-resilient API key resolution |
 | AI Bus (Message Routing) | **Done** | SSE broadcast, visibility levels, constitutional routing |
 | Spaces & Channels | **Done** | Discord-style workspaces, 10 channel types (incl. DM) |
-| Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT) |
+| Image Generation | **Done** | AI images via OpenRouter (Flux 2, Gemini, GPT), OpenAI DALL-E, Cloudflare Flux — multi-provider routing |
 | E-commerce + Cart | **Done** | Products, cart, orders, Leo-guided creation |
 | Booking System | **Done** | Appointments, availability, provider scheduling |
 | Events System | **Done** | Meetups, workshops, livestreams with registration |
@@ -305,9 +318,13 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **Flagship Commissioning** | **Done** | `isFlagship` + `commissionedAt` on Tenants — Constitution Article VII formalized (Sprint 42) |
 | **`propagationTrigger` Audit** | **Done** | Tracks WHY a membership was created: purchase, booking, event_registration, etc. (Sprint 42) |
 | **Federation Discover Cards** | **Done** | Cards link to storefront URL, gear icon for config navigation (Sprint 42) |
-| **MCP Server (23 tools)** | **Done** | Claude Code ↔ Angel OS stdio bridge. Zero-config JWT auth. `talk_to_merlin` bridges to LEO's 105+ internal tools |
+| **Multi-Provider AI Auth** | **Done** | Per-tenant AI keys: OpenAI, Google, Cloudflare, OpenRouter — each Enterprise brings their own (Sprint 44) |
+| **Image Gen Routing** | **Done** | `resolveImageProvider()` auto-selects best provider: DALL-E, Cloudflare Flux, OpenRouter, Google (Sprint 44) |
+| **Cache Invalidation** | **Done** | `revalidateAfterMutation()` auto-busts Next.js caches after LEO content mutations — 15 tools covered (Sprint 44) |
+| **Chat Image Rendering** | **Done** | SSE `event: images` handler in useChat.ts — LEO-generated images render immediately in stream (Sprint 44) |
+| **MCP Server (23 tools)** | **Done** | Claude Code ↔ Angel OS stdio bridge. Zero-config JWT auth. `talk_to_merlin` bridges to LEO's 118+ internal tools |
 
-### Leo's 105+ Tools
+### Leo's 118+ Tools
 
 **Query (9):** products, posts, bookings, events, event registrations, spaces, projects, availability, fetch reviews
 **Actions (17):** create booking, update booking, add to cart, view cart, create product, update product, invite member, find producers, browse network, check fees, query orders, route order, accept order, update fulfillment, configure business, connect stripe, create space
@@ -419,7 +436,7 @@ pnpm dev                      # http://localhost:3000
 ### Running Tests
 
 ```bash
-pnpm test:unit                # 4,995 tests across 220 unit test files
+pnpm test:unit                # 5,210+ tests across 230 unit test files
 pnpm test:int                 # Integration tests (needs DB, ~23s boot)
 pnpm test:e2e                 # 14 E2E suites with Playwright (needs server + Chromium)
 npx tsc --noEmit              # TypeScript check (zero errors)
@@ -641,7 +658,7 @@ src/
     constitutional-prompt.ts # Immutable system prompt builder
     ai-bus-router.ts        # Constitutional message routing
 tests/
-  unit/utilities/           # 47 unit test files, 2,213 tests
+  unit/utilities/           # 230 unit test files, 5,210+ tests
   e2e/                      # 14 Playwright E2E suites (dashboard, admin, federation, tenant-isolation, etc.)
 ```
 

@@ -6,17 +6,36 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 
 **Tech Stack:** Next.js 16 + Payload CMS 3.77 + PostgreSQL + React 19 + Turbopack
 **Live:** [spacesangels.com](https://spacesangels.com)
-**Version:** v0.43.0-dev
-**Tests:** 5,017+ unit tests + 14 E2E suites across 223 test files
+**Version:** v0.44.0-dev
+**Tests:** 5,210+ unit tests + 14 E2E suites across 230 test files
 **Engines:** 15 pure utility engines (zero Payload imports)
-**Leo Tools:** 105+ (including browse_federation_peers, query_peer_catalog, search_federation_wide)
+**Leo Tools:** 118+ (including browse_federation_peers, query_peer_catalog, search_federation_wide)
 **API Endpoints:** 74+ registered routes
 **Collections:** 42
-**Last Updated:** March 19, 2026
+**Last Updated:** March 25, 2026
 
 ---
 
-## Current: v0.43.0-dev (Monetization Go-Live + Visual Polish)
+## Current: v0.44.0-dev (Multi-Provider AI + Image Gen Routing)
+
+### Sprint 44 (March 21-25, 2026) — Multi-Provider AI Auth + Image Gen Routing
+- Multi-provider AI auth: Tenants `aiConfig` expanded with `openaiApiKey`, `googleAiApiKey`, `cloudflareAccountId`, `cloudflareAiToken`, `preferredImageProvider`
+- Image gen routing: `resolveImageProvider()` in ai-gateway.ts — auto/openai/google/openrouter/cloudflare
+- New image gen paths: OpenAI DALL-E (`generateViaOpenAI`), Cloudflare Flux (`generateViaCloudflare`)
+- Cache invalidation: `revalidateContent.ts` — `revalidateAfterMutation()` after LEO content mutations, 15 mutation tools covered
+- `tenantAiConfig` threaded through leo-stream -> ConversationEngine -> tool executor -> image gen
+- Tenant isolation DB fix: dev-mode push applied missing aiConfig columns, `fetchTenantBySlug` with `overrideAccess:true` + depth=0 retry
+- Chat image rendering fix: added `case 'images':` handler in useChat.ts SSE switch — LEO-generated images render in stream
+- `configure_endeavor` LEO tool for updating Endeavor configuration
+- History truncation: shared `truncateHistoryMessage()` utility extracted for consistent conversation history management
+- DonatePage hooks fix: moved `donationsEnabled` check after hooks to comply with React rules of hooks
+- ESLint cleanup: resolved all ESLint errors across 5 files
+- 170+ new tests: endeavor CRUD, history truncation, provision, access control, tenant isolation (5,210+ total across 230 files)
+
+### Sprint 45 Preview
+- Token-aware context windowing (replace fixed 12-turn limit)
+- Parallel tool execution in LEO
+- Circuit breaker for AI provider failures
 
 ### Sprint 43 (March 18-19, 2026) — Monetization Go-Live
 - Donation flow: `/donate` page, Stripe Elements, 100% to Justice Fund
@@ -59,7 +78,7 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | Feature | Sprint | Details |
 |---------|--------|---------|
 | Multi-tenant architecture | 1 | Tenants, Spaces, Channels, Memberships, domain routing |
-| LEO AI Agent (Gemini 3.1 Pro + Sonnet 4.6) | 1-33 | 88+ tools, constitutional prompt, agent routing, image vision, /model switch |
+| LEO AI Agent (Gemini 3.1 Pro + Sonnet 4.6) | 1-44 | 118+ tools, constitutional prompt, agent routing, image vision, /model switch, multi-provider AI |
 | SSE Streaming Chat | 1 | Real-time streaming with tool call indicators |
 | AI Bus (Message Routing) | 1 | SSE broadcast, subscriber registry, visibility routing |
 | Spaces & Channels | 1 | Discord-style workspaces, multi-channel, infinite scroll |
@@ -160,6 +179,13 @@ Angel OS is the Soul Operating System — a federated cooperative platform where
 | **browse_federation_peers** | **38** | **LEO tool: list all known federation peers from governance cache (zero HTTP, filters by status/capability/region)** |
 | **query_peer_catalog** | **38** | **LEO tool: fetch a specific peer's public catalog via fetchCatalog() with identity resolution** |
 | **search_federation_wide** | **38** | **LEO tool: fan-out search across ALL active peers in parallel (batches of 5, 8s timeout, sorted results)** |
+| **Multi-Provider AI Auth** | **44** | **Per-tenant AI keys: OpenAI, Google, Cloudflare, OpenRouter — each Enterprise brings their own** |
+| **Image Gen Routing** | **44** | **resolveImageProvider() auto-selects: DALL-E, Cloudflare Flux, OpenRouter, Google** |
+| **Cache Invalidation** | **44** | **revalidateAfterMutation() auto-busts Next.js caches after 15 LEO content mutation tools** |
+| **Chat Image Rendering Fix** | **44** | **SSE `event: images` handler — LEO-generated images render in chat stream** |
+| **Tenant Isolation DB Fix** | **44** | **Missing aiConfig columns applied, fetchTenantBySlug with overrideAccess + depth=0 retry** |
+| **configure_endeavor Tool** | **44** | **LEO tool for updating Endeavor configuration** |
+| **History Truncation Utility** | **44** | **Shared truncateHistoryMessage() for consistent conversation history management** |
 
 ---
 
