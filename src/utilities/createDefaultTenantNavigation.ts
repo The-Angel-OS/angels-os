@@ -38,7 +38,8 @@ export async function createDefaultTenantNavigation(
           { link: { type: 'custom' as const, label: 'Home', url: '/' } },
           { link: { type: 'custom' as const, label: 'Shop', url: '/shop' } },
           { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-          { link: { type: 'custom' as const, label: 'Account', url: '/account' } },
+          { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
+          { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
         ],
       } as any,
     })
@@ -67,7 +68,8 @@ export async function createDefaultTenantNavigation(
           { link: { type: 'custom' as const, label: 'Home', url: '/' } },
           { link: { type: 'custom' as const, label: 'Shop', url: '/shop' } },
           { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-          { link: { type: 'custom' as const, label: 'Account', url: '/account' } },
+          { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
+          { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
         ],
       } as any,
     })

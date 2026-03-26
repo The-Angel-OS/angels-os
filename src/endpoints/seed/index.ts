@@ -492,18 +492,37 @@ Be excellent to each other. Party on, dudes.`,
       payload.logger.info(`  ✓ ${uc.products.length} products`)
     }
 
-    // Header/footer for this tenant
+    // Header/footer for this tenant — tailored per business type
+    const headerNavItems: Array<{ link: { type: 'custom'; label: string; url: string } }> = [
+      { link: { type: 'custom' as const, label: 'Home', url: '/' } },
+    ]
+
+    // Service providers and retail get Shop
+    if (uc.endeavorType === 'service-provider' || uc.endeavorType === 'retail-commerce' || (uc.products && uc.products.length > 0)) {
+      headerNavItems.push({ link: { type: 'custom' as const, label: 'Shop', url: '/shop' } })
+    }
+
+    // Service providers get Book
+    if (uc.endeavorType === 'service-provider') {
+      headerNavItems.push({ link: { type: 'custom' as const, label: 'Book', url: '/book' } })
+    }
+
+    // Everyone gets Posts and Events
+    headerNavItems.push({ link: { type: 'custom' as const, label: 'Posts', url: '/posts' } })
+    headerNavItems.push({ link: { type: 'custom' as const, label: 'Events', url: '/events' } })
+
+    // Everyone gets Donate
+    headerNavItems.push({ link: { type: 'custom' as const, label: 'Donate', url: '/donate' } })
+
+    // Everyone gets Dashboard
+    headerNavItems.push({ link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } })
+
     await Promise.all([
       payload.create({
         collection: 'header',
         data: {
           tenant: tenant.id as number,
-          navItems: [
-            { link: { type: 'custom' as const, label: 'Home', url: '/' } },
-            { link: { type: 'custom' as const, label: 'Shop', url: '/shop' } },
-            { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-            { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
-          ],
+          navItems: headerNavItems,
         },
         depth: 0,
       }),
@@ -512,6 +531,9 @@ Be excellent to each other. Party on, dudes.`,
         data: {
           tenant: tenant.id as number,
           navItems: [
+            { link: { type: 'custom' as const, label: 'Home', url: '/' } },
+            { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
+            { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
             { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
             { link: { type: 'custom' as const, label: 'Angel OS', newTab: true, url: 'https://github.com/The-Angel-OS/angels-os' } },
           ],
