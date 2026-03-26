@@ -131,6 +131,7 @@ import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-w
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { federationMessageHandler } from '@/endpoints/federation-message'
 import { cicStatusHandler } from '@/endpoints/cic-status'
+import { updateAllNavHandler } from '@/endpoints/update-all-nav'
 import { vercelSpendWebhookHandler } from '@/endpoints/vercel-spend-webhook'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
 import { authGithubInitHandler, authGithubCallbackHandler } from '@/endpoints/auth-github'
@@ -899,6 +900,12 @@ export default buildConfig({
       path: '/cic/status',
       method: 'get',
       handler: cicStatusHandler,
+    },
+    // ─── Admin: Update All Nav ───────────────────────────────
+    {
+      path: '/admin-ops/update-all-nav',
+      method: 'post',
+      handler: updateAllNavHandler,
     },
     // ─── Vercel Spend Webhook (Sprint 40) ─────────────────────
     {
