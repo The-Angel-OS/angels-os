@@ -2,8 +2,9 @@
 import { CMSLink } from '@/components/Link'
 import { Cart } from '@/components/Cart'
 import { OpenCartButton } from '@/components/Cart/OpenCart'
+import { PortalSwitcher, type PortalInfo } from '@/components/PortalSwitcher'
 import Link from 'next/link'
-import React, { Suspense, useMemo } from 'react'
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
 
 import { MobileMenu } from './MobileMenu'
 import type { Header, Media, Tenant } from '@/payload-types'
@@ -82,6 +83,33 @@ const DASHBOARD_NAV_ITEM = {
 
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
+
+  // Fetch user's portals for portal switcher (client-side, only when logged in)
+  const [userPortals, setUserPortals] = useState<PortalInfo[]>([])
+  useEffect(() => {
+    if (!user?.id) { setUserPortals([]); return }
+    fetch(`/api/tenant-memberships?where[user][equals]=${user.id}&where[status][equals]=active&depth=2&limit=50`)
+      .then((r) => r.json())
+      .then((data) => {
+        const portals = (data.docs || [])
+          .map((m: any) => {
+            const t = m.tenant
+            if (!t || typeof t !== 'object') return null
+            return {
+              id: t.id,
+              name: t.branding?.siteName || t.name || 'Unknown',
+              slug: t.slug || '',
+              domain: t.domain || '',
+              logoUrl: typeof t.branding?.logo === 'object' && t.branding?.logo?.url ? t.branding.logo.url : null,
+              primaryColor: t.branding?.primaryColor || null,
+            }
+          })
+          .filter(Boolean)
+        setUserPortals(portals)
+      })
+      .catch(() => {})
+  }, [user?.id])
+
   // Stable reference: use navItems directly from the server-provided header prop.
   // The ?? [] was creating a new array ref every render when header was null,
   // which could cause useMemo to recompute unexpectedly.
@@ -144,6 +172,11 @@ export function HeaderClient({ header, tenant }: Props) {
           <div className="flex justify-end flex-shrink-0 gap-4 items-center">
             {user ? (
               <>
+                {userPortals.length > 1 && (
+                  <div className="hidden md:block">
+                    <PortalSwitcher portals={userPortals} currentTenantId={tenant?.id} compact targetPath="/" />
+                  </div>
+                )}
                 <Link href="/dashboard/account" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
                   Account
                 </Link>
