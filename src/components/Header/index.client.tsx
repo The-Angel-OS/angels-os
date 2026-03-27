@@ -71,6 +71,16 @@ const BOOK_NAV_ITEM = {
   },
 }
 
+const DONATE_NAV_ITEM = {
+  id: 'donate',
+  link: {
+    type: 'custom' as const,
+    label: 'Donate',
+    url: '/donate',
+    newTab: false,
+  },
+}
+
 const DASHBOARD_NAV_ITEM = {
   id: 'dashboard',
   link: {
@@ -122,6 +132,8 @@ export function HeaderClient({ header, tenant }: Props) {
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
+    // Donate is always visible — every endeavor can receive donations
+    if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
     // Dashboard & Spaces are always visible — the dashboard layout handles auth redirect
     if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
