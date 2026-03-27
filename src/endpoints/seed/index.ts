@@ -2,6 +2,7 @@ import type { CollectionSlug, Payload, PayloadRequest, File } from 'payload'
 
 import { deleteMediaFromVercelBlob } from '@/utilities/deleteMediaFromVercelBlob'
 import { createSpaceFromTemplate } from '@/utilities/spaceProvisioning'
+import { navLink, DEFAULT_FOOTER_NAV } from '@/utilities/defaultNavItems'
 
 import { contactFormData } from './contact-form'
 import { contactPageData } from './contact-page'
@@ -73,28 +74,7 @@ const adminAddressData = {
   country: 'US' as const,
 }
 
-/** Helper to build Lexical richText from plain paragraphs */
-function buildRichText(paragraphs: string[]) {
-  return {
-    root: {
-      type: 'root',
-      children: paragraphs.map((text) => ({
-        type: 'paragraph',
-        children: [
-          { type: 'text', detail: 0, format: 0, mode: 'normal', style: '', text, version: 1 },
-        ],
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        version: 1,
-      })),
-      direction: 'ltr',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-  }
-}
+import { buildRichText } from '@/utilities/buildRichText'
 
 // Next.js revalidation errors are normal when seeding the database without a server running
 // i.e. running `yarn seed` locally instead of using the admin UI within an active app
@@ -493,51 +473,30 @@ Be excellent to each other. Party on, dudes.`,
     }
 
     // Header/footer for this tenant — tailored per business type
-    const headerNavItems: Array<{ link: { type: 'custom'; label: string; url: string } }> = [
-      { link: { type: 'custom' as const, label: 'Home', url: '/' } },
-    ]
+    const headerNavItems = [navLink('Home', '/')]
 
     // Service providers and retail get Shop
     if (uc.endeavorType === 'service-provider' || uc.endeavorType === 'retail-commerce' || (uc.products && uc.products.length > 0)) {
-      headerNavItems.push({ link: { type: 'custom' as const, label: 'Shop', url: '/shop' } })
+      headerNavItems.push(navLink('Shop', '/shop'))
     }
 
     // Service providers get Book
     if (uc.endeavorType === 'service-provider') {
-      headerNavItems.push({ link: { type: 'custom' as const, label: 'Book', url: '/book' } })
+      headerNavItems.push(navLink('Book', '/book'))
     }
 
-    // Everyone gets Posts and Events
-    headerNavItems.push({ link: { type: 'custom' as const, label: 'Posts', url: '/posts' } })
-    headerNavItems.push({ link: { type: 'custom' as const, label: 'Events', url: '/events' } })
-
-    // Everyone gets Donate
-    headerNavItems.push({ link: { type: 'custom' as const, label: 'Donate', url: '/donate' } })
-
-    // Everyone gets Dashboard
-    headerNavItems.push({ link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } })
+    // Everyone gets Posts, Events, Donate, Dashboard
+    headerNavItems.push(navLink('Posts', '/posts'), navLink('Events', '/events'), navLink('Donate', '/donate'), navLink('Dashboard', '/dashboard'))
 
     await Promise.all([
       payload.create({
         collection: 'header',
-        data: {
-          tenant: tenant.id as number,
-          navItems: headerNavItems,
-        },
+        data: { tenant: tenant.id as number, navItems: headerNavItems },
         depth: 0,
       }),
       payload.create({
         collection: 'footer',
-        data: {
-          tenant: tenant.id as number,
-          navItems: [
-            { link: { type: 'custom' as const, label: 'Home', url: '/' } },
-            { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-            { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
-            { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
-            { link: { type: 'custom' as const, label: 'Angel OS', newTab: true, url: 'https://github.com/The-Angel-OS/angels-os' } },
-          ],
-        },
+        data: { tenant: tenant.id as number, navItems: DEFAULT_FOOTER_NAV },
         depth: 0,
       }),
     ])

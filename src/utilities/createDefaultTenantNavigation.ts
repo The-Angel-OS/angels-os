@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { DEFAULT_HEADER_NAV, DEFAULT_FOOTER_NAV } from '@/utilities/defaultNavItems'
 
 /**
  * Creates default header and footer docs for a newly provisioned tenant.
@@ -15,63 +16,54 @@ export async function createDefaultTenantNavigation(
   payload: Payload,
   tenantId: number | string,
 ): Promise<void> {
-  // Check for existing header to ensure idempotency
-  const existingHeader = await payload.find({
-    collection: 'header',
-    where: {
-      tenant: { equals: tenantId },
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
+  const [existingHeader, existingFooter] = await Promise.all([
+    payload.find({
+      collection: 'header',
+      where: { tenant: { equals: tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    }),
+    payload.find({
+      collection: 'footer',
+      where: { tenant: { equals: tenantId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    }),
+  ])
+
+  const creates: Promise<unknown>[] = []
 
   if (existingHeader.docs.length === 0) {
-    await payload.create({
-      collection: 'header',
-      depth: 0,
-      overrideAccess: true,
-      data: {
-        tenant: tenantId,
-        label: 'Main Header',
-        navItems: [
-          { link: { type: 'custom' as const, label: 'Home', url: '/' } },
-          { link: { type: 'custom' as const, label: 'Shop', url: '/shop' } },
-          { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-          { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
-          { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
-        ],
-      } as any,
-    })
+    creates.push(
+      payload.create({
+        collection: 'header',
+        depth: 0,
+        overrideAccess: true,
+        data: {
+          tenant: tenantId,
+          label: 'Main Header',
+          navItems: DEFAULT_HEADER_NAV,
+        } as any,
+      }),
+    )
   }
-
-  // Check for existing footer to ensure idempotency
-  const existingFooter = await payload.find({
-    collection: 'footer',
-    where: {
-      tenant: { equals: tenantId },
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
 
   if (existingFooter.docs.length === 0) {
-    await payload.create({
-      collection: 'footer',
-      depth: 0,
-      overrideAccess: true,
-      data: {
-        tenant: tenantId,
-        label: 'Main Footer',
-        navItems: [
-          { link: { type: 'custom' as const, label: 'Home', url: '/' } },
-          { link: { type: 'custom' as const, label: 'Shop', url: '/shop' } },
-          { link: { type: 'custom' as const, label: 'Posts', url: '/posts' } },
-          { link: { type: 'custom' as const, label: 'Donate', url: '/donate' } },
-          { link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard' } },
-        ],
-      } as any,
-    })
+    creates.push(
+      payload.create({
+        collection: 'footer',
+        depth: 0,
+        overrideAccess: true,
+        data: {
+          tenant: tenantId,
+          label: 'Main Footer',
+          navItems: DEFAULT_FOOTER_NAV,
+        } as any,
+      }),
+    )
   }
+
+  await Promise.all(creates)
 }

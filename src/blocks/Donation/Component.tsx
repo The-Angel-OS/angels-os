@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { RichText } from '@/components/RichText'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const stripePromise = loadStripe(`${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`)
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 function PaymentForm({ amountCents, donorEmail }: { amountCents: number; donorEmail: string }) {
   const stripe = useStripe()
@@ -63,10 +63,10 @@ export const DonationBlock: React.FC<{
   presetAmounts?: string
   showDonorFields?: boolean
 }> = ({ richText, presetAmounts = '5,10,25,50,100', showDonorFields = true }) => {
-  const amounts = (presetAmounts || '5,10,25,50,100')
-    .split(',')
-    .map((s) => parseInt(s.trim(), 10) * 100)
-    .filter((n) => n > 0)
+  const amounts = useMemo(
+    () => (presetAmounts || '5,10,25,50,100').split(',').map((s) => parseInt(s.trim(), 10) * 100).filter((n) => n > 0),
+    [presetAmounts],
+  )
 
   const [step, setStep] = useState<'amount' | 'info' | 'payment' | 'success'>('amount')
   const [amountCents, setAmountCents] = useState(amounts[2] || 2500)
@@ -101,6 +101,11 @@ export const DonationBlock: React.FC<{
   }
 
   const handleContinue = async () => {
+    if (amountCents < 100) {
+      setError('Minimum donation is $1.00')
+      return
+    }
+
     if (showDonorFields && step === 'amount') {
       setStep('info')
       return
@@ -132,8 +137,8 @@ export const DonationBlock: React.FC<{
 
       setClientSecret(data.clientSecret)
       setStep('payment')
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     }
   }
 
