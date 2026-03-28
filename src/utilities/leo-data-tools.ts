@@ -2467,13 +2467,13 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'delegate_task',
     description:
-      'Create a task assignment message in the team channel, optionally notifying a specific person. Use for task delegation and team coordination. Confirm with user before sending.',
+      'Create a task assignment message in the team channel. Use when a user asks to log something, delegate work, create a todo, or leave a note for maintenance. The "task" parameter is the full description of what needs to be done.',
     input_schema: {
       type: 'object' as const,
       properties: {
         task: {
           type: 'string',
-          description: 'Description of the task to delegate',
+          description: 'Full description of the task, issue, or maintenance note to log. This is the main content.',
         },
         assigneeEmail: {
           type: 'string',
@@ -2561,6 +2561,34 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['title', 'details', 'impact', 'response'],
+    },
+  },
+  {
+    name: 'log_maintenance_note',
+    description:
+      'Log a maintenance note for Scotty (the engineering agent from Claude Code). Use when a user reports a bug, requests a feature, or asks you to document something for the next maintenance cycle. Creates an application log entry that Scotty will review.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Short summary of the issue or request',
+        },
+        details: {
+          type: 'string',
+          description: 'Full description — what happened, what the user reported, any relevant context',
+        },
+        category: {
+          type: 'string',
+          enum: ['bug', 'feature_request', 'ui_issue', 'data_issue', 'performance', 'other'],
+          description: 'Category of the maintenance note',
+        },
+        reportedBy: {
+          type: 'string',
+          description: 'Who reported this (email or name if known)',
+        },
+      },
+      required: ['title', 'details'],
     },
   },
   // ─── Sprint 24: LEO Enterprise Manager — Operational Intelligence ────
@@ -3392,6 +3420,8 @@ async function executeToolSwitch(
         return await handleSendEmergencyAlert(payload, toolInput, ctx)
       case 'document_incident':
         return await handleDocumentIncident(payload, toolInput, ctx)
+      case 'log_maintenance_note':
+        return await handleLogMaintenanceNote(payload, toolInput, ctx)
       // Sprint 24: LEO Enterprise Manager — Operational Intelligence
       case 'check_enterprise_health':
         return await handleCheckEnterpriseHealth(payload, toolInput, ctx)
@@ -11144,8 +11174,9 @@ async function handleDelegateTask(
   const { tenantId } = ctx
   if (!tenantId) return 'Error: No tenant context available.'
 
-  const task = (input.task as string)?.trim()
-  if (!task) return 'Error: task description is required.'
+  // Accept common alternative param names the LLM might use
+  const task = ((input.task || input.description || input.message || input.text || input.note) as string)?.trim()
+  if (!task) return 'Error: task description is required. Pass the task details in the "task" parameter.'
 
   const assigneeEmail = (input.assigneeEmail as string) || ''
   const priority = (input.priority as string) || 'normal'
@@ -11194,7 +11225,8 @@ async function handleEscalateIssue(
   const { tenantId } = ctx
   if (!tenantId) return 'Error: No tenant context available.'
 
-  const issue = (input.issue as string)?.trim()
+  // Accept common alternative param names the LLM might use
+  const issue = ((input.issue || input.description || input.message || input.task || input.text) as string)?.trim()
   const priority = (input.priority as string) || 'high'
   const issueContext = (input.context as string) || ''
 
@@ -11372,6 +11404,56 @@ async function handleDocumentIncident(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error documenting incident: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Maintenance Notes — Low-friction issue logging for Scotty (Claude Code)
+// ---------------------------------------------------------------------------
+
+async function handleLogMaintenanceNote(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+
+  const title = ((input.title || input.summary || input.subject) as string)?.trim()
+  const details = ((input.details || input.description || input.message || input.text || input.note) as string)?.trim()
+  const category = (input.category as string) || 'other'
+  const reportedBy = (input.reportedBy as string) || 'anonymous user'
+
+  if (!title && !details) {
+    return 'Error: Please provide at least a title or details for the maintenance note.'
+  }
+
+  const noteTitle = title || details!.slice(0, 80)
+  const noteDetails = details || title!
+
+  try {
+    await payload.create({
+      collection: 'application-logs',
+      data: {
+        level: 'info',
+        source: 'leo-tools/maintenance-note',
+        message: `[MAINTENANCE] ${noteTitle}`,
+        details: JSON.stringify({
+          category,
+          reportedBy,
+          details: noteDetails,
+          loggedAt: new Date().toISOString(),
+          tenantId: tenantId || 'platform',
+        }),
+        ...(tenantId ? { tenantId } : {}),
+        resolved: false,
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `Maintenance note logged for Scotty:\n- **Title:** ${noteTitle}\n- **Category:** ${category}\n- **Reported by:** ${reportedBy}\n\nThis will be reviewed during the next maintenance cycle.`
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Error logging maintenance note: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
