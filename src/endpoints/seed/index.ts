@@ -54,6 +54,7 @@ const collections: CollectionSlug[] = [
   'categories',
   'forms',
   'media',
+  'connectors',
   'header',
   'footer',
   // tenants, users: not cleared; use findOrCreate
@@ -470,6 +471,25 @@ Be excellent to each other. Party on, dudes.`,
         })
       }
       payload.logger.info(`  ✓ ${uc.products.length} products`)
+    }
+
+    // Seed connectors for this tenant (social sync, webhooks, etc.)
+    if (uc.connectors && uc.connectors.length > 0) {
+      for (const conn of uc.connectors) {
+        await payload.create({
+          collection: 'connectors',
+          depth: 0,
+          data: {
+            name: conn.name,
+            type: conn.type,
+            config: conn.config,
+            enabled: conn.enabled ?? true,
+            status: conn.enabled === false ? 'paused' : 'active',
+            tenant: tenant.id as number,
+          } as any,
+        })
+      }
+      payload.logger.info(`  ✓ ${uc.connectors.length} connectors`)
     }
 
     // Header/footer for this tenant — tailored per business type

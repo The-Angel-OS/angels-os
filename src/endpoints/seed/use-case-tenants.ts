@@ -67,6 +67,13 @@ export interface UseCaseTenant {
     networkListing?: boolean
     configuratorOptions?: Record<string, unknown>
   }>
+  /** Optional connectors (social sync, webhooks, etc.) */
+  connectors?: Array<{
+    name: string
+    type: string
+    config: Record<string, unknown>
+    enabled?: boolean
+  }>
 }
 
 /**
@@ -332,6 +339,30 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 1800,
         productionType: 'ready_made',
         networkListing: true,
+      },
+    ],
+    connectors: [
+      {
+        name: 'Clearwater Cruisin YouTube',
+        type: 'youtube_channel',
+        config: {
+          channelId: '', // Set via admin once channel is created
+          limit: 10,
+          status: 'published',
+          categories: ['Ministry', 'Soul Questing'],
+        },
+        enabled: false, // Enable once channelId is configured
+      },
+      {
+        name: 'Clearwater Cruisin LinkedIn',
+        type: 'linkedin_page',
+        config: {
+          organizationId: '', // Set via admin once page is claimed
+          limit: 10,
+          status: 'published',
+          categories: ['Updates', 'Ministry'],
+        },
+        enabled: false, // Enable once credentials are configured
       },
     ],
   },

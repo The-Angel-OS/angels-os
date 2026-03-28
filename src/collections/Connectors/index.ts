@@ -59,6 +59,7 @@ export const Connectors: CollectionConfig = {
         { label: 'Telegram', value: 'telegram' },
         { label: 'Slack', value: 'slack' },
         { label: 'YouTube Channel', value: 'youtube_channel' },
+        { label: 'LinkedIn Page', value: 'linkedin_page' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',
@@ -104,7 +105,8 @@ export const Connectors: CollectionConfig = {
 • webhook: { "url": "https://...", "secret": "whsec_xxx", "events": ["order.created"] }
 • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
 • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
-• youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }`,
+• youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
+• linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }`,
       },
     },
     // ─── Routing ───────────────────────────────────────────────
