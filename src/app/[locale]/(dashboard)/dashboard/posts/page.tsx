@@ -94,7 +94,7 @@ export default async function DashboardPostsPage({
                 {heroUrl ? (
                   <img
                     src={heroUrl}
-                    alt=""
+                    alt={`${post.title || 'Post'} thumbnail`}
                     className="h-10 w-10 shrink-0 rounded-md object-cover"
                   />
                 ) : (

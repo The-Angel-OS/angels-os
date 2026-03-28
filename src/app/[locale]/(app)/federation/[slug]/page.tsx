@@ -176,7 +176,7 @@ export default async function EndeavorPage({
         <div className="relative h-48 w-full overflow-hidden bg-muted md:h-64 lg:h-72">
           <img
             src={coverImage}
-            alt=""
+            alt={`${endeavor.name || 'Endeavor'} cover`}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />

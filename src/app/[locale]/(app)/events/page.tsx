@@ -1,12 +1,18 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import type { Metadata } from 'next'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { CollectionHero } from '@/components/CollectionHero'
 import React from 'react'
 import Link from 'next/link'
 
-export const metadata = {
-  description: 'Upcoming events, meetups, workshops, and livestreams.',
-  title: 'Events',
+export async function generateMetadata(): Promise<Metadata> {
+  const { tenant } = await resolveTenantFromHeaders()
+  const siteName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
+  return {
+    title: `Events | ${siteName}`,
+    description: `Meetups, workshops, and experiences from ${siteName}.`,
+  }
 }
 
 export default async function EventsPage() {
@@ -38,13 +44,12 @@ export default async function EventsPage() {
   const pastEvents = events.docs.filter((e: any) => e.status === 'completed')
 
   return (
-    <div className="container py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Events</h1>
-        <p className="mt-2 text-muted-foreground">
-          Meetups, workshops, livestreams, and more. Find your next experience.
-        </p>
-      </div>
+    <div className="container py-8">
+      <CollectionHero
+        title="Events"
+        subtitle="Meetups, workshops, and experiences"
+        icon="📅"
+      />
 
       {events.docs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-12 text-center">

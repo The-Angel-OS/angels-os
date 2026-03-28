@@ -98,7 +98,7 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
           <div className="h-32 w-full overflow-hidden rounded-t-lg">
             <img
               src={holon.coverImage}
-              alt=""
+              alt={`${holon.name || 'Enterprise'} cover`}
               className="h-full w-full object-cover transition-transform group-hover:scale-105"
             />
           </div>

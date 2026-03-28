@@ -1,26 +1,28 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import type { Metadata } from 'next'
 import type { PaginatedDocs } from 'payload'
 import React from 'react'
+import Link from 'next/link'
 
 import type { Post } from '@/payload-types'
 import { CollectionArchive, POSTS_PER_PAGE } from '@/components/CollectionArchive'
+import { CollectionHero } from '@/components/CollectionHero'
 import { PageRange } from '@/components/PageRange'
 import { Pagination } from '@/components/Pagination'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
-export const metadata = {
-  description: 'Blog posts and articles from Angel OS.',
-  title: 'Posts',
+export async function generateMetadata(): Promise<Metadata> {
+  const { tenant } = await resolveTenantFromHeaders()
+  const siteName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
+  return {
+    title: `Posts | ${siteName}`,
+    description: `Stories, updates, and insights from ${siteName}.`,
+  }
 }
 
 /**
- * Posts listing page — tenant-aware.
- *
- * Reads the x-tenant-id header injected by middleware to resolve the current
- * tenant, then filters posts to only show content belonging to that tenant.
- * This fixes the issue where posts were invisible because the multi-tenant
- * plugin's access control was filtering them out.
+ * Posts listing page — tenant-aware with branded hero.
  */
 export default async function PostsPage() {
   let posts: PaginatedDocs<Post> | null = null
@@ -58,8 +60,12 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="container py-12">
-      <h1 className="mb-8 text-3xl font-bold">Posts</h1>
+    <div className="container py-8">
+      <CollectionHero
+        title="Posts"
+        subtitle="Stories, updates, and insights"
+        icon="📝"
+      />
 
       <div className="mb-6">
         {posts && (
@@ -73,7 +79,19 @@ export default async function PostsPage() {
       </div>
 
       {!posts || posts.docs?.length === 0 ? (
-        <p className="text-muted-foreground">No posts yet. Check back soon!</p>
+        <div className="rounded-lg border border-dashed border-border bg-card/50 p-12 text-center">
+          <p className="mb-4 text-4xl">✍️</p>
+          <p className="text-lg font-medium text-foreground">Your blog awaits</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No posts yet — check back soon, or head to the dashboard to create your first one.
+          </p>
+          <Link
+            href="/dashboard/posts"
+            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
       ) : (
         <>
           <CollectionArchive posts={posts.docs} showCategories />

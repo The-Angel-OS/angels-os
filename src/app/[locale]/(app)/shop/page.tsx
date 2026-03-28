@@ -2,12 +2,18 @@ import { Grid } from '@/components/Grid'
 import { ProductGridItem } from '@/components/ProductGridItem'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import type { Metadata } from 'next'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
+import Link from 'next/link'
 
-export const metadata = {
-  description: 'Search for products in the store.',
-  title: 'Shop',
+export async function generateMetadata(): Promise<Metadata> {
+  const { tenant } = await resolveTenantFromHeaders()
+  const siteName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
+  return {
+    title: `Shop | ${siteName}`,
+    description: `Products crafted with care from ${siteName}.`,
+  }
 }
 
 type SearchParams = { [key: string]: string | string[] | undefined }
@@ -67,7 +73,19 @@ export default async function ShopPage({ searchParams }: Props) {
       ) : null}
 
       {!searchValue && products.docs?.length === 0 && (
-        <p className="mb-4">No products found. Please try different filters.</p>
+        <div className="rounded-lg border border-dashed border-border bg-card/50 p-12 text-center">
+          <p className="mb-4 text-4xl">🛍️</p>
+          <p className="text-lg font-medium text-foreground">Shop coming soon</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Products are being prepared — check back soon or visit the dashboard to add your first listing.
+          </p>
+          <Link
+            href="/dashboard/products"
+            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
       )}
 
       {products?.docs.length > 0 ? (

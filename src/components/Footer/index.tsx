@@ -37,7 +37,7 @@ export async function Footer({ tenant }: Props) {
           <div>
             <Link className="flex items-center gap-2 text-black md:pt-1 dark:text-white" href="/">
               {tenant?.branding?.logo && typeof tenant.branding.logo === 'object' && 'url' in tenant.branding.logo ? (
-                <img src={tenant.branding.logo.url ?? ''} alt="" className="h-6 w-auto object-contain" />
+                <img src={tenant.branding.logo.url ?? ''} alt={`${tenant.branding?.siteName || 'Site'} logo`} className="h-6 w-auto object-contain" />
               ) : (
                 <LogoIcon className="w-6" />
               )}

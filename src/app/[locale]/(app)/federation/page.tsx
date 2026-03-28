@@ -207,7 +207,7 @@ export default async function FederationPage({
                     <div className="mb-3 h-32 overflow-hidden rounded-lg">
                       <img
                         src={sign.thumbnail}
-                        alt=""
+                        alt={sign.title || 'Federation content'}
                         className="h-full w-full object-cover"
                       />
                     </div>
