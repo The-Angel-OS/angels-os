@@ -157,8 +157,7 @@ export const DonatePage: React.FC<DonatePageProps> = ({
             been received.
           </p>
           <p className="text-sm opacity-70">
-            100% goes to the Justice Fund — community support, wrongful conviction advocacy, and
-            guild infrastructure.
+            100% goes directly to keeping the lights on, the servers running, and the community fed.
           </p>
           <p className="mt-6 text-xs opacity-50">
             A receipt has been sent to your email. God bless you.
@@ -208,12 +207,29 @@ export const DonatePage: React.FC<DonatePageProps> = ({
 
   // ── Amount Selection State ────────────────────────────────────
   return (
-    <div className="container mx-auto max-w-lg py-20">
-      <h1 className="mb-2 text-3xl font-bold">Donate to {tenantName}</h1>
-      <p className="mb-8 text-sm opacity-70">
-        100% of every donation goes to the Justice Fund — community support, wrongful conviction
-        advocacy, and guild infrastructure. No platform fees on donations. This is constitutional.
-      </p>
+    <div className="container mx-auto max-w-2xl py-16 px-4">
+      <h1 className="mb-3 text-4xl font-bold tracking-tight">Support {tenantName}</h1>
+
+      {/* The real story */}
+      <div className="mb-8 space-y-3 text-base leading-relaxed opacity-80">
+        <p>
+          Right now, 100% of every donation goes directly to keeping our infrastructure alive.
+          We are a community household in Clearwater, FL — seven people sharing a home,
+          building Angel OS together, and supporting each other through the work.
+        </p>
+        <p>
+          No salaries. No venture capital. No platform fees.
+          Every dollar keeps the lights on, the servers running, and the people fed.
+        </p>
+      </div>
+
+      {/* Urgency callout */}
+      <div className="mb-8 rounded-lg border border-[#C4973B]/30 bg-[#C4973B]/5 p-4">
+        <p className="text-sm font-medium text-[#C4973B]">
+          Your donation directly supports housing, food, and infrastructure for the team
+          building this platform. This is real people doing real work.
+        </p>
+      </div>
 
       {/* Preset amounts */}
       <div className="mb-6 grid grid-cols-3 gap-3">

@@ -7,7 +7,7 @@ import { DonatePage } from './DonatePage'
 export const metadata = {
   title: 'Donate',
   description:
-    'Support this Endeavor. 100% of donations go to the Justice Fund — community support, wrongful conviction advocacy, and guild infrastructure.',
+    'Support Angel OS — 100% of donations go directly to housing, food, and infrastructure for the community building this platform.',
 }
 
 export const dynamic = 'force-dynamic'
