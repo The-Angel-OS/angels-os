@@ -193,6 +193,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }
   }
 
+  // Elevate isBusinessOwner if user has tenant_admin or tenant_manager role
+  // on the current portal — even if their platform role is just 'customer'
+  if (userRoleData?.tenantRole === 'tenant_admin' || userRoleData?.tenantRole === 'tenant_manager') {
+    isBusinessOwner = true
+  }
+
   // Process DM space + wizard results
   const dmSpaceId = dmResult.status === 'fulfilled' ? dmResult.value : undefined
   const setupRequired = setupResult.status === 'fulfilled' ? setupResult.value : false
