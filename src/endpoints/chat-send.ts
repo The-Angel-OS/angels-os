@@ -51,12 +51,14 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     return Response.json({ message: 'Missing required field: content' }, { status: 400 })
   }
 
-  // Validate content is not whitespace-only and enforce length limits
+  // Validate content is not whitespace-only and enforce length limits.
+  // Allow empty text when attachments are present (image-only messages).
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0
   const MAX_MESSAGE_LENGTH = 50_000 // 50K characters — generous but prevents abuse
   if (typeof content === 'object' && content !== null) {
     const textContent = (content as Record<string, unknown>).text
     if (typeof textContent === 'string') {
-      if (!textContent.trim()) {
+      if (!textContent.trim() && !hasAttachments) {
         return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
       }
       if (textContent.length > MAX_MESSAGE_LENGTH) {
@@ -67,7 +69,7 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       }
     }
   } else if (typeof content === 'string') {
-    if (!content.trim()) {
+    if (!content.trim() && !hasAttachments) {
       return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
     }
     if (content.length > MAX_MESSAGE_LENGTH) {
