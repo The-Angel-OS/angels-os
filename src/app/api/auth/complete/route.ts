@@ -56,40 +56,130 @@ export async function GET(request: Request) {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: #fafafa;
-      color: #1a1a1a;
+      background: radial-gradient(ellipse at center, #0d1117 0%, #010409 100%);
+      color: #e6edf3;
+      overflow: hidden;
     }
     .card {
       text-align: center;
       padding: 48px 40px;
-      max-width: 380px;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
     }
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid #e5e5e5;
-      border-top-color: #1a1a1a;
+    /* Starfield background */
+    .stars {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: transparent;
+      z-index: 0;
+    }
+    .stars::before, .stars::after {
+      content: '';
+      position: absolute;
+      width: 2px; height: 2px;
+      background: white;
       border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin: 0 auto 24px;
+      box-shadow:
+        20px 80px 0 #fff3, 100px 40px 0 #fff4, 200px 120px 0 #fff3,
+        300px 60px 0 #fff2, 50px 200px 0 #fff3, 400px 150px 0 #fff4,
+        150px 300px 0 #fff3, 350px 250px 0 #fff2, 500px 100px 0 #fff3,
+        250px 50px 0 #fff4, 600px 200px 0 #fff3, 450px 300px 0 #fff2,
+        700px 80px 0 #fff3, 550px 350px 0 #fff4, 100px 400px 0 #fff3,
+        800px 150px 0 #fff2, 650px 280px 0 #fff3, 320px 380px 0 #fff4,
+        180px 180px 0 #fff3, 750px 320px 0 #fff2, 420px 70px 0 #fff3;
+      animation: twinkle 4s ease-in-out infinite alternate;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    h1 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-    p { font-size: 14px; color: #666; }
-    .error { color: #dc2626; }
-    .success { color: #16a34a; }
-    a { color: #1a1a1a; text-decoration: underline; margin-top: 16px; display: inline-block; font-size: 14px; }
+    .stars::after { animation-delay: 2s; transform: translate(60px, 30px); }
+    @keyframes twinkle { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+    /* Angel logo — golden halo + wings */
+    .logo-container {
+      width: 100px; height: 100px;
+      margin: 0 auto 24px;
+      position: relative;
+    }
+    .logo-ring {
+      width: 100px; height: 100px;
+      border: 2px solid #C4973B40;
+      border-top-color: #C4973B;
+      border-radius: 50%;
+      animation: orbit 2s linear infinite;
+      position: absolute; top: 0; left: 0;
+    }
+    .logo-ring-outer {
+      width: 100px; height: 100px;
+      border: 1px solid #C4973B20;
+      border-bottom-color: #C4973B80;
+      border-radius: 50%;
+      animation: orbit 3s linear infinite reverse;
+      position: absolute; top: 0; left: 0;
+    }
+    .logo-icon {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      filter: drop-shadow(0 0 12px #C4973B80);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    @keyframes orbit { to { transform: rotate(360deg); } }
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 8px #C4973B60); }
+      50% { filter: drop-shadow(0 0 20px #C4973BCC); }
+    }
+    .brand {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #C4973B;
+      margin-bottom: 20px;
+      font-weight: 300;
+    }
+    h1 {
+      font-size: 20px; font-weight: 500;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    p { font-size: 14px; color: #8b949e; }
+    .error { color: #f85149; }
+    .success { color: #C4973B; }
+    a { color: #C4973B; text-decoration: underline; margin-top: 16px; display: inline-block; font-size: 14px; }
+    /* Progress bar */
+    .progress-track {
+      width: 200px; height: 2px;
+      background: #21262d;
+      border-radius: 1px;
+      margin: 20px auto 0;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #C4973B, #E8C547);
+      border-radius: 1px;
+      animation: fill-progress 2.5s ease-in-out forwards;
+    }
+    @keyframes fill-progress {
+      0% { width: 0%; }
+      60% { width: 70%; }
+      100% { width: 100%; }
+    }
   </style>
 </head>
 <body>
+  <div class="stars"></div>
   <div class="card">
-    <div class="spinner" id="spinner"></div>
+    <div class="logo-container" id="spinner">
+      <div class="logo-ring"></div>
+      <div class="logo-ring-outer"></div>
+      <div class="logo-icon">\u{1F47C}</div>
+    </div>
+    <div class="brand">Angel OS</div>
     <h1 id="title">Signing in\u2026</h1>
-    <p id="message">Setting up your session</p>
+    <p id="message">Establishing secure connection</p>
+    <div class="progress-track"><div class="progress-bar"></div></div>
   </div>
   <script>
     (async function() {
@@ -144,10 +234,10 @@ export async function GET(request: Request) {
         try { data = await meRes.json(); } catch(e) {}
 
         if (meRes.ok && data.user) {
-          spinner.style.display = 'none';
+          spinner.innerHTML = '<div class="logo-icon" style="position:static;transform:none;font-size:48px;">\u{1F47C}</div>';
           title.textContent = 'Welcome, ' + (data.user.name || data.user.email || '') + '!';
           title.className = 'success';
-          message.textContent = 'Redirecting\u2026';
+          message.textContent = 'Entering the bridge\u2026';
           setTimeout(function() { window.location.replace(REDIRECT); }, 300);
           return;
         }
