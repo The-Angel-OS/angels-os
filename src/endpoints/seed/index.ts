@@ -60,7 +60,13 @@ const collections: CollectionSlug[] = [
   // tenants, users: not cleared; use findOrCreate
 ]
 
-const categories = ['Services', 'Technology', 'Events']
+const categories = [
+  'Services', 'Technology', 'Events',
+  // Fulfillment categories for the Transporter System
+  'CNC & Woodworking', 'Promotional Products', 'Print on Demand',
+  'Digital Services', 'Plants & Garden', 'Wellness',
+  'AV & Production', 'Apparel',
+]
 
 const adminAddressData = {
   title: 'Mr.',
@@ -462,6 +468,8 @@ Be excellent to each other. Party on, dudes.`,
             isLimitedEdition: prod.isLimitedEdition || false,
             ...(prod.availableUntil ? { availableUntil: prod.availableUntil } : {}),
             networkListing: prod.networkListing || false,
+            ...(prod.fulfillmentMode ? { fulfillmentMode: prod.fulfillmentMode } : {}),
+            ...(prod.requiredCapabilities ? { requiredCapabilities: prod.requiredCapabilities } : {}),
             ...(prod.configuratorOptions ? { configuratorOptions: prod.configuratorOptions } : {}),
             layout: [],
             gallery: [],
@@ -873,7 +881,10 @@ Be excellent to each other. Party on, dudes.`,
   ])
 
   // Cast to any — product data helpers only use .id from category objects
-  const [servicesCategory, technologyCategory, eventsCategory] = categoryDocs as any[]
+  const [
+    servicesCategory, technologyCategory, eventsCategory,
+    /* cncCategory, promoCategory, podCategory, digitalCategory, plantsCategory, wellnessCategory, avCategory, apparelCategory */
+  ] = categoryDocs as any[]
 
   payload.logger.info(`— Seeding products...`)
 

@@ -65,6 +65,12 @@ export interface UseCaseTenant {
     isLimitedEdition?: boolean
     availableUntil?: string
     networkListing?: boolean
+    fulfillmentMode?: 'self' | 'network'
+    requiredCapabilities?: Array<{
+      skill: string
+      equipment?: string
+      materials?: string[]
+    }>
     configuratorOptions?: Record<string, unknown>
   }>
   /** Optional connectors (social sync, webhooks, etc.) */
@@ -83,6 +89,7 @@ export interface UseCaseTenant {
 export const USE_CASE_TENANTS: UseCaseTenant[] = [
   // ─── Service Provider: Celersoft Technology ────────────────
   // Inspired by celersoft.com — IT consulting, cybersecurity, cloud
+  // Holon: manufacturer (digital services) — single-facet specialist
   {
     name: 'Celersoft Technology',
     slug: 'celersoft',
@@ -91,8 +98,16 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     businessType: 'professional_services',
     tagline: 'Accelerating Digital Transformation',
     description: 'IT consulting, cybersecurity assessments, and cloud migration services for businesses ready to modernize.',
-    holonTypes: ['manufacturer', 'retailer'],
+    holonTypes: ['manufacturer'],
     region: { city: 'Clearwater', state: 'FL', country: 'US' },
+    missionStatement: 'To democratize enterprise-grade cybersecurity and cloud infrastructure for small businesses who deserve the same protection as Fortune 500 companies.',
+    operator: { name: 'Marcus Rivera', email: 'marcus@celersoft.com', role: 'Founder & CTO' },
+    capabilities: [
+      { skill: 'Cybersecurity assessment', description: 'Penetration testing, vulnerability scanning, and compliance audits for small-to-mid businesses' },
+      { skill: 'Cloud migration', description: 'AWS, Azure, and GCP migration planning and execution with zero-downtime cutover' },
+      { skill: 'Web development', description: 'Full-stack development, API design, and custom business applications' },
+      { skill: 'IT managed services', description: 'Monitoring, incident response, patching, and 24/7 helpdesk' },
+    ],
     spaceName: 'Celersoft Hub',
     branding: {
       siteName: 'Celersoft',
@@ -128,10 +143,52 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           'From predictive maintenance to customer insights, business analytics driven by AI transforms raw data into competitive advantage.',
       },
     ],
+    products: [
+      {
+        title: 'Website Security Audit',
+        slug: 'website-security-audit',
+        description: [
+          'Comprehensive security assessment of your website and web applications. Includes vulnerability scanning, OWASP Top 10 analysis, and a prioritized remediation report.',
+          'Delivered as a detailed PDF report with executive summary and technical findings. Includes a 30-minute video walkthrough of results.',
+        ],
+        priceInUSD: 49900,
+        productionType: 'digital',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [{ skill: 'cybersecurity-assessment' }],
+      },
+      {
+        title: 'Business Website Starter Package',
+        slug: 'business-website-starter',
+        description: [
+          'A professionally designed, mobile-responsive business website. Includes up to 5 pages, contact form, SEO basics, and Google Analytics setup.',
+          'Built on modern frameworks and deployed to fast, global CDN. Perfect for small businesses getting online for the first time.',
+        ],
+        priceInUSD: 199900,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [{ skill: 'web-development' }],
+      },
+      {
+        title: 'Cloud Migration Assessment',
+        slug: 'cloud-migration-assessment',
+        description: [
+          'Planning to move to the cloud? We evaluate your current infrastructure, identify migration candidates, and deliver a phased migration roadmap.',
+          'Covers cost analysis, security implications, and downtime planning. Includes recommendations for AWS, Azure, or GCP based on your specific workloads.',
+        ],
+        priceInUSD: 79900,
+        productionType: 'digital',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [{ skill: 'cloud-migration' }],
+      },
+    ],
   },
 
   // ─── Service Provider: Lucas Productions ──────────────────
   // Inspired by lucasproductionsusa.com — AV rental, live events, Clearwater FL
+  // Holon: manufacturer + retailer + creator — full-spectrum production house
   {
     name: 'Lucas Productions',
     slug: 'lucas-productions',
@@ -140,8 +197,17 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     businessType: 'service',
     tagline: 'Reliable, Creative, and Easy to Work With',
     description: 'Full-service AV production — corporate events, weddings, livestreams, LED video walls, and stage lighting.',
-    holonTypes: ['manufacturer', 'retailer'],
+    holonTypes: ['manufacturer', 'retailer', 'creator'],
     region: { city: 'Clearwater', state: 'FL', country: 'US' },
+    missionStatement: 'Every event tells a story. We provide the stage, the lights, the sound, and the crew to make that story unforgettable — from intimate gatherings to arena-scale productions.',
+    operator: { name: 'David Lucas', email: 'david@lucasproductionsusa.com', role: 'Owner & Lead Producer' },
+    capabilities: [
+      { skill: 'AV production', description: 'Sound systems, video walls, projectors, and full AV packages for events of any scale' },
+      { skill: 'Stage lighting', description: 'Custom lighting design, LED fixtures, spotlights, and DMX programming for concerts and corporate events' },
+      { skill: 'Livestreaming', description: 'Multi-camera livestream production via Zoom, Teams, YouTube, and Facebook Live with real-time switching' },
+      { skill: 'Event coordination', description: 'End-to-end event production management from load-in through strike' },
+      { skill: 'Video production', description: 'Promotional videos, event recaps, and corporate content creation' },
+    ],
     spaceName: 'Lucas Productions Studio',
     branding: {
       siteName: 'Lucas Productions',
@@ -177,6 +243,53 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           'Custom lighting transforms any venue. Learn the basics of stage lighting, color washes, and spotlight techniques.',
       },
     ],
+    products: [
+      {
+        title: 'Corporate Event AV Package',
+        slug: 'corporate-event-av-package',
+        description: [
+          'Complete AV solution for corporate events: PA system, wireless microphones, LED video wall, and on-site technician. Covers venues up to 500 attendees.',
+          'Includes setup, soundcheck, live operation, and strike. We bring the gear, the crew, and the expertise. Any AV production company in the federation network can fulfill this package.',
+        ],
+        priceInUSD: 350000,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'av-production', equipment: 'PA system' },
+          { skill: 'stage-lighting', equipment: 'LED fixtures' },
+        ],
+      },
+      {
+        title: 'Wedding Livestream Package',
+        slug: 'wedding-livestream-package',
+        description: [
+          'Two-camera livestream of your wedding ceremony with professional audio capture, real-time switching, and a shareable replay link within 24 hours.',
+          'Perfect for guests who cannot attend in person. Streamed to your choice of platform (Zoom, YouTube, or private link). Includes highlight reel edit.',
+        ],
+        priceInUSD: 150000,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'livestreaming', equipment: 'Multi-camera rig' },
+          { skill: 'video-production' },
+        ],
+      },
+      {
+        title: 'Promotional Video — 60 Second Spot',
+        slug: 'promo-video-60-second',
+        description: [
+          'A polished 60-second promotional video for your business, product, or event. Includes scripting, one day of shooting, professional editing, color grading, and music licensing.',
+          'Delivered in 4K with versions optimized for social media, website, and broadcast. Any video production team in the network can produce this to our quality standards.',
+        ],
+        priceInUSD: 250000,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [{ skill: 'video-production', equipment: 'Cinema camera' }],
+      },
+    ],
   },
 
   // ─── Creator/Content: Clearwater Cruisin Ministries ───────
@@ -191,7 +304,8 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     businessType: 'ministry',
     tagline: 'Soul Questing in the Ready Player Everyone Universe',
     description: 'CNC signs, woodworking, ministry, and soul questing from Clearwater, Florida. Dogs welcome.',
-    holonTypes: ['creator', 'community'],
+    // Full-spectrum Holon: manufactures goods, retails them, creates content, builds community
+    holonTypes: ['manufacturer', 'retailer', 'creator', 'community'],
     region: { city: 'Clearwater', state: 'FL', country: 'US' },
     missionStatement: 'To serve others through creative expression, community fellowship, and the open road — proving that faith, craftsmanship, and genuine connection can change lives one conversation at a time.',
     operator: { name: 'Kenneth Courtney', email: 'kenneth@clearwatercruisin.com', role: 'Ministry Lead' },
@@ -254,6 +368,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 4500,
         productionType: 'custom_order',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'cnc-cutting', equipment: 'CNC router', materials: ['Baltic birch plywood'] },
+          { skill: 'painting', materials: ['Exterior acrylic paint'] },
+        ],
         configuratorOptions: {
           customText: true,
           maxTextLength: 24,
@@ -272,6 +391,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 3500,
         productionType: 'ready_made',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'cnc-cutting', equipment: 'CNC router', materials: ['Plywood'] },
+          { skill: 'painting' },
+        ],
         configuratorOptions: {
           sizes: ['Small (8x10 inches)', 'Medium (12x16 inches)', 'Large (18x24 inches)'],
         },
@@ -287,6 +411,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 6500,
         productionType: 'custom_order',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'cnc-cutting', equipment: 'CNC router', materials: ['Baltic birch plywood', 'Maple plywood'] },
+          { skill: 'wood-staining' },
+        ],
         configuratorOptions: {
           sizes: ['16x20 inches', '24x30 inches'],
           finishes: ['Sunset Gradient', 'Natural Wood', 'Whitewash'],
@@ -303,6 +432,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 2800,
         productionType: 'custom_order',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'cnc-cutting', materials: ['Exterior plywood'] },
+          { skill: 'painting', materials: ['Exterior acrylic paint'] },
+        ],
         configuratorOptions: {
           customText: true,
           maxTextLength: 30,
@@ -321,6 +455,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 3500,
         productionType: 'custom_order',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'laser-engraving', equipment: 'CO2 laser', materials: ['Baltic birch plywood'] },
+          { skill: 'wood-staining' },
+        ],
         configuratorOptions: {
           customText: true,
           maxTextLength: 120,
@@ -339,6 +478,68 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 1800,
         productionType: 'ready_made',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'laser-engraving', equipment: 'CO2 laser', materials: ['Maple plywood'] },
+        ],
+      },
+      // Promotional products — fulfillable by any screen printer / promo shop (like Hit! Promotional)
+      {
+        title: 'Clearwater Cruisin T-Shirt',
+        slug: 'clearwater-cruisin-tshirt',
+        description: [
+          'Soft cotton tee featuring the Clearwater Cruisin sunset logo on the front and "Soul Questing" tagline on the back. Retro Florida vibes you can wear.',
+          'Screen-printed on premium ringspun cotton. Available in 6 colors. Any screen printing or DTG shop in the federation network can fulfill this order.',
+        ],
+        priceInUSD: 2800,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'screen-printing', materials: ['Cotton', 'Polyester blend'] },
+        ],
+        configuratorOptions: {
+          colors: ['Sunset Gold', 'Ocean Blue', 'Flamingo Pink', 'Charcoal', 'White', 'Sand'],
+          sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+        },
+      },
+      {
+        title: 'Ministry Embroidered Cap',
+        slug: 'ministry-embroidered-cap',
+        description: [
+          'Structured six-panel cap with the Clearwater Cruisin logo embroidered on the front. Adjustable snapback closure.',
+          'Quality embroidery on durable cotton twill. Perfect for car shows, outreach events, and everyday wear. Any embroidery shop can produce these.',
+        ],
+        priceInUSD: 2200,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'embroidery', equipment: 'Embroidery machine', materials: ['Cotton twill'] },
+        ],
+        configuratorOptions: {
+          colors: ['Gold', 'Navy', 'Black', 'White'],
+        },
+      },
+      {
+        title: 'Custom Event Banner — Vinyl',
+        slug: 'custom-event-banner',
+        description: [
+          'Full-color vinyl banner for events, car shows, and church gatherings. Printed on 13oz scrim vinyl with grommets for easy hanging.',
+          'Upload your artwork or use our Clearwater Cruisin templates. Any wide-format print shop or promotional products company (like Hit! Promotional) can produce this.',
+        ],
+        priceInUSD: 8500,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'wide-format-printing', equipment: 'Large format printer', materials: ['13oz scrim vinyl'] },
+        ],
+        configuratorOptions: {
+          sizes: ['3x6 feet', '4x8 feet', '3x10 feet'],
+          customText: true,
+          maxTextLength: 60,
+        },
       },
     ],
     connectors: [
@@ -368,6 +569,7 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
   },
 
   // ─── Service Provider: Serenity Massage & Wellness ────────
+  // Holon: retailer — single-facet specialist (sells services, doesn't manufacture goods)
   {
     name: 'Serenity Massage & Wellness',
     slug: 'serenity-massage',
@@ -378,6 +580,12 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     description: 'Licensed massage therapy and wellness services. Relaxation, deep tissue, and therapeutic treatments.',
     holonTypes: ['retailer'],
     region: { city: 'Clearwater', state: 'FL', country: 'US' },
+    missionStatement: 'To restore body and mind through skilled therapeutic touch — making wellness accessible to everyone in our community, not just those who can afford spa prices.',
+    operator: { name: 'Elena Vasquez', email: 'elena@serenitymassage.com', role: 'Licensed Massage Therapist & Owner' },
+    capabilities: [
+      { skill: 'Massage therapy', description: 'Swedish, deep tissue, sports, prenatal, and hot stone massage by licensed therapists' },
+      { skill: 'Wellness coaching', description: 'Personalized stretching routines, posture analysis, and self-care guidance between sessions' },
+    ],
     spaceName: 'Serenity Wellness Hub',
     branding: {
       siteName: 'Serenity Massage',
@@ -413,15 +621,68 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
           'Simple stretches and mindfulness practices to extend the benefits of your massage therapy.',
       },
     ],
+    products: [
+      {
+        title: '60-Minute Swedish Massage',
+        slug: 'swedish-massage-60',
+        description: [
+          'A classic full-body Swedish massage designed to relax muscles, improve circulation, and melt away stress. Long flowing strokes with medium pressure.',
+          'Perfect for first-time massage clients or anyone seeking deep relaxation. Includes aromatherapy with essential oils. Any licensed massage therapist in the federation network can fulfill this service.',
+        ],
+        priceInUSD: 8500,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'massage-therapy', equipment: 'Massage table' },
+        ],
+      },
+      {
+        title: '90-Minute Deep Tissue Massage',
+        slug: 'deep-tissue-massage-90',
+        description: [
+          'Therapeutic deep tissue massage targeting chronic tension, knots, and problem areas. Firm pressure with focused work on specific muscle groups.',
+          'Recommended for athletes, desk workers, and anyone with persistent pain or limited range of motion. Includes hot towel application.',
+        ],
+        priceInUSD: 12000,
+        productionType: 'custom_order',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'deep-tissue-massage', equipment: 'Massage table' },
+        ],
+      },
+      {
+        title: 'Wellness Gift Card',
+        slug: 'wellness-gift-card',
+        description: [
+          'Give the gift of relaxation. Digital gift card redeemable for any service at Serenity Massage & Wellness.',
+          'Delivered instantly via email with a beautiful branded card design. Never expires. Transferable within the federation network to any participating wellness provider.',
+        ],
+        priceInUSD: 10000,
+        productionType: 'digital',
+        networkListing: true,
+      },
+    ],
   },
 
   // ─── Retail Commerce: Hays Cactus Farm ────────────────────
+  // Holon: manufacturer + retailer — grows and sells direct
   {
     name: "Hays Cactus Farm",
     slug: 'hays-cactus',
     domain: `hays-cactus.${DOMAIN_SUFFIX}`,
     endeavorType: 'retail-commerce',
     businessType: 'retail',
+    holonTypes: ['manufacturer', 'retailer'],
+    region: { city: 'Hays', state: 'KS', country: 'US' },
+    missionStatement: 'Growing desert beauty since 1987. We believe everyone deserves a piece of the desert — from a windowsill succulent to a full xeriscape garden.',
+    operator: { name: 'Margaret Hays', email: 'margaret@hayscactusfarm.com', role: 'Owner & Head Grower' },
+    capabilities: [
+      { skill: 'Cactus propagation', description: 'Growing 200+ varieties of cacti and succulents from seed and cuttings in climate-controlled greenhouses' },
+      { skill: 'Garden design', description: 'Custom cactus garden arrangements and xeriscape consulting for residential and commercial clients' },
+      { skill: 'Plant shipping', description: 'Bare-root packaging and live plant shipping with seasonal heat/cold packs' },
+    ],
     spaceName: 'Cactus Community',
     branding: {
       siteName: 'Hays Cactus Farm',
@@ -474,6 +735,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 2800,
         productionType: 'ready_made',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'cactus-propagation', materials: ['Echinocactus grusonii'] },
+          { skill: 'plant-shipping' },
+        ],
       },
       {
         title: 'Succulent Starter Kit — 6 Pack',
@@ -485,6 +751,11 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 3200,
         productionType: 'ready_made',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'succulent-propagation', materials: ['Echeveria', 'Haworthia', 'Sedum', 'Crassula'] },
+          { skill: 'plant-shipping' },
+        ],
       },
       {
         title: 'Custom Cactus Garden — Design Your Own',
@@ -496,6 +767,12 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 6500,
         productionType: 'custom_order',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'garden-design' },
+          { skill: 'cactus-propagation' },
+          { skill: 'plant-shipping' },
+        ],
         configuratorOptions: {
           containers: ['Terracotta Bowl', 'Ceramic Planter', 'Wooden Box', 'Glass Terrarium'],
           sizes: ['Small (3 plants)', 'Medium (5 plants)', 'Large (8 plants)'],
@@ -575,6 +852,10 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 2500,
         productionType: 'print_on_demand',
         networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'screen-printing', materials: ['Cotton blend'] },
+        ],
         configuratorOptions: {
           colors: ['Deep Purple', 'Charcoal', 'White'],
           sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
