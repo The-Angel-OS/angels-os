@@ -3,7 +3,7 @@
  *
  * Platform fee split at point of sale:
  * - 60%: Provider (e.g., Hays Cactus Farm)
- * - 20%: Platform Partner (Celersoft)
+ * - 20%: Platform Partner
  * - 15%: Operational Overhead & Hosting
  * - 5%: The Justice Fund (Community/Guild support)
  */

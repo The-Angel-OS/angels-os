@@ -83,215 +83,10 @@ export interface UseCaseTenant {
 }
 
 /**
- * Five use-case tenants demonstrating different endeavor types.
- * Inspired by real businesses — makes seed data feel like a real platform demo.
+ * Core use-case tenants — real endeavors in the Angel OS federation.
+ * Each tenant exercises a different endeavor type through the provisioning system.
  */
 export const USE_CASE_TENANTS: UseCaseTenant[] = [
-  // ─── Service Provider: Celersoft Technology ────────────────
-  // Inspired by celersoft.com — IT consulting, cybersecurity, cloud
-  // Holon: manufacturer (digital services) — single-facet specialist
-  {
-    name: 'Celersoft Technology',
-    slug: 'celersoft',
-    domain: `celersoft.${DOMAIN_SUFFIX}`,
-    endeavorType: 'service-provider',
-    businessType: 'professional_services',
-    tagline: 'Accelerating Digital Transformation',
-    description: 'IT consulting, cybersecurity assessments, and cloud migration services for businesses ready to modernize.',
-    holonTypes: ['manufacturer'],
-    region: { city: 'Clearwater', state: 'FL', country: 'US' },
-    missionStatement: 'To democratize enterprise-grade cybersecurity and cloud infrastructure for small businesses who deserve the same protection as Fortune 500 companies.',
-    operator: { name: 'Marcus Rivera', email: 'marcus@celersoft.com', role: 'Founder & CTO' },
-    capabilities: [
-      { skill: 'Cybersecurity assessment', description: 'Penetration testing, vulnerability scanning, and compliance audits for small-to-mid businesses' },
-      { skill: 'Cloud migration', description: 'AWS, Azure, and GCP migration planning and execution with zero-downtime cutover' },
-      { skill: 'Web development', description: 'Full-stack development, API design, and custom business applications' },
-      { skill: 'IT managed services', description: 'Monitoring, incident response, patching, and 24/7 helpdesk' },
-    ],
-    spaceName: 'Celersoft Hub',
-    branding: {
-      siteName: 'Celersoft',
-      tagline: 'Accelerating Digital Transformation',
-      primaryColor: '#1E40AF',
-      secondaryColor: '#3B82F6',
-      accentColor: '#F59E0B',
-      backgroundColor: '#F8FAFC',
-      foregroundColor: '#0F172A',
-      borderColor: '#CBD5E1',
-      headingFont: 'inter',
-      bodyFont: 'inter',
-    },
-    leoPersonality:
-      'Professional and precise. I help clients understand their cybersecurity posture, plan cloud migrations, and navigate complex IT decisions. Technology should empower, not overwhelm.',
-    posts: [
-      {
-        title: 'Why Every Business Needs a Cloud Security Assessment',
-        slug: 'cloud-security-assessment',
-        excerpt:
-          'Understanding your attack surface is the first step toward a resilient infrastructure. We break down what a security assessment covers and why it matters.',
-      },
-      {
-        title: 'The Business Case for Managed IT Services',
-        slug: 'managed-it-services',
-        excerpt:
-          'Outsourcing IT operations lets you focus on what you do best while experts handle infrastructure, monitoring, and incident response.',
-      },
-      {
-        title: 'AI-Powered Analytics for Smarter Business Decisions',
-        slug: 'ai-powered-analytics',
-        excerpt:
-          'From predictive maintenance to customer insights, business analytics driven by AI transforms raw data into competitive advantage.',
-      },
-    ],
-    products: [
-      {
-        title: 'Website Security Audit',
-        slug: 'website-security-audit',
-        description: [
-          'Comprehensive security assessment of your website and web applications. Includes vulnerability scanning, OWASP Top 10 analysis, and a prioritized remediation report.',
-          'Delivered as a detailed PDF report with executive summary and technical findings. Includes a 30-minute video walkthrough of results.',
-        ],
-        priceInUSD: 49900,
-        productionType: 'digital',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [{ skill: 'cybersecurity-assessment' }],
-      },
-      {
-        title: 'Business Website Starter Package',
-        slug: 'business-website-starter',
-        description: [
-          'A professionally designed, mobile-responsive business website. Includes up to 5 pages, contact form, SEO basics, and Google Analytics setup.',
-          'Built on modern frameworks and deployed to fast, global CDN. Perfect for small businesses getting online for the first time.',
-        ],
-        priceInUSD: 199900,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [{ skill: 'web-development' }],
-      },
-      {
-        title: 'Cloud Migration Assessment',
-        slug: 'cloud-migration-assessment',
-        description: [
-          'Planning to move to the cloud? We evaluate your current infrastructure, identify migration candidates, and deliver a phased migration roadmap.',
-          'Covers cost analysis, security implications, and downtime planning. Includes recommendations for AWS, Azure, or GCP based on your specific workloads.',
-        ],
-        priceInUSD: 79900,
-        productionType: 'digital',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [{ skill: 'cloud-migration' }],
-      },
-    ],
-  },
-
-  // ─── Service Provider: Lucas Productions ──────────────────
-  // Inspired by lucasproductionsusa.com — AV rental, live events, Clearwater FL
-  // Holon: manufacturer + retailer + creator — full-spectrum production house
-  {
-    name: 'Lucas Productions',
-    slug: 'lucas-productions',
-    domain: `lucas-productions.${DOMAIN_SUFFIX}`,
-    endeavorType: 'service-provider',
-    businessType: 'service',
-    tagline: 'Reliable, Creative, and Easy to Work With',
-    description: 'Full-service AV production — corporate events, weddings, livestreams, LED video walls, and stage lighting.',
-    holonTypes: ['manufacturer', 'retailer', 'creator'],
-    region: { city: 'Clearwater', state: 'FL', country: 'US' },
-    missionStatement: 'Every event tells a story. We provide the stage, the lights, the sound, and the crew to make that story unforgettable — from intimate gatherings to arena-scale productions.',
-    operator: { name: 'David Lucas', email: 'david@lucasproductionsusa.com', role: 'Owner & Lead Producer' },
-    capabilities: [
-      { skill: 'AV production', description: 'Sound systems, video walls, projectors, and full AV packages for events of any scale' },
-      { skill: 'Stage lighting', description: 'Custom lighting design, LED fixtures, spotlights, and DMX programming for concerts and corporate events' },
-      { skill: 'Livestreaming', description: 'Multi-camera livestream production via Zoom, Teams, YouTube, and Facebook Live with real-time switching' },
-      { skill: 'Event coordination', description: 'End-to-end event production management from load-in through strike' },
-      { skill: 'Video production', description: 'Promotional videos, event recaps, and corporate content creation' },
-    ],
-    spaceName: 'Lucas Productions Studio',
-    branding: {
-      siteName: 'Lucas Productions',
-      tagline: 'Reliable, Creative, and Easy to Work With',
-      primaryColor: '#E2564D',
-      secondaryColor: '#F87171',
-      accentColor: '#FBBF24',
-      backgroundColor: '#FFFBEB',
-      foregroundColor: '#1C1917',
-      borderColor: '#E7E5E4',
-      headingFont: 'montserrat',
-      bodyFont: 'open-sans',
-    },
-    leoPersonality:
-      'Energetic and solutions-focused. I help clients plan events, choose the right AV equipment, and ensure every production runs smoothly from start to strike. Your event deserves to shine.',
-    posts: [
-      {
-        title: 'Your Complete Guide to Corporate Event AV',
-        slug: 'corporate-event-av-guide',
-        excerpt:
-          'From wireless mics to LED video walls, learn what AV equipment you need for a professional corporate event.',
-      },
-      {
-        title: 'Hybrid Events: Bridging In-Person and Virtual Audiences',
-        slug: 'hybrid-events-guide',
-        excerpt:
-          'Live streaming via Zoom, Teams, or Facebook Live — how to deliver a seamless hybrid event experience.',
-      },
-      {
-        title: 'Lighting Design Tips for Memorable Events',
-        slug: 'lighting-design-tips',
-        excerpt:
-          'Custom lighting transforms any venue. Learn the basics of stage lighting, color washes, and spotlight techniques.',
-      },
-    ],
-    products: [
-      {
-        title: 'Corporate Event AV Package',
-        slug: 'corporate-event-av-package',
-        description: [
-          'Complete AV solution for corporate events: PA system, wireless microphones, LED video wall, and on-site technician. Covers venues up to 500 attendees.',
-          'Includes setup, soundcheck, live operation, and strike. We bring the gear, the crew, and the expertise. Any AV production company in the federation network can fulfill this package.',
-        ],
-        priceInUSD: 350000,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [
-          { skill: 'av-production', equipment: 'PA system' },
-          { skill: 'stage-lighting', equipment: 'LED fixtures' },
-        ],
-      },
-      {
-        title: 'Wedding Livestream Package',
-        slug: 'wedding-livestream-package',
-        description: [
-          'Two-camera livestream of your wedding ceremony with professional audio capture, real-time switching, and a shareable replay link within 24 hours.',
-          'Perfect for guests who cannot attend in person. Streamed to your choice of platform (Zoom, YouTube, or private link). Includes highlight reel edit.',
-        ],
-        priceInUSD: 150000,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [
-          { skill: 'livestreaming', equipment: 'Multi-camera rig' },
-          { skill: 'video-production' },
-        ],
-      },
-      {
-        title: 'Promotional Video — 60 Second Spot',
-        slug: 'promo-video-60-second',
-        description: [
-          'A polished 60-second promotional video for your business, product, or event. Includes scripting, one day of shooting, professional editing, color grading, and music licensing.',
-          'Delivered in 4K with versions optimized for social media, website, and broadcast. Any video production team in the network can produce this to our quality standards.',
-        ],
-        priceInUSD: 250000,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [{ skill: 'video-production', equipment: 'Cinema camera' }],
-      },
-    ],
-  },
-
   // ─── Creator/Content: Clearwater Cruisin Ministries ───────
   // Real business — CNC/laser-cut plywood decorative signs & decor
   // Themes: Clearwater FL vibes, cruisin culture, sunshine, dogs
@@ -568,104 +363,6 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
     ],
   },
 
-  // ─── Service Provider: Serenity Massage & Wellness ────────
-  // Holon: retailer — single-facet specialist (sells services, doesn't manufacture goods)
-  {
-    name: 'Serenity Massage & Wellness',
-    slug: 'serenity-massage',
-    domain: `serenity-massage.${DOMAIN_SUFFIX}`,
-    endeavorType: 'service-provider',
-    businessType: 'service',
-    tagline: 'Healing Hands, Peaceful Minds',
-    description: 'Licensed massage therapy and wellness services. Relaxation, deep tissue, and therapeutic treatments.',
-    holonTypes: ['retailer'],
-    region: { city: 'Clearwater', state: 'FL', country: 'US' },
-    missionStatement: 'To restore body and mind through skilled therapeutic touch — making wellness accessible to everyone in our community, not just those who can afford spa prices.',
-    operator: { name: 'Elena Vasquez', email: 'elena@serenitymassage.com', role: 'Licensed Massage Therapist & Owner' },
-    capabilities: [
-      { skill: 'Massage therapy', description: 'Swedish, deep tissue, sports, prenatal, and hot stone massage by licensed therapists' },
-      { skill: 'Wellness coaching', description: 'Personalized stretching routines, posture analysis, and self-care guidance between sessions' },
-    ],
-    spaceName: 'Serenity Wellness Hub',
-    branding: {
-      siteName: 'Serenity Massage',
-      tagline: 'Healing Hands, Peaceful Minds',
-      primaryColor: '#7C3AED',
-      secondaryColor: '#A78BFA',
-      accentColor: '#F59E0B',
-      backgroundColor: '#FFF7ED',
-      foregroundColor: '#1C1917',
-      borderColor: '#E7E5E4',
-      headingFont: 'playfair-display',
-      bodyFont: 'lato',
-    },
-    leoPersonality:
-      'Warm and nurturing. I help clients find the perfect treatment, book appointments, and understand our wellness offerings. Relaxation starts with the first conversation.',
-    posts: [
-      {
-        title: 'Welcome to Serenity Massage',
-        slug: 'welcome-to-serenity',
-        excerpt:
-          'Discover our range of therapeutic massage services designed to restore balance and promote healing.',
-      },
-      {
-        title: 'Understanding Deep Tissue vs Swedish Massage',
-        slug: 'deep-tissue-vs-swedish',
-        excerpt:
-          'Not sure which massage is right for you? Learn the differences and find your perfect treatment.',
-      },
-      {
-        title: 'Self-Care Tips Between Sessions',
-        slug: 'self-care-tips',
-        excerpt:
-          'Simple stretches and mindfulness practices to extend the benefits of your massage therapy.',
-      },
-    ],
-    products: [
-      {
-        title: '60-Minute Swedish Massage',
-        slug: 'swedish-massage-60',
-        description: [
-          'A classic full-body Swedish massage designed to relax muscles, improve circulation, and melt away stress. Long flowing strokes with medium pressure.',
-          'Perfect for first-time massage clients or anyone seeking deep relaxation. Includes aromatherapy with essential oils. Any licensed massage therapist in the federation network can fulfill this service.',
-        ],
-        priceInUSD: 8500,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [
-          { skill: 'massage-therapy', equipment: 'Massage table' },
-        ],
-      },
-      {
-        title: '90-Minute Deep Tissue Massage',
-        slug: 'deep-tissue-massage-90',
-        description: [
-          'Therapeutic deep tissue massage targeting chronic tension, knots, and problem areas. Firm pressure with focused work on specific muscle groups.',
-          'Recommended for athletes, desk workers, and anyone with persistent pain or limited range of motion. Includes hot towel application.',
-        ],
-        priceInUSD: 12000,
-        productionType: 'custom_order',
-        networkListing: true,
-        fulfillmentMode: 'network',
-        requiredCapabilities: [
-          { skill: 'deep-tissue-massage', equipment: 'Massage table' },
-        ],
-      },
-      {
-        title: 'Wellness Gift Card',
-        slug: 'wellness-gift-card',
-        description: [
-          'Give the gift of relaxation. Digital gift card redeemable for any service at Serenity Massage & Wellness.',
-          'Delivered instantly via email with a beautiful branded card design. Never expires. Transferable within the federation network to any participating wellness provider.',
-        ],
-        priceInUSD: 10000,
-        productionType: 'digital',
-        networkListing: true,
-      },
-    ],
-  },
-
   // ─── Retail Commerce: Hays Cactus Farm ────────────────────
   // Holon: manufacturer + retailer — grows and sells direct
   {
@@ -882,6 +579,130 @@ export const USE_CASE_TENANTS: UseCaseTenant[] = [
         priceInUSD: 2500,
         productionType: 'digital',
         networkListing: true,
+      },
+    ],
+  },
+
+  // ─── Political Campaign: Tom Stalcup for Congress ─────────
+  // Real campaign — Republican, MA-4 district
+  // Physicist, entrepreneur, whistleblower organizer
+  // Running on "Science Over Politics" — taking on Big Pharma
+  // Source: tomstalcup.com — 20% revenue share deal with Angel OS
+  {
+    name: 'Stalcup for Congress',
+    slug: 'tomstalcup',
+    domain: `tomstalcup.${DOMAIN_SUFFIX}`,
+    endeavorType: 'creator-content',
+    businessType: 'nonprofit',
+    tagline: 'Science Over Politics',
+    description: 'Tom Stalcup, PhD — physicist, entrepreneur, and candidate for Congress in Massachusetts\' 4th district. Taking on powerful interests like Big Pharma to lower costs for working families.',
+    holonTypes: ['community', 'creator'],
+    region: { city: 'Brookline', state: 'MA', country: 'US' },
+    missionStatement: 'To bring scientific rigor, independence, and accountability to Congress — challenging entrenched industry structures that limit competition and keep prices high, starting with the pharmaceutical industry.',
+    operator: { name: 'Tom Stalcup', email: 'info@tomstalcup.com', role: 'Candidate' },
+    capabilities: [
+      { skill: 'Healthcare policy', description: 'Drug price negotiation without artificial limits — tackling the root cause of rising costs' },
+      { skill: 'Scientific research', description: 'PhD physicist with research at the National High Magnetic Field Laboratory — evidence-based policymaking' },
+      { skill: 'Whistleblower advocacy', description: 'Organized teams that exposed high-level government misconduct — accountability in action' },
+      { skill: 'Environmental technology', description: 'President of an electronics company designing environmental monitoring systems used globally' },
+    ],
+    spaceName: 'Stalcup Campaign HQ',
+    branding: {
+      siteName: 'Stalcup for Congress',
+      tagline: 'Science Over Politics',
+      primaryColor: '#233359',
+      secondaryColor: '#E3171D',
+      accentColor: '#E3171D',
+      backgroundColor: '#FFFFFF',
+      foregroundColor: '#233359',
+      borderColor: '#D1D5DB',
+      headingFont: 'montserrat',
+      bodyFont: 'open-sans',
+    },
+    leoPersonality:
+      'Direct, informed, and principled. I am the campaign assistant for Tom Stalcup — a physicist and entrepreneur running for Congress in MA-4. I help visitors understand Tom\'s platform: lowering drug prices through real competition, bringing scientific rigor to policymaking, and holding powerful interests accountable. I speak with facts and data, not political platitudes. Tom went years without health insurance because he couldn\'t afford it — that personal experience drives everything. Science over politics, always.',
+    posts: [
+      {
+        title: 'Taking On Powerful Interests — And the Congressman Beholden to Them',
+        slug: 'taking-on-powerful-interests',
+        excerpt:
+          'Big Pharma spends more on lobbying than any other industry. Our incumbent protects them while drug costs crush working families. It\'s time for a representative who answers to voters, not donors.',
+      },
+      {
+        title: 'Fixing What\'s Driving Costs Up',
+        slug: 'fixing-whats-driving-costs-up',
+        excerpt:
+          'The healthcare cost crisis is systemic — pharmaceutical pricing power is at the root. We need broad drug price negotiation without artificial limits. Most drugs would sell for five or ten dollars if we allowed real competition.',
+      },
+      {
+        title: 'A Scientist\'s Approach to Policy',
+        slug: 'a-scientists-approach-to-policy',
+        excerpt:
+          'As a physicist, I was trained to follow data wherever it leads. Washington needs more of that and less of the political theater that protects the status quo. Evidence-based policy is not a slogan — it\'s a method.',
+      },
+      {
+        title: 'Campaign Launch at BIOGEN — April 4, 2026',
+        slug: 'campaign-launch-biogen',
+        excerpt:
+          'We\'re launching this campaign where the problem lives — outside BIOGEN in Cambridge. Join us April 4th at 11 AM. 225 Binney St., Cambridge, MA 02142.',
+      },
+    ],
+    products: [
+      {
+        title: 'Campaign Contribution — $25',
+        slug: 'campaign-contribution-25',
+        description: [
+          'Support the Stalcup for Congress campaign with a $25 contribution. Every dollar helps us take on Big Pharma and fight for lower drug prices.',
+          'Contributions go directly to campaign operations — advertising, outreach, and grassroots organizing in MA-4.',
+        ],
+        priceInUSD: 2500,
+        productionType: 'digital',
+        networkListing: true,
+      },
+      {
+        title: 'Campaign Contribution — $100',
+        slug: 'campaign-contribution-100',
+        description: [
+          'Make a $100 contribution to Stalcup for Congress. Your support funds our challenge to pharmaceutical industry influence in Washington.',
+          'We\'re running a people-powered campaign. No corporate PAC money. Just voters who believe science should guide policy.',
+        ],
+        priceInUSD: 10000,
+        productionType: 'digital',
+        networkListing: true,
+      },
+      {
+        title: 'Science Over Politics T-Shirt',
+        slug: 'science-over-politics-tshirt',
+        description: [
+          'Show your support with the official "Science Over Politics" campaign tee. Navy blue with the Stalcup for Congress logo.',
+          'Premium cotton blend, screen-printed in the USA. Wear it to the polls, to rallies, or just around town. Any screen printing shop in the federation network can fulfill this order.',
+        ],
+        priceInUSD: 3500,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'screen-printing', materials: ['Cotton blend'] },
+        ],
+        configuratorOptions: {
+          colors: ['Navy Blue', 'White', 'Charcoal'],
+          sizes: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+        },
+      },
+      {
+        title: 'Stalcup for Congress Yard Sign',
+        slug: 'stalcup-yard-sign',
+        description: [
+          'Official campaign yard sign — corrugated plastic with wire stake. Red, white, and blue "Stalcup for Congress — Science Over Politics" design.',
+          'Weather-resistant and built to last through election season. Any wide-format print shop or sign maker can produce these through the federation network.',
+        ],
+        priceInUSD: 1500,
+        productionType: 'print_on_demand',
+        networkListing: true,
+        fulfillmentMode: 'network',
+        requiredCapabilities: [
+          { skill: 'wide-format-printing', materials: ['Corrugated plastic'] },
+        ],
       },
     ],
   },

@@ -544,7 +544,8 @@ describe('createDefaultTenantNavigation', () => {
   it('creates header with default nav items', async () => {
     await createDefaultTenantNavigation(mockPayload as any, 42)
     const headerData = mockCreate.mock.calls[0][0].data
-    expect(headerData.navItems).toHaveLength(4)
+    // DEFAULT_HEADER_NAV: Home, Shop, Posts, Events, Donate, Dashboard (6 items as of Sprint 44)
+    expect(headerData.navItems).toHaveLength(6)
     expect(headerData.navItems[0].link.label).toBe('Home')
   })
 

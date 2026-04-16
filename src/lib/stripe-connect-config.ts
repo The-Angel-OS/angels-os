@@ -10,7 +10,7 @@
  *
  * Fee split (Ultimate Fair Split):
  *   60% Provider (stays on connected account)
- *   20% Platform Partner (Celersoft — via application_fee)
+ *   20% Platform Partner (via application_fee)
  *   15% Operational Overhead (infrastructure, AI, support — via application_fee)
  *    5% Justice Fund (community guild support — via application_fee)
  *

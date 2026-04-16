@@ -44,7 +44,7 @@ export default async function FederationDiscoverPage({
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
     || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
     || 'http://localhost:3000'
-  const serverHost = new URL(serverUrl).host // e.g. spacesangels.com or localhost:3000
+  const serverHost = new URL(serverUrl).host.replace(/^www\./, '') // e.g. spacesangels.com or localhost:3000
 
   const holons = endeavors.docs.map((doc: any) => {
     // Resolve tenant branding (multiTenantPlugin injects 'tenant' relation)
@@ -56,19 +56,18 @@ export default async function FederationDiscoverPage({
     const federationDomain = (doc.federation?.domain as string) || null
 
     // Build canonical storefront URL for this Endeavor's tenant
+    // Strip www. from domain components to avoid URLs like slug.www.example.com
+    const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
+    // Discover links always resolve to public spacesangels.com URLs,
+    // never to angelos.local or localhost — even in dev.
+    const PUBLIC_DOMAIN = 'spacesangels.com'
     let storefrontUrl: string | null = null
-    if (tenantDomain && !tenantDomain.endsWith('.local')) {
-      // Real domain (e.g. hays-cactus.spacesangels.com, or custom domain)
-      storefrontUrl = `https://${tenantDomain}`
-    } else if (federationDomain && !federationDomain.includes('localhost')) {
-      // Federated peer with stored domain from heartbeat
-      storefrontUrl = `https://${federationDomain}`
+    if (tenantDomain && !tenantDomain.endsWith('.local') && !tenantDomain.includes('localhost')) {
+      storefrontUrl = `https://${stripWww(tenantDomain)}`
+    } else if (federationDomain && !federationDomain.includes('localhost') && !federationDomain.endsWith('.local')) {
+      storefrontUrl = `https://${stripWww(federationDomain)}`
     } else if (tenantSlug && tenantSlug !== 'default' && tenantSlug !== 'platform') {
-      // Dev/local: construct subdomain URL from slug + server host
-      // Preserve port for localhost, use correct protocol
-      const isLocalhost = serverHost.includes('localhost') || serverHost.includes('127.0.0.1')
-      const protocol = isLocalhost ? 'http' : 'https'
-      storefrontUrl = `${protocol}://${tenantSlug}.${serverHost}`
+      storefrontUrl = `https://${tenantSlug}.${PUBLIC_DOMAIN}`
     }
 
     return {

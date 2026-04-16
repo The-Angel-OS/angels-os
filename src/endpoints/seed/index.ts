@@ -598,25 +598,25 @@ Be excellent to each other. Party on, dudes.`,
 
   const bookingSamples = [
     {
-      tenantSlug: 'celersoft',
-      title: 'Cloud Security Assessment',
+      tenantSlug: 'clearwater-cruisin',
+      title: 'Custom Street Sign Consultation',
       bookingType: 'consultation' as const,
-      amount: 35000,
-      address: '1200 Smith St, Suite 400, Houston, TX 77002',
-    },
-    {
-      tenantSlug: 'lucas-productions',
-      title: 'Corporate Event AV Setup',
-      bookingType: 'service' as const,
-      amount: 250000,
+      amount: 4500,
       address: '1234 Gulf-to-Bay Blvd, Clearwater, FL 33755',
     },
     {
-      tenantSlug: 'serenity-massage',
-      title: 'Deep Tissue Massage Session',
+      tenantSlug: 'hays-cactus',
+      title: 'Custom Cactus Garden Design Session',
       bookingType: 'service' as const,
-      amount: 12000,
-      address: '456 Wellness Way, Suite 102, Clearwater, FL 33756',
+      amount: 6500,
+      address: '2200 S Old Missouri Rd, Springdale, AR 72764',
+    },
+    {
+      tenantSlug: 'helpdna',
+      title: 'Legal Advocacy Consultation',
+      bookingType: 'consultation' as const,
+      amount: 0,
+      address: '500 Cleveland St, Clearwater, FL 33755',
     },
   ]
 
@@ -679,8 +679,8 @@ Be excellent to each other. Party on, dudes.`,
   lastWeek.setDate(lastWeek.getDate() - 7)
   lastWeek.setHours(20, 0, 0, 0)
 
-  // Get the Lucas Productions space for AI Bus announcements
-  const lucasInfo = tenantMap['lucas-productions']
+  // Get tenant info for community events
+  const cruisinInfo = tenantMap['clearwater-cruisin']
   const haysInfo = tenantMap['hays-cactus']
 
   const eventSamples: Array<{
@@ -701,11 +701,11 @@ Be excellent to each other. Party on, dudes.`,
     announceToAIBus: boolean
   }> = []
 
-  if (lucasInfo) {
+  if (cruisinInfo) {
     eventSamples.push(
       {
-        title: 'Dovydas Fan Meetup — Clearwater',
-        slug: 'dovydas-fan-meetup-clearwater',
+        title: 'Clearwater Cruisin Community Meetup',
+        slug: 'clearwater-cruisin-community-meetup',
         eventType: 'meetup',
         status: 'upcoming',
         startDateTime: nextWeek,
@@ -714,41 +714,26 @@ Be excellent to each other. Party on, dudes.`,
         venueName: 'Clearwater Beach Pavilion',
         address: '69 Gulfview Blvd, Clearwater Beach, FL 33767',
         remotePlatform: 'youtube-live',
-        remoteLink: 'https://youtube.com/live/dovydas-meetup',
-        tenantId: lucasInfo.tenantId,
-        description: 'Meet Dovydas in person at Clearwater Beach! Free entry, bring your guitars. Virtual attendance available via YouTube Live.',
-        tags: ['dovydas', 'meetup', 'clearwater', 'music', 'free'],
+        remoteLink: 'https://youtube.com/live/cruisin-meetup',
+        tenantId: cruisinInfo.tenantId,
+        description: 'Community fellowship at Clearwater Beach. Bring the family, bring the dogs. Virtual attendance available via YouTube Live.',
+        tags: ['clearwater', 'community', 'ministry', 'free'],
         announceToAIBus: true,
       },
       {
-        title: 'Behind the Scenes Livestream',
-        slug: 'behind-the-scenes-livestream',
-        eventType: 'livestream',
+        title: 'CNC Workshop — Make Your Own Sign',
+        slug: 'cnc-workshop-make-your-own-sign',
+        eventType: 'workshop',
         status: 'upcoming',
         startDateTime: twoWeeks,
-        duration: 90,
-        locationType: 'virtual',
-        remotePlatform: 'youtube-live',
-        remoteLink: 'https://youtube.com/live/dovydas-bts',
-        tenantId: lucasInfo.tenantId,
-        description: 'Go behind the scenes with Dovydas. Watch the creative process, ask questions, and hang out.',
-        tags: ['dovydas', 'livestream', 'bts', 'free'],
-        announceToAIBus: true,
-      },
-      {
-        title: 'Tampa Bay Creator Night',
-        slug: 'tampa-bay-creator-night',
-        eventType: 'meetup',
-        status: 'completed',
-        startDateTime: lastWeek,
         duration: 180,
         locationType: 'in-person',
-        venueName: 'The Ritz Ybor',
-        address: '1503 E 7th Ave, Tampa, FL 33605',
-        tenantId: lucasInfo.tenantId,
-        description: 'A past event — Tampa Bay creators gathered for networking, music, and good vibes.',
-        tags: ['creators', 'tampa', 'networking'],
-        announceToAIBus: false,
+        venueName: 'Clearwater Cruisin Workshop',
+        address: '1234 Gulf-to-Bay Blvd, Clearwater, FL 33755',
+        tenantId: cruisinInfo.tenantId,
+        description: 'Hands-on CNC workshop — design and cut your own custom plywood sign. All materials provided.',
+        tags: ['workshop', 'cnc', 'woodworking', 'clearwater'],
+        announceToAIBus: true,
       },
     )
   }

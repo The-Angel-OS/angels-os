@@ -37,7 +37,7 @@
  * - **guardian-angel**: Advocates for beneficiaries (nonprofits, legal aid)
  *
  * A full-spectrum Enterprise (like Clearwater Cruisin) covers 4-5 of these.
- * A specialist (like Celersoft) covers 1-2. Together they form a complete
+ * A specialist (like Hays Cactus Farm) covers 1-2. Together they form a complete
  * economic Holon — self-sustaining within a geographic radius.
  *
  * @see orderRoutingEngine.ts — Matches orders to capable Holon nodes

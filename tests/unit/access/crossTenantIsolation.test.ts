@@ -109,8 +109,8 @@ describe('Middleware Tenant Detection Isolation', () => {
     expect(detectTenantFromHostname('clearwater-cruisin.spacesangels.com')).toBe('clearwater-cruisin')
   })
 
-  it('maps celersoft.spacesangels.com to celersoft', () => {
-    expect(detectTenantFromHostname('celersoft.spacesangels.com')).toBe('celersoft')
+  it('maps hays-cactus.spacesangels.com to hays-cactus', () => {
+    expect(detectTenantFromHostname('hays-cactus.spacesangels.com')).toBe('hays-cactus')
   })
 
   it('maps different subdomains to different slugs', () => {

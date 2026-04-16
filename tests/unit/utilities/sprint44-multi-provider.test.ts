@@ -65,6 +65,13 @@ import { revalidateAfterMutation } from '../../../src/utilities/revalidateConten
 describe('resolveImageProvider', () => {
   beforeEach(() => {
     vi.unstubAllEnvs()
+    // Explicitly clear all provider API keys so real environment vars don't bleed into tests
+    vi.stubEnv('OPENROUTER_API_KEY', '')
+    vi.stubEnv('OPENAI_API_KEY', '')
+    vi.stubEnv('GOOGLE_AI_API_KEY', '')
+    vi.stubEnv('CLOUDFLARE_AI_TOKEN', '')
+    vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '')
+    vi.stubEnv('AI_GATEWAY_API_KEY', '')
   })
 
   it('returns null when no keys are configured', () => {

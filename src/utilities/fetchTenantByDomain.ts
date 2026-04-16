@@ -38,7 +38,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
 
     // Second: subdomain-slug lookup.
     // Handles the common env-mismatch case where the tenant's domain field was
-    // seeded as celersoft.angelos.local but we are now serving celersoft.spacesangels.com.
+    // seeded as hays-cactus.angelos.local but we are now serving hays-cactus.spacesangels.com.
     // The middleware already resolved the slug correctly via hostname parsing; this
     // catches the fallback path when the x-tenant-id header wasn't forwarded.
     const hostParts = domain.split('.')
