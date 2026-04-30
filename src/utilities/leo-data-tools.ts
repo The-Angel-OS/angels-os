@@ -2566,7 +2566,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'log_maintenance_note',
     description:
-      'Log a maintenance note for Scotty (the engineering agent from Claude Code). Use when a user reports a bug, requests a feature, or asks you to document something for the next maintenance cycle. Creates an application log entry that Scotty will review.',
+      'Log a maintenance note for Scotty (the engineering agent from Claude Code). Use when a user reports a bug, requests a feature, or asks you to document something for the next maintenance cycle. Creates an application log entry that Scotty will review. IMPORTANT: Use the parameter names "title" and "details" exactly.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -8528,9 +8528,13 @@ async function handleSetPageHero(
         overrideAccess: true,
       })
     } else {
+      // Sprint 46: Add tenant filter to prevent cross-tenant page mutation
+      const where: Where = ctx.tenantId
+        ? { and: [{ slug: { equals: slug } }, { tenant: { equals: ctx.tenantId } }] }
+        : { slug: { equals: slug } }
       const result = await payload.find({
         collection: 'pages',
-        where: { slug: { equals: slug } } as Where,
+        where,
         limit: 1,
         depth: 0,
         overrideAccess: true,
@@ -11418,8 +11422,9 @@ async function handleLogMaintenanceNote(
 ): Promise<string> {
   const { tenantId } = ctx
 
-  const title = ((input.title || input.summary || input.subject) as string)?.trim()
-  const details = ((input.details || input.description || input.message || input.text || input.note) as string)?.trim()
+  // Sprint 46: Expanded fallback field names — LEO sometimes sends task/content/body
+  const title = ((input.title || input.summary || input.subject || input.task || input.name) as string)?.trim()
+  const details = ((input.details || input.description || input.message || input.text || input.note || input.body || input.content) as string)?.trim()
   const category = (input.category as string) || 'other'
   const reportedBy = (input.reportedBy as string) || 'anonymous user'
 
