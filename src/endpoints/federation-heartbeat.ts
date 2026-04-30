@@ -135,7 +135,10 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
     } else {
-      // Unknown peer — create a new endeavor record as a federation reference
+      // Unknown peer — create a new endeavor record as a federation reference.
+      // Per Article VII: "Constitution accepted → node is immediately live."
+      // Peers that send valid signed heartbeats have accepted the constitution
+      // and are auto-accepted as active federation members.
       await req.payload.create({
         collection: 'endeavors',
         data: {
@@ -144,7 +147,7 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
           status: 'active',
           federation: {
             networkVisible: true,
-            ministryStatus: 'applicant',
+            ministryStatus: 'active',
             federationId: senderFedId,
             lastPingAt: new Date().toISOString(),
             // Sprint 43: Persist peer domain for Discover page URL resolution

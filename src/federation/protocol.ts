@@ -256,6 +256,9 @@ export async function pingFederationRegistry(
 /**
  * Stub registry response for self-hosted instances without a central registry URL.
  * Used when FEDERATION_REGISTRY_URL is not set.
+ *
+ * Per Article VII: "Constitution accepted → node is immediately live."
+ * Auto-accept: nodes that sign the constitution are active members.
  */
 export function stubRegistryResponse(
   federationId: string,
@@ -265,8 +268,8 @@ export function stubRegistryResponse(
     success: true,
     federationId,
     registryId: `local-${federationId.slice(0, 8)}`,
-    message: `${enterpriseName} is live as a sovereign Enterprise. The registry will sync when the central node is reachable.`,
-    ministryStatus: 'applicant',
+    message: `${enterpriseName} is live as a sovereign Enterprise. Welcome to the federation.`,
+    ministryStatus: 'active',
   }
 }
 
