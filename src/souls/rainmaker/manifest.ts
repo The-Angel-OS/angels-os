@@ -107,6 +107,16 @@ export const rainmakerManifest: SoulManifest = {
       tier: 'contacts',
     },
     {
+      id: 'rico',
+      filename: 'RICO_ADDENDUM.md',
+      title: 'RICO & Civil Conspiracy',
+      date: '2026-05-23',
+      description: 'Federal RICO enterprise mapping, predicate acts (108+ wire fraud), treble damages ($62.7M–$66M), lis pendens timing, and discovery target list.',
+      badge: 'FEDERAL',
+      badgeColor: 'purple',
+      tier: 'legal',
+    },
+    {
       id: 'brief',
       filename: 'v2.3_260503_master_brief.md',
       title: 'Master Brief v2.3',
