@@ -91,6 +91,16 @@ const DASHBOARD_NAV_ITEM = {
   },
 }
 
+const LEARN_NAV_ITEM = {
+  id: 'learn',
+  link: {
+    type: 'custom' as const,
+    label: 'Learn',
+    url: '/learn',
+    newTab: false,
+  },
+}
+
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
 
@@ -134,6 +144,7 @@ export function HeaderClient({ header, tenant }: Props) {
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
     // Donate is always visible — every endeavor can receive donations
     if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
+    if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
     // Dashboard & Spaces are always visible — the dashboard layout handles auth redirect
     if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
