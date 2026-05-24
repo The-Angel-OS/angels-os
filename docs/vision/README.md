@@ -20,6 +20,7 @@ This folder holds the **deeper layer** of Angel OS: Prime Directives, Core Belie
 | **[PRISON_MINISTRY_MANDATE.md](PRISON_MINISTRY_MANDATE.md)** | Ministry mandate. |
 | **[ARCHITECTURE_VS_CURRENT_WORK_DISCUSSION.md](ARCHITECTURE_VS_CURRENT_WORK_DISCUSSION.md)** | How this folder relates to the Constitution and current implementation. |
 | **[SOUL_QUEST_NODES.md](SOUL_QUEST_NODES.md)** | Soul Quest node architecture. |
+| **[rainmaker/](rainmaker/README.md)** | **THE RAINMAKER** — Hilkert v. Courtney et al. class-action case file (master brief, evidence catalog, counts matrix, damages schedule, contacts). Restorative justice applied to a 9-year extraction pattern. |
 
 **Inventor / author:** the Herald (Inigo the Dreamer). No full name appears; the alias is preferred.
 
