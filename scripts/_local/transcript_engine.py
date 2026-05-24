@@ -208,6 +208,11 @@ def fetch_one(video_id: str, record: dict, api=None) -> dict:
     v1.x API: YouTubeTranscriptApi() is instantiated, segments are objects.
     """
     from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+    try:
+        from youtube_transcript_api._errors import IpBlocked, RequestBlocked
+    except ImportError:
+        IpBlocked = Exception
+        RequestBlocked = Exception
     if api is None:
         api = YouTubeTranscriptApi()
 
@@ -277,11 +282,16 @@ def fetch_one(video_id: str, record: dict, api=None) -> dict:
         record['transcript_status'] = 'none'
         record['has_transcript'] = False
         return record
+    except (IpBlocked, RequestBlocked) as e:
+        record['transcript_status'] = 'IpBlocked'
+        record['has_transcript'] = False
+        print(f"  ! {video_id} - IP BLOCKED")
+        return record
     except Exception as e:
         err = str(e)[:80]
         record['transcript_status'] = f'error: {err}'
         record['has_transcript'] = False
-        print(f"  ! {video_id} — {err}")
+        print(f"  ! {video_id} - {err}")
         return record
 
 def phase_fetch(target_id: str = None):
@@ -305,7 +315,9 @@ def phase_fetch(target_id: str = None):
     api = YouTubeTranscriptApi()   # single instance, reused for all requests
 
     print(f"Fetching transcripts for {len(to_fetch)} videos...")
-    ok, skip, fail = 0, 0, 0
+    ok, skip, fail, ip_blocked = 0, 0, 0, 0
+    DELAY = 1.5            # seconds between requests
+    BLOCK_BACKOFF = 120    # seconds to pause if IP-blocked
 
     for i, record in enumerate(to_fetch, 1):
         vid_id = record['yt_id']
@@ -314,7 +326,8 @@ def phase_fetch(target_id: str = None):
             skip += 1
             continue
 
-        print(f"  [{i}/{len(to_fetch)}] {vid_id} — {record.get('title','')[:40]}")
+        title_safe = record.get('title','')[:40].encode('ascii', errors='replace').decode('ascii')
+        print(f"  [{i}/{len(to_fetch)}] {vid_id} {title_safe}", flush=True)
         record = fetch_one(vid_id, record, api=api)
 
         # Update in records list
@@ -322,13 +335,23 @@ def phase_fetch(target_id: str = None):
             if r.get('yt_id') == vid_id:
                 r.update({k: v for k, v in record.items() if k in ('transcript_status', 'has_transcript')})
 
+        status = record.get('transcript_status', '')
         if record.get('has_transcript'):
             ok += 1
+        elif 'IpBlocked' in status or 'ip' in status.lower():
+            ip_blocked += 1
+            if ip_blocked >= 3:
+                print(f"  [!] IP blocked 3 times in a row — pausing {BLOCK_BACKOFF}s then retrying...", flush=True)
+                save_database(records)
+                time.sleep(BLOCK_BACKOFF)
+                ip_blocked = 0
+                api = YouTubeTranscriptApi()   # fresh session
         else:
             fail += 1
+            ip_blocked = 0
 
         # Polite rate limiting
-        time.sleep(0.3)
+        time.sleep(DELAY)
 
     save_database(records)
     print(f"\nFetch complete: {ok} fetched, {skip} skipped (cached), {fail} failed/none")
@@ -364,7 +387,8 @@ def phase_whisper(model_size: str = 'base'):
         audio_file = AUDIO_DIR / f"{vid_id}.m4a"
         out_file = RAW_DIR / f"{vid_id}.json"
 
-        print(f"\n[{i}/{len(need_whisper)}] {vid_id} — {record.get('title','')[:50]}")
+        t_safe = record.get('title','')[:50].encode('ascii', errors='replace').decode('ascii')
+        print(f"\n[{i}/{len(need_whisper)}] {vid_id} - {t_safe}")
 
         # Download audio via yt-dlp
         if not audio_file.exists():
@@ -416,7 +440,7 @@ def phase_whisper(model_size: str = 'base'):
                     r['transcript_status'] = f'whisper_{model_size}'
                     r['has_transcript'] = True
 
-            print(f"  ✓ {len(segments)} segments — {info.language}")
+            print(f"  OK {len(segments)} segments - {info.language}")
 
             # Delete audio to save space
             audio_file.unlink(missing_ok=True)
@@ -500,7 +524,7 @@ def phase_status():
     missing = [r for r in published if not (RAW_DIR / f"{r['yt_id']}.json").exists()]
 
     print("\n" + "="*50)
-    print("  TRANSCRIPT ENGINE — COVERAGE DASHBOARD")
+    print("  TRANSCRIPT ENGINE - COVERAGE DASHBOARD")
     print("="*50)
     print(f"  Total DB records:      {len(records)}")
     print(f"  Published (have URL):  {len(published)}")
@@ -516,7 +540,8 @@ def phase_status():
     if missing:
         print(f"\n  Missing ({len(missing)} videos):")
         for r in missing[:20]:
-            print(f"    {r.get('yt_id','')} — {r.get('title','')[:50]}")
+            t_safe = r.get('title','')[:50].encode('ascii', errors='replace').decode('ascii')
+            print(f"    {r.get('yt_id','')} - {t_safe}")
         if len(missing) > 20:
             print(f"    ... and {len(missing)-20} more")
 
@@ -525,7 +550,8 @@ def phase_status():
     if with_views:
         print("\n  Top transcribed by views:")
         for r in with_views[:5]:
-            print(f"    {r['views']:>8,} — {r.get('title','')[:45]}")
+            t_safe = r.get('title','')[:45].encode('ascii', errors='replace').decode('ascii')
+            print(f"    {r['views']:>8,} - {t_safe}")
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
