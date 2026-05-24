@@ -209,9 +209,9 @@ def fetch_one(video_id: str, record: dict, api=None) -> dict:
     """
     from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
     try:
-        from youtube_transcript_api._errors import IpBlocked, RequestBlocked
+        # RequestBlocked is the base; IpBlocked subclasses it — catch base covers both
+        from youtube_transcript_api._errors import RequestBlocked
     except ImportError:
-        IpBlocked = Exception
         RequestBlocked = Exception
     if api is None:
         api = YouTubeTranscriptApi()
@@ -282,7 +282,7 @@ def fetch_one(video_id: str, record: dict, api=None) -> dict:
         record['transcript_status'] = 'none'
         record['has_transcript'] = False
         return record
-    except (IpBlocked, RequestBlocked) as e:
+    except RequestBlocked as e:
         record['transcript_status'] = 'IpBlocked'
         record['has_transcript'] = False
         print(f"  ! {video_id} - IP BLOCKED")
