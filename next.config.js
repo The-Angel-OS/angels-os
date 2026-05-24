@@ -36,6 +36,11 @@ const nextConfig = {
   },
   reactStrictMode: true,
   redirects,
+  // Include docs/vision/** in serverless function bundles so
+  // SoulViewer's fs.readFileSync calls work at runtime on Vercel
+  outputFileTracingIncludes: {
+    '/[locale]/(app)/learn/[soul]': ['./docs/vision/**/*'],
+  },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
