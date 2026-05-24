@@ -1,6 +1,6 @@
 # Rainmaker — Live Case Status
 
-**Last updated:** May 23, 2026
+**Last updated:** May 23, 2026 (evening)
 
 ---
 
@@ -18,9 +18,11 @@
 | BALS emergency intake | ⏳ Pending — see below |
 | City of Clearwater Code Enforcement formal complaint | ⏳ Pending |
 | Independent licensed home inspector | ⏳ Pending |
-| Property appraiser / sunbiz LLC mapping | ⏳ Pending |
+| Property appraiser / sunbiz LLC mapping | ✅ COMPLETED — see `OWNERSHIP_PROVEN.md`. $2.7M Colliers/Crexi listing active. |
 | HUD complaint (if any Section 8 tenants in complex) | ⏳ Pending |
 | Tampa Bay Times investigative desk pitch | ⏳ Pending |
+| Google Maps review of Hilkert Law Practice | ✅ PUBLISHED — Captain's Log format, full habitability/retaliation record |
+| LinkedIn public disclosure post | ✅ PUBLISHED — public record, connection request sent |
 | Florida Bar complaint draft | ⏳ HOLD (file after civil discovery in motion) |
 | Duke Energy fraud unit complaint (knob-and-tube + diversion) | ⏳ Pending |
 | DBPR (real-estate license) complaint | ⏳ Pending |
@@ -56,6 +58,8 @@ Florida Statute 83.64 creates a **rebuttable presumption of retaliation** agains
 - **Evidence preservation risk:** Doug may discover the open laundry vent cavity or the missing roof vent caps and "fix" them after suit is filed, destroying chain-of-custody. Independent inspection NOW is non-negotiable.
 - **App-only laundry lockout:** Currently locked out of laundry service via negative CSC ServiceWorks account balances. This is an **active ongoing harm** — not historical — which strengthens TRO posture if eviction proceeds.
 - **Knob-and-tube insurance fraud angle:** If Doug carries landlord insurance on these buildings, almost certainly without disclosing the pre-code service infrastructure — that's a separate federal-jurisdiction exposure path.
+- **🚨 ASSET FLIGHT RISK:** Property is listed at $2.7M on Colliers/Crexi (active listing as of May 23, 2026). Sale would liquidate the primary damages target. **Lis pendens must be filed the same day litigation commences.** See `OWNERSHIP_PROVEN.md` for full LLC/parcel mapping.
+- **Public record posture activated:** Google Maps review and LinkedIn disclosure published May 23, 2026. These are timestamped public records that establish the pattern and predate any eviction proceeding Doug might attempt — strengthening the retaliatory termination timeline.
 
 ---
 
