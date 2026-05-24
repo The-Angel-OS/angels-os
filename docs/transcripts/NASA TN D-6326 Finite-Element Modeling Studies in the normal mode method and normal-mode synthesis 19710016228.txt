@@ -1,0 +1,2059 @@
+https://ntrs.nasa.gov/api/citations/19710016228/downloads/19710016228.pdf
+
+NASA TECHNICAL NOTE c__ NASA T_N 0-6326
+c?, /
+FINITE-ELEMENT MODELING STUDIES
+IN THE NORMAL-MODE METHOD
+AND NORMAL-MODE SYNTHESIS
+by Roy Leon Cozrrtlzey
+Goddnrd Space Flight Center I
+Greenbelt, Md. 20771 f
+:i.
+a
+NATIONAL AERONAUTICS AND SPACE ADMINISTRATION WASHINGTON, D. C. MAY 1971 f 1 1
+,i
+TECH LIBRARY KAFB, NM
+1. Report No. 2. Government Accession No. 1 NASA TN M326
+4. Title and Subtitle
+Finite-Element Modeling Studies in the
+Normal-Mode Method and Normal-Mode Synthesis
+7. Author(s)
+Roy Leon Courtney
+9. Performing Organization Name and Address
+Goddard Space Flight Center
+Greenbelt, Maryland 2077 1
+12. Sponsoring Agency Name and Address
+National Aeronautics and Space Administration
+Washington, D.C. 20546
+3. Recipient's Catalog No.
+5. Report Date
+w 19n
+6. Performing Organization Code
+8. Performing Organirotion Report No
+G- 1 009
+0. Work Unit No.
+1. Contract or Grant No.
+3. Type of Report and Period Covered
+Technical Note
+4. Sponsoring Agency Code
+15. Supplementary Notes
+.~
+The information presented herein was submitted as a thesis in partial fulfillment
+of the requirements for the degree of Master of Science in Engineering, The George
+Washington University, Washington, D. C., August 1970.
+16. Abstract
+This report compares the results of finite-element and analytic solutions of the
+normal modes of a uniform beam under various end conditions. The normal modes
+of a single component are synthesized to represent different single-component and
+multi-component structures. The results are compared for accuracy with the analytic
+structural solutions. Guidelines for finite-element structural modeling are developed
+which determine the minimum number of elements required to obtain specified
+levels of accuracy in normal-mode analysis and synthesis. The finite-element modeling
+studies are implemented on NASA's NASTRAN structural analysis computer program.
+Modeling techniques that represent a part of a structure by its normal modes in a
+computer structural analysis are presented.
+17. Key Words Suggested by Author
+Finite-Element Modeling
+Normal-Mode Analysis
+Structural Analysis
+119. Security Classif. (of this report) 120. Security Classif.'(
+18. Distribution Statement
+Unclassified-Unlimited
+1 Unclassified I Unclassified
+For sale by the National Technical Information Service, Springfield, Virginia 22151
+FOREWORD
+It is the policy of the National Aeronautics and Space Administration to employ, in all formal
+publications, the international metric units known collectively as the Systlme Internationale d’Unit6s
+and designated SI in all languages. In certain cases, however, utility requires that other systems of
+units be retained in addition to the SI units.
+This document contains data so expressed because the use of the SI equivalents alone would impair communication. The non-SI units, given in parentheses following their computed SI equivalents,
+are the basis of the measurements and calculations reported here.
+CONTENTS
+Page
+Abstract ...................................................................... i
+Foreword 11
+.. .....................................................................
+ListofFigures ................................................................. iv
+1 . INTRODUCTION ........................................................... 1
+1.1 Problem Statement ....................................................... 1
+1.2 Notation ............................................................... 3
+2 . METHOD OF ANALYSIS ..................................................... 7
+2.1 Normal-Mode Analysis .................................................... 7
+2.2 Eigenvalue Analysis ...................................................... 7
+2.3 Normal-Mode Synthesis ................................................... 8
+3 . MODELINGSTUDIES ....................................................... 15
+3.1 General ................................................................ 15
+3.2 Normal-Mode Analysis .................................................... 15
+3.3 Normal-Mode Synthesis ................................................... 17
+4 . ANALYSIS OF MODELING STUDIES .......................................... 21
+4.1 General ................................................................ 21
+4.2 Normal-Mode Analysis .................................................... 21
+4.3 Normal-Modesynthesis ................................................... 23
+5 . CONCLUSIONS ............................................................. 29
+ACKNOWLEDGMENT .......................................................... 31
+References .................................................................... 31
+Appendix A-Numerical Results of Normal-Mode Analysis ............................... 33
+Appendix B-Numerical Results of Normal-Mode Synthesis .............................. 41
+...
+111
+.
+Figure
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+LIST OF FIGURES
+Page
+Representation of a Part of a Structure by its Vibration Modes. Case 1 ................ 9
+Representation of a Part of a Structure by its Vibration Modes. Cases 2 and 3 ........... 12
+Dynamic Partitioning of Missile Structure ...................................... 13
+BarElement ............................................................. 16
+Four Finite-Element Models of a Beam ........................................ 17
+Representation of the Model for Normal-Mode Synthesis of a Single Cantilevered Beam ... 18
+Multiple-Component Structures Modeled by Normal-Mode Synthesis ................. 19
+Results of Normal-Mode Analysis of a Beam with Free-Free End Conditions ........... 23
+Results of Normal-Mode Synthesis of a Single-Component Structure .................. 24
+Results of Normal-Mode Synthesis of a Multiple-Component Structure ................ 26
+iv
+FINITE-ELEMENT MODELING STUDIES IN THE
+NORMAL-MODE METHOD AND NORMAL-MODE SYNTHESIS*
+by
+Roy Leon Courtney
+Goddurd Spuce Flight Center
+CHAPTER 1
+INTRODUCTION
+1.1 Problem Statement
+The normal-mode method of structural analysis has been developed into a powerful tool in the
+analysis of large and complex aerospace structures. The value of this method lies in the fact that the
+simultaneous differential equations of motion which describe the linear dynamic characteristic of a
+structure are decoupled into independent differential equations when the displacements are expressed
+in terms of the normal modes. A normal or natural mode of vibration occurs when each point in the
+structure executes harmonic motion about a point ofstatic equilibrium, with every point passing
+through its equilibrium position at the same instant and reaching its maximum displacement at the
+same instant. The form of the displacement of a structure is known as the normal-mode shape, and
+the frequency of the harmonic motion is known as the normal-mode frequency. Additionally, normalmode shapes and frequencies are used to compute the modal properties of generalized mass, stiffness,
+and structural damping associated with the modes.
+There are basically two numerical methods of approach to the problem of determining the normal modes of structural systems: An exact problem formulation solved approximately and an approximate formulation solved exactly. For certain simple systems the exact solution for normal modes can
+be obtained by analytical methods. When it is impossible or very difficult to obtain an exact solution
+of the partial differential equations governing a vibrating system, the system may be redefined in a discrete form. The structure is approximated by an assembly of discrete structural elements having an
+assumed distribution of stress and displacement. The complete solution is obtained by combining
+these individual, approximate stress and displacement distributions in a manner that satisfies the force
+*The information presented herein was submitted as a thesis in partial fulfillment of the requirements for the degree of Master of
+Science in Engineering, The George Washington University, Washington, D.C., August 1970.
+1
+equilibrium and displacement compatibility at the connection between elements. Methods based on
+the discrete or finite-element approximations involve appreciable quantities of linear algebra that must
+be organized into a systematic sequence of operations, which are handled most conveniently by the
+use of matrix algebra. The formulation of a specific method of analysis in matrix algebra is ideally
+suited for solution on the digital computer, which can be programmed for systematic compilation of
+data and for execution of required operations.
+As mentioned above, normal-mode analysis of structural systems has been the subject of a great
+deal of investigation, especially in the aerospace field, where the dynamic response of efficient, lightweight structures is of paramount interest. The National Aeronautics and Space Administration
+(NASA) prepared a general review and useful bibliography of normal-mode analysis.’ Application of
+this method of analysis to space vehicles and a bibliography of both analytical and applied references
+are presented by
+Finite-element analysis of complex structures requires large numbers of coordinates in the model,
+resulting in equations so large as to overwhelm the best of analysts and computers. The technique of
+normal-mode synthesis is a process whereby the dynamic characteristics of the several components of
+the system are calculated separately and then brought together to evaluate the dynamic characteristics
+of the entire system, thereby increasing computer efficiency.
+Another major advzntage of the normal-mode-synthesis technique is that the modal data may
+come from such diverse sources as analytic solutions, finite-element analyses, and vibration tests designed to determine normal modes. Thus, one structural analysis using modal synthesis can incorporate the representation of individual substructures analyzed by completely different techniques by
+separate engineering groups that may never have conferred about the complete structure.
+The concept of modal synthesis founded on the principle that a substructure is completely (or
+adequately) represented by its primary modes; if this is true, then the connections of these substructures at their interfaces can be described in terms of the modal quantities of the components. A set of
+equations can be written with coordinates in terms of normal-mode shapes and modal factors of the
+components. Solving these equations for the amplitude factors and multiplying by the component
+modes yields system modes.
+Several investigators have developed complete methods of analysis by substructures; these methods incorporate the concept of normal-mode synthesis. Gladwells developed the branch mode method
+of vibration analysis, which involves the imposition of a sequence of constraints on the system so that
+in each constrained system or branch only a few adjoining components vibrate in modes, called branch
+modes. These branch modes and appropriate rigid-body modes are used in a Rayleigh-Ritz analysis of
+the complete system. Craig and Bampton6 extended the branch mode method to systems having
+highly redundant substructure boundaries.
+H~rty’.~ presented the method of component-mode synthesis, in which the vibration modes of
+the composite structure are synthesized from generalized coordinates that are defined by a finite number of displacement modes for each component structure. These displacement modes are generated in
+three categories: Rigid-body, “constraint” modes, and “normal” modes.
+2
+MacNealg devised a general solution to the problem of representing a part of a structure by its
+vibration modes when some or all of its connection points to the rest of the structure are restrained
+during measurement or calculation of substructure modes. This procedure is incorporated in the
+present study and presented in detail in the following chapter.
+Many computer programs have been written to solve the myriad structural problems, both specific
+and general, to which finite-element theory can be applied. For example, NASA has committed a large
+amount of time, funds, and manpower to create a general-purpose computer program for structural
+analysis called NASTRANlO (an acronym for NAsa STRuctural ANalysis). Although demonstration
+problems involving normal-mode modeling have been solved, no extensive study of the normal-modesynthesis technique has been performed with this computer program to date.
+In this report the basis of normal-mode analysis and normal-mode synthesis is presented and modeling studies using finite elements and modal synthesis for structural problems are evolved, performed
+on NASTRAN, and compared to known analytic solutions for accuracy. The purpose of these studies
+is threefold:
+(1) To compare the results of the normal-mode solutions of structural problems analyzed by
+finite-element and other methods for accuracy.
+(2) To develop guidelines for efficient finite-element modeling so that required accuracies will
+result from the analysis.
+(3) To investigate modeling techniques in representing a part of a structure by its normal modes
+as implemented on a structural-analysis computer program.
+1.2 Notation
+The letter symbols used in the present study are defined in the text where they first appear. For
+convenience they are listed here in alphabetical order. Throughout the text square brackets, [ 1, denote two-dimensional arrays and braces,{ }, indicate column vectors." The transpose symbol, T, appended to braces identifies a row vector. Subscripts are used with matrix notation to designate subsets
+of displacement components.
+a = Subscript denoting degrees of freedom.
+A = Cross-sectional area; dso accuracy.
+b = Subscript denoting restrained degrees of freedom; also generalized damping factor.
+c = Subscript denoting connection points; also angular constant.
+E = Modulus of elasticity.
+{f} = Force.
+{F} = Force.
+*This is the matrix notation adopted by NASTRAN."
+3
+g = Damping factor.
+i = Subscript.
+I = Moment of inertia.
+J = Torsional constant.
+k = Generalized stiffness.
+[k] = Diagonal matrix of modal coefficient.
+[K] = Structural stiffness matrix.
+I = Length.
+m = Subscript; also generalized mass.
+[m] = Diagonal matrix of modal coefficient.
+[MI = Structural mass matrix.
+n = Subscript denoting degrees of freedom.
+N = Number of elements in model.
+p = Subscript denoting physical points; also differential operator.
+t = Time.
+T = Superscript denoting transpose of matrix.
+{ u} = Displacement vector.
+x = Coordinate.
+y = Coordinate.
+z = Coordinate.
+/3 = Characteristic number.
+5 = Auxiliary modal coordinates.
+X = Eigenvalue.
+v = Poisson’s ratio.
+= Modal coordinates.
+p = Mass per unit length.
+4 = Characteristic function.
+{ #} = Eigenvector.
+4
+[@I = Transformation matrix of eigenvectors.
+[$I = Transformation matrix.
+w = Natural frequency of a vibration mode.
+5
+CHAPTER 2
+METHOD OF ANALYSIS
+2.1 Normal-Mode Analysis
+In the normal-mode or modal method of dynamic problem formulation, the vibration modes of
+the structure in a selected frequency range are used as the degrees of freedom. Thus the number of
+degrees of freedom is reduced while the accuracy in the selected frequency range is maintained. In the
+direct method, the degrees of freedom are simply the displacements at connection points between
+substructures.
+The advantage of the normal-mode method lies in the fact that the differential equations of motion of the structure are decoupled when the displacements are expressed in terms of the normal
+modes. Thus, a structure with n degrees of freedom may be expressed by n independent differential
+equations rather than by a system of n simultaneous differential equations.
+The modal method of dynamic problem formulation is important in maximization of computational efficiency in certain types of problems. This method will usually be more efficient in problems
+where a small fraction of the modes are sufficient to produce the desired accuracy in the range of interest and where the stiffness matrix used in the direct method is not well banded. For problems without dynamic coupling, i.e., for problems in which the matrices of the modal formulation are diagonal,
+the modal method will frequently be more efficient, even though a large fraction of the modes are
+needed.1°
+The results of a normal-mode analysis of a part of a structural system modeled by finite elements
+may be combined directly with modal data obtained from other sources to analyze the entire system.
+2.2 Eigenvalue Analysis
+Eigenvalue analysis yields structural vibration modes from the symmetric mass and stiffness matrices, [M,,] and [K,,], generated by static analysis. The eigenvectors and eigenvalues produced by this
+analysis may be used to generate modal coordinates for further dynamic analysis.
+The general form of the eigenvalue problem for vibration modes is
+where {u,} is the displacement vector and the eigenvalues Xi = (.)i2 are the squares of the natural frequencies. The results of the calculation are the eigenvalues and corresponding eigenvectors, normalized so that the largest element of each eigenvector isunity.
+7
+The eigenvalue extraction method used in the present analysis is called the inverse power method
+with shifts, a particularly effective method of analysis for problems formulated by the displacement
+approach when only a fraction of all of the eigenvalues are required. Section 10.4 of Reference 10
+gives a complete description of the theory and application of this method as implemented in
+NASTRAN.
+2.3 Normal-Mode Synthesis
+The normal-mode synthesis technique in structural analysis permits part of a structure to be described by its orthogonal vibration modes. In some instances structural information may not be available in other forms. Thus, normal-mode information derived from diverse sources, including vibration
+tests and other analyses such as energy methods and finite elements, may be combined in one structural analysis. Normal-mode synthesis has been found useful- in many practical situations.*
+Section 14.1 of Reference 10 develops the modeling technique utilized in the present study,
+whereby a part of a structure is represented by its vibrational modes. This development is presented
+below for completeness.
+Description of part of a structure by vibration modes requires knowledge of how the connection
+points between parts of the structure were supported when the vibration modes were measured or
+computed. Three cases are distinguished:
+(1) All connection coordinates free.
+(2) All connection coordinates restrained.
+(3) Some connection coordinates free and some restrained.
+The first condition is usually employed in vibration tests or analyses of large parts. Often it is
+not possible to achieve effectively unrestrained test conditions; however, unrestrained conditions can
+be obtained from calculated modes.
+2.3.1 Case 1
+For Case 1, in which the substructure modes are free at all connection coordinates, the required
+data are the vibration mode frequencies, ai, the mode shapes or eigenvectors, {q5i}, and the mass distribution of the part, expressed by the mass matrix [M,]. The eigenvectors need not be normalized in
+any particular manner. Let the degrees of freedom at the points of connection to the remainder of the
+structure be designated by the vector {uc}. Then the motions of these points are related to the modal
+coordinates, {ti}, of the part by
+The columns of [@c,,] are the eigenvectors, {qhi}, abbreviated to include only the degrees of freedom at
+the connection points, { uc}. The usual approximation of including only a finite number ofeigenvectors
+in [@c,i] produces an idealized model for the part that is too stiff. Specification of the part is completed
+8
+by calculation of the generalized mass, mi, stiffness, ki, and damping, bi, associated with each modal
+coordinate, ti, as follows:
+mi = {@i)TIM,l {@i} 7 (3)
+and
+ki = w!mi ,
+b. = g.miwi , 11
+where gi is a damping factor for the ith mode. Frequently gi will not be accurately known.
+The equation of motion for the generalized coordinate, tj, is
+(mjp2 + bip + kilti = {$ci}T{fc} , (6)
+where p is the differential operator, { f,} is the vector of forces applied to the substructure at the connection points, and {@ci} is the eigenvector {@i} abbreviated to include only the degrees of freedom at
+connection points.
+Equations (2) through (6) contain all of the information required to describe the part. In the
+construction of the idealized model, each of the rows of Equation (2) is regarded as an equation of
+constraint between a constrained degree of freedom, u,, and the generalized coordinates, { &}. The
+generalized mass, stiffness, and damping elements connected to ti are mi, ki, and bi, respectively. Figure 1 illustrates the interconnection of the elements in diagrammatic form.
+2.3.2 Cases 2 and 3
+The derivation of an idealized model for Cases 2 and 3, in which some or all of the connection
+points are restrained during measurement or calculation of the substructure modes, is considerably
+more involved. A general solution devised by Ma~Neal’,~~ is developed below.
+Modal CONSTRAINTS Remainder
+of
+Structure
+Structural
+Coordinates
+(Uc)
+Figure I-Representation of a part of a structure by its vibration modes, Case 1: All
+connection points are free while the modes are calculated.
+9
+I1 I I I I I I Im111l1lll11111
+The objective of this analysis is to derive a set of relationships that can be treated as equations of
+constraint between the modal coordinates and the degrees of freedom at connection points (both free
+and restrained). The modal mass, damping, and stiffness properties will be simulated by scalar structural elements, as in Case 1.
+Let the degrees of freedom of the substructure be partitioned into {ua}, degrees of freedom that
+are free in the substructure modes and { ub}, degrees of freedom that are restrained in the substructure
+modes, i.e., the connection points. The equations of motion for the substructure (without damping)
+can then be written as
+where {fa} and {fb} are forces applied to the substructure. The mass of the substructure is assumed to
+be concentrated at the free coordinates, { ua}, which include all coordinates not restrained in the substructure modes. Any substructure mass on the restrained coordinates, {ub}, should be lumped into
+the remainder of the structure because the masses on the restrained coordinates produce no effect during the vibration modes of the substructure. They are, therefore, ignored in the modal representation
+of the substructure. The stiffness matrix is partitioned in Equation (7) according to free and restrained
+coordinates. Note that {ua} contains the free connection coordinates as a subset.
+The substructure modal shapes are described by a modal transformation between the free coordinates, {ua}, and modal coordinates, {Ei}, by
+{u,) = [@ajl{Ej} . (8)
+The corresponding generalized forces on the modal coordinates are
+{&: = r@ailT{fa}. (9)
+By virtue of the orthogonality property of vibration modes,
+[@ailTCKa, + [ki + mip21 , (10)
+where [ki] and [mi] are diagonal matrices of the modal coefficients computed by Equations (3) and
+(4). Now, if we use Equations (8), (9), and (10) to transform Equation (7),
+It is convenient to separate the inertia forces from Equation (1 l), so that if we define
+{Z} = :fi> - Cm,Ib24) Y (12)
+10
+Equation (1 3) is a stiffness equation in standard form. Placing ti on the left-hand side leads more
+directly to a useful physical model:
+where
+and
+If the set of restrained points {ub} is nonredundant, the matrix [Kbb] is null; this condition will
+be assumed. The matrix [$ib] is calculated from properties of the vibration modes as follows: During
+a vibration mode, {ub} = 0, and the vector of forces acting on the constraints is, from Equation (14),
+{FJ = -{fs> = [$iblT{Q = [$iblT[kil{ti: . (17)
+We define [Kbi] to be the matrix of forces on the constraints due to unit values of the modal coordinates while the substructure is vibrating in its normal modes:
+(Fb) = [Kbil{Ei}.
+Then, if we compare Equations (17) and (18),
+[Gib] = [kil-l[KbilT ,
+or, in other words, [Gib] is equal to [KbiIT, with each row divided by the appropriate element of [ki].
+We may also use [$I~~] to define an auxiliary set of modal coordinates
+{ti} = [9,I{uJ.
+@,= [kil{ti -si) .
+Then, from the top half of Equation (14),
+The free connection coordinates { uc} are a subset of { uU}. The relation between { uc} and the
+modal coordinates {ti} is
+{uc) = [@cil{Ei> 9
+where [@ci] is the appropriate partition of [Gui1.
+11
+Equations (12), (20), (21), and (22) provide a complete description of the substructure. They
+are also used to construct the idealized model of the substructure, shown in Figure 2. The modal
+dampers, bj, are placed across the modal springs, kj, if they simulate structural damping. If they simulate damping due to the viscosity of a surrounding fluid environment, they should be placed between
+the modal coordinates and ground. Equation (20) expresses a new set of constraint equations between
+the auxiliary modal coordinates and the degrees of freedom that are restrained in substructure modes.
+The techniques discussed above provide the capability for the complete dynamic partitioning of a
+structure, since all of the parts, rather than a few, may be represented by their respective vibration
+modes.* The general case diagrammed in Figure 2 is particularly useful for this purpose. Consider, for
+example, the missile structure shown in Figure 3. The missile is physically partitioned with support
+conditions for the calculation of uncoupled vibration modes, as shown in the figure. The first partition, (a), is unsupported, while the others are cantilevered. The lumped-element model for the composite system consists of parts with the form of Figure 2 connected in tandem. It is evident from the
+form of the lumped-elemqnt model that the independent degrees of freedom consist of the modal
+coordinates {Ea}, {Eb}, {Ec}, etc. The displacement sets {u~,~}, {Eb}, {u~,~}, etc., are all constrained. The
+dynamic equations, when written by the stiffness method, are banded with bandwidths equal to the
+number of modal coordinates in three successive partitions.
+The analyst should be cautioned against an uncritical use of dynamic partitioning techniques.
+Use of a smaller number of modes as degrees of freedom to represent a dynamical system always results in a loss of mass, a loss of flexibility, or both. Procedures have been developed9*” for incorporating the “residual mass” or the “residual flexibility” into the analysis with substantial increase in
+accuracy. In general, however, established techniques for truncating the modes of a complete system
+do not automatically give good results when applied to substructures.
+c
+Structural
+Coordinates
+(Uc)
+c
+. Coordinates
+Structural
+(Ub)
+Figure 2-Representation of a part of a structure by its vibration modes, Cases 2
+and 3: Some connection points are free and some are rigidly constrained.
+12
+Missile structure, unpartltioned
+Support conditions for partitions while calculating substructure
+vibration modes.
+-(a) -I
+Portion of composite model
+Figure 3-Dynamic partitioning of missile structure.
+13
+CHAPTER 3
+MODELING STUDIES
+3.1 General
+The theory of normal-mode analysis and normal-mode synthesis presented in the previous chapter
+is applied in this chapter to studies in problem formulation, i.e., modeling technique, for these two
+methods of structural analysis. Structural problems for which known analytic solutions exist are defined and modeled by finite elements. The results of the normal-mode analysis are directly incorporated in the modeling studies of the normal-mode-synthesis technique. The analysis of these results is
+presented in the next chapter.
+3.2 Normal-Mode Modeling Study
+3.2.1 Description
+The structural problem chosen to compare the accuracy of solutions obtained by different methods is the determination of the normal modes of vibration of a constant-property beam with various
+end conditions. Vibration transverse to the axis of the beam is considered in only one plane. Damping and axial vibration are neglected.
+The analytic method for the determination of the natural frequencies and modes of vibration of a
+beam and a detailed derivation of the corresponding characteristic functions are given in standard
+texts12913 on structural dynamics. Young and Felgar14 tabulated the solution of the characteristic
+functions of this problem, with vibrations governed by the well known differential equation
+a4y a2Y
+ax4 at2
+EI- - p-= 0,
+where x and y are the coordinates parallel and perpendicular, respectively, to the longitudinal axis of
+the beam; t is time; E is the modulus of elasticity; I is the moment of inertia; and p is the mass per
+unit length of the beam. Each of the functions for a given beam satisfies the differential equation
+and also satisfies the boundary conditions corresponding to the end conditions of the beam. In
+Equation (24) P, is the characteristic number and @,(x> is the characteristic function for each
+15
+I
+I I I I 111 I I 11111l11l11ll
+type of beam. The natural circular frequency of the nth mode of vibration of the beam, a,, is
+given by
+where I is the length of the beam. These results are assumed to be the “known” solution to which the
+finite-element results are compared for accuracy.
+The general type of finite element used to represent the beam in this study is a bar element that
+undergoes extension, torsion, bending in two perpendicular planes, and the associated shears. The
+restrictive assumptions for this element are that it is straight and unloaded except at its end and that
+its properties are uniform from end to end. The stiffness matrix of the bar element is a 12 X 12 matrix
+of coefficients that express the forces and moments acting on the six degrees of freedom (three translations and three rotations) at each of its two ends. Figure 4 shows a representation of the bar element, its coordinate system, and its degrees of freedom. A lumped-mass distribution is applied in the
+development of the mass matrix of the element. The specific element used in the present modeling
+study is identified in the NASTRAN computer program by the mnemonic, CBAR, denoting the “connection, bar,” element. Section 5.2 of Reference 10 presents the detailed analytic description of this
+finite element.
+The uniform beam is represented by four different finite-element models consisting of 5, 10, 20,
+and 40 elements, respectively, to ascertain the effect of the number of elements upon the accuracy of
+results. For ease in correlation of finite-element and differential equation results, beam properties
+were chosen to reduce to 1 the value of the terms within the radical in the second expression for w in
+Equation (25). Figure 5 shows the four beam models. Thus, the natural frequency in radians per second of the nth mode resulting from the eigenvalue analysis of the finite-element formulation is directly
+comparable to the term (/3,O2 of Equation (25) as
+tabulated in Reference 14 for various beam types.
+Free, supported, and clamped beam end conditions are combined to obtain six different types
+of beams: (1) Free-free, (2) free-supported, (3)
+free-clamped, (4) supported-supported, (5)
+supported-clamped, and (6) clamped-clamped.
+X Y
+3.2.2 Implementation
+The normal-mode modeling study is implemented on the NASTRAN computer program.
+NASTRAN embodies a lumped-element approach,
+R = Rotation whereby the distributed physical properties of a
+T = Translation structure are represented by a model consisting of
+a finite number of idealized substructures or eleFigure 4-Bar element. ments that are interconnected at a finite number
+16
+I I I
+5 ELEMENTS
+I I IIII I I I I
+10 ELEMENTS
+111111~111111111111ll
+20 ELEMENTS
+11111111111111111111111111111111111111111
+40 ELEMENTS
+Figure 5-Four finite-element models of a beam.
+of grid points, to which loads are applied. All input and output pertain to the idealized structural
+model.
+The structural problem is defined by encoding the required information on punch cards according to prescribed formats given in Reference
+15. For the present study, the following information is required: Coordinate-system definition,
+grid-point definition, elements connected between
+grid points, cross-sectional and material properties,
+constraints on ends of the beam, and method of
+eigenvalue extraction.
+The problem thus defined undergoes eigenvalue analysis, which computes the following for
+each of the modes analyzed: Eigenvalue, eigenvector normalized to the maximum displacement, natural frequency in radians per second and cycles per
+second, generalized stiffness, and generalized mass.
+In Chapter 4, the natural frequency resulting from the finite-element, normal-mode analysis is
+compared for accuracy to the known solution. The eigenvector and generalized properties of each
+mode are used in the following modeling studies involving normal-mode synthesis.
+3.3 Normal-Mode-Synthesis Modeling Study
+3.3.1 General
+The results of the normal-mode analysis provides a basis for solution of the following problems
+by synthesis of the normal modes of the constituent parts, i.e., by representing a part of a structure by
+its vibration modes. The eigenvectors and generalized properties of the first i modes of the beam with
+free-free end conditions are used in the application of the theory developed for normal-mode synthesis
+in Section 2.3.1.
+3.3.2 SingleComponent Structure
+The structural problem chosen to demonstrate the synthesis of normal modes and toinvestigate
+the accuracy of the technique is the determination of the normal modes of a uniform cantilevered
+beam, i.e., a beam with fixed-free end conditions. The beam consists of a single component modeled
+by the modal properties of a beam with free-free end conditions. The first i free-free normal modes
+are selected to model the beam, where i must include the first two modes that are rigid-body modes.
+The generalized stiffness given by Equation (4) is zero for rigid-body modes since the natural frequency is zero. The various values of i selected include the two rigid-body modes plus arbitrarily selected flexible modes. The source of the modal information is the four finite-element models used in
+17
+the normal-mode analysis of Section 3.2, which consisted of 5, 10, 20, and 40 elements, respectively.
+Thus, for example, in the 10-element model the first i modes were used, where i = 3, 5, 7, 9, and 11.
+The following chapter presents the numerical results and compares them to known solutions for the
+modes of the cantilevered beam.
+Implementation of the normal-mode synthesis on the NASTRAN program requires the declaration of the following for each mode used to model the structural part: (1) Scalar point, which is a
+poiilt in vector space at which one degree of freedom is defined, (2) scalar mass and stiffness connection elements whose values are the generalized mass and stiffness, and (3) the coefficients of the matric [4,i] of Equation (2), the columns of which are the eigenvectors of the ith mode, truncated to include only the degrees of freedom at the connection points. The scalar points become the generalized
+coordinates and degrees of freedom for the analysis. The relationship given by Equation (2) is declared
+in NASTRAN by a multipoint constraint equation.
+Simulation of restrained end conditions of the beam is most easily accomplished by the connection of a spring of very large spring constant, e.g., 10l2 N/m (1O'O lb/in.),* at the connection points
+between ground and the restrained degrees of freedom. Figure 6 shows a representation of the model
+used for normal-mode synthesis of a single cantilevered beam.
+3.3.3 MultipleComponent Structures
+The modeling techniques described for a single-component structure are extended to structures
+with multiple components. In each problem formulation, the required modal information for each
+substructure is identical to that required in the preceding structure. Boundary conditions of the
+multiple-substructure problem are handled in the same manner as the end conditions of a singleelement cantilever beam. Connections between adjoining substructures are made by declaring a scalar
+Modal Coordinates
+Iri t
+Figure 6-Representation of the model for normal-mode synthesis of a
+single cantilevered beam.
+*The quantity that appears in parentheses in the text is the value that was used in the modeling study.
+18
+spring element with a very large spring constant between appropriate translational and rotational degrees of freedom.
+Structural normal modes are obtained by the normal-mode-synthesis technique as applied to the
+following structures, each divided into more than one substructure: (1) Three beams in series, cantilevered, (2) three beams in parallel, cantilevered, and (3) three beams in a portal arch. Figure 7 shows
+sketches of these structures. The next chapter presents the comparison of the results of the modeling
+study and the known solution as given by Equation (25) for the first and second structures and by a
+120finite-element model for the third structure.
+(a) Three beams in series, cantilevered.
+(b) Three beams in parallel, cantilevered.
+(c) Three beams in a portal arch.
+Figure 7-Multiple-component structuresmodeled by normal-mode synthesis.
+19
+CHAPTER 4
+ANALYSIS OF MODELING STUDIES
+4.1 General
+This chapter presents the analysis and numerical results of the modeling studies described in the
+preceding chapter. These studies are implemented on the NASTRAN computer program, Release 1 1.1 ,
+which is operational on the IBM System 360/95 at Goddard Space Flight Center.
+4.2 Normal-Mode Analysis
+Values and units for the parameters required for the finite-element models described in Section
+3.2 are chosen as follows: *
+Modulus of elasticity, E = 6.9 X 10l1 N/m2 (lo8 lb/in.2).
+Poisson's ratio, v = 0.3.
+Mass per unit length, p = 6.9 X lo3 N-sec2/m2 (1 .O lb-sec2/in.2).
+Area moments of inertia, 11,2 = 41.6 cm4 (1 .O in.4).
+Cross-sectional area, A = 6.5 cm2 (1 .O in.2).
+Torsional constant, J = 41.6 cm4 (1 .O in.4).
+Length, I = 254 cm (1 00 in.).
+Thus, the four models of the uniform beam consist of 5, 10, 20, and 40 bar elements, whose elemental lengths are 50.8, 25.4, 12.7, and 6.4 cm (20, 10, 5, and 2.5 in.)," respectively (Figure 5). As
+previously stated, this choice of parameter values permits direct comparison of the results of the eigenvalue analysis with those tabulated in Reference 14.
+The complete matrix of problems studied consists of the four finite-element models solved for
+each of the six end conditions: (1) Free-free, (2) free-supported, (3) free-clamped, (4) supportedsupported, (5) supported-clamped, and (6) clamped-clamped. Appendix A records the numerical results of the eigenvalue analyses for these six end conditions. Recorded data include-
+(1) Mode number, i = 1,2, 3,. . . 20.
+(2) Natural circular frequency of the ith mode of vibration of the beam in radians per second for
+the known solution given in Reference 14.
+*The quantities that appear in parentheses in the text, and the value of Poisson's ratio, are the exact values that were used in the
+modeling study.
+21
+(3) Accuracy, A, defined as the ratio of the finite-element solution to the known solution. This
+definition of accuracy shall be maintained throughout the analysis of results.
+In general, if n is the number of unrestrained, independent degrees of freedom of the problem,
+then n normal modes exist. For example, six grid points are required to model the 5-element beam.
+For the free-free type beam, n = 6. These consist of two rigid-body modes and four flexible modes.
+Supporting one end of the beam reduces n by one and results in one rigid-body mode and four flexible
+modes. Clamping one end prohibits rigid-body motion. In Appendix A, only flexible modes are recorded.
+Figure 8, a representative of the data recorded for the six end conditions, shows the normal-mode
+results for modes 1 , 2, 3, 4, 5, 9, and 15 of the free-free type of beam. The coordinates of the figure
+are the number of finite elements in the model, N, versus the accuracy, A, of modal frequency, defined above. In general, accuracy approaches 1.0 asymptotically from below as the number of elements increases. The plot passes through the origin, since zero finite elements result in zero accuracy.
+This relationship is expressed by
+N = tan [Af(i, c)] , (26)
+where N is the number of elements in the model, f(i, c) is a function of the mode number, i, and c is
+an angular constant.
+Equation (26) can be used to estimate the number of finite elements required to model the beam
+for selected values of mode number, i, desired minimum accuracy, A, and beam end conditions. For
+example, for the beam with free-free end conditions, when
+N>i+2, these parameters determined by curve-fitting the empirical data are defined as
+and
+f(i, c) = c + i
+c = 87.7 deg .
+For A = 0.90 and i = 2, Equation (26) yields N = 6.1 ; when rounded to the next highest integer,
+N = 7. This estimate is verified by Figure 8.
+A comparison of accuracies for both mode numbers and finite-element models as recorded in
+Appendix A reveals a general trend in the accuracy of the finite-element solution. For a specific mode
+number or for a specific number of finite elements in the beam model, a reduction in the degrees of
+freedom at the ends of the beam results in increased accuracy of the solution. This observation is explained by the fact that a decrease in freedom of the structure at the boundary requires a given number of elements to describe less complex displacements in the eigenvector, i.e., less difference in the
+end displacements of individual elements. Therefore, Equations (26), (27), and (28), when applied to
+beams with increased end fixity, represent overestimates of the minimum number of elements that will
+yield specified accuracies in the eigenvalue solution.
+22
+40
+36 -
+z
+d- 32 n - ' 28- 3
+2 C - 24
+520- W
+16-
+W
+z
+LL 3 12-
+5
+oz
+8-
+4-
+0"
+0
+SPEC IF
+,A"
+0.2
+ACCURACY, A, OF MODAL FREQUENCY
+Figure 8-Results of normal-mode analysis of a beam with free-free end
+conditions.
+4.3 Normal-Mode Synthesis
+4.3.1 Single-Component Structure
+Numerical results of the single-component problem discussed in Section 3.3.2 are tabulated in
+Appendix B, Tables B1 through B4. They correspond to the 5, lo-, 20-, and 40-element beam models, respectively, used as sources of the substructure normal modes. The normal modes are computed
+for free-free end conditions. The first i modes are used to model the substructure. Data recorded in
+Tables Bl through B4 include the number of normal modes, i, used to synthesize the model, the
+known solution, and the accuracy, A, of the modal frequency defined as the ratio of the synthesized
+result to the known solution, as in the normal-mode analysis.
+Representative data are shown in Figure 9a, which plots i versus A for the first, second, third, and
+fifth model frequencies of the uniform cantilevered beam. Curves are included for the normal-mode
+source beams consisting of 5, 10, 20, and 40 elements.
+Figure 9b shows the effect of varying i to represent a substructure in a plot of i versus A for
+modal data recorded in Table B3, i.e., only for the normal-mode source model consisting of 20 finite
+elements.
+The following generalizations are drawn from the recorded and plotted data for this structure
+modeled by component modes:
+23
+ou AI I
+ll
+1 2 3 45 10 20 3040% 1
+ACCURACY, A, OF NORMAL-MOCE FREQUENCY
+(a) Cantilevered beam modeled by free-free modes computed from source beams containing
+5, 10, 20, and 40 elements (Tables 61 through 64).
+- - ~
+w
+a
+24 - 3
+CT
+s 22.-
+Y
+7 20.-
+p 18
+P n 16-
+14-
+12-
+Y
+n ..
+Y
+Ln
+v;
+._
+SEVENTH MODE
+SIXTH MODE
+TH IRO MODE
+SECOND MODE
+FOR FIRST AND HIGHER MODES
+ACCURACY, A, OF NORMAL-MODE FREQUENCY
+(b) Cantilevered beam modeled by free-free modes computed from a 2Gelement source beam
+(Table 63).
+Figure 9-Results of normal-mode synthesis of a single-component structure.
+24
+(1) There is nearly constant accuracy in model frequency for the i - 2 modes where the first i
+normal modes are used to represent the substructure.
+(2) Accuracy of modes i and i - 1 are extremely poor, i.e., inaccurate by more than an order of
+magnitude.
+(3) For the minimum number of synthesized normal modes used to model the substructure, best
+accuracy for a specific normal mode, i', of the structure is obtained when i = if + 2. Thus, for a specific i', a nontruncated set of normal modes represents a substructure more accurately than does a
+truncated set of modes.
+4.3.2 Multiple-Component Structures
+The several problems described in Section 3.3.3 exercise the normal-mode-synthesis technique for
+structures with more than one separable substructure.
+Each structure is composed of three uniform beams previously discussed and analyzed by the
+normal-mode method. Each component beam is represented by the first 12 normal modes, i.e., two
+rigid-body modes and 10 flexible modes evaluated by the 40-element beam analysis for free-free end
+conditions. The 40-element source beam produces the most accurate results, therefore it is used to
+minimize error in the component modes. Stiffness connection elements, Le., springs with very large
+spring constants, are used to couple the degrees of freedom of the substructures that are unrestrained
+when their normal modes are computed. Similarly, these fictitious springs provide the means to fix
+boundary conditions by connecting the appropriate degrees of freedom to ground.
+The first structure studied is a cantilevered beam whose length is 31, composed of three uniform
+segments, each 1 in length, in series (see Figure 7). Substitution of 31 for 1 in Equation (25) yields the
+normal-mode-synthesis results as a function of the number of modes, i, used to model each component.
+Figure 10 shows these data plotted as i versus A for representative normal modes of the complete
+structure. The curves approach an accuracy of 1 .O asymptotically from above as the number of normal modes synthesized for the substructures increases. The accuracy of the synthesized-structure
+modal frequency varies over a narrow range of values for modes numbered from 1 to nearly 2i. For
+example, when seven modes are used to model each substructure, accuracy of the model frequency
+varies between 1.07 and 1.16 for all the structural modes numbered from 1 to 15. The model frequencies are inaccurate by an order of magnitude for structural modes greater than 2i. As i increases, the
+range of values for A narrows and approaches 1.0. Reasonable engineering accuracy, e.g., within 10
+percent, is obtained by use of a moderate number of component modes in the model. For example,
+10-percent accuracy is obtained in the first mode when i = 6 and in the second mode when i = 7. When
+i = 12, all of the first 20 modes of the structure are computed with less than 10-percent error.
+-L known solution for modal frequency. Table B5 presents the known solutions and the accuracy, A, of
+For the second structure, three parallel beams are fixed at one end and connected at the other.
+Table B6 gives data similar to that for the preceding structure. The known solution is the same as that
+for the single cantilevered beam, since the 3's cancel in the numerator and denominator of the term
+within the radical of Equation (25). Connections between components are made by the technique
+25
+10
+12 3 4
+MODE NUMBER
+I I I1 I I 1 I1 "
+1 2 3 45 10 20 30 40 50 100
+ACCURACY, A, OF NORMAL-MODE FREQUENCY
+Figure IO-Results of normal-mode synthesis of a multiple-component structure, three uniform beams in parallel,
+cantilevered. I.
+discussed for the previous structure. Normal-mode synthesis yields three computed modes corresponding to each mode of a single cantilevered beam. In the first synthesized mode all three parallel beams
+move in the same characteristic mode. In each of the other two synthesized modes, two beams move
+in the same cantilevered mode, while the third parallel beam takes a different mode shape. Good accuracy in modal frequency is obtained for structural modes in which each of the three components are
+characterized by the same substructure mode. This problem formulation demonstrates the ability of
+the synthesis technique to determine modes of the complete structure, which cannot be obtained from
+a simple combination of modes of the substructures.
+The third structure is a three-member portal frame chosen to demonstrate the interconnection
+between substructures. Here the fictitious springs connect the appropriate degrees of freedom (see
+Figure 7). Rotations at the ends of adjoining beams are connected to maintain continuity of displacement between substructures. Transverse displacements at the top of the two vertical-support beams
+are connected, since longitudinal extension of the horizontal beam is neglected. Table B7 tabulates
+the following data for this structure: The known solution for normal modes, the mode number and
+type with respect to symmetry, and the accuracy, A, of the normal-mode-synthesis technique. The
+26
+results of a finite-element, normal-mode analysis are assumed to be the known solutions. This model
+consists of 40 bar elements for each of the three constituent beams. Accuracy is poor for the first
+symmetric and antisymmetric modes, i.e., approximately 55 percent error. However, accuracy improves with higher mode numbers.
+27
+CHAPTER 5
+CONCLUSIONS
+In this report, the bases in finite-element analysis of the normal-mode method and the normalmode-synthesis technique were presented and their features and applications were discussed. A normalmode modeling study of a uniform beam resulted in guidelines for prediction of accuracy in analysis
+compared to a known solution for the problem. Modal data from this modeling study were used to
+represent substructures in a modeling study of the normal-mode synthesis. One single-component
+structure and three multiple-component structures demonstrated normal-mode synthesis and its modeling techniques as implemented on NASTRAN, a structural analysis computer program.
+The limited examples treated in the present study are intended to investigate accuracy obtained
+by the analyses and to demonstrate the application of these techniques on a generally available computer program. Accuracy guidelines can be applied judiciously to similar structures, e.g., tapered
+beams. Though normal modes may be synthesized from many diverse sources, the analyst should be
+cautioned to use extreme care in dynamic partitioning techniques, especially when truncating the
+modes used to represent a substructure.
+The selection of an adequate number of finite elements needed to model a structure yields good
+accuracy in the solution obtained by normal-mode analysis. The synthesis of components represented
+by their normal modes yields more accurate results for the entire Structure when the component
+modes are characteristic of the modal contribution of the substructure than when these modes are not
+characteristic of the modal contributions. Further study of the reason for the less accurate resuits
+may lead to a better understanding of the general applications and limitations of normal-mode synthesis.
+29
+ACKNOWLEDGMENT
+The author wishes to express his gratitude to Dr. Theodore G. Toridis for his insight and assistance
+during the research and preparation of this report.
+Goddard Space Flight Center
+National Aeronautics and Space Administration
+Greenbelt, Maryland, July 31, 1970
+861-51-75-01-51
+REFERENCES
+1.
+2.
+3.
+4.
+5.
+6.
+7.
+8.
+9.
+Archer, J. S., “Natural Vibration Model Analysis,” NASA SP-8012, September 1968.
+Staley, J. A., “Dynamic Stability of Space Vehicles, Vol. 11-Determination of Longitudinal
+Vibration Modes,” NASA CR-936, November 1967.
+Gieseke, R., et al., “Dynamic Stability of Space Vehicles, Vol. 111-Torsional Vibration Modes,”
+NASA CR-937, November 1967.
+Craig, R. R., and Bampton, M. C. C., “Coupling of Substructures for Dynamic Analyses,” AIAA
+Journal, Vol. 6, No. 7, July 1968, pp. 1313-1319.
+Hurty, W. C., “Dynamic Analysis of Structural Systems by Component Mode Synthesis,” Jet
+Propulsion Laboratory, California Institute of Technology TR 32-530, January 1964.
+Hurty, W. C., “Dynamic Analysis of Structural Systems Using Component Modes,” AIAA Journal Vol. 3, No. 4, April 1965, pp. 678-685.
+MacNeal, R. H., “Vibration of Composite Systems,” Office of Scientific Research Report OSR
+TN-SS-120, October 1954.
+31
+10. “The NASTRAN Theoretical Manual,” MacNeal, R. H., ed., NASA SP-221, October 1969.
+1 1. MacNeal, R. H., and Schwendler, R. G., “Optimum Structural Representation in Aeroelastic
+Analysis,” ASD TR-61-680, January 1952.
+12. Timoshenko, S., “Vibration Problems in Engineering,” 2nd ed., New York: D. Van Nostrand Co.,
+1937.
+13. Hurty, W. C., and Rubinstein, M. F., “Dynamics of Structures,” Englewood Cliffs, New Jersey:
+Prentice-Hall, Inc., 1964.
+14. Young, D., and Felgar, R. P., Jr., “Tables of Characteristic Functions Representing Normal Modes
+of Vibration of a Beam,” Austin, Texas: University of Texas Press, July 1949.
+15. “The NASTRAN User’s Manual,” McCormick, C. W., ed., NASA SP-222, October 1969.
+32
+Appendix A
+Numerical Results of Normal-Mode Analysis
+Appendix A presents the numerical results of the normal-mode analysis of a uniform beam for
+the following end conditions:
+( 1 ) Free-free (Table Al)
+(2) Free-supported (Table A2)
+(3) Free-clamped (Table A3)
+(4) Supported-supported (Table A4)
+(5) Supported-clamped (Table A5)
+(6) Clamped-clamped (Table A6)
+In Appendices A and B the accuracy, A, is defined as the ratio of the finite-element solution to
+the known solution. In Appendix A, N denotes the number of bar elements used to model the uniform
+beam.
+33
+Table A 1 -Uniform beam with free-free end conditions.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+-
+Frequency
+of known
+solution
+(rad/sec)
+22.373
+61.673
+__.
+1 20.90
+199.86
+298.56
+416.99
+555.16
+713.08
+890.73
+1088.1
+1305.3
+1542.1
+1798.7
+2075.1
+2371.2
+2687.0
+3022.6
+3377.9
+3752.9
+"
+4147.7 - "
+N= 5
+0.893
+.838
+.796
+.734
+.- - .
+Accuracy, A
+N= 10
+0.970
+.951
+.933
+.916
+.900
+.883
+.857
+.815
+.743
+N= 20
+0.992
+.987
+.982
+.977
+.972
+.967
+.962
+.957
+.95 1
+.945
+.939
+.930
+.919
+.905
+.886
+.860
+.826
+.783
+.730
+__
+N= 40
+0.998
+-997
+.995
+.994
+.993
+.992
+.990
+.989
+.988
+.986
+.985
+.983
+.982
+.980
+.979
+.977
+.975
+.973
+.97 1
+.969
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Table A2-Uniform beam with free-supported end conditions.
+Frequency
+of known
+soh tion
+(rad/sec)
+15.418
+49.96 5
+104.25
+178.27
+272.03
+385.53
+5 18.77
+671.75
+844.47
+1036.9
+1249.1
+1481.1
+1732.7
+2004.1
+2295.3
+2606.2
+2936.8
+3 287.2
+3657.3
+4047.1
+N= 5
+0.95 1
+.916
+.882
+.815
+Accuracy, A
+N= 10
+0.987
+.977
+,967
+.957
+.945
+.930
+.905
+.860
+.783
+N= 20
+0.997
+.994
+.992
+.989
+.986
+.983
+.980
+.977
+.973
+.969
+.963
+.955
+.945
+.93 1
+.911
+.884
+.849
+.803
+.749
+~
+N= 40
+0.999
+.999
+.998
+.997
+.997
+.996
+.995
+.995
+.994
+.993
+.992
+.99 1
+.99 1
+.990
+.989
+.987
+.986
+.985
+.984
+.983
+35
+Table A3-Uniform beam with free-clamped end conditions.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Frequency
+of known
+solution
+(rad/sec)
+3.5160
+22.034
+6 1.697
+120.90
+1 99.86
+298.56
+416.99
+555.16
+713.08
+890.73
+1088.1
+1305.2
+1542.1
+1798.7
+2075.1
+2371.2
+2687.0
+3022.6
+3377.9
+3752.9
+N= 5
+0.982
+.94 1
+.907
+.863
+.766
+Accuracy, A
+N= 10
+0.995
+.984
+.974
+.964
+.954
+.94 1
+.922
+.890
+.835
+.749
+N= 20
+0.999
+.996
+.993
+.99 1
+.988
+.986
+.982
+.980
+.976
+.972
+.967
+.960
+.952
+.940
+.923
+.900
+.87 1
+.833
+.786
+.73 1
+N= 40
+1 .ooo
+0.999
+0.998
+0.998
+0.997
+0.996
+0.996
+0.995
+0.994
+0.994
+0.993
+0.992
+0.991
+0.990
+0.989
+0.988
+0.987
+0.986
+0.984
+0.982
+36
+I
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Table A4-Uniform beam with supported-supported end conditions.
+Frequency
+of known
+solution
+(rad/sec)
+9.8696
+39.478
+88.826
+157.91
+246.74
+355.30
+483.61
+63 1.65
+799.44
+986.96
+1194.2
+1421.2
+1668.0
+1934.4
+2220.7
+2526.6
+2852.3
+3 197.7
+3562.9
+3947.8
+N=5
+0.999
+.997
+.98 1
+.909
+Accuracy, A
+~~
+N= IC
+0.999
+.999
+.999
+.997
+.993
+.98 1
+.957
+.909
+.825
+~
+N= 20
+1 .ooo
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.998
+0.996
+0.993
+0.988
+0.98 1
+0.97 1
+0.97 1
+0.937
+0.909
+0.872
+0.825
+0.768
+N= 40
+1 .ooo
+1 .ooo
+1 .ooo
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.998
+0.998
+0.997
+0.995
+0.994
+0.993
+37
+Table AS-Uniform beam with supported-clamped end conditions.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Frequency
+of known
+solution
+(rad/sec)
+15.418
+49.965
+104.25
+178.27
+272.03
+385.53
+5 18.77
+67 1.75
+844.47
+1036.9
+1249.1
+1481.1
+1732.7
+2004.1
+2295.3
+2606.2
+2936.8
+3287.2
+3657.3
+4047.1
+N=5
+0.999
+.994
+.963
+.852
+Accuracy, A
+N= 10
+1.000
+1 .ooo
+0.999
+0.996
+0.989
+0.973
+0.94 1
+0.882
+0.789
+~~
+N= 20
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+0.999
+0.998
+0.998
+0.997
+0.995
+0.99 1
+0.986
+0.978
+0.966
+0.949
+0.927
+0.896
+0.856
+0.807
+0.749
+N= 40
+1.000
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.999
+0.998
+0.998
+0.997
+0.996
+0.995
+0.994
+0.992
+38
+Table A6-Uniform beam with clamped-clamped end conditions.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Frequency
+of known
+solution
+(rad/sec)
+22.373
+6 1.673
+120.90
+199.86
+298.56
+416.99
+555.16
+7 13.08
+890.73
+1088.1
+1305.3
+1542.1
+1798.7
+2075.1
+2371.2
+2687.0
+3022.6
+3377.9
+3752.9
+4147.7
+N=5
+0.999
+.988
+.936
+.790
+Accuracy, A
+~~
+N= 10
+1 .ooo
+0.999
+0.998
+0.994
+0.984
+0.963
+0.922
+0.852
+0.754
+~
+~
+N= 20
+1 .ooo
+1 .ooo
+1.000
+1 .ooo
+0.999
+0.999
+0.998
+0.996
+0.993
+0.989
+0.983
+0.974
+0.960
+0.94 1
+0.91 5
+0.882
+0.840
+0.789
+0.73 1
+. - .
+N= 40
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+1 .ooo
+0.999
+0.999
+0.999
+0.998
+0.998
+0.997
+0.996
+0.995
+0.993
+0.99 1
+39
+Appendix B
+Numerical Results of Normal-Mode Synthesis
+Appendix B presents the numerical results of the normal-mode-synthesis modeling studies. Each
+table includes a problem description for the tabulated data.
+41
+Table B 1 -Normal-mode synthesis of a uniform cantilevered beam modeled by the first i free-free
+normal modes computed from a source beam consisting of 5 finite elements. ' *:li- number
+1; 6
+Frequency
+of known
+solution
+(rad/sec)
+3.5 160
+~
+22.034
+6 1.697
+120.90
+199.86
+298.56
+i=3
+1.485
+22.10
+424.3
+Accuracy, A
+i=5
+1.221
+1.236
+16.02
+246.2
+i=6
+1.115
+1.095
+1.088
+1.072
+9.329
+106.1
+Table B2-Normal-mode synthesis of a uniform cantilevered beam modeled by the first i free-free
+normal modes computed from a source beam consisting of 10 finite elements.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+Frequency
+of known
+solution
+(rad/sec)
+3.5 160
+22.034
+6 1.697
+120.90
+199.86
+298.56
+416.99
+555.16
+7 13.08
+890.73
+1088.1
+~~~
+i=3
+1.585
+21.83
+449.4
+i=5
+1.192
+1.206
+1.236
+12.80
+187.6
+Accuracy, A
+________~
+i=7
+1.096
+1.095
+1.095
+1.100
+1.1 12
+10.26
+102.3
+~ i=9
+1.064
+1.059
+1.056
+1.053
+1.05 1
+1.067
+1.040
+8.299
+62.67
+i= 11
+1.058
+1.052
+1.048
+1.044
+1.040
+1.035
+1.023
+0.9895
+0.9135
+5.894
+4 1.43
+42
+Table B3-Normal-mode synthesis of a uniform cantilevered beam modeled by the first i free-free
+normal modes computed from a source beam consisting of 20 finite elements.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+Frequency
+of known
+solution
+(rad/sec)
+3.5 160
+22.034
+61.697
+120.90
+199.86
+298.56
+416.99
+555.16
+713.08
+890.73
+1088.1
+1305.3
+1542.1
+1798.7
+2075.1
+2371.2
+2687.0
+3022.6
+3377.9
+3752.9
+~~
+i=3
+1.628
+21.69
+458.0
+i=7
+1.147
+1.157
+1.167
+1.183
+1.210
+9.018
+1 17.0
+Accuracy, A
+i= 12
+1.069
+1.071
+1.073
+1.075
+1.077
+1.080
+1.083
+1.088
+1.095
+1.107
+6.41 9
+i= 17
+1.041
+1.041
+1.042
+1.042
+1.043
+1.043
+1.044
+1 .045
+1.046
+1.047
+1.048
+1.050
+1.053
+1.057
+1.063
+5.416
+29.13
+i= 21
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.027
+1.028
+1.028
+1.028
+1.029
+1.029
+1.030
+1.032
+3.872
+43
+I I I 11 I1 I I, I 1.11.1.11 I ,,I I, .I I I I 111 m I .w. I -I-. -. ~
+Table B4-Normd-mode synthesis of a uniform cantilevered beam modeled by the first i free-free
+normal modes computed from a source beam consisting of 40 finite elements.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+~ " "~
+Frequency
+of known
+soh tion
+(rad/sec) ~~ -
+3.5160
+22.034
+6 1.697
+120.90
+199.86
+298.56
+416.99
+555.16
+713.08
+890.73
+1088.1
+1305.3
+1542.1
+1798.7
+2075.1
+237 1.2
+2687.0
+3022.6
+3377.9
+3752.9 ., - ~~ .
+i=3
+" . .
+1.619
+21.73
+456.3
+i=7
+1.132
+1.139
+1.147
+1.162
+1.183
+9.455
+114.1
+Accuracy, A
+i= 12
+1.052
+1.052
+1.051
+1.054
+1.052
+1.053
+1.054
+1.056
+1.059
+1.066
+7.140
+i= 17
+1.031
+1.030
+1.029
+1.030
+1.027
+1.026
+1.025
+1.024
+1.022
+1.020
+1.018
+1.013
+1.007
+0.996
+0.98 1
+5.530
+24.1 1
+i= 22
+1.029
+1.027
+1.026
+1.028
+1.024
+1.023
+1.021
+1.020
+1.018
+1.016
+1.013
+1.008
+1.001
+0.990
+0.973
+0.949
+0.914
+0.868
+0.809
+1.034
+44
+" . . ..
+c
+Table BS-Normal-mode synthesis of a uniform cantilevered beam composed of three identical
+substructures, each of which is modeled by the first i free-free modes computed from a 40-finiteelement source beam.
+Mode
+number
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20 - -__
+Frequency
+of known
+solution
+(rad/sec)
+0.3906
+2.4482
+6.8552
+" -
+13.433
+22.206
+33.173
+46.332
+6 1.684
+79.23 1
+98.970
+120.90
+145.02
+171.34
+199.85
+230.56
+263.46
+298.56
+33 5.84
+375.32
+416.99
+__-
+i=3
+1.231
+1.365
+1.754
+25.09
+114.7
+150.7
+Accuracy, A
+i= 5
+-
+1.1 13
+1.159
+1.277
+1.122
+1.189
+1.240
+1.134
+1.195
+1.262
+13.77
+94.62
+. ~-
+i=7
+1.073
+1.099
+1.159
+1.063
+1.105
+1.146
+1.066
+1.1 10
+1.173
+1.127
+1.140
+1.154
+1.123
+1.138
+1.160
+9.990
+74.22
+~~
+i= 12
+1.040
+1.047
+1.065
+1.026
+1.047
+1.075
+1.030
+1.049
+1.070
+1.030
+1.051
+1.079
+1.039
+1.055
+1.074
+1.038
+1.055
+1.080
+1.056
+1.063
+45
+Table B6-Normal-mode synthesis of three parallel beams fixed at one end and mutually connected
+at their other ends. Each component beam is modeled by the first 12 free-free modes computed
+from a 40-finite-element source beam.
+Mode number
+of single
+cantilever
+Frequency
+of known
+solution
+(rad/sec)
+3.5160
+22.034
+none
+none
+61.697
+none
+none
+1 20.90
+none
+none
+199.86
+none
+none
+298.56
+none
+none
+~
+Mode number
+of three
+parallel
+beams
+1
+2
+2a
+2b
+3
+3a
+3b
+4
+4a
+4b
+5
+Sa
+5b
+6
+6a
+6b
+Computed
+natural
+Frequency
+(rad/sec)
+3.760
+23.60
+26.01
+26.01
+66.18
+70.82
+70.82
+129.9
+142.3
+142.3
+215.2
+231.9
+23 1.9
+322.3
+357.1
+357.1
+Accuracy, A
+1.069
+1.070
+1.073
+1.075
+1.077
+1.080
+Table B7-Nonnal-mode synthesis of a three-beam portal frame, each component of which is
+modeled by the first 12 free-free modes computed from a 40-finite-element source beam. Known
+solutions are the eigenvalue results of a finite-element model of the portal frame in which 40 bar
+elements represent each beam.
+Portal
+I
+number 1;
+46
+Mode
+antisymmetric
+symmetric
+antisymmetric
+symmetric
+antisymmetric
+symmetric
+Frequency
+of known
+soh tion
+(rad/sec)
+3.2035
+12.620
+20.621
+22.275
+44.794
+54.953
+Accuracy, A
+1.532
+0.573
+0.989
+1.037
+0.875
+1.004
+NASA-Langley, 1971 - 32
+I
+NATIONAL AERONAUTICS AND SPACE ADMINISTRA? ION
+WASHINGTON, D. C. 20546
+OFFICIAL BUSINESS FIRST CLASS MAIL PENALTY FOR PRIVATE USE $300
+NATIONAL AERONAUTICS ANPOSTAGE AND FEES PAID
+SPACE ADMINISTRATION
+07U 001 57 51 305 7 11 35 00903
+AIR FORCE WEAPQNS LABORATORY /WLOL/
+KIRTLAND AFBt NEW MEXICO 87117
+Posral Manual) Do Not ReturnIf Undeliverable (Section 158
+‘The aeronat~tical and space activities of the United States shall be
+condacted so as to contribute . . . to the expansion of human knowledge of phenowena in the atmosphere and space. The Administration
+sh&qprouide for the widest practicable and appropriate dissemination
+of information concerning its actitdies and the resalts thereof.”
+-NATIONAL AERONAUTICS AND SPACE ACT OF 1958
+NASA SCIENTIFIC AND TECHNICAL PUBLICATIONS
+TECHNICAL REPORTS: Scientific and
+technical information considered important,
+complete, a,pd a lasting contribution to existing
+knowledge. 9
+TECHNICAL NOTES: Information less broad
+in scope but nevertheless of importance as a
+contribution to existing knowledge.
+TECHNICAL MEMORANDUMS:
+Information receiving limited distribution
+because of preliminary data, security classification, or other reasons.
+CONTRACTOR REPORTS: Scientific and
+technical information generated under a NASA
+contract or grant and considered an important
+contribution to existing knowledge.
+TECHNICAL TRANSLATIONS: Information
+published in a foreign language considered
+to merit NASA distribution in English.
+SPECIAL PUBLICATIONS: Information
+derived from or of value to NASA activities.
+Publications include conference proceedings,
+monographs, data compilations, handbooks,
+sourcebooks, and special bibliographies.
+TECHNOLOGY UTILIZATION
+PUBLICATIONS: Information on technology
+used by NASA that may be of particular
+interest in commercial and other non-aerospace
+applications. Publications include Tech Briefs,
+Technology Utilization Reports and
+Technology Surveys.
+Details on the availability of fhese publications may be obtained from:
+SCIENTIFIC AND TECHNICAL INFORMATION OFFICE
+NATIONAL AERONAUTICS AND SPACE ADMINISTRATION
+Washington, DL. PO546 

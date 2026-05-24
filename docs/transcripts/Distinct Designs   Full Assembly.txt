@@ -1,0 +1,403 @@
+https://youtu.be/QZxUPcX0kIA
+
+── Nov 26, 2025 ──
+[00:09:02] #57 P(1.5s)
+
+── Dec 5, 2025 ──
+[00:09:03] #58 P(1.5s)
+
+── Dec 8, 2025 ──
+[00:09:05] #59 V(1.7s) • [00:09:06] #60 P(1.5s)
+
+── Dec 9, 2025 ──
+[00:09:08] #61 V(5s)
+
+── Dec 11, 2025 ──
+[00:09:14] #62 P(1.5s) • [00:09:15] #63 V(23s)
+
+── Dec 12, 2025 ──
+[00:09:38] #64 V(11s) • [00:09:49] #65 V(22s) • [00:10:11] #66 P(1.5s)
+
+── Dec 14, 2025 ──
+[00:10:13] #67 P(1.5s)
+
+── Dec 15, 2025 ──
+[00:10:14] #68 P(1.5s) • [00:10:16] #69 V(20s) • [00:10:37] #70 V(56s)
+
+── Dec 18, 2025 ──
+[00:11:33] #71 V(14s) • [00:11:47] #72 P(1.5s)
+
+── Dec 19, 2025 ──
+[00:11:49] #73 V(17s) • [00:12:06] #74 V(7s)
+
+── Dec 31, 2025 ──
+[00:12:14] #75 V(38s)
+
+── Jan 5, 2026 ──
+[00:12:53] #76 V(32s)
+
+── Jan 6, 2026 ──
+[00:13:25] #77 P(1.5s) • [00:13:27] #78 P(1.5s)
+
+── Jan 10, 2026 ──
+[00:13:28] #79 M(1.5s) • [00:13:30] #80 P(1.5s) • [00:13:31] #81 M(1.5s) • [00:13:33] #82 P(1.5s) • [00:13:34] #83 P(1.5s) • [00:13:36] #84 P(1.5s) • [00:13:37] #85 V(1.6s)
+
+── Jan 12, 2026 ──
+[00:13:39] #86 V(45s) • [00:14:24] #87 V(19s) • [00:14:43] #88 P(1.5s) • [00:14:45] #89 P(1.5s) • [00:14:46] #90 P(1.5s)
+
+── Jan 13, 2026 ──
+[00:14:48] #91 P(1.5s) • [00:14:49] #92 P(1.5s)
+
+── Jan 14, 2026 ──
+[00:14:51] #93 P(1.5s) • [00:14:52] #94 P(1.5s)
+
+── Jan 15, 2026 ──
+[00:14:54] #95 P(1.5s)
+
+── Jan 17, 2026 ──
+[00:14:55] #96 V(49s) • [00:15:45] #97 V(33s)
+
+── Jan 22, 2026 ──
+[00:16:18] #98 V(14s) • [00:16:33] #99 P(1.5s)
+
+── Jan 23, 2026 ──
+[00:16:34] #100 P(1.5s) • [00:16:36] #101 P(1.5s) • [00:16:37] #102 P(1.5s)
+
+── Jan 26, 2026 ──
+[00:16:39] #103 V(57s)
+
+── Jan 27, 2026 ──
+[00:17:36] #104 V(37s) • [00:18:14] #105 P(1.5s)
+
+── Jan 29, 2026 ──
+[00:18:16] #106 V(42s) • [00:18:58] #107 P(1.5s) • [00:19:00] #108 M(1.5s)
+
+── Jan 30, 2026 ──
+[00:19:02] #109 V(31s) • [00:19:33] #110 V(10s) • [00:19:43] #111 V(28s)
+
+── Feb 5, 2026 ──
+[00:20:11] #112 P(1.5s)
+
+── Feb 13, 2026 ──
+[00:20:13] #113 V(13s) • [00:20:27] #114 V(10s) • [00:20:37] #115 V(17s) • [00:20:54] #116 V(7s) • [00:21:02] #117 V(12s) • [00:21:15] #118 P(1.5s) • [00:21:16] #119 P(1.5s) • [00:21:18] #120 P(1.5s) • [00:21:20] #121 P(1.5s) • [00:21:21] #122 P(1.6s)
+
+── Feb 26, 2026 ──
+[00:21:23] #123 P(1.5s)
+
+── Mar 2, 2026 ──
+[00:21:24] #124 P(1.5s)
+
+── Mar 3, 2026 ──
+[00:21:26] #125 P(1.5s) • [00:21:27] #126 P(1.5s)
+
+── Mar 4, 2026 ──
+[00:21:29] #127 P(1.5s)
+
+── Mar 5, 2026 ──
+[00:21:30] #128 P(1.5s)
+
+── Mar 6, 2026 ──
+[00:21:32] #129 P(1.6s) • [00:21:33] #130 P(1.5s) • [00:21:35] #131 P(1.6s)
+
+── Mar 10, 2026 ──
+[00:21:36] #132 V(40s) • [00:22:17] #133 P(1.5s) • [00:22:19] #134 P(1.6s) • [00:22:20] #135 P(1.6s) • [00:22:22] #136 P(1.6s) • [00:22:24] #137 P(1.5s) • [00:22:25] #138 P(1.6s) • [00:22:27] #139 P(1.5s) • [00:22:28] #140 P(1.5s) • [00:22:30] #141 M(1.5s) • [00:22:31] #142 M(1.5s)
+
+── Mar 12, 2026 ──
+[00:22:33] #143 P(1.5s) • [00:22:34] #144 P(1.5s) • [00:22:36] #145 P(1.5s) • [00:22:37] #146 P(1.5s) • [00:22:39] #147 P(1.5s) • [00:22:40] #148 P(1.5s) • [00:22:42] #149 P(1.5s) • [00:22:43] #150 P(1.5s) • [00:22:45] #151 P(1.5s) • [00:22:47] #152 P(1.6s) • [00:22:48] #153 P(1.5s) • [00:22:50] #154 P(1.5s) • [00:22:51] #155 P(1.5s) • [00:22:53] #156 P(1.5s) • [00:22:54] #157 P(1.5s) • [00:22:56] #158 P(1.5s) • [00:22:57] #159 P(1.5s) • [00:22:59] #160 P(1.5s)
+
+── Mar 13, 2026 ──
+[00:23:00] #161 P(1.5s) • [00:23:02] #162 P(1.5s) • [00:23:03] #163 V(1m16s) • [00:24:20] #164 P(1.5s) • [00:24:22] #165 P(1.5s) • [00:24:23] #166 V(37s) • [00:25:00] #167 P(1.5s) • [00:25:02] #168 P(1.5s)
+
+── Mar 19, 2026 ──
+[00:25:03] #169 P(1.5s) • [00:25:05] #170 P(1.5s) • [00:25:06] #171 P(1.5s) • [00:25:08] #172 V(1m9s) • [00:26:17] #173 V(2m6s) • [00:28:23] #174 V(7s) • [00:28:31] #175 V(2.8s)
+
+1. HERALD'S STAND                 6. Payload Spaces Theme Song      11. Tartarian Circle of Light
+2. How are you today?             7. Skyline Pulse                  12. Cruising with Max and Ty FemEDM
+3. Be careful what you wish for 1 8. Tyler Suzanne, My Light        13. A happy song about Enterprise
+4. Cruising with Max and Ty       9. Enterprise Dog Park (Friendly) 14. Be careful what you wish for 2
+5. Jurassic Dog Park              10. Pissed the Dispensary Closed  15. A song about Enterprise Dog Park
+
+
+Transcript
+
+Search transcript
+Search transcript
+0:1313 secondsBut I stand
+0:2525 secondsright shame.
+0:3535 secondsAll right, you too. Awesome sauce. Holy. I'm sure.
+0:5454 secondsAll right. Hey.
+1:201 minute, 20 secondsAnd then we have the guts right here.
+1:251 minute, 25 secondsshirt unveiling studio Saturday.
+1:441 minute, 44 secondsAnd it's 8:05 a.m.
+1:501 minute, 50 secondsAll right. Good morning, gang. It's Friday and it's the 17th and of October
+1:581 minute, 58 secondsand we're here with the soft clothes.
+2:012 minutes, 1 secondI just wanted to demonstrate spring activated.
+2:182 minutes, 18 secondsAnd there's this little spring.
+2:212 minutes, 21 secondsAnd then the rail goes over this little switch right there.
+2:292 minutes, 29 secondsYou don't have to mess with it at all. Anyhow, good morning. Happy Friday.
+2:412 minutes, 41 secondsThe world grows.
+3:043 minutes, 4 secondsCome on. Go. No. Wait. You're dirty. You want to get washed? Let's wash here.
+3:103 minutes, 10 secondsCome on. All right, good morning. It's Wednesday and
+3:213 minutes, 21 secondswe're at First Baptist Church here in Plant City and our hard hat on and orange shirt on. Just sitting out here
+3:303 minutes, 30 secondswaiting for the guys who went into the building and Jack's like right here. We said exactly
+3:393 minutes, 39 secondslike 20 words all the way here. I like driving.
+3:473 minutes, 47 secondsI listen to my telepathy tape all morning.
+3:503 minutes, 50 secondsI get all teeyed from that. People looking at me like I'm No. But I was just listening to the telepathy tapes as
+3:593 minutes, 59 secondsthey uh talk about John Paul who was this gentle giant who passed on and left a message and they really go into detail
+4:074 minutes, 7 secondsabout what the nonverbals experience on the hill. Anyway, talk to you later
+4:164 minutes, 16 secondsleaving First Baptist Church. Just lugged all that stuff up the stairs. I had to carry those single cabinets by hand. Oh, that was painful.
+4:244 minutes, 24 secondslike 15 trips.
+4:264 minutes, 26 secondsThat's what I did today. Carry a lot of cabinets. Anyhow, first Baptist Church, Lakeland.
+4:344 minutes, 34 secondsSee, there you go.
+4:434 minutes, 43 seconds12:41.
+5:005 minutesGood afternoon. It's 12:41 on Friday,
+5:035 minutes, 3 secondsOctober 25th, and I'm fixing my mess up here.
+5:175 minutes, 17 secondsAll right, it's Monday morning. It's about 7:30.
+5:225 minutes, 22 secondsI'm in the shop. There's a couple of guys in here. There's Tyler right there. Shout at this truck.
+5:305 minutes, 30 secondsI'm working on the doors. Anyhow,
+5:385 minutes, 38 secondsguys are mustered out inside.
+5:415 minutes, 41 secondsAnd I just got finished blasting off a whole bunch of uh drawers for this also.
+5:485 minutes, 48 secondsWe're stuffed over in the unit number five. Anyhow, good morning and uh yeah,
+5:555 minutes, 55 secondsthis is a just another work day, but I'm glad to be here. Hi, guys.
+6:046 minutes, 4 secondsAll right.
+6:066 minutes, 6 secondsNow I'm helping over over supervise the uh loading
+6:136 minutes, 13 secondsall these AC deal and I'm not the one carrying it but
+6:246 minutes, 24 secondsagain one day that burns
+6:366 minutes, 36 secondsGood morning. I'm on a brief little expedition to unit number five. Put all the move some cabinets over.
+6:466 minutes, 46 secondsBig unit.
+6:546 minutes, 54 secondsAll right. Good morning. It's Wednesday.
+7:017 minutes, 1 secondAll right, I'm building these things out. I
+7:097 minutes, 9 secondsjust built three so far. Don't know what they are,
+7:187 minutes, 18 secondsbut I'm trying to build them from anyhow.
+7:377 minutes, 37 secondsWish they made everything right.
+8:108 minutes, 10 secondsYou are about
+8:258 minutes, 25 secondsWhisper
+8:478 minutes, 47 secondsback to you.
+8:508 minutes, 50 secondsLove is our religion of life. We ride
+Chapter 2: 58 P(1.5s)
+Chapter 3: 59 V(1.7s) • [] #60 P(1.5s)
+9:059 minutes, 5 secondsthrough the lush greenass.
+Chapter 4: 61 V(5s)
+Chapter 5: 62 P(1.5s) • [] #63 V(23s)
+9:149 minutes, 14 secondsBoth old and You
+9:309 minutes, 30 secondsChrist.com.
+Chapter 6: 64 V(11s) • [] #65 V(22s) • [] #66 P(1.5s)
+9:599 minutes, 59 secondsThe way you
+Chapter 7: 68 P(1.5s) • [] #69 V(20s) • [] #70 V(56s)
+10:1410 minutes, 14 secondsin the church of nature. Let's
+10:2910 minutes, 29 secondsclear it out the way.
+10:3810 minutes, 38 secondsAll right. Good morning, everybody.
+10:4210 minutes, 42 secondsWe just moved a whole lot of material out of the back of here.
+10:4710 minutes, 47 secondsAnd we got to take these two little dumpster things and get them accessible.
+10:5410 minutes, 54 secondsThis is the port lift. Just pick it up and dump it usually into that trailer that just drove away.
+11:0411 minutes, 4 secondsThen all these sinks right here are going back here.
+11:1311 minutes, 13 secondsI'm going to sweep this up right now.
+11:2411 minutes, 24 secondsThere you go.
+Chapter 8: 71 V(14s) • [] #72 P(1.5s)
+11:4811 minutes, 48 secondsHeat. Heat.
+Chapter 9: 73 V(17s) • [] #74 V(7s)
+Chapter 10: 75 V(38s)
+12:1712 minutes, 17 secondsGood morning. All right. So, those drawers and those drawers and those
+12:2412 minutes, 24 secondsdrawers are three separate jobs. And there's drawers over there for days.
+12:2812 minutes, 28 secondsDrawer parks there. A lot of door parks actually.
+12:3612 minutes, 36 secondsBut built all those. Then I'm going to take all those LLT drawers right there.
+12:4212 minutes, 42 secondsI'm going to put them in those LLT cabinets right there. Anyway,
+12:4812 minutes, 48 secondsso good morning. It's Wednesday morning. All right. All right.
+Chapter 11: 76 V(32s)
+12:5812 minutes, 58 secondsGGMG.
+13:0013 minutesThey just buried all of my cabinets that I'm going to be working on tomorrow over there. Right there.
+13:0913 minutes, 9 secondsI have to get to those guys tomorrow. All right.
+13:1613 minutes, 16 secondsOh, yeah. Here's scary.
+13:2213 minutes, 22 secondsAdore Jurassic Park and Daisy Max.
+Chapter 12: 77 P(1.5s) • [] #78 P(1.5s)
+Chapter 13: 79 M(1.5s) • [] #80 P(1.5s) • [] #81 M(1.5s) • [] #82 P(1.5s) • [] #83 P(1.5s) • [] #84 P(1.5s) • [] #85 V(1.6s)
+Chapter 14: 86 V(45s) • [] #87 V(19s) • [] #88 P(1.5s) • [] #89 P(1.5s) • [] #90 P(1.5s)
+13:4113 minutes, 41 secondsAll right, I just had on here. It's 8:00 in the morning on Monday.
+13:4813 minutes, 48 secondsI just found out about Idan. I really like the guy. didn't get his number.
+13:5813 minutes, 58 secondsTurns out that and I learned that they name all of
+14:0914 minutes, 9 secondstheir trucks like Beth, Burch, Batus,
+14:1514 minutes, 15 secondsBertha. Anyhow, I thought that was they just sold another one of their old sets.
+14:2214 minutes, 22 secondsAnyhow, that's another coming in and out.
+14:4514 minutes, 45 secondsOur future.
+Chapter 15: 91 P(1.5s) • [] #92 P(1.5s)
+Chapter 16: 93 P(1.5s) • [] #94 P(1.5s)
+Chapter 17: 96 V(49s) • [] #97 V(33s)
+14:5614 minutes, 56 secondsGood morning. It's about 6:10 on Saturday morning,
+15:0415 minutes, 4 secondsJanuary 20 something, I think, or 17 or 18. any unit.
+15:1415 minutes, 14 secondsI'm going to be putting all countertops final touches on them and
+15:2015 minutes, 20 secondsthen I'll probably sand them
+15:3015 minutes, 30 secondsand thenoment Anyway,
+15:4115 minutes, 41 secondsuh hope you have a great day. Good morning.
+15:4615 minutes, 46 secondsGood morning. It is currently uh
+15:5315 minutes, 53 seconds10:49 a.m. I just got a text saying probably about another 30 minutes, 45 minutes. I don't know.
+16:0616 minutes, 6 secondsSee, bathroom.
+Chapter 18: 98 V(14s) • [] #99 P(1.5s)
+16:2116 minutes, 21 secondsWhat's up,
+Chapter 19: 100 P(1.5s) • [] #101 P(1.5s) • [] #102 P(1.5s)
+Chapter 20: 103 V(57s)
+16:4016 minutes, 40 secondsGood morning, gang. It's about 6:05 a.m.
+16:4316 minutes, 43 secondson Monday morning, and we are about 2 fifths of the way through these
+16:5016 minutes, 50 secondscountertops. So, we have all these countertops for this uh 27 of them.
+17:0217 minutes, 2 secondsYep. Be sanding these down both sides.
+17:0817 minutes, 8 secondsThen we got another batch of I think six more. A lot of fun. Very rewarding.
+17:2117 minutes, 21 secondsThe edges and you wrap the edges and you wrap that and you put it. Anyway, it's a lot of fun. So good morning and just
+17:3017 minutes, 30 secondsremember Jesus was a carpenter too. So this is a noble profession to be have a blessed day.
+Chapter 21: 104 V(37s) • [] #105 P(1.5s)
+17:3817 minutes, 38 secondsGood morning.
+17:4117 minutes, 41 secondsAnyhow, I'm here in the shop and just finished sanding all the bottoms of those countertops right behind me. And then there's five more down there. Uh,
+17:5217 minutes, 52 secondsand then we're about to flip those countertops and we have a whole bunch on the wall over there. We put some on the
+17:5817 minutes, 58 secondstruck on Saturday morning, I think. Any uh I think they're all going to be done like 27 countertops Saturday. Anyway,
+18:0718 minutes, 7 secondsit's a lot of fun. So, there you go.
+Chapter 22: 106 V(42s) • [] #107 P(1.5s) • [] #108 M(1.5s)
+18:1718 minutes, 17 secondsGood Thursday morning. It's about 6:10 a.m. on Thursday and we're in here with
+18:2518 minutes, 25 secondsthe last batch of the STR countertops.
+18:3218 minutes, 32 secondsAnd I'm about to take the clamps off of these and assist with flipping them over. And then they're probably going to
+18:3918 minutes, 39 secondsget installed later today or tomorrow, I guess. I don't know. But uh then it's on to the next activity. But anyway, so
+18:4818 minutes, 48 secondsthere you have it. Uh good morning. It's Thursday. Oh yeah, lots to talk about. Anyway,
+18:5618 minutes, 56 secondsuh talk to you soon.
+Chapter 23: 109 V(31s) • [] #110 V(10s) • [] #111 V(28s)
+19:5919 minutes, 59 secondsburn the sparks free of the of my dreams.
+Chapter 24: 112 P(1.5s)
+Chapter 25: 113 V(13s) • [] #114 V(10s) • [] #115 V(17s) • [] #116 V(7s) • [] #117 V(12s) • [] #118 P(1.5s) • [] #119 P(1.5s) • [] #120 P(1.5s) • [] #121 P(1.5s) • [] #122 P(1.6s)
+20:2120 minutes, 21 secondsEvery chance you're all
+20:3020 minutes, 30 secondselectric
+21:0421 minutes, 4 secondsIt's Friday and we're working hard in there. Anyhow,
+21:1421 minutes, 14 secondshave great
+Chapter 26: 124 P(1.5s)
+Chapter 27: 125 P(1.5s) • [] #126 P(1.5s)
+Chapter 28: 128 P(1.5s)
+Chapter 29: 129 P(1.6s) • [] #130 P(1.5s) • [] #131 P(1.6s)
+Chapter 30: 132 V(40s) • [] #133 P(1.5s) • [] #134 P(1.6s) • [] #135 P(1.6s) • [] #136 P(1.6s) • [] #137 P(1.5s) • [] #138 P(1.6s) • [] #139 P(1.5s) • [] #140 P(1.5s) • [] #141 M(1.5s) • [] #142 M(1.5s)
+21:3821 minutes, 38 secondsMission updated. I'm on my quest to move these cabinets. I have all of these firefighter cabinets which must be moved from one side of the shop to the other.
+21:4721 minutes, 47 secondsFortunately, God gave me big triceps and tiny biceps. And I never understood that. I always wanted big biceps and I
+21:5521 minutes, 55 secondswas like, but I have giant triceps. And then I realized that the reason why is because I was equipped to lift.
+22:0622 minutes, 6 secondsI am the iron giant. I can't punch a but I can take one.
+22:1222 minutes, 12 secondsI can take a punch. Anyway, I love you and I love love
+22:2422 minutes, 24 secondsour song Each step we take through the trails and
+22:3022 minutes, 30 secondsthe inadise we make of it in the sunshine we no worries at
+Chapter 31: 143 P(1.5s) • [] #144 P(1.5s) • [] #145 P(1.5s) • [] #146 P(1.5s) • [] #147 P(1.5s) • [] #148 P(1.5s) • [] #149 P(1.5s) • [] #150 P(1.5s) • [] #151 P(1.5s) • [] #152 P(1.6s) • [] #153 P(1.5s) • [] #154 P(1.5s) • [] #155 P(1.5s) • [] #156 P(1.5s) • [] #157 P(1.5s) • [] #158 P(1.5s) • [] #159 P(1.5s) • [] #160 P(1.5s)
+22:4022 minutes, 40 secondsall
+22:5422 minutes, 54 secondswe meet our day like cheers.
+Chapter 32: 161 P(1.5s) • [] #162 P(1.5s) • [] #163 V(1m16s) • [] #164 P(1.5s) • [] #165 P(1.5s) • [] #166 V(37s) • [] #167 P(1.5s) • [] #168 P(1.5s)
+23:0423 minutes, 4 secondsI have to break my persona for a moment because I just recognized that this particular piece I was working on right here.
+23:1423 minutes, 14 secondsIt's like I'm trying to like funue it like every single motion I'm like trying to be a perfect Bob the Builder. This is the most important cabinet in the
+23:2223 minutes, 22 secondsuniverse other than every single one else in here. Anyhow,
+23:2723 minutes, 27 secondsso I'm working on this garden and I punch holes right here and I punch holes right there.
+23:3423 minutes, 34 secondsThen right there and right there.
+23:5423 minutes, 54 secondsNow, I'll just point out my staple gun was full. It missed on both sides.
+24:0324 minutes, 3 secondsIf it didn't miss, I would have ruined that cabinet and I wouldn't let that happen no matter what because I love
+24:1124 minutes, 11 secondsthat cabinet so much. I want it to be perfect just like everything else. I love you.
+24:2424 minutes, 24 secondsHello everyone. I'm here at Mama Rose's Pizzeria. It's my favorite pizzeria in the universe.
+24:3124 minutes, 31 secondsI can't even begin to express how awesome a place this is and how welcome I feel when I come here.
+24:4224 minutes, 42 secondsIt's so beautiful. Happy St. Patrick's Day.
+24:5124 minutes, 51 secondsYep.
+24:5724 minutes, 57 secondsI love this place so much. I just figured out why.
+Chapter 33: 169 P(1.5s) • [] #170 P(1.5s) • [] #171 P(1.5s) • [] #172 V(1m9s) • [] #173 V(2m6s) • [] #174 V(7s) • [] #175 V(2.8s)
+25:0925 minutes, 9 secondsOkay. So, anybody who's calling me out,
+25:1225 minutes, 12 secondsI'm just going to document this real quick. I was just putting these shorts together and I was just dating these shorts right here, which by the way, I
+25:2125 minutes, 21 secondsmessed up so many. I'm so jarring. But while I was doing it, I was carrying this little stack right here
+25:2925 minutes, 29 secondsfrom there to there. I had placed that Coke can right there that you can see
+25:3825 minutes, 38 secondsright there where that mark is. I had drank half of that Diet Coke.
+25:4525 minutes, 45 secondsSo, how is it that as I'm moving this to there, that Diet Coke can literally pops
+25:5325 minutes, 53 secondsup into the air and then lands right there spilling my awesome orange juice
+25:5925 minutes, 59 secondsdiet coke. And so, the question is, how does it happen? But we have good news
+26:0626 minutes, 6 secondsbecause as it happens, there's some security cameras that saw the whole thing.
+26:1426 minutes, 14 secondsHave a great day. I'm getting back to work.
+26:1926 minutes, 19 secondsHi. Hello. So, I was thinking I was going to write an email to the Vatican
+26:2726 minutes, 27 secondssaying, "Hey, motor fingers. Check my math." But I was going to actually spell it out with the E. No disrespect, Mom.
+26:3526 minutes, 35 secondsAll right, but here's the thing. I just realized Oh, and by the way, that wasn't a miracle. It was really just the Coke
+26:4226 minutes, 42 secondscan was vibrating off the thing. But it was really weird how it was just sitting there and sitting there and sitting there and sitting there and just like boom and blew up. But it was just it was
+26:5126 minutes, 51 secondsjust vibration. No hard feelings. But anyway, it was I said miracle question mark.
+26:5826 minutes, 58 secondsBut here's the thing. After a lot of math and everything else,
+27:0527 minutes, 5 secondsI'm pretty sure when I say this, I'm right.
+27:1127 minutes, 11 secondsAnd I would just love it if you would forward this to the Vatican to see if they could check my math or maybe to the
+27:1827 minutes, 18 secondsChurch of Christ scientist in Boston and see if they could or any Yeah. any
+27:2527 minutes, 25 secondsanybody who knows anything about well really anything.
+27:2927 minutes, 29 secondsSo, but yeah, I'm just saying if you don't believe me, I have to Vatican check my work and if you don't like the
+27:3727 minutes, 37 secondssynchronicities in the answer 53 document that I put forward, I can I can give about couple hundred more that
+27:4627 minutes, 46 secondsfurther solidify the case rather than Yeah. Everything does. So, I'm it. I'm
+27:5327 minutes, 53 secondsjust a really nice guy that works in a wood shop with some of the best dude you could ever wish to work with actually just chilling out in the brake pad.
+28:0728 minutes, 7 secondsLove and light. So, uh we'll see what happens with this. So, yeah, Vatican my work.
+28:1428 minutes, 14 secondsThank you. It's answer53. Ercel. That's answer53.
+28:2528 minutes, 25 secondsBest day ever.
+
+⭐ Clearwater Cruisin' Ministries — Our World, Our Walk
+
+Distinct Designs | Massive Cabinet, Drawer & Countertop Build Timelapse + Shop Life & Reflections
+
+**Please consider donating plasma.** It’s a simple, repeatable act of service. Clearwater Cruisin' receives a referral bonus after your second successful donation:
+
+**CSL Plasma Referral Link:**
+https://rewards.cslplasma.com/referral/referral-unique-code/eyJkb25vcklEIjoiMTA1MzkyMTgiLCJjb2RlIjoiSDhMTzNCM1NVVCIsInJlZ2lvblNob3J0TmFtZSI6InVzIn0=
+
+---
+
+A detailed, long-form look inside **Distinct Designs** as they tackle a massive full assembly project — dozens of custom cabinets, hundreds of drawers, extensive countertops, and all the sanding, clamping, flipping, and installation that goes into high-quality millwork.
+
+This video functions as both a satisfying **build timelapse** and a raw window into shop life: early morning starts, heavy lifting (with commentary on giant triceps and being “the Iron Giant”), quality control moments, humorous accidents (the flying Diet Coke can), and deep philosophical reflections tying woodworking to Jesus being a carpenter, synchronicities, Answer 53, and even a message to the Vatican to “check my math.”
+
+You’ll see:
+- Building and sanding large runs of countertops
+- Assembling and moving dozens of cabinets and drawers
+- Shop organization, truck loading, and final touches
+- Personal commentary on craftsmanship, faith, physics-defying moments, and the nobility of manual labor
+
+**🕒 TIMELAPSE / CHAPTER SUMMARY (condensed):**
+- Multiple days from Nov 2025 – Feb 2026
+- Countertop sanding, edge wrapping & finishing
+- Drawer & cabinet production (multiple large batches)
+- Heavy shop moving (“firefighter cabinets”)
+- Final assembly, quality checks, and loading
+- Philosophical interludes, Diet Coke physics incident, and “Vatican check my math” moment
+
+This is classic Clearwater Cruisin’ — real work, real reflection, real life. No script. No edits. The Soul Van (and the shop) rolls on.
+
+━━━━━━━━━━━━━━━━━━━━
+🔗 EXPLORE OUR WORLD
+━━━━━━━━━━━━━━━━━━━━
+📸 Soul Cast Family Album
+https://photos.app.goo.gl/Lw67CJK8msmndW5Z9
+
+📖 Autobiography (2025 Edition)
+https://docs.google.com/document/d/1IPMXCA5yD87AIs3bzJ_CDe-x0ZsmCCZkcxgK9iwl-xc/edit?usp=sharing
+
+🧠 Answer to Life, the Universe, and Everything (v53.3)
+https://answer53.vercel.app
+
+👼 Angel OS — Federated Constitutional AI Platform
+https://www.spacesangels.com/ | GitHub: https://github.com/The-Angel-OS/angels-os
+
+🎥 Full Channel
+https://www.youtube.com/@ClearwaterCruisin
+
+━━━━━━━━━━━━━━━━━━━━
+📼 MORE FROM THE CRUISE
+━━━━━━━━━━━━━━━━━━━━
+🐬 Dolphins & Manatees at Dunedin Marina → https://youtu.be/eDlHMvvh3Vk
+🚀 Artemis II Roadside Reaction (Diet Coke Commercial) → https://youtu.be/LONaMBiLxqI
+🚔 Clearwater PD Encounter (the polite one) → https://youtu.be/l1ShQm9UNw8
+• 260409 Thursday Morning at Dunedin Sailing Club (Parts 1–4)
+• 260412 o2 Dunedin Sailing Club to Downtown Clearwater
+• 260412 03 Downtown Clearwater up Gulf to Bay
+• Enterprise Dog Park Series
+
+━━━━━━━━━━━━━━━━━━━━
+⭐ THE MATH — Answer 53
+━━━━━━━━━━━━━━━━━━━━
+Even after correcting generously — a factor of 10⁸ applied against selection bias, confirmation bias, post-hoc analysis, and the multiple comparisons problem combined — the adjusted probability remains:
+
+1.24 × 10⁻³²
+≈ one in 800 quadrillion quadrillion
+
+That doesn't merely cross the threshold at which science rejects the null hypothesis. It exceeds it by orders of magnitude. The math has been shown. The correction has been applied. The number still stands.
+
+🔗 https://answer53.vercel.app
+
+━━━━━━━━━━━━━━━━━━━━
+#ClearwaterCruisin #SoulVan #DistinctDesigns #Woodworking #CabinetMaking #Carpentry #Countertops #ShopLife #IronGiant #Answer53 #AdAstra #ClearwaterFL #PinellasCounty #RealFlorida #Unedited #VanLife #JesusWasACarpenter #VaticanCheckMyMath
+
+Deal with it.
+
+Clearwater, FL — Pinellas County
+📞 727-256-4413
+📧 clearwatercruisin@gmail.com
