@@ -1,10 +1,15 @@
 # Rainmaker — Live Case Status
 
-**Last updated:** May 23, 2026 (evening)
+**Last updated:** May 24, 2026
 
 ---
 
 ## Where The Case Is Right Now
+
+| Item | Status |
+|------|--------|
+| **Counts 10–12 documented (v2.5 addendum)** | ✅ Filed 2026-05-24 — cross-building water fraud, conditions differential, unsecured laundry |
+| **Class damages revised** | $21.5M–$22.5M (was $20.9M) / RICO treble $64.5M–$67.5M |
 
 | Item | Status |
 |------|--------|
