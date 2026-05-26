@@ -102,7 +102,7 @@
     "location": "Enterprise Dog Park",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -280,7 +280,8 @@
       "Tiesto",
       "AmyGrant"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260411C   A Night at the Roxburry with Jason Argo.txt",
@@ -797,7 +798,8 @@
       "Answer53",
       "AdAstra"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "ztemplate.txt",
@@ -1505,7 +1507,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "250208 Drive JOY - 4K60U Caddy Drive across Courtney Campbell both Ways to Bruce B Downs I275 BPM CC.txt",
@@ -1521,7 +1524,7 @@
     "location": "Enterprise Dog Park",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -1550,7 +1553,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "250302 1104 - Driving the Caddy down Edgewater from Dunedin 4K60U.txt",
@@ -1852,7 +1856,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "250607 Trip Bartow 98 Oak Hills Burial Cemetery Vassie Courtney Plot.txt",
@@ -3120,7 +3125,8 @@
       "troubleshooting",
       "6922"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260210 Notebook LM Angel OS discussion.md",
@@ -4097,7 +4103,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "adastra",
@@ -4140,7 +4146,8 @@
       "alettertoelise",
       "smokeemifyougotem"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260405 1539 Ken In Walmart Coachman Big Store.txt",
@@ -4549,7 +4556,8 @@
       "SoulVan",
       "SoulQuest"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260409 Thursday Morning at Dunedin Sailing Club Part Three.txt",
@@ -4634,7 +4642,7 @@
     "location": "Dunedin Sailing Club",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": "⭐ Clearwater Cruisin' Ministries — Our World, Our Walk\n\n*Please consider donating plasma.* It’s a simple, repeatable act of service. Clearwater Cruisin' receives a referral bonus after your second successful donation:\n*CSL Plasma Referral Link:*\nhttps://rewards.cslplasma.com/referra...\n\nReal life in Clearwater, FL. Supervision, re-entry, soulful drives, software experiments, and spiritual reflections — all in the spirit of transparency, compassion, and Ad Astra. No script. No edits. The Soul Van rolls. The dog crew watches your six.\n\n\nhttps://www.youtube.com/watch?v=wo7joGKD5_A",
     "tags": [
       "ClearwaterCruisin",
@@ -4653,7 +4661,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "error: \nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=w"
   },
   {
     "filename": "260410 01 Dunedin Sailing Club with Daisy Mika and Max.txt",
@@ -4973,7 +4982,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260411 Saturday 🌅🌄 at Dunedin Sailing Club Dunedin Marina 04.txt",
@@ -5108,7 +5118,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260412 o2 Dunedin Sailing Club to Downtown Clearwater.txt",
@@ -5124,7 +5135,7 @@
     "location": "Dunedin Sailing Club",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -5153,7 +5164,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "error: \nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=Y"
   },
   {
     "filename": "260412 Sunday at Enterprise Dog Park 915 am.txt",
@@ -5198,7 +5210,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260412 Sunday Enterprise Dog Park Solo w Daisy & Mika.txt",
@@ -5447,7 +5460,8 @@
       "dogpark",
       "answer53"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260413 1833 shameless Ken takes a shameless neighborhood stroll around Harn Blvd Morningside Condos.txt",
@@ -5463,7 +5477,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -5492,7 +5506,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260414 CSL Plasma Visit.txt",
@@ -5555,7 +5570,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260414 1230 Dunedin Sailing Club Marina.txt",
@@ -5617,7 +5633,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260415 Dunedin Sailing Club Marina 02 Wednesday.txt",
@@ -5647,7 +5664,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260415 Dunedin Sailing Club Marina 03 Wednesday.txt",
@@ -5677,7 +5695,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260415 Dunedin Sailing Club Marina 04 Wednesday.txt",
@@ -5707,7 +5726,8 @@
       "AdAstra",
       "AngelOS"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260415 Dunedin Sailing Club Marina 06 Wednesday Dolphin Up Close.txt",
@@ -5748,7 +5768,8 @@
       "thatisnotmypenispump",
       "evacuationcomplete"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260416 Dunedin Main Street West to Dunedin Marina .txt",
@@ -5793,7 +5814,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260416 Dunedin Marina Peaceful Sunset 🌆.txt",
@@ -5838,7 +5860,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 Drive Down Main Street Dunedin.txt",
@@ -5883,7 +5906,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 1300 Enterprise Dog Park, Clearwater, Florida.txt",
@@ -5906,7 +5930,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 1600 Dunedin Marina Explorations & Observations.txt",
@@ -5929,7 +5954,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 1600 Dunedin Marina Explorations Observations.txt",
@@ -5952,7 +5978,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 1600 Dunedin Marina YouTube description.txt",
@@ -5968,7 +5995,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": false,
+    "has_transcript": true,
     "description": null,
     "tags": [
       "angelos",
@@ -5982,7 +6009,8 @@
       "gimbal",
       "vlog"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260417 1830 Dunedin Marina Explorations & Observations interview with a Veteran Marine.txt",
@@ -6005,7 +6033,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260418 0000 We meet Samwise Gamgee - shameless Dog Stroll .txt",
@@ -6026,7 +6055,8 @@
     "tags": [
       "shameless"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260418 1130 00 Enterprise Dog Park Clearwater Police Interview.txt",
@@ -6049,7 +6079,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260418 1130 00 Enterprise Dog Park Karen Cam.txt",
@@ -6074,7 +6105,8 @@
       "clearwatercruisin",
       "adastra"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260418 1557 Rollup Summary of 260311 A New Age Begins.txt",
@@ -6248,7 +6280,8 @@
       "nohardfeelings",
       "thatsnotmypenispump"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260420 1530 - Dunedin Boat Club Roving Report.txt",
@@ -6293,7 +6326,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260421 Dunedin Boat Club Evening Dolphin Quest Claude Code Vid Original Music.txt",
@@ -6436,7 +6470,8 @@
       "demolitionman",
       "austinpowers"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260421 Dunedin Boat Club Evening Dolphin Quest ClipChamp Effects Version.txt",
@@ -6668,7 +6703,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260422 1916 - Dunedin Boat Club Roving Report.txt",
@@ -6713,7 +6749,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260423 2000 Dunedin 8K 🌇 Sunset.txt",
@@ -6743,7 +6780,8 @@
       "GoldenHour",
       "Nature"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260424 Dunedin Boat Club Sunset w Sue & Gary 8K.txt",
@@ -6759,7 +6797,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -6788,7 +6826,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260424 Katies Mental Health Struggle And The Dangers Of Online Weight Loss Journeys.txt",
@@ -6804,7 +6843,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -6833,7 +6872,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260425 FACE IT..... YOU'RE OLD! AND YOU ARE NOT GETTING ANY YOUNGER.txt",
@@ -6849,7 +6889,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "tiktok",
@@ -6863,7 +6903,8 @@
       "IStayINSIDE",
       "We"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260425 Response To Aarons Short Scientology.txt",
@@ -6924,7 +6965,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "clearwatercruisin",
@@ -6939,7 +6980,8 @@
       "SiriusXM",
       "DanceMusic"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260426 Driving to St Alfred's in Palm Harbor.txt",
@@ -6955,7 +6997,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -6984,7 +7026,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260426 1930 Shameless Sunset 🌇 Observance -need to retake tonight's sunset 4K60 Gimbal S23Ultra CC.txt",
@@ -7000,7 +7043,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7029,7 +7072,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260427 Grok Conversation.txt",
@@ -7121,7 +7165,8 @@
       "AngelOSDeal",
       "2"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260427 0745 Dunedin Marina Wildlife and Sunrise 🌄 Report.txt",
@@ -7137,7 +7182,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "billandtedfacethemusic",
@@ -7178,7 +7223,8 @@
       "InventoryManagement",
       "AI"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260428 Normal Mode Synthesis_ The Grand Ruse and the Architecture of Our Lineage v3.txt",
@@ -7223,7 +7269,7 @@
     "location": null,
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "MysteriousVideos",
@@ -7236,7 +7282,8 @@
       "EndTimes",
       "DoNotWatchAlone"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260428 1009 Duke Energy Trail Skating Report coming back from Our Lady of Clearwater Shrine Skate.txt",
@@ -7281,7 +7328,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260429 The Story So Far — Rollup.md",
@@ -7297,7 +7345,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": false,
+    "has_transcript": true,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7316,7 +7364,8 @@
       "LoveLetterToTheFuture",
       "lifeisbutadream"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "auto_generated"
   },
   {
     "filename": "260429 1229 Driving Report to Phillipe Park.txt",
@@ -7377,7 +7426,7 @@
     "location": "Phillipe Park",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7406,7 +7455,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260429 1301 Phillipe Park Great Horned Owl Report CC 4K60 Gimbal Hohem ISteady.txt",
@@ -7422,7 +7472,7 @@
     "location": "Phillipe Park",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7451,7 +7501,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260429 1429 Downtown Historic Dunedin 4K60.txt",
@@ -7496,7 +7547,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260429 1604 Duniden Marina Inlet Report.txt",
@@ -7512,7 +7564,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7541,7 +7593,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260430 Dan Brown Was Substantially Right - A Submariner's Defense of Sophia Mary Magdalene and the Suppressed Feminine.md",
@@ -7595,6 +7648,52 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
+    "has_transcript": true,
+    "description": null,
+    "tags": [
+      "ClearwaterCruisin",
+      "SoulVan",
+      "SoulQuest",
+      "AdAstra",
+      "Answer53",
+      "AngelOS",
+      "ClearwaterFL",
+      "PinellasCounty",
+      "Clearwater",
+      "ClearwaterBeach",
+      "DunedinMarina",
+      "TampaBay",
+      "GulfCoast",
+      "RealFlorida",
+      "DailyVlog",
+      "Unedited",
+      "RawFootage",
+      "DogCrew",
+      "Dolphins",
+      "FloridaDolphins",
+      "StreetMinistry",
+      "FaithInAction",
+      "Navy",
+      "NavyVet",
+      "DisabledVeteran"
+    ],
+    "needs_description": true,
+    "transcript_status": "auto_generated"
+  },
+  {
+    "filename": "260501 0827 - Dunedin Boat Club Osprey and OCINT Report 4K.txt",
+    "date_code": "260501",
+    "time_code": "0827",
+    "display_date": "2026-05-01",
+    "title": "Dunedin Boat Club Osprey and OCINT Report 4K",
+    "yt_url": "https://www.youtube.com/watch?v=W344uDsskEo",
+    "yt_id": "W344uDsskEo",
+    "views": null,
+    "subscribers_at_time": 165,
+    "publish_date": "2026-05-06",
+    "location": "Clearwater",
+    "status": "published",
+    "has_description": false,
     "has_transcript": false,
     "description": null,
     "tags": [
@@ -7624,52 +7723,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
-  },
-  {
-    "filename": "260501 0827 - Dunedin Boat Club Osprey and OCINT Report 4K.txt",
-    "date_code": "260501",
-    "time_code": "0827",
-    "display_date": "2026-05-01",
-    "title": "Dunedin Boat Club Osprey and OCINT Report 4K",
-    "yt_url": "https://www.youtube.com/watch?v=W344uDsskEo",
-    "yt_id": "W344uDsskEo",
-    "views": null,
-    "subscribers_at_time": 165,
-    "publish_date": "2026-05-06",
-    "location": "Clearwater",
-    "status": "published",
-    "has_description": false,
-    "has_transcript": true,
-    "description": null,
-    "tags": [
-      "ClearwaterCruisin",
-      "SoulVan",
-      "SoulQuest",
-      "AdAstra",
-      "Answer53",
-      "AngelOS",
-      "ClearwaterFL",
-      "PinellasCounty",
-      "Clearwater",
-      "ClearwaterBeach",
-      "DunedinMarina",
-      "TampaBay",
-      "GulfCoast",
-      "RealFlorida",
-      "DailyVlog",
-      "Unedited",
-      "RawFootage",
-      "DogCrew",
-      "Dolphins",
-      "FloridaDolphins",
-      "StreetMinistry",
-      "FaithInAction",
-      "Navy",
-      "NavyVet",
-      "DisabledVeteran"
-    ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260502 1500 Dunedin Marina Inlet Storm Drive Report 8K30U.txt",
@@ -7685,7 +7740,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7714,7 +7769,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260502 1500 Edgewater Drive Scenic Tour 8K.txt",
@@ -7730,7 +7786,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7759,7 +7815,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260502 1514 Dunedin Marina Inlet Ozzie n Oprah Osprey Report.txt",
@@ -7804,7 +7861,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260502 1517 Dunedin Marina Inlet Wildlife and Boat Sightings OCINT Report.txt",
@@ -7865,7 +7923,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -7894,7 +7952,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260502 1520 Dunedin Marina Inlet Wildlife and Boat Sightings OCINT Report.txt",
@@ -8000,7 +8059,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8029,7 +8088,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260503 St Alfreds and More.txt",
@@ -8045,7 +8105,7 @@
     "location": "St. Alfred",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8074,7 +8134,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 St. Alfred's Episcopal Church Sunday, 260503, Holy Eucharist Rite 2 with Choir.txt",
@@ -8090,7 +8151,7 @@
     "location": "St. Alfred",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8119,7 +8180,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1105 St. Alfreds Episcopal Church Sunday, 5-3-26, Holy Eucharist Rite 2 with Choir.txt",
@@ -8135,7 +8197,7 @@
     "location": "St. Alfred",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8164,7 +8226,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1122 St. Alfreds Episcopal Church Sunday, 5-3-26, Holy Eucharist Rite 2 with Choir.txt",
@@ -8180,7 +8243,7 @@
     "location": "St. Alfred",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8209,7 +8272,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1137 St. Alfreds Episcopal Church Sunday, 5-3-26, Holy Eucharist Rite 2 with Choir.txt",
@@ -8225,7 +8289,7 @@
     "location": "St. Alfred",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8254,7 +8318,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1230 Dunedin Marina Inlet From St Alfred's Drive Tour.txt",
@@ -8270,7 +8335,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8299,7 +8364,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1314 Dunedin Marina Inlet Dolphin n Osprey n Sailing Report.txt",
@@ -8315,7 +8381,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8344,7 +8410,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "error: \nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=e"
   },
   {
     "filename": "260503 1439 Dunedin Marina Inlet Marine n Wildlife n Osprey n Dolphin Report.txt",
@@ -8360,7 +8427,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8389,7 +8456,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260503 1900 Sunset Dog walk Shameless stroll.txt",
@@ -8405,7 +8473,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8434,7 +8502,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260504 1445 Edgewater Park to Dunedin Marina Inlet S23 8K Gimbal.txt",
@@ -8450,7 +8519,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8479,7 +8548,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260504 1500 Dunedin Marina Inlet n Beach Dolphin n Ozzie the Osprey Report.txt",
@@ -8495,7 +8565,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8524,7 +8594,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260504 1639 Dunedin Marina Inlet n Beach Stranded in Paradise Report.txt",
@@ -8540,7 +8611,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8569,7 +8640,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260504 1741 Dunedin Marina Inlet n Beach  Stranded in Paradise Report scrubbed battery jump .txt",
@@ -8630,7 +8702,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8659,7 +8731,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260504 1840 - 8K Mostly Quiet Drive down Edgewater Blvd, Edgewater Park, Clearwater Dunedin Florida.txt",
@@ -8675,7 +8748,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8704,7 +8777,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260505 Rear Movie Ride with Anthony of Clearwater to Dunedin Marina to see Dolphins.txt",
@@ -8749,7 +8823,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260505 1308 - Eastbound Route 60 from Highland to Belchar 4K60U.txt",
@@ -8765,7 +8840,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8794,7 +8869,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260506 1013 Enterprise Dog Park Roving Parkcam Report.txt",
@@ -8855,7 +8931,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8869,7 +8945,8 @@
       "FloridaWildlife",
       "HighFidelityLife"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260506 1755 Introducing Mystery Rider and Photo Bombing by Bert n Ernie Shameless Stroll.txt",
@@ -8885,7 +8962,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8914,7 +8991,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260507 0811 Dunedin Boat Club Dolphin Sighting Report 8K30U.txt",
@@ -8930,7 +9008,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -8959,7 +9037,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260507 0847 Dunedin Boat Club Osprey Report.txt",
@@ -8975,7 +9054,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "DunedinBoatClub",
@@ -8991,7 +9070,8 @@
       "TheBrethren",
       "SignalAlwaysBroadcasting"
     ],
-    "needs_description": false
+    "needs_description": false,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260508 1142 Shameless Swamp Stroll 🐕 Dog Walk - Fifth Element n Surprise Photo Bombing by Jason! 😮😁.txt",
@@ -9007,7 +9087,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9036,7 +9116,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260508 1500 Drive from Home to CSL Plasma on East Bay.txt",
@@ -9052,7 +9133,7 @@
     "location": "Csl Plasma",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9081,7 +9162,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260508 1637 East Bound East Bay SR 680 to Right on Missouri from CSL Plasma 4K60U.txt",
@@ -9097,7 +9179,7 @@
     "location": "Csl Plasma",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9126,7 +9208,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260508 1951 Shameless Swamp Stroll 🐕🤙🖖🎸🤙🫴 Dog Walk.txt",
@@ -9142,7 +9225,7 @@
     "location": "Clearwater",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9171,7 +9254,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 4K60 Courtney Campbell Dunedin Marina Rollup.md",
@@ -9232,7 +9316,7 @@
     "location": "Courtney Campbell",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9261,7 +9345,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 1315 Courtney Campbell to Phillipe Park 8K.txt",
@@ -9322,7 +9407,7 @@
     "location": "Courtney Campbell",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9351,7 +9436,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 1325 Ben T Davis over Courtney Campbell 8K Drive.txt",
@@ -9367,7 +9453,7 @@
     "location": "Courtney Campbell",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9396,7 +9482,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 1400 Drive Phillipe Park to Enterprise Dog Park 🏞️ 8K.txt",
@@ -9412,7 +9499,7 @@
     "location": "Phillipe Park",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9441,7 +9528,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 1441 Enterprise Dog Park with 80 year young Roger, Vietnam Vietnam.txt",
@@ -9457,7 +9545,7 @@
     "location": "Enterprise Dog Park",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9486,7 +9574,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260509 1557 Dunedin Marina Inlet Report Epic 8K.md",
@@ -9547,7 +9636,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9576,7 +9665,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "20260510 1155 8K Caddy thru Downtown Clearwater, Ft Harrison,  Flag with Jason from St Alfred's.md",
@@ -9666,7 +9756,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260510 1017 St. Alfred's Episcopal Church, Curlew Road, Sunday Worship Service.md",
@@ -9711,7 +9802,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "error: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without"
   },
   {
     "filename": "260510 1046 St Alfred's Episcopal Church Mother's Day .md",
@@ -9756,7 +9848,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260510 1056 - Closing Hymm at St Alfred's Episcopal Church on Curlew Rd.md",
@@ -9801,7 +9894,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260510 1105 St. Alfred's Episcopal Church, Curlew Road.md",
@@ -9846,7 +9940,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260510 1140 8K30U Drive down Edgewater n Ft Harrison on Sunday jamming BPM on SiriusXM.md",
@@ -9891,7 +9986,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260510 1433 Drive to Dunedin Marina via Main Street Ozzie Oprah Osprey Report 8K.txt",
@@ -9907,7 +10003,7 @@
     "location": "Dunedin Marina",
     "status": "published",
     "has_description": false,
-    "has_transcript": true,
+    "has_transcript": false,
     "description": null,
     "tags": [
       "ClearwaterCruisin",
@@ -9936,7 +10032,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260510 1633 Epic Dunedin Marina Osprey n Intercoastal Marine Traffic Report 8K.md",
@@ -10071,7 +10168,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260511 1130 Dunedin Marina Inlet Away Team Report.md",
@@ -10116,7 +10214,8 @@
       "NavyVet",
       "DisabledVeteran"
     ],
-    "needs_description": true
+    "needs_description": true,
+    "transcript_status": "disabled"
   },
   {
     "filename": "260511 1145 Dunedin Marina Inlet Away Team Report.md",
@@ -10463,7 +10562,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10479,7 +10578,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10495,7 +10594,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10511,7 +10610,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10527,7 +10626,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10543,7 +10642,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10559,7 +10658,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10575,7 +10674,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10591,7 +10690,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10607,7 +10706,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10623,7 +10722,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10639,7 +10738,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10655,7 +10754,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10671,7 +10770,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10687,7 +10786,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10703,7 +10802,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10719,7 +10818,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10735,7 +10834,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10751,7 +10850,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10767,7 +10866,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10783,7 +10882,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10799,7 +10898,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10815,7 +10914,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10831,7 +10930,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10847,7 +10946,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10863,7 +10962,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10879,7 +10978,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10895,7 +10994,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10911,7 +11010,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10927,7 +11026,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10943,7 +11042,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10959,7 +11058,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -10975,7 +11074,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -10991,7 +11090,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11007,7 +11106,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11023,7 +11122,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11039,7 +11138,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11055,7 +11154,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11071,7 +11170,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11087,7 +11186,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11103,7 +11202,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11119,7 +11218,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11135,7 +11234,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11151,7 +11250,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11167,7 +11266,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11183,7 +11282,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11199,7 +11298,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11215,7 +11314,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11231,7 +11330,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11247,7 +11346,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11263,7 +11362,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11279,7 +11378,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11295,7 +11394,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11311,7 +11410,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11327,7 +11426,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11343,7 +11442,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11359,7 +11458,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11375,7 +11474,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11391,7 +11490,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11407,7 +11506,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11423,7 +11522,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11439,7 +11538,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11455,7 +11554,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11471,7 +11570,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11487,7 +11586,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11503,7 +11602,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11519,7 +11618,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11535,7 +11634,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11551,7 +11650,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11567,7 +11666,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11583,7 +11682,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11599,7 +11698,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11615,7 +11714,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11631,7 +11730,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11647,7 +11746,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11663,7 +11762,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11679,7 +11778,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11695,7 +11794,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11711,7 +11810,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11727,7 +11826,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11743,7 +11842,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11759,7 +11858,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11775,7 +11874,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11791,7 +11890,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11807,7 +11906,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11823,7 +11922,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11839,7 +11938,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11855,7 +11954,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11871,7 +11970,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11887,7 +11986,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11903,7 +12002,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11919,7 +12018,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11935,7 +12034,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11951,7 +12050,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -11967,7 +12066,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11983,7 +12082,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -11999,7 +12098,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12015,7 +12114,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12031,7 +12130,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12047,7 +12146,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12063,7 +12162,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12079,7 +12178,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12095,7 +12194,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12111,7 +12210,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12127,7 +12226,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12143,7 +12242,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12159,7 +12258,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12175,7 +12274,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12191,7 +12290,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12207,7 +12306,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12223,7 +12322,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12239,7 +12338,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12255,7 +12354,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12271,7 +12370,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12287,7 +12386,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12303,7 +12402,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12319,7 +12418,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12335,7 +12434,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12351,7 +12450,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12367,7 +12466,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12383,7 +12482,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12399,7 +12498,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12415,7 +12514,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12431,7 +12530,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12447,7 +12546,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12463,7 +12562,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12479,7 +12578,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12495,7 +12594,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12511,7 +12610,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12527,7 +12626,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12543,7 +12642,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12559,7 +12658,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12575,7 +12674,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12591,7 +12690,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12607,7 +12706,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12623,7 +12722,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12639,7 +12738,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12655,7 +12754,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12671,7 +12770,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12687,7 +12786,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12703,7 +12802,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12719,7 +12818,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12735,7 +12834,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12751,7 +12850,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12767,7 +12866,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12783,7 +12882,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12799,7 +12898,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12815,7 +12914,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12831,7 +12930,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12847,7 +12946,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12863,7 +12962,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12879,7 +12978,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12895,7 +12994,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12911,7 +13010,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12927,7 +13026,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12943,7 +13042,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12959,7 +13058,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -12975,7 +13074,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -12991,7 +13090,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13007,7 +13106,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13023,7 +13122,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13039,7 +13138,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13055,7 +13154,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13071,7 +13170,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13087,7 +13186,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13103,7 +13202,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13119,7 +13218,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13135,7 +13234,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13151,7 +13250,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13167,7 +13266,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13183,7 +13282,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13199,7 +13298,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13215,7 +13314,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13231,7 +13330,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13247,7 +13346,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13263,7 +13362,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13279,7 +13378,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13295,7 +13394,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13311,7 +13410,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13327,7 +13426,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13343,7 +13442,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13359,7 +13458,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13375,7 +13474,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13391,7 +13490,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13407,7 +13506,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13423,7 +13522,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13439,7 +13538,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13455,7 +13554,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13471,7 +13570,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "error: ('Connection aborted.', ConnectionAbortedError(10053, 'An established connection",
     "needs_description": true
   },
   {
@@ -13487,7 +13586,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13503,7 +13602,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13519,7 +13618,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13535,7 +13634,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13551,7 +13650,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13567,7 +13666,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13583,7 +13682,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13599,7 +13698,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13615,7 +13714,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13631,7 +13730,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13647,7 +13746,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13663,7 +13762,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13679,7 +13778,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13695,7 +13794,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13711,7 +13810,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13727,7 +13826,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13743,7 +13842,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13759,7 +13858,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13775,7 +13874,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13791,7 +13890,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13807,7 +13906,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13823,7 +13922,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13839,7 +13938,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13855,7 +13954,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "error: ('Connection broken: IncompleteRead(9617 bytes read, 623 more expected)', Incomp",
     "needs_description": true
   },
   {
@@ -13871,7 +13970,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13887,7 +13986,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -13903,7 +14002,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13919,7 +14018,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13935,7 +14034,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13951,7 +14050,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13967,7 +14066,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13983,7 +14082,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13999,7 +14098,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14015,7 +14114,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14031,7 +14130,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14047,7 +14146,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14063,7 +14162,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14079,7 +14178,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14095,7 +14194,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14111,7 +14210,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14127,7 +14226,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14143,7 +14242,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14159,7 +14258,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14175,7 +14274,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14191,7 +14290,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14207,7 +14306,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14223,7 +14322,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14239,7 +14338,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14255,7 +14354,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14271,7 +14370,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14287,7 +14386,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14303,7 +14402,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14319,7 +14418,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14335,7 +14434,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14351,7 +14450,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14367,7 +14466,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14383,7 +14482,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14399,7 +14498,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14415,7 +14514,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14431,7 +14530,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14447,7 +14546,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14463,7 +14562,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14479,7 +14578,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14495,7 +14594,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14511,7 +14610,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14527,7 +14626,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14543,7 +14642,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14559,7 +14658,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14575,7 +14674,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14591,7 +14690,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14607,7 +14706,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14623,7 +14722,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14639,7 +14738,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14655,7 +14754,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14671,7 +14770,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14687,7 +14786,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14703,7 +14802,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14719,7 +14818,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14735,7 +14834,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14751,7 +14850,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14767,7 +14866,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14783,7 +14882,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14799,7 +14898,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14815,7 +14914,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14831,7 +14930,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14847,7 +14946,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14863,7 +14962,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14879,7 +14978,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14895,7 +14994,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14911,7 +15010,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14927,7 +15026,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14943,7 +15042,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14959,7 +15058,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -14975,7 +15074,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -14991,7 +15090,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15007,7 +15106,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15023,7 +15122,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15039,7 +15138,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15055,7 +15154,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15071,7 +15170,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15087,7 +15186,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15103,7 +15202,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15119,7 +15218,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15135,7 +15234,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15151,7 +15250,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15167,7 +15266,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15183,7 +15282,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15199,7 +15298,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15215,7 +15314,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15231,7 +15330,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15247,7 +15346,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15263,7 +15362,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15279,7 +15378,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15295,7 +15394,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15311,7 +15410,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15327,7 +15426,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15343,7 +15442,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15359,7 +15458,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15375,7 +15474,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15391,7 +15490,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15407,7 +15506,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15423,7 +15522,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15439,7 +15538,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15455,7 +15554,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15471,7 +15570,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15487,7 +15586,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15503,7 +15602,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15519,7 +15618,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15535,7 +15634,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15551,7 +15650,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15567,7 +15666,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15583,7 +15682,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15599,7 +15698,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15615,7 +15714,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15631,7 +15730,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15647,7 +15746,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15663,7 +15762,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15679,7 +15778,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15695,7 +15794,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15711,7 +15810,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15727,7 +15826,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15743,7 +15842,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15759,7 +15858,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15775,7 +15874,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15791,7 +15890,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15807,7 +15906,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15823,7 +15922,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -15839,7 +15938,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15855,7 +15954,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15871,7 +15970,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15887,7 +15986,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15903,7 +16002,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15919,7 +16018,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15935,7 +16034,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15951,7 +16050,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15967,7 +16066,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15983,7 +16082,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -15999,7 +16098,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16015,7 +16114,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16031,7 +16130,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16047,7 +16146,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16063,7 +16162,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16079,7 +16178,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16095,7 +16194,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16111,7 +16210,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16127,7 +16226,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16143,7 +16242,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16159,7 +16258,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16175,7 +16274,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16191,7 +16290,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16207,7 +16306,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16223,7 +16322,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16239,7 +16338,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16255,7 +16354,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16271,7 +16370,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16287,7 +16386,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16303,7 +16402,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16319,7 +16418,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16335,7 +16434,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16351,7 +16450,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16367,7 +16466,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16383,7 +16482,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16399,7 +16498,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16415,7 +16514,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16431,7 +16530,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16447,7 +16546,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16463,7 +16562,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16479,7 +16578,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16495,7 +16594,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16511,7 +16610,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16527,7 +16626,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16543,7 +16642,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16559,7 +16658,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16575,7 +16674,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16591,7 +16690,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16607,7 +16706,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16623,7 +16722,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16639,7 +16738,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16655,7 +16754,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16671,7 +16770,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16687,7 +16786,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16703,7 +16802,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16719,7 +16818,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16735,7 +16834,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16751,7 +16850,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16767,7 +16866,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16783,7 +16882,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16799,7 +16898,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16815,7 +16914,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16831,7 +16930,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16847,7 +16946,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16863,7 +16962,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16879,7 +16978,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16895,7 +16994,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16911,7 +17010,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16927,7 +17026,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16943,7 +17042,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16959,7 +17058,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -16975,7 +17074,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -16991,7 +17090,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17007,7 +17106,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17023,7 +17122,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17039,7 +17138,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17055,7 +17154,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17071,7 +17170,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17087,7 +17186,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17103,7 +17202,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17119,7 +17218,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17135,7 +17234,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17151,7 +17250,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17167,7 +17266,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17183,7 +17282,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17199,7 +17298,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17215,7 +17314,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17231,7 +17330,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17247,7 +17346,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17263,7 +17362,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17279,7 +17378,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17295,7 +17394,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17311,7 +17410,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17327,7 +17426,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17343,7 +17442,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "error: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without",
     "needs_description": true
   },
   {
@@ -17359,7 +17458,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17375,7 +17474,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17391,7 +17490,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17407,7 +17506,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17423,7 +17522,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17439,7 +17538,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17455,7 +17554,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17471,7 +17570,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17487,7 +17586,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17503,7 +17602,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17519,7 +17618,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17535,7 +17634,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17551,7 +17650,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17567,7 +17666,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17583,7 +17682,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17599,7 +17698,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17615,7 +17714,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17631,7 +17730,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17647,7 +17746,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17663,7 +17762,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17679,7 +17778,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17695,7 +17794,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17711,7 +17810,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17727,7 +17826,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17743,7 +17842,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17759,7 +17858,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17775,7 +17874,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17791,7 +17890,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17807,7 +17906,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17823,7 +17922,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17839,7 +17938,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17855,7 +17954,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17871,7 +17970,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17887,7 +17986,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17903,7 +18002,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17919,7 +18018,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17935,7 +18034,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17951,7 +18050,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -17967,7 +18066,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17983,7 +18082,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17999,7 +18098,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18015,7 +18114,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18031,7 +18130,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18047,7 +18146,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18063,7 +18162,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18079,7 +18178,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18095,7 +18194,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18111,7 +18210,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18127,7 +18226,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18143,7 +18242,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18159,7 +18258,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18175,7 +18274,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18191,7 +18290,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18207,7 +18306,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18223,7 +18322,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18239,7 +18338,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18255,7 +18354,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18271,7 +18370,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18287,7 +18386,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18303,7 +18402,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18319,7 +18418,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18335,7 +18434,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18351,7 +18450,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18367,7 +18466,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18383,7 +18482,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18399,7 +18498,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18415,7 +18514,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18431,7 +18530,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18447,7 +18546,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18463,7 +18562,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18479,7 +18578,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18495,7 +18594,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18511,7 +18610,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18527,7 +18626,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18543,7 +18642,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18559,7 +18658,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18575,7 +18674,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18591,7 +18690,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18607,7 +18706,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18623,7 +18722,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18639,7 +18738,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18655,7 +18754,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18671,7 +18770,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18687,7 +18786,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18703,7 +18802,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18719,7 +18818,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18735,7 +18834,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18751,7 +18850,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18767,7 +18866,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18783,7 +18882,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18799,7 +18898,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18815,7 +18914,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18831,7 +18930,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18847,7 +18946,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18863,7 +18962,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18879,7 +18978,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18895,7 +18994,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18911,7 +19010,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18927,7 +19026,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -18943,7 +19042,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18959,7 +19058,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18975,7 +19074,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -18991,7 +19090,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -19007,7 +19106,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {
@@ -19023,7 +19122,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "unknown",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   }
 ]
