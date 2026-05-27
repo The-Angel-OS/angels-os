@@ -10,6 +10,25 @@
 
 The retaliation is no longer a theory. It is documented in the landlord's own writing, signed by his own hand, on the letterhead of his own LLC, from the address of his own law office.
 
+### ✅ SeeClickFix #21820014 — Filed and Assigned (May 27, 2026)
+
+**Public case URL:** https://seeclickfix.com/web_portal/kboho6Fr6qA3H8zaaWRCeTsK/complete/21820014
+**Category:** Code Compliance Concern (Miscellaneous)
+**Address:** 2566 Harn Blvd, Clearwater, FL 33764
+**Status:** OPEN
+**Assigned to:** **Sarah Green, City of Clearwater Code Compliance**
+**Reporter:** Kenneth Scott Courtney (registered user)
+**Visibility:** PUBLIC
+**Evidence attached:** 4 photo comments documenting electrical panels (1940s knob-and-tube), interior conditions, plastered-over utilities, missing roof vents
+
+**Why this matters:**
+
+1. **First independent government-record anchor in the case.** Every fact in the case file is now also in a Clearwater municipal record system Doug cannot touch.
+2. **Forces Doug to respond to a regulator, not just to Kenneth.** Code enforcement notices must be answered. His May 1 dismissal ("I don't even know what you're talking about the other items") becomes untenable when a city inspector knocks.
+3. **Pre-dates any eviction proceeding.** The SeeClickFix timestamp is BEFORE July 31, 2026 termination date — contemporaneous proof the conditions were real, documented, and formally reported to authorities prior to retaliation.
+4. **Creates leverage on the $2.7M Colliers/Crexi sale listing.** If Sarah Green issues a notice of violation, it complicates any clean-title sale.
+5. **Item 6 of the complaint asks Code Compliance to verify permits for the cover-overs** — converting an investigation request into a possible municipal-issued FOIA-equivalent on Doug's behalf.
+
 ---
 
 ## Where The Case Is Right Now
@@ -33,7 +52,7 @@ The retaliation is no longer a theory. It is documented in the landlord's own wr
 | Photographic evidence — knob-and-tube era main service | ✅ Logged (May 21, 2026) |
 | Counts 6-9 documented (electrical / laundry lockout / irrigation theft / vent ingress) | ✅ Drafted in `v2.4_evidence_addendum.md` |
 | BALS emergency intake | ⏳ Pending — see below |
-| City of Clearwater Code Enforcement formal complaint | ⏳ Pending |
+| City of Clearwater Code Enforcement formal complaint | ✅ **FILED 2026-05-27 — SeeClickFix #21820014, assigned to Sarah Green** |
 | Independent licensed home inspector | ⏳ Pending |
 | Property appraiser / sunbiz LLC mapping | ✅ COMPLETED — see `OWNERSHIP_PROVEN.md`. $2.7M Colliers/Crexi listing active. |
 | HUD complaint (if any Section 8 tenants in complex) | ⏳ Pending |
