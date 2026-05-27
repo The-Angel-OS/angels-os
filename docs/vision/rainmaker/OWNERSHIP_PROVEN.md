@@ -1,8 +1,35 @@
 # Rainmaker — Ownership Structure PROVEN
 
-**Research date:** May 23, 2026
+**Research date:** May 23, 2026 (updated May 27, 2026)
 **Sources:** Pinellas County Property Appraiser (pcpao.gov) + Florida Division of Corporations (sunbiz.org) — both public records, direct lookup, no inference
 **Status:** All allegations in v2.3 brief regarding shell LLC + family nominee structure are now **documented by public record**
+
+---
+
+## 🚨 May 27, 2026 — Termination Notice Confirmation
+
+**Notice of Termination served May 27, 2026** (handwritten "27" over typed "26" on the serving date) by:
+
+> **LUKE ALEXANDER LLC**
+> By: Douglas L. Hilkert, Its Manager
+> 2557 Nursery Road Suite A
+> Clearwater, FL 33764
+> Landlord
+
+**This is direct documentary proof of the alter-ego structure:**
+- The notice itself is signed by Doug Hilkert personally as "Manager" of Luke Alexander LLC
+- The address on the notice is Doug's law office (2557 Nursery Road Suite A) — matches the Sunbiz registered address
+- Termination date: July 31, 2026 (60-day notice)
+- Tenant: Kenneth Scott Courtney, 2566 Harn Blvd Unit 13
+
+**F.S. 83.64 timeline (rebuttable presumption of retaliation):**
+- **May 1, 2026, 4:12 PM** — Kenneth's written habitability text to Doug citing stove electrical shocks, HVAC icing, plastered-over 220V/plumbing lines, requesting professional inspection before May 3rd
+- **May 1, 2026, 5:46 PM** — Doug's response: dismisses concerns ("I don't even know what you're talking about the other items"), blames Kenneth for AC filter, suggests termination as an option
+- **May 27, 2026** — Formal Notice of Termination served, 26 days after written complaint
+
+**26 days. Six-month statutory window. Presumption attaches. Burden shifts to Hilkert.**
+
+The fact that the threat language ("please feel free to exercise your right to terminate") appeared in the same text exchange as Kenneth's habitability complaint — and a formal termination notice followed 26 days later — establishes both the predicate written complaint and the contemporaneous retaliatory animus.
 
 ---
 

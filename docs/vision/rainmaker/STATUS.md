@@ -1,6 +1,14 @@
 # Rainmaker — Live Case Status
 
-**Last updated:** May 24, 2026
+**Last updated:** May 27, 2026
+
+---
+
+## 🚨 BREAKING — May 27, 2026
+
+**Notice of Termination served.** Luke Alexander LLC (Doug-controlled), signed by Douglas L. Hilkert personally. Effective July 31, 2026. **26 days after Kenneth's May 1 written habitability complaint.** F.S. 83.64 retaliation presumption **attaches.** Burden shifts to Hilkert.
+
+The retaliation is no longer a theory. It is documented in the landlord's own writing, signed by his own hand, on the letterhead of his own LLC, from the address of his own law office.
 
 ---
 
@@ -8,8 +16,12 @@
 
 | Item | Status |
 |------|--------|
+| **Counts 13–15 documented (v2.6 addendum)** | ✅ Filed 2026-05-27 — retaliation perfected, building-wide concealment fraud, fraudulent inducement |
+| **UNIT_FORENSICS.md tracking sheet opened** | ✅ Live — building-wide hookup decommissioning map; 6 witness rows live; 30+ rows pending |
+| **Termination notice received** | ✅ 2026-05-27 from Luke Alexander LLC (Doug as Manager) |
+| **F.S. 83.64 retaliation timeline** | ✅ 26 days complaint → notice — presumption attaches |
 | **Counts 10–12 documented (v2.5 addendum)** | ✅ Filed 2026-05-24 — cross-building water fraud, conditions differential, unsecured laundry |
-| **Class damages revised** | $21.5M–$22.5M (was $20.9M) / RICO treble $64.5M–$67.5M |
+| **Class damages revised** | **$22M–$23.5M (was $21.5M)** / RICO treble **$66M–$70.5M** |
 
 | Item | Status |
 |------|--------|
@@ -37,11 +49,17 @@
 
 ## The Single Most Important Fact
 
-**Doug issued a 60-day retaliation notice within 6 months of Kenneth's written habitability complaint.**
+**Doug issued a 60-day retaliation notice 26 days after Kenneth's written habitability complaint.**
 
-Florida Statute 83.64 creates a **rebuttable presumption of retaliation** against any landlord who terminates a tenancy within 6 months of a written habitability complaint. The burden flips onto Doug to prove the termination is NOT retaliatory. Given Doug is a licensed real-estate attorney, his presumed knowledge of the statute eliminates any "good faith" defense.
+- **May 1, 2026, 4:12 PM** — Kenneth's written habitability text (stove shocks, HVAC icing, plastered-over 220V/plumbing)
+- **May 1, 2026, 5:46 PM** — Doug's response: dismisses, blames Kenneth for filter, suggests termination as an option
+- **May 27, 2026** — Notice of Termination served by Luke Alexander LLC, signed by Douglas L. Hilkert as Manager
+
+Florida Statute 83.64 creates a **rebuttable presumption of retaliation** against any landlord who terminates a tenancy within 6 months of a written habitability complaint. **26 days is not ambiguous.** The burden flips onto Doug to prove the termination is NOT retaliatory. Given Doug is a licensed real-estate attorney, his presumed knowledge of the statute eliminates any "good faith" defense.
 
 **The retaliation count is the liability lever. The master-meter / electrical / habitability counts are the damages.**
+
+The text-message exchange and the termination notice are both preserved as photographic evidence — both signed by the landlord's own hand.
 
 ---
 
@@ -55,6 +73,21 @@ Florida Statute 83.64 creates a **rebuttable presumption of retaliation** agains
 5. **HUD OIG complaint** — if ANY tenant on Section 8, federal jurisdiction attaches
 6. **Tampa Bay Times** investigative pitch: `tips@tampabay.com`
 7. **Duke Energy fraud unit** — knob-and-tube service distribution + suspected diversion
+
+---
+
+## Building-Wide Pattern (NEW — v2.6 / UNIT_FORENSICS.md)
+
+The case has moved from "Unit 13 has issues" to **"the entire building has been systematically downgraded by the landlord across multiple units, with named witnesses in three separate apartments."**
+
+- **Unit 13 (Kenneth)** — covered hookups, bedroom alcove. Prior tenant **Robert** had functional in-unit laundry.
+- **Charles & Sherry's mirror unit (downstairs)** — Vietnam Marine veteran + spouse. Covered hookups *visible* in spare room (different location from Unit 13).
+- **Don & Kathy's unit (downstairs, near Ken Egan)** — Army veteran + Native American spouse. Hookups covered before their tenancy; they did not know hookups existed. Refused Robert's offered W/D because there was nowhere to install it.
+- **One "upgraded" unit** — TBD tenant. Functional vertically-stacked W/D in kitchen. Either Doug acquiesced or selectively permitted — either branch destroys the "no hookups" defense.
+- **Two shared laundry rooms built by different contractors with different plans** — independently provable via Pinellas County Building Department permits. Disproves the "the buildings are identical" defense.
+- **Separate master water meters per building** — confirmed. Two meters, two contractors, two visibly different conditions. The two buildings share an owner and a marketing listing, and nothing else operationally. Count 10 (cross-building water fraud) is temporally bounded to the OOC window. Count 11 (conditions differential) is independently provable per-building.
+
+The cover-up is so thorough that most current tenants believe the buildings were originally built without in-unit hookups. **That belief is the deception, not the truth.**
 
 ---
 

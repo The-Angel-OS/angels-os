@@ -11,15 +11,18 @@ const TIER_COLORS: Record<string, string> = {
   status:    'text-green-400',
   legal:     'text-amber-400',
   evidence:  'text-blue-400',
+  forensics: 'text-cyan-400',
+  action:    'text-rose-400',
   contacts:  'text-purple-400',
   historical:'text-muted-foreground',
 }
 
 const BADGE_COLORS: Record<string, string> = {
-  red:   'bg-red-500/15 text-red-400 border-red-500/30',
-  green: 'bg-green-500/15 text-green-400 border-green-500/30',
-  blue:  'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  red:    'bg-red-500/15 text-red-400 border-red-500/30',
+  green:  'bg-green-500/15 text-green-400 border-green-500/30',
+  blue:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  amber:  'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  orange: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
 }
 
 const STATUS_BORDER: Record<string, string> = {

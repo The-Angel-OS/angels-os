@@ -9,7 +9,7 @@ export interface SoulDoc {
   description: string
   badge?: string
   badgeColor?: string
-  tier: 'index' | 'status' | 'legal' | 'evidence' | 'contacts' | 'historical'
+  tier: 'index' | 'status' | 'legal' | 'evidence' | 'forensics' | 'contacts' | 'historical' | 'action'
 }
 
 export interface SoulManifest {
@@ -89,13 +89,55 @@ export const rainmakerManifest: SoulManifest = {
       tier: 'evidence',
     },
     {
+      id: 'addendum26',
+      filename: 'v2.6_260527_evidence_addendum.md',
+      title: 'Evidence Addendum v2.6',
+      date: '2026-05-27',
+      description: 'Counts 13-15: retaliation PERFECTED (26-day timeline May 1 → May 27), building-wide concealment fraud, fraudulent inducement of tenancy. Class damages now $22M-$23.5M / RICO treble $66M-$70.5M.',
+      badge: '🚨 BREAKING',
+      badgeColor: 'red',
+      tier: 'evidence',
+    },
+    {
+      id: 'forensics',
+      filename: 'UNIT_FORENSICS.md',
+      title: 'Unit Forensics Map',
+      date: '2026-05-27',
+      description: 'Building-wide unit-by-unit map of in-unit laundry hookup decommissioning. Witness rows: Robert, Charles & Sherry (Vietnam Marine vet), Don & Kathy (Army vet + Native American). Forensic stack: PCPAO, Sunbiz, Building Dept permits.',
+      badge: 'LIVE',
+      badgeColor: 'orange',
+      tier: 'forensics',
+    },
+    {
+      id: 'csc',
+      filename: 'CSC_DEMAND_LETTER.md',
+      title: 'CSC ServiceWorks Demand',
+      date: '2026-05-27',
+      description: 'Demand letter to CSC ServiceWorks: service failure, water cost-shifting, 14-day cure window, escalation to FL AG / FTC / BBB / Tampa Bay Times. Names all five Hilkert/Kistner LLCs for revenue-share disclosure.',
+      tier: 'action',
+    },
+    {
+      id: 'foia',
+      filename: 'FOIA_PINELLAS_PERMITS.md',
+      title: 'FOIA — Pinellas Permits',
+      date: '2026-05-27',
+      description: 'Public records request to Pinellas County Building Dept: original construction permits, renovation history, laundry-room contractor identification, in-unit cover-over permit search. Parallel requests to Clearwater Code Enforcement + Utilities.',
+      tier: 'action',
+    },
+    {
+      id: 'witness',
+      filename: 'WITNESS_INTAKE.md',
+      title: 'Witness Intake Template',
+      date: '2026-05-27',
+      description: 'Standardized intake form for neighbor witness statements. Consent-first protocol. Protected-class capture with explicit opt-in. Filing protocol with hash-verified evidence preservation.',
+      tier: 'action',
+    },
+    {
       id: 'addendum25',
       filename: 'v2.5_260524_evidence_addendum.md',
       title: 'Evidence Addendum v2.5',
       date: '2026-05-24',
-      description: 'Counts 10–12: cross-building water meter fraud, discriminatory maintenance differential, unsecured laundry room. Class damages revised to $21.5M–$22.5M.',
-      badge: '🚨 NEW',
-      badgeColor: 'red',
+      description: 'Counts 10–12: cross-building water meter fraud (now temporally bounded), discriminatory maintenance differential, unsecured laundry room.',
       tier: 'evidence',
     },
     {
