@@ -1309,6 +1309,7 @@ export interface Page {
     | BannerBlock
     | FormBlock
     | CalendarBlock
+    | DonationBlock
     | FeaturedEndeavorsBlock
   )[];
   meta?: {
@@ -1798,6 +1799,38 @@ export interface CalendarBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'calendar';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBlock".
+ */
+export interface DonationBlock {
+  richText?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Comma-separated dollar amounts for quick-select buttons (e.g. "5,10,25,50,100")
+   */
+  presetAmounts?: string | null;
+  /**
+   * Show optional name/email/message fields
+   */
+  showDonorFields?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donation';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4059,7 +4092,8 @@ export interface Connector {
     | 'discord'
     | 'telegram'
     | 'slack'
-    | 'youtube_channel';
+    | 'youtube_channel'
+    | 'linkedin_page';
   /**
    * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
    */
@@ -4081,6 +4115,7 @@ export interface Connector {
    * • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
    * • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
    * • youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
+   * • linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }
    */
   config?:
     | {
@@ -6511,6 +6546,7 @@ export interface PagesSelect<T extends boolean = true> {
         banner?: T | BannerBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
+        donation?: T | DonationBlockSelect<T>;
         featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
       };
   meta?:
@@ -6671,6 +6707,17 @@ export interface CalendarBlockSelect<T extends boolean = true> {
   defaultView?: T;
   showPastEvents?: T;
   accentColor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBlock_select".
+ */
+export interface DonationBlockSelect<T extends boolean = true> {
+  richText?: T;
+  presetAmounts?: T;
+  showDonorFields?: T;
   id?: T;
   blockName?: T;
 }

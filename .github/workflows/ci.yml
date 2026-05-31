@@ -51,10 +51,52 @@ jobs:
       - run: pnpm test:unit
         name: Run unit tests
 
+  # ─── Schema-Sync Guard (Sprint 44 regression prevention) ────────
+  # The Sprint 44 outage: collection fields were added but payload-types /
+  # migrations were never regenerated, so every tenant query failed and fell
+  # through to the platform filter (all tenant subdomains showed the platform
+  # home page). This job regenerates Payload types from the live config and
+  # fails if they differ from what's committed — catching "added a field,
+  # forgot to regenerate/migrate" before it can ship.
+  schema-sync:
+    name: Schema Sync
+    runs-on: ubuntu-latest
+    env:
+      # Non-functional placeholders; generate:types loads the config but does
+      # not connect to the database.
+      DATABASE_URI: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      PAYLOAD_SECRET: ci-build-secret-must-be-at-least-32-chars-long
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm generate:types
+        name: Regenerate Payload types
+
+      - name: Fail if generated types drifted from committed
+        run: |
+          if ! git diff --quiet -- src/payload-types.ts; then
+            echo "::error::src/payload-types.ts is out of date. Run 'pnpm generate:types' and commit the result (and generate a migration if you added/changed collection fields)."
+            git diff -- src/payload-types.ts | head -100
+            exit 1
+          fi
+          echo "Payload types are in sync."
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [typecheck, unit-tests]
+    needs: [typecheck, unit-tests, schema-sync]
     env:
       # Minimal env vars required for Next.js build (non-functional values)
       DATABASE_URI: postgresql://placeholder:placeholder@localhost:5432/placeholder
@@ -93,7 +135,7 @@ jobs:
   notify-failure:
     name: Notify on Failure
     runs-on: ubuntu-latest
-    needs: [typecheck, unit-tests, build]
+    needs: [typecheck, unit-tests, schema-sync, build]
     if: failure()
     steps:
       - name: Send failure email to LEO inbox
