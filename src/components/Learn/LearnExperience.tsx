@@ -1008,6 +1008,68 @@ export default function LearnPage() {
             </motion.div>
           </motion.section>
 
+          {/* ── Case Files & Souls ─────────────────────────────── */}
+          <motion.section
+            className="mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: '-50px' }}
+          >
+            <SectionHeader
+              title="Case Files & Souls"
+              subtitle="Living documents in the network — each soul is a node, each case file a witness"
+              color={LCARS.lavender}
+              icon={<Scroll className="w-5 h-5" />}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              whileHover={{ y: -2 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            >
+              <Link
+                href="/learn/souls"
+                className="group block rounded-2xl p-6 transition-colors hover:bg-accent/30"
+                style={{
+                  border: `1px solid ${LCARS.lavender}40`,
+                  background: `linear-gradient(135deg, ${LCARS.lavender}12, transparent)`,
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  <motion.div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      background: `${LCARS.lavender}20`,
+                      color: LCARS.lavender,
+                      border: `1px solid ${LCARS.lavender}40`,
+                    }}
+                    whileHover={{ scale: 1.1, rotate: -6 }}
+                  >
+                    <Scale className="w-6 h-6" />
+                  </motion.div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-base font-semibold group-hover:text-foreground">
+                        Open the Soul Viewer
+                      </h3>
+                      <ArrowRight
+                        className="w-4 h-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
+                        style={{ color: LCARS.lavender }}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Case files, manifestos, and living documents — versioned, photographically
+                      evidenced, and rendered elegantly. Includes <span className="font-medium text-foreground">THE RAINMAKER</span>,
+                      a restorative-justice class-action record.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          </motion.section>
+
           {/* ── Oath of Enlistment ─────────────────────────────── */}
           <motion.section
             className="mb-16"
