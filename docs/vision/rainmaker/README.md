@@ -26,15 +26,22 @@ This is **not vendetta.** It is the Prime Directive of Love applied to a 9-year 
 | File | Purpose | Status |
 |------|---------|--------|
 | [`README.md`](README.md) | This index | Current |
-| [`STATUS.md`](STATUS.md) | Live case status, contacts, next steps | Current |
-| [`OWNERSHIP_PROVEN.md`](OWNERSHIP_PROVEN.md) | **🚨 NEW** — Public-records proof of LLC/family ownership structure + $2.7M sale listing | **CRITICAL** |
-| [`v2.3_260503_master_brief.md`](v2.3_260503_master_brief.md) | Original 12-section brief (May 3, 2026) | Historical |
-| [`v2.3_260504_class_action_demand.md`](v2.3_260504_class_action_demand.md) | Class-action demand version (May 4, 2026) | Historical |
-| [`v2.4_evidence_addendum.md`](v2.4_evidence_addendum.md) | NEW counts 6-9 documented May 21-23, 2026 | **Active** |
-| [`COUNTS_MATRIX.md`](COUNTS_MATRIX.md) | All 9 counts with statutory citations | Current |
+| [`STATUS.md`](STATUS.md) | Live case status, contacts, next steps | **Live** |
+| [`OWNERSHIP_PROVEN.md`](OWNERSHIP_PROVEN.md) | Public-records proof of LLC/family ownership structure + $2.7M sale listing | **🚨 Critical** |
+| [`UNIT_FORENSICS.md`](UNIT_FORENSICS.md) | Building-wide hookup-decommissioning map; witness rows; water economics | **Live** |
+| [`COUNTS_MATRIX.md`](COUNTS_MATRIX.md) | All counts with statutory citations | Current |
 | [`DAMAGES_SCHEDULE.md`](DAMAGES_SCHEDULE.md) | Per-tenant and class-wide damages tally | Current |
 | [`EVIDENCE_CATALOG.md`](EVIDENCE_CATALOG.md) | Photo/video evidence cross-referenced to counts | Current |
+| [`RICO_ADDENDUM.md`](RICO_ADDENDUM.md) | Federal RICO enterprise mapping, predicate acts, treble damages | Current |
 | [`CONTACTS.md`](CONTACTS.md) | Legal aid, agencies, journalists, national firms | Current |
+| [`CSC_DEMAND_LETTER.md`](CSC_DEMAND_LETTER.md) | Demand letter to CSC ServiceWorks (water cost-shifting, cure window) | Action |
+| [`FOIA_PINELLAS_PERMITS.md`](FOIA_PINELLAS_PERMITS.md) | Public-records request — Pinellas building/permit history | Action |
+| [`WITNESS_INTAKE.md`](WITNESS_INTAKE.md) | Consent-first neighbor witness-statement template | Action |
+| [`v2.6_260527_evidence_addendum.md`](v2.6_260527_evidence_addendum.md) | Counts 13-15: retaliation perfected, concealment fraud, fraudulent inducement | Active |
+| [`v2.5_260524_evidence_addendum.md`](v2.5_260524_evidence_addendum.md) | Counts 10-12: cross-building water fraud, conditions differential, unsecured laundry | Active |
+| [`v2.4_evidence_addendum.md`](v2.4_evidence_addendum.md) | Counts 6-9 documented May 21-23, 2026 | Active |
+| [`v2.3_260503_master_brief.md`](v2.3_260503_master_brief.md) | Original 12-section brief (May 3, 2026) | Historical |
+| [`v2.3_260504_class_action_demand.md`](v2.3_260504_class_action_demand.md) | Class-action demand version (May 4, 2026) | Historical |
 
 ---
 
