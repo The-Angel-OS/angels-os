@@ -89,6 +89,7 @@ The retaliation is no longer a theory. It is documented in the landlord's own wr
 | City of Clearwater Code Enforcement formal complaint | ✅ **FILED 2026-05-27 — SeeClickFix #21820014, assigned to Sarah Green** |
 | City Code Inspector in-person site visit + photos | ✅ **2026-06-01 — Reid Ito (Code Inspector I) photographed phantom exhaust vent into guest room + spare-room ceiling hole** |
 | Rent escrow / deposit into court registry | ⏳ **Filing 2026-06-02 (Pinellas County courthouse)** |
+| LinkedIn article — "Rainmaker — Ownership Structure PROVEN" | ✅ **PUBLISHED 2026-06-01** by Kenneth Courtney; drives readers to `spacesangels.com/learn/rainmaker`. Timestamped public record of the LLC/alter-ego proof, predating eviction. |
 | Independent licensed home inspector | ⏳ Pending |
 | Property appraiser / sunbiz LLC mapping | ✅ COMPLETED — see `OWNERSHIP_PROVEN.md`. $2.7M Colliers/Crexi listing active. |
 | HUD complaint (if any Section 8 tenants in complex) | ⏳ Pending |
@@ -152,7 +153,7 @@ The cover-up is so thorough that most current tenants believe the buildings were
 - **App-only laundry lockout:** Currently locked out of laundry service via negative CSC ServiceWorks account balances. This is an **active ongoing harm** — not historical — which strengthens TRO posture if eviction proceeds.
 - **Knob-and-tube insurance fraud angle:** If Doug carries landlord insurance on these buildings, almost certainly without disclosing the pre-code service infrastructure — that's a separate federal-jurisdiction exposure path.
 - **🚨 ASSET FLIGHT RISK:** Property is listed at $2.7M on Colliers/Crexi (active listing as of May 23, 2026). Sale would liquidate the primary damages target. **Lis pendens must be filed the same day litigation commences.** See `OWNERSHIP_PROVEN.md` for full LLC/parcel mapping.
-- **Public record posture activated:** Google Maps review and LinkedIn disclosure published May 23, 2026. These are timestamped public records that establish the pattern and predate any eviction proceeding Doug might attempt — strengthening the retaliatory termination timeline.
+- **Public record posture activated:** Google Maps review and LinkedIn disclosure published May 23, 2026. **Reinforced June 1, 2026** with a full LinkedIn long-form article — *"Rainmaker — Ownership Structure PROVEN"* (the OWNERSHIP_PROVEN record) — published under Kenneth's own byline and linking readers to the interactive case file at `spacesangels.com/learn/rainmaker`. These are timestamped public records that establish the pattern and predate any eviction proceeding Doug might attempt — strengthening the retaliatory termination timeline. (Note: the public article is the *ownership/structure* record; keep the most sensitive witness PII — Don & Kathy — out of public posts per the protected-witness protocol.)
 
 ---
 
