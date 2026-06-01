@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -44,6 +44,20 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [reading, setReading] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const mainRef = useRef<HTMLElement>(null)
+
+  // filename -> doc id, so relative markdown links (e.g. "OWNERSHIP_PROVEN.md")
+  // switch the active doc in-place instead of navigating to a 404.
+  const docIdByFilename = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const d of soul.docs) map[d.filename.toLowerCase()] = d.id
+    return map
+  }, [soul.docs])
+
+  const goToDoc = useCallback((id: string) => {
+    setCurrentDocId(id)
+    mainRef.current?.scrollTo({ top: 0 })
+  }, [])
 
   const currentDoc = soul.docs.find((d) => d.id === currentDocId) ?? soul.docs[0]
   const rawContent = allContents[currentDocId] ?? ''
@@ -218,7 +232,7 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
         )}
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
+        <main ref={mainRef} className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-3xl px-6 py-10 print:py-4">
             {/* Document header */}
             <div className="mb-8 print:mb-4">
@@ -253,7 +267,52 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
               prose-strong:text-foreground
               prose-li:text-sm prose-li:leading-relaxed
             ">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children, ...props }) => {
+                    const isExternal = !!href && /^https?:\/\//i.test(href)
+                    if (isExternal) {
+                      return (
+                        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                          {children}
+                        </a>
+                      )
+                    }
+                    if (href) {
+                      // Strip anchor + leading ./ or / to isolate a filename.
+                      const clean = decodeURIComponent(href.split('#')[0].replace(/^\.?\//, ''))
+                      const targetId = docIdByFilename[clean.toLowerCase()]
+                      if (targetId) {
+                        // Internal cross-reference to another doc in this soul.
+                        return (
+                          <a
+                            href={`#${targetId}`}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              goToDoc(targetId)
+                            }}
+                            className="cursor-pointer"
+                            {...props}
+                          >
+                            {children}
+                          </a>
+                        )
+                      }
+                      // A .md link with no matching doc would 404 — render inert.
+                      if (clean.toLowerCase().endsWith('.md')) {
+                        return <span className="text-muted-foreground">{children}</span>
+                      }
+                    }
+                    // In-page anchors (#section) and anything else: default behavior.
+                    return (
+                      <a href={href} {...props}>
+                        {children}
+                      </a>
+                    )
+                  },
+                }}
+              >
                 {content}
               </ReactMarkdown>
             </article>
