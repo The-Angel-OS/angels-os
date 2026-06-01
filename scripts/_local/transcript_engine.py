@@ -3,6 +3,8 @@
 transcript_engine.py — Clearwater Cruisin' Transcript Engine
 
 PHASES:
+  0. video    — FILE-FIRST: feed a local video; transcribe if no sibling .srt,
+                correct it, write .srt next to the file, report YouTube match
   1. channel  — scrape all video IDs from @ClearwaterCruisin via yt-dlp
   2. fetch    — pull auto-captions via youtube-transcript-api for all known videos
   3. whisper  — download audio + transcribe via faster-whisper for missing ones
@@ -10,17 +12,29 @@ PHASES:
   5. status   — print dashboard of transcript coverage
 
 USAGE:
+  python transcript_engine.py video PATH.mp4 # transcribe/correct a local file -> sibling .srt
   python transcript_engine.py channel        # discover all channel videos
   python transcript_engine.py fetch          # fetch YT transcripts for all
   python transcript_engine.py fetch VIDEO_ID # fetch one specific video
   python transcript_engine.py whisper        # transcribe all missing
   python transcript_engine.py edit           # apply edit rules to all
   python transcript_engine.py status         # show coverage dashboard
+
+Proper-noun correction lives in srt_corrections.py (shared). To fix an existing
+.srt by hand:  python srt_corrections.py FILE.srt [--segment] [--dry]
 """
 
 import os, sys, json, re, time
 from pathlib import Path
 from datetime import datetime
+
+# Shared correction module (de-glue + project dictionary). Single source of
+# truth for proper-noun fixes so the file-first path and the channel path agree.
+sys.path.insert(0, str(Path(__file__).parent))
+try:
+    from srt_corrections import correct_text as _correct_text
+except ImportError:
+    _correct_text = None
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 ROOT         = Path(__file__).parent.parent.parent          # angels-os/
@@ -553,13 +567,117 @@ def phase_status():
             t_safe = r.get('title','')[:45].encode('ascii', errors='replace').decode('ascii')
             print(f"    {r['views']:>8,} - {t_safe}")
 
+# ── Phase: File-first (feed a local video) ─────────────────────────────────────
+
+def _srt_timestamp(seconds: float) -> str:
+    """SRT clock: HH:MM:SS,mmm"""
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = int(seconds % 60)
+    ms = int(round((seconds - int(seconds)) * 1000))
+    if ms == 1000:
+        s += 1; ms = 0
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def match_youtube_upload(video_path: Path) -> dict | None:
+    """Best-effort match of a local video file to a known YouTube upload in the
+    database, by date code (YYMMDD) + title-token overlap. Report only — never
+    uploads. Returns the matched record or None."""
+    records = load_database()
+    stem = video_path.stem
+    m = re.search(r'\b(\d{6})\b', stem)
+    date_code = m.group(1) if m else None
+    stem_tokens = set(re.findall(r'[a-z0-9]+', stem.lower()))
+    # Date-stamped uploads: a confident match REQUIRES the date code to agree.
+    # Title-token overlap alone false-matches sibling videos (e.g. every Walmart
+    # run shares "walmart/neighborhood/market/belcher"), which could attach
+    # captions to the wrong video. Date code is the disambiguator.
+    if not date_code:
+        return None
+    candidates = [r for r in records
+                  if r.get('yt_id') and r.get('date_code') == date_code]
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+    # Multiple uploads same day -> break the tie on title-token overlap.
+    best, best_score = None, -1
+    for r in candidates:
+        title_tokens = set(re.findall(r'[a-z0-9]+', (r.get('title') or '').lower()))
+        score = len(stem_tokens & title_tokens)
+        if score > best_score:
+            best, best_score = r, score
+    return best
+
+
+def phase_video(video_path_str: str, model_size: str = 'base',
+                segment: bool = True, overwrite: bool = False):
+    """FILE-FIRST: feed a local video. If a sibling .srt exists, just (re)correct
+    it. Otherwise transcribe with faster-whisper, correct, and write the .srt
+    next to the video. Then report any matching YouTube upload (no upload)."""
+    video = Path(video_path_str)
+    if not video.exists():
+        print(f"[!] Not found: {video}")
+        return
+    srt_path = video.with_suffix('.srt')
+
+    # 1. If an SRT already exists, just correct it in place (no transcription).
+    if srt_path.exists() and not overwrite:
+        try:
+            from srt_corrections import fix_srt_file
+        except ImportError:
+            print("[!] srt_corrections.py not importable")
+            return
+        stats = fix_srt_file(srt_path, do_deglue=True, do_segment=segment)
+        print(f"  SRT exists -> corrected {stats['changed']}/{stats['cues']} cues: {srt_path.name}")
+    else:
+        # 2. Transcribe the local file directly (no download needed).
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError:
+            print("[!] faster-whisper not installed.")
+            return
+        print(f"  Transcribing {video.name} with whisper:{model_size} ...")
+        try:
+            model = WhisperModel(model_size, device="cuda", compute_type="float16")
+        except Exception:
+            print("  (CUDA unavailable — falling back to CPU int8)")
+            model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        segments_gen, info = model.transcribe(str(video), beam_size=5)
+        lines, n = [], 0
+        for i, seg in enumerate(segments_gen, 1):
+            text = (_correct_text(seg.text.strip(), do_segment=segment)
+                    if _correct_text else seg.text.strip())
+            lines.append(f"{i}\n{_srt_timestamp(seg.start)} --> "
+                         f"{_srt_timestamp(seg.end)}\n{text}\n")
+            n = i
+        srt_path.write_text('\n'.join(lines), encoding='utf-8')
+        print(f"  Wrote {n} cues [{info.language}] -> {srt_path.name}")
+
+    # 3. Report YouTube match (so you know where it would be uploaded).
+    match = match_youtube_upload(video)
+    if match:
+        print(f"  -> Matches YouTube upload: {match.get('yt_url')} "
+              f"({(match.get('title') or '')[:50]})")
+        print("     To attach captions there, use the (permissioned) upload step - not automatic.")
+    else:
+        print("  -> No confident YouTube match in VIDEO_DATABASE.json (transcript saved locally).")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
     arg = sys.argv[2] if len(sys.argv) > 2 else None
 
-    if cmd == 'channel':
+    if cmd == 'video':
+        if not arg:
+            print("Usage: transcript_engine.py video <path-to-video> [model_size]")
+        else:
+            model = sys.argv[3] if len(sys.argv) > 3 else 'base'
+            phase_video(arg, model_size=model)
+    elif cmd == 'channel':
         phase_channel()
     elif cmd == 'fetch':
         phase_fetch(target_id=arg)
