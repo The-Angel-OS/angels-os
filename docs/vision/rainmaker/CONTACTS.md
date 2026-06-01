@@ -9,6 +9,7 @@ Legal aid, regulatory agencies, journalists, and national firms — organized by
 | Contact | Role | Notes |
 |---------|------|-------|
 | **Amanda Allen / Bedke Veterans Law Center** | Initial veterans legal contact | Awaiting case acceptance / referral |
+| **Reid Ito — Code Inspector I** | City of Clearwater, Planning & Development — Code Compliance, 100 South Myrtle Ave, Clearwater FL 33756 · 727.444.8304 · reid.ito@myclearwater.com | **Conducted in-person site visit 2026-06-01; photographed phantom exhaust vent into guest room + spare-room ceiling hole (city-held photos).** Independent government documentation. Official capacity — record-keeper, not an advocate. |
 
 ---
 
@@ -28,7 +29,7 @@ Legal aid, regulatory agencies, journalists, and national firms — organized by
 
 | Agency | Purpose | Notes |
 |--------|---------|-------|
-| **City of Clearwater Code Enforcement** | Formal inspection of 2566 + 2560 Harn | Creates public record independent of tenant testimony — non-negotiable |
+| **City of Clearwater Code Enforcement** | Formal inspection of 2566 + 2560 Harn | Creates public record independent of tenant testimony — non-negotiable. SeeClickFix #21820014 (Sarah Green); in-person inspection by Reid Ito 2026-06-01 (see Tier 0). |
 | **Florida Attorney General — Consumer Protection Division** | FDUTPA pattern-and-practice investigation | Independent prosecutorial authority |
 | **Florida Bar (Lawyer Regulation)** | Rule 4-8.4(b)(c) misconduct | **HOLD** — file after civil discovery in motion |
 | **DBPR (Department of Business and Professional Regulation)** | Real estate license complaint (separate from FL Bar) | Faster path than Bar; license is regulated here |

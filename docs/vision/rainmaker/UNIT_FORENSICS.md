@@ -15,6 +15,7 @@
 4. **Most tenants today do not know their unit ever had hookups** — the cover-up is so complete that the deception has become the accepted reality. This is the gaslighting layer of the fraud.
 5. **The two shared laundry rooms (one per building) were built by different contractors with different plans** — independently provable via Pinellas County Building Department permits. Confirms the buildings were never a uniform spec, undermining any "we just built them this way" defense.
 6. **One unit has been "upgraded" with a vertically stacked washer/dryer in the kitchen** — either tenant-installed with Doug's acquiescence (constructive knowledge) or tenant-installed with permission (selective discrimination against others). Either branch is bad for Doug.
+7. **The water is unmetered at the unit level (master meter), which creates the incentive to drive laundry volume onto the master line, not to repair.** On an unmetered master line CSC ServiceWorks' marginal water cost is effectively zero — the more the shared machines run, the cheaper each wash gets for the revenue-share operator. By leaving the 2560 laundry unrepaired for ~3 years, the majority of 2560's tenants were pushed across the street to wash at 2566; over that window **2566's water bill ran ~$100/month higher than 2560's** — a differential plausibly attributable to all of 2560 doing its wash at 2566. This is the concrete dollar mechanism behind Count 10 (cross-building water fraud). Electric accounting is murkier and secondary; the *water* is unmetered and the differential is documentable from the bills.
 
 ---
 
@@ -50,7 +51,7 @@
 | 14 | ? | TBD | TBD | TBD | TBD | TBD | Phirst | TBD | TBD | Kistner-controlled |
 | 15 | ? | TBD | TBD | TBD | TBD | TBD | Phirst LLC | TBD | TBD | Kistner-controlled |
 | 18 | ? | TBD | TBD | TBD | TBD | TBD | Lady Lauren LLC | TBD | TBD | Kistner-controlled |
-| ? (downstairs, near Ken Egan) | Downstairs | **Don + Kathy** | TBD | TBD — covered, exact location TBD | **Covered — tenants unaware they had any** | **Don (African-American Army veteran), Kathy (Native American)** | TBD — need PCPAO lookup | TBD | TBD | **Robert offered them his W/D when vacating Unit 13; hookups already covered. Tenants did NOT know hookups had existed. Critical evidence of the narrative-deception layer.** |
+| ? (downstairs, near Ken Egan) | Downstairs | **Don + Kathy** | TBD | TBD — covered, exact location TBD | **Covered — tenants unaware they had any** | **Don (African-American Army veteran), Kathy (Native American)** | TBD — need PCPAO lookup | TBD | TBD | **Robert offered them his W/D when vacating Unit 13; hookups already covered. Tenants did NOT know hookups had existed. Critical evidence of the narrative-deception layer. CORROBORATION: Don & Kathy recount this story on camera in one of Kenneth's "Shameless Stroll" Clearwater Cruisin' videos — locate exact video + timestamp and archive.** |
 | ? (downstairs, mirror unit to Kenneth's) | Downstairs | **Charles + Sherry** | TBD | **Spare room — DIFFERENT location from Unit 13** | **Covered but clearly visible — "clearly evident and clearly covered over"** | **Charles (Vietnam Marine veteran), Sherry** | TBD — need PCPAO lookup | TBD | TBD | **PHYSICAL EVIDENCE WITHOUT WALL-PULL. Visible hookup outlines in spare room. Protected-class anchor. Two veterans in adjacent units = pattern.** |
 
 ---
@@ -88,7 +89,13 @@
    - **Discovery target:** Subpoena work orders, contractor invoices, paint/drywall material purchases for the relevant period
    - **Case value: Denial itself is evidence. Discovery will pierce it.**
 
-5. **Doug's Father — former owner of the maintenance company**
+5. **Ken Egan — neighbor / adverse statement (NEW 2026-06-01)**
+   - Asserted the units were **never constructed with in-unit amenities** (washer/dryer hookups) — repeating the landlord's defense narrative.
+   - **Directly contradicted by the forensic record:** prior tenant Robert had functional Unit-13 hookups; hookup locations vary by floorplan (proving original architectural inclusion); one unit runs a functional vertical stacker.
+   - **Case value:** An adverse lay statement that parrots the defense theory is itself useful — it documents *how effective the concealment has been* (the gaslighting layer), and it can be impeached with Robert's testimony and the permit/architectural record. **Open question for discovery: what is Egan's relationship or incentive that leads a fellow tenant to defend the landlord's narrative?**
+   - **Treatment:** Log the statement factually; do not editorialize in any filing. Let the documentary contradiction do the work.
+
+6. **Doug's Father — former owner of the maintenance company**
    - Previously active on-site, "pretty reasonable guy overall"
    - No longer involved with the property
    - **Treatment: Do NOT name in any filing.** Reasonable people who walked away from an operation can become useful witnesses later. Burning the bridge now would be a strategic error.
@@ -96,7 +103,7 @@
 
 ### Tier 4 — Future Witnesses
 
-6. **"Upgraded Unit" Tenant** — TBD identity
+7. **"Upgraded Unit" Tenant** — TBD identity
    - Successfully has a vertical stacker installed (kitchen area)
    - Either Doug acquiesced (constructive knowledge) or permitted (selective discrimination)
    - **Locate by:** Walking the building, asking neighbors who has working laundry in-unit

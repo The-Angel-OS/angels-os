@@ -1,6 +1,40 @@
 # Rainmaker — Live Case Status
 
-**Last updated:** May 27, 2026
+**Last updated:** June 1, 2026
+
+---
+
+## 🚨 BREAKING — June 1, 2026 — City Code Inspector On-Site, Photographed Defects
+
+**Reid Ito, Code Inspector I (City of Clearwater, Planning & Development — Code Compliance)** conducted an in-person site visit and **personally photographed two of the core structural defects** with a city-held camera:
+
+1. **Phantom exhaust vent protruding into the guest/spare room** — a duct/vent terminating *inside* habitable space rather than to exterior. Inspector's own photo.
+2. **The open hole in the spare-room ceiling** (the covered-over / plastered-over port cavity). Inspector's own photo.
+
+**Why this is a step-change in the case:**
+
+- **First in-person government inspection with government-held photographs.** Until now the independent anchor was the SeeClickFix filing (#21820014) and Kenneth's own photos. Now a city inspector has independently observed and photographed the conditions in official capacity. The images live in a city record system Doug cannot touch.
+- **It converts the defect from "tenant says" to "city inspector saw and shot."** When Doug must "clear up the code issue" (the ceiling hole + the covered-over ports), the act of opening that cavity to remediate is itself what exposes the decommissioned hookups behind the plaster — the building-wide concealment becomes physically undeniable.
+- **It is contemporaneous and pre-dates the July 31 termination** — reinforcing the F.S. 83.64 retaliation timeline.
+
+> Kenneth's read: *"Whenever Doug clears up the code issue with the hole in my ceiling and the covered-over ports, that opens the biggest can of worms Doug never wished for."* The remediation and the exposure are the same act.
+
+### ⚖️ Rent escrow — court filing June 2, 2026
+
+Kenneth is filing to **deposit rent into the court registry (rent escrow)** at the Pinellas County courthouse on June 2, 2026. Under Florida law a tenant who withholds rent for habitability must deposit the disputed rent into the court registry to preserve the defense — this both protects against the retaliatory eviction posture and puts the habitability dispute squarely before the court.
+
+### Adverse statement on record — "Ken Egan"
+
+Per Kenneth's account, **Ken Egan asserted the units were never constructed with in-unit amenities (washer/dryer hookups)** — echoing the defense narrative. The forensic record directly contradicts this (prior tenant Robert's functional Unit-13 hookups; varied hookup locations across floorplans; the "upgraded" stacker unit). Logged as an **adverse/hostile statement** — see `UNIT_FORENSICS.md` Tier 3. *Open question worth noting: why would a fellow tenant volunteer to defend the landlord's narrative?*
+
+### 💧 Water economics — the unmetered-meter incentive (refined)
+
+The water serving both buildings is **unmetered at the unit level (master meter)**. Two consequences the case should press:
+
+- **CSC ServiceWorks' marginal water cost is effectively zero.** On an unmetered master line, the *more* the shared machines run, the *cheaper* each wash becomes for the revenue-share operator — there is a structural incentive to drive volume onto the master line, not to conserve.
+- **The unrepaired 2560 laundry forced cross-building load onto 2566.** By effectively not repairing the 2560 laundry for ~3 years, the majority of 2560's tenants were pushed across the street to wash at 2566. Over roughly that 3-year window, **2566's water bill ran ~$100/month higher than 2560's** — a differential plausibly attributable to all of 2560 doing its wash at 2566. (Electric accounting is murkier, but the *water* is unmetered and the differential is documentable from the bills.) This sharpens Count 10 (cross-building water fraud) with a concrete dollar mechanism.
+
+> Corroboration: Don & Kathy recount the Robert W/D offer in one of Kenneth's "Shameless Stroll" Clearwater Cruisin' videos — cross-referenced in `UNIT_FORENSICS.md`.
 
 ---
 
@@ -53,6 +87,8 @@ The retaliation is no longer a theory. It is documented in the landlord's own wr
 | Counts 6-9 documented (electrical / laundry lockout / irrigation theft / vent ingress) | ✅ Drafted in `v2.4_evidence_addendum.md` |
 | BALS emergency intake | ⏳ Pending — see below |
 | City of Clearwater Code Enforcement formal complaint | ✅ **FILED 2026-05-27 — SeeClickFix #21820014, assigned to Sarah Green** |
+| City Code Inspector in-person site visit + photos | ✅ **2026-06-01 — Reid Ito (Code Inspector I) photographed phantom exhaust vent into guest room + spare-room ceiling hole** |
+| Rent escrow / deposit into court registry | ⏳ **Filing 2026-06-02 (Pinellas County courthouse)** |
 | Independent licensed home inspector | ⏳ Pending |
 | Property appraiser / sunbiz LLC mapping | ✅ COMPLETED — see `OWNERSHIP_PROVEN.md`. $2.7M Colliers/Crexi listing active. |
 | HUD complaint (if any Section 8 tenants in complex) | ⏳ Pending |
