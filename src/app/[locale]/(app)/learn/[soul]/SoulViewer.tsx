@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -57,6 +57,17 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
   const goToDoc = useCallback((id: string) => {
     setCurrentDocId(id)
     mainRef.current?.scrollTo({ top: 0 })
+    // On mobile, close the drawer so the reader lands on the content.
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
+  }, [])
+
+  // Collapse the sidebar by default on mobile (it's an overlay drawer there).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
   }, [])
 
   const currentDoc = soul.docs.find((d) => d.id === currentDocId) ?? soul.docs[0]
@@ -104,12 +115,14 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
         <div className="flex h-14 items-center gap-3 px-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
-            aria-label="Toggle sidebar"
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-2.5 hover:bg-muted transition-colors"
+            aria-label={sidebarOpen ? 'Close document list' : 'Open document list'}
+            aria-expanded={sidebarOpen}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
+            <span className="text-xs font-medium lg:hidden">Docs</span>
           </button>
 
           <Link href="/learn" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -149,9 +162,18 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+        {/* Mobile backdrop */}
         {sidebarOpen && (
-          <aside className="w-72 shrink-0 border-r border-border bg-card/50 flex flex-col print:hidden">
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 top-14 z-30 bg-black/50 lg:hidden"
+            aria-hidden
+          />
+        )}
+
+        {/* Sidebar — overlay drawer on mobile, inline column on desktop */}
+        {sidebarOpen && (
+          <aside className="fixed top-14 bottom-0 left-0 z-40 w-[85vw] max-w-xs shrink-0 border-r border-border bg-card flex flex-col print:hidden lg:static lg:top-0 lg:bottom-auto lg:z-auto lg:w-72 lg:max-w-none lg:bg-card/50">
             {/* Soul header */}
             <div className={`border-b border-border p-4 ${statusBorder}`}>
               <h2 className="text-sm font-bold leading-tight">{soul.title}</h2>
@@ -180,7 +202,7 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
                 return (
                   <button
                     key={doc.id}
-                    onClick={() => setCurrentDocId(doc.id)}
+                    onClick={() => goToDoc(doc.id)}
                     className={`w-full rounded-lg px-3 py-2.5 text-left transition-colors mb-0.5 ${
                       isActive
                         ? 'bg-primary/10 text-primary'
@@ -233,7 +255,7 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
 
         {/* Main content */}
         <main ref={mainRef} className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl px-6 py-10 print:py-4">
+          <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 print:py-4">
             {/* Document header */}
             <div className="mb-8 print:mb-4">
               <div className="flex items-center gap-2 mb-2">
@@ -270,6 +292,11 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  table: ({ children, ...props }) => (
+                    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                      <table {...props}>{children}</table>
+                    </div>
+                  ),
                   a: ({ href, children, ...props }) => {
                     const isExternal = !!href && /^https?:\/\//i.test(href)
                     if (isExternal) {
