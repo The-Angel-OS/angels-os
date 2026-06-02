@@ -103,6 +103,26 @@ export function MultiChannelChat({
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false)
   const [activeApplet, setActiveApplet] = useState<string>('chat')
 
+  // Switch to the chat applet and scroll/highlight a specific message (used by
+  // the Files applet's "in context" link).
+  const jumpToMessage = useCallback((messageId: string) => {
+    setActiveApplet('chat')
+    let tries = 0
+    const attempt = () => {
+      const el = document.getElementById(`msg-${messageId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('ring-2', 'ring-primary', 'bg-primary/5')
+        window.setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-primary', 'bg-primary/5')
+        }, 2200)
+      } else if (tries++ < 20) {
+        window.setTimeout(attempt, 100)
+      }
+    }
+    window.setTimeout(attempt, 80)
+  }, [])
+
   // Find active channel data from both regular and DM channels
   const activeChannelData =
     channels.find((c) => c.slug === activeChannel) ||
@@ -540,7 +560,11 @@ export function MultiChannelChat({
             />
           </div>
         ) : activeApplet === 'files' ? (
-          <FilesBrowser channelId={activeChannelData?.id} spaceId={activeSpaceId} />
+          <FilesBrowser
+            channelSlug={activeChannel}
+            spaceId={activeSpaceId}
+            onJumpToMessage={jumpToMessage}
+          />
         ) : activeApplet === 'tasks' ? (
           <TaskBoard channelId={activeChannelData?.id} spaceId={activeSpaceId} />
         ) : (

@@ -691,7 +691,8 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
       {messages.map((msg, index) => (
         <div
           key={msg.id}
-          className={`group/msg flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          id={`msg-${msg.id}`}
+          className={`group/msg flex scroll-mt-24 rounded-xl transition-colors duration-700 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div className="max-w-[80%]">
             <div
@@ -959,7 +960,8 @@ function FullPageMessageList({
                   return (
                     <div
                       key={msg.id}
-                      className={`group/msg max-w-[85%] ${isSystem ? 'mx-auto text-center' : ''}`}
+                      id={`msg-${msg.id}`}
+                      className={`group/msg max-w-[85%] scroll-mt-24 rounded-xl transition-colors duration-700 ${isSystem ? 'mx-auto text-center' : ''}`}
                     >
                       {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
 
