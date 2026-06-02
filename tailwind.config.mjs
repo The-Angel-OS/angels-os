@@ -84,6 +84,17 @@ export default {
         success: 'hsl(var(--success))',
         error: 'hsl(var(--error))',
         warning: 'hsl(var(--warning))',
+        // Answer53 LCARS palette (muted) — used by the Soul Viewer
+        lcars: {
+          amber: '#C4956A',
+          lavender: '#9B8EC4',
+          peach: '#C48A7A',
+          teal: '#7AB5B0',
+          blue: '#7A9EC4',
+          mauve: '#A8879E',
+          bg: '#0A0810',
+          text: '#F5F2F0',
+        },
       },
       typography: ({ theme }) => ({
         DEFAULT: {
@@ -104,6 +115,9 @@ export default {
       fontFamily: {
         mono: ['var(--font-geist-mono)'],
         sans: ['var(--font-geist-sans)'],
+        // Answer53 LCARS fonts (loaded scoped in the Soul Viewer layout)
+        orbitron: ['var(--font-orbitron)', 'monospace'],
+        rajdhani: ['var(--font-rajdhani)', 'sans-serif'],
       },
       keyframes: {
         fadeIn: {
