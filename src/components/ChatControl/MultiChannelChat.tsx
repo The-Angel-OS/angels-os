@@ -16,6 +16,7 @@ import { AppletBar } from './AppletBar'
 import { FilesBrowser } from './applets/FilesBrowser'
 import { TaskBoard } from './applets/TaskBoard'
 import { NotesTree } from './applets/NotesTree'
+import { BookViewer } from './applets/BookViewer'
 import { useIsMobile } from '@/utilities/useMediaQuery'
 import type { ChatControlProps, ChatChannel } from './types'
 import { DEFAULT_APPLETS } from './types'
@@ -135,7 +136,7 @@ export function MultiChannelChat({
   // A Guardian Angel DM needs LiveKit voice. A vendor DM needs file sharing.
   // Chat is always on; everything else is opt-in but available.
   const enabledApplets = useMemo(() => {
-    const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'voice', 'files', 'tasks', 'notes']
+    const spaceAppletIds = activeSpace?.enabledApplets || ['chat', 'voice', 'files', 'tasks', 'notes', 'book']
     return DEFAULT_APPLETS.filter((a) => spaceAppletIds.includes(a.id))
   }, [activeSpace])
 
@@ -570,6 +571,12 @@ export function MultiChannelChat({
           <TaskBoard channelId={activeChannelData?.id} spaceId={activeSpaceId} />
         ) : activeApplet === 'notes' ? (
           <NotesTree channelId={activeChannelData?.id} />
+        ) : activeApplet === 'book' ? (
+          <BookViewer
+            channelSlug={activeChannel}
+            spaceId={activeSpaceId}
+            title={activeChannelData?.name || activeChannel}
+          />
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             Applet &ldquo;{activeApplet}&rdquo; is not yet available.

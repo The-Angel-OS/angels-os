@@ -93,6 +93,7 @@ export const DEFAULT_APPLETS: Applet[] = [
   { id: 'files', label: 'Files', icon: 'FolderOpen' },
   { id: 'tasks', label: 'Tasks', icon: 'CheckSquare' },
   { id: 'notes', label: 'Notes', icon: 'ListTree' },
+  { id: 'book', label: 'Read', icon: 'BookOpen' },
 ]
 
 export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel' | 'sidebar'

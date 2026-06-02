@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { MessageSquare, FolderOpen, CheckSquare, Headphones, ListTree } from 'lucide-react'
+import { MessageSquare, FolderOpen, CheckSquare, Headphones, ListTree, BookOpen } from 'lucide-react'
 import type { Applet } from './types'
 
 // ─── Icon resolver ──────────────────────────────────────────────
@@ -13,6 +13,7 @@ const ICON_MAP: Record<string, React.FC<{ size?: number; className?: string }>> 
   CheckSquare,
   Headphones,
   ListTree,
+  BookOpen,
 }
 
 interface AppletBarProps {
