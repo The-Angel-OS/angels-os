@@ -4,32 +4,46 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { SoulManifest, SoulDoc } from '@/souls'
+import type { SoulManifest } from '@/souls'
 
-const TIER_COLORS: Record<string, string> = {
-  index:     'text-primary',
-  status:    'text-green-400',
-  legal:     'text-amber-400',
-  evidence:  'text-blue-400',
-  forensics: 'text-cyan-400',
-  action:    'text-rose-400',
-  contacts:  'text-purple-400',
-  historical:'text-muted-foreground',
+/* ─── LCARS palette (matches /learn) ─────────────────────────────────── */
+const LCARS = {
+  amber: '#f5a623',
+  orange: '#ff9c00',
+  peach: '#ffaa6b',
+  lavender: '#cc99cc',
+  blue: '#99ccff',
+  blueDeep: '#4488cc',
+  purple: '#9977aa',
+  green: '#22cc88',
+  red: '#cc4444',
+  darkBg: '#0a0a14',
+  panelBg: '#0f0f1e',
+  cardBg: '#111122',
+  textMuted: '#7788aa',
+} as const
+
+// tier -> LCARS accent
+const TIER_COLOR: Record<string, string> = {
+  index: LCARS.blue,
+  status: LCARS.green,
+  legal: LCARS.amber,
+  evidence: LCARS.blue,
+  forensics: LCARS.lavender,
+  action: LCARS.peach,
+  contacts: LCARS.purple,
+  historical: LCARS.textMuted,
 }
 
-const BADGE_COLORS: Record<string, string> = {
-  red:    'bg-red-500/15 text-red-400 border-red-500/30',
-  green:  'bg-green-500/15 text-green-400 border-green-500/30',
-  blue:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  amber:  'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  orange: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-}
-
-const STATUS_BORDER: Record<string, string> = {
-  red:   'border-red-500/40 bg-red-500/5',
-  green: 'border-green-500/40 bg-green-500/5',
-  blue:  'border-blue-500/40 bg-blue-500/5',
-  amber: 'border-amber-500/40 bg-amber-500/5',
+// badge color name -> LCARS accent
+const BADGE_COLOR: Record<string, string> = {
+  red: LCARS.red,
+  green: LCARS.green,
+  blue: LCARS.blue,
+  amber: LCARS.amber,
+  orange: LCARS.orange,
+  purple: LCARS.purple,
+  lavender: LCARS.lavender,
 }
 
 interface Props {
@@ -41,13 +55,24 @@ interface Props {
 export function SoulViewer({ soul, activeDocId, allContents }: Props) {
   const [currentDocId, setCurrentDocId] = useState(activeDocId)
   const [search, setSearch] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [reading, setReading] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const mainRef = useRef<HTMLElement>(null)
 
-  // filename -> doc id, so relative markdown links (e.g. "OWNERSHIP_PROVEN.md")
-  // switch the active doc in-place instead of navigating to a 404.
+  // Open the rail by default on desktop, closed (drawer) on mobile.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const apply = () => setSidebarOpen(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+
+  const isMobile = () =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+
+  // filename -> doc id, so relative markdown links switch docs in-place.
   const docIdByFilename = useMemo(() => {
     const map: Record<string, string> = {}
     for (const d of soul.docs) map[d.filename.toLowerCase()] = d.id
@@ -57,28 +82,21 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
   const goToDoc = useCallback((id: string) => {
     setCurrentDocId(id)
     mainRef.current?.scrollTo({ top: 0 })
-    // On mobile, close the drawer so the reader lands on the content.
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setSidebarOpen(false)
-    }
   }, [])
 
-  // Collapse the sidebar by default on mobile (it's an overlay drawer there).
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setSidebarOpen(false)
-    }
-  }, [])
+  // From the rail: navigate + auto-close the drawer on mobile.
+  const selectDoc = useCallback(
+    (id: string) => {
+      goToDoc(id)
+      if (isMobile()) setSidebarOpen(false)
+    },
+    [goToDoc],
+  )
 
   const currentDoc = soul.docs.find((d) => d.id === currentDocId) ?? soul.docs[0]
   const rawContent = allContents[currentDocId] ?? ''
+  const content = rawContent
 
-  // Search highlight
-  const content = search.trim()
-    ? rawContent
-    : rawContent
-
-  // Read aloud
   const toggleReadAloud = useCallback(() => {
     if (reading) {
       window.speechSynthesis.cancel()
@@ -95,62 +113,84 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
     setReading(true)
   }, [reading, rawContent])
 
-  // Print
   const handlePrint = () => window.print()
 
   const filteredDocs = search.trim()
     ? soul.docs.filter(
         (d) =>
           d.title.toLowerCase().includes(search.toLowerCase()) ||
-          d.description.toLowerCase().includes(search.toLowerCase())
+          d.description.toLowerCase().includes(search.toLowerCase()),
       )
     : soul.docs
 
-  const statusBorder = STATUS_BORDER[soul.statusColor] ?? 'border-border bg-muted/10'
+  const soulAccent = BADGE_COLOR[soul.statusColor] ?? LCARS.amber
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Top bar */}
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm print:hidden">
-        <div className="flex h-14 items-center gap-3 px-4">
+    <div
+      className="flex min-h-screen flex-col"
+      style={{ background: LCARS.darkBg, color: '#e8ecf8' }}
+    >
+      {/* ── Top bar ─────────────────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-30 backdrop-blur-sm print:hidden"
+        style={{ background: `${LCARS.panelBg}f0`, borderBottom: `1px solid ${LCARS.amber}33` }}
+      >
+        <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+          {/* Hamburger — always visible, clearly a button */}
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-2.5 hover:bg-muted transition-colors"
-            aria-label={sidebarOpen ? 'Close document list' : 'Open document list'}
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors"
+            style={{
+              background: sidebarOpen ? `${LCARS.amber}26` : `${LCARS.amber}14`,
+              border: `1px solid ${LCARS.amber}55`,
+              color: LCARS.amber,
+            }}
+            aria-label={sidebarOpen ? 'Close document index' : 'Open document index'}
             aria-expanded={sidebarOpen}
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg className="h-4.5 w-4.5" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {sidebarOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
             </svg>
-            <span className="text-xs font-medium lg:hidden">Docs</span>
           </button>
 
-          <Link href="/learn" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href="/learn"
+            className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors hover:opacity-80"
+            style={{ color: LCARS.amber }}
+          >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Soul Viewer
           </Link>
-          <span className="text-muted-foreground/40">/</span>
-          <span className="text-sm font-semibold truncate">{soul.title}</span>
+          <span className="hidden sm:inline" style={{ color: `${LCARS.textMuted}88` }}>
+            /
+          </span>
+          <span className="truncate text-sm font-semibold tracking-tight">{soul.title}</span>
 
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={toggleReadAloud}
-              className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs transition-colors ${
-                reading
-                  ? 'border-primary/50 bg-primary/10 text-primary'
-                  : 'border-border hover:bg-muted'
-              }`}
+              className="flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors"
+              style={{
+                background: reading ? `${LCARS.green}22` : `${LCARS.blue}12`,
+                border: `1px solid ${reading ? LCARS.green : LCARS.blue}55`,
+                color: reading ? LCARS.green : LCARS.blue,
+              }}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.536-9.536a5 5 0 000 7.072" />
               </svg>
-              {reading ? 'Stop' : 'Read Aloud'}
+              <span className="hidden sm:inline">{reading ? 'Stop' : 'Read Aloud'}</span>
             </button>
             <button
               onClick={handlePrint}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-xs hover:bg-muted transition-colors"
+              className="hidden sm:flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ background: `${LCARS.lavender}12`, border: `1px solid ${LCARS.lavender}55`, color: LCARS.lavender }}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -161,141 +201,192 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {/* Mobile backdrop */}
         {sidebarOpen && (
           <div
+            className="fixed inset-0 top-14 z-40 bg-black/60 md:hidden"
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 top-14 z-30 bg-black/50 lg:hidden"
             aria-hidden
           />
         )}
 
-        {/* Sidebar — overlay drawer on mobile, inline column on desktop */}
-        {sidebarOpen && (
-          <aside className="fixed top-14 bottom-0 left-0 z-40 w-[85vw] max-w-xs shrink-0 border-r border-border bg-card flex flex-col print:hidden lg:static lg:top-0 lg:bottom-auto lg:z-auto lg:w-72 lg:max-w-none lg:bg-card/50">
-            {/* Soul header */}
-            <div className={`border-b border-border p-4 ${statusBorder}`}>
+        {/* ── Sidebar / drawer ─────────────────────────────────────── */}
+        <aside
+          className={`fixed top-14 bottom-0 left-0 z-50 flex w-[85vw] max-w-[20rem] flex-col transition-transform duration-300 ease-out
+            md:static md:top-0 md:z-auto md:w-72 md:max-w-none md:transition-none print:hidden
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}`}
+          style={{ background: LCARS.panelBg, borderRight: `1px solid ${LCARS.amber}22` }}
+        >
+          {/* Soul header — LCARS elbow */}
+          <div className="p-3">
+            <div
+              className="rounded-2xl rounded-tl-3xl p-4"
+              style={{ background: `linear-gradient(135deg, ${soulAccent}1a, transparent)`, border: `1px solid ${soulAccent}40` }}
+            >
               <h2 className="text-sm font-bold leading-tight">{soul.title}</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{soul.subtitle}</p>
-              <span className={`mt-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${BADGE_COLORS[soul.statusColor] ?? 'border-border text-muted-foreground'}`}>
+              <p className="mt-0.5 text-xs leading-snug" style={{ color: LCARS.textMuted }}>
+                {soul.subtitle}
+              </p>
+              <span
+                className="mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                style={{ background: `${soulAccent}22`, color: soulAccent, border: `1px solid ${soulAccent}55` }}
+              >
                 {soul.status}
               </span>
             </div>
+          </div>
 
-            {/* Search */}
-            <div className="border-b border-border p-3">
-              <input
-                type="search"
-                placeholder="Search documents…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
+          {/* Search */}
+          <div className="px-3 pb-2">
+            <input
+              type="search"
+              placeholder="Search documents…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-full px-4 py-2 text-xs outline-none transition-colors focus:ring-1"
+              style={{ background: LCARS.darkBg, border: `1px solid ${LCARS.blueDeep}44`, color: '#e8ecf8' }}
+            />
+          </div>
 
-            {/* Doc list */}
-            <nav className="flex-1 overflow-y-auto p-2">
-              {filteredDocs.map((doc) => {
-                const isActive = doc.id === currentDocId
-                const tierColor = TIER_COLORS[doc.tier] ?? 'text-muted-foreground'
-                return (
-                  <button
-                    key={doc.id}
-                    onClick={() => goToDoc(doc.id)}
-                    className={`w-full rounded-lg px-3 py-2.5 text-left transition-colors mb-0.5 ${
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-muted/60 text-foreground'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium leading-snug">{doc.title}</span>
+          {/* Doc list */}
+          <nav className="flex-1 overflow-y-auto px-2 pb-2">
+            {filteredDocs.map((doc) => {
+              const isActive = doc.id === currentDocId
+              const accent = TIER_COLOR[doc.tier] ?? LCARS.textMuted
+              return (
+                <button
+                  key={doc.id}
+                  onClick={() => selectDoc(doc.id)}
+                  className="mb-1 flex w-full gap-2.5 rounded-xl rounded-l-2xl p-2.5 pl-2 text-left transition-colors"
+                  style={{
+                    background: isActive ? `${accent}1f` : 'transparent',
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = `${accent}12` }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                >
+                  {/* LCARS color rail */}
+                  <span
+                    className="mt-0.5 w-1.5 shrink-0 self-stretch rounded-full"
+                    style={{ background: accent, opacity: isActive ? 1 : 0.5 }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-semibold" style={{ color: isActive ? accent : '#e8ecf8' }}>
+                        {doc.title}
+                      </span>
                       {doc.badge && (
-                        <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${BADGE_COLORS[doc.badgeColor ?? 'blue'] ?? ''}`}>
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                          style={{
+                            background: `${BADGE_COLOR[doc.badgeColor ?? 'blue'] ?? LCARS.blue}22`,
+                            color: BADGE_COLOR[doc.badgeColor ?? 'blue'] ?? LCARS.blue,
+                          }}
+                        >
                           {doc.badge}
                         </span>
                       )}
-                    </div>
-                    <p className={`mt-0.5 text-[10px] leading-snug ${isActive ? 'text-primary/70' : 'text-muted-foreground'}`}>
+                    </span>
+                    <span className="mt-0.5 block text-[10px] leading-snug" style={{ color: LCARS.textMuted }}>
                       {doc.description}
-                    </p>
-                    <p className={`mt-1 text-[9px] font-mono ${tierColor}`}>
+                    </span>
+                    <span className="mt-1 block font-mono text-[9px] uppercase tracking-wide" style={{ color: `${accent}cc` }}>
                       {doc.date} · {doc.tier}
-                    </p>
-                  </button>
-                )
-              })}
-            </nav>
-
-            {/* External links */}
-            {soul.links && soul.links.length > 0 && (
-              <div className="border-t border-border p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  External Evidence
-                </p>
-                {soul.links.map((link) => (
-                  <a
-                    key={link.url}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 rounded py-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
-          </aside>
-        )}
-
-        {/* Main content */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 print:py-4">
-            {/* Document header */}
-            <div className="mb-8 print:mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-xs font-mono uppercase ${TIER_COLORS[currentDoc.tier]}`}>
-                  {currentDoc.tier}
-                </span>
-                <span className="text-muted-foreground/30">·</span>
-                <span className="text-xs font-mono text-muted-foreground">{currentDoc.date}</span>
-                {currentDoc.badge && (
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${BADGE_COLORS[currentDoc.badgeColor ?? 'blue'] ?? ''}`}>
-                    {currentDoc.badge}
+                    </span>
                   </span>
-                )}
-              </div>
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* External links */}
+          {soul.links && soul.links.length > 0 && (
+            <div className="px-3 py-3" style={{ borderTop: `1px solid ${LCARS.amber}1a` }}>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: LCARS.textMuted }}>
+                External Evidence
+              </p>
+              {soul.links.map((link) => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded py-1 text-[11px] transition-colors hover:opacity-80"
+                  style={{ color: LCARS.blue }}
+                >
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        {/* ── Main content ─────────────────────────────────────────── */}
+        <main ref={mainRef} className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-3xl px-5 py-8 sm:px-6 sm:py-10 print:py-4">
+            {/* Document header — LCARS pill */}
+            <div className="mb-7 flex flex-wrap items-center gap-2 print:mb-3">
+              <span
+                className="rounded-full px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-widest"
+                style={{
+                  background: `${TIER_COLOR[currentDoc.tier] ?? LCARS.textMuted}1f`,
+                  color: TIER_COLOR[currentDoc.tier] ?? LCARS.textMuted,
+                }}
+              >
+                {currentDoc.tier}
+              </span>
+              <span className="font-mono text-xs" style={{ color: LCARS.textMuted }}>
+                {currentDoc.date}
+              </span>
+              {currentDoc.badge && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{
+                    background: `${BADGE_COLOR[currentDoc.badgeColor ?? 'blue'] ?? LCARS.blue}22`,
+                    color: BADGE_COLOR[currentDoc.badgeColor ?? 'blue'] ?? LCARS.blue,
+                  }}
+                >
+                  {currentDoc.badge}
+                </span>
+              )}
             </div>
 
             {/* Markdown content */}
-            <article className="prose prose-sm dark:prose-invert max-w-none
-              prose-headings:font-bold prose-headings:tracking-tight
-              prose-h1:text-2xl prose-h1:mb-6 prose-h1:border-b prose-h1:border-border prose-h1:pb-4
-              prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4
-              prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3
-              prose-p:leading-relaxed prose-p:text-sm
-              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-xs
-              prose-pre:bg-muted prose-pre:border prose-pre:border-border
-              prose-blockquote:border-primary/40 prose-blockquote:bg-primary/5 prose-blockquote:rounded-r-lg prose-blockquote:py-0.5
-              prose-table:text-xs prose-th:bg-muted/50 prose-th:font-semibold
-              prose-td:text-muted-foreground
-              prose-hr:border-border prose-hr:my-6
-              prose-strong:text-foreground
-              prose-li:text-sm prose-li:leading-relaxed
-            ">
+            <article
+              className="prose prose-invert prose-sm max-w-none
+                prose-headings:font-bold prose-headings:tracking-tight
+                prose-h1:text-2xl prose-h1:mb-6 prose-h1:pb-4
+                prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4
+                prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3
+                prose-p:leading-relaxed prose-p:text-sm
+                prose-a:no-underline hover:prose-a:underline
+                prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/10
+                prose-blockquote:rounded-r-lg prose-blockquote:py-0.5
+                prose-table:text-xs prose-table:block prose-table:overflow-x-auto
+                prose-strong:text-white
+                prose-li:text-sm prose-li:leading-relaxed"
+              style={
+                {
+                  // LCARS-tinted prose accents via CSS vars consumed below
+                  ['--tw-prose-links' as string]: LCARS.amber,
+                  ['--tw-prose-bullets' as string]: LCARS.lavender,
+                  ['--tw-prose-quote-borders' as string]: LCARS.amber,
+                  ['--tw-prose-hr' as string]: `${LCARS.amber}33`,
+                  ['--tw-prose-th-borders' as string]: `${LCARS.blue}33`,
+                  ['--tw-prose-td-borders' as string]: '#ffffff14',
+                } as React.CSSProperties
+              }
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  table: ({ children, ...props }) => (
-                    <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                      <table {...props}>{children}</table>
-                    </div>
+                  h1: ({ children, ...props }) => (
+                    <h1 style={{ borderBottom: `2px solid ${LCARS.amber}44` }} {...props}>
+                      {children}
+                    </h1>
                   ),
                   a: ({ href, children, ...props }) => {
                     const isExternal = !!href && /^https?:\/\//i.test(href)
@@ -307,11 +398,9 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
                       )
                     }
                     if (href) {
-                      // Strip anchor + leading ./ or / to isolate a filename.
                       const clean = decodeURIComponent(href.split('#')[0].replace(/^\.?\//, ''))
                       const targetId = docIdByFilename[clean.toLowerCase()]
                       if (targetId) {
-                        // Internal cross-reference to another doc in this soul.
                         return (
                           <a
                             href={`#${targetId}`}
@@ -326,12 +415,10 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
                           </a>
                         )
                       }
-                      // A .md link with no matching doc would 404 — render inert.
                       if (clean.toLowerCase().endsWith('.md')) {
-                        return <span className="text-muted-foreground">{children}</span>
+                        return <span style={{ color: LCARS.textMuted }}>{children}</span>
                       }
                     }
-                    // In-page anchors (#section) and anything else: default behavior.
                     return (
                       <a href={href} {...props}>
                         {children}
@@ -345,11 +432,11 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
             </article>
 
             {/* STATION footer */}
-            <div className="mt-16 border-t border-border pt-8 text-center print:hidden">
-              <p className="text-xs text-muted-foreground/50 font-mono">
+            <div className="mt-16 pt-8 text-center print:hidden" style={{ borderTop: `1px solid ${LCARS.amber}1a` }}>
+              <p className="font-mono text-xs" style={{ color: `${LCARS.textMuted}99` }}>
                 {soul.title} · {currentDoc.title} · {currentDoc.date}
               </p>
-              <p className="mt-2 text-xs font-bold tracking-widest text-muted-foreground/30">
+              <p className="mt-2 text-xs font-bold tracking-[0.3em]" style={{ color: `${LCARS.amber}66` }}>
                 STATION ⚓
               </p>
             </div>
