@@ -92,6 +92,7 @@ export const DEFAULT_APPLETS: Applet[] = [
   { id: 'voice', label: 'Voice', icon: 'Headphones' },
   { id: 'files', label: 'Files', icon: 'FolderOpen' },
   { id: 'tasks', label: 'Tasks', icon: 'CheckSquare' },
+  { id: 'notes', label: 'Notes', icon: 'ListTree' },
 ]
 
 export type ChatMode = 'minimalist' | 'single-channel' | 'multi-channel' | 'sidebar'
