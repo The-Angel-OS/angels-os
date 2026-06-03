@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { getAllSouls } from '@/souls'
 
 export const metadata = {
-  title: 'Learn — Soul Viewer',
+  title: 'The Library — Angel OS',
   description:
-    'Case files, manifestos, and living documents. Each soul is a node in the network.',
+    'Books, case files, manifestos, and living documents — read freely on Angel OS.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -36,14 +36,15 @@ export default async function LearnPage({
             href="/learn"
             className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-primary hover:underline"
           >
-            ← Learn · Soul Viewer
+            ← Learn · The Library
           </Link>
           <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-            Souls &amp; Case Files
+            The Library
           </h1>
           <p className="max-w-xl text-lg text-muted-foreground">
-            Case files, manifestos, and living documents. Every soul in the network
-            deserves a record. Every record deserves a witness.
+            Books, case files, manifestos, and living documents — read freely, no account
+            required. Every work in the network deserves a record. Every record deserves a
+            witness.
           </p>
         </div>
       </div>

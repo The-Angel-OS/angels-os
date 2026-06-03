@@ -3,15 +3,20 @@
 // with a manifest and markdown documents served from docs/
 
 import { rainmakerManifest } from './rainmaker/manifest'
+import { gptPsychosisManifest } from './gpt-psychosis/manifest'
+import { wdegManifest } from './wdeg/manifest'
+import { readyPlayerEveryoneManifest } from './ready-player-everyone/manifest'
 import type { SoulManifest } from './rainmaker/manifest'
 
 export type { SoulManifest, SoulDoc } from './rainmaker/manifest'
 
+// The Library — case files and works, each a manifest + markdown docs in
+// docs/vision/{id}/. Order here is the order shown on the Library index.
 export const SOULS: Record<string, SoulManifest> = {
   rainmaker: rainmakerManifest,
-  // Future souls registered here:
-  // 'angel-os': angelOsManifest,
-  // 'clearwater-cruisin': clearwaterManifest,
+  'gpt-psychosis': gptPsychosisManifest,
+  wdeg: wdegManifest,
+  'ready-player-everyone': readyPlayerEveryoneManifest,
 }
 
 export function getSoul(id: string): SoulManifest | null {
