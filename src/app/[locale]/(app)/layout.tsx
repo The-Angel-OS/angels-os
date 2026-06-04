@@ -35,11 +35,12 @@ export async function generateMetadata(): Promise<Metadata> {
     typeof (tenant as any)?.branding?.tagline === 'string'
       ? (tenant as any).branding.tagline
       : ''
-  const logoUrl =
-    typeof (tenant as any)?.branding?.logo === 'object' &&
-    (tenant as any)?.branding?.logo !== null
-      ? ((tenant as any).branding.logo as Media)?.url
-      : null
+  const mediaUrl = (m: unknown): string | null =>
+    typeof m === 'object' && m !== null ? ((m as Media)?.url ?? null) : null
+  const branding = (tenant as any)?.branding
+  // Per-endeavor favicon: uploaded favicon → logo → Angel OS default.
+  const faviconUrl = mediaUrl(branding?.favicon) ?? mediaUrl(branding?.logo) ?? '/favicon.png'
+  const appleUrl = mediaUrl(branding?.favicon) ?? '/apple-touch-icon.png'
 
   return {
     title: {
@@ -50,8 +51,9 @@ export async function generateMetadata(): Promise<Metadata> {
       tagline ||
       'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
     icons: {
-      icon: logoUrl ?? '/favicon.png',
-      apple: '/apple-touch-icon.png',
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+      apple: appleUrl,
     },
   }
 }
@@ -118,9 +120,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <InitTheme />
         <TenantFonts tenant={tenant} />
         <TenantStyles tenant={tenant} />
-        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+        {/* Favicon links are emitted by generateMetadata().icons (per-endeavor:
+            branding.favicon → logo → /favicon.png). The 512px icon is kept here
+            as a static PWA hint. */}
         <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <GoogleAnalytics />
       </head>
       <body>

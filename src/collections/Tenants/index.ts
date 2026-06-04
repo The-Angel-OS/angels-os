@@ -105,6 +105,15 @@ export const Tenants: CollectionConfig = {
           relationTo: 'media',
         },
         {
+          name: 'favicon',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description:
+              'Browser tab / bookmark icon for this endeavor. Square PNG recommended (≥512px, centered). Falls back to the logo, then the Angel OS default.',
+          },
+        },
+        {
           name: 'siteName',
           type: 'text',
         },
