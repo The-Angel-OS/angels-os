@@ -341,6 +341,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'works',
+        label: 'Works Studio',
+        icon: 'book-open',
+        href: (p) => `${p}/dashboard/works`,
+        isActive: active('/dashboard/works'),
+        visible: always,
+      },
+      {
         key: 'endeavor',
         label: 'Endeavor Setup',
         icon: 'wand',
