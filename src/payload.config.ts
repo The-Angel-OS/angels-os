@@ -89,6 +89,7 @@ import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
+import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -580,6 +581,13 @@ export default buildConfig({
       path: '/booking-ops/available-slots',
       method: 'post',
       handler: bookingAvailableSlotsHandler,
+    },
+    // One-shot, super_admin-only, idempotent: provisions the WDEG portal tenant.
+    // GET so an authenticated super_admin can trigger it from the browser.
+    {
+      path: '/provision-ops/wdeg-portal',
+      method: 'get',
+      handler: provisionWdegPortalHandler,
     },
     {
       path: '/booking-ops/checkout',
