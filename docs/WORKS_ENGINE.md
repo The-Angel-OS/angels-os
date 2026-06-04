@@ -1,183 +1,169 @@
-# The Works Engine — Messages-Primitive Book / Quest Applet Architecture
+# The Works Engine — Federated, Content-Addressed, Replicating Media Network
 
-> *Canonical design. Supersedes the earlier "new collections" draft.*
-> Status: **agreed** · Owner: Kenneth · Re-based Sprint 47
->
-> **Core decision (locked):** Books, souls, hybrid media, and quests are **not new
-> collections** — they are **applets composed of Messages**. Messages are the
-> primitives. The substrate (Channels + Messages) already exists, so the engine
-> ships with **zero schema migration** — which matters because *local DB = production
-> DB* and the provisioning engine makes migrations risky.
+> **Canonical spec.** Supersedes the messages-primitive draft (which remains true
+> for *authoring*; this spec adds *release + distribution*).
+> Status: **committed direction** · Green-field (no adopters → no backward-compat tax).
+> One line: *Audible's catalog × git's integrity × IPFS's addressing × the
+> federation's signatures — presenting as a friendly shopping cart.*
 
 ---
 
-## The one-sentence model
+## The thesis
 
-> **A Work is a Channel. Its pages are Messages. The viewer is an applet. Quests are
-> Works with rules (smart-contract-like). Everything reuses the per-tenant, realtime,
-> offline-capable message store you already run.**
+A **Work** is any media (book, illustrated primer, audiobook, video, doc, quest).
+It is **authored** mutably, **sealed** into an immutable signed release, **distributed**
+by signed grant to portals, **replicated** there (sovereign, offline), and **read** by a
+media-dispatching player. Each Angel OS node is simultaneously a **publisher** and a
+**portal**. Works flow between nodes. No central catalog; each node holds its own.
 
----
-
-## Why Messages (not new tables)
-
-`local DB = production DB`, and the provisioning engine drops tenant home-page media
-links when it runs. New collections ⇒ migration ⇒ risk. The Channels + Messages schema
-**already carries every field the book/quest viewer needs**, all in existing `jsonb`:
-
-| Need | Existing field (zero migration) |
-|---|---|
-| Work container (book/soul/quest) | a **Channel** (per-tenant, already scoped) |
-| Work kind + reader preset + publish flags | `Channels.data` jsonb → `{ applet, readerPreset, sourceLanguage, isPublished, isPublic, endeavorId }` |
-| Pages / chapters / blocks | **Messages** in the channel, ordered |
-| Page body (hybrid media) | `Messages.content` (json) + `Messages.attachments` (media[] + caption) |
-| Page metadata | `Messages.metadata` json → `{ pageKey, order, tier, badge, displayDate, illustration, illustrationStatus }` |
-| **Multilingual cache** | `Messages.metadata.translations` → `{ es: {...}, fr: {...} }`, generated on demand, cached in place |
-| Nested blocks / sub-pages | `Messages.parentMessage` |
-| Public/anonymous read gate | `Messages.visibility` / `status` + `Channels.data.isPublished` |
-| Offline | the existing message store (Nimue Dexie outbox on the client; SW cache on web) |
-| Realtime co-read/edit | SSE (`leo-stream`) + short-poll (`useChat` depth=1). **No Convex.** |
-
-**Nothing new in the database.** The engine is application-layer convention over `data`,
-`content`, `attachments`, and `metadata`.
+**North star: sovereignty + offline.** Once a portal replicates a Work it needs nothing
+from the origin — the origin can vanish and the Work survives. We chose **replicate**, not
+reference, for exactly this reason.
 
 ---
 
-## Channel = Work (the `data` contract)
+## The lifecycle (the whole design in five verbs)
 
-A channel becomes a Work when `data.applet` is set:
-
-```jsonc
-// Channels.data
-{
-  "applet": "book",                 // "book" | "soul" | "quest" | "primer" | "document"
-  "readerPreset": "devotional",     // casefile | devotional | plain | primer
-  "sourceLanguage": "en",
-  "isPublished": true,              // appears in Discover / Federation browser
-  "isPublic": true,                 // anonymous read allowed (server-rendered, scoped)
-  "endeavorId": 42,                 // owning endeavor (subdomain/portal scoping)
-  "cover": 1234,                    // media id
-  "tags": ["book", "memoir"],
-  "defaultPageKey": "ch-01"
-}
+```
+  AUTHOR        →   RELEASE          →   DISTRIBUTE      →   REPLICATE       →   READ
+  messages/         signed,              signed grant        pull-by-hash,       any-media
+  channels          content-addressed    to a portal         verify, store       player
+  (mutable,         manifest + assets    (terms: free/paid)   (sovereign copy)
+   Dexie, offline)  (immutable, versioned)
 ```
 
-The channel's `type` select is untouched; the applet flag rides in `data` so no enum
-migration is needed.
+- **Author** — the workshop. Mutable blocks in the message/channel store (Notion-like,
+  offline via Dexie). Like a git working tree.
+- **Release (seal)** — freeze a version into a **content-addressed, Ed25519-signed
+  manifest** referencing assets by hash. Immutable + verifiable. Like a git commit.
+- **Distribute** — the origin issues a **signed grant** putting the Work on a portal.
+- **Replicate** — the portal verifies the grant + manifest signature, pulls each asset by
+  hash (from origin or any peer), verifies each hash. Now self-sufficient.
+- **Read** — the player dispatches by media type (primer / audio / video / text / quest).
 
-## Message = Page (the `metadata` contract)
+Mutable authoring ≠ immutable release is the keystone. It resolves the
+file/static/messages debate: **messages are the workshop; signed content-addressed
+manifests are the published book.** Both.
 
+---
+
+## Primitives
+
+### 1. Content-Addressed Store (CAS)
+Every asset is named by its **SHA-256 hash** (`cid`). Immutable, deduplicated,
+integrity-checkable (the hash *is* the verification), cacheable anywhere.
+- Dev: hash-named files under `public/library/cas/<cid>.<ext>`.
+- Prod: Cloudflare R2 (object key = cid) + edge cache + local warm cache.
+- IPFS's good idea without IPFS's operational baggage.
+
+### 2. The Work = a signed manifest
 ```jsonc
-// Messages.content  → the page body (markdown string OR block array for hybrid media)
-// Messages.attachments → [{ media, caption }]  (images, video, audio)
-// Messages.metadata:
 {
-  "pageKey": "ch-01",
-  "order": 1,
-  "tier": "chapter",                // casefile tiers reused for souls
-  "badge": "🚨 CRITICAL",
-  "displayDate": "2026-06-01",
-  "illustration": 5678,             // media id (primer / per-page art)
-  "illustrationStatus": "generated",// none | pending | generated | failed
-  "illustrationPrompt": "…",
-  "translations": {                 // multilingual cache (generated on demand)
-    "es": { "title": "…", "content": "…" },
-    "fr": { "title": "…", "content": "…" }
-  }
+  "slug": "wdeg",
+  "title": "Where Did Everyone Go",
+  "media": "primer",                 // primer | book | audio | video | doc | quest
+  "origin": "<publisherPublicKeyHex>",   // the enterprise/DID that owns this Work
+  "version": 1,
+  "languages": [{ "code": "en", "name": "English", "rtl": false }, ...],
+  "defaultLanguage": "en",
+  "items": [
+    { "order": 1, "imageCid": "<sha256>", "image": "/library/cas/<sha256>.webp",
+      "audioCid": null, "textCids": { "en": "<sha256>", "es": "<sha256>" } }
+  ],
+  "manifestCid": "<sha256 of the canonical manifest, signature excluded>",
+  "signerPublicKey": "<hex SPKI DER ed25519>",
+  "signature": "<hex ed25519 over the canonical manifest>"
 }
 ```
+Mirrors `src/federation/protocol.ts` exactly (hex SPKI/PKCS8 DER, `crypto.sign(null,…)`)
+so Library signatures are **federation-verifiable** with the existing `verifySignature`.
+The manifest is itself content-addressed → its hash is the immutable version id.
+
+### 3. Distribution = a signed grant
+```jsonc
+{
+  "workCid": "<manifestCid>",
+  "origin": "<publisherPublicKey>",
+  "grantee": "<portalPublicKey | tenantSlug>",
+  "terms": { "kind": "free" | "paid", "price": null, "currency": null },
+  "issuedAt": "ISO", "expiresAt": "ISO | null",
+  "signature": "<origin signature over the grant>"
+}
+```
+A portal verifies the grant signature against the **origin's known key** (the federation
+handshake — task #5 — is the load-bearing wall: no verified identity, no trustable
+distribution), then replicates. **Revocation** = origin publishes a signed revocation or
+the grant expires; replicated copies honor it (stop serving, optionally purge).
+
+### 4. Replication = pull-by-cid
+On accepting a grant: fetch manifest (verify sig + hash) → for each `*Cid` not already in
+CAS, pull (origin or peer) and verify the hash → store. Idempotent, resumable, offline
+thereafter.
+
+### 5. The Library = the grants a node holds
+`owned (origin = self) ∪ granted`. The list renders this catalog, **tenant-scoped** with a
+never-empty filter (the Sprint-44 `buildTenantFilter` discipline; a `worksFilterNeverLeaks`
+test guards it). A Work not visible to the current tenant → **404** (no existence leak).
 
 ---
 
-## The generic viewer — `<WorkReader preset>`
+## Any-media player
 
-One component, message-backed, four growing skins. (The Answer53 LCARS SoulViewer is the
-seed — it already renders markdown elegantly with mobile drawer + read-aloud.)
+`WorkPlayer` dispatches by `manifest.media`:
+- `primer` / `book` → page-flip image+text reader (built ✅)
+- `audio` → audiobook player (items = tracks; the literal Audible case)
+- `video` → video player
+- `doc` → long-form reader
+- `quest` → interactive / smart-contract-like (state + rules)
 
-| Preset | For | Behavior |
-|---|---|---|
-| `casefile` | souls (Rainmaker) | status chip, doc list, evidence tone |
-| `devotional` | WDEG / Ready Player Everyone | chapter nav, per-chapter art, Single/Complete/Auto |
-| `plain` | generic long-form / autobiography | clean reader |
-| **`primer`** | **the evolution target** | full-bleed page-flip, **per-page illustration generated on turn** via `resolveImageProvider()`, optional narration — the Young Lady's Illustrated Primer |
-
-`WorkReader` reads a channel's messages (ordered by `metadata.order`), renders
-`content` + `attachments`, and switches chrome by `data.readerPreset`. Souls and books are
-the *same component*.
-
-## Books & Quests are applets
-
-- **Book applet** — `src/components/ChatControl/applets/BookViewer.tsx`, registered in the
-  AppletBar like TaskBoard/FilesBrowser. Reads the channel's messages, renders `WorkReader`.
-- **Quest applet** — a Work with **rules**: quests are *smart-contract-like* — stateful,
-  rule-driven, with conditions/transitions (the Ethereum analogy). State lives in
-  `Channels.data.questState`; transitions are messages; completion can trigger
-  Justice-Fund / token effects. (Phase 4+.)
-- **Discoverable** — published Works (`data.isPublished`) surface in the Discover /
-  Federation browser (`federation/discover`) and via street-signs, alongside endeavors.
-- **Offline** — the message store already syncs to the Nimue Dexie outbox on the client;
-  the web reader adds service-worker caching of published, public Works.
-
-## Public / anonymous read (decision: "1 and 3")
-
-Two layers, together:
-1. **Published/public flag** — `data.isPublished && data.isPublic` marks a Work as world-
-   readable; it appears in Discover and is reachable by slug/subdomain.
-2. **Server-rendered, scoped read** — public Work pages are server-rendered; the server
-   reads the channel's messages with an **explicit tenant/endeavor filter + overrideAccess**
-   (the `buildTenantFilter` contract — never empty), so anonymous visitors get *exactly that
-   Work* and nothing else. No client-side tenant leak.
-
-Existing public md souls (Rainmaker) keep working as-is; the Messages-backed path powers new
-and editable Works first, and Rainmaker can migrate into a channel later without changing its
-public URL.
-
-## Multilingual (dynamic, cached)
-
-- Each Work declares `data.sourceLanguage`.
-- On first request for a non-source language, translate each page via the AI gateway and
-  **cache into `Messages.metadata.translations[lang]`**. Subsequent reads are cache hits.
-- No new tables; the cache is co-located with the page.
+One player, many media. The manifest already carries ordered items with image+text;
+adding an `audioCid`/`videoCid` per item is the only schema step.
 
 ---
 
-## Subdomain / endeavor portals
+## Commerce: the Battle Computer is a Shopping Cart
 
-`wheredideveryonego.spacesangels.com` (wildcard already routes) → `resolveTenantFromHeaders`
-→ the WDEG endeavor/tenant → its published `book` channel → `<WorkReader preset="devotional">`.
-Endeavor scoping is just the tenant filter the platform already enforces.
-
----
-
-## Phased path (each slice is app-layer, no migration)
-
-1. **Reader** — `<WorkReader>` reads a channel's messages; `BookViewer` applet; seed one book
-   channel to prove it end-to-end (incl. public server-render).
-2. **Import WDEG** — map `wdeg/extracted-content/{pages,posts}-raw.json` → messages in a WDEG
-   book channel under a WDEG endeavor; wire the subdomain.
-3. **Editor** — author pages as messages (the existing composer / a block editor), versioned
-   by message edits; offline via Dexie.
-4. **Illustration + Primer** — per-page art via `resolveImageProvider()`; `primer` preset
-   page-flip + on-turn generation + narration.
-5. **Quests** — rules/state in `data.questState`; smart-contract-like transitions and effects.
-6. **Multilingual** — on-demand translate + cache in `metadata.translations`.
+A Work is just another thing a sovereign node **owns and distributes** — next to Products
+and Services. So a grant's `terms` can be **paid**, and **UltimateFairSplit becomes the
+royalty engine**: the publisher is paid when their title sells/streams across the network —
+Audible's economics, *federated*, with fair-split instead of a gatekeeper's 70/30. The
+shopping cart and the library are the same node; a book is a product that happens to be
+readable.
 
 ---
 
-## Operational guardrails (carried from Sprint-47 notes)
+## Security & invariants
 
-- **local DB = production DB.** Prefer **zero migrations**; this engine needs none. If a
-  field is ever truly required, generate + commit the migration and account for the
-  provisioning engine.
-- **Provisioning engine** drops tenant home-page media links when it runs — known, minor,
-  re-link after. Don't let a Works change ride along with a provisioning run.
-- **Admin-UI sweep after every build** — verify Payload admin pages render; verify each
-  tenant has its **default Space + required Channels** (general, announcements, etc.).
-  Codify a "channel-ensure" best-practice (idempotent default-channel guarantee) + an
-  integration test so missing default channels can't ship.
-- **No Convex.** Realtime = SSE + poll + Payload + message store.
+- **Provenance** — every release + grant is Ed25519-signed; consumers verify against the
+  origin's federation key. Spoofing "official WDEG" is cryptographically prevented.
+- **Integrity** — content addressing means a tampered or corrupted asset fails its hash.
+- **Privacy boundary (state it loudly)** — file/static/CAS assets are public-by-nature
+  (anyone with the cid can fetch). Scoping hides a Work from a *listing*, not from a URL.
+  **Anything that must be genuinely private must be message-backed** (DB access control).
+  Static/CAS = *published*; messages = *private*.
+- **Never leak** — the Library listing must never fall through to a global/empty filter;
+  mirror `buildTenantFilter` and test it.
+- **No secret in git** — private signing keys live encrypted in the tenant (keyStore.ts) or
+  gitignored locally; only public keys + signatures are committed.
 
 ---
 
-*Messages are the primitive. A book is a conversation you read instead of join. A quest is a
-book that keeps score. The viewer is one component; the store is the one you already have.*
+## Build path (each slice ships; every cycle moves toward this)
+
+1. **Content-address + sign the manifest** ← *slice #1, in progress.* Assets → CAS by
+   hash; manifest signed (federation format); self-verify. Pure assets+JSON, zero DB.
+2. **Replicate flow** — export a signed work *bundle* (manifest + assets), import into
+   another node, verify sig + hashes, list it. Prove sovereignty on one machine.
+3. **Grants + revocation** — signed distribution record; honor revocation. (Needs #5 keys.)
+4. **Any-media** — `audioCid`/`videoCid` items + `WorkPlayer` dispatch (audiobooks).
+5. **Commercial terms** — grant terms → UltimateFairSplit → royalties.
+6. **Authoring → seal** — message/channel workshop sealing into a release (the loop closes).
+
+Green-field assumption: while solo, no reference/streaming fallback, no migration baggage —
+build the optimal replicating design directly.
+
+---
+
+*Author in the workshop. Seal a commit of media. Sign it. Hand it across the federation by
+grant. Each node keeps its own sovereign copy. Read anything. Get paid fairly. And it still
+looks like a friendly shopping cart.*

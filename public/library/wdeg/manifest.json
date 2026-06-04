@@ -2,6 +2,9 @@
   "slug": "wdeg",
   "title": "Where Did Everyone Go",
   "subtitle": null,
+  "media": "primer",
+  "origin": "302a300506032b657003210048f518f066f08fe4b739623e43d8c78d0a9a67a88ba0bfb22d9c82aa93ec5696",
+  "version": 1,
   "pageCount": 26,
   "languages": [
     {
@@ -92,110 +95,158 @@
   ],
   "defaultLanguage": "en",
   "textBase": "/library/wdeg/text",
+  "textCids": {
+    "ar": "a5135726c44e8a792fcf364169d913bc543bbca7fa5ec3505094c041790eef77",
+    "de": "a6158e1ed3b20c5bcb9a658738d8232333ac57c4bbe55b7996774611d03eff7d",
+    "en": "44711fea4e6a5ee7520a991cd59ef8af2a8d580e52d92c231764720b1405e5b0",
+    "es": "5209e98e0b3724d031b38475784e0a8b1f7cee748887bd9885f6d7d5bcb12736",
+    "fr": "2704b98c3a45ef7ae03fe985264238c8abfb070be955df64dd357916eb58228d",
+    "he": "d4ef393734763bc913815ec1bf2879b3d03c533fcca167bed406bdcd3c14aa82",
+    "hi": "9ee9ae55ceff09b3090fac6a98a0ca0eb1b7a957140c49b15152c92f0508ff65",
+    "it": "81a8b1fe36aed9f7500af857fb61b9b8ec888dba643e72c254edb7f344ee8b95",
+    "ja": "0cfed08f3e6c5a18d21b544d6d8e605e5997c30adab5fce95ebd64ff9a17bbb0",
+    "ko": "d16f114152fa1fdfdb38a169bd1f0353183c9835f1f47da633e474cf746ee58b",
+    "nl": "807e131cc5bd99cef5cc79a26733cec02ebe891fd6288515a82fb96d3a72c6b5",
+    "pl": "fd0457b9b40dd8d8bb738d7af62656bde9ff8a1bffdb809cc689756781b8fdfc",
+    "pt": "f5d478d5e03e2a493c55963018c5c6de42a1cae539e5c5891e8a0d8fc0c06f2b",
+    "ru": "c914db6f4e1782d41294bcbad07346c81ab4c4fbf36392832dae2285e08fccab",
+    "sv": "7ac34e2bb5b1655449d7d0c3c37780952e53b54e03782669b79fcea0155018f4",
+    "ur": "82c36b141136821eae80723cb6b5f86495e73b844b8fe33f943cbce99e359aa2",
+    "zh": "1606a22e7109ffaae38948e9d8dcad68af59226f9053fcb44b590bd05bda89f7"
+  },
   "pages": [
     {
       "order": 1,
-      "image": "/library/wdeg/page_001.webp"
+      "image": "/library/cas/a04693f9258fd6277b1e9a612ee137f5310cafd738a97753ec2b2dcded1aaea1.webp",
+      "imageCid": "a04693f9258fd6277b1e9a612ee137f5310cafd738a97753ec2b2dcded1aaea1"
     },
     {
       "order": 2,
-      "image": "/library/wdeg/page_002.webp"
+      "image": "/library/cas/673ba7d2fef8e2d10b7c4477ab2ef9853b825b11c2aa9ee39e27b7a6260d7fda.webp",
+      "imageCid": "673ba7d2fef8e2d10b7c4477ab2ef9853b825b11c2aa9ee39e27b7a6260d7fda"
     },
     {
       "order": 3,
-      "image": "/library/wdeg/page_003.webp"
+      "image": "/library/cas/43529f44828b0deb0e92c43e3c8137b8e936eab6d4eb764a29fc66b91c1e7d5a.webp",
+      "imageCid": "43529f44828b0deb0e92c43e3c8137b8e936eab6d4eb764a29fc66b91c1e7d5a"
     },
     {
       "order": 4,
-      "image": "/library/wdeg/page_004.webp"
+      "image": "/library/cas/f5d56b9100f2ce459ee366bb11409604e6d986ed53f07afbd26f86b17c298745.webp",
+      "imageCid": "f5d56b9100f2ce459ee366bb11409604e6d986ed53f07afbd26f86b17c298745"
     },
     {
       "order": 5,
-      "image": "/library/wdeg/page_005.webp"
+      "image": "/library/cas/d5678b802f915e97ba917bcb0f0f835d0920882ceaaeffa1d7db9f656381e332.webp",
+      "imageCid": "d5678b802f915e97ba917bcb0f0f835d0920882ceaaeffa1d7db9f656381e332"
     },
     {
       "order": 6,
-      "image": "/library/wdeg/page_006.webp"
+      "image": "/library/cas/8a78349be88ce9f4ecb36a533ad5acc25d87b2cba1fb4234fb55b7b58d136edb.webp",
+      "imageCid": "8a78349be88ce9f4ecb36a533ad5acc25d87b2cba1fb4234fb55b7b58d136edb"
     },
     {
       "order": 7,
-      "image": "/library/wdeg/page_007.webp"
+      "image": "/library/cas/0aedbc4c887cce03cb3ca184a283ae529c6c09564b3863d5cf64a3a05809c478.webp",
+      "imageCid": "0aedbc4c887cce03cb3ca184a283ae529c6c09564b3863d5cf64a3a05809c478"
     },
     {
       "order": 8,
-      "image": "/library/wdeg/page_008.webp"
+      "image": "/library/cas/2f0fb45d0e33b90ba46928b89e329c5d2425418b066bab089bf86e51092f6ed0.webp",
+      "imageCid": "2f0fb45d0e33b90ba46928b89e329c5d2425418b066bab089bf86e51092f6ed0"
     },
     {
       "order": 9,
-      "image": "/library/wdeg/page_009.webp"
+      "image": "/library/cas/5ae15a558ce42bec808060e33199e41bc7d098c532f5ed3f410f0ae58bcc31c9.webp",
+      "imageCid": "5ae15a558ce42bec808060e33199e41bc7d098c532f5ed3f410f0ae58bcc31c9"
     },
     {
       "order": 10,
-      "image": "/library/wdeg/page_010.webp"
+      "image": "/library/cas/fbc0dc58c491c7043b27056731e895b512fd23e030230c6777e3c61bbe41e797.webp",
+      "imageCid": "fbc0dc58c491c7043b27056731e895b512fd23e030230c6777e3c61bbe41e797"
     },
     {
       "order": 11,
-      "image": "/library/wdeg/page_011.webp"
+      "image": "/library/cas/99257ef4f713016181f8ce9efb1d5dae69b607c78cce15919e12e27af16cd712.webp",
+      "imageCid": "99257ef4f713016181f8ce9efb1d5dae69b607c78cce15919e12e27af16cd712"
     },
     {
       "order": 12,
-      "image": "/library/wdeg/page_012.webp"
+      "image": "/library/cas/b4352cb0a0c29171c719d159690a126b5485f375abeb7a2f20cebed3ca79dc4f.webp",
+      "imageCid": "b4352cb0a0c29171c719d159690a126b5485f375abeb7a2f20cebed3ca79dc4f"
     },
     {
       "order": 13,
-      "image": "/library/wdeg/page_013.webp"
+      "image": "/library/cas/03a4c2182810d66e9d733113f3cac83079e956f773f525aaad8f59fca66550fb.webp",
+      "imageCid": "03a4c2182810d66e9d733113f3cac83079e956f773f525aaad8f59fca66550fb"
     },
     {
       "order": 14,
-      "image": "/library/wdeg/page_014.webp"
+      "image": "/library/cas/d604832e244fd0125493805c9f72764d33dee35a6576b0d290b545fffd9fcaab.webp",
+      "imageCid": "d604832e244fd0125493805c9f72764d33dee35a6576b0d290b545fffd9fcaab"
     },
     {
       "order": 15,
-      "image": "/library/wdeg/page_015.webp"
+      "image": "/library/cas/cfd7431cb779dad9102f703927e45211b78766e11b95c24fd6c0b812d602efc7.webp",
+      "imageCid": "cfd7431cb779dad9102f703927e45211b78766e11b95c24fd6c0b812d602efc7"
     },
     {
       "order": 16,
-      "image": "/library/wdeg/page_016.webp"
+      "image": "/library/cas/fd638a5f93dd7ef38877e77054f04712b54ae8e3fde3d3299935c22295f9e8b5.webp",
+      "imageCid": "fd638a5f93dd7ef38877e77054f04712b54ae8e3fde3d3299935c22295f9e8b5"
     },
     {
       "order": 17,
-      "image": "/library/wdeg/page_017.webp"
+      "image": "/library/cas/f8133b396e4d9a973f86b72ca756ac9ba8e8010ca3273b562095d40454e89f06.webp",
+      "imageCid": "f8133b396e4d9a973f86b72ca756ac9ba8e8010ca3273b562095d40454e89f06"
     },
     {
       "order": 18,
-      "image": "/library/wdeg/page_018.webp"
+      "image": "/library/cas/2a2e87920e46ec47783b44f5356fe30ceee759b9de28dcc64a2947c0dd61364f.webp",
+      "imageCid": "2a2e87920e46ec47783b44f5356fe30ceee759b9de28dcc64a2947c0dd61364f"
     },
     {
       "order": 19,
-      "image": "/library/wdeg/page_019.webp"
+      "image": "/library/cas/c0339f107de10830f74a5ae678d217fc2530da4359df0e404f7cc501d82075f9.webp",
+      "imageCid": "c0339f107de10830f74a5ae678d217fc2530da4359df0e404f7cc501d82075f9"
     },
     {
       "order": 20,
-      "image": "/library/wdeg/page_020.webp"
+      "image": "/library/cas/2ad1499de98576c4994802eef907d69423285505e5058637d1908e903aaeb337.webp",
+      "imageCid": "2ad1499de98576c4994802eef907d69423285505e5058637d1908e903aaeb337"
     },
     {
       "order": 21,
-      "image": "/library/wdeg/page_021.webp"
+      "image": "/library/cas/a9ff9da5b07b0dda0662b31235be5b13b584d400fda62e786f34d4a9e0dab148.webp",
+      "imageCid": "a9ff9da5b07b0dda0662b31235be5b13b584d400fda62e786f34d4a9e0dab148"
     },
     {
       "order": 22,
-      "image": "/library/wdeg/page_022.webp"
+      "image": "/library/cas/950785e621b6fc02d5a4c9fc614c3179e5f7f9cc1983f38135d00823e45e14e4.webp",
+      "imageCid": "950785e621b6fc02d5a4c9fc614c3179e5f7f9cc1983f38135d00823e45e14e4"
     },
     {
       "order": 23,
-      "image": "/library/wdeg/page_023.webp"
+      "image": "/library/cas/8644856ab1e49052021db802dc9724f919ee22b9bfb02c911cbf66cc43d85b9e.webp",
+      "imageCid": "8644856ab1e49052021db802dc9724f919ee22b9bfb02c911cbf66cc43d85b9e"
     },
     {
       "order": 24,
-      "image": "/library/wdeg/page_024.webp"
+      "image": "/library/cas/a26abba819a3e9fd71a899c7e8daa32ff33f3b5650d4fd16d2c7a4b1279a4c5e.webp",
+      "imageCid": "a26abba819a3e9fd71a899c7e8daa32ff33f3b5650d4fd16d2c7a4b1279a4c5e"
     },
     {
       "order": 25,
-      "image": "/library/wdeg/page_025.webp"
+      "image": "/library/cas/0506b103a90198947d377b952760ba975857909e78dbfe33fb7375ec16c39c5a.webp",
+      "imageCid": "0506b103a90198947d377b952760ba975857909e78dbfe33fb7375ec16c39c5a"
     },
     {
       "order": 26,
-      "image": "/library/wdeg/page_026.webp"
+      "image": "/library/cas/1fa164694322697f338a1b3635c0ae9f5bc66d1ea59c04334e1c6d576de83d1c.webp",
+      "imageCid": "1fa164694322697f338a1b3635c0ae9f5bc66d1ea59c04334e1c6d576de83d1c"
     }
-  ]
+  ],
+  "manifestCid": "f713a4024dcce98866b6cabde37663092eda01dc91cb4ab7cbd5aeeb6694874b",
+  "signerPublicKey": "302a300506032b657003210048f518f066f08fe4b739623e43d8c78d0a9a67a88ba0bfb22d9c82aa93ec5696",
+  "signature": "fbcc09f1033fb318cb888c35ff673ac481180a3663fb58c85d3611415ec86007f9c2c0bdab5c48804aec2d1b5bcb8a3cfd1e5ece177909403edcbecc6ea7c30c"
 }

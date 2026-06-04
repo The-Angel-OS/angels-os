@@ -55,3 +55,6 @@ nul
 
 .vercel
 .env*.local
+
+# Library/federation private signing keys — NEVER commit
+scripts/_local/.keys/
