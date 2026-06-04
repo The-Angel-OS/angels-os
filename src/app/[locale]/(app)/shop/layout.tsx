@@ -3,9 +3,12 @@ import { FilterList } from '@/components/layout/search/filter'
 import { sorting } from '@/lib/constants'
 import { Search } from '@/components/Search'
 import { CollectionHero } from '@/components/CollectionHero'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import React, { Suspense } from 'react'
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+  const { tenant } = await resolveTenantFromHeaders()
   return (
     <Suspense fallback={null}>
       <div className="container flex flex-col gap-8 py-8 pb-4">
@@ -13,6 +16,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           title="Shop"
           subtitle="Products crafted with care"
           icon="🛍️"
+          image={tenantHeroImage(tenant)}
         />
         <Search className="mb-4" />
 

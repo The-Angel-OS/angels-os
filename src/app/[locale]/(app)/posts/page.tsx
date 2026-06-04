@@ -11,6 +11,7 @@ import { CollectionHero } from '@/components/CollectionHero'
 import { PageRange } from '@/components/PageRange'
 import { Pagination } from '@/components/Pagination'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { tenant } = await resolveTenantFromHeaders()
@@ -27,9 +28,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PostsPage() {
   let posts: PaginatedDocs<Post> | null = null
 
+  let heroImage: string | null = null
   try {
     const payload = await getPayload({ config: configPromise })
-    const { tenantFilter } = await resolveTenantFromHeaders()
+    const { tenantFilter, tenant } = await resolveTenantFromHeaders()
+    heroImage = tenantHeroImage(tenant)
 
     posts = (await payload.find({
       collection: 'posts',
@@ -65,6 +68,7 @@ export default async function PostsPage() {
         title="Posts"
         subtitle="Stories, updates, and insights"
         icon="📝"
+        image={heroImage}
       />
 
       <div className="mb-6">

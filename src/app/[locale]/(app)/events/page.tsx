@@ -2,6 +2,7 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import type { Metadata } from 'next'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import { CollectionHero } from '@/components/CollectionHero'
 import React from 'react'
 import Link from 'next/link'
@@ -17,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EventsPage() {
   const payload = await getPayload({ config: configPromise })
-  const { tenantFilter } = await resolveTenantFromHeaders()
+  const { tenantFilter, tenant } = await resolveTenantFromHeaders()
+  const heroImage = tenantHeroImage(tenant)
 
   let events: { docs: any[]; totalDocs: number } = { docs: [], totalDocs: 0 }
   try {
@@ -49,6 +51,7 @@ export default async function EventsPage() {
         title="Events"
         subtitle="Meetups, workshops, and experiences"
         icon="📅"
+        image={heroImage}
       />
 
       {events.docs.length === 0 ? (

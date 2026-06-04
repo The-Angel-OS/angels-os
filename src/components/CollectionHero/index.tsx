@@ -14,11 +14,18 @@ export function CollectionHero({
   title,
   subtitle,
   icon,
+  image,
 }: {
   title: string
   subtitle?: string
   /** Optional emoji or icon displayed above the title */
   icon?: string
+  /**
+   * Optional background image (the tenant's branding.coverImage). When set, the
+   * splash inherits the portal's hero image — visually unifying the list pages
+   * with the home page. Falls back to the brand gradient when absent.
+   */
+  image?: string | null
 }) {
   return (
     <section
@@ -30,14 +37,34 @@ export function CollectionHero({
           var(--tenant-primary, hsl(var(--primary))) 100%)`,
       }}
     >
-      {/* Subtle pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 40%)`,
-        }}
-      />
+      {/* Tenant hero image (inherited from branding.coverImage) */}
+      {image && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Legibility overlay so white text stays readable over any image */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%)' }}
+          />
+        </>
+      )}
+
+      {/* Subtle pattern overlay (gradient mode only) */}
+      {!image && (
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 40%)`,
+          }}
+        />
+      )}
 
       <div className="relative z-10 px-6 py-16 text-center sm:py-20 md:py-24">
         {icon && (

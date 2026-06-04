@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import type { Metadata } from 'next'
 import React from 'react'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import { CollectionHero } from '@/components/CollectionHero'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -80,6 +81,7 @@ export default async function AboutPage() {
       <CollectionHero
         title={`About ${siteName}`}
         subtitle={description || 'Our mission, our story, our purpose.'}
+        image={tenantHeroImage(tenant)}
       />
 
       <div className="mx-auto max-w-3xl space-y-10 py-8">
