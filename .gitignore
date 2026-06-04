@@ -58,3 +58,4 @@ nul
 
 # Library/federation private signing keys — NEVER commit
 scripts/_local/.keys/
+scripts/_local/.scratch/
