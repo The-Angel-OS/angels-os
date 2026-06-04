@@ -1,0 +1,275 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, ChevronRight, BookOpen, ScrollText, Columns, Loader2 } from 'lucide-react'
+
+/**
+ * BookReader — the Angel OS Library's generic, source-agnostic page reader.
+ *
+ * Renders an ordered set of pages (image + optional caption / markdown) as a
+ * paged, page-flip "illustrated primer" or a continuous scroll. The manifest can
+ * come from anywhere — today a static public/library/<slug>/manifest.json, later
+ * the message store — the reader doesn't care. This is the primer foundation:
+ * per-page illustration is already first-class (each page IS an image).
+ */
+export interface BookPage {
+  order: number
+  image?: string
+  caption?: string
+  title?: string
+  markdown?: string
+}
+
+export interface BookManifest {
+  slug: string
+  title: string
+  subtitle?: string | null
+  pageCount: number
+  pages: BookPage[]
+}
+
+type Mode = 'paged' | 'scroll'
+
+export function BookReader({
+  manifest: initialManifest,
+  manifestUrl,
+  title,
+}: {
+  manifest?: BookManifest
+  /** Static URL to a manifest.json (CDN-served, Vercel-safe). */
+  manifestUrl?: string
+  /** Fallback title shown while the manifest loads. */
+  title?: string
+}) {
+  const [manifest, setManifest] = useState<BookManifest | null>(initialManifest ?? null)
+  const [loading, setLoading] = useState(!initialManifest && !!manifestUrl)
+  const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>('paged')
+  const [index, setIndex] = useState(0)
+  const [dir, setDir] = useState(1)
+  const mainRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (manifest || !manifestUrl) return
+    let cancelled = false
+    setLoading(true)
+    fetch(manifestUrl)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to load book (${r.status})`)
+        return r.json()
+      })
+      .then((m: BookManifest) => {
+        if (!cancelled) setManifest(m)
+      })
+      .catch((e) => {
+        if (!cancelled) setError((e as Error).message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [manifest, manifestUrl])
+
+  const pages = useMemo(() => manifest?.pages ?? [], [manifest])
+
+  const go = useCallback(
+    (delta: number) => {
+      setDir(delta)
+      setIndex((i) => Math.min(pages.length - 1, Math.max(0, i + delta)))
+    },
+    [pages.length],
+  )
+
+  // Keyboard nav (paged)
+  useEffect(() => {
+    if (mode !== 'paged') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') go(1)
+      else if (e.key === 'ArrowLeft') go(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mode, go])
+
+  // Preload neighbors for snappy flips
+  useEffect(() => {
+    if (mode !== 'paged') return
+    ;[index + 1, index - 1].forEach((i) => {
+      const src = pages[i]?.image
+      if (src) {
+        const img = new Image()
+        img.src = src
+      }
+    })
+  }, [index, mode, pages])
+
+  const page = pages[index]
+  const headerTitle = manifest?.title ?? title ?? 'Reading…'
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0810] text-[#C4956A]">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2 text-sm">{title ? `Opening ${title}…` : 'Opening book…'}</span>
+      </div>
+    )
+  }
+  if (error || !manifest) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0a0810] p-8 text-center text-[#f5f2f0]">
+        <BookOpen className="h-8 w-8 opacity-40" />
+        <p className="text-sm text-[#f5f2f0aa]">{error || 'This book could not be loaded.'}</p>
+        <Link href="/learn/souls" className="text-xs underline" style={{ color: '#C4956A' }}>
+          ← Back to the Library
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[#0a0810] text-[#f5f2f0]">
+      {/* Top bar */}
+      <div
+        className="sticky top-0 z-30 flex h-14 items-center gap-3 px-4 backdrop-blur-sm"
+        style={{ background: '#0a0810e6', borderBottom: '1px solid #C4956A33' }}
+      >
+        <Link
+          href="/learn/souls"
+          className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
+          style={{ color: '#C4956A' }}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Library
+        </Link>
+        <span className="truncate text-sm font-bold tracking-wide">{headerTitle}</span>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={() => setMode('paged')}
+            title="Page view"
+            className="flex h-8 w-8 items-center justify-center rounded"
+            style={{ background: mode === 'paged' ? '#C4956A26' : 'transparent', color: mode === 'paged' ? '#C4956A' : '#f5f2f088' }}
+          >
+            <Columns className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setMode('scroll')}
+            title="Scroll view"
+            className="flex h-8 w-8 items-center justify-center rounded"
+            style={{ background: mode === 'scroll' ? '#C4956A26' : 'transparent', color: mode === 'scroll' ? '#C4956A' : '#f5f2f088' }}
+          >
+            <ScrollText className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {pages.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+          <BookOpen className="h-8 w-8 opacity-40" />
+          <p className="text-sm text-[#f5f2f0aa]">This book has no pages yet.</p>
+        </div>
+      ) : mode === 'scroll' ? (
+        // ── Continuous scroll ──
+        <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+          <div className="mx-auto max-w-3xl space-y-6">
+            {pages.map((p) => (
+              <figure key={p.order}>
+                {p.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.image}
+                    alt={p.caption || `Page ${p.order}`}
+                    loading="lazy"
+                    className="w-full rounded-lg shadow-lg shadow-black/40"
+                  />
+                )}
+                {p.caption && (
+                  <figcaption className="mt-2 text-center text-xs italic text-[#f5f2f066]">
+                    {p.caption}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        </div>
+      ) : (
+        // ── Paged page-flip ──
+        <div ref={mainRef} className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-3 py-4">
+          <div className="relative flex w-full max-w-3xl flex-1 items-center justify-center">
+            <AnimatePresence initial={false} custom={dir} mode="popLayout">
+              <motion.div
+                key={page.order}
+                custom={dir}
+                initial={{ opacity: 0, x: dir * 60, rotateY: dir * 8 }}
+                animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                exit={{ opacity: 0, x: dir * -60, rotateY: dir * -8 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+                className="flex max-h-full flex-col items-center"
+              >
+                {page.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={page.image}
+                    alt={page.caption || `Page ${page.order}`}
+                    className="max-h-[78vh] w-auto rounded-lg shadow-2xl shadow-black/50"
+                    draggable={false}
+                  />
+                )}
+                {page.caption && (
+                  <p className="mt-3 text-center text-xs italic text-[#f5f2f066]">{page.caption}</p>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Click zones for prev/next */}
+            <button
+              aria-label="Previous page"
+              onClick={() => go(-1)}
+              disabled={index === 0}
+              className="absolute left-0 top-0 h-full w-1/4 cursor-w-resize disabled:cursor-default"
+            />
+            <button
+              aria-label="Next page"
+              onClick={() => go(1)}
+              disabled={index === pages.length - 1}
+              className="absolute right-0 top-0 h-full w-1/4 cursor-e-resize disabled:cursor-default"
+            />
+          </div>
+
+          {/* Controls */}
+          <div className="mt-2 flex w-full max-w-3xl items-center justify-between">
+            <button
+              onClick={() => go(-1)}
+              disabled={index === 0}
+              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
+              style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
+            >
+              <ChevronLeft className="h-4 w-4" /> Prev
+            </button>
+            <span className="font-mono text-xs tracking-widest text-[#f5f2f088]">
+              {index + 1} / {pages.length}
+            </span>
+            <button
+              onClick={() => go(1)}
+              disabled={index === pages.length - 1}
+              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
+              style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Progress rail */}
+          <div className="mt-3 h-1 w-full max-w-3xl overflow-hidden rounded-full" style={{ background: '#ffffff14' }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${((index + 1) / pages.length) * 100}%`, background: 'linear-gradient(to right, #C4956A, #9B8EC4)' }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

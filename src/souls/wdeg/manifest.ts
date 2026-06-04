@@ -9,9 +9,10 @@ export const wdegManifest: SoulManifest = {
   subtitle: 'A book — in production for the Library',
   description:
     'The first full-length work brought into the Angel OS Library. Being imported chapter by chapter into the message-backed reader; destined for the illustrated-primer experience.',
-  status: 'IN PRODUCTION',
-  statusColor: 'blue',
+  status: 'READABLE NOW',
+  statusColor: 'green',
   tags: ['book', 'fiction', 'library', 'primer'],
+  bookSlug: 'wdeg',
   defaultDoc: 'readme',
   docs: [
     {

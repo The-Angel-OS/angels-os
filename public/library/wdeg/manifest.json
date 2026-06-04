@@ -1,0 +1,138 @@
+{
+  "slug": "wdeg",
+  "title": "Where Did Everyone Go",
+  "subtitle": null,
+  "pageCount": 26,
+  "pages": [
+    {
+      "order": 1,
+      "image": "/library/wdeg/page_001.webp",
+      "caption": "WDEG Book - page 001"
+    },
+    {
+      "order": 2,
+      "image": "/library/wdeg/page_002.webp",
+      "caption": "WDEG Book - page 002"
+    },
+    {
+      "order": 3,
+      "image": "/library/wdeg/page_003.webp",
+      "caption": "WDEG Book - page 003"
+    },
+    {
+      "order": 4,
+      "image": "/library/wdeg/page_004.webp",
+      "caption": "WDEG Book - page 004"
+    },
+    {
+      "order": 5,
+      "image": "/library/wdeg/page_005.webp",
+      "caption": "WDEG Book - page 005"
+    },
+    {
+      "order": 6,
+      "image": "/library/wdeg/page_006.webp",
+      "caption": "WDEG Book - page 006"
+    },
+    {
+      "order": 7,
+      "image": "/library/wdeg/page_007.webp",
+      "caption": "WDEG Book - page 007"
+    },
+    {
+      "order": 8,
+      "image": "/library/wdeg/page_008.webp",
+      "caption": "WDEG Book - page 008"
+    },
+    {
+      "order": 9,
+      "image": "/library/wdeg/page_009.webp",
+      "caption": "WDEG Book - page 009"
+    },
+    {
+      "order": 10,
+      "image": "/library/wdeg/page_010.webp",
+      "caption": "WDEG Book - page 010"
+    },
+    {
+      "order": 11,
+      "image": "/library/wdeg/page_011.webp",
+      "caption": "WDEG Book - page 011"
+    },
+    {
+      "order": 12,
+      "image": "/library/wdeg/page_012.webp",
+      "caption": "WDEG Book - page 012"
+    },
+    {
+      "order": 13,
+      "image": "/library/wdeg/page_013.webp",
+      "caption": "WDEG Book - page 013"
+    },
+    {
+      "order": 14,
+      "image": "/library/wdeg/page_014.webp",
+      "caption": "WDEG Book - page 014"
+    },
+    {
+      "order": 15,
+      "image": "/library/wdeg/page_015.webp",
+      "caption": "WDEG Book - page 015"
+    },
+    {
+      "order": 16,
+      "image": "/library/wdeg/page_016.webp",
+      "caption": "WDEG Book - page 016"
+    },
+    {
+      "order": 17,
+      "image": "/library/wdeg/page_017.webp",
+      "caption": "WDEG Book - page 017"
+    },
+    {
+      "order": 18,
+      "image": "/library/wdeg/page_018.webp",
+      "caption": "WDEG Book - page 018"
+    },
+    {
+      "order": 19,
+      "image": "/library/wdeg/page_019.webp",
+      "caption": "WDEG Book - page 019"
+    },
+    {
+      "order": 20,
+      "image": "/library/wdeg/page_020.webp",
+      "caption": "WDEG Book - page 020"
+    },
+    {
+      "order": 21,
+      "image": "/library/wdeg/page_021.webp",
+      "caption": "WDEG Book - page 021"
+    },
+    {
+      "order": 22,
+      "image": "/library/wdeg/page_022.webp",
+      "caption": "WDEG Book - page 022"
+    },
+    {
+      "order": 23,
+      "image": "/library/wdeg/page_023.webp",
+      "caption": "WDEG Book - page 023"
+    },
+    {
+      "order": 24,
+      "image": "/library/wdeg/page_024.webp",
+      "caption": "WDEG Book - page 024"
+    },
+    {
+      "order": 25,
+      "image": "/library/wdeg/page_025.webp",
+      "caption": "WDEG Book - page 025"
+    },
+    {
+      "order": 26,
+      "image": "/library/wdeg/page_026.webp",
+      "caption": "WDEG Book - page 026"
+    }
+  ]
+}

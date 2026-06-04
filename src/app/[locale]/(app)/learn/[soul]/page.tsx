@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { getSoul, getAllSouls } from '@/souls'
 import { SoulViewer } from './SoulViewer'
+import { BookReader } from '@/components/Library/BookReader'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,19 +40,23 @@ export default async function SoulPage({
   const soul = getSoul(soulId)
   if (!soul) notFound()
 
+  // Book works render the illustrated-primer reader from a static manifest
+  // (CDN-served public asset, fetched client-side — Vercel-safe).
+  if (soul.bookSlug) {
+    return (
+      <BookReader
+        manifestUrl={`/library/${soul.bookSlug}/manifest.json`}
+        title={soul.title}
+      />
+    )
+  }
+
   // Resolve active document
   const targetId = activeDocId || soul.defaultDoc
   const activeDoc = soul.docs.find((d) => d.id === targetId) ?? soul.docs[0]
 
-  // Read markdown from docs/vision/{soul.id}/ or docs/vision/rainmaker/
+  // Read markdown from docs/vision/{soul.id}/
   const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
-  let content = ''
-  try {
-    const filePath = path.join(docsBase, activeDoc.filename)
-    content = fs.readFileSync(filePath, 'utf-8')
-  } catch {
-    content = `# ${activeDoc.title}\n\n*Document not found at expected path.*`
-  }
 
   // Preload all doc contents for client-side switching (small files, fast)
   const allContents: Record<string, string> = {}

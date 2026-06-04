@@ -23,6 +23,12 @@ export interface SoulManifest {
   defaultDoc: string
   docs: SoulDoc[]
   links?: { label: string; url: string }[]
+  /**
+   * If set, this work is a paged book — the reader loads
+   * public/library/<bookSlug>/manifest.json and renders <BookReader>
+   * (the illustrated-primer reader) instead of the markdown doc viewer.
+   */
+  bookSlug?: string
 }
 
 export const rainmakerManifest: SoulManifest = {
