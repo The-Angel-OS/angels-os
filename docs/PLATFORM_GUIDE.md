@@ -26,7 +26,7 @@ Angel OS is a multi-tenant, federation-ready platform for conscious commerce and
 | Capability | Description |
 |-----------|-------------|
 | **Multi-Tenant Commerce** | Each endeavor gets its own storefront, products, orders, Stripe Connect |
-| **LEO AI Agent** | 108-tool AI assistant with constitutional safeguards (Article III) |
+| **LEO AI Agent** | 119-tool AI assistant with constitutional safeguards (Article III) |
 | **Federation Network** | Ed25519-signed peer-to-peer discovery, catalog browsing, cross-tenant messaging |
 | **Collaboration Spaces** | Discord-style workspaces with channels, AI Bus, and workflow automation |
 | **Event Management** | Meetups, workshops, livestreams with registration and Ultimate Fair pricing |
@@ -439,7 +439,7 @@ Messages are the core communication fabric. Every interaction flows through the 
 User Message
   -> AgentRouter (channel/keyword/default routing)
   -> ConversationEngine (context management, LLM orchestration)
-  -> Tool Selection (108 tools across 7 phases)
+  -> Tool Selection (119 tools across functional phases)
   -> Tool Execution (Payload CMS queries with tenant scoping)
   -> Response Generation (with constitutional validation)
   -> Message Persistence (saved to Messages collection)
@@ -454,7 +454,7 @@ Each tenant can have multiple AI agents stored as Users with `isSystemUser: true
 - **Nimue** — Specialized agents can be configured per channel
 - **Custom agents** — Tenant-defined via `agentConfig` (personality, capabilities, routing rules)
 
-### Tool Phases (108 Total)
+### Tool Phases (119 Total)
 
 | Phase | Domain | Example Tools |
 |-------|--------|---------------|

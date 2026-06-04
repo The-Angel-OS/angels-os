@@ -17,8 +17,9 @@
 | Document | Description |
 |----------|-------------|
 | [PLATFORM_GUIDE.md](./PLATFORM_GUIDE.md) | User journeys, 70+ screens, permissions matrix |
-| [DATA_MODEL.md](./DATA_MODEL.md) | All 42+ collections with schemas and relationships |
-| [LEO_TOOLS_REFERENCE.md](./LEO_TOOLS_REFERENCE.md) | All 108 LEO tools organized by phase |
+| [DATA_MODEL.md](./DATA_MODEL.md) | All 42 collections with schemas and relationships |
+| [AGENTIC_FRAMEWORK.md](./AGENTIC_FRAMEWORK.md) | **Canonical** — LEO's 119 tools, the AI bus & channels, connectors, VAPI, crew |
+| [LEO_TOOLS_REFERENCE.md](./LEO_TOOLS_REFERENCE.md) | All 119 LEO tools organized by phase |
 | [REVENUE.md](./REVENUE.md) | Revenue model, bootstrap fees, UltimateFairSplit |
 | [LEO_SHOWCASE.md](./LEO_SHOWCASE.md) | LEO capabilities demonstration |
 

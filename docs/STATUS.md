@@ -1,7 +1,7 @@
 # Angel OS — Status, Plan & What's Next
 
-> *Filed: March 18, 2026 — Sprint 43 Complete*
-> *Version: v0.43.0-dev*
+> *Filed: June 4, 2026*
+> *Version: v0.47.x-dev*
 
 ---
 
@@ -13,11 +13,10 @@ Angel OS is a live, federated cooperative operating system at [spacesangels.com]
 
 | Metric | Count |
 |--------|-------|
-| **Sprints completed** | 43 |
 | **Payload CMS collections** | 42 |
-| **Leo AI tools** | 105+ |
-| **API endpoints** | 74+ |
-| **Unit tests** | 5,017+ across 223 files |
+| **Leo AI tools** | 119 |
+| **API endpoints** | 75+ |
+| **Unit tests** | 5,210+ across 230 files |
 | **E2E test suites** | 14 (Playwright) |
 | **Total test files** | 237 |
 | **TypeScript errors** | 0 |
@@ -25,6 +24,36 @@ Angel OS is a live, federated cooperative operating system at [spacesangels.com]
 | **Deployment** | Vercel (serverless) |
 | **Stripe** | Live (Direct Charges + Donations) |
 | **Engines** | 15 |
+
+### What's New (June 2026 — Library, Bookings, Multi-tenancy)
+
+- **The Library** (`/learn/works`, renamed from `/learn/souls`): file-based works registry
+  (`src/souls/`) + LCARS `SoulViewer` with TOC, search, read-aloud, prev/next paging. Works:
+  WDEG (live 26-page book, 17 languages), Answer 53 (12 chapters), Rainmaker, Poster Child,
+  Ready Player Everyone. `WorksGrid` surfaced on the `/learn` hub. 301 redirect from old route.
+- **Clash-safe bookings + deposit**: Pressure Washing + Pet Sitting bookable on `/book`
+  against one shared provider calendar; `booking-checkout` now enforces
+  `BookingEngine.checkBookingConflicts` (409 on clash), resolves the provider, and charges a
+  deposit (balance on completion). Service catalog in `src/config/bookableServices.ts`.
+- **WDEG portal endeavor**: `GET /api/provision-ops/wdeg-portal` (super_admin, idempotent)
+  provisions `wheredideveryonego.spacesangels.com` as its own tenant + endeavor presenting the
+  book — a live exercise of the provisioning path.
+- **Crew Relations** admin page (`/dashboard/admin/crew`) — muster roll backed by
+  `crew-assignments` (was a stub).
+- **Fixes**: tenant chooser now shows all tenants for super_admins (incl. platform root);
+  cart badge counts only purchasable items + orphaned items are removable; home hero no longer
+  bleeds behind the header; header nav collapses overflow into a "More ▾" menu instead of wrapping.
+- **Agentic framework re-evaluated** — see [AGENTIC_FRAMEWORK.md](./AGENTIC_FRAMEWORK.md).
+
+### Next — Connector & Telephony Roadmap
+
+1. **X / Twitter connector** — catalog type + admin fields + inbound webhook/poll + probe +
+   bridge→AI-bus (mirror `discord-webhook.ts`).
+2. **LinkedIn connector** — `linkedin-poll.ts` + probe (catalog entry already exists).
+3. **VAPI 1-800 hardening** — call-log + analytics persistence; self-serve number provisioning;
+   data-driven function definitions.
+4. **Tool gating by crew/role** — optionally derive an allowed-tool set from crew
+   department/capabilities or membership role (today all 119 tools are ungated).
 
 ### What's New Since Last Status Update (Sprints 39-43)
 

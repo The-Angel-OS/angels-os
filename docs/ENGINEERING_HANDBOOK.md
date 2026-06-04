@@ -75,7 +75,7 @@ Every tenanted collection MUST be listed in `multiTenantPlugin.collections` in `
 │                       │                           │
 │  ┌────────────────────▼───────────────────────┐  │
 │  │              LEO AI ENGINE                  │  │
-│  │  ConversationEngine · 108 Tools · RAG      │  │
+│  │  ConversationEngine · 119 Tools · RAG      │  │
 │  │  Constitutional Prompt · Multi-Model        │  │
 │  └─────────────────────────────────────────────┘  │
 └──────────────────────┬──────────────────────────┘
@@ -222,4 +222,4 @@ npx tsc --noEmit             # TypeScript check
 ---
 
 *Last updated: Sprint 38 — March 4, 2026*
-*4,842 tests passing · 42 collections · 108 LEO tools · Zero src/ TS errors*
+*5,210+ tests · 42 collections · 119 LEO tools · Zero src/ TS errors*

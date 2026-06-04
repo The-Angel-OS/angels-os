@@ -1,7 +1,10 @@
 # LEO AI Agent — Tools Reference
 
-> Complete reference of all 108 LEO tools organized by operational phase.
-> Last updated: 2026-03-04
+> Complete reference of all 119 LEO tools organized by operational phase.
+> Last updated: 2026-06-04
+>
+> See [AGENTIC_FRAMEWORK.md](./AGENTIC_FRAMEWORK.md) for the canonical category map,
+> dispatch path, gating model, AI bus, connectors, VAPI, and crew.
 
 ---
 
