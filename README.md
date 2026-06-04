@@ -15,8 +15,8 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-118+-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-74+-purple)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-119-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-75+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
 [![Sprints](https://img.shields.io/badge/Sprints-44-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
@@ -57,6 +57,15 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **5%** | Justice Fund (Guardian Angel provisioning) |
 
 ---
+
+## Latest (June 2026) — Library, Bookings, Branding, Multi-tenancy
+
+- **The Library** (`/learn/works`) — a publishing platform: file-based works registry + LCARS reader (TOC, search, read-aloud, prev/next). Live works: WDEG (26-page illustrated book, 17 languages), Answer 53 (12 chapters), Rainmaker, more.
+- **Clash-safe bookings + deposit** — services (Pressure Washing, Pet Sitting) bookable on `/book` against one shared provider calendar; conflict detection enforced; deposit up front, balance on completion.
+- **WDEG portal** — `wheredideveryonego.spacesangels.com` provisioned as its own tenant + endeavor presenting the book (exercises the multi-tenancy provisioning path end-to-end).
+- **Per-endeavor branding** — uploadable favicon (Media-backed) + consistent branded home hero (image or gradient) across every portal.
+- **Crew Relations** admin page; tenant-chooser shows all tenants for super-admins; responsive header overflow nav.
+- **Agentic framework** mapped in [`docs/AGENTIC_FRAMEWORK.md`](docs/AGENTIC_FRAMEWORK.md) — 119 LEO tools, the AI bus & channels, connector matrix, VAPI, crew.
 
 ## What's New: Sprint 44 — Multi-Provider AI + Image Gen Routing
 

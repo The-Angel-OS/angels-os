@@ -12,9 +12,9 @@ Last Updated: February 25, 2026 | 135+ documents across 9 directories
 |---|---|
 | **New Contributor** | [README](../README.md) > [CONTRIBUTING](../CONTRIBUTING.md) > [ROADMAP](../ROADMAP.md) |
 | **Developer** | [Architecture Overview](architecture/OVERVIEW.md) > [HANDOFF](../HANDOFF.md) > [Multi-Tenant Setup](architecture/MULTI_TENANT_DEV_SETUP.md) |
-| **Architect** | [Constitution](architecture/CONSTITUTION.md) > [Angel Tokens Economy](v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) > [Federation](planning/260223%20FEDERATION.md) |
-| **Maker / Manufacturer** | [README](../README.md) > [Angel Tokens Economy](v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) > [Revenue Model](REVENUE.md) |
-| **Curious Human** | [Constitution](architecture/CONSTITUTION_FULL.md) > [Core Beliefs](vision/CORE_BELIEFS.md) > [Phase 4 Plan](planning/PHASE_4_PLAN.md) |
+| **Architect** | [Constitution](architecture/CONSTITUTION.md) > [Angel Tokens Economy](vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) > [Federation](planning/260223%20FEDERATION.md) |
+| **Maker / Manufacturer** | [README](../README.md) > [Angel Tokens Economy](vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) > [Revenue Model](REVENUE.md) |
+| **Curious Human** | [Constitution](architecture/CONSTITUTION_FULL.md) > [Core Beliefs](vision/CORE_BELIEFS.md) > [Scope & Vision](planning/SCOPE_AND_VISION_SUMMARY.md) |
 
 ---
 
@@ -57,7 +57,7 @@ Root:
 ### Angel Tokens + Maker Economy
 | Document | Description |
 |---|---|
-| [Angel Tokens Blockchain Economy](v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) | Full three-layer token economy spec (AT, KC, LT) with Proof of Human Worth consensus |
+| [Angel Tokens Blockchain Economy](vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) | Full three-layer token economy spec (AT, KC, LT) with Proof of Human Worth consensus |
 | [Revenue Model](REVENUE.md) | Economic model — Toward-53 principle, Ultimate Fair Split |
 | [HANDOFF.md](../HANDOFF.md) | Current Angel Token implementation status + Sprint 17B details |
 
@@ -97,17 +97,14 @@ Roadmaps, sprint plans, and feature specifications.
 
 | Document | Description |
 |---|---|
-| [PHASE_4_PLAN.md](planning/PHASE_4_PLAN.md) | **Phase 4: "The Holon Awakens"** — mobile-first, product creation, Freedom Holons |
 | [20260224 FEDERATION.md](planning/20260224%20FEDERATION.md) | **Sprint 20 Federation Launch Campaign** — complete federation vision |
 | [260223 FEDERATION.md](planning/260223%20FEDERATION.md) | Federation protocol spec + Leo Wizard onboarding |
 | [260222 CLAUDE_CODE_BRIEFING.md](planning/260222%20CLAUDE_CODE_BRIEFING.md) | Federation pivot session |
 | [CLAUDE_CODE_TASKS.md](planning/CLAUDE_CODE_TASKS.md) | Claude Code task tracking and session notes |
 | [SPRINT_NEXT_COMMERCE_ENGINE.md](planning/SPRINT_NEXT_COMMERCE_ENGINE.md) | Commerce engine sprint spec |
-| [DASHBOARD_MIGRATION.md](planning/DASHBOARD_MIGRATION.md) | Dashboard migration plan and status |
 | [CONSOLIDATED_FEATURES.md](planning/CONSOLIDATED_FEATURES.md) | Consolidated feature list — current vs. planned |
 | [CONVERSATIONAL_FIRST_UX.md](planning/CONVERSATIONAL_FIRST_UX.md) | Conversational-first UX design spec |
 | [SCOPE_AND_VISION_SUMMARY.md](planning/SCOPE_AND_VISION_SUMMARY.md) | High-level scope and strategic direction |
-| [GITHUB_ISSUES_MVP.md](planning/GITHUB_ISSUES_MVP.md) | 35 MVP issues across 15 epics |
 
 ---
 
@@ -151,7 +148,7 @@ Constitutional philosophy, manifestos, patents, and core beliefs.
 | [EMERGENCE_PROTOCOL.md](vision/EMERGENCE_PROTOCOL.md) | How Angel OS emerges and evolves |
 | [CONSTITUTIONAL_LICENSE_FRAMEWORK.md](vision/CONSTITUTIONAL_LICENSE_FRAMEWORK.md) | Fork compliance, constitutional obligations |
 | [OPEN_SOURCE_PATENT_PLEDGE.md](vision/OPEN_SOURCE_PATENT_PLEDGE.md) | Patent non-assertion pledge |
-| [GUARDIAN_ANGEL_MANIFESTO.md](v2/GUARDIAN_ANGEL_MANIFESTO.md) | Guardian Angel philosophy |
+| [GUARDIAN_ANGEL_MANIFESTO.md](vision/GUARDIAN_ANGEL_MANIFESTO.md) | Guardian Angel philosophy |
 
 ---
 
@@ -161,13 +158,11 @@ Historical v2 documentation archive. Key documents:
 
 | Document | Description |
 |---|---|
-| [ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md](v2/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) | **Angel Token three-layer economy spec** |
+| [ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md](vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) | **Angel Token three-layer economy spec** |
 | [CORE_PLATFORM_ARCHITECTURE.md](v2/CORE_PLATFORM_ARCHITECTURE.md) | Platform architecture overview |
 | [BUSINESS_MODEL.md](v2/BUSINESS_MODEL.md) | Business model documentation |
 | [LEO_AI_COMPLETE.md](v2/LEO_AI_COMPLETE.md) | LEO AI agent complete specification |
 | [GETTING_STARTED.md](v2/GETTING_STARTED.md) | Getting started guide |
-| [IMPLEMENTATION_STATUS.md](v2/IMPLEMENTATION_STATUS.md) | Implementation status report |
-| [DEPLOYMENT_READINESS_CHECKLIST.md](v2/DEPLOYMENT_READINESS_CHECKLIST.md) | Deployment readiness checklist |
 
 ---
 
