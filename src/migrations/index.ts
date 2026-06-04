@@ -14,6 +14,7 @@ import * as migration_20260224_031440_contacts_crm from './20260224_031440_conta
 import * as migration_20260304_152233 from './20260304_152233';
 import * as migration_20260308_191006_sprint42_propagation from './20260308_191006_sprint42_propagation';
 import * as migration_20260321_143829 from './20260321_143829';
+import * as migration_20260604_000000_tenant_branding_favicon from './20260604_000000_tenant_branding_favicon';
 
 export const migrations = [
   {
@@ -95,5 +96,10 @@ export const migrations = [
     up: migration_20260321_143829.up,
     down: migration_20260321_143829.down,
     name: '20260321_143829'
+  },
+  {
+    up: migration_20260604_000000_tenant_branding_favicon.up,
+    down: migration_20260604_000000_tenant_branding_favicon.down,
+    name: '20260604_000000_tenant_branding_favicon',
   },
 ];
