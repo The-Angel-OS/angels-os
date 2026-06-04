@@ -193,6 +193,31 @@ export function BookReader({
     )
   }
 
+  // Centered pager — rendered above and below the page body.
+  const pager = (
+    <div className="flex items-center justify-center gap-3">
+      <button
+        onClick={() => go(-1)}
+        disabled={index === 0}
+        className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
+        style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
+      >
+        <ChevronLeft className="h-4 w-4" /> Prev
+      </button>
+      <span className="min-w-[4.5rem] text-center font-mono text-xs tracking-widest text-[#f5f2f088]">
+        {index + 1} / {pages.length}
+      </span>
+      <button
+        onClick={() => go(1)}
+        disabled={index === pages.length - 1}
+        className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
+        style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
+      >
+        Next <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  )
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0810] text-[#f5f2f0]">
       {/* Top bar */}
@@ -276,6 +301,9 @@ export function BookReader({
       ) : (
         // ── Paged page-flip ──
         <div ref={mainRef} className="flex flex-1 flex-col overflow-hidden px-3 py-4">
+          {/* Top pager */}
+          <div className="mb-3 flex justify-center">{pager}</div>
+
           <div className="flex-1 overflow-y-auto">
             <AnimatePresence initial={false} custom={dir} mode="popLayout">
               <motion.div
@@ -304,31 +332,11 @@ export function BookReader({
             </AnimatePresence>
           </div>
 
-          {/* Controls */}
-          <div className="mt-2 flex w-full max-w-3xl items-center justify-between">
-            <button
-              onClick={() => go(-1)}
-              disabled={index === 0}
-              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
-              style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
-            >
-              <ChevronLeft className="h-4 w-4" /> Prev
-            </button>
-            <span className="font-mono text-xs tracking-widest text-[#f5f2f088]">
-              {index + 1} / {pages.length}
-            </span>
-            <button
-              onClick={() => go(1)}
-              disabled={index === pages.length - 1}
-              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs transition-opacity disabled:opacity-30"
-              style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          {/* Bottom pager (centered) */}
+          <div className="mt-3 flex justify-center">{pager}</div>
 
           {/* Progress rail */}
-          <div className="mt-3 h-1 w-full max-w-3xl overflow-hidden rounded-full" style={{ background: '#ffffff14' }}>
+          <div className="mx-auto mt-3 h-1 w-full max-w-3xl overflow-hidden rounded-full" style={{ background: '#ffffff14' }}>
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${((index + 1) / pages.length) * 100}%`, background: 'linear-gradient(to right, #C4956A, #9B8EC4)' }}
