@@ -38,10 +38,12 @@ import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const FAKE_TENANT = {
-  id: 1, name: 'Clearwater', slug: 'clearwater',
+  // slug must match a tenant in the bookable-service catalog (src/config/bookableServices.ts)
+  id: 1, name: 'Clearwater', slug: 'clearwater-cruisin',
   stripeConnect: { stripeAccountId: 'acct_test123', stripeChargesEnabled: true },
 }
-const VALID_BODY = { date: '2025-06-15', time: '10:00' }
+// serviceId is required and must exist in the catalog; pressure-washing-house = $249, 20% deposit
+const VALID_BODY = { date: '2025-06-15', time: '10:00', serviceId: 'pressure-washing-house' }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,10 @@ function makePayload(overrides: Record<string, unknown> = {}) {
     find: vi.fn().mockImplementation(({ collection }: any) => {
       if (collection === 'tenants') return Promise.resolve({ docs: [FAKE_TENANT], totalDocs: 1 })
       if (collection === 'endeavors') return Promise.resolve({ docs: [{ id: 10, name: 'Clearwater Endeavor' }], totalDocs: 1 })
+      // resolveBookingProvider → first active tenant_admin membership
+      if (collection === 'tenant-memberships')
+        return Promise.resolve({ docs: [{ id: 99, user: { id: 7 }, role: 'tenant_admin', status: 'active' }], totalDocs: 1 })
+      // BookingEngine.checkBookingConflicts → no existing bookings = no conflict
       return Promise.resolve({ docs: [], totalDocs: 0 })
     }),
     create: vi.fn().mockResolvedValue({ id: 50 }),
@@ -67,7 +73,7 @@ function makeReq(
   const payload = makePayload(payloadOverrides)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'x-tenant-id': 'clearwater',
+    'x-tenant-id': 'clearwater-cruisin',
     ...headerOverrides,
   }
   const nativeReq = new Request('http://localhost/api/bookings/checkout', {
@@ -166,12 +172,40 @@ describe('bookingCheckoutHandler', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when serviceId is missing', async () => {
+    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-06-15', time: '10:00' })
+    const res = await bookingCheckoutHandler(req)
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/serviceId is required/i)
+  })
+
+  it('returns 400 for an unknown serviceId', async () => {
+    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-06-15', time: '10:00', serviceId: 'nope' })
+    const res = await bookingCheckoutHandler(req)
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/unknown service/i)
+  })
+
   it('returns 400 when date/time combination is invalid', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-99-99', time: '10:00' })
+    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-99-99', time: '10:00', serviceId: 'pressure-washing-house' })
     const res = await bookingCheckoutHandler(req)
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(body.error).toMatch(/invalid date/i)
+  })
+
+  it('charges only the deposit (20% of $249 = $49.80) and returns deposit/total', async () => {
+    const req = makeReq()
+    const res = await bookingCheckoutHandler(req)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.depositCents).toBe(4980)
+    expect(body.totalCents).toBe(24900)
+    expect(body.balanceCents).toBe(19920)
+    // PaymentIntent amount must be the deposit, not the full price
+    expect(mockPaymentIntentsCreate.mock.calls[0][0].amount).toBe(4980)
   })
 
   it('returns 200 with clientSecret on success', async () => {
