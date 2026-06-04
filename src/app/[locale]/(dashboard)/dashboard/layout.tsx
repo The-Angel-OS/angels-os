@@ -107,29 +107,50 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     primaryColor: string | null
   }
 
-  const [spacesResult, membershipsResult, dmResult, setupResult] = await Promise.allSettled([
-    // 1. Fetch user spaces
-    userId && tenant?.id
-      ? fetchUserSpaces(userId, tenant.id)
-      : Promise.resolve(null),
-    // 2. Fetch tenant memberships for tenant chooser
-    userId
-      ? getPayload({ config }).then((pl) =>
-          pl.find({
-            collection: 'tenant-memberships',
-            where: { user: { equals: userId }, status: { equals: 'active' } },
-            depth: 2,
-            limit: 50,
-          }),
-        )
-      : Promise.resolve(null),
-    // 3. Ensure DM space (authenticated only)
-    isAuthenticated && tenant?.id
-      ? ensureDMSpace(tenant.id)
-      : Promise.resolve(undefined),
-    // 4. Check wizard completion
-    checkSetupRequired().catch(() => false),
-  ])
+  // super_admins have all-tenant access (userHasAccessToAllTenants is gated to
+  // super_admin) — so their chooser is sourced from ALL tenants, not just the
+  // tenant-memberships rows. This is what surfaces the Angel OS root/platform
+  // portal (which has no membership row) and any tenant the user can reach but
+  // hasn't been explicitly enrolled in.
+  const isSuperAdmin = platformRoles.includes('super_admin')
+
+  const [spacesResult, membershipsResult, dmResult, setupResult, allTenantsResult] =
+    await Promise.allSettled([
+      // 1. Fetch user spaces
+      userId && tenant?.id
+        ? fetchUserSpaces(userId, tenant.id)
+        : Promise.resolve(null),
+      // 2. Fetch tenant memberships (chooser source for non-super-admins; also
+      //    used for current-tenant role/permission context for everyone)
+      userId
+        ? getPayload({ config }).then((pl) =>
+            pl.find({
+              collection: 'tenant-memberships',
+              where: { user: { equals: userId }, status: { equals: 'active' } },
+              depth: 2,
+              limit: 50,
+            }),
+          )
+        : Promise.resolve(null),
+      // 3. Ensure DM space (authenticated only)
+      isAuthenticated && tenant?.id
+        ? ensureDMSpace(tenant.id)
+        : Promise.resolve(undefined),
+      // 4. Check wizard completion
+      checkSetupRequired().catch(() => false),
+      // 5. All tenants (super_admin only) — chooser source incl. platform root
+      isSuperAdmin
+        ? getPayload({ config }).then((pl) =>
+            pl.find({
+              collection: 'tenants',
+              depth: 2,
+              limit: 100,
+              sort: 'name',
+              overrideAccess: true,
+            }),
+          )
+        : Promise.resolve(null),
+    ])
 
   // Process spaces result
   let userSpaces: DashboardSpace[] = []
@@ -152,29 +173,41 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     defaultSpaceId = (await fetchDefaultSpaceId(tenant.id)) ?? undefined
   }
 
-  // Process memberships result
+  // Map a hydrated tenant object → TenantInfo for the chooser
+  const toTenantInfo = (t: any): TenantInfo | null => {
+    if (!t || typeof t !== 'object') return null
+    return {
+      id: t.id,
+      name: t.branding?.siteName || t.name || 'Unknown',
+      slug: t.slug || '',
+      domain: t.domain || '',
+      logoUrl:
+        typeof t.branding?.logo === 'object' && t.branding?.logo?.url
+          ? t.branding.logo.url
+          : null,
+      primaryColor: t.branding?.primaryColor || null,
+    }
+  }
+
+  // Build the tenant chooser list.
+  // super_admins: ALL tenants (includes the platform root, which has no membership row).
+  // Everyone else: the tenants they hold an active membership in.
   let userTenants: TenantInfo[] = []
   let userRoleData: DashboardUserRole | null = null
   const membershipsData = membershipsResult.status === 'fulfilled' ? membershipsResult.value : null
-  if (membershipsData && 'docs' in membershipsData) {
-    userTenants = (membershipsData.docs || [])
-      .map((m: any) => {
-        const t = m.tenant
-        if (!t || typeof t !== 'object') return null
-        return {
-          id: t.id,
-          name: t.branding?.siteName || t.name || 'Unknown',
-          slug: t.slug || '',
-          domain: t.domain || '',
-          logoUrl:
-            typeof t.branding?.logo === 'object' && t.branding?.logo?.url
-              ? t.branding.logo.url
-              : null,
-          primaryColor: t.branding?.primaryColor || null,
-        }
-      })
-      .filter(Boolean) as TenantInfo[]
+  const allTenantsData =
+    allTenantsResult.status === 'fulfilled' ? allTenantsResult.value : null
 
+  if (isSuperAdmin && allTenantsData && 'docs' in allTenantsData) {
+    userTenants = (allTenantsData.docs || []).map(toTenantInfo).filter(Boolean) as TenantInfo[]
+  } else if (membershipsData && 'docs' in membershipsData) {
+    userTenants = (membershipsData.docs || [])
+      .map((m: any) => toTenantInfo(m.tenant))
+      .filter(Boolean) as TenantInfo[]
+  }
+
+  // Current-tenant role/permission context comes from tenant-memberships for everyone.
+  if (membershipsData && 'docs' in membershipsData) {
     // Extract current tenant membership for role/permission context
     if (tenant?.id) {
       const currentMembership = (membershipsData.docs || []).find((m: any) => {
