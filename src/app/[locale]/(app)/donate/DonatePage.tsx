@@ -74,6 +74,8 @@ interface DonatePageProps {
   donationsEnabled?: boolean
   /** When true the gift funds this endeavor (95%) + Justice Fund (5%), not the platform. */
   isEndeavorDonation?: boolean
+  /** True on the Angel OS platform donate page (vs an endeavor's portal). */
+  isPlatform?: boolean
 }
 
 export const DonatePage: React.FC<DonatePageProps> = ({
@@ -81,6 +83,7 @@ export const DonatePage: React.FC<DonatePageProps> = ({
   tenantSlug = 'default',
   donationsEnabled = true,
   isEndeavorDonation = false,
+  isPlatform = true,
 }) => {
   const [selectedAmount, setSelectedAmount] = useState<number>(2500) // $25 default
   const [customAmount, setCustomAmount] = useState('')
@@ -216,24 +219,39 @@ export const DonatePage: React.FC<DonatePageProps> = ({
     <div className="container mx-auto max-w-2xl py-16 px-4">
       <h1 className="mb-3 text-4xl font-bold tracking-tight">Support {tenantName}</h1>
 
-      {/* The real story */}
+      {/* The story — platform tells the Angel OS household story; endeavors tell their own */}
       <div className="mb-8 space-y-3 text-base leading-relaxed opacity-80">
-        <p>
-          Right now, 100% of every donation goes directly to keeping our infrastructure alive.
-          We are a community household in Clearwater, FL — seven people sharing a home,
-          building Angel OS together, and supporting each other through the work.
-        </p>
-        <p>
-          No salaries. No venture capital. No platform fees.
-          Every dollar keeps the lights on, the servers running, and the people fed.
-        </p>
+        {isPlatform ? (
+          <>
+            <p>
+              Right now, 100% of every donation goes directly to keeping our infrastructure alive.
+              We are a community household in Clearwater, FL — seven people sharing a home,
+              building Angel OS together, and supporting each other through the work.
+            </p>
+            <p>
+              No salaries. No venture capital. No platform fees.
+              Every dollar keeps the lights on, the servers running, and the people fed.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              Your gift helps {tenantName} continue its mission and reach more people.
+              {isEndeavorDonation
+                ? ' Donations go directly to this endeavor.'
+                : ' Until this endeavor enables direct payouts, gifts are held by the Angel OS Justice Fund on its behalf.'}
+            </p>
+            <p>No venture capital. No middlemen taking a cut. Just direct support for the work.</p>
+          </>
+        )}
       </div>
 
       {/* Urgency callout */}
       <div className="mb-8 rounded-lg border border-[#C4973B]/30 bg-[#C4973B]/5 p-4">
         <p className="text-sm font-medium text-[#C4973B]">
-          Your donation directly supports housing, food, and infrastructure for the team
-          building this platform. This is real people doing real work.
+          {isPlatform
+            ? 'Your donation directly supports housing, food, and infrastructure for the team building this platform. This is real people doing real work.'
+            : `Your donation supports ${tenantName} — real people doing real work.`}
         </p>
       </div>
 

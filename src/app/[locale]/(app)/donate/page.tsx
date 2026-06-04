@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { cookies } from 'next/headers'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { DonatePage } from './DonatePage'
 
 export const metadata = {
@@ -23,38 +23,24 @@ export default async function DonatePageRoute({
 
   const payload = await getPayload({ config: configPromise })
 
-  // Resolve tenant from cookie
-  const cookieStore = await cookies()
-  const tenantSlug = cookieStore.get('payload-tenant')?.value || 'default'
+  // Resolve the tenant from the request (subdomain → x-tenant-id), NOT a cookie.
+  // The payload-tenant cookie is unreliable across subdomains (stale/absent), which
+  // made every endeavor's /donate show the platform ("Support Angel OS") copy.
+  const { tenant } = await resolveTenantFromHeaders()
+  const tenantSlug = (tenant as any)?.slug || 'default'
+  const tenantName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
+  const isPlatform = !tenant || (tenant as any).type === 'platform'
 
-  // Get tenant branding
-  let tenantName = 'Angel OS'
+  // Funds route to THIS endeavor only when it's a non-platform, Connect-enabled tenant.
+  const connect = (tenant as any)?.stripeConnect
+  const isEndeavorDonation = Boolean(
+    !isPlatform && connect?.stripeAccountId && connect?.stripeChargesEnabled,
+  )
+
+  // Check SiteSettings for donationsEnabled (non-critical)
   let donationsEnabled = true
-  // True when the donation will fund THIS endeavor (Connect-enabled, non-platform)
-  // rather than the platform Justice Fund — drives the recipient copy.
-  let isEndeavorDonation = false
-
   try {
-    const tenants = await payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const tenant = tenants.docs[0]
-    if (tenant) {
-      tenantName = (tenant as any).branding?.siteName || tenant.name || 'Angel OS'
-      const connect = (tenant as any).stripeConnect
-      isEndeavorDonation = Boolean(
-        (tenant as any).type !== 'platform' &&
-          tenantSlug !== 'default' &&
-          tenantSlug !== 'platform' &&
-          connect?.stripeAccountId &&
-          connect?.stripeChargesEnabled,
-      )
-
-      // Check SiteSettings for donationsEnabled
+    if (tenant?.id) {
       const settings = await payload.find({
         collection: 'site-settings',
         where: { tenant: { equals: tenant.id } },
@@ -76,6 +62,7 @@ export default async function DonatePageRoute({
       tenantSlug={tenantSlug}
       donationsEnabled={donationsEnabled}
       isEndeavorDonation={isEndeavorDonation}
+      isPlatform={isPlatform}
     />
   )
 }
