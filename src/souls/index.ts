@@ -5,6 +5,7 @@
 import { rainmakerManifest } from './rainmaker/manifest'
 import { gptPsychosisManifest } from './gpt-psychosis/manifest'
 import { wdegManifest } from './wdeg/manifest'
+import { answer53Manifest } from './answer53/manifest'
 import { readyPlayerEveryoneManifest } from './ready-player-everyone/manifest'
 import type { SoulManifest } from './rainmaker/manifest'
 
@@ -16,6 +17,7 @@ export const SOULS: Record<string, SoulManifest> = {
   rainmaker: rainmakerManifest,
   'gpt-psychosis': gptPsychosisManifest,
   wdeg: wdegManifest,
+  answer53: answer53Manifest,
   'ready-player-everyone': readyPlayerEveryoneManifest,
 }
 

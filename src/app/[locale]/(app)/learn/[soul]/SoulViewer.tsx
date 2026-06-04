@@ -38,6 +38,7 @@ const TIER_COLOR: Record<string, string> = {
   action: LCARS.peach,
   contacts: LCARS.mauve,
   historical: LCARS.textMuted,
+  chapter: LCARS.lavender,
 }
 
 const BADGE_COLOR: Record<string, string> = {

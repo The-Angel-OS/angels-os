@@ -9,7 +9,7 @@ export interface SoulDoc {
   description: string
   badge?: string
   badgeColor?: string
-  tier: 'index' | 'status' | 'legal' | 'evidence' | 'forensics' | 'contacts' | 'historical' | 'action'
+  tier: 'index' | 'status' | 'legal' | 'evidence' | 'forensics' | 'contacts' | 'historical' | 'action' | 'chapter'
 }
 
 export interface SoulManifest {
