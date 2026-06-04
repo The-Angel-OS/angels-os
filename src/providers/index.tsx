@@ -18,20 +18,12 @@ export const Providers: React.FC<{
           <EcommerceProvider
             enableVariants={true}
             api={{
+              // depth:2 hydrates product → gallery/meta images and variant options.
+              // No field `populate` allow-list here: the cart drawer reads priceInUSD,
+              // meta.image, and variant options/priceInUSD, and an allow-list that omits
+              // any of those silently breaks price/image rendering in the cart.
               cartsFetchQuery: {
                 depth: 2,
-                populate: {
-                  products: {
-                    slug: true,
-                    title: true,
-                    gallery: true,
-                    inventory: true,
-                  },
-                  variants: {
-                    title: true,
-                    inventory: true,
-                  },
-                },
               },
             }}
             paymentMethods={[

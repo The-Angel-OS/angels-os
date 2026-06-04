@@ -33,10 +33,25 @@ export function CartModal() {
     setIsOpen(false)
   }, [pathname])
 
+  // An item is "purchasable" only when its product is still a populated, published
+  // object (deleted products come back as null, drafts as a bare ID). The badge must
+  // count only these — otherwise orphaned items inflate the count (e.g. 22) while the
+  // drawer shows nothing, leaving the cart visibly stuck.
+  const isPurchasable = (item: { product?: unknown }) => {
+    const product = item.product
+    return typeof product === 'object' && product !== null && 'slug' in product && Boolean((product as Product).slug)
+  }
+
   const totalQuantity = useMemo(() => {
-    if (!cart || !cart.items || !cart.items.length) return undefined
-    return cart.items.reduce((quantity, item) => (item.quantity || 0) + quantity, 0)
+    if (!cart?.items?.length) return undefined
+    const qty = cart.items.reduce(
+      (quantity, item) => (isPurchasable(item) ? quantity + (item.quantity || 0) : quantity),
+      0,
+    )
+    return qty || undefined
   }, [cart])
+
+  const hasPurchasable = useMemo(() => (cart?.items || []).some(isPurchasable), [cart])
 
   return (
     <Sheet onOpenChange={setIsOpen} open={isOpen}>
@@ -64,8 +79,23 @@ export function CartModal() {
                   const product = item.product
                   const variant = item.variant
 
-                  if (typeof product !== 'object' || !item || !product || !product.slug)
-                    return <React.Fragment key={i} />
+                  // Orphaned item (product deleted or unpublished): render a compact,
+                  // removable row so the user can always clear it — never a silent skip.
+                  if (typeof product !== 'object' || !item || !product || !product.slug) {
+                    if (!item?.id) return <React.Fragment key={i} />
+                    return (
+                      <li
+                        className="flex w-full items-center justify-between px-1 py-4 text-sm text-neutral-500 dark:text-neutral-400"
+                        key={item.id}
+                      >
+                        <div className="flex items-center gap-3">
+                          <DeleteItemButton item={item} />
+                          <span className="italic">This item is no longer available.</span>
+                        </div>
+                        {item.quantity ? <span className="text-xs">×{item.quantity}</span> : null}
+                      </li>
+                    )
+                  }
 
                   const metaImage =
                     product.meta?.image && typeof product.meta?.image === 'object'
@@ -167,25 +197,27 @@ export function CartModal() {
                 })}
               </ul>
 
-              <div className="px-4">
-                <div className="py-4 text-sm text-neutral-500 dark:text-neutral-400">
-                  {typeof cart?.subtotal === 'number' && (
-                    <div className="mb-3 flex items-center justify-between border-b border-neutral-200 pb-1 pt-1 dark:border-neutral-700">
-                      <p>Total</p>
-                      <Price
-                        amount={cart?.subtotal}
-                        className="text-right text-base text-black dark:text-white"
-                      />
-                    </div>
-                  )}
+              {hasPurchasable && (
+                <div className="px-4">
+                  <div className="py-4 text-sm text-neutral-500 dark:text-neutral-400">
+                    {typeof cart?.subtotal === 'number' && (
+                      <div className="mb-3 flex items-center justify-between border-b border-neutral-200 pb-1 pt-1 dark:border-neutral-700">
+                        <p>Total</p>
+                        <Price
+                          amount={cart?.subtotal}
+                          className="text-right text-base text-black dark:text-white"
+                        />
+                      </div>
+                    )}
 
-                  <Button asChild>
-                    <Link className="w-full" href="/checkout">
-                      Proceed to Checkout
-                    </Link>
-                  </Button>
+                    <Button asChild>
+                      <Link className="w-full" href="/checkout">
+                        Proceed to Checkout
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
