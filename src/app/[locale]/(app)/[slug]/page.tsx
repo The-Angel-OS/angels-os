@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
+import { CollectionHero } from '@/components/CollectionHero'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -48,9 +50,30 @@ export default async function Page({ params }: Args) {
 
   const { hero, layout } = page
 
+  // Consistent home-page hero across every endeavor: use the page's own hero
+  // image when set; otherwise fall back to the branded CollectionHero (tenant
+  // cover image if present, else the brand gradient) so portals like HelpDNA and
+  // Hays Cactus get the same polished treatment instead of a bare text hero.
+  const heroHasMedia = Boolean(
+    hero && typeof (hero as { media?: unknown }).media === 'object' && (hero as { media?: { url?: string } }).media?.url,
+  )
+
+  let homeSplash: React.ReactNode = null
+  if (slug === 'home' && !heroHasMedia) {
+    const { tenant } = await resolveTenantFromHeaders()
+    const branding = (tenant as { branding?: { siteName?: string; tagline?: unknown } } | null)?.branding
+    const siteName = branding?.siteName || (tenant as { name?: string } | null)?.name || 'Angel OS'
+    const tagline = typeof branding?.tagline === 'string' ? branding.tagline : undefined
+    homeSplash = (
+      <div className="container">
+        <CollectionHero title={siteName} subtitle={tagline} image={tenantHeroImage(tenant)} />
+      </div>
+    )
+  }
+
   return (
     <article className="pt-16 pb-24">
-      <RenderHero {...hero} />
+      {homeSplash ?? <RenderHero {...hero} />}
       <RenderBlocks blocks={layout} />
     </article>
   )
