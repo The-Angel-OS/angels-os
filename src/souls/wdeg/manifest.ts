@@ -8,7 +8,7 @@ export const wdegManifest: SoulManifest = {
   title: 'WHERE DID EVERYONE GO',
   subtitle: 'A book — in production for the Library',
   description:
-    'The first full-length work brought into the Angel OS Library. Being imported chapter by chapter into the message-backed reader; destined for the illustrated-primer experience.',
+    'The first full-length work in the Angel OS Library — a 26-page illustrated book, readable now in 17 languages with page-flip and continuous-scroll modes. The illustrated-primer experience, live.',
   status: 'READABLE NOW',
   statusColor: 'green',
   tags: ['book', 'fiction', 'library', 'primer'],

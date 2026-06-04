@@ -22,12 +22,22 @@ export interface BookPage {
   markdown?: string
 }
 
+export interface BookLanguage {
+  code: string
+  name: string
+  rtl?: boolean
+}
+
 export interface BookManifest {
   slug: string
   title: string
   subtitle?: string | null
   pageCount: number
   pages: BookPage[]
+  languages?: BookLanguage[]
+  defaultLanguage?: string
+  /** Base URL for per-language text JSONs: `${textBase}/${lang}.json` */
+  textBase?: string
 }
 
 type Mode = 'paged' | 'scroll'
@@ -49,7 +59,13 @@ export function BookReader({
   const [mode, setMode] = useState<Mode>('paged')
   const [index, setIndex] = useState(0)
   const [dir, setDir] = useState(1)
+  const [lang, setLang] = useState<string>('en')
+  const [texts, setTexts] = useState<Record<string, string>>({})
   const mainRef = useRef<HTMLDivElement>(null)
+
+  const languages = manifest?.languages ?? []
+  const currentLang = languages.find((l) => l.code === lang)
+  const isRtl = !!currentLang?.rtl
 
   useEffect(() => {
     if (manifest || !manifestUrl) return
@@ -75,6 +91,35 @@ export function BookReader({
   }, [manifest, manifestUrl])
 
   const pages = useMemo(() => manifest?.pages ?? [], [manifest])
+
+  // Pick initial language: manifest default, or the browser's if available.
+  useEffect(() => {
+    if (!manifest?.languages?.length) return
+    const codes = manifest.languages.map((l) => l.code)
+    const browser = typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : ''
+    const initial =
+      (browser && codes.includes(browser) && browser) ||
+      manifest.defaultLanguage ||
+      codes[0]
+    setLang(initial)
+  }, [manifest])
+
+  // Load the text JSON for the current language.
+  useEffect(() => {
+    if (!manifest?.textBase || !lang) return
+    let cancelled = false
+    fetch(`${manifest.textBase}/${lang}.json`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((t: Record<string, string>) => {
+        if (!cancelled) setTexts(t)
+      })
+      .catch(() => {
+        if (!cancelled) setTexts({})
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [manifest, lang])
 
   const go = useCallback(
     (delta: number) => {
@@ -130,6 +175,24 @@ export function BookReader({
     )
   }
 
+  const renderText = (order: number) => {
+    const raw = texts[String(order)]
+    if (!raw || !raw.trim()) return null
+    const paras = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
+    return (
+      <div
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className={`mx-auto mt-5 max-w-2xl ${isRtl ? 'text-right' : 'text-left'}`}
+      >
+        {paras.map((p, i) => (
+          <p key={i} className="mb-4 text-[15px] leading-relaxed text-[#f5f2f0cc]">
+            {p}
+          </p>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0810] text-[#f5f2f0]">
       {/* Top bar */}
@@ -145,7 +208,22 @@ export function BookReader({
           <ChevronLeft className="h-3.5 w-3.5" /> Library
         </Link>
         <span className="truncate text-sm font-bold tracking-wide">{headerTitle}</span>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1.5">
+          {languages.length > 1 && (
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              aria-label="Language"
+              className="h-8 rounded-md bg-transparent px-2 text-xs outline-none"
+              style={{ border: '1px solid #C4956A40', color: '#C4956A' }}
+            >
+              {languages.map((l) => (
+                <option key={l.code} value={l.code} style={{ color: '#111' }}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setMode('paged')}
             title="Page view"
@@ -190,14 +268,15 @@ export function BookReader({
                     {p.caption}
                   </figcaption>
                 )}
+                {renderText(p.order)}
               </figure>
             ))}
           </div>
         </div>
       ) : (
         // ── Paged page-flip ──
-        <div ref={mainRef} className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-3 py-4">
-          <div className="relative flex w-full max-w-3xl flex-1 items-center justify-center">
+        <div ref={mainRef} className="flex flex-1 flex-col overflow-hidden px-3 py-4">
+          <div className="flex-1 overflow-y-auto">
             <AnimatePresence initial={false} custom={dir} mode="popLayout">
               <motion.div
                 key={page.order}
@@ -206,36 +285,23 @@ export function BookReader({
                 animate={{ opacity: 1, x: 0, rotateY: 0 }}
                 exit={{ opacity: 0, x: dir * -60, rotateY: dir * -8 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-                className="flex max-h-full flex-col items-center"
+                className="mx-auto flex w-full max-w-3xl flex-col items-center pb-4"
               >
                 {page.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={page.image}
                     alt={page.caption || `Page ${page.order}`}
-                    className="max-h-[78vh] w-auto rounded-lg shadow-2xl shadow-black/50"
+                    className="max-h-[62vh] w-auto rounded-lg shadow-2xl shadow-black/50"
                     draggable={false}
                   />
                 )}
                 {page.caption && (
                   <p className="mt-3 text-center text-xs italic text-[#f5f2f066]">{page.caption}</p>
                 )}
+                {renderText(page.order)}
               </motion.div>
             </AnimatePresence>
-
-            {/* Click zones for prev/next */}
-            <button
-              aria-label="Previous page"
-              onClick={() => go(-1)}
-              disabled={index === 0}
-              className="absolute left-0 top-0 h-full w-1/4 cursor-w-resize disabled:cursor-default"
-            />
-            <button
-              aria-label="Next page"
-              onClick={() => go(1)}
-              disabled={index === pages.length - 1}
-              className="absolute right-0 top-0 h-full w-1/4 cursor-e-resize disabled:cursor-default"
-            />
           </div>
 
           {/* Controls */}
