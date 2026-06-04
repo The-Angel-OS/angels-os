@@ -4,7 +4,7 @@ import { Cart } from '@/components/Cart'
 import { OpenCartButton } from '@/components/Cart/OpenCart'
 import { PortalSwitcher, type PortalInfo } from '@/components/PortalSwitcher'
 import Link from 'next/link'
-import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 
 import { MobileMenu } from './MobileMenu'
 import type { Header, Media, Tenant } from '@/payload-types'
@@ -13,6 +13,10 @@ import { LogoIcon } from '@/components/icons/logo'
 import { useAuth } from '@/providers/Auth'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
+import { useClickOutside } from '@/hooks/useClickOutside'
+
+// How many primary nav items stay inline before the rest collapse into "More ▾".
+const MAX_INLINE_NAV = 6
 
 type Props = {
   header: Header | null
@@ -154,6 +158,20 @@ export function HeaderClient({ header, tenant }: Props) {
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
 
+  // Keep the primary items inline; collapse the rest into a "More ▾" dropdown so
+  // the bar never wraps to a second row regardless of how many nav items exist.
+  const primaryItems = menu.slice(0, MAX_INLINE_NAV)
+  const overflowItems = menu.slice(MAX_INLINE_NAV)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLLIElement>(null)
+  useClickOutside(moreRef, () => setMoreOpen(false), moreOpen)
+  useEffect(() => setMoreOpen(false), [pathname])
+
+  const navLinkClass = (url?: string | null) =>
+    cn('relative navLink whitespace-nowrap', {
+      active: url && url !== '/' ? pathname.includes(url) : false,
+    })
+
   return (
     <div className="relative z-20 border-b">
       <nav className="flex items-center md:items-end justify-between container pt-2">
@@ -172,22 +190,57 @@ export function HeaderClient({ header, tenant }: Props) {
               )}
             </Link>
             {menu.length ? (
-              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center flex-wrap">
-                {menu.map((item) => (
+              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center flex-nowrap">
+                {primaryItems.map((item) => (
                   <li key={item.id}>
                     <CMSLink
                       {...item.link}
                       size={'clear'}
-                      className={cn('relative navLink whitespace-nowrap', {
-                        active:
-                          item.link.url && item.link.url !== '/'
-                            ? pathname.includes(item.link.url)
-                            : false,
-                      })}
+                      className={navLinkClass(item.link.url)}
                       appearance="nav"
                     />
                   </li>
                 ))}
+
+                {overflowItems.length > 0 && (
+                  <li className="relative" ref={moreRef}>
+                    <button
+                      type="button"
+                      onClick={() => setMoreOpen((v) => !v)}
+                      aria-expanded={moreOpen}
+                      aria-haspopup="true"
+                      className="navLink flex items-center gap-1 whitespace-nowrap uppercase tracking-wider"
+                    >
+                      More
+                      <svg
+                        className={cn('h-3 w-3 transition-transform', moreOpen && 'rotate-180')}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {moreOpen && (
+                      <div className="absolute left-0 top-full z-50 mt-2 min-w-44 rounded-md border border-border bg-background py-1 shadow-lg">
+                        {overflowItems.map((item) => (
+                          <CMSLink
+                            key={item.id}
+                            {...item.link}
+                            appearance="inline"
+                            className={cn(
+                              'block px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors hover:bg-muted',
+                              item.link.url && item.link.url !== '/' && pathname.includes(item.link.url)
+                                ? 'text-foreground'
+                                : 'text-muted-foreground hover:text-foreground',
+                            )}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                )}
               </ul>
             ) : null}
           </div>
