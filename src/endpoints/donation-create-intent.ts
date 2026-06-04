@@ -1,9 +1,10 @@
 /**
  * Donation PaymentIntent Endpoint — POST /api/donation-ops/create-intent
  *
- * Creates a Stripe PaymentIntent for one-time donations to Angel OS.
- * Donations are platform-level charges (not Connect direct charges) —
- * 100% goes to the Justice Fund.
+ * Creates a Stripe PaymentIntent for one-time donations. Endeavor-specific:
+ * a donation on a tenant's /donate is a destination charge to that endeavor's
+ * connected account (the Justice Fund share is kept as the application fee).
+ * Platform context (no Connect-enabled tenant) → platform charge, 100% Justice Fund.
  *
  * No authentication required — donations are public.
  *
@@ -36,6 +37,8 @@ function getStripe(): Stripe {
 const MIN_DONATION_CENTS = 100
 /** Maximum donation: $10,000.00 (1,000,000 cents) */
 const MAX_DONATION_CENTS = 1_000_000
+/** Justice Fund share (constitutional floor) taken from endeavor donations. */
+const DONATION_JUSTICE_FUND_PERCENT = 5
 
 export const donationCreateIntentHandler: PayloadHandler = async (req) => {
   // ── Parse body ────────────────────────────────────────────────
@@ -73,31 +76,81 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
     )
   }
 
-  // ── Create Stripe PaymentIntent (platform account) ────────────
+  // ── Resolve the recipient endeavor ────────────────────────────
+  // A donation on a tenant's /donate raises funds FOR that endeavor: a Stripe
+  // destination charge routes the gift to the endeavor's connected account,
+  // with the constitutional Justice Fund share kept as the application fee.
+  // Platform context (no tenant / not Connect-enabled) keeps the legacy
+  // behavior: a platform charge, 100% to the Justice Fund.
+  const slug = typeof tenantSlug === 'string' ? tenantSlug : ''
+  let connectedAccountId: string | null = null
+  let recipientName = 'the Justice Fund'
+  let chargeModel: 'destination' | 'platform' = 'platform'
+  let applicationFee = 0
+
+  if (slug && slug !== 'default' && slug !== 'platform') {
+    try {
+      const tenants = await req.payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: slug } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const tenant = tenants.docs?.[0] as any
+      const connect = tenant?.stripeConnect as Record<string, unknown> | undefined
+      if (
+        tenant &&
+        tenant.type !== 'platform' &&
+        connect?.stripeAccountId &&
+        connect?.stripeChargesEnabled
+      ) {
+        connectedAccountId = connect.stripeAccountId as string
+        recipientName = tenant.branding?.siteName || tenant.name || 'this enterprise'
+        chargeModel = 'destination'
+        applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
+      }
+    } catch {
+      // Fall back to platform / Justice Fund on any lookup failure
+    }
+  }
+
+  // ── Create Stripe PaymentIntent ───────────────────────────────
   try {
     const paymentIntent = await getStripe().paymentIntents.create({
       amount,
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
+      // Destination charge → funds flow to the endeavor's connected account
+      ...(connectedAccountId
+        ? {
+            transfer_data: { destination: connectedAccountId },
+            application_fee_amount: applicationFee,
+          }
+        : {}),
       metadata: {
         angelOs_type: 'donation',
-        angelOs_chargeModel: 'platform',
-        ...(typeof tenantSlug === 'string' ? { tenantSlug } : {}),
+        angelOs_chargeModel: chargeModel,
+        recipientName,
+        ...(slug ? { recipientTenant: slug } : {}),
+        ...(applicationFee ? { angelOs_justiceFundCents: String(applicationFee) } : {}),
         ...(typeof donorEmail === 'string' ? { donorEmail } : {}),
         ...(typeof donorName === 'string' ? { donorName } : {}),
         ...(typeof message === 'string' ? { message: message.slice(0, 500) } : {}),
       },
       ...(typeof donorEmail === 'string' ? { receipt_email: donorEmail } : {}),
-      description: `Angel OS Donation${typeof donorName === 'string' ? ` from ${donorName}` : ''}`,
+      description: `Donation to ${recipientName}${typeof donorName === 'string' ? ` from ${donorName}` : ''}`,
     })
 
     console.log(
-      `[Donation] PaymentIntent created: ${paymentIntent.id} ($${(amount / 100).toFixed(2)})`,
+      `[Donation] PaymentIntent ${paymentIntent.id} ($${(amount / 100).toFixed(2)}) → ${recipientName} [${chargeModel}]`,
     )
 
     return Response.json({
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
+      recipientName,
+      chargeModel,
     })
   } catch (err) {
     console.error('[Donation] Failed to create PaymentIntent:', err)

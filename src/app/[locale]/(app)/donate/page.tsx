@@ -30,6 +30,9 @@ export default async function DonatePageRoute({
   // Get tenant branding
   let tenantName = 'Angel OS'
   let donationsEnabled = true
+  // True when the donation will fund THIS endeavor (Connect-enabled, non-platform)
+  // rather than the platform Justice Fund — drives the recipient copy.
+  let isEndeavorDonation = false
 
   try {
     const tenants = await payload.find({
@@ -42,6 +45,14 @@ export default async function DonatePageRoute({
     const tenant = tenants.docs[0]
     if (tenant) {
       tenantName = (tenant as any).branding?.siteName || tenant.name || 'Angel OS'
+      const connect = (tenant as any).stripeConnect
+      isEndeavorDonation = Boolean(
+        (tenant as any).type !== 'platform' &&
+          tenantSlug !== 'default' &&
+          tenantSlug !== 'platform' &&
+          connect?.stripeAccountId &&
+          connect?.stripeChargesEnabled,
+      )
 
       // Check SiteSettings for donationsEnabled
       const settings = await payload.find({
@@ -59,5 +70,12 @@ export default async function DonatePageRoute({
     // Fallback to defaults
   }
 
-  return <DonatePage tenantName={tenantName} tenantSlug={tenantSlug} donationsEnabled={donationsEnabled} />
+  return (
+    <DonatePage
+      tenantName={tenantName}
+      tenantSlug={tenantSlug}
+      donationsEnabled={donationsEnabled}
+      isEndeavorDonation={isEndeavorDonation}
+    />
+  )
 }

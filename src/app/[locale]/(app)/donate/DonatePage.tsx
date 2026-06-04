@@ -72,12 +72,15 @@ interface DonatePageProps {
   tenantName?: string
   tenantSlug?: string
   donationsEnabled?: boolean
+  /** When true the gift funds this endeavor (95%) + Justice Fund (5%), not the platform. */
+  isEndeavorDonation?: boolean
 }
 
 export const DonatePage: React.FC<DonatePageProps> = ({
   tenantName = 'Angel OS',
   tenantSlug = 'default',
   donationsEnabled = true,
+  isEndeavorDonation = false,
 }) => {
   const [selectedAmount, setSelectedAmount] = useState<number>(2500) // $25 default
   const [customAmount, setCustomAmount] = useState('')
@@ -157,7 +160,9 @@ export const DonatePage: React.FC<DonatePageProps> = ({
             been received.
           </p>
           <p className="text-sm opacity-70">
-            100% goes directly to keeping the lights on, the servers running, and the community fed.
+            {isEndeavorDonation
+              ? `Your gift goes directly to ${tenantName} to support their mission.`
+              : '100% goes directly to keeping the lights on, the servers running, and the community fed.'}
           </p>
           <p className="mt-6 text-xs opacity-50">
             A receipt has been sent to your email. God bless you.
@@ -173,7 +178,8 @@ export const DonatePage: React.FC<DonatePageProps> = ({
       <div className="container mx-auto max-w-lg py-20">
         <h1 className="mb-2 text-3xl font-bold">Complete Your Donation</h1>
         <p className="mb-6 text-sm opacity-70">
-          ${(amountCents / 100).toFixed(2)} — 100% to the Justice Fund
+          ${(amountCents / 100).toFixed(2)} —{' '}
+          {isEndeavorDonation ? `supporting ${tenantName}` : '100% to the Justice Fund'}
         </p>
         <Elements
           stripe={stripePromise}
