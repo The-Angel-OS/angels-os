@@ -105,6 +105,12 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
   const currentDoc = soul.docs.find((d) => d.id === currentDocId) ?? soul.docs[0]
   const rawContent = allContents[currentDocId] ?? ''
 
+  // Sequential prev/next within the doc order — auto-hidden at the ends.
+  const docIndex = soul.docs.findIndex((d) => d.id === currentDocId)
+  const prevDoc = docIndex > 0 ? soul.docs[docIndex - 1] : null
+  const nextDoc =
+    docIndex >= 0 && docIndex < soul.docs.length - 1 ? soul.docs[docIndex + 1] : null
+
   const toggleReadAloud = useCallback(() => {
     if (reading) {
       window.speechSynthesis.cancel()
@@ -444,6 +450,48 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
                 {rawContent}
               </ReactMarkdown>
             </article>
+
+            {/* Prev / Next — sequential navigation, auto-hidden at the ends */}
+            {(prevDoc || nextDoc) && (
+              <nav className="mt-14 flex items-stretch justify-between gap-3 print:hidden">
+                {prevDoc ? (
+                  <button
+                    onClick={() => goToDoc(prevDoc.id)}
+                    className="group flex max-w-[48%] flex-col items-start gap-1 rounded-lg px-4 py-3 text-left transition-colors"
+                    style={{ border: `1px solid ${LCARS.amber}33`, background: `${LCARS.amber}0a` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${LCARS.amber}1a` }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = `${LCARS.amber}0a` }}
+                  >
+                    <span className="font-orbitron text-[9px] uppercase tracking-[0.25em]" style={{ color: LCARS.textMuted }}>
+                      ← Previous
+                    </span>
+                    <span className="font-orbitron text-sm font-bold leading-tight" style={{ color: LCARS.amber }}>
+                      {prevDoc.title}
+                    </span>
+                  </button>
+                ) : (
+                  <span />
+                )}
+                {nextDoc ? (
+                  <button
+                    onClick={() => goToDoc(nextDoc.id)}
+                    className="group flex max-w-[48%] flex-col items-end gap-1 rounded-lg px-4 py-3 text-right transition-colors"
+                    style={{ border: `1px solid ${LCARS.lavender}33`, background: `${LCARS.lavender}0a` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${LCARS.lavender}1a` }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = `${LCARS.lavender}0a` }}
+                  >
+                    <span className="font-orbitron text-[9px] uppercase tracking-[0.25em]" style={{ color: LCARS.textMuted }}>
+                      Next →
+                    </span>
+                    <span className="font-orbitron text-sm font-bold leading-tight" style={{ color: LCARS.lavender }}>
+                      {nextDoc.title}
+                    </span>
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </nav>
+            )}
 
             {/* Bottom decoration + STATION */}
             <div className="mt-16 pt-8 print:hidden" style={{ borderTop: `1px solid ${LCARS.amber}33` }}>
