@@ -8,14 +8,17 @@
  * Request body:
  *   - date (string, required): ISO date string (YYYY-MM-DD)
  *   - time (string, required): Time string (HH:MM)
- *   - duration (number): Duration in minutes (default: 60)
- *   - serviceType (string): Service type (default: 'service')
+ *   - serviceId (string, required): id from the tenant's bookable service catalog
+ *     (src/config/bookableServices.ts) — drives duration, total price, and deposit
  *   - notes (string): Customer notes for the booking
  *
+ * The slot is conflict-checked against the provider's existing bookings before
+ * creation (overbooking guard), and only the DEPOSIT is charged up front; the
+ * balance is settled on completion.
+ *
  * Response:
- *   - clientSecret: Stripe PaymentIntent client_secret for frontend confirmation
- *   - bookingId: Created booking record ID
- *   - stripeAccountId: Connected account ID for Stripe Elements
+ *   - clientSecret: Stripe PaymentIntent client_secret for the deposit
+ *   - bookingId, stripeAccountId, depositCents, totalCents, balanceCents, serviceLabel
  *
  * Auth: Requires authentication.
  */
@@ -24,6 +27,9 @@ import Stripe from 'stripe'
 
 import { getStripeApplicationFeeCents } from '@/lib/stripe-connect-config'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { getBookableService, depositCents, totalCents } from '@/config/bookableServices'
+import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
+import { BookingEngine } from '@/utilities/bookingEngine'
 
 export const bookingCheckoutHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -42,7 +48,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { date, time, duration, serviceType, notes } = body
+  const { date, time, serviceId, notes } = body
 
   if (!date || typeof date !== 'string') {
     return Response.json({ error: 'date is required (YYYY-MM-DD)' }, { status: 400 })
@@ -50,9 +56,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
   if (!time || typeof time !== 'string') {
     return Response.json({ error: 'time is required (HH:MM)' }, { status: 400 })
   }
-
-  const slotDuration = Math.max(15, Number(duration) || 60)
-  const resolvedServiceType = typeof serviceType === 'string' ? serviceType : 'service'
+  if (!serviceId || typeof serviceId !== 'string') {
+    return Response.json({ error: 'serviceId is required' }, { status: 400 })
+  }
 
   try {
     // Resolve tenant
@@ -81,7 +87,18 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     }
     const connectedAccountId = connect.stripeAccountId as string
 
-    // Get Endeavor for pricing info
+    // Resolve the service from the tenant's catalog → duration, price, deposit
+    const service = getBookableService(tenantSlug, serviceId)
+    if (!service) {
+      return Response.json({ error: 'Unknown service for this enterprise' }, { status: 400 })
+    }
+    const slotDuration = service.durationMinutes
+    const currency = 'usd'
+    const total = totalCents(service)
+    const deposit = depositCents(service)
+    const balanceCents = total - deposit
+
+    // Get Endeavor (display name) + resolve the booking provider (one shared calendar)
     const endeavors = await payload.find({
       collection: 'endeavors',
       where: { tenant: { equals: tenant.id } },
@@ -92,35 +109,12 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const endeavor = endeavors.docs?.[0] as any
     const endeavorName = endeavor?.name || tenant.name || 'Enterprise'
 
-    // Determine pricing — check availability slots for configured pricing,
-    // fall back to a default service rate
-    let amountCents = 5000 // Default $50.00 per session
-    const currency = 'usd'
-
-    try {
-      const availSlots = await payload.find({
-        collection: 'availability',
-        where: {
-          and: [
-            { tenant: { equals: tenant.id } },
-            { status: { equals: 'active' } },
-          ],
-        },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const slot = availSlots.docs?.[0] as any
-      if (slot?.serviceTypes) {
-        const matchingService = slot.serviceTypes.find(
-          (s: any) => s.serviceType === resolvedServiceType,
-        )
-        if (matchingService?.price) {
-          amountCents = Math.round(Number(matchingService.price) * 100)
-        }
-      }
-    } catch {
-      // Use default pricing
+    const providerId = await resolveBookingProvider(payload, tenant.id)
+    if (providerId == null) {
+      return Response.json(
+        { error: 'This enterprise has not configured a booking provider yet.' },
+        { status: 400 },
+      )
     }
 
     // Calculate booking times
@@ -130,21 +124,56 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     }
     const endDateTime = new Date(startDateTime.getTime() + slotDuration * 60 * 1000)
 
-    // Create the booking record (status: pending until payment)
+    // ── Overbooking guard ──────────────────────────────────────────────
+    // Reject the slot if it overlaps an existing pending/confirmed booking on
+    // the provider's calendar. A pending booking already blocks the slot, so
+    // this prevents two clients (or two services) from claiming the same time.
+    const engine = new BookingEngine(payload)
+    const conflicts = await engine.checkBookingConflicts({
+      providerId: String(providerId),
+      clientId: String(user.id),
+      tenantId: String(tenant.id),
+      startDateTime,
+      duration: slotDuration,
+      bookingType: service.bookingType,
+      title: service.label,
+      pricing: { amount: service.priceUSD, currency },
+    })
+    if (conflicts.length > 0) {
+      return Response.json(
+        {
+          error: 'That time was just taken. Please choose another slot.',
+          conflicts: conflicts.map((c) => c.message),
+        },
+        { status: 409 },
+      )
+    }
+
+    // Create the booking record (status: pending until deposit is paid)
     const booking = await payload.create({
       collection: 'bookings' as any,
       data: {
         tenant: tenant.id,
+        provider: providerId,
         client: user.id,
-        bookingType: resolvedServiceType,
+        title: `${service.label} — ${endeavorName}`,
+        bookingType: service.bookingType,
         status: 'pending',
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
         duration: slotDuration,
         notes: typeof notes === 'string' ? notes : undefined,
         pricing: {
-          amount: amountCents / 100,
+          amount: service.priceUSD,
           currency,
+        },
+        metadata: {
+          serviceId: service.id,
+          serviceLabel: service.label,
+          depositPercent: service.depositPercent,
+          depositCents: deposit,
+          balanceDueCents: balanceCents,
+          paymentKind: 'deposit',
         },
       } as any,
       overrideAccess: true,
@@ -180,20 +209,22 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // Calculate application fee (40% platform share)
-    const applicationFee = getStripeApplicationFeeCents(amountCents)
+    // Application fee (platform share) is calculated on the DEPOSIT being charged
+    const applicationFee = getStripeApplicationFeeCents(deposit)
 
-    // Create PaymentIntent on the connected account (Direct Charges)
+    // Create PaymentIntent on the connected account (Direct Charges) — DEPOSIT only
     const paymentIntent = await stripe.paymentIntents.create(
       {
-        amount: amountCents,
+        amount: deposit,
         application_fee_amount: applicationFee,
         payment_method_types: ['card'],
         currency,
         customer: customer.id,
         metadata: {
           bookingId: String(booking.id),
-          bookingType: resolvedServiceType,
+          bookingType: service.bookingType,
+          serviceId: service.id,
+          serviceLabel: service.label,
           clientId: String(user.id),
           clientEmail: customerEmail,
           endeavorName,
@@ -203,6 +234,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
           tenantSlug,
           angelOs_splitEnabled: 'true',
           angelOs_chargeModel: 'direct',
+          angelOs_paymentKind: 'deposit',
+          angelOs_totalCents: String(total),
+          angelOs_balanceDueCents: String(balanceCents),
           angelOs_applicationFee: String(applicationFee),
         },
       },
@@ -225,8 +259,11 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       clientSecret: paymentIntent.client_secret,
       bookingId: booking.id,
       stripeAccountId: connectedAccountId,
-      amount: amountCents,
+      depositCents: deposit,
+      totalCents: total,
+      balanceCents,
       currency,
+      serviceLabel: service.label,
       endeavorName,
     })
   } catch (err) {
