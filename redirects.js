@@ -12,7 +12,14 @@ const redirects = async () => {
     source: '/:path((?!ie-incompatible.html$).*)', // all pages except the incompatibility page
   }
 
-  const redirects = [internetExplorerRedirect]
+  // The Library moved from /learn/souls to /learn/works. Keep old links alive
+  // (handoffs, screenshots, bookmarks) — covers the en path and any locale prefix.
+  const worksRename = [
+    { source: '/learn/souls', destination: '/learn/works', permanent: true },
+    { source: '/:locale/learn/souls', destination: '/:locale/learn/works', permanent: true },
+  ]
+
+  const redirects = [internetExplorerRedirect, ...worksRename]
 
   return redirects
 }

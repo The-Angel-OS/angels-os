@@ -168,7 +168,7 @@ export function BookReader({
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0a0810] p-8 text-center text-[#f5f2f0]">
         <BookOpen className="h-8 w-8 opacity-40" />
         <p className="text-sm text-[#f5f2f0aa]">{error || 'This book could not be loaded.'}</p>
-        <Link href="/learn/souls" className="text-xs underline" style={{ color: '#C4956A' }}>
+        <Link href="/learn/works" className="text-xs underline" style={{ color: '#C4956A' }}>
           ← Back to the Library
         </Link>
       </div>
@@ -226,7 +226,7 @@ export function BookReader({
         style={{ background: '#0a0810e6', borderBottom: '1px solid #C4956A33' }}
       >
         <Link
-          href="/learn/souls"
+          href="/learn/works"
           className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
           style={{ color: '#C4956A' }}
         >

@@ -261,14 +261,14 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
           </button>
 
           <Link
-            href="/learn"
+            href="/learn/works"
             className="hidden sm:flex items-center gap-1.5 font-orbitron text-[10px] uppercase tracking-[0.25em] transition-opacity hover:opacity-80"
             style={{ color: LCARS.amber }}
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Soul Viewer
+            The Library
           </Link>
           <span className="hidden sm:inline" style={{ color: LCARS.textMuted }}>/</span>
           <span className="truncate font-orbitron text-sm font-bold tracking-wide">{soul.title}</span>
