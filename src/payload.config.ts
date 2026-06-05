@@ -100,6 +100,8 @@ import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashbo
 import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disconnect'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
+import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
+import { worksTranslateHandler } from '@/endpoints/works-translate'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
 import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
@@ -646,6 +648,22 @@ export default buildConfig({
       path: '/donation-ops/create-intent',
       method: 'post',
       handler: donationCreateIntentHandler,
+    },
+    // ─── Works Engine — seal / serve / translate (slice #2) ───────
+    {
+      path: '/works-ops/seal',
+      method: 'post',
+      handler: worksSealHandler,
+    },
+    {
+      path: '/works-ops/manifest',
+      method: 'get',
+      handler: worksManifestHandler,
+    },
+    {
+      path: '/works-ops/translate',
+      method: 'post',
+      handler: worksTranslateHandler,
     },
     // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {

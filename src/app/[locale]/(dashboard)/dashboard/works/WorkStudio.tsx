@@ -4,8 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, ArrowUp, ArrowDown, Eye, Pencil, Loader2, BookOpen, ChevronLeft } from 'lucide-react'
-import { createWork, type WorkMedia, type WorkSummary } from './actions'
+import { Plus, Trash2, ArrowUp, ArrowDown, Eye, Pencil, Loader2, BookOpen, ChevronLeft, Languages, ShieldCheck, ExternalLink } from 'lucide-react'
+import { createWork, sealWork as sealWorkAction, translateWork as translateWorkAction, type WorkMedia, type WorkSummary } from './actions'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
 
@@ -119,6 +119,8 @@ function WorkEditor({ channelId, onBack }: { channelId: string; onBack: () => vo
   const [error, setError] = useState<string | null>(null)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [preview, setPreview] = useState(false)
+  const [busy, setBusy] = useState<null | 'seal' | 'translate'>(null)
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string; url?: string } | null>(null)
 
   const dataRef = useRef<Record<string, unknown>>({})
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -214,6 +216,43 @@ function WorkEditor({ channelId, onBack }: { channelId: string; onBack: () => vo
 
   const selectedPage = useMemo(() => draft?.pages.find((p) => p.id === selectedPageId) ?? null, [draft, selectedPageId])
 
+  const handleTranslate = async () => {
+    if (busy) return
+    setNotice(null)
+    setBusy('translate')
+    try {
+      const res = await translateWorkAction(channelId)
+      if (res.success) {
+        const n = res.added?.length ?? 0
+        setNotice({ kind: 'ok', text: n > 0 ? `Translated into ${n} more language${n !== 1 ? 's' : ''}. Seal to publish them.` : 'Already translated into the platform languages.' })
+      } else {
+        setNotice({ kind: 'err', text: res.error || 'Translation failed' })
+      }
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleSeal = async () => {
+    if (busy) return
+    setNotice(null)
+    setBusy('seal')
+    try {
+      const res = await sealWorkAction(channelId)
+      if (res.success) {
+        setNotice({
+          kind: 'ok',
+          text: `Sealed v${res.version} · ${res.languages?.length ?? 1} language${(res.languages?.length ?? 1) !== 1 ? 's' : ''} · signed & verified.`,
+          url: res.slug ? `/learn/${res.slug}` : undefined,
+        })
+      } else {
+        setNotice({ kind: 'err', text: res.error || 'Seal failed' })
+      }
+    } finally {
+      setBusy(null)
+    }
+  }
+
   if (loading) return <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
   if (!draft) return <div className="p-8 text-sm text-red-500">{error || 'Could not load this work.'}</div>
 
@@ -223,10 +262,47 @@ function WorkEditor({ channelId, onBack }: { channelId: string; onBack: () => vo
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ChevronLeft className="h-4 w-4" /> All works
         </button>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</> : 'Saved'}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="mr-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</> : 'Saved'}
+          </span>
+          <button
+            onClick={handleTranslate}
+            disabled={!!busy || draft.pages.length === 0}
+            title="Auto-translate into the platform languages"
+            className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+          >
+            {busy === 'translate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Languages className="h-3.5 w-3.5" />}
+            Translate
+          </button>
+          <button
+            onClick={handleSeal}
+            disabled={!!busy || draft.pages.length === 0}
+            title="Seal into a signed, shareable release"
+            className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {busy === 'seal' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+            Seal &amp; Publish
+          </button>
+        </div>
       </div>
+
+      {notice && (
+        <div
+          className={`flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm ${
+            notice.kind === 'ok'
+              ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
+              : 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400'
+          }`}
+        >
+          <span>{notice.text}</span>
+          {notice.url && (
+            <a href={notice.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium underline">
+              Open in the Library <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
 
       {error && <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">{error}</div>}
 

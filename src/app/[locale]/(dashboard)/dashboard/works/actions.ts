@@ -91,6 +91,118 @@ export async function listWorks(): Promise<WorkSummary[]> {
     .filter(Boolean) as WorkSummary[]
 }
 
+export interface SealResult extends WorksActionResult {
+  slug?: string
+  version?: number
+  manifestUrl?: string
+  languages?: string[]
+}
+
+/** Seal a Work draft into a signed, multilingual release (server-side). */
+export async function sealWork(channelId: string): Promise<SealResult> {
+  const { payload, user, tenantId, error } = await getAuthorizedTenant()
+  if (error || !tenantId || !user) return { success: false, error: error || 'Unauthorized' }
+
+  // Reuse the endpoint's logic by calling its handler inline would require a
+  // Request; instead we import the seal utilities directly for a clean server path.
+  const { getOrCreateFederationKeyPair } = await import('@/federation/keyStore')
+  const { sealWork: seal } = await import('@/utilities/worksSeal')
+
+  const channel = (await payload.findByID({
+    collection: 'channels',
+    id: channelId,
+    depth: 0,
+    overrideAccess: true,
+  })) as { id: string | number; slug?: string; tenant?: string | number; data?: Record<string, unknown> } | null
+  if (!channel) return { success: false, error: 'Work not found' }
+  if (String(channel.tenant) !== String(tenantId)) return { success: false, error: 'Wrong tenant' }
+
+  const data = (channel.data && typeof channel.data === 'object' ? channel.data : {}) as Record<string, unknown>
+  const draft = data.workDraft as Parameters<typeof seal>[0]['draft'] | undefined
+  if (!draft || !Array.isArray(draft.pages) || draft.pages.length === 0) {
+    return { success: false, error: 'Add at least one page before sealing' }
+  }
+
+  try {
+    const keyPair = await getOrCreateFederationKeyPair(payload, Number(tenantId))
+    const slug = channel.slug || `work-${channel.id}`
+    const previousVersion = typeof data.sealedVersion === 'number' ? data.sealedVersion : 0
+    const { manifest, verified } = seal({
+      draft,
+      slug,
+      signerPublicKey: keyPair.publicKey,
+      signerPrivateKey: keyPair.privateKey,
+      previousVersion,
+    })
+    if (!verified) return { success: false, error: 'Seal failed self-verification' }
+
+    await payload.update({
+      collection: 'channels',
+      id: channel.id,
+      data: {
+        data: {
+          ...data,
+          sealedManifest: manifest,
+          sealedSlug: slug,
+          sealedVersion: manifest.version,
+          sealedAt: new Date().toISOString(),
+        },
+      } as any,
+      overrideAccess: true,
+    })
+
+    return {
+      success: true,
+      slug,
+      version: manifest.version,
+      languages: manifest.languages.map((l) => l.code),
+      manifestUrl: `/api/works-ops/manifest?slug=${encodeURIComponent(slug)}`,
+    }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Seal failed' }
+  }
+}
+
+/** Auto-translate a Work draft into the platform default languages. */
+export async function translateWork(channelId: string, languages?: string[]): Promise<WorksActionResult & { added?: string[] }> {
+  const { payload, user, tenantId, error } = await getAuthorizedTenant()
+  if (error || !tenantId || !user) return { success: false, error: error || 'Unauthorized' }
+
+  const { translateWorkDraft } = await import('@/utilities/worksTranslate')
+  const { PLATFORM_DEFAULT_LANGUAGES } = await import('@/config/platformLanguages')
+
+  const channel = (await payload.findByID({
+    collection: 'channels',
+    id: channelId,
+    depth: 0,
+    overrideAccess: true,
+  })) as { id: string | number; tenant?: string | number; data?: Record<string, unknown> } | null
+  if (!channel) return { success: false, error: 'Work not found' }
+  if (String(channel.tenant) !== String(tenantId)) return { success: false, error: 'Wrong tenant' }
+
+  const data = (channel.data && typeof channel.data === 'object' ? channel.data : {}) as Record<string, unknown>
+  const draft = data.workDraft as Parameters<typeof translateWorkDraft>[0] | undefined
+  if (!draft || !Array.isArray(draft.pages) || draft.pages.length === 0) {
+    return { success: false, error: 'This work has no pages to translate' }
+  }
+
+  try {
+    const targetLangs = (languages ?? PLATFORM_DEFAULT_LANGUAGES).filter((c) => c !== draft.defaultLanguage)
+    const result = await translateWorkDraft(draft, { targetLangs })
+    if (result.added.length > 0) {
+      await payload.update({
+        collection: 'channels',
+        id: channel.id,
+        data: { data: { ...data, workDraft: result.draft } } as any,
+        overrideAccess: true,
+      })
+    }
+    return { success: true, added: result.added }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Translation failed' }
+  }
+}
+
 /** Create a new empty Work draft (a 'general' channel with a workDraft payload). */
 export async function createWork(title: string): Promise<WorksActionResult> {
   const { payload, tenantId, error } = await getAuthorizedTenant()
