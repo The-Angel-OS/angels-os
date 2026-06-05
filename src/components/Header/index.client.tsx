@@ -108,30 +108,34 @@ const LEARN_NAV_ITEM = {
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
 
-  // Fetch user's portals for portal switcher (client-side, only when logged in)
+  // Fetch the user's portals for the switcher (client-side, only when logged in).
+  // Super-admins have global access, so the switcher lists ALL tenants for them —
+  // not just rows they happen to have a membership for (which is why an endeavor
+  // like WDEG could be missing). Everyone else sees their active memberships.
   const [userPortals, setUserPortals] = useState<PortalInfo[]>([])
   useEffect(() => {
     if (!user?.id) { setUserPortals([]); return }
-    fetch(`/api/tenant-memberships?where[user][equals]=${user.id}&where[status][equals]=active&depth=2&limit=50`)
-      .then((r) => r.json())
-      .then((data) => {
-        const portals = (data.docs || [])
-          .map((m: any) => {
-            const t = m.tenant
-            if (!t || typeof t !== 'object') return null
-            return {
-              id: t.id,
-              name: t.branding?.siteName || t.name || 'Unknown',
-              slug: t.slug || '',
-              domain: t.domain || '',
-              logoUrl: typeof t.branding?.logo === 'object' && t.branding?.logo?.url ? t.branding.logo.url : null,
-              primaryColor: t.branding?.primaryColor || null,
-            }
-          })
-          .filter(Boolean)
-        setUserPortals(portals)
-      })
-      .catch(() => {})
+    const toPortal = (t: any): PortalInfo | null => {
+      if (!t || typeof t !== 'object') return null
+      return {
+        id: t.id,
+        name: t.branding?.siteName || t.name || 'Unknown',
+        slug: t.slug || '',
+        domain: t.domain || '',
+        logoUrl: typeof t.branding?.logo === 'object' && t.branding?.logo?.url ? t.branding.logo.url : null,
+        primaryColor: t.branding?.primaryColor || null,
+      }
+    }
+    const roles = (user as { roles?: string[] }).roles
+    const isSuper = Array.isArray(roles) && roles.includes('super_admin')
+    const req = isSuper
+      ? fetch(`/api/tenants?limit=100&depth=1&sort=name`)
+          .then((r) => r.json())
+          .then((data) => (data.docs || []).map(toPortal))
+      : fetch(`/api/tenant-memberships?where[user][equals]=${user.id}&where[status][equals]=active&depth=2&limit=50`)
+          .then((r) => r.json())
+          .then((data) => (data.docs || []).map((m: any) => toPortal(m.tenant)))
+    req.then((portals) => setUserPortals(portals.filter(Boolean))).catch(() => {})
   }, [user?.id])
 
   // Stable reference: use navItems directly from the server-provided header prop.
