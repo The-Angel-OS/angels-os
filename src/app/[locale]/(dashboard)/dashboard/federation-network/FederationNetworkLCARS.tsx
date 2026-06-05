@@ -283,11 +283,11 @@ export default function FederationNetworkLCARS() {
         <div className="h-8 w-16 shrink-0" style={{ background: LCARS_COLORS.lavender }} />
         <div className="h-8 w-8 shrink-0" style={{ background: LCARS_COLORS.blue }} />
         {/* Title area */}
-        <div className="flex h-8 flex-1 items-center px-4" style={{ background: LCARS_COLORS.panelBg, borderTop: `2px solid ${LCARS_COLORS.amber}` }}>
-          <span className="font-mono text-lg font-bold tracking-[0.3em]" style={{ color: LCARS_COLORS.amber }}>
+        <div className="flex h-8 min-w-0 flex-1 items-center px-2 sm:px-4" style={{ background: LCARS_COLORS.panelBg, borderTop: `2px solid ${LCARS_COLORS.amber}` }}>
+          <span className="truncate font-mono text-xs font-bold tracking-[0.12em] sm:text-lg sm:tracking-[0.3em]" style={{ color: LCARS_COLORS.amber }}>
             FEDERATION NETWORK
           </span>
-          <span className="ml-auto font-mono text-xs" style={{ color: LCARS_COLORS.textMuted }}>
+          <span className="ml-auto hidden shrink-0 pl-2 font-mono text-xs sm:inline" style={{ color: LCARS_COLORS.textMuted }}>
             REGISTRY v{stats?.registryVersion || '—'}
           </span>
         </div>
@@ -300,14 +300,15 @@ export default function FederationNetworkLCARS() {
         </div>
       </div>
 
-      {/* ── Main Content ─────────────────────────────────────────────── */}
-      <div className="flex flex-1 gap-1 overflow-hidden px-2 pb-2 pt-1">
+      {/* ── Main Content (stacks vertically on mobile) ───────────────── */}
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2 pt-1 md:flex-row md:overflow-hidden">
         {/* ── Left Panel: Stats ─────────────────────────────────────── */}
-        <div className="flex w-44 shrink-0 flex-col gap-1">
+        <div className="flex w-full shrink-0 flex-col gap-1 md:w-44">
           {/* Left sidebar segments */}
           <div className="w-full" style={{ background: LCARS_COLORS.amber, borderRadius: '0 0 0 20px', height: '30px' }} />
 
-          <div className="flex-1 space-y-1 overflow-y-auto">
+          {/* Compact 4-col grid on phones; vertical list on md+ */}
+          <div className="grid grid-cols-4 gap-1 md:flex-1 md:grid-cols-1 md:content-start md:overflow-y-auto">
             <LCARSStatBlock label="ENTERPRISES" value={stats?.total ?? 0} color={LCARS_COLORS.amber} />
             <LCARSStatBlock label="ACTIVE" value={stats?.active ?? 0} color={LCARS_COLORS.green} />
             <LCARSStatBlock label="SENTINELS" value={stats?.sentinels ?? 0} color={LCARS_COLORS.lavender} />
@@ -323,7 +324,7 @@ export default function FederationNetworkLCARS() {
         </div>
 
         {/* ── Center: Network Topology ──────────────────────────────── */}
-        <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+        <div className="flex min-h-[55vh] flex-1 flex-col gap-1 overflow-hidden md:min-h-0">
           {/* Network Visualization */}
           <div className="relative flex-1 overflow-hidden" style={{ background: LCARS_COLORS.panelBg, border: `1px solid ${LCARS_COLORS.amber}33` }}>
             <NetworkTopology
@@ -378,7 +379,7 @@ export default function FederationNetworkLCARS() {
         </div>
 
         {/* ── Right Panel: Node Detail ──────────────────────────────── */}
-        <div className="flex w-56 shrink-0 flex-col gap-1">
+        <div className="flex w-full shrink-0 flex-col gap-1 md:w-56">
           <div className="w-full" style={{ background: LCARS_COLORS.blue, borderRadius: '0 0 20px 0', height: '30px' }}>
             <div className="flex h-full items-center px-3 font-mono text-[10px] font-bold text-black">
               NODE DETAIL
