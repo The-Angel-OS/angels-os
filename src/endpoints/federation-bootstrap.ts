@@ -115,30 +115,43 @@ export const federationBootstrapHandler: PayloadHandler = async (req) => {
     peerError = e instanceof Error ? e.message : 'network error'
   }
 
-  // ── Record the peer on our side (mutual discovery from one call) ────────────
+  // ── Record the peer Diocese on our side (mutual discovery from one call) ────
+  // Per the Diocese model: a peer is a remote ENTERPRISE (federation-peers), not
+  // an endeavor. Its endeavors inherit its standing.
   let recorded = false
   if (peerFederationId) {
     try {
+      const now = new Date().toISOString()
       const existing = await payload.find({
-        collection: 'endeavors',
-        where: { 'federation.federationId': { equals: peerFederationId } },
+        collection: 'federation-peers',
+        where: { federationId: { equals: peerFederationId } },
         limit: 1,
         depth: 0,
         overrideAccess: true,
       })
-      const fed = {
-        networkVisible: true,
-        ministryStatus: 'active',
-        federationId: peerFederationId,
-        domain: peerDomain,
-        lastPingAt: new Date().toISOString(),
-      }
       if (existing.docs.length > 0) {
-        await payload.update({ collection: 'endeavors', id: existing.docs[0]!.id, data: { federation: fed } as never, overrideAccess: true })
+        await payload.update({
+          collection: 'federation-peers',
+          id: existing.docs[0]!.id,
+          data: { domain: peerDomain, networkVisible: true, lastHeartbeatAt: now, consecutiveFailures: 0 } as never,
+          overrideAccess: true,
+        })
       } else {
         await payload.create({
-          collection: 'endeavors',
-          data: { name: `Peer · ${peerDomain}`, endeavorType: 'custom', status: 'active', federation: fed } as never,
+          collection: 'federation-peers',
+          data: {
+            federationId: peerFederationId,
+            name: `Diocese · ${peerDomain}`,
+            domain: peerDomain,
+            // Bootstrap is an intentional, authenticated federation with a chosen
+            // registry peer → admit as active. Inbound (auto-onboard) starts on probation.
+            ministryStatus: 'active',
+            trustLevel: 'full',
+            networkVisible: true,
+            firstSeenAt: now,
+            activatedAt: now,
+            lastHeartbeatAt: now,
+          } as never,
           overrideAccess: true,
         })
       }

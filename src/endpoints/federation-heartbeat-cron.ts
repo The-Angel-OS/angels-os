@@ -97,15 +97,14 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       name: (tenant.name as string) || 'Angel OS Instance',
     }
 
-    // ── Find all known federation peers ─────────────────────────
+    // ── Find all known peer Dioceses (Enterprise-grain) ─────────
     const peers = await req.payload.find({
-      collection: 'endeavors',
+      collection: 'federation-peers',
       where: {
         and: [
-          { 'federation.networkVisible': { equals: true } },
-          { 'federation.federationId': { exists: true } },
+          { networkVisible: { equals: true } },
           // Don't heartbeat ourselves
-          { 'federation.federationId': { not_equals: federationId } },
+          { federationId: { not_equals: federationId } },
         ],
       },
       limit: 100, // Cap at 100 peers per cron run
@@ -266,9 +265,7 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       const batch = peerDocs.slice(i, i + CONCURRENCY)
       const batchResults = await Promise.allSettled(
         batch.map(async (peer) => {
-          const peerFederation = peer.federation as unknown as Record<string, unknown> | undefined
-          // Sprint 43: Use stored domain from heartbeat persistence (replaces Phase 2 TODO)
-          const peerDomain = (peerFederation?.domain as string) || undefined
+          const peerDomain = (peer.domain as string) || undefined
 
           if (!peerDomain) {
             return { domain: String(peer.name), success: false, error: 'No domain known' }
@@ -298,8 +295,7 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
     // ── Mark stale peers ────────────────────────────────────────
     const now = new Date()
     for (const peer of peerDocs) {
-      const peerFederation = peer.federation as unknown as Record<string, unknown> | undefined
-      const lastPing = peerFederation?.lastPingAt as string | undefined
+      const lastPing = peer.lastHeartbeatAt as string | undefined
       if (lastPing) {
         const age = (now.getTime() - new Date(lastPing).getTime()) / 1000
         if (age > MAX_HEARTBEAT_AGE_SECONDS * 2) {
@@ -325,17 +321,16 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       // Build minimal ministry records from peer data for governance snapshot
       // In a full implementation, this would query a FederationRegistry collection
       const knownMinistries: Ministry[] = peerDocs.map((peer) => {
-        const peerFed = peer.federation as unknown as Record<string, unknown> | undefined
         return {
-          id: (peerFed?.federationId as string) || String(peer.id),
+          id: (peer.federationId as string) || String(peer.id),
           name: String(peer.name || 'Unknown'),
-          domain: String(peerFed?.domain || peer.name || ''),
+          domain: String(peer.domain || peer.name || ''),
           operator: '',
-          status: 'active' as const,
+          status: (peer.ministryStatus as Ministry['status']) || 'active',
           appliedAt: String(peer.createdAt || new Date().toISOString()),
           vouchesReceived: [],
           constitutionVersion: constitution.version,
-          lastHeartbeat: peerFed?.lastPingAt as string | undefined,
+          lastHeartbeat: peer.lastHeartbeatAt as string | undefined,
           capabilities: [],
         }
       })

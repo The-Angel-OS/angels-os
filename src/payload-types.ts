@@ -100,6 +100,7 @@ export interface Config {
     'application-logs': ApplicationLog;
     reviews: Review;
     endeavors: Endeavor;
+    'federation-peers': FederationPeer;
     connectors: Connector;
     contacts: Contact;
     'federation-audit-log': FederationAuditLog;
@@ -172,6 +173,7 @@ export interface Config {
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
+    'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
     connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
@@ -302,6 +304,10 @@ export interface Tenant {
    */
   branding?: {
     logo?: (number | null) | Media;
+    /**
+     * Browser tab / bookmark icon for this endeavor. Square PNG recommended (≥512px, centered). Falls back to the logo, then the Angel OS default.
+     */
+    favicon?: (number | null) | Media;
     siteName?: string | null;
     tagline?: string | null;
     /**
@@ -2185,9 +2191,9 @@ export interface CrewAssignment {
 export interface TenantMembership {
   id: number;
   /**
-   * User who belongs to this tenant
+   * User who belongs to this tenant (empty for pending email invitations)
    */
-  user: number | User;
+  user?: (number | null) | User;
   /**
    * Tenant this membership applies to
    */
@@ -4066,6 +4072,104 @@ export interface Review {
   createdAt: string;
 }
 /**
+ * Remote Enterprises (Dioceses) in the Angel OS federation mesh.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "federation-peers".
+ */
+export interface FederationPeer {
+  id: number;
+  /**
+   * Immutable federation identity (UUID) of the remote Diocese
+   */
+  federationId: string;
+  name: string;
+  domain?: string | null;
+  /**
+   * Ed25519 public key (hex SPKI DER) — verifies this peer’s signatures
+   */
+  publicKey?: string | null;
+  /**
+   * Trust/probation status of the Diocese. Endeavors inherit this.
+   */
+  ministryStatus: 'applicant' | 'probation' | 'active' | 'suspended' | 'revoked' | 'dormant';
+  /**
+   * Derived trust level (cached for routing/queries).
+   */
+  trustLevel?: ('none' | 'probationary' | 'vouched' | 'full') | null;
+  /**
+   * Vouches FOR this Diocese (full-trust peers vouch for probationers).
+   */
+  vouchesReceived?:
+    | {
+        voucherId: string;
+        voucherName?: string | null;
+        vouchedAt?: string | null;
+        reason?: string | null;
+        isValid?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  constitutionVersion?: string | null;
+  /**
+   * string[] — what this Diocese can do
+   */
+  capabilities?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  region?: {
+    country?: string | null;
+    region?: string | null;
+    city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  networkVisible?: boolean | null;
+  firstSeenAt?: string | null;
+  probationStartedAt?: string | null;
+  activatedAt?: string | null;
+  /**
+   * Last contact — drives health/freshness.
+   */
+  lastHeartbeatAt?: string | null;
+  /**
+   * Outbound heartbeat failures in a row (circuit-breaker input).
+   */
+  consecutiveFailures?: number | null;
+  /**
+   * Latest CapacitySnapshot — for workload routing.
+   */
+  capacitySnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * The Diocese’s network-visible Endeavors (offerings). Inherit Diocese trust.
+   */
+  endeavors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "connectors".
  */
@@ -5639,6 +5743,10 @@ export interface PayloadLockedDocument {
         value: number | Endeavor;
       } | null)
     | ({
+        relationTo: 'federation-peers';
+        value: number | FederationPeer;
+      } | null)
+    | ({
         relationTo: 'connectors';
         value: number | Connector;
       } | null)
@@ -5814,6 +5922,7 @@ export interface TenantsSelect<T extends boolean = true> {
     | T
     | {
         logo?: T;
+        favicon?: T;
         siteName?: T;
         tagline?: T;
         primaryColor?: T;
@@ -7160,6 +7269,49 @@ export interface EndeavorsSelect<T extends boolean = true> {
         state?: T;
         country?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "federation-peers_select".
+ */
+export interface FederationPeersSelect<T extends boolean = true> {
+  federationId?: T;
+  name?: T;
+  domain?: T;
+  publicKey?: T;
+  ministryStatus?: T;
+  trustLevel?: T;
+  vouchesReceived?:
+    | T
+    | {
+        voucherId?: T;
+        voucherName?: T;
+        vouchedAt?: T;
+        reason?: T;
+        isValid?: T;
+        id?: T;
+      };
+  constitutionVersion?: T;
+  capabilities?: T;
+  region?:
+    | T
+    | {
+        country?: T;
+        region?: T;
+        city?: T;
+        latitude?: T;
+        longitude?: T;
+      };
+  networkVisible?: T;
+  firstSeenAt?: T;
+  probationStartedAt?: T;
+  activatedAt?: T;
+  lastHeartbeatAt?: T;
+  consecutiveFailures?: T;
+  capacitySnapshot?: T;
+  endeavors?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -55,6 +55,7 @@ import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
+import { FederationPeers } from '@/collections/FederationPeers'
 import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
@@ -221,6 +222,7 @@ export default buildConfig({
     ApplicationLogs,
     Reviews,
     Endeavors,
+    FederationPeers,
     Connectors,
     Contacts,
     FederationAuditLog,

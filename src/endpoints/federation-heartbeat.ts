@@ -103,56 +103,49 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
     )
   }
 
-  // ── Record heartbeat ──────────────────────────────────────────
+  // ── Record heartbeat (Diocese model — peer is a remote Enterprise) ────────
   try {
-    // Find the endeavor with this federation ID
-    const endeavors = await req.payload.find({
-      collection: 'endeavors',
-      where: {
-        'federation.federationId': { equals: senderFedId },
-      },
+    const now = new Date().toISOString()
+    const peers = await req.payload.find({
+      collection: 'federation-peers',
+      where: { federationId: { equals: senderFedId } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
 
-    if (endeavors.docs.length > 0) {
-      // Known peer — update heartbeat
-      const endeavor = endeavors.docs[0]
+    if (peers.docs.length > 0) {
+      // Known Diocese — refresh liveness + capacity. Don't downgrade an active peer.
       await req.payload.update({
-        collection: 'endeavors',
-        id: endeavor.id,
+        collection: 'federation-peers',
+        id: peers.docs[0]!.id,
         data: {
-          federation: {
-            lastPingAt: new Date().toISOString(),
-            networkVisible: true,
-            // Sprint 43: Persist peer domain for Discover page URL resolution
-            ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
-            // Sprint 30: Store capacity snapshot from sender for workload routing
-            ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
-          },
+          lastHeartbeatAt: now,
+          networkVisible: true,
+          consecutiveFailures: 0,
+          ...(typeof senderName === 'string' ? { name: senderName } : {}),
+          ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
+          ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
         } as any,
         overrideAccess: true,
       })
     } else {
-      // Unknown peer — create a new endeavor record as a federation reference.
-      // Per Article VII: "Constitution accepted → node is immediately live."
-      // Peers that send valid signed heartbeats have accepted the constitution
-      // and are auto-accepted as active federation members.
+      // Unknown Diocese — a valid signed heartbeat means it accepted the
+      // constitution (Article VII), so it joins — but on PROBATION. It earns
+      // full trust via vouches / 90 days. (Bootstrap admits a chosen peer as active.)
       await req.payload.create({
-        collection: 'endeavors',
+        collection: 'federation-peers',
         data: {
-          name: (senderName as string) || 'Unknown Enterprise',
-          endeavorType: 'custom',
-          status: 'active',
-          federation: {
-            networkVisible: true,
-            ministryStatus: 'active',
-            federationId: senderFedId,
-            lastPingAt: new Date().toISOString(),
-            // Sprint 43: Persist peer domain for Discover page URL resolution
-            ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
-          },
+          federationId: senderFedId,
+          name: (senderName as string) || `Diocese · ${(senderDomain as string) || senderFedId}`,
+          ministryStatus: 'probation',
+          trustLevel: 'probationary',
+          networkVisible: true,
+          firstSeenAt: now,
+          probationStartedAt: now,
+          lastHeartbeatAt: now,
+          ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
+          ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
         } as any,
         overrideAccess: true,
       })
