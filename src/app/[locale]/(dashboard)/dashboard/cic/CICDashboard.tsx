@@ -44,6 +44,32 @@ interface CICData {
     status: 'connected' | 'disconnected' | 'unknown'
     detail?: string
   }[]
+  aiBus?: {
+    total24h: number
+    byType: { type: string; count: number }[]
+    sampled: boolean
+  }
+  connectors?: {
+    total: number
+    active: number
+    error: number
+    disabled: number
+    connectors: { type: string; status: string; lastActivity: string | null }[]
+  }
+}
+
+const MSG_TYPE_LABELS: Record<string, string> = {
+  user: 'Human',
+  ai_agent: 'LEO',
+  system: 'System',
+  announcement: 'Announce',
+  voice_call: 'Voice',
+  whatsapp_message: 'WhatsApp',
+  telegram_message: 'Telegram',
+  sms_message: 'SMS',
+  discord_message: 'Discord',
+  email_message: 'Email',
+  federation_message: 'Federation',
 }
 
 // ---------------------------------------------------------------------------
@@ -322,6 +348,85 @@ export default function CICDashboard() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── AI Bus Activity + Comms Connectors (real telemetry) ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* AI Bus Activity */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              AI Bus Activity
+            </h2>
+            <span className="text-xs text-muted-foreground">last 24h</span>
+          </div>
+          <div className="mb-3 text-3xl font-bold">
+            {data.aiBus?.total24h ?? 0}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">messages</span>
+          </div>
+          {data.aiBus && data.aiBus.byType.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {data.aiBus.byType.map((t) => (
+                <span
+                  key={t.type}
+                  className="rounded-full bg-muted px-2 py-0.5 text-xs"
+                  title={t.type}
+                >
+                  {MSG_TYPE_LABELS[t.type] || t.type} <span className="font-semibold">{t.count}</span>
+                </span>
+              ))}
+              {data.aiBus.sampled && (
+                <span className="text-xs text-muted-foreground">(sampled)</span>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Quiet on the bus — no traffic in the last 24h.</p>
+          )}
+        </div>
+
+        {/* Comms Connectors */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              Comms Connectors
+            </h2>
+            {data.connectors && (
+              <span className="flex gap-2 text-xs">
+                <span className="text-emerald-600">{data.connectors.active} active</span>
+                {data.connectors.error > 0 && <span className="text-red-600">{data.connectors.error} error</span>}
+                {data.connectors.disabled > 0 && <span className="text-muted-foreground">{data.connectors.disabled} off</span>}
+              </span>
+            )}
+          </div>
+          {data.connectors && data.connectors.connectors.length > 0 ? (
+            <div className="space-y-1.5">
+              {data.connectors.connectors.map((c, i) => (
+                <div key={`${c.type}-${i}`} className="flex items-center gap-2 text-sm">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      c.status === 'error'
+                        ? 'bg-red-500'
+                        : c.status === 'disabled'
+                          ? 'bg-gray-400'
+                          : 'bg-emerald-500'
+                    }`}
+                  />
+                  <span className="font-medium capitalize">{c.type.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-muted-foreground capitalize">· {c.status}</span>
+                  {c.lastActivity && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {new Date(c.lastActivity).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No connectors configured. Add one under Admin → Connectors to bridge WhatsApp, Discord, voice, and more onto the bus.
+            </p>
+          )}
         </div>
       </div>
 

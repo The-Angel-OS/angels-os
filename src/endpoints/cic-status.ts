@@ -20,6 +20,7 @@
 import type { PayloadHandler } from 'payload'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { getAiBusActivity, getConnectorHealth, type AiBusActivity, type ConnectorHealth } from '@/utilities/tenantTelemetry'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,6 +68,8 @@ export interface CICStatusResponse {
     status: 'connected' | 'disconnected' | 'unknown'
     detail?: string
   }[]
+  aiBus: AiBusActivity
+  connectors: ConnectorHealth
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +119,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
       where: { tenant: { equals: tenantId } },
       limit: 500,
       depth: 0,
+      select: { department: true, dutyStatus: true } as any, // only fields we tally
       overrideAccess: true,
     })
     const crewDocs = crewResult.docs as any[]
@@ -215,6 +219,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
       sort: '-completedAt',
       limit: 50,
       depth: 0,
+      select: { executionTimeMs: true } as any, // only field we average
       overrideAccess: true,
     })
     const execTimes = (recentCompleted.docs as any[])
@@ -224,6 +229,12 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
       execTimes.length > 0
         ? Math.round(execTimes.reduce((a, b) => a + b, 0) / execTimes.length)
         : 0
+
+    // ── AI Bus activity + connector health (real telemetry) ───────
+    const [aiBus, connectorHealth] = await Promise.all([
+      getAiBusActivity(payload, tenantId),
+      getConnectorHealth(payload, tenantId),
+    ])
 
     // ── Platform Health (basic checks) ─────────────────────────────
     const platforms: CICStatusResponse['platforms'] = []
@@ -288,15 +299,19 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
         lastPingAt: endeavor?.federation?.lastPingAt || null,
       },
       platforms,
+      aiBus,
+      connectors: connectorHealth,
     }
 
-    // For anonymous users, strip platform connection details and internal URLs
+    // For anonymous users, strip platform connection details and the per-connector
+    // list (keep aggregate counts — those are safe operational transparency).
     if (!isAuthenticated) {
       response.platforms = response.platforms.map((p) => ({
         name: p.name,
         status: p.status,
         // Omit 'detail' field which may contain internal URLs/cloud names
       }))
+      response.connectors = { ...response.connectors, connectors: [] }
     }
 
     return Response.json(response)
