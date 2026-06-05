@@ -101,6 +101,7 @@ import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disco
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
+import { federationSimulateHandler } from '@/endpoints/federation-simulate'
 import { worksTranslateHandler } from '@/endpoints/works-translate'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
@@ -664,6 +665,12 @@ export default buildConfig({
       path: '/works-ops/translate',
       method: 'post',
       handler: worksTranslateHandler,
+    },
+    // ─── Emergent network mockup (Central testbed) ────────────────
+    {
+      path: '/federation/simulate',
+      method: 'get',
+      handler: federationSimulateHandler,
     },
     // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {
