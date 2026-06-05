@@ -106,6 +106,7 @@ import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
 import { federationSimulateHandler } from '@/endpoints/federation-simulate'
 import { debugConnectivityHandler } from '@/endpoints/debug-connectivity'
 import { federationBootstrapHandler } from '@/endpoints/federation-bootstrap'
+import { dashboardPrefsHandler } from '@/endpoints/dashboard-prefs'
 import { worksTranslateHandler } from '@/endpoints/works-translate'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
@@ -688,6 +689,12 @@ export default buildConfig({
       path: '/debug/connectivity',
       method: 'get',
       handler: debugConnectivityHandler,
+    },
+    // ─── Dashboard widget prefs (collapsed/dismissed/order) ───────
+    {
+      path: '/dashboard-ops/prefs',
+      method: 'post',
+      handler: dashboardPrefsHandler,
     },
     // ─── Federation bootstrap — first contact with the registry peer ──
     {

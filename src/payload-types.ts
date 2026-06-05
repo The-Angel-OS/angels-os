@@ -865,6 +865,18 @@ export interface User {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  /**
+   * Dashboard widget preferences: { collapsed: string[], dismissed: string[], order: string[] }
+   */
+  dashboardPrefs?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   tenants?:
     | {
         tenant: number | Tenant;
@@ -6105,6 +6117,7 @@ export interface UsersSelect<T extends boolean = true> {
   orders?: T;
   cart?: T;
   addresses?: T;
+  dashboardPrefs?: T;
   tenants?:
     | T
     | {

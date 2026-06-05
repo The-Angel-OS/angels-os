@@ -400,5 +400,14 @@ export const Users: CollectionConfig = {
         defaultColumns: ['id'],
       },
     },
+    {
+      // Per-user dashboard widget preferences — collapsed/dismissed/order. Saved
+      // server-side so they follow the user across devices + the Nimue client.
+      name: 'dashboardPrefs',
+      type: 'json',
+      admin: {
+        description: 'Dashboard widget preferences: { collapsed: string[], dismissed: string[], order: string[] }',
+      },
+    },
   ],
 }
