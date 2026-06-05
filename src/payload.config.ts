@@ -102,6 +102,7 @@ import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
 import { federationSimulateHandler } from '@/endpoints/federation-simulate'
+import { debugConnectivityHandler } from '@/endpoints/debug-connectivity'
 import { worksTranslateHandler } from '@/endpoints/works-translate'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
@@ -671,6 +672,12 @@ export default buildConfig({
       path: '/federation/simulate',
       method: 'get',
       handler: federationSimulateHandler,
+    },
+    // ─── Debug connectivity — which DB / node is this? ────────────
+    {
+      path: '/debug/connectivity',
+      method: 'get',
+      handler: debugConnectivityHandler,
     },
     // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {
