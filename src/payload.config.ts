@@ -90,6 +90,7 @@ import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
+import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -592,6 +593,12 @@ export default buildConfig({
       path: '/provision-ops/wdeg-portal',
       method: 'get',
       handler: provisionWdegPortalHandler,
+    },
+    // Generic param-driven portal provisioner (any node, as it comes online).
+    {
+      path: '/provision-ops/portal',
+      method: 'post',
+      handler: provisionPortalHandler,
     },
     {
       path: '/booking-ops/checkout',
