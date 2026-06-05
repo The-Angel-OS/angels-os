@@ -167,17 +167,17 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
     const [pendingResult, claimedResult, executingResult] = await Promise.all([
       payload.count({
         collection: 'work-units' as any,
-        where: { status: { equals: 'pending' } },
+        where: { status: { equals: 'pending' }, tenant: { equals: tenantId } },
         overrideAccess: true,
       }),
       payload.count({
         collection: 'work-units' as any,
-        where: { status: { equals: 'claimed' } },
+        where: { status: { equals: 'claimed' }, tenant: { equals: tenantId } },
         overrideAccess: true,
       }),
       payload.count({
         collection: 'work-units' as any,
-        where: { status: { equals: 'executing' } },
+        where: { status: { equals: 'executing' }, tenant: { equals: tenantId } },
         overrideAccess: true,
       }),
     ])
@@ -189,6 +189,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
         where: {
           status: { equals: 'completed' },
           completedAt: { greater_than: twentyFourHoursAgo },
+          tenant: { equals: tenantId },
         },
         overrideAccess: true,
       }),
@@ -197,6 +198,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
         where: {
           status: { equals: 'failed' },
           completedAt: { greater_than: twentyFourHoursAgo },
+          tenant: { equals: tenantId },
         },
         overrideAccess: true,
       }),
@@ -208,6 +210,7 @@ export const cicStatusHandler: PayloadHandler = async (req) => {
       where: {
         status: { equals: 'completed' },
         executionTimeMs: { greater_than: 0 },
+        tenant: { equals: tenantId },
       },
       sort: '-completedAt',
       limit: 50,

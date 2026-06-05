@@ -82,8 +82,22 @@ export async function checkSetupRequired(): Promise<boolean> {
       overrideAccess: true,
     })
 
-    const wizardComplete = (tenant as any)?.setup?.wizardComplete
-    return !wizardComplete
+    // Explicit flag wins — set when the Leo Wizard is walked to completion.
+    if ((tenant as any)?.setup?.wizardComplete === true) return false
+
+    // Robustness: seed/provisioned tenants never walk the wizard, so the flag is
+    // never set — yet they're clearly established. Infer completion from real
+    // content so an established Enterprise stops showing "Enterprise Setup". A
+    // fresh wizard tenant has no content yet, so it still sees the wizard. (This
+    // only governs the NAV link; the /dashboard/setup page stays reachable, since
+    // it keys off the explicit flag.)
+    const [products, posts, pages] = await Promise.all([
+      payload.count({ collection: 'products', where: { tenant: { equals: tenantId } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'posts', where: { tenant: { equals: tenantId } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'pages', where: { tenant: { equals: tenantId } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+    ])
+    const isEstablished = products.totalDocs > 0 || posts.totalDocs > 0 || pages.totalDocs > 0
+    return !isEstablished
   } catch {
     return false
   }
