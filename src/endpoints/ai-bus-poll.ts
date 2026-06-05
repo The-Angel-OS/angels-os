@@ -28,8 +28,11 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
   const limitParam = url.searchParams.get('limit')
   const limit = Math.min(Math.max(Number(limitParam) || 20, 1), 100)
 
-  // Resolve tenant for the authenticated user
-  // System users have servesTenant; regular users have tenants array
+  // Resolve tenant for the authenticated user.
+  // System users have servesTenant; everyone else is scoped to the SUBDOMAIN they
+  // are viewing (x-tenant-id) — NOT user.tenants[0]. A super_admin (or any user)
+  // viewing a tenant they aren't "tenants[0]" of must poll THAT tenant, or messages
+  // posted on that subdomain (saved against the space's tenant) would never match.
   const userDoc = user as unknown as Record<string, unknown>
   let tenantId: number | string | undefined
 
@@ -39,16 +42,9 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
       typeof userDoc.servesTenant === 'object' && userDoc.servesTenant !== null
         ? (userDoc.servesTenant as { id: number }).id
         : (userDoc.servesTenant as number)
-  } else if (Array.isArray(userDoc.tenants) && userDoc.tenants.length > 0) {
-    // Regular user — use first tenant assignment
-    const firstTenant = userDoc.tenants[0] as { tenant: number | { id: number } }
-    tenantId =
-      typeof firstTenant.tenant === 'object' && firstTenant.tenant !== null
-        ? firstTenant.tenant.id
-        : firstTenant.tenant
   }
 
-  // Fallback: resolve from x-tenant-id header
+  // Prefer the current subdomain context.
   if (!tenantId) {
     const tenantSlug = req.headers.get('x-tenant-id')
     if (tenantSlug) {
@@ -61,6 +57,15 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
       })
       tenantId = tenants.docs?.[0]?.id
     }
+  }
+
+  // Last fallback: the user's first tenant assignment.
+  if (!tenantId && Array.isArray(userDoc.tenants) && userDoc.tenants.length > 0) {
+    const firstTenant = userDoc.tenants[0] as { tenant: number | { id: number } }
+    tenantId =
+      typeof firstTenant.tenant === 'object' && firstTenant.tenant !== null
+        ? firstTenant.tenant.id
+        : firstTenant.tenant
   }
 
   if (!tenantId) {
