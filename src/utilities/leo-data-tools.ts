@@ -24,6 +24,9 @@ import type { Payload, Where } from 'payload'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { BookingEngine } from './bookingEngine'
+import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
+import { fetchReadableContent } from './contentIngest'
+import { buildWorkDraftFromText } from './worksFromContent'
 import {
   findUserSynchronicities,
   buildActivityProfile,
@@ -1061,6 +1064,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['title'],
+    },
+  },
+  {
+    name: 'create_work_from_url',
+    description:
+      'Create a Work (a Library document/book) from a web article, blog post, or Google Doc URL — OR from pasted/uploaded text. LEO fetches the URL, extracts the readable content, and structures it into a titled, multi-page Work draft saved to the tenant Library, ready to edit, translate, and seal. Provide either `url` or `text`. For Google Docs, sharing must be "anyone with the link".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: {
+          type: 'string',
+          description: 'URL of the article / blog post / Google Doc to import (optional if `text` is provided)',
+        },
+        text: {
+          type: 'string',
+          description: 'Raw text or Markdown to import directly instead of a URL (optional if `url` is provided)',
+        },
+        title: { type: 'string', description: 'Optional title override; inferred from the source when omitted' },
+      },
     },
   },
   {
@@ -3292,6 +3314,8 @@ async function executeToolSwitch(
       // ─── Sprint 14: Content Management ────────────────────────────────────
       case 'create_post':
         return await createPost(payload, toolInput, ctx)
+      case 'create_work_from_url':
+        return await createWorkFromContent(payload, toolInput, ctx)
       case 'ingest_youtube_url':
         return await ingestYouTubeUrl(payload, toolInput, ctx)
       case 'ingest_youtube_channel':
@@ -6837,6 +6861,76 @@ async function createPost(
   if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
+}
+
+/**
+ * create_work_from_url — import an article / Google Doc URL (or pasted text) into
+ * the Library as a Work draft. Fetches + extracts readable content, structures it
+ * into titled Markdown pages, and saves a Channel `data.workDraft` ready to edit,
+ * translate, and seal (Works-Engine slices #1/#2). The same pipeline underlies
+ * Quest briefings — Works are the content substrate.
+ */
+async function createWorkFromContent(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.tenantId) return 'Error: a tenant context is required to create a Work.'
+
+  const url = (input.url as string)?.trim()
+  const text = (input.text as string)?.trim()
+  if (!url && !text) return 'Error: provide a `url` to import or `text` to use.'
+
+  let rawText = text || ''
+  let titleHint = (input.title as string)?.trim() || undefined
+  let sourceUrl: string | undefined
+
+  if (url) {
+    try {
+      const content = await fetchReadableContent(url)
+      rawText = content.text
+      if (!titleHint) titleHint = content.title
+      sourceUrl = url
+    } catch (e) {
+      return `Error: ${e instanceof Error ? e.message : 'could not fetch that URL.'}`
+    }
+  }
+  if (!rawText || rawText.length < 20) return 'Error: not enough readable text to build a Work.'
+
+  const draft = await buildWorkDraftFromText(rawText, { title: titleHint })
+
+  const spaceId = ctx.spaceId ?? (await fetchDefaultSpaceId(ctx.tenantId))
+  if (!spaceId) return 'Error: no space found for this tenant.'
+
+  const cleanTitle = draft.title || 'Imported Work'
+  const slugBase =
+    cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'work'
+  const slug = `work-${slugBase}-${Date.now().toString(36)}`
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const created = await (payload.create as any)({
+    collection: 'channels',
+    data: {
+      name: cleanTitle,
+      slug,
+      space: spaceId,
+      type: 'general',
+      source: 'native',
+      tenant: ctx.tenantId,
+      data: { workDraft: draft, ...(sourceUrl ? { sourceUrl } : {}) },
+    },
+    overrideAccess: true,
+  })
+
+  const pageCount = draft.pages.length
+  const lines = [
+    `Work created from ${sourceUrl ? 'the URL' : 'your text'}!`,
+    `- **${cleanTitle}** — ${pageCount} page${pageCount !== 1 ? 's' : ''}`,
+    `- Work ID: ${created.id}`,
+    ...(sourceUrl ? [`- Source: ${sourceUrl}`] : []),
+    `\nOpen it in Works Studio to edit, translate into more languages, and seal it into a signed release.`,
+  ]
+  return lines.join('\n') + navDirective('/dashboard/works', 'Open Works Studio')
 }
 
 // ---------------------------------------------------------------------------
