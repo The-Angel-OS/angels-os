@@ -46,18 +46,27 @@ export function BookReader({
   manifest: initialManifest,
   manifestUrl,
   title,
+  initialIndex = 0,
+  basePath,
+  pageSlugs,
 }: {
   manifest?: BookManifest
   /** Static URL to a manifest.json (CDN-served, Vercel-safe). */
   manifestUrl?: string
   /** Fallback title shown while the manifest loads. */
   title?: string
+  /** Page to open on first render (server-resolved from the URL). */
+  initialIndex?: number
+  /** Route base for deep-link URL sync, e.g. "/learn/wdeg". */
+  basePath?: string
+  /** Per-page URL slugs ("<n>-<name>"), index-aligned with pages. */
+  pageSlugs?: string[]
 }) {
   const [manifest, setManifest] = useState<BookManifest | null>(initialManifest ?? null)
   const [loading, setLoading] = useState(!initialManifest && !!manifestUrl)
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('paged')
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(initialIndex)
   const [dir, setDir] = useState(1)
   const [lang, setLang] = useState<string>('en')
   const [texts, setTexts] = useState<Record<string, string>>({})
@@ -91,6 +100,23 @@ export function BookReader({
   }, [manifest, manifestUrl])
 
   const pages = useMemo(() => manifest?.pages ?? [], [manifest])
+
+  // Deep-link URL sync: reflect the current page in the address bar so every
+  // page is shareable/bookmarkable, without a navigation/reload. The server
+  // render at each URL is what crawlers + unfurlers see; this keeps an in-session
+  // flip's URL honest. Skip the first run so the entry URL isn't rewritten.
+  const didMountUrl = useRef(false)
+  useEffect(() => {
+    if (!basePath || !pageSlugs?.length) return
+    if (!didMountUrl.current) {
+      didMountUrl.current = true
+      return
+    }
+    const slug = pageSlugs[index]
+    if (slug && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${basePath}/${slug}`)
+    }
+  }, [index, basePath, pageSlugs])
 
   // Pick initial language: manifest default, or the browser's if available.
   useEffect(() => {
@@ -179,13 +205,29 @@ export function BookReader({
     const raw = texts[String(order)]
     if (!raw || !raw.trim()) return null
     const paras = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
+    // Our books open each page with a title line, then the body. Style the title
+    // as a heading, drop-cap the first body paragraph, and set a readable measure.
+    const [titleLine, ...body] = paras
     return (
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={`mx-auto mt-5 max-w-2xl ${isRtl ? 'text-right' : 'text-left'}`}
+        className={`mx-auto mt-6 max-w-[34rem] ${isRtl ? 'text-right' : 'text-left'}`}
+        style={{ fontFamily: 'Georgia, "Iowan Old Style", "Times New Roman", serif' }}
       >
-        {paras.map((p, i) => (
-          <p key={i} className="mb-4 text-[15px] leading-relaxed text-[#f5f2f0cc]">
+        {titleLine && (
+          <h2 className="mb-5 text-[1.55rem] font-semibold leading-tight tracking-tight text-[#f5f2f0]">
+            {titleLine}
+          </h2>
+        )}
+        {body.map((p, i) => (
+          <p
+            key={i}
+            className={`mb-[1.15rem] text-[1.0625rem] leading-[1.75] text-[#f5f2f0d9] ${
+              i === 0 && !isRtl
+                ? 'first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:font-semibold first-letter:text-[3.1rem] first-letter:leading-[0.8] first-letter:text-[#C4956A]'
+                : ''
+            }`}
+          >
             {p}
           </p>
         ))}
