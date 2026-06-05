@@ -243,7 +243,7 @@ function WorkEditor({ channelId, onBack }: { channelId: string; onBack: () => vo
         setNotice({
           kind: 'ok',
           text: `Sealed v${res.version} · ${res.languages?.length ?? 1} language${(res.languages?.length ?? 1) !== 1 ? 's' : ''} · signed & verified.`,
-          url: res.slug ? `/learn/${res.slug}` : undefined,
+          url: res.manifestUrl,
         })
       } else {
         setNotice({ kind: 'err', text: res.error || 'Seal failed' })
@@ -298,7 +298,7 @@ function WorkEditor({ channelId, onBack }: { channelId: string; onBack: () => vo
           <span>{notice.text}</span>
           {notice.url && (
             <a href={notice.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium underline">
-              Open in the Library <ExternalLink className="h-3 w-3" />
+              View signed manifest <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
