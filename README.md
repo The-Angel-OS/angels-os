@@ -15,7 +15,7 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-119-emerald)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-121-emerald)]()
 [![Endpoints](https://img.shields.io/badge/API_Endpoints-75+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
 [![Sprints](https://img.shields.io/badge/Sprints-44-ff69b4)]()
@@ -58,7 +58,21 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## Latest (June 2026) — Library, Bookings, Branding, Multi-tenancy
+## Latest (June 2026) — The Federation is LIVE 🛰️
+
+Two **sovereign nodes** now federate over the live mesh — separate processes, separate databases, no shared state:
+
+- **`spacesangels.com` ⇄ `federation.kendev.co`** — a real two-node federation. Each node independently sees the other, exchanges signed heartbeats, and renders the network from its own side in the **Federation Command Center** (`/dashboard/federation-network`, LCARS, desktop + mobile).
+- **The Diocese model** — an **Enterprise is the unit of federation, identity, and trust/probation**; its Endeavors (parishes) inherit its standing. Remote peers live in a dedicated `federation-peers` collection (best-practice, indexed, Diocese-grain).
+- **First-contact bootstrap** — `POST /api/federation/bootstrap` closes the join chicken-and-egg: a fresh node sends one signed heartbeat to its `FEDERATION_REGISTRY_URL` peer and discovery becomes mutual. Every future node clips on with one call.
+- **Governance from the live mesh** — `GET /api/federation/governance-sync` builds the current roster (self + peers) on demand, so any node — signed in or anonymous — is self-describing.
+- **Works Engine seal + translate** — author a Work, auto-translate it into the platform languages (base immutable), and **seal** it into a signed, content-addressed, multilingual release (Ed25519, Vercel Blob CAS). Deep-linkable, SEO-indexed reader with per-page Open Graph.
+- **LEO ingestion** — paste a URL / Google Doc / text to LEO → it builds a Library Work (`create_work_from_url`). Plus `create_quest` (Works as quest briefings).
+- **Self-check** — `GET /api/debug/connectivity` reports which node/DB a deployment is actually running as.
+
+See [`docs/FEDERATION_TESTBED.md`](docs/FEDERATION_TESTBED.md) for the two-instance setup.
+
+## Earlier (June 2026) — Library, Bookings, Branding, Multi-tenancy
 
 - **The Library** (`/learn/works`) — a publishing platform: file-based works registry + LCARS reader (TOC, search, read-aloud, prev/next). Live works: WDEG (26-page illustrated book, 17 languages), Answer 53 (12 chapters), Rainmaker, more.
 - **Clash-safe bookings + deposit** — services (Pressure Washing, Pet Sitting) bookable on `/book` against one shared provider calendar; conflict detection enforced; deposit up front, balance on completion.
