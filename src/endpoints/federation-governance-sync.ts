@@ -17,7 +17,12 @@
  */
 
 import type { PayloadHandler, Payload } from 'payload'
-import { validateGovernanceSync, type GovernanceData } from '@/utilities/federationEngine'
+import {
+  validateGovernanceSync,
+  buildGovernanceSnapshot,
+  type GovernanceData,
+  type Ministry,
+} from '@/utilities/federationEngine'
 import { getActiveConstitution } from '@/federation/constitution'
 
 /**
@@ -118,6 +123,64 @@ async function persistGovernance(payload: Payload, data: GovernanceData): Promis
   }
 }
 
+/**
+ * Build a governance snapshot from THIS node's live mesh view — its own identity
+ * plus its federation-peers (Dioceses). Lets any node serve the current network
+ * roster on demand, even before a sentinel pushes a synced copy. The Diocese is
+ * the unit; endeavors inherit and are not listed here.
+ */
+async function buildGovernanceFromMesh(payload: Payload): Promise<GovernanceData> {
+  const constitution = getActiveConstitution()
+  const constitutionHash = constitution.checksum || constitution.version
+  const now = new Date()
+  const ministries: Ministry[] = []
+
+  // Self (the local Enterprise/Diocese)
+  const tenants = await payload.find({ collection: 'tenants', limit: 1, depth: 0, overrideAccess: true, sort: 'createdAt' })
+  const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
+  const setup = (tenant?.setup as Record<string, unknown>) || {}
+  const selfFedId = setup.federationId as string | undefined
+  if (selfFedId && tenant) {
+    ministries.push({
+      id: selfFedId,
+      name: (tenant.name as string) || 'This Enterprise',
+      domain: (tenant.domain as string) || '',
+      operator: '',
+      status: 'active',
+      appliedAt: String(tenant.createdAt || now.toISOString()),
+      vouchesReceived: [],
+      constitutionVersion: constitution.version,
+      lastHeartbeat: now.toISOString(),
+      capabilities: [],
+    })
+  }
+
+  // Peer Dioceses
+  const peers = await payload.find({
+    collection: 'federation-peers',
+    where: { networkVisible: { equals: true } },
+    limit: 100,
+    depth: 0,
+    overrideAccess: true,
+  })
+  for (const p of peers.docs as unknown as Array<Record<string, unknown>>) {
+    ministries.push({
+      id: (p.federationId as string) || String(p.id),
+      name: (p.name as string) || 'Unknown Diocese',
+      domain: (p.domain as string) || '',
+      operator: '',
+      status: (p.ministryStatus as Ministry['status']) || 'active',
+      appliedAt: String(p.firstSeenAt || p.createdAt || now.toISOString()),
+      vouchesReceived: Array.isArray(p.vouchesReceived) ? (p.vouchesReceived as Ministry['vouchesReceived']) : [],
+      constitutionVersion: (p.constitutionVersion as string) || constitution.version,
+      lastHeartbeat: (p.lastHeartbeatAt as string) || undefined,
+      capabilities: Array.isArray(p.capabilities) ? (p.capabilities as string[]) : [],
+    })
+  }
+
+  return buildGovernanceSnapshot(ministries, [], constitutionHash, governanceCache?.registryVersion ?? 0, now)
+}
+
 export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
   const method = req.method?.toUpperCase() ?? (req as Request).method?.toUpperCase()
 
@@ -125,20 +188,21 @@ export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
   await hydrateGovernanceCache(req.payload)
 
   // ── GET: Serve governance data ─────────────────────────────────
+  // No synced copy yet? Build the current roster from our own live mesh view
+  // (self + federation-peers) so the endpoint always reflects the network.
   if (method === 'GET') {
     if (!governanceCache) {
-      return Response.json(
-        {
-          success: false,
-          error: 'No governance data available. This node may not yet be a sentinel.',
-        },
-        { status: 404 },
-      )
+      try {
+        governanceCache = await buildGovernanceFromMesh(req.payload)
+      } catch (err) {
+        console.warn('[Federation Governance] Failed to build from mesh:', err)
+      }
     }
 
     return Response.json({
       success: true,
       governance: governanceCache,
+      source: governanceCache ? 'live-mesh' : 'empty',
     })
   }
 
