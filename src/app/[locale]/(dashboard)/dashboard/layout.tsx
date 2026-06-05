@@ -20,6 +20,7 @@ import type { ChatSpace } from '@/components/ChatControl/types'
 import type { Media } from '@/payload-types'
 import { LeoNavigationBridge } from './LeoNavigationBridge'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
+import { DashboardWidgetProvider, DismissedWidgetsTray } from '@/components/dashboard/widgets'
 
 /**
  * Dashboard layout — Rev 6 (anonymous access + tenant branding + space context).
@@ -70,6 +71,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let userEmail = ''
   let userId: number | string | undefined
   let platformRoles: string[] = []
+  let dashboardPrefs: { collapsed?: string[]; dismissed?: string[]; order?: string[] } | null = null
 
   try {
     const payload = await getPayload({ config })
@@ -78,6 +80,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       isAuthenticated = true
       userId = user.id
       platformRoles = ((user as any).roles as string[]) || []
+      dashboardPrefs = ((user as any).dashboardPrefs as typeof dashboardPrefs) || null
       isAdmin = checkRole(ADMIN_ROLES, user)
       isBusinessOwner = isAdmin || Boolean(platformRoles.some((r: string) => r !== 'customer'))
       userName = (user as any).name || (user as any).email || ''
@@ -283,8 +286,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             {/* Dashboard Header Bar — title + user info */}
             <DashboardHeader prefix={prefix} userName={userName} userInitials={userInitials} isAuthenticated={isAuthenticated} />
 
-            {/* Page Content — reduced padding on mobile */}
-            <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
+            {/* Page Content — reduced padding on mobile. The widget provider lets
+                any dashboard page wrap cards in <DashboardWidget> (collapse/dismiss);
+                the tray restores hidden ones (per-user prefs, server-synced). */}
+            <main className="flex-1 overflow-y-auto p-3 md:p-6">
+              <DashboardWidgetProvider initialPrefs={dashboardPrefs}>
+                <DismissedWidgetsTray className="mb-3" />
+                {children}
+              </DashboardWidgetProvider>
+            </main>
           </div>
 
           {/* ─── LEO Chat Sidebar (right, toggle) — hidden for anonymous ─── */}
