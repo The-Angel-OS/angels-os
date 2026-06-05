@@ -107,21 +107,30 @@ export async function sendQuickInvite(input: {
   const baseUrl = getServerSideURL()
   const inviteUrl = `${baseUrl}/tenant-invite/${token}`
 
-  await payload.create({
-    collection: 'tenant-memberships',
-    data: {
-      tenant: tenantId,
-      role,
-      status: 'pending',
-      invitedBy: user.id,
-      invitationDetails: {
-        invitationEmail: email,
-        invitationToken: token,
-        invitationExpiresAt: expiresAt.toISOString(),
-      },
-    } as any,
-    overrideAccess: true,
-  })
+  // A pending email invitation intentionally has NO `user` (the invitee has no
+  // account yet — it's linked on accept). Guarded so a create failure returns a
+  // friendly message instead of a 500 from the server action.
+  try {
+    await payload.create({
+      collection: 'tenant-memberships',
+      data: {
+        tenant: tenantId,
+        role,
+        status: 'pending',
+        invitedBy: user.id,
+        invitationDetails: {
+          invitationEmail: email,
+          invitationToken: token,
+          invitationExpiresAt: expiresAt.toISOString(),
+        },
+      } as any,
+      overrideAccess: true,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    payload.logger.error(`[sendQuickInvite] Failed to create invitation for ${email}: ${msg}`)
+    return { success: false, error: 'Could not create the invitation. Please try again.' }
+  }
 
   // Send invitation email
   const inviterName = (user as any).name || (user as any).email || 'An admin'

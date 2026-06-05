@@ -37,9 +37,12 @@ export const TenantMemberships: CollectionConfig = {
       name: 'user',
       type: 'relationship',
       relationTo: 'users',
-      required: true,
+      // NOT required: a PENDING email invitation has no user account yet — the
+      // user is linked on accept (tenant-invite-accept). Requiring it made every
+      // email invite 500 with a ValidationError. The prod column was migrated to
+      // nullable accordingly (see migrations/20260605_membership_user_nullable).
       index: true,
-      admin: { description: 'User who belongs to this tenant' },
+      admin: { description: 'User who belongs to this tenant (empty for pending email invitations)' },
     },
     {
       name: 'tenant',
