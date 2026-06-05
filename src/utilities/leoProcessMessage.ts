@@ -52,6 +52,19 @@ export type ProcessMessageResult = {
   phase?: string
   agentName?: string
   agentType?: string
+  /** True when the node is agent-cold (FEDERATION_AGENT_AUTORESPOND=false) and
+   * skipped the LLM entirely — callers should not post a reply. */
+  suppressed?: boolean
+}
+
+/**
+ * Whether this node auto-responds with the LLM. A federation TEST node (e.g.
+ * kendev.co / Node B) sets FEDERATION_AGENT_AUTORESPOND=false so it coordinates,
+ * heartbeats, and replicates over the (token-free) protocol, but never spends
+ * model tokens auto-thinking. Default (unset) = enabled, so prod is unaffected.
+ */
+export function agentAutoRespondEnabled(): boolean {
+  return process.env.FEDERATION_AGENT_AUTORESPOND !== 'false'
 }
 
 /**
@@ -69,6 +82,18 @@ export async function leoProcessMessage(
 ): Promise<ProcessMessageResult> {
   const { message, conversationId, tenantId, channelSlug, spaceId, agentId, payload, userContext, pageContext, federatedContext } =
     options
+
+  // Agent-cold: skip the LLM entirely on a node configured not to auto-respond
+  // (federation test peers). Zero tokens; callers see `suppressed` and stay quiet.
+  if (!agentAutoRespondEnabled()) {
+    return {
+      text: '',
+      conversationId: conversationId ?? `conv_${Date.now()}`,
+      agentName: 'LEO',
+      agentType: 'leo',
+      suppressed: true,
+    }
+  }
 
   // Determine which agent should handle this message
   let agent = null
