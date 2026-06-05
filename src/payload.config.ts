@@ -104,6 +104,7 @@ import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
 import { federationSimulateHandler } from '@/endpoints/federation-simulate'
 import { debugConnectivityHandler } from '@/endpoints/debug-connectivity'
+import { federationBootstrapHandler } from '@/endpoints/federation-bootstrap'
 import { worksTranslateHandler } from '@/endpoints/works-translate'
 import { liveKitTokenHandler } from '@/endpoints/livekit-token'
 import { docsHandler } from '@/endpoints/docs'
@@ -685,6 +686,17 @@ export default buildConfig({
       path: '/debug/connectivity',
       method: 'get',
       handler: debugConnectivityHandler,
+    },
+    // ─── Federation bootstrap — first contact with the registry peer ──
+    {
+      path: '/federation/bootstrap',
+      method: 'post',
+      handler: federationBootstrapHandler,
+    },
+    {
+      path: '/federation/bootstrap',
+      method: 'get',
+      handler: federationBootstrapHandler,
     },
     // ─── Vapi Voice AI (Sprint 19) ─────────────────────────────────
     {
