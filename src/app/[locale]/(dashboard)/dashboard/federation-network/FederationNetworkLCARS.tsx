@@ -704,7 +704,7 @@ function NodeDetailPanel({
       {/* Properties */}
       <DetailRow label="ROLE" value={node.role.toUpperCase()} color={getRoleColor(node.role)} />
       <DetailRow label="STATUS" value={node.status.toUpperCase()} color={getStatusColor(node.status)} />
-      <DetailRow label="TRUST" value={`${Math.round(node.trustScore * 100)}%`} color={LCARS_COLORS.blue} />
+      <DetailRow label="TRUST" value={`${Math.round(node.trustScore)}%`} color={LCARS_COLORS.blue} />
       <DetailRow label="VOUCHES" value={`${node.vouchCount}`} color={LCARS_COLORS.lavender} />
 
       {/* Heartbeat */}
