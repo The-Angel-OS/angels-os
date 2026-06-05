@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
 import OnboardingGuide from '@/components/OnboardingGuide'
+import { FederationPulse } from '@/components/dashboard/widgets/FederationPulse'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
 import {
@@ -281,8 +282,11 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      {/* Onboarding Guide — first-time walkthrough, dismissible via localStorage */}
+      {/* Onboarding Guide — framework-managed widget (collapse/hide/restore) */}
       <OnboardingGuide role={userRole} prefix={prefix} />
+
+      {/* The Network — community pulse: you're part of a living federation */}
+      <FederationPulse />
 
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
