@@ -89,7 +89,37 @@ export interface FederationRequestOptions {
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const DEFAULT_TIMEOUT = 10_000 // 10 seconds
-const DEFAULT_RETRIES = 0
+// Retry transient failures so a single network blip never skips a heartbeat —
+// which is what kept the mesh going cold (peers marked stale after one miss).
+const DEFAULT_RETRIES = 2
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/**
+ * fetch with timeout + exponential-backoff retry (with jitter) on transient
+ * failures — network errors, timeouts, 5xx, and 429. Returns the Response (incl.
+ * non-retryable 4xx, for the caller to handle) or null if every attempt failed.
+ */
+export async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  opts: { timeout: number; retries: number },
+): Promise<Response | null> {
+  for (let attempt = 0; attempt <= opts.retries; attempt++) {
+    if (attempt > 0) {
+      const backoff = Math.min(200 * 2 ** (attempt - 1), 2000)
+      await sleep(backoff + Math.floor(Math.random() * 100)) // jitter avoids thundering herd
+    }
+    try {
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(opts.timeout) })
+      // Retry only transient server-side failures; hand 2xx/4xx straight back.
+      if (res.ok || (res.status < 500 && res.status !== 429)) return res
+    } catch {
+      // network error / timeout — fall through to retry
+    }
+  }
+  return null
+}
 
 // ── Signing ────────────────────────────────────────────────────────────────
 
@@ -126,22 +156,20 @@ export async function discoverEnterprise(
   options: FederationRequestOptions = {},
 ): Promise<DiscoveryResult | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
+  const retries = options.retries ?? DEFAULT_RETRIES
   // Normalize domain — add https:// if needed
   const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`
   const url = `${baseUrl}/.well-known/angel-os.json`
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'X-Federation-Protocol': 'angel-os/1.0',
-      },
-      signal: AbortSignal.timeout(timeout),
-    })
+    const response = await fetchWithRetry(
+      url,
+      { method: 'GET', headers: { Accept: 'application/json', 'X-Federation-Protocol': 'angel-os/1.0' } },
+      { timeout, retries },
+    )
 
-    if (!response.ok) {
-      console.warn(`[FederationClient] Discovery failed for ${domain}: ${response.status}`)
+    if (!response || !response.ok) {
+      console.warn(`[FederationClient] Discovery failed for ${domain}: ${response?.status ?? 'no response'}`)
       return null
     }
 
@@ -171,35 +199,27 @@ export async function sendHeartbeat(
   options: FederationRequestOptions = {},
 ): Promise<HeartbeatResponse | null> {
   const timeout = options.timeout ?? DEFAULT_TIMEOUT
+  const retries = options.retries ?? DEFAULT_RETRIES
 
-  // Discover target to get heartbeat endpoint
-  const discovery = await discoverEnterprise(targetDomain, { timeout })
+  // Discover target to get heartbeat endpoint (retries internally too)
+  const discovery = await discoverEnterprise(targetDomain, { timeout, retries })
   if (!discovery) return null
 
   const body = JSON.stringify(heartbeat)
   const headers = createSignedHeaders(body, identity)
 
-  try {
-    const response = await fetch(discovery.federation.heartbeatEndpoint, {
-      method: 'POST',
-      headers,
-      body,
-      signal: AbortSignal.timeout(timeout),
-    })
+  const response = await fetchWithRetry(
+    discovery.federation.heartbeatEndpoint,
+    { method: 'POST', headers, body },
+    { timeout, retries },
+  )
 
-    if (!response.ok) {
-      console.warn(
-        `[FederationClient] Heartbeat to ${targetDomain} failed: ${response.status}`,
-      )
-      return null
-    }
-
-    return (await response.json()) as HeartbeatResponse
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.warn(`[FederationClient] Heartbeat error for ${targetDomain}: ${message}`)
+  if (!response || !response.ok) {
+    console.warn(`[FederationClient] Heartbeat to ${targetDomain} failed: ${response?.status ?? 'no response'}`)
     return null
   }
+
+  return (await response.json()) as HeartbeatResponse
 }
 
 // ── Catalog ────────────────────────────────────────────────────────────────
