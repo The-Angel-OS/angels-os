@@ -7,7 +7,10 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ArrowUp, ArrowDown, Eye, Pencil, Loader2, BookOpen, ChevronLeft, Languages, ShieldCheck, ExternalLink } from 'lucide-react'
 import { createWork, sealWork as sealWorkAction, translateWork as translateWorkAction, type WorkMedia, type WorkSummary } from './actions'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Same-origin (relative) so tenant subdomains hit their own host with the right
+// session cookie — NEXT_PUBLIC_SERVER_URL is baked to the canonical origin at
+// build time and breaks cross-subdomain (mirrors useChat.ts / PageComments).
+const SERVER_URL = ''
 
 interface WorkPage {
   id: string

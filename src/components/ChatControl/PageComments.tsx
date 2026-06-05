@@ -15,7 +15,11 @@ import { usePathname } from 'next/navigation'
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react'
 import { useAuth } from '@/providers/Auth'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Same-origin (relative): NEXT_PUBLIC_SERVER_URL is baked at build time to the
+// canonical origin, so on a tenant subdomain it would fetch cross-origin (CORS
+// "Failed to fetch") and drop the subdomain session cookie. Empty = current host.
+// (Mirrors the fix already applied in useChat.ts.)
+const SERVER_URL = ''
 
 interface BusMessage {
   id: string
