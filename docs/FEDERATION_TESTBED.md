@@ -1,4 +1,4 @@
-# Federation Testbed — two sovereign nodes (spacesangels.com ⇄ kendev.co)
+# Federation Testbed — two sovereign nodes (spacesangels.com ⇄ federation.kendev.co)
 
 Graduate the emergent-network mockup into a *real* two-instance federation, so we
 can test sovereign syndication, cross-node dispatch, and failover for real — while
@@ -11,7 +11,7 @@ no shared state. You can't test that inside one deployment. Two Vercel projects 
 the **same repo** (no code fork — just different env) gives us:
 
 - **Node A** — `spacesangels.com` — current prod, current Postgres + Blob.
-- **Node B** — `kendev.co` — a second Vercel project off this same repo, its own
+- **Node B** — `federation.kendev.co` — a second Vercel project off this same repo, its own
   Postgres + Blob, its own couple of tenants. The alternative federated Enterprise.
 
 They federate over the endpoints that already exist (`/api/federation/*`). Nothing
@@ -30,14 +30,13 @@ Guardrails to keep it that way:
 1. **Heartbeats are reflexes, never thoughts** — keep the `heartbeat-cron` interval
    sane; never invoke an LLM on a heartbeat or discovery ping.
 2. **Node B runs agent-cold** — coordinate + replicate, but don't auto-respond with
-   the LLM (recommended flag: `FEDERATION_AGENT_AUTORESPOND=false`; needs a small
-   wire-up in the agent entrypoint — see Follow-ups).
+   the LLM (flag `FEDERATION_AGENT_AUTORESPOND=false` — DONE (gates leoProcessMessage before the LLM).
 3. **Simulator first, instances second** — prove ~90% (emergence, routing, failover,
    trails) in the zero-cost mock (`GET /api/federation/simulate`); stand up Node B
    only for what genuinely needs two DBs (cross-wire signatures, replication,
    partitions).
 
-## Stand up Node B (kendev.co) — checklist
+## Stand up Node B (federation.kendev.co) — checklist
 
 These are the steps that need your accounts (Vercel / DNS / DB). No code changes.
 
@@ -47,13 +46,13 @@ These are the steps that need your accounts (Vercel / DNS / DB). No code changes
    `BLOB_READ_WRITE_TOKEN`) so each node's CAS is its own.
 3. **Vercel project** — "New Project" → import this same repo → name it e.g.
    `angels-os-kendev`. Set env from `.env.node2.example` (below). Deploy.
-4. **DNS** — point `kendev.co` (+ `www`) at the new Vercel project.
+4. **DNS** — point `federation.kendev.co` (+ `www`) at the new Vercel project.
 5. **Tenant(s) on Node B** — seed at least one tenant on Node B (its own Enterprise)
-   so it has something to publish/federate. Add `kendev.co` to that project's
+   so it has something to publish/federate. Add `federation.kendev.co` to that project's
    `TENANT_DOMAINS` if apex-domain resolution is needed (middleware returns null for
    bare 2-part hosts otherwise).
 6. **Peer the two nodes** — set `FEDERATION_REGISTRY_URL` on each to point at the
-   other (Node A → `https://kendev.co`, Node B → `https://spacesangels.com`). For
+   other (Node A → `https://federation.kendev.co`, Node B → `https://spacesangels.com`). For
    early testing you may set `FEDERATION_ALLOW_UNSIGNED_PINGS=true` on both, then
    tighten once keys are exchanged.
 
@@ -79,22 +78,21 @@ The simulator's transport abstraction is the bridge. In `EmergentNetwork`, a moc
 node becomes Node B with one line:
 
 ```ts
-net.bringOnline('kendev', 'https://kendev.co') // LiveTransport → real /api/federation/dispatch-work
+net.bringOnline('kendev', 'https://federation.kendev.co') // LiveTransport → real /api/federation/dispatch-work
 ```
 
-Start all-mock, flip one node to `liveBaseUrl: 'https://kendev.co'`, and the rest of
+Start all-mock, flip one node to `liveBaseUrl: 'https://federation.kendev.co'`, and the rest of
 the mesh keeps simulating around the one real node. Fill in live pieces as they come
 online — exactly the design goal.
 
 ## Phased path
 
 - **Phase 0 — done** — zero-cost mock simulator (`/api/federation/simulate`).
-- **Phase 1** — a "Central" dashboard to watch the mock (and later the real mesh).
-- **Phase 2** — stand up Node B at kendev.co (this checklist); graduate one node live.
+- **Phase 1 — done** — the "Central" dashboard at `/dashboard/admin/network` (renders the mock; later the real mesh).
+- **Phase 2** — stand up Node B at federation.kendev.co (this checklist); graduate one node live.
 - **Phase 3** — cross-instance Works publish/subscribe with signed-grant verification.
 
 ## Follow-ups (small code, when we want them)
 
-- Wire `FEDERATION_AGENT_AUTORESPOND=false` so a node coordinates without thinking.
 - A `node2` seed script (one tenant + a sample Work to publish).
 - Point `BookReader` / Library at a peer's manifest URL for cross-node reading.
