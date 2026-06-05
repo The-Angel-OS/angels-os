@@ -44,15 +44,25 @@ import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
 import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from '@/utilities/ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
+import { trimToTokenBudget } from '@/utilities/contextWindow'
+import { selectToolsForUser, allReadOnly } from '@/utilities/leoToolSelection'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
 // ---------------------------------------------------------------------------
 
 const MAX_HISTORY_TURNS = 12
+// Fetch a generous candidate set, then let the TOKEN budget (not a fixed count)
+// govern what actually goes to the model — short turns keep more history, long
+// ones never blow the window.
+const HISTORY_FETCH_CEILING = MAX_HISTORY_TURNS * 3
+const HISTORY_TOKEN_BUDGET = 6000
 const MAX_RESPONSE_TOKENS = 1500
 const MAX_TOOL_ROUNDS = 5
 const LLM_MODEL = 'claude-sonnet-4-6'
+// Within one request, stop hammering a tool that keeps failing (cheap guard;
+// real cross-request breaking needs durable state, intentionally out of scope).
+const TOOL_FAIL_LIMIT = 2
 
 // Track health queries that have already warned to avoid log spam (once per deployment)
 const _healthQueryWarned = new Set<string>()
@@ -495,7 +505,7 @@ async function fetchConversationHistory(
         ],
       },
       sort: '-createdAt',
-      limit: MAX_HISTORY_TURNS * 2,
+      limit: HISTORY_FETCH_CEILING,
       depth: 1,
       overrideAccess: true,
     })
@@ -529,7 +539,9 @@ async function fetchConversationHistory(
       messages.shift()
     }
 
-    return messages
+    // Token-aware windowing: keep the most recent turns within the budget,
+    // dropping oldest first (also re-ensures the list starts with a user turn).
+    return trimToTokenBudget(messages, HISTORY_TOKEN_BUDGET)
   } catch (historyErr) {
     console.warn('[LEO Stream] Failed to load conversation history — responding without context:', historyErr instanceof Error ? historyErr.message : historyErr)
     return []
@@ -939,6 +951,10 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   const userEmail = (user?.email as string) || undefined
   const userRoles = Array.isArray(user?.roles) ? (user.roles as string[]) : undefined
 
+  // Tool subsetting: confirmed non-admins don't get admin/destructive tool
+  // schemas (they can't call them anyway) — trims the prompt + removes footguns.
+  const availableTools = selectToolsForUser(LEO_TOOLS, userRoles)
+
   // Resolve agent
   let agent: { displayName?: string; name?: string; personality?: string; capabilities?: string[]; agentType?: string } | null = null
   if (tenantId) {
@@ -1124,6 +1140,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               complexity: escalatedTier,
               isEscalationRound,
               tenantAiConfig,
+              availableTools,
             })
             fullText = gwResult.text
             if (gwResult.hadStreamError) hadError = true
@@ -1158,6 +1175,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 wizardStep: wizardStep as number,
                 tenantSlug,
                 tenantAiConfig,
+                availableTools,
               })
               fullText = result.fullText
             } else {
@@ -1182,6 +1200,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             wizardStep: wizardStep as number,
             tenantSlug,
             tenantAiConfig,
+            availableTools,
           })
           fullText = result.fullText
         }
@@ -1338,12 +1357,14 @@ async function streamViaGateway(opts: {
   isEscalationRound?: boolean
   /** Sprint 44: Per-tenant AI config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
+  /** Role-filtered tool subset (defaults to the full registry). */
+  availableTools?: typeof LEO_TOOLS
 }): Promise<{ text: string; hadStreamError: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
-    tenantAiConfig,
+    tenantAiConfig, availableTools = LEO_TOOLS,
   } = opts
 
   // Smart model selection: credit-aware tier + gateway-native fallback chain
@@ -1419,7 +1440,7 @@ async function streamViaGateway(opts: {
     userId,
     tenantAiConfig,
   }
-  const tools = convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
+  const tools = convertToolsForAISDK(availableTools, executeToolCall, toolCtx)
 
   // Track tool calls for wizard step advancement and image extraction
   const allToolNames: string[] = []
@@ -1565,11 +1586,13 @@ async function streamViaAnthropic(opts: {
   tenantSlug: string
   /** Sprint 44: Per-tenant AI config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
+  /** Role-filtered tool subset (defaults to the full registry). */
+  availableTools?: typeof LEO_TOOLS
 }): Promise<{ fullText: string }> {
   const {
     controller, encoder, client, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
-    isWizardMode, wizardStep, tenantAiConfig,
+    isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS,
   } = opts
 
   // Build user content (with images if present)
@@ -1620,6 +1643,9 @@ async function streamViaAnthropic(opts: {
 
   let fullText = ''
   let round = 0
+  // Within-request guard: count failures per tool so we stop re-calling one that
+  // keeps failing this session (persists across rounds).
+  const toolFailCounts = new Map<string, number>()
 
   while (round < MAX_TOOL_ROUNDS) {
     round++
@@ -1629,7 +1655,7 @@ async function streamViaAnthropic(opts: {
       max_tokens: MAX_RESPONSE_TOKENS,
       system: systemPrompt,
       messages,
-      ...(LEO_TOOLS.length > 0 ? { tools: LEO_TOOLS } : {}),
+      ...(availableTools.length > 0 ? { tools: availableTools } : {}),
       stream: true,
     })
 
@@ -1699,19 +1725,46 @@ async function streamViaAnthropic(opts: {
         tenantAiConfig,
       }
 
-      for (const tool of toolUseBlocks) {
+      // Execute one tool, writing its result into a fixed index so order is
+      // preserved regardless of whether we ran sequentially or concurrently.
+      const orderedResults: Anthropic.ToolResultBlockParam[] = new Array(toolUseBlocks.length)
+      const runTool = async (tool: { id: string; name: string; input: Record<string, unknown> }, idx: number) => {
         controller.enqueue(
           encoder.encode(sseEvent('tool_call', { name: tool.name, status: 'executing' })),
         )
+        // Stop hammering a tool that already failed repeatedly this request.
+        if ((toolFailCounts.get(tool.name) ?? 0) >= TOOL_FAIL_LIMIT) {
+          orderedResults[idx] = {
+            type: 'tool_result',
+            tool_use_id: tool.id,
+            content: `The ${tool.name} tool failed repeatedly this session and was skipped. Continue without it.`,
+            is_error: true,
+          }
+          return
+        }
         let result: string
         try {
           result = await executeToolCall(tool.name, tool.input, toolCtx)
+          if (result.startsWith('Error') || result.startsWith('Input validation failed') || result.startsWith('Tool execution failed')) {
+            toolFailCounts.set(tool.name, (toolFailCounts.get(tool.name) ?? 0) + 1)
+          }
         } catch (toolErr) {
           console.error(`[LEO Stream] Tool ${tool.name} failed:`, toolErr)
+          toolFailCounts.set(tool.name, (toolFailCounts.get(tool.name) ?? 0) + 1)
           result = `Tool execution failed: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}. I'll try to help without this tool.`
         }
-        toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result })
+        orderedResults[idx] = { type: 'tool_result', tool_use_id: tool.id, content: result }
       }
+
+      // Pure-read rounds run concurrently; any side-effecting tool → sequential.
+      if (allReadOnly(toolUseBlocks.map((t) => t.name))) {
+        await Promise.all(toolUseBlocks.map((tool, idx) => runTool(tool, idx)))
+      } else {
+        for (let idx = 0; idx < toolUseBlocks.length; idx++) {
+          await runTool(toolUseBlocks[idx], idx)
+        }
+      }
+      toolResults.push(...orderedResults)
 
       messages.push({ role: 'user' as const, content: toolResults })
 
