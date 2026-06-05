@@ -11,10 +11,12 @@
  *     to real. This is the "materialize the OS from its perfect future" view.
  *   • LIVE MESH — /api/federation/governance-sync. The federation as it actually is.
  *
- * The star: the core (flagship + sentinels) lays out as a regular polygon — a
- * clean pentagon at five, the inter-sentinel mesh drawing the pentagram across it
- * — with members on an outer ring. The recurring 5 is the signature; the layout
- * scales past it without losing the shape.
+ * The topology: a ring of equals. Every node is an equal participant, so every
+ * node sits on one ring — no enthroned center; the coordinator is just a marked
+ * peer. The mesh edges draw the star across the ring (at five nodes — the two
+ * sovereign nodes plus three participants — a clean pentagon with a pentagram
+ * inside). The only thing that breaks the flat ring is a unit proxying through
+ * another to reach the mesh (the relay case) — a future slice.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -85,8 +87,11 @@ const ROLE_COLOR: Record<Role, string> = {
 const ROLE_RADIUS: Record<Role, number> = { flagship: 4.4, sentinel: 3.5, member: 2.9, applicant: 2.5 }
 
 // The preset node ids that can be grafted live (mirrors FIRST_FEDERATION).
+// angel-os (spacesangels.com) and kendev (federation.kendev.co) are the two
+// real sovereign nodes — graft either to swap its mock transport for the live one.
 const GRAFTABLE = [
   { id: 'angel-os', label: 'Angel OS' },
+  { id: 'kendev', label: 'KenDev' },
   { id: 'clearwater-cruisin', label: 'Clearwater' },
   { id: 'wdeg', label: 'WDEG' },
   { id: 'holon-compute', label: 'Holon' },
@@ -171,28 +176,36 @@ function fromLive(g: LiveGovernance): { nodes: StarNode[]; edges: StarEdge[]; na
   return { nodes, edges, narration }
 }
 
-// ── Layout: core polygon + outer ring ────────────────────────────────────────
+// ── Layout: a ring of equals ──────────────────────────────────────────────────
+//
+// Every node is an equal participant, so every node sits on ONE ring — no
+// enthroned center. Hierarchy is emergent: the coordinator is marked in place,
+// not raised above its peers. The mesh edges draw the star *across* the ring (at
+// five nodes: a pentagon with a pentagram inside). The one thing that breaks the
+// flat ring is a unit that can only reach the mesh by proxying through another —
+// the relay case — which sits just outside, spoked to its proxy (future slice).
 
 function layout(nodes: StarNode[]): Map<string, { x: number; y: number }> {
   const cx = 50
   const cy = 50
   const pos = new Map<string, { x: number; y: number }>()
-  const core = nodes.filter((n) => n.role === 'flagship' || n.role === 'sentinel')
-  const outer = nodes.filter((n) => n.role === 'member' || n.role === 'applicant')
+  if (nodes.length === 0) return pos
 
-  if (core.length === 1) {
-    pos.set(core[0].id, { x: cx, y: cy })
-  } else if (core.length > 1) {
-    const R = core.length <= 2 ? 15 : core.length <= 5 ? 23 : 27
-    core.forEach((n, i) => {
-      const a = -Math.PI / 2 + (i * 2 * Math.PI) / core.length
-      pos.set(n.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) })
-    })
+  // Lead the ring with the coordinator/flagship (top) purely for a stable,
+  // legible arrangement — it's still a peer on the same ring as everyone else.
+  const rank = (n: StarNode) =>
+    n.coordinator ? 0 : n.role === 'flagship' ? 1 : n.role === 'sentinel' ? 2 : n.role === 'member' ? 3 : 4
+  const ordered = [...nodes].sort((a, b) => rank(a) - rank(b))
+
+  const n = ordered.length
+  if (n === 1) {
+    pos.set(ordered[0].id, { x: cx, y: cy })
+    return pos
   }
-  const Ro = 42
-  outer.forEach((n, i) => {
-    const a = -Math.PI / 2 + (i * 2 * Math.PI) / Math.max(1, outer.length)
-    pos.set(n.id, { x: cx + Ro * Math.cos(a), y: cy + Ro * Math.sin(a) })
+  const R = n === 2 ? 24 : 38
+  ordered.forEach((node, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n
+    pos.set(node.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) })
   })
   return pos
 }

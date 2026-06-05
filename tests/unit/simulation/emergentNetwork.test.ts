@@ -126,11 +126,12 @@ describe('emergentNetwork — pheromone learning (real pheromone signal)', () =>
 describe('emergentNetwork — Central overview + voice', () => {
   it('produces a real network snapshot (visualization engine)', () => {
     const snap = buildFirstFederation({ clock: CLOCK, rng: seeded(6) }).snapshot()
-    expect(snap.stats.totalNodes).toBe(4)
-    expect(snap.stats.activeNodes).toBe(4)
+    // 5 nodes: the two sovereign nodes (angel-os, kendev) + clearwater, wdeg, holon.
+    expect(snap.stats.totalNodes).toBe(5)
+    expect(snap.stats.activeNodes).toBe(5)
     expect(snap.edges.length).toBeGreaterThan(0)
     expect(snap.stats.isolatedNodes).toBe(0)
-    expect(snap.mock).toBe(4)
+    expect(snap.mock).toBe(5)
     expect(snap.live).toBe(0)
   })
 
