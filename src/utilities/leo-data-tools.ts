@@ -1086,6 +1086,51 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'create_quest',
+    description:
+      'Create a Quest — a mission with objectives, evidence requirements, and a payout. A Quest\'s briefing/story is a Work (the content substrate): pass briefingWorkId to attach an existing Work (ideally already sealed) as the readable briefing. Use when the user wants to post a bounty, challenge, scavenger hunt, mystery shop, or field-research mission. Created as a draft by default.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Quest title (required)' },
+        description: { type: 'string', description: 'Short summary/briefing shown on the quest (use \\n\\n between paragraphs)' },
+        questType: {
+          type: 'string',
+          description: 'Freeform type, e.g. "mystery-shop", "challenge", "scavenger-hunt", "field-research"',
+        },
+        objectives: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'What participants must accomplish — one string per objective',
+        },
+        payoutAmount: { type: 'number', description: 'Payout in cents (minor units), e.g. 2500 for $25.00' },
+        payoutType: {
+          type: 'string',
+          enum: ['fixed', 'per_objective', 'bounty', 'tip'],
+          description: 'How the payout works — defaults to "fixed"',
+        },
+        currency: { type: 'string', description: 'Payout currency — defaults to "USD"' },
+        maxParticipants: { type: 'number', description: 'Max participants (omit for unlimited)' },
+        expiresAt: { type: 'string', description: 'ISO date/time when the quest expires (optional)' },
+        difficulty: {
+          type: 'string',
+          enum: ['easy', 'medium', 'hard', 'expert'],
+          description: 'Difficulty (optional)',
+        },
+        briefingWorkId: {
+          type: 'string',
+          description: 'ID of an existing Work (channel) to attach as the readable briefing/story (optional)',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'posted', 'active'],
+          description: 'Quest status — defaults to "draft"',
+        },
+      },
+      required: ['title'],
+    },
+  },
+  {
     name: 'ingest_youtube_url',
     description:
       'Ingest a YouTube video URL and create a blog post from it. Fetches video metadata (title, thumbnail, channel), creates a post with embedded video, and stores the source URL for deduplication. Skips if the video was already ingested.',
@@ -3316,6 +3361,8 @@ async function executeToolSwitch(
         return await createPost(payload, toolInput, ctx)
       case 'create_work_from_url':
         return await createWorkFromContent(payload, toolInput, ctx)
+      case 'create_quest':
+        return await createQuest(payload, toolInput, ctx)
       case 'ingest_youtube_url':
         return await ingestYouTubeUrl(payload, toolInput, ctx)
       case 'ingest_youtube_channel':
@@ -6931,6 +6978,126 @@ async function createWorkFromContent(
     `\nOpen it in Works Studio to edit, translate into more languages, and seal it into a signed release.`,
   ]
   return lines.join('\n') + navDirective('/dashboard/works', 'Open Works Studio')
+}
+
+/**
+ * create_quest — create a mission (objectives + evidence + payout) whose briefing
+ * is a Work. Works are the content substrate; the Quest is the mechanics wrapper.
+ * Links a briefing Work via the extensible json fields (no schema migration):
+ * Quest.metadata.briefingWork* + a questId backref on the Work channel.
+ */
+async function createQuest(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.tenantId) return 'Error: a tenant context is required to create a Quest.'
+
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: Quest title is required.'
+
+  const status = (input.status as string) || 'draft'
+  if (!['draft', 'posted', 'active'].includes(status)) {
+    return 'Error: status must be "draft", "posted", or "active".'
+  }
+
+  // Resolve an optional briefing Work (a tenant-owned channel carrying a workDraft).
+  let briefing: { channelId: string | number; slug?: string; sealedSlug?: string; title?: string } | null = null
+  const briefingWorkId = (input.briefingWorkId as string | number | undefined) ?? undefined
+  if (briefingWorkId != null && briefingWorkId !== '') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ch = (await payload.findByID({ collection: 'channels', id: briefingWorkId, depth: 0, overrideAccess: true }).catch(() => null)) as any
+    if (!ch) return `Error: briefing Work ${briefingWorkId} was not found.`
+    if (String(ch.tenant) !== String(ctx.tenantId)) return 'Error: that briefing Work belongs to another tenant.'
+    const wd = ch.data?.workDraft
+    if (!wd) return `Error: channel ${briefingWorkId} is not a Work (no draft to use as a briefing).`
+    briefing = {
+      channelId: ch.id,
+      slug: ch.slug,
+      sealedSlug: ch.data?.sealedSlug,
+      title: wd.title || ch.name,
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const questData: Record<string, any> = {
+    title,
+    status,
+    tenant: ctx.tenantId,
+  }
+  if (ctx.userId) questData.postedBy = ctx.userId
+  if (typeof input.description === 'string' && input.description.trim()) {
+    questData.description = textToLexical(input.description)
+  }
+  if (typeof input.questType === 'string' && input.questType.trim()) questData.questType = input.questType.trim()
+  if (typeof input.difficulty === 'string') questData.difficulty = input.difficulty
+
+  const objectives = input.objectives as string[] | undefined
+  if (Array.isArray(objectives) && objectives.length) {
+    questData.objectives = objectives
+      .filter((o) => typeof o === 'string' && o.trim())
+      .map((o) => ({ description: o.trim(), required: true, verificationMethod: 'manual' }))
+  }
+
+  if (typeof input.payoutAmount === 'number' && input.payoutAmount >= 0) {
+    questData.payout = {
+      type: (input.payoutType as string) || 'fixed',
+      amount: Math.round(input.payoutAmount),
+      currency: (input.currency as string) || 'USD',
+      paymentMethod: 'stripe',
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requirements: Record<string, any> = {}
+  if (typeof input.maxParticipants === 'number') requirements.maxParticipants = input.maxParticipants
+  if (typeof input.expiresAt === 'string' && input.expiresAt.trim()) {
+    const d = new Date(input.expiresAt)
+    if (!isNaN(d.getTime())) requirements.expiresAt = d.toISOString()
+  }
+  if (Object.keys(requirements).length) questData.requirements = requirements
+
+  if (briefing) {
+    questData.metadata = {
+      briefingWorkChannelId: briefing.channelId,
+      // Prefer the sealed, shareable slug for the reader; fall back to the draft slug.
+      briefingWorkSlug: briefing.sealedSlug || briefing.slug,
+      briefingWorkSealed: Boolean(briefing.sealedSlug),
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const created = await (payload.create as any)({ collection: 'quests', data: questData, overrideAccess: true })
+
+  // Backref the Work channel to this quest (no schema change — json data field).
+  if (briefing) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ch = (await payload.findByID({ collection: 'channels', id: briefing.channelId, depth: 0, overrideAccess: true })) as any
+      await (payload.update as any)({
+        collection: 'channels',
+        id: briefing.channelId,
+        data: { data: { ...(ch.data || {}), questId: created.id } },
+        overrideAccess: true,
+      })
+    } catch {
+      /* backref is best-effort */
+    }
+  }
+
+  const lines = [
+    `Quest created!`,
+    `- **${title}** (${status})`,
+    `- Quest ID: ${created.id}`,
+    ...(questData.objectives?.length ? [`- Objectives: ${questData.objectives.length}`] : []),
+    ...(questData.payout ? [`- Payout: ${(questData.payout.amount / 100).toFixed(2)} ${questData.payout.currency} (${questData.payout.type})`] : []),
+    ...(briefing
+      ? [`- Briefing Work: **${briefing.title}**${briefing.sealedSlug ? ' (sealed)' : ' (draft — seal it to publish the briefing)'}`]
+      : [`- No briefing Work attached. Create or attach a Work to give this quest a readable story.`]),
+  ]
+  if (status === 'draft') lines.push(`\nSaved as a draft. Say "post quest ${created.id}" when you're ready to open it.`)
+
+  return lines.join('\n') + navDirective('/admin/collections/quests', 'View Quests')
 }
 
 // ---------------------------------------------------------------------------
