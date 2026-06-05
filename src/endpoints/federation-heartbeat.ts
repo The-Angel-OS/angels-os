@@ -25,6 +25,7 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { randomUUID } from 'crypto'
 import { verifySignature } from '@/federation/protocol'
 import { isHeartbeatHealthy } from '@/utilities/federationEngine'
 import { getActiveConstitution } from '@/federation/constitution'
@@ -182,8 +183,24 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
   })
 
   const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
-  const setup = tenant?.setup as unknown as Record<string, unknown> | undefined
-  const ourFederationId = (setup?.federationId as string) || 'unknown'
+  const setup = (tenant?.setup as Record<string, unknown>) || {}
+  // Lazily mint our federation identity so a peer is never recorded as "unknown"
+  // when it makes first contact before we've federated ourselves.
+  let ourFederationId = setup.federationId as string | undefined
+  if (!ourFederationId && tenant) {
+    ourFederationId = randomUUID()
+    try {
+      await req.payload.update({
+        collection: 'tenants',
+        id: tenant.id as number,
+        data: { setup: { ...setup, federationId: ourFederationId } } as never,
+        overrideAccess: true,
+      })
+    } catch {
+      /* non-fatal — fall back to the generated id for this response */
+    }
+  }
+  ourFederationId = ourFederationId || 'unknown'
 
   // Check our own health
   const ourEndeavors = await req.payload.find({

@@ -130,10 +130,20 @@ export const federationBootstrapHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
       if (existing.docs.length > 0) {
+        // Bootstrap is an intentional federation with a chosen peer → promote it
+        // to active/full even if it was first onboarded on probation via heartbeat.
         await payload.update({
           collection: 'federation-peers',
           id: existing.docs[0]!.id,
-          data: { domain: peerDomain, networkVisible: true, lastHeartbeatAt: now, consecutiveFailures: 0 } as never,
+          data: {
+            domain: peerDomain,
+            networkVisible: true,
+            lastHeartbeatAt: now,
+            consecutiveFailures: 0,
+            ministryStatus: 'active',
+            trustLevel: 'full',
+            activatedAt: now,
+          } as never,
           overrideAccess: true,
         })
       } else {
