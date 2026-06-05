@@ -1,5 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
-import FederationNetworkLCARS from './FederationNetworkLCARS'
+import FederationView from './FederationView'
 
 /**
  * Federation Network — /dashboard/federation-network
@@ -18,5 +18,5 @@ export default async function FederationNetworkPage({
   const { locale } = await params
   setRequestLocale(locale)
 
-  return <FederationNetworkLCARS />
+  return <FederationView />
 }
