@@ -19,6 +19,7 @@
 import type { PayloadHandler } from 'payload'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { ensurePageChannel } from '@/utilities/ensurePageChannel'
 
 export const chatSendHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
@@ -160,6 +161,14 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
     })
+
+    // Surface page-comment channels in the Spaces viewer (find-or-create,
+    // non-blocking — never delays the send or fails it).
+    if (channel.startsWith('page:') && tenantId != null) {
+      ensurePageChannel(req.payload, { channel, spaceId: spaceId as number | string, tenantId }).catch((e) =>
+        console.warn('[chat-send] ensurePageChannel failed:', e instanceof Error ? e.message : e),
+      )
+    }
 
     return Response.json({ doc: saved }, { status: 201 })
   } catch (err) {

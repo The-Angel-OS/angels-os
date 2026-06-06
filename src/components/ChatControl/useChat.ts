@@ -322,7 +322,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     if (!spaceId || !activeChannel || authFailedRef.current) return
     try {
       const res = await fetch(
-        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&sort=-createdAt&limit=50&depth=1`,
+        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&sort=-createdAt&limit=50&depth=1`,
         { credentials: 'include' },
       )
 
@@ -374,7 +374,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       }
 
       const res = await fetch(
-        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${activeChannel}&where[createdAt][less_than]=${encodeURIComponent(cursor)}&sort=-createdAt&limit=30&depth=1`,
+        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&where[createdAt][less_than]=${encodeURIComponent(cursor)}&sort=-createdAt&limit=30&depth=1`,
         { credentials: 'include' },
       )
 
