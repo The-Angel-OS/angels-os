@@ -41,6 +41,15 @@ export interface EmailMessage {
   from?: string
   /** Reply-to address */
   replyTo?: string
+  /** Carbon-copy recipient(s) — e.g. cc the inviter so they can verify delivery */
+  cc?: string | string[]
+}
+
+/** Normalize a cc value to an array (or undefined). */
+function ccArray(cc?: string | string[]): string[] | undefined {
+  if (!cc) return undefined
+  const arr = (Array.isArray(cc) ? cc : [cc]).map((s) => s.trim()).filter(Boolean)
+  return arr.length ? arr : undefined
 }
 
 export interface ResolvedEmailSender {
@@ -97,6 +106,7 @@ export async function resolveEmailSender(
                 html?: string
                 text?: string
                 replyTo?: string
+                cc?: string[]
               } = {
                 from: fromLine,
                 to: [msg.to],
@@ -105,6 +115,8 @@ export async function resolveEmailSender(
               if (msg.html) opts.html = msg.html
               if (msg.text) opts.text = msg.text
               if (msg.replyTo) opts.replyTo = msg.replyTo
+              const cc = ccArray(msg.cc)
+              if (cc) opts.cc = cc
               await withRetry(() => resend.emails.send(opts as any)) // eslint-disable-line @typescript-eslint/no-explicit-any
               await updateConnectorActivity(payload, connector.id).catch(() => {})
             },
@@ -143,6 +155,7 @@ export async function resolveEmailSender(
                   html: msg.html || undefined,
                   text: msg.text || undefined,
                   ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+                  ...(ccArray(msg.cc) ? { cc: ccArray(msg.cc) } : {}),
                 }),
               )
               await updateConnectorActivity(payload, connector.id).catch(() => {})
@@ -176,6 +189,7 @@ export async function resolveEmailSender(
         subject: msg.subject,
         html: msg.html,
         text: msg.text,
+        ...(ccArray(msg.cc) ? { cc: ccArray(msg.cc) } : {}),
       })
     },
     fromAddress:

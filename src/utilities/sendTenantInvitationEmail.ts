@@ -15,11 +15,15 @@ export interface SendTenantInvitationEmailOptions {
   /** Tenant ID — used to resolve per-tenant email outbound connector */
   tenantId?: number | string | null
   recipientEmail: string
+  /** Invitee's name (for a personal greeting). Optional. */
+  recipientName?: string
   inviterName: string
   enterpriseName: string
   inviteUrl: string
   role: string
   message?: string
+  /** Carbon-copy recipient(s) — e.g. the inviter, to verify delivery. */
+  cc?: string | string[]
 }
 
 /** Escape user-supplied values for safe HTML interpolation */
@@ -39,11 +43,13 @@ export async function sendTenantInvitationEmail(
     payload,
     tenantId,
     recipientEmail,
+    recipientName,
     inviterName,
     enterpriseName,
     inviteUrl,
     role,
     message,
+    cc,
   } = opts
 
   const baseUrl = getServerSideURL()
@@ -58,6 +64,7 @@ export async function sendTenantInvitationEmail(
   const safeRoleLabel = esc(roleLabel)
   const safeMessage = message ? esc(message) : ''
   const safeInviteUrl = esc(fullInviteUrl)
+  const greetingName = recipientName?.trim() ? esc(recipientName.trim()) : ''
 
   const html = `
     <!DOCTYPE html>
@@ -72,7 +79,7 @@ export async function sendTenantInvitationEmail(
           <p style="margin: 8px 0 0; font-size: 14px; color: #666;">${safeEnterpriseName}</p>
         </div>
 
-        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">You're invited!</h1>
+        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">${greetingName ? `Hi ${greetingName} — you're invited!` : `You're invited!`}</h1>
 
         <p style="font-size: 16px; line-height: 1.5; color: #333;">
           <strong>${safeInviterName}</strong> has invited you to join
@@ -114,7 +121,7 @@ export async function sendTenantInvitationEmail(
 
   try {
     const sender = await resolveEmailSender(payload, tenantId)
-    await sender.sendEmail({ to: recipientEmail, subject, html, text })
+    await sender.sendEmail({ to: recipientEmail, subject, html, text, cc })
     return true
   } catch (err) {
     console.warn(

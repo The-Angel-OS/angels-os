@@ -65,6 +65,8 @@ export async function sendQuickInvite(input: {
   email: string
   role: string
   message?: string
+  firstName?: string
+  lastName?: string
 }): Promise<QuickInviteResult> {
   const { payload, user, tenantId, tenantName, error } = await getAuthenticatedAdmin()
   if (error || !tenantId || !user) {
@@ -134,17 +136,22 @@ export async function sendQuickInvite(input: {
 
   // Send invitation email
   const inviterName = (user as any).name || (user as any).email || 'An admin'
+  const inviterEmail = (user as any).email as string | undefined
+  const recipientName = [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ')
   let emailSent = false
   try {
     emailSent = await sendTenantInvitationEmail({
       payload,
       tenantId,
       recipientEmail: email,
+      recipientName: recipientName || undefined,
       inviterName,
       enterpriseName: tenantName,
       inviteUrl,
       role,
       message: input.message,
+      // CC the inviter so they can confirm the email path actually delivered.
+      cc: inviterEmail && inviterEmail.toLowerCase() !== email ? inviterEmail : undefined,
     })
   } catch {
     // Email sending failed — invitation is still created

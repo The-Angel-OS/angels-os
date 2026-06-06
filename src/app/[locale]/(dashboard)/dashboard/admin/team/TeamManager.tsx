@@ -227,6 +227,8 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
 // ─── InviteSection ──────────────────────────────────────────────
 
 function InviteSection({ onInviteSent }: { onInviteSent: () => void }) {
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('tenant_member')
   const [isPending, startTransition] = useTransition()
@@ -236,8 +238,15 @@ function InviteSection({ onInviteSent }: { onInviteSent: () => void }) {
     if (!email.trim()) return
     setError('')
     startTransition(async () => {
-      const result = await sendQuickInvite({ email: email.trim(), role })
+      const result = await sendQuickInvite({
+        email: email.trim(),
+        role,
+        firstName: firstName.trim() || undefined,
+        lastName: lastName.trim() || undefined,
+      })
       if (result.success) {
+        setFirstName('')
+        setLastName('')
         setEmail('')
         setRole('tenant_member')
         onInviteSent()
@@ -250,6 +259,26 @@ function InviteSection({ onInviteSent }: { onInviteSent: () => void }) {
   return (
     <div className="rounded-lg border border-border bg-muted/20 p-4">
       <h2 className="text-sm font-semibold mb-3">Invite a team member</h2>
+      {/* Name row — first + last, so the invite is addressed personally */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-2">
+        <input
+          type="text"
+          placeholder="First name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+        />
+        <input
+          type="text"
+          placeholder="Last name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+        />
+      </div>
+      {/* Email + role + send */}
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="email"

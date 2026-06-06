@@ -59,12 +59,23 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
     }
   }
 
+  // Friendly fallback name for a PENDING invite (no user account yet): derive
+  // a readable label from the email local-part so the table never shows "Unknown".
+  const nameFromEmail = (email?: string | null): string => {
+    if (!email) return 'Invited'
+    const local = email.split('@')[0] || ''
+    const words = local.replace(/[._-]+/g, ' ').trim()
+    return words ? words.replace(/\b\w/g, (c) => c.toUpperCase()) : 'Invited'
+  }
+
   // Serialize for client component
   const members = (memberships.docs || []).map((doc: any) => ({
     id: String(doc.id),
     userId: typeof doc.user === 'object' ? String(doc.user?.id || '') : String(doc.user || ''),
     userName:
-      typeof doc.user === 'object' ? doc.user?.name || doc.user?.email || 'Unknown' : 'Unknown',
+      typeof doc.user === 'object'
+        ? doc.user?.name || doc.user?.email || nameFromEmail(doc.invitationDetails?.invitationEmail)
+        : nameFromEmail(doc.invitationDetails?.invitationEmail),
     userEmail: typeof doc.user === 'object' ? doc.user?.email || '' : '',
     role: doc.role || 'tenant_member',
     permissions: doc.permissions || [],
