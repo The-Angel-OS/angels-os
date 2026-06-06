@@ -12,6 +12,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
+import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
 
 export const ensureSpacesHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -63,8 +64,11 @@ export const ensureSpacesHandler: PayloadHandler = async (req) => {
   const results: Array<Record<string, unknown>> = []
   for (const t of tenants) {
     try {
-      const r = await ensureTenantSpaces(payload, t.id)
-      results.push({ tenant: t.slug || t.id, ...r })
+      // Community/template space (endeavor-typed)
+      const spaces = await ensureTenantSpaces(payload, t.id)
+      // AI Bus + main space + DMs (the full system baseline)
+      const defaults = await ensureTenantDefaults(payload, t.id)
+      results.push({ tenant: t.slug || t.id, ...spaces, ...defaults })
     } catch (e) {
       results.push({ tenant: t.slug || t.id, error: e instanceof Error ? e.message : 'failed' })
     }

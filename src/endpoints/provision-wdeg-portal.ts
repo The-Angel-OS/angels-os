@@ -16,6 +16,7 @@ import { findOrCreateTenant, findOrCreateTenantMembership } from '@/endpoints/se
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
 import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
+import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
 import {
   createLexicalContent,
   createHeadingNode,
@@ -158,8 +159,14 @@ export const provisionWdegPortalHandler: PayloadHandler = async (req) => {
       log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
     }
 
-    // 4b. Ensure the Community Space + channels exist (this step was missing —
-    //     WDEG had a tenant/endeavor but no Space, so no AI Bus). Idempotent.
+    // 4b. Ensure ALL baseline spaces: AI Bus (the actual missing piece for WDEG)
+    //     + main community + DMs + creator-content community space.
+    try {
+      const d = await ensureTenantDefaults(payload, tenant.id)
+      log.push(`AI Bus: ${d.aiBusSpaceId ?? 'skipped'} | main: ${d.mainSpaceId ?? 'skipped'} | DMs: ${d.dmSpaceId ?? 'skipped'}${d.errors.length ? ` | warn: ${d.errors.join('; ')}` : ''}`)
+    } catch (e) {
+      log.push(`ensureTenantDefaults skipped: ${(e as Error).message}`)
+    }
     try {
       const spacesResult = await ensureTenantSpaces(payload, tenant.id, {
         endeavorType: 'creator-content',

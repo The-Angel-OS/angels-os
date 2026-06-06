@@ -18,6 +18,7 @@ import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
 import { createLexicalContent, createHeadingNode, createParagraphNode } from '@/utilities/lexicalHelpers'
 import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
+import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 
 export const provisionPortalHandler: PayloadHandler = async (req) => {
@@ -139,8 +140,16 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
       log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
     }
 
-    // 4b. Ensure the Community Space + channels exist (was missing — a tenant
-    //     without a Space has no AI Bus). Idempotent.
+    // 4b. Ensure ALL baseline spaces exist: AI Bus + main + DMs + community.
+    //     ensureTenantDefaults covers AI Bus (LEO/errors/system-log channels),
+    //     main community space, and DMs. ensureTenantSpaces adds the endeavor-
+    //     typed community space. Both are idempotent.
+    try {
+      const d = await ensureTenantDefaults(payload, tenant.id)
+      log.push(`AI Bus: ${d.aiBusSpaceId ?? 'skipped'} | main: ${d.mainSpaceId ?? 'skipped'} | DMs: ${d.dmSpaceId ?? 'skipped'}${d.errors.length ? ` | warn: ${d.errors.join(', ')}` : ''}`)
+    } catch (e) {
+      log.push(`ensureTenantDefaults skipped: ${(e as Error).message}`)
+    }
     try {
       const s = await ensureTenantSpaces(payload, tenant.id, {
         endeavorType: endeavorType as EndeavorType,
