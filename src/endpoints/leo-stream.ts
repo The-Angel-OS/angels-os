@@ -1065,6 +1065,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       // fullText lives outside try/catch so partial responses survive errors
       let fullText = ''
       let hadError = false
+      let streamErrorDetail: string | undefined
 
       // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
       // Sends a comment line every 15s, which SSE clients silently ignore.
@@ -1143,7 +1144,22 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               availableTools,
             })
             fullText = gwResult.text
-            if (gwResult.hadStreamError) hadError = true
+            if (gwResult.hadStreamError) {
+              hadError = true
+              streamErrorDetail = gwResult.errorMessage
+              // Error PARTS (e.g. Groq "request too large") don't throw, so the
+              // outer catch's logError never fires — log here so the real cause
+              // lands in application-logs + the AI Bus errors channel.
+              if (!fullText.trim()) {
+                logError({
+                  source: 'leo-stream.model',
+                  message: `LLM stream error: ${streamErrorDetail || 'unknown error'}`,
+                  details: streamErrorDetail,
+                  tenantId: tenantId ? String(tenantId) : undefined,
+                  userId: req.user?.id as number | undefined,
+                }).catch(() => {})
+              }
+            }
           } catch (gwErr) {
             // Gateway failed — log to AI Bus then try Anthropic fallback
             const gwErrMsg = gwErr instanceof Error ? gwErr.message : String(gwErr)
@@ -1207,6 +1223,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
       } catch (error) {
         hadError = true
         const errMsg = error instanceof Error ? error.message : 'Unknown error'
+        streamErrorDetail = errMsg
         console.error('[LEO Stream] Error (all providers exhausted):', errMsg)
         controller.enqueue(encoder.encode(sseEvent('error', {
           message: `LEO encountered an error: ${errMsg}. Please try again.`,
@@ -1270,15 +1287,18 @@ After this turn, you'll return to the faster model for responsive day-to-day int
         // Pre-created but no response generated — clean up the placeholder
         // or mark it as an error so it's visible
         try {
+          // Attach the real provider error so it's readable in-chat (not a black
+          // box). The detail also lives in the AI Bus errors channel via logError.
+          const detail = streamErrorDetail ? `\n\n> ${streamErrorDetail.slice(0, 500)}` : ''
           const errContent = hadError
-            ? 'LEO encountered an error processing this request.'
+            ? `⚠️ LEO couldn't complete this request.${detail}\n\n_Try a shorter message — this often means the request was too large or a provider hit a rate limit. It will route to a larger model on the next try._`
             : 'LEO was unable to generate a response.'
           await req.payload.update({
             collection: 'messages',
             id: preCreatedMsgId,
             data: {
               content: wrapTextContent(errContent),
-              metadata: { streaming: false, error: true, model: resolveModelId() },
+              metadata: { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail },
             } as any,
             overrideAccess: true,
           })
@@ -1359,7 +1379,7 @@ async function streamViaGateway(opts: {
   tenantAiConfig?: Record<string, unknown>
   /** Role-filtered tool subset (defaults to the full registry). */
   availableTools?: typeof LEO_TOOLS
-}): Promise<{ text: string; hadStreamError: boolean }> {
+}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -1481,6 +1501,7 @@ async function streamViaGateway(opts: {
   // Stream text deltas to SSE — capture fullText even on partial failure
   let fullText = ''
   let streamHadError = false
+  let streamErrorDetail: string | undefined
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'text-delta') {
@@ -1498,11 +1519,17 @@ async function streamViaGateway(opts: {
         const errDetail = (part as any).error
         console.error('[LEO Stream] AI SDK stream error part:', errDetail)
         streamHadError = true
+        streamErrorDetail =
+          errDetail instanceof Error
+            ? errDetail.message
+            : typeof errDetail === 'string'
+              ? errDetail
+              : (errDetail?.message ?? JSON.stringify(errDetail)?.slice(0, 400) ?? 'stream error')
         // Notify client so they can display a meaningful error
         controller.enqueue(
           encoder.encode(
             sseEvent('error', {
-              message: errDetail instanceof Error ? errDetail.message : 'An error occurred during processing',
+              message: streamErrorDetail || 'An error occurred during processing',
             }),
           ),
         )
@@ -1511,12 +1538,13 @@ async function streamViaGateway(opts: {
   } catch (streamErr) {
     console.error('[LEO Stream] Gateway stream interrupted:', streamErr instanceof Error ? streamErr.message : streamErr)
     streamHadError = true
+    streamErrorDetail = streamErr instanceof Error ? streamErr.message : String(streamErr)
     if (fullText.trim()) {
       // Return partial text instead of losing it — but notify client of the interruption
       controller.enqueue(
         encoder.encode(sseEvent('error', { message: 'Stream interrupted — partial response returned' })),
       )
-      return { text: fullText, hadStreamError: true }
+      return { text: fullText, hadStreamError: true, errorMessage: streamErrorDetail }
     }
     // Retry with high-tier model if primary stream produced no output
     const retrySmart = await getSmartModel('high', {
@@ -1542,9 +1570,41 @@ async function streamViaGateway(opts: {
           controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
         }
       }
-      if (fullText.trim()) return { text: fullText, hadStreamError: true }
+      if (fullText.trim()) return { text: fullText, hadStreamError: true, errorMessage: streamErrorDetail }
     }
     throw streamErr
+  }
+
+  // An error PART (not a thrown error) that produced no text — e.g. Groq's
+  // "request too large for model" — never reached the catch's retry above. Retry
+  // once on the high tier (which routes to the gateway / a larger model, not the
+  // small/free provider) so a provider-side limit recovers instead of dead-ending.
+  if (streamHadError && !fullText.trim()) {
+    try {
+      const retrySmart = await getSmartModel('high', { tenantId, userId, tags: ['leo-stream', 'retry-errpart'] })
+      if (retrySmart) {
+        console.warn(`[LEO Stream] Error part with no text — retrying with ${retrySmart.modelId}`)
+        controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
+        const retryResult = streamText({
+          model: retrySmart.model,
+          system: systemPrompt,
+          messages,
+          tools,
+          stopWhen: stepCountIs(MAX_TOOL_ROUNDS),
+          maxOutputTokens: MAX_RESPONSE_TOKENS,
+          providerOptions: retrySmart.providerOptions,
+        })
+        for await (const part of retryResult.fullStream) {
+          if (part.type === 'text-delta') {
+            fullText += part.text
+            controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+          }
+        }
+        if (fullText.trim()) streamHadError = false // recovered on the larger model
+      }
+    } catch (retryErr) {
+      console.error('[LEO Stream] High-tier retry failed:', retryErr instanceof Error ? retryErr.message : retryErr)
+    }
   }
 
   // Wizard step advancement
@@ -1562,7 +1622,7 @@ async function streamViaGateway(opts: {
     )
   }
 
-  return { text: fullText, hadStreamError: streamHadError }
+  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined }
 }
 
 // ---------------------------------------------------------------------------
