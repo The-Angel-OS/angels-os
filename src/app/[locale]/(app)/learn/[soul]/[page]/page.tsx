@@ -5,6 +5,8 @@ import { headers } from 'next/headers'
 import { getSoul } from '@/souls'
 import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,11 +37,19 @@ export async function generateMetadata({
 
   const origin = await originFromHeaders()
   const canonical = `${origin}/learn/${soulId}/${loaded.pageSlugs[idx]}`
-  const image = p?.image
-    ? p.image.startsWith('http')
-      ? p.image
-      : `${origin}${p.image}`
-    : undefined
+
+  // Unfurl image fallback chain so EVERY deep link has a pretty banner — not just
+  // works (like WDEG) where every page is illustrated:
+  //   this page's image → the work's first illustration (its "cover")
+  //   → the tenant's home hero (branding.coverImage).
+  const toAbs = (u?: string | null): string | undefined =>
+    u ? (u.startsWith('http') ? u : `${origin}${u}`) : undefined
+  let image = toAbs(p?.image)
+  if (!image) image = toAbs(loaded.manifest.pages.find((pg) => pg.image)?.image)
+  if (!image) {
+    const { tenant } = await resolveTenantFromHeaders()
+    image = toAbs(tenantHeroImage(tenant))
+  }
 
   // The unfurl banner is THIS page's illustration.
   const pageTitle = inferredTitle

@@ -8,6 +8,8 @@ import { getSoul, getAllSouls } from '@/souls'
 import { SoulViewer } from './SoulViewer'
 import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,14 +26,24 @@ export async function generateMetadata({
   const soul = getSoul(soulId)
   if (!soul) return {}
 
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || ''
+  const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''
+  const toAbs = (u?: string | null): string | undefined =>
+    u ? (u.startsWith('http') ? u : `${origin}${u}`) : undefined
+  // Always land on a pretty unfurl: preferred image → tenant home hero.
+  const resolveImage = async (preferred?: string | null): Promise<string | undefined> => {
+    const direct = toAbs(preferred)
+    if (direct) return direct
+    const { tenant } = await resolveTenantFromHeaders()
+    return toAbs(tenantHeroImage(tenant))
+  }
+
   // Book works: the cover (first page) is the share image; spider the work.
   if (soul.bookSlug) {
     const loaded = loadBookFromPublic(soul.bookSlug)
-    const h = await headers()
-    const host = h.get('x-forwarded-host') || h.get('host') || ''
-    const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''
     const cover = loaded?.manifest.pages?.[0]?.image
-    const image = cover ? (cover.startsWith('http') ? cover : `${origin}${cover}`) : undefined
+    const image = await resolveImage(cover)
     const description = loaded?.manifest.subtitle || soul.description || ''
     return {
       title: soul.title,
@@ -48,9 +60,19 @@ export async function generateMetadata({
     }
   }
 
+  // Non-book soul — still give it a pretty unfurl from the tenant home hero.
+  const image = await resolveImage(null)
+  const title = `${soul.title} — Soul Viewer`
   return {
-    title: `${soul.title} — Soul Viewer`,
+    title,
     description: soul.description,
+    openGraph: {
+      title,
+      description: soul.description,
+      url: `${origin}/learn/${soulId}`,
+      ...(image ? { images: [{ url: image, alt: soul.title }] } : {}),
+    },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title, description: soul.description, ...(image ? { images: [image] } : {}) },
   }
 }
 
