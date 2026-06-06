@@ -15,6 +15,7 @@ import type { PayloadHandler } from 'payload'
 import { findOrCreateTenant, findOrCreateTenantMembership } from '@/endpoints/seed/seed-helpers'
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
+import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
 import {
   createLexicalContent,
   createHeadingNode,
@@ -155,6 +156,23 @@ export const provisionWdegPortalHandler: PayloadHandler = async (req) => {
       log.push(`endeavor #${endeavor.id}`)
     } else {
       log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
+    }
+
+    // 4b. Ensure the Community Space + channels exist (this step was missing —
+    //     WDEG had a tenant/endeavor but no Space, so no AI Bus). Idempotent.
+    try {
+      const spacesResult = await ensureTenantSpaces(payload, tenant.id, {
+        endeavorType: 'creator-content',
+        spaceName: 'Community',
+        req,
+      })
+      log.push(
+        spacesResult.createdSpace
+          ? `community space #${spacesResult.spaceId} created (+ channels)`
+          : `space #${spacesResult.spaceId} present (channels backfilled: ${spacesResult.addedChannels.join(', ') || 'none'})`,
+      )
+    } catch (e) {
+      log.push(`spaces skipped: ${(e as Error).message}`)
     }
 
     // 5. Link the provisioning super_admin as tenant_admin
