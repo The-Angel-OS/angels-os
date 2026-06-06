@@ -308,6 +308,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       ...(allImages.length > 0 ? { images: allImages } : {}),
       ...(fileAttachments.length > 0 ? { attachments: fileAttachments } : {}),
       ...(widgets?.length ? { widgets } : {}),
+      ...(msgMeta?.error ? { isError: true } : {}),
+      ...(msgMeta?.errorDetail ? { errorDetail: String(msgMeta.errorDetail) } : {}),
       metadata: {
         messageType: String(msg.messageType || 'user'),
         agentName: msgMeta?.agentName as string | undefined,

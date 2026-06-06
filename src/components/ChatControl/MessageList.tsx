@@ -196,6 +196,72 @@ function MessageActions({
 }
 
 // ---------------------------------------------------------------------------
+// Error Detail — surfaces the raw provider/tool error on a failed message.
+// Native tooltip on hover (quick glance) + click to expand a selectable,
+// copyable block with a copy button.
+// ---------------------------------------------------------------------------
+
+function ErrorDetail({ detail }: { detail: string }) {
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(detail)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = detail
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title={detail}
+        className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+          <path fillRule="evenodd" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+        </svg>
+        {open ? 'Hide error' : 'Show error'}
+      </button>
+      {open && (
+        <div className="mt-1 flex items-start justify-between gap-2 rounded-md border border-red-500/20 bg-red-500/5 p-2">
+          <pre className="flex-1 select-text whitespace-pre-wrap break-words font-mono text-[11px] text-red-700 dark:text-red-300">
+            {detail}
+          </pre>
+          <button
+            onClick={copy}
+            title={copied ? 'Copied!' : 'Copy error'}
+            className="shrink-0 rounded p-1 text-red-500/70 transition-colors hover:bg-red-500/10 hover:text-red-600"
+          >
+            {copied ? (
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-green-500">
+                <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                <path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h2.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 1 .439 1.061V9.5A1.5 1.5 0 0 1 12 11V8.621a3 3 0 0 0-.879-2.121L9 4.379A3 3 0 0 0 6.879 3.5H5.5Z" />
+                <path d="M4 5a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 4 14h5a1.5 1.5 0 0 0 1.5-1.5V8.621a1.5 1.5 0 0 0-.44-1.06L7.94 5.439A1.5 1.5 0 0 0 6.878 5H4Z" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Dispute Dialog — inline community vote request (replaces mailto)
 // ---------------------------------------------------------------------------
 
@@ -701,7 +767,9 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
                   ? 'bg-primary text-primary-foreground'
                   : msg.role === 'system'
                     ? 'border border-border bg-muted/50 text-muted-foreground italic'
-                    : 'bg-muted text-foreground'
+                    : msg.isError
+                      ? 'border border-red-500/30 bg-red-500/5 text-foreground'
+                      : 'bg-muted text-foreground'
               }`}
             >
               {msg.role === 'leo' && msg.authorName && (
@@ -714,6 +782,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
               )}
               {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
               <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
+              {msg.isError && msg.errorDetail && <ErrorDetail detail={msg.errorDetail} />}
               {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
               {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
               {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
@@ -966,7 +1035,7 @@ function FullPageMessageList({
                       {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
 
                       <div
-                        className={`px-4 py-2.5 text-sm leading-relaxed ${
+                        className={`px-4 py-2.5 text-sm leading-relaxed ${msg.isError ? 'ring-1 ring-red-500/30' : ''} ${
                           isUser
                             ? `bg-primary text-primary-foreground ${
                                 isFirst && isLast
@@ -979,7 +1048,7 @@ function FullPageMessageList({
                               }`
                             : isSystem
                               ? 'rounded-xl border border-border bg-muted/50 text-xs text-muted-foreground italic'
-                              : `bg-muted/60 text-foreground ${
+                              : `${msg.isError ? 'bg-red-500/5' : 'bg-muted/60'} text-foreground ${
                                   isFirst && isLast
                                     ? 'rounded-2xl'
                                     : isFirst
@@ -1005,6 +1074,7 @@ function FullPageMessageList({
                       ) : (
                         <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={isLeo} isNewest={isLastGroup && isLast} />
                       )}
+                        {msg.isError && msg.errorDetail && <ErrorDetail detail={msg.errorDetail} />}
                         {msg.isStreaming && msg.lastDeltaAt && (
                           <div className="mt-1">
                             <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />
