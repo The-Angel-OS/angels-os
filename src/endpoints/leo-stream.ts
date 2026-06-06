@@ -46,6 +46,7 @@ import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, M
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
 import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
+import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/aiUsage'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -1066,6 +1067,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       let fullText = ''
       let hadError = false
       let streamErrorDetail: string | undefined
+      let streamTelemetry: AiResponseTelemetry | undefined
 
       // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
       // Sends a comment line every 15s, which SSE clients silently ignore.
@@ -1144,6 +1146,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               availableTools,
             })
             fullText = gwResult.text
+            streamTelemetry = gwResult.telemetry
             if (gwResult.hadStreamError) {
               hadError = true
               streamErrorDetail = gwResult.errorMessage
@@ -1253,7 +1256,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               id: preCreatedMsgId,
               data: {
                 content: wrapTextContent(persistText),
-                metadata: { streaming: false, model: resolveModelId(), partial: hadError },
+                metadata: { streaming: false, model: resolveModelId(), partial: hadError, ...(streamTelemetry ?? {}) },
               } as any,
               overrideAccess: true,
             })
@@ -1266,6 +1269,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 space: resolvedSpaceId,
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
+                metadata: { streaming: false, ...(streamTelemetry ?? {}) },
                 ...(leoUserId ? { author: leoUserId } : {}),
               } as any,
               overrideAccess: true,
@@ -1298,7 +1302,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             id: preCreatedMsgId,
             data: {
               content: wrapTextContent(errContent),
-              metadata: { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail },
+              metadata: { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail, ...(streamTelemetry ?? {}) },
             } as any,
             overrideAccess: true,
           })
@@ -1379,7 +1383,7 @@ async function streamViaGateway(opts: {
   tenantAiConfig?: Record<string, unknown>
   /** Role-filtered tool subset (defaults to the full registry). */
   availableTools?: typeof LEO_TOOLS
-}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string }> {
+}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -1399,7 +1403,13 @@ async function streamViaGateway(opts: {
     ],
   })
   if (!smart) throw new Error('AI Gateway model could not be created')
-  const { model, providerOptions: smartProviderOptions, modelId: smartModelId } = smart
+  const { model, providerOptions: smartProviderOptions, modelId: smartModelId, effectiveComplexity: servedTier } = smart
+
+  // Telemetry: timestamps + the model that actually serves (updated on failover).
+  const streamStart = Date.now()
+  let ttftMs: number | undefined
+  let servedModelId = smartModelId
+  let failedOver = false
 
   // Small/free providers (Groq free tier, local 8GB) can't fit LEO's full tool
   // payload in their token budget — subset to the core toolset so the request
@@ -1510,6 +1520,7 @@ async function streamViaGateway(opts: {
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'text-delta') {
+        if (ttftMs === undefined) ttftMs = Date.now() - streamStart
         fullText += part.text
         controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
       } else if (part.type === 'tool-call') {
@@ -1605,7 +1616,11 @@ async function streamViaGateway(opts: {
             controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
           }
         }
-        if (fullText.trim()) streamHadError = false // recovered on the larger model
+        if (fullText.trim()) {
+          streamHadError = false // recovered on the larger model
+          failedOver = true
+          servedModelId = retrySmart.modelId
+        }
       }
     } catch (retryErr) {
       console.error('[LEO Stream] High-tier retry failed:', retryErr instanceof Error ? retryErr.message : retryErr)
@@ -1627,7 +1642,28 @@ async function streamViaGateway(opts: {
     )
   }
 
-  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined }
+  // ── Telemetry (fail-soft) — tokens, finish reason, latency, cost ──────────
+  let telemetry: AiResponseTelemetry | undefined
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- usage shape varies by SDK/provider
+    const usage = (await result.usage) as any
+    const finishReason = (await result.finishReason) as string | undefined
+    telemetry = buildResponseTelemetry({
+      model: servedModelId,
+      tier: servedTier,
+      inputTokens: usage?.inputTokens ?? usage?.promptTokens,
+      outputTokens: usage?.outputTokens ?? usage?.completionTokens,
+      finishReason,
+      toolNames: allToolNames,
+      latencyMs: Date.now() - streamStart,
+      ttftMs,
+      failedOver,
+    })
+  } catch {
+    /* telemetry is best-effort — never let it affect the response */
+  }
+
+  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry }
 }
 
 // ---------------------------------------------------------------------------
