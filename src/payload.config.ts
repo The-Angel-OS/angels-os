@@ -53,6 +53,7 @@ import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
+import { CostEvents } from '@/collections/CostEvents'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
@@ -225,6 +226,7 @@ export default buildConfig({
     JusticeFundTransactions,
     ProcessedStripeEvents,
     ApplicationLogs,
+    CostEvents,
     Reviews,
     Endeavors,
     FederationPeers,
@@ -315,6 +317,8 @@ export default buildConfig({
         pheromones: {},
         // ─── Sprint 30: Distributed Workload Engine ───────────
         'work-units': {},
+        // ─── Operating-Costs ledger (unified cost tracking) ───
+        'cost-events': {},
       } as any,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {

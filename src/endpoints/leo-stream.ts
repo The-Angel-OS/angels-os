@@ -47,6 +47,7 @@ import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
 import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
 import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/aiUsage'
+import { recordAiUsage } from '@/utilities/recordCostEvent'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -1309,6 +1310,18 @@ After this turn, you'll return to the faster model for responsive day-to-day int
         } catch (cleanupErr) {
           console.error('[LEO Stream] Failed to update pre-created message with error state:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
         }
+      }
+
+      // Operating-Costs ledger — append this turn's AI cost (fire-and-forget,
+      // fail-soft; no-ops until the cost-events table exists on this node).
+      if (streamTelemetry && tenantId) {
+        recordAiUsage(req.payload, {
+          telemetry: streamTelemetry,
+          tenantId,
+          conversationId: resolvedConversationId ? String(resolvedConversationId) : undefined,
+          userId: req.user?.id as number | undefined,
+          messageRef: savedMessageId,
+        }).catch(() => {/* best-effort — never block SSE */})
       }
 
       // Send done event (even on error, if we have partial text)
