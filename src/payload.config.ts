@@ -143,6 +143,7 @@ import { federationDispatchWorkHandler } from '@/endpoints/federation-dispatch-w
 import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { federationMessageHandler } from '@/endpoints/federation-message'
 import { cicStatusHandler } from '@/endpoints/cic-status'
+import { aiCostsHandler } from '@/endpoints/ai-costs'
 import { updateAllNavHandler } from '@/endpoints/update-all-nav'
 import { vercelSpendWebhookHandler } from '@/endpoints/vercel-spend-webhook'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
@@ -995,6 +996,12 @@ export default buildConfig({
       path: '/cic/status',
       method: 'get',
       handler: cicStatusHandler,
+    },
+    // ─── AI Costs (control-panel economics) ───────────────────
+    {
+      path: '/cic/ai-costs',
+      method: 'get',
+      handler: aiCostsHandler,
     },
     // ─── Admin: Update All Nav ───────────────────────────────
     {

@@ -16,6 +16,7 @@ import type {
 import { BannerBlock } from '@/blocks/Banner/Component'
 import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { cn } from '@/utilities/cn'
+import { normalizeLegacyEditorState } from './normalizeLegacyLexical'
 
 type NodeTypes =
   | DefaultNodeTypes
@@ -47,10 +48,11 @@ type Props = {
 } & React.HTMLAttributes<HTMLDivElement>
 
 export const RichText: React.FC<Props> = (props) => {
-  const { className, enableProse = true, enableGutter = true, ...rest } = props
+  const { className, enableProse = true, enableGutter = true, data, ...rest } = props
   return (
     <RichTextWithoutBlocks
       converters={jsxConverters}
+      data={normalizeLegacyEditorState(data)}
       className={cn(
         {
           'container ': enableGutter,

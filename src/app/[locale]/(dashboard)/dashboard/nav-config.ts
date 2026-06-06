@@ -94,6 +94,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always, // Public — command center is the viewport
       },
       {
+        key: 'ai-costs',
+        label: 'AI Costs',
+        icon: 'banknote',
+        href: (p) => `${p}/dashboard/ai-costs`,
+        isActive: active('/dashboard/ai-costs'),
+        visible: adminOrBusinessOwner, // economic data — owners + admins
+      },
+      {
         key: 'payload-admin',
         label: 'Payload Admin',
         icon: 'gear',
