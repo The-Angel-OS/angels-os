@@ -25,6 +25,7 @@ vi.mock('@payloadcms/richtext-lexical', () => ({
 
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
+import { CORE_TOOL_NAMES, selectToolsForModel } from '@/utilities/leoToolSelection'
 
 // ---------------------------------------------------------------------------
 // Tool Registry Validation
@@ -38,6 +39,31 @@ describe('LEO Tool Definitions', () => {
 
   it('has exactly 122 tools defined', () => {
     expect(LEO_TOOLS.length).toBe(122)
+  })
+
+  describe('core toolset for small/free providers', () => {
+    it('every CORE_TOOL_NAME is a real LEO tool', () => {
+      const names = new Set(LEO_TOOLS.map((t) => t.name))
+      for (const core of CORE_TOOL_NAMES) {
+        expect(names.has(core)).toBe(true)
+      }
+    })
+
+    it('is lean enough to fit a small token budget (<= 25 tools)', () => {
+      expect(CORE_TOOL_NAMES.size).toBeLessThanOrEqual(25)
+      expect(CORE_TOOL_NAMES.size).toBeGreaterThan(8)
+    })
+
+    it('selectToolsForModel subsets to core for groq/ollama, full for gateway', () => {
+      const all = LEO_TOOLS.map((t) => ({ name: t.name }))
+      const groq = selectToolsForModel(all, 'groq/openai/gpt-oss-20b')
+      const ollama = selectToolsForModel(all, 'ollama/qwen2.5:7b')
+      const gateway = selectToolsForModel(all, 'google/gemini-2.5-flash')
+      expect(groq.length).toBe(CORE_TOOL_NAMES.size)
+      expect(ollama.length).toBe(CORE_TOOL_NAMES.size)
+      expect(gateway.length).toBe(all.length)
+      expect(groq.every((t) => CORE_TOOL_NAMES.has(t.name))).toBe(true)
+    })
   })
 
   it('every tool has a unique name', () => {

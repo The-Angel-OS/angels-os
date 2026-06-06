@@ -244,6 +244,11 @@ export default buildConfig({
     CrewAssignments,
   ],
   db: postgresAdapter({
+    // PAYLOAD_SKIP_PUSH=true disables dev-mode schema push — lets you run `next
+    // dev` against a remote/prod DB (e.g. a shared node) WITHOUT mutating its
+    // schema or hanging on an interactive create-vs-rename prompt. Default
+    // (undefined) keeps Payload's normal behavior (push in dev).
+    push: process.env.PAYLOAD_SKIP_PUSH === 'true' ? false : undefined,
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
       // Drizzle schema introspection fires many concurrent queries at startup.

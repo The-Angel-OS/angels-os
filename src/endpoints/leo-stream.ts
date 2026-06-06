@@ -45,7 +45,7 @@ import type { WizardContext } from '@/utilities/wizardPrompt'
 import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from '@/utilities/ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
-import { selectToolsForUser, allReadOnly } from '@/utilities/leoToolSelection'
+import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -1399,7 +1399,12 @@ async function streamViaGateway(opts: {
     ],
   })
   if (!smart) throw new Error('AI Gateway model could not be created')
-  const { model, providerOptions: smartProviderOptions } = smart
+  const { model, providerOptions: smartProviderOptions, modelId: smartModelId } = smart
+
+  // Small/free providers (Groq free tier, local 8GB) can't fit LEO's full tool
+  // payload in their token budget — subset to the core toolset so the request
+  // stays under their limit (e.g. Groq free = 8000 TPM). Cloud gateway keeps all.
+  const effectiveTools = selectToolsForModel(availableTools, smartModelId)
 
   // Convert history to AI SDK format
   const messages: ModelMessage[] = historyMessages.map((m) => ({
@@ -1460,7 +1465,7 @@ async function streamViaGateway(opts: {
     userId,
     tenantAiConfig,
   }
-  const tools = convertToolsForAISDK(availableTools, executeToolCall, toolCtx)
+  const tools = convertToolsForAISDK(effectiveTools, executeToolCall, toolCtx)
 
   // Track tool calls for wizard step advancement and image extraction
   const allToolNames: string[] = []

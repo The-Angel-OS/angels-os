@@ -65,3 +65,40 @@ export const READ_ONLY_TOOLS = new Set<string>([
 export function allReadOnly(names: string[]): boolean {
   return names.length > 0 && names.every((n) => READ_ONLY_TOOLS.has(n))
 }
+
+/**
+ * Lean core toolset for SMALL / FREE providers (Groq free tier, local 8GB).
+ *
+ * Why: LEO's full ~95-122 tool schemas are ~10k+ tokens. Groq's free tier caps
+ * at 8000 tokens/minute, so a full-payload request 413s ("request too large for
+ * model gpt-oss-20b … Limit 8000, Requested 12234"). These ~18 tools cover the
+ * bulk of conversational turns (queries + content + booking + messaging) and
+ * keep the request well under budget. Power tools (admin, financial, CRM,
+ * federation ops) are dropped on the small tier — those turns escalate to the
+ * gateway (full tools) on the deep-think rounds anyway.
+ */
+export const CORE_TOOL_NAMES = new Set<string>([
+  // Querying (read)
+  'query_products', 'query_posts', 'query_spaces', 'query_bookings',
+  'query_events', 'query_orders', 'query_knowledge', 'query_navigation',
+  'query_federation',
+  // Booking
+  'check_available_slots', 'create_booking',
+  // Content
+  'create_post', 'create_page', 'update_page', 'update_post',
+  // Comms + media
+  'send_message', 'generate_image',
+  // Context
+  'get_enterprise_stage', 'my_place',
+])
+
+/**
+ * Subset tools by the resolved model. Small/free providers (groq/*, ollama/*)
+ * get only CORE_TOOL_NAMES so the request fits their tight token budget; every
+ * other provider (the cloud gateway) gets the full list it was given.
+ */
+export function selectToolsForModel<T extends { name: string }>(tools: T[], modelId: string): T[] {
+  const isSmallProvider = modelId.startsWith('groq/') || modelId.startsWith('ollama/')
+  if (!isSmallProvider) return tools
+  return tools.filter((t) => CORE_TOOL_NAMES.has(t.name))
+}

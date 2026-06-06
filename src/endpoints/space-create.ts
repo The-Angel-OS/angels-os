@@ -49,7 +49,20 @@ export const spaceCreateHandler: PayloadHandler = async (req) => {
     overrideAccess: true,
   })
 
-  const tenantId = tenantResult.docs[0]?.id
+  let tenantId = tenantResult.docs[0]?.id as number | string | undefined
+  if (!tenantId) {
+    // The hostname-derived slug isn't a real tenant — e.g. federation.kendev.co
+    // resolves to "federation", which has no Tenants row. Fall back to the
+    // authenticated user's own tenant membership (the node they're acting on).
+    const fullUser = (await payload.findByID({
+      collection: 'users',
+      id: user.id,
+      depth: 0,
+      overrideAccess: true,
+    })) as { tenants?: Array<{ tenant: number | { id: number } }> } | null
+    const ut = fullUser?.tenants?.[0]?.tenant
+    tenantId = typeof ut === 'object' ? ut?.id : ut
+  }
   if (!tenantId) {
     return Response.json({ error: 'Could not resolve tenant' }, { status: 400 })
   }
