@@ -384,6 +384,51 @@ export function invalidateLocalHealthCache(): void {
   _localHealth = null
 }
 
+// ---------------------------------------------------------------------------
+// Groq — fast, free/cheap cloud provider (interim primary before local is up).
+// OpenAI-compatible, so it reuses the same provider package as Ollama. Hosted,
+// so key-presence is availability (no health probe needed). Env-gated on
+// GROQ_API_KEY — fully inert until a key is set.
+// ---------------------------------------------------------------------------
+
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
+
+/** Default Groq model per tier (override all with GROQ_MODEL). */
+const GROQ_MODEL_BY_TIER: Record<TaskComplexity, string> = {
+  low: 'openai/gpt-oss-20b',
+  medium: 'openai/gpt-oss-20b',
+  high: 'openai/gpt-oss-120b',
+  critical: 'openai/gpt-oss-120b',
+}
+
+/**
+ * Tiers that route to Groq by default. Only meaningful when GROQ_API_KEY is set.
+ * Default low,medium — the cheap bulk goes to Groq; high/critical stay on the
+ * gateway's native fallback chain (Gemini → Claude) unless explicitly opted in.
+ */
+function groqPrimaryTiers(): Set<TaskComplexity> {
+  if (!process.env.GROQ_API_KEY) return new Set<TaskComplexity>()
+  const raw = process.env.GROQ_PRIMARY_TIERS
+  const list = raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : ['low', 'medium']
+  return new Set(list as TaskComplexity[])
+}
+
+async function resolveGroqModel(
+  tier: TaskComplexity,
+): Promise<{ model: LanguageModel; modelId: string } | null> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) return null
+  try {
+    const { createOpenAICompatible } = await import('@ai-sdk/openai-compatible')
+    const modelId = process.env.GROQ_MODEL || GROQ_MODEL_BY_TIER[tier]
+    const provider = createOpenAICompatible({ name: 'groq', baseURL: GROQ_BASE_URL, apiKey })
+    return { model: provider.chatModel(modelId), modelId: `groq/${modelId}` }
+  } catch (err) {
+    console.warn('[AI Gateway] Groq unavailable:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 /**
  * Returns a model + providerOptions pre-configured for the given task complexity.
  * Includes gateway-native fallback chains, credit-aware downshifting, and
@@ -442,8 +487,26 @@ export async function getSmartModel(
     }
   }
 
+  // ── Groq (fast, free/cheap cloud) — preferred over the metered gateway for
+  // opted-in tiers, and a natural next hop when credits are exhausted or there
+  // is no gateway key. Hosted, so key-presence = availability (no probe).
+  if (process.env.GROQ_API_KEY && (!apiKey || creditsExhausted || groqPrimaryTiers().has(effectiveComplexity))) {
+    const groq = await resolveGroqModel(effectiveComplexity)
+    if (groq) {
+      const reason = !apiKey ? 'no-gateway-key' : creditsExhausted ? 'credits-exhausted' : 'tier-routing'
+      console.log(`[AI Gateway] ⚡ Groq ${groq.modelId} (${reason})`)
+      return {
+        model: groq.model,
+        providerOptions: {},
+        modelId: groq.modelId,
+        complexity,
+        effectiveComplexity,
+      }
+    }
+  }
+
   if (!apiKey) {
-    console.warn('[AI Gateway] AI_GATEWAY_API_KEY not set and no local model — gateway unavailable')
+    console.warn('[AI Gateway] No gateway key and no local/Groq provider — gateway unavailable')
     return null
   }
 

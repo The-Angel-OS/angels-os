@@ -36,6 +36,9 @@ const LOCAL_ENV_KEYS = [
   'OLLAMA_API_KEY',
   'CF_ACCESS_CLIENT_ID',
   'CF_ACCESS_CLIENT_SECRET',
+  'GROQ_API_KEY',
+  'GROQ_MODEL',
+  'GROQ_PRIMARY_TIERS',
 ]
 
 beforeEach(() => {
@@ -137,5 +140,58 @@ describe('getSmartModel — local model ON', () => {
     expect(opts.apiKey).toBe('bearer-token')
     expect(opts.headers?.['CF-Access-Client-Id']).toBe('cf-id')
     expect(opts.headers?.['CF-Access-Client-Secret']).toBe('cf-secret')
+  })
+})
+
+describe('getSmartModel — Groq (fast/cheap cloud interim)', () => {
+  it('routes default tiers (low/medium) to Groq gpt-oss-20b when GROQ_API_KEY is set', async () => {
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('low')
+    expect(result!.modelId).toBe('groq/openai/gpt-oss-20b')
+    const opts = mockCreateOpenAICompatible.mock.calls[0][0] as { baseURL: string }
+    expect(opts.baseURL).toBe('https://api.groq.com/openai/v1')
+  })
+
+  it('does NOT route high tier to Groq by default → cloud gateway', async () => {
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('high')
+    expect(result!.modelId.startsWith('groq/')).toBe(false)
+    expect(result!.modelId.startsWith('ollama/')).toBe(false)
+  })
+
+  it('routes high tier to Groq gpt-oss-120b when explicitly opted in', async () => {
+    process.env.GROQ_API_KEY = 'groq-key'
+    process.env.GROQ_PRIMARY_TIERS = 'low,medium,high'
+    const result = await getSmartModel('high')
+    expect(result!.modelId).toBe('groq/openai/gpt-oss-120b')
+  })
+
+  it('falls back to Groq (free) when cloud credits are exhausted and no local model', async () => {
+    process.env.GROQ_API_KEY = 'groq-key'
+    mockGetCredits.mockResolvedValue({ balance: '1', totalUsed: '999' })
+    const result = await getSmartModel('high')
+    expect(result!.modelId.startsWith('groq/')).toBe(true)
+  })
+
+  it('prefers a healthy local model over Groq (order: local → Groq → gateway)', async () => {
+    process.env.OLLAMA_BASE_URL = 'https://ollama.kendev.co/v1'
+    process.env.OLLAMA_PRIMARY_TIERS = 'low'
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('low')
+    expect(result!.modelId.startsWith('ollama/')).toBe(true)
+  })
+
+  it('honors a GROQ_MODEL override', async () => {
+    process.env.GROQ_API_KEY = 'groq-key'
+    process.env.GROQ_MODEL = 'llama-3.1-8b-instant'
+    const result = await getSmartModel('low')
+    expect(result!.modelId).toBe('groq/llama-3.1-8b-instant')
+  })
+
+  it('uses Groq when there is no gateway key', async () => {
+    delete process.env.AI_GATEWAY_API_KEY
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('medium')
+    expect(result!.modelId.startsWith('groq/')).toBe(true)
   })
 })
