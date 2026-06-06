@@ -22,9 +22,29 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: `${siteName} — Quick Shop`, description: `Tap to buy from ${siteName}.` }
 }
 
-export default async function KioskPage() {
+export default async function KioskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string }>
+}) {
+  const { event: eventSlug } = await searchParams
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()
+
+  // If coming via a market-appearance event QR, surface pickup context
+  let marketEvent: { title: string; startDateTime: string; location?: { venueName?: string; address?: string } } | null = null
+  if (eventSlug) {
+    const events = await payload.find({
+      collection: 'events',
+      where: { and: [{ slug: { equals: eventSlug } }, tenantFilter] },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      select: { title: true, startDateTime: true, location: true } as never,
+    })
+    const ev = events.docs?.[0] as any
+    if (ev) marketEvent = { title: ev.title, startDateTime: ev.startDateTime, location: ev.location }
+  }
 
   const products = await payload.find({
     collection: 'products',
@@ -47,5 +67,5 @@ export default async function KioskPage() {
     },
   })
 
-  return <KioskView products={products.docs as never} />
+  return <KioskView products={products.docs as never} marketEvent={marketEvent} />
 }

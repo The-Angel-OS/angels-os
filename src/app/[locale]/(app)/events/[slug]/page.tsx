@@ -145,6 +145,32 @@ export default async function EventDetailPage({
 
           <h1 className="mb-4 text-3xl font-bold">{event.title}</h1>
 
+          {/* Market appearance — shop + kiosk QR card */}
+          {event.eventType === 'market_appearance' && event.status !== 'completed' && (
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-foreground">🛍️ Shop at this market</p>
+                <p className="text-sm text-muted-foreground">
+                  Browse products and pay on your phone — no app needed.
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <a
+                  href="/kiosk"
+                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  Open Shop
+                </a>
+                <a
+                  href={`/kiosk/qr?event=${event.slug}`}
+                  className="rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
+                >
+                  Print QR
+                </a>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6 space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <span>📅</span>
@@ -185,11 +211,21 @@ export default async function EventDetailPage({
             </div>
 
             {isInPerson && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-2">
                 <span>📍</span>
                 <span>
                   {event.location?.venueName}
                   {event.location?.address && ` — ${event.location.address}`}
+                  {event.location?.address && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(`${event.location.venueName || ''} ${event.location.address}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-primary hover:underline"
+                    >
+                      Directions →
+                    </a>
+                  )}
                 </span>
               </div>
             )}

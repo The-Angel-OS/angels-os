@@ -54,6 +54,7 @@ export const Events: CollectionConfig = {
       type: 'select',
       required: true,
       options: [
+        { label: 'Market Appearance', value: 'market_appearance' },
         { label: 'Meetup', value: 'meetup' },
         { label: 'Workshop', value: 'workshop' },
         { label: 'Livestream', value: 'livestream' },

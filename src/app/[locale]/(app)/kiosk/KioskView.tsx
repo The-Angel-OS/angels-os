@@ -17,7 +17,13 @@ interface KioskProduct {
   gallery?: Array<{ image?: unknown }> | null
 }
 
-export function KioskView({ products }: { products: KioskProduct[] }) {
+interface MarketEvent {
+  title: string
+  startDateTime: string
+  location?: { venueName?: string; address?: string }
+}
+
+export function KioskView({ products, marketEvent }: { products: KioskProduct[]; marketEvent?: MarketEvent | null }) {
   const { addItem, cart, isLoading } = useCart()
 
   const itemCount = useMemo(
@@ -34,6 +40,24 @@ export function KioskView({ products }: { products: KioskProduct[] }) {
 
   return (
     <div className="pb-28">
+      {/* Market-appearance context banner */}
+      {marketEvent && (
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-center">
+          <p className="font-semibold text-amber-900 dark:text-amber-200">
+            🌵 {marketEvent.title}
+          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            {new Date(marketEvent.startDateTime).toLocaleDateString('en-US', {
+              weekday: 'long', month: 'long', day: 'numeric',
+            })}
+            {marketEvent.location?.venueName && ` · ${marketEvent.location.venueName}`}
+          </p>
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+            Shop online and pick up at the stand — or just buy on the spot.
+          </p>
+        </div>
+      )}
+
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Quick Shop</h1>
         <p className="mt-1 text-muted-foreground">Tap an item to add it — pay securely in a few taps.</p>

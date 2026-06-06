@@ -142,15 +142,17 @@ function EventCard({ event, badge }: { event: any; badge: string }) {
           />
         ) : (
           <div className="flex h-full items-center justify-center text-3xl">
-            {event.eventType === 'meetup'
-              ? '🤝'
-              : event.eventType === 'workshop'
-                ? '🔧'
-                : event.eventType === 'livestream'
-                  ? '📺'
-                  : event.eventType === 'conference'
-                    ? '🎤'
-                    : '📅'}
+            {event.eventType === 'market_appearance'
+              ? '🌵'
+              : event.eventType === 'meetup'
+                ? '🤝'
+                : event.eventType === 'workshop'
+                  ? '🔧'
+                  : event.eventType === 'livestream'
+                    ? '📺'
+                    : event.eventType === 'conference'
+                      ? '🎤'
+                      : '📅'}
           </div>
         )}
         <span
@@ -185,6 +187,17 @@ function EventCard({ event, badge }: { event: any; badge: string }) {
             </span>
           )}
         </div>
+        {/* Market appearance: show address + shop link */}
+        {event.eventType === 'market_appearance' && event.location?.address && (
+          <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
+            📍 {event.location.address}
+          </p>
+        )}
+        {event.eventType === 'market_appearance' && badge !== 'completed' && (
+          <span className="mt-2 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+            🛍️ Shop at this market →
+          </span>
+        )}
       </div>
     </Link>
   )
