@@ -21,6 +21,12 @@ import { useAuth } from '@/providers/Auth'
 // (Mirrors the fix already applied in useChat.ts.)
 const SERVER_URL = ''
 
+// Decaying poll: fast when the conversation is live, backing off when quiet, so
+// an idle open panel isn't hammering the bus. Resets on new messages / activity.
+const POLL_BASE_MS = 4000
+const POLL_MAX_MS = 30000
+const POLL_DECAY = 1.5
+
 interface BusMessage {
   id: string
   author?: unknown
@@ -58,29 +64,56 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const pollDelayRef = useRef(POLL_BASE_MS)
+  const lastSigRef = useRef('')
 
-  const load = useCallback(async () => {
-    if (!spaceId || !user) return
+  const resetPoll = useCallback(() => {
+    pollDelayRef.current = POLL_BASE_MS
+  }, [])
+
+  const load = useCallback(async (): Promise<BusMessage[] | null> => {
+    if (!spaceId || !user) return null
     setLoading(true)
     try {
       const url = `${SERVER_URL}/api/ai-bus/poll?spaceId=${encodeURIComponent(spaceId)}&channel=${encodeURIComponent(channel)}&limit=100`
       const res = await fetch(url, { credentials: 'include' })
       if (!res.ok) throw new Error(`Failed to load (${res.status})`)
       const data = await res.json()
-      setMessages(Array.isArray(data.messages) ? data.messages : [])
+      const msgs: BusMessage[] = Array.isArray(data.messages) ? data.messages : []
+      setMessages(msgs)
+      return msgs
     } catch (e) {
       setError((e as Error).message)
+      return null
     } finally {
       setLoading(false)
     }
   }, [spaceId, user, channel])
 
-  // Load on open + light poll while open; reset when the route (channel) changes.
+  // Decaying poll while open: reset to the fast cadence on new messages, otherwise
+  // back off toward POLL_MAX. Resets when the route (channel) changes.
   useEffect(() => {
     if (!open) return
-    load()
-    const t = setInterval(load, 6000)
-    return () => clearInterval(t)
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    pollDelayRef.current = POLL_BASE_MS
+    const tick = async () => {
+      const msgs = await load()
+      if (cancelled) return
+      const sig = msgs ? msgs.map((m) => m.id).join(',') : lastSigRef.current
+      if (sig !== lastSigRef.current) {
+        lastSigRef.current = sig
+        pollDelayRef.current = POLL_BASE_MS // fresh activity → poll fast again
+      } else {
+        pollDelayRef.current = Math.min(POLL_MAX_MS, pollDelayRef.current * POLL_DECAY)
+      }
+      timer = setTimeout(tick, pollDelayRef.current)
+    }
+    tick()
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
   }, [open, load])
   useEffect(() => {
     setMessages([])
@@ -103,13 +136,14 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
       })
       if (!res.ok) throw new Error(`Send failed (${res.status})`)
       setDraft('')
+      resetPoll() // expect a reply soon → poll fast
       await load()
     } catch (e) {
       setError((e as Error).message)
     } finally {
       setSending(false)
     }
-  }, [draft, spaceId, channel, sending, load])
+  }, [draft, spaceId, channel, sending, load, resetPoll])
 
   if (!spaceId) return null
 
@@ -170,6 +204,7 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onFocus={resetPoll}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()

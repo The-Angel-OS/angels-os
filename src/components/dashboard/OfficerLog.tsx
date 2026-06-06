@@ -48,17 +48,24 @@ function extractPlainText(content: unknown): string {
   return JSON.stringify(content).slice(0, 100)
 }
 
+// Decaying poll: a slow-moving log shouldn't refetch every 30s forever. Back off
+// when nothing changes; reset to the fast cadence when a new entry appears.
+const LOG_POLL_BASE_MS = 20000
+const LOG_POLL_MAX_MS = 90000
+const LOG_POLL_DECAY = 1.5
+
 export function OfficerLog() {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const fetchLog = useCallback(async (signal?: AbortSignal) => {
+  const fetchLog = useCallback(async (signal?: AbortSignal): Promise<string | null> => {
     try {
       const res = await fetch('/api/messages?where[messageType][equals]=ai_agent&limit=20&sort=-createdAt&depth=1', { signal })
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       const docs = data.docs || []
+      const sig = docs.length ? `${docs.length}:${String((docs[0] as Record<string, unknown>)?.id)}` : ''
       setEntries(
         docs.map((msg: Record<string, unknown>) => {
           const author =
@@ -76,8 +83,10 @@ export function OfficerLog() {
           }
         }),
       )
+      return sig
     } catch {
       // API may not be available yet or request aborted — show empty
+      return null
     } finally {
       setLoading(false)
     }
@@ -85,11 +94,26 @@ export function OfficerLog() {
 
   useEffect(() => {
     const controller = new AbortController()
-    fetchLog(controller.signal)
-    const interval = setInterval(() => fetchLog(controller.signal), 30000)
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let delay = LOG_POLL_BASE_MS
+    let lastSig = ''
+    const tick = async () => {
+      const sig = await fetchLog(controller.signal)
+      if (cancelled) return
+      if (sig !== null && sig !== lastSig) {
+        lastSig = sig
+        delay = LOG_POLL_BASE_MS // new entry → poll fast again
+      } else {
+        delay = Math.min(LOG_POLL_MAX_MS, delay * LOG_POLL_DECAY)
+      }
+      timer = setTimeout(tick, delay)
+    }
+    tick()
     return () => {
+      cancelled = true
       controller.abort()
-      clearInterval(interval)
+      if (timer) clearTimeout(timer)
     }
   }, [fetchLog])
 
