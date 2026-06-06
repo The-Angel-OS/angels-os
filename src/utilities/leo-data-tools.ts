@@ -25,6 +25,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
+import { provisionPortal } from './provisionPortal'
 import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
 import {
@@ -1753,6 +1754,41 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'provision_tenant',
+    description:
+      'Stand up a COMPLETE new portal enterprise on this node: tenant + endeavor + default nav/pages + ALL baseline spaces (AI Bus with LEO/errors/system-log channels, main community space, DMs, and the endeavor-typed Community space) + link the operator as tenant_admin. This is the full-fidelity provisioning path — the same flow the super_admin Provision Portal uses — and it is idempotent (safe to re-run). Use this (not research_and_provision) when you have an explicit name + domain and want a real, ready-to-use tenant, including custom apex domains like kendev.co with a www alias. Returns a step-by-step log of everything created.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Display name of the enterprise, e.g. "KenDev".' },
+        domain: {
+          type: 'string',
+          description: 'Primary routing domain for the tenant, e.g. "kendev.co". Required.',
+        },
+        domainAliases: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Alias domains that also resolve here, e.g. ["www.kendev.co"].',
+        },
+        slug: {
+          type: 'string',
+          description: 'URL-safe tenant identifier. Derived from name when omitted (e.g. "kendev"). Avoid dots.',
+        },
+        endeavorType: {
+          type: 'string',
+          description:
+            'Endeavor type, drives the Community space channel set. One of: service-provider, retail-commerce, creator-content, booking-based, custom. Default: creator-content.',
+        },
+        tagline: { type: 'string', description: 'Short one-line tagline for branding + hero.' },
+        description: { type: 'string', description: 'Longer description for the endeavor + home meta.' },
+        missionStatement: { type: 'string', description: 'The endeavor mission statement.' },
+        primaryColor: { type: 'string', description: 'Brand primary color hex, e.g. "#1A73E8".' },
+        secondaryColor: { type: 'string', description: 'Brand secondary color hex.' },
+      },
+      required: ['name', 'domain'],
+    },
+  },
+  {
     name: 'track_soul',
     description:
       'Register a human soul who needs a Guardian Angel but resources are not yet available. Creates a record in the advocacy queue — when volunteers, attorneys, or funding become available, Angel OS will match them. Use for incarcerated individuals, people in crisis, or anyone the system should be watching over. This is the "no one gets forgotten" tool.',
@@ -3411,6 +3447,8 @@ async function executeToolSwitch(
       // ─── Sprint 20: Research & Provision (Everyone Gets An Angel) ────
       case 'research_and_provision':
         return await handleResearchAndProvision(payload, toolInput, ctx)
+      case 'provision_tenant':
+        return await handleProvisionTenant(payload, toolInput, ctx)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -9011,6 +9049,62 @@ async function handleGenerateThemeAwareImage(
 // ---------------------------------------------------------------------------
 
 /**
+ * provision_tenant — Stand up a COMPLETE portal enterprise on this node.
+ *
+ * Thin wrapper around the shared provisionPortal() utility — the exact same flow
+ * the super_admin Provision Portal endpoint runs. LEO has no PayloadRequest, so we
+ * pass payload + the acting user's id; provisionPortal links them as tenant_admin.
+ * Idempotent: re-running heals/backfills rather than duplicating.
+ */
+async function handleProvisionTenant(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const name = typeof input.name === 'string' ? input.name.trim() : ''
+  const domain = typeof input.domain === 'string' ? input.domain.trim() : ''
+  if (!name) return 'Error: name is required.'
+  if (!domain) return 'Error: domain is required (e.g. "kendev.co").'
+
+  const domainAliases = Array.isArray(input.domainAliases)
+    ? (input.domainAliases as unknown[]).filter((d): d is string => typeof d === 'string')
+    : undefined
+
+  try {
+    const result = await provisionPortal(
+      payload,
+      {
+        name,
+        domain,
+        domainAliases,
+        slug: typeof input.slug === 'string' ? input.slug : undefined,
+        endeavorType: typeof input.endeavorType === 'string' ? input.endeavorType : undefined,
+        tagline: typeof input.tagline === 'string' ? input.tagline : undefined,
+        description: typeof input.description === 'string' ? input.description : undefined,
+        missionStatement: typeof input.missionStatement === 'string' ? input.missionStatement : undefined,
+        primaryColor: typeof input.primaryColor === 'string' ? input.primaryColor : undefined,
+        secondaryColor: typeof input.secondaryColor === 'string' ? input.secondaryColor : undefined,
+      },
+      { actingUserId: ctx.userId },
+    )
+
+    const lines = [
+      `## Provisioned: ${result.tenant.slug}`,
+      `- **Tenant:** #${result.tenant.id} (${result.tenant.slug})`,
+      `- **Domain:** ${result.tenant.domain} → ${result.url}`,
+      '',
+      '### Steps',
+      ...result.log.map((l) => `- ${l}`),
+      '',
+      `Next: set \`DEFAULT_TENANT_SLUG=${result.tenant.slug}\` in this node's env if it is the node's root portal, point DNS (${result.tenant.domain} + any aliases) at this node, then sign the constitution and ping the federation to join the network.`,
+    ]
+    return lines.join('\n')
+  } catch (e) {
+    return `Error provisioning tenant: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
+}
+
+/**
  * research_and_provision — Research a person/org and create their Guardian Angel Endeavor.
  *
  * This is the constitutional fulfillment of "Everyone Gets An Angel."
@@ -9116,52 +9210,45 @@ async function handleResearchAndProvision(
   parts.push(`- **Slug:** ${slug}`)
 
   // Step 4: If autoProvision, create the tenant
-  if (autoProvision && ctx.tenantId) {
+  if (autoProvision) {
     try {
-      // Check if tenant already exists
-      const existing = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: slug } },
-        limit: 1,
-        overrideAccess: true,
-      })
+      // Map the research heuristic type → a provisionPortal endeavorType.
+      const endeavorType =
+        suggestedType === 'retail'
+          ? 'retail-commerce'
+          : suggestedType === 'service'
+            ? 'service-provider'
+            : suggestedType === 'content_creator'
+              ? 'creator-content'
+              : suggestedType === 'nonprofit'
+                ? 'custom'
+                : 'creator-content'
+      const domainSuffix = process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'
 
-      if (existing.docs.length > 0) {
-        parts.push(`\n**Note:** A tenant with slug "${slug}" already exists. Skipping creation.`)
-      } else {
-        const domainSuffix = process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'
-        const tenant = await payload.create({
-          collection: 'tenants',
-          data: {
-            name,
-            slug,
-            domain: `${slug}.${domainSuffix}`,
-            status: 'provisioning',
-            type: 'tenant',
-            businessType: suggestedType as any,
-            storefront: {
-              description: context || `Guardian Angel Endeavor for ${name}`,
-              contactEmail: operatorEmail || '',
-            },
-            branding: {
-              siteName: name,
-              tagline: context ? context.slice(0, 100) : `Guardian Angel for ${name}`,
-            },
-          } as any,
-          overrideAccess: true,
-        })
-
-        parts.push(`\n### Tenant Created`)
-        parts.push(`- **ID:** ${tenant.id}`)
-        parts.push(`- **Slug:** ${slug}`)
-        parts.push(`- **Domain:** ${slug}.${domainSuffix}`)
-        parts.push(`- **Status:** provisioning`)
-        parts.push(`\nNext steps: Use configure_business to set branding, create_space to add channels, then complete_enlistment and sign_constitution to join the federation.`)
-      }
+      // Full-fidelity provisioning — same flow as the Provision Portal: tenant +
+      // endeavor + nav/pages + ALL baseline spaces (AI Bus, main, DMs, community)
+      // + admin link. Idempotent, so re-running heals rather than duplicates.
+      const result = await provisionPortal(
+        payload,
+        {
+          name,
+          slug,
+          domain: `${slug}.${domainSuffix}`,
+          endeavorType,
+          tagline: context ? context.slice(0, 100) : `Guardian Angel for ${name}`,
+          description: context || `Guardian Angel Endeavor for ${name}`,
+        },
+        { actingUserId: ctx.userId },
+      )
+      parts.push(`\n### Endeavor Provisioned`)
+      parts.push(`- **Tenant:** #${result.tenant.id} (${result.tenant.slug})`)
+      parts.push(`- **Domain:** ${result.tenant.domain} → ${result.url}`)
+      parts.push(...result.log.map((l) => `- ${l}`))
+      parts.push(`\nNext steps: sign_constitution and ping_federation to join the network.`)
     } catch (err) {
-      parts.push(`\nError creating tenant: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      parts.push(`\nError provisioning endeavor: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
-  } else if (!autoProvision) {
+  } else {
     parts.push(`\n### Ready to Provision`)
     parts.push(`This profile is ready for review. To create the Endeavor, call research_and_provision again with autoProvision: true, or use onboard_vendor with the details above.`)
   }

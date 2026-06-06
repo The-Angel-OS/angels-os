@@ -36,8 +36,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 121 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(121)
+  it('has exactly 122 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(122)
   })
 
   it('every tool has a unique name', () => {
@@ -176,6 +176,21 @@ describe('LEO Tool Categories', () => {
       'onboard_vendor',
     ])('includes %s', (name) => {
       expect(toolNames()).toContain(name)
+    })
+  })
+
+  describe('Provisioning tools', () => {
+    it.each([
+      'research_and_provision',
+      'provision_tenant',
+    ])('includes %s', (name) => {
+      expect(toolNames()).toContain(name)
+    })
+
+    it('provision_tenant requires name and domain', () => {
+      const tool = LEO_TOOLS.find((t) => t.name === 'provision_tenant')
+      expect(tool?.input_schema.required).toContain('name')
+      expect(tool?.input_schema.required).toContain('domain')
     })
   })
 

@@ -26,7 +26,7 @@ const SYSTEM_EMAIL_DOMAIN = 'system.spacesangels.com'
 /** Find tenant by slug; create if not exists. Returns tenant with id. */
 export async function findOrCreateTenant(
   payload: Payload,
-  req: PayloadRequest,
+  req: PayloadRequest | undefined,
   data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant'; businessType?: string },
 ): Promise<{ id: number | string; name: string; slug: string }> {
   const existing = await payload.find({
@@ -443,7 +443,7 @@ function getDefaultRoutingRules(agentType: string): {
 /** Find TenantMembership by user+tenant; create if not exists. */
 export async function findOrCreateTenantMembership(
   payload: Payload,
-  req: PayloadRequest,
+  req: PayloadRequest | undefined,
   data: { userId: number | string; tenantId: number | string; role: string },
 ): Promise<void> {
   const existing = await payload.find({

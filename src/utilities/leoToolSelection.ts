@@ -25,7 +25,7 @@ export const ADMIN_ONLY_TOOLS = new Set<string>([
   'query_financial_reports',
   // platform / tenant config
   'configure_business', 'configure_endeavor', 'update_theme_settings', 'update_navigation',
-  'research_and_provision', 'onboard_vendor', 'manage_categories',
+  'research_and_provision', 'provision_tenant', 'onboard_vendor', 'manage_categories',
   // moderation / governance / incident
   'moderate_content', 'send_emergency_alert', 'document_incident', 'run_subsafe_check',
   'sign_constitution', 'request_endeavor_migration',
