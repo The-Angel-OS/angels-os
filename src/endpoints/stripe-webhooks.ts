@@ -222,17 +222,18 @@ async function handlePaymentIntentSucceeded(
   const orderId = paymentIntent.metadata?.orderId
   if (orderId) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (payload.update as any)({
-        collection: 'orders',
-        id: orderId,
-        data: {
-          status: 'paid',
-        },
-        overrideAccess: true,
-      })
-    } catch {
-      // Order may not exist or have different status field — non-fatal
+      // Mark paid + decrement product inventory on the FIRST transition only
+      // (idempotent — a webhook retry sees status==='paid' and skips). This is
+      // what keeps inventory truthful across online/kiosk/QR/POS so Hays can't
+      // oversell his 100 dish gardens.
+      const { markOrderPaidAndDecrementInventory } = await import('@/utilities/applyOrderInventory')
+      const result = await markOrderPaidAndDecrementInventory(payload, orderId)
+      if (result.applied && result.decremented.length) {
+        console.log(`[Stripe Webhook] Order ${orderId} paid — inventory decremented:`, result.decremented)
+      }
+    } catch (e) {
+      // Non-fatal: never let inventory bookkeeping break payment handling.
+      console.error('[Stripe Webhook] markOrderPaid/inventory failed:', e instanceof Error ? e.message : e)
     }
 
     // ── User Propagation: buyer → seller's tenant (Sprint 42) ──
