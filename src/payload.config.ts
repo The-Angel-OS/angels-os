@@ -93,6 +93,7 @@ import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slot
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
+import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -611,6 +612,12 @@ export default buildConfig({
       path: '/provision-ops/ensure-spaces',
       method: 'get',
       handler: ensureSpacesHandler,
+    },
+    // Report a page comment for moderation (any authed user; non-destructive).
+    {
+      path: '/comment-ops/flag',
+      method: 'post',
+      handler: commentFlagHandler,
     },
     {
       path: '/booking-ops/checkout',

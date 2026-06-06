@@ -12,7 +12,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { MessageSquare, X, Send, Loader2 } from 'lucide-react'
+import { MessageSquare, X, Send, Loader2, Flag, Trash2 } from 'lucide-react'
 import { useAuth } from '@/providers/Auth'
 
 // Same-origin (relative): NEXT_PUBLIC_SERVER_URL is baked at build time to the
@@ -48,6 +48,13 @@ const nameOf = (author: unknown): string => {
   }
   return 'Someone'
 }
+const idOf = (author: unknown): string | undefined => {
+  if (author && typeof author === 'object') {
+    const id = (author as { id?: string | number }).id
+    return id != null ? String(id) : undefined
+  }
+  return author != null ? String(author) : undefined
+}
 // Strip a leading /xx locale segment so a page channel is stable across locales.
 const pageChannel = (pathname: string): string =>
   'page:' + (pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/')
@@ -57,12 +64,17 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
   const { user } = useAuth()
   const channel = useMemo(() => pageChannel(pathname), [pathname])
 
+  const userId = idOf(user)
+  const roles = (user as { roles?: string[] } | null)?.roles
+  const isAdmin = Array.isArray(roles) && (roles.includes('admin') || roles.includes('super_admin'))
+
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<BusMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reported, setReported] = useState<Set<string>>(new Set())
   const listRef = useRef<HTMLDivElement>(null)
   const pollDelayRef = useRef(POLL_BASE_MS)
   const lastSigRef = useRef('')
@@ -145,6 +157,39 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
     }
   }, [draft, spaceId, channel, sending, load, resetPoll])
 
+  // Moderation: delete (own or admin, via Payload REST which enforces access) and
+  // flag/report (any user, non-destructive → moves the message to pending).
+  const deleteComment = useCallback(async (id: string) => {
+    if (typeof window !== 'undefined' && !window.confirm('Delete this comment?')) return
+    try {
+      const res = await fetch(`${SERVER_URL}/api/messages/${id}`, { method: 'DELETE', credentials: 'include' })
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+      setMessages((prev) => prev.filter((m) => m.id !== id))
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }, [])
+
+  const flagComment = useCallback(async (id: string) => {
+    setReported((prev) => new Set(prev).add(id)) // optimistic
+    try {
+      const res = await fetch(`${SERVER_URL}/api/comment-ops/flag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ messageId: id }),
+      })
+      if (!res.ok) throw new Error(`Report failed (${res.status})`)
+    } catch (e) {
+      setReported((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setError((e as Error).message)
+    }
+  }, [])
+
   if (!spaceId) return null
 
   return (
@@ -184,17 +229,50 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
                 ) : messages.length === 0 ? (
                   <p className="text-center text-xs text-muted-foreground">No comments yet. Start the conversation.</p>
                 ) : (
-                  messages.map((m) => (
-                    <div key={m.id} className="text-sm">
-                      <span className="font-medium">{nameOf(m.author)}</span>
-                      {m.createdAt && (
-                        <span className="ml-2 text-[10px] text-muted-foreground">
-                          {new Date(m.createdAt).toLocaleString()}
-                        </span>
-                      )}
-                      <p className="mt-0.5 whitespace-pre-wrap text-foreground/90">{textOf(m.content)}</p>
-                    </div>
-                  ))
+                  messages.map((m) => {
+                    const own = Boolean(userId && idOf(m.author) === userId)
+                    const canDelete = own || isAdmin
+                    return (
+                      <div key={m.id} className="group text-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="font-medium">{nameOf(m.author)}</span>
+                            {m.createdAt && (
+                              <span className="ml-2 text-[10px] text-muted-foreground">
+                                {new Date(m.createdAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {/* Moderation controls — appear on hover */}
+                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            {reported.has(m.id) ? (
+                              <span className="text-[10px] text-amber-500">Reported</span>
+                            ) : (
+                              !own && (
+                                <button
+                                  onClick={() => flagComment(m.id)}
+                                  title="Report this comment"
+                                  className="text-muted-foreground hover:text-amber-500"
+                                >
+                                  <Flag className="h-3.5 w-3.5" />
+                                </button>
+                              )
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => deleteComment(m.id)}
+                                title="Delete this comment"
+                                className="text-muted-foreground hover:text-red-500"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="mt-0.5 whitespace-pre-wrap text-foreground/90">{textOf(m.content)}</p>
+                      </div>
+                    )
+                  })
                 )}
               </div>
 
