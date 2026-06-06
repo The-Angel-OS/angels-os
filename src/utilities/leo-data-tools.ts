@@ -25,7 +25,10 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
-import { provisionPortal } from './provisionPortal'
+// NOTE: provisionPortal is imported lazily inside its handlers (handleProvisionTenant
+// / handleResearchAndProvision) to avoid a module-load cycle: provisionPortal pulls
+// in payload.config, which registers the MCP plugin, which generates tools FROM this
+// file's LEO_TOOLS — a top-level import here would create a TDZ on LEO_TOOLS.
 import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
 import {
@@ -9071,6 +9074,7 @@ async function handleProvisionTenant(
     : undefined
 
   try {
+    const { provisionPortal } = await import('./provisionPortal')
     const result = await provisionPortal(
       payload,
       {
@@ -9228,6 +9232,7 @@ async function handleResearchAndProvision(
       // Full-fidelity provisioning — same flow as the Provision Portal: tenant +
       // endeavor + nav/pages + ALL baseline spaces (AI Bus, main, DMs, community)
       // + admin link. Idempotent, so re-running heals rather than duplicates.
+      const { provisionPortal } = await import('./provisionPortal')
       const result = await provisionPortal(
         payload,
         {

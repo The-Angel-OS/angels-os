@@ -1,6 +1,12 @@
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
 import { ensureDMSpaceMembership } from './ensureSystemSpace'
+
+// Lazy payload accessor — keeps @payload-config out of this module's top level to
+// avoid the leo-data-tools ↔ payload.config import cycle (see fetchDefaultSpaceId).
+async function getLocalPayload() {
+  const { getPayload } = await import('payload')
+  const { default: configPromise } = await import('@payload-config')
+  return getPayload({ config: configPromise })
+}
 
 /**
  * Find or create a DM channel between two users in a tenant.
@@ -17,7 +23,7 @@ export async function findOrCreateDM(
   userA: number | string,
   userB: number | string | 'leo',
 ): Promise<{ channelId: string; channelSlug: string; isNew: boolean }> {
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getLocalPayload()
 
   // Generate deterministic slug
   const parts =

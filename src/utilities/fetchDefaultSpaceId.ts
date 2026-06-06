@@ -1,5 +1,11 @@
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
+// Lazy payload accessor — avoids pulling @payload-config into this module's top
+// level, which would create a leo-data-tools ↔ payload.config import cycle (the
+// MCP plugin generates its tools FROM leo-data-tools' LEO_TOOLS at config build).
+async function getLocalPayload() {
+  const { getPayload } = await import('payload')
+  const { default: configPromise } = await import('@payload-config')
+  return getPayload({ config: configPromise })
+}
 
 /**
  * Resolve the default (oldest) space for a given tenant.
@@ -15,7 +21,7 @@ export async function fetchDefaultSpaceId(
   tenantId: number | string,
 ): Promise<string | undefined> {
   try {
-    const payload = await getPayload({ config: configPromise })
+    const payload = await getLocalPayload()
     const spaces = await payload.find({
       collection: 'spaces',
       where: { tenant: { equals: tenantId } },

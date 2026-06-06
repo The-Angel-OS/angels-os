@@ -20,8 +20,13 @@
  * bootstraps together — early tenants are investors, not customers.
  */
 
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
+// Lazy payload accessor — keeps @payload-config out of this module's top level to
+// avoid the leo-data-tools ↔ payload.config import cycle (see fetchDefaultSpaceId).
+async function getLocalPayload() {
+  const { getPayload } = await import('payload')
+  const { default: configPromise } = await import('@payload-config')
+  return getPayload({ config: configPromise })
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -67,7 +72,7 @@ export async function calculateBootstrapFee(
   tenantId: number,
   transactionAmountCents: number,
 ): Promise<BootstrapFeeResult> {
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getLocalPayload()
 
   const tenant = await payload.findByID({
     collection: 'tenants',
@@ -179,7 +184,7 @@ export async function calculateBootstrapFee(
  * Used by the dashboard to show fee tier, refund liability, etc.
  */
 export async function getBootstrapFeeStatus(tenantId: number) {
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getLocalPayload()
 
   const tenant = await payload.findByID({
     collection: 'tenants',
@@ -214,7 +219,7 @@ export async function getBootstrapFeeStatus(tenantId: number) {
  * Does NOT process the refund — that's a separate Stripe operation.
  */
 export async function graduateToStandard(tenantId: number): Promise<void> {
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getLocalPayload()
 
   const tenant = await payload.findByID({
     collection: 'tenants',
@@ -248,7 +253,7 @@ export async function getTotalBootstrapLiability(): Promise<{
   tenantsInFree: number
   tenantsGraduated: number
 }> {
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getLocalPayload()
 
   const tenants = await payload.find({
     collection: 'tenants',
