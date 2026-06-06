@@ -429,6 +429,92 @@ async function resolveGroqModel(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Provider Registry — ordered, first-available-wins.
+// getSmartModel walks the configured order and uses the first provider that is
+// available for the requested tier, failing to the next. "Available" is per
+// provider: local = reachable health probe + opted-in tier; groq = key + opted-in
+// tier; gateway = key present. Emergencies (no gateway key, or credits exhausted)
+// make local/groq eligible for ANY tier so LEO keeps answering.
+//
+// Order source: AI_PROVIDER_ORDER (CSV) today; this single function is the seam
+// a DB-backed config will later read from (so the settings panel can reorder it
+// for all nodes sharing a database). Default order = local → groq → gateway,
+// which reproduces the prior hardcoded behavior exactly.
+// ---------------------------------------------------------------------------
+
+type ProviderKind = 'ollama' | 'groq' | 'gateway'
+
+const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'gateway']
+
+export function resolveProviderOrder(): ProviderKind[] {
+  const raw = process.env.AI_PROVIDER_ORDER
+  if (!raw) return DEFAULT_PROVIDER_ORDER
+  const valid = new Set<ProviderKind>(['ollama', 'groq', 'gateway'])
+  const order = raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter((k): k is ProviderKind => valid.has(k as ProviderKind))
+  return order.length > 0 ? order : DEFAULT_PROVIDER_ORDER
+}
+
+interface ProviderAttemptCtx {
+  /** Tier after credit-pressure downshift (what we actually serve). */
+  tier: TaskComplexity
+  /** Originally requested complexity (echoed back on the result). */
+  requested: TaskComplexity
+  gatewayKey: string | undefined
+  creditsExhausted: boolean
+  tracking?: { tenantId?: number; userId?: number; tags?: string[] }
+}
+
+/** Emergency = no metered gateway available → local/groq may serve ANY tier. */
+function isEmergency(ctx: ProviderAttemptCtx): boolean {
+  return !ctx.gatewayKey || ctx.creditsExhausted
+}
+
+function attemptReason(ctx: ProviderAttemptCtx): string {
+  return !ctx.gatewayKey ? 'no-gateway-key' : ctx.creditsExhausted ? 'credits-exhausted' : 'tier-routing'
+}
+
+async function attemptOllama(ctx: ProviderAttemptCtx): Promise<SmartModelResult | null> {
+  if (!process.env.OLLAMA_BASE_URL) return null
+  if (!(isEmergency(ctx) || localPrimaryTiers().has(ctx.tier))) return null
+  const local = await resolveLocalModel()
+  if (!local) return null
+  // Local-first failover: if a cloud fallback exists, only use local when it's
+  // actually reachable; with no gateway key it's the only option, use regardless.
+  const usable = !ctx.gatewayKey || (await isLocalModelHealthy())
+  if (!usable) {
+    console.warn('[AI Gateway] Local model unreachable — trying next provider')
+    return null
+  }
+  console.log(`[AI Gateway] 🏠 Local model ${local.modelId} (${attemptReason(ctx)})`)
+  return { model: local.model, providerOptions: {}, modelId: local.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
+async function attemptGroq(ctx: ProviderAttemptCtx): Promise<SmartModelResult | null> {
+  if (!process.env.GROQ_API_KEY) return null
+  if (!(isEmergency(ctx) || groqPrimaryTiers().has(ctx.tier))) return null
+  const groq = await resolveGroqModel(ctx.tier)
+  if (!groq) return null
+  console.log(`[AI Gateway] ⚡ Groq ${groq.modelId} (${attemptReason(ctx)})`)
+  return { model: groq.model, providerOptions: {}, modelId: groq.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
+function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
+  if (!ctx.gatewayKey) return null
+  const config = TASK_MODEL_MAP[ctx.tier]
+  const provider = createGateway({ apiKey: ctx.gatewayKey })
+  const model = provider.languageModel(config.primary)
+  const gatewayOpts: Record<string, unknown> = { models: config.fallbacks }
+  if (ctx.tracking?.tenantId || ctx.tracking?.userId) {
+    gatewayOpts.user = `t${ctx.tracking.tenantId || 0}-u${ctx.tracking.userId || 0}`
+  }
+  gatewayOpts.tags = [...(ctx.tracking?.tags || []), `tier-${ctx.tier}`]
+  return { model, providerOptions: { gateway: gatewayOpts }, modelId: config.primary, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
 /**
  * Returns a model + providerOptions pre-configured for the given task complexity.
  * Includes gateway-native fallback chains, credit-aware downshifting, and
@@ -459,80 +545,28 @@ export async function getSmartModel(
 
   const credits = apiKey ? await checkCredits() : null
   const effectiveComplexity = applyCreditPressure(complexity, credits)
-
-  // ── Local-model routing (env-gated; inert unless OLLAMA_BASE_URL is set) ──
-  // Use the local model when: (1) no cloud gateway key exists at all, or
-  // (2) cloud credits are critically exhausted, or (3) this tier is opted into
-  // local-primary. Otherwise fall through to the cloud gateway below.
   const creditsExhausted = !!credits && credits.balance < CREDIT_THRESHOLD_CRITICAL
-  if (!apiKey || creditsExhausted || localPrimaryTiers().has(effectiveComplexity)) {
-    const local = await resolveLocalModel()
-    if (local) {
-      // Local-first failover: when a cloud gateway is available, only use local
-      // if it's actually reachable right now; otherwise fall through to cloud.
-      // With no gateway key, local is the only provider — use it regardless.
-      const localUsable = !apiKey || (await isLocalModelHealthy())
-      if (localUsable) {
-        const reason = !apiKey ? 'no-gateway-key' : creditsExhausted ? 'credits-exhausted' : 'tier-routing'
-        console.log(`[AI Gateway] 🏠 Local model ${local.modelId} (${reason})`)
-        return {
-          model: local.model,
-          providerOptions: {},
-          modelId: local.modelId,
-          complexity,
-          effectiveComplexity,
-        }
-      }
-      console.warn('[AI Gateway] Local model unreachable — failing over to cloud gateway')
-    }
+
+  const ctx: ProviderAttemptCtx = {
+    tier: effectiveComplexity,
+    requested: complexity,
+    gatewayKey: apiKey,
+    creditsExhausted,
+    tracking,
   }
 
-  // ── Groq (fast, free/cheap cloud) — preferred over the metered gateway for
-  // opted-in tiers, and a natural next hop when credits are exhausted or there
-  // is no gateway key. Hosted, so key-presence = availability (no probe).
-  if (process.env.GROQ_API_KEY && (!apiKey || creditsExhausted || groqPrimaryTiers().has(effectiveComplexity))) {
-    const groq = await resolveGroqModel(effectiveComplexity)
-    if (groq) {
-      const reason = !apiKey ? 'no-gateway-key' : creditsExhausted ? 'credits-exhausted' : 'tier-routing'
-      console.log(`[AI Gateway] ⚡ Groq ${groq.modelId} (${reason})`)
-      return {
-        model: groq.model,
-        providerOptions: {},
-        modelId: groq.modelId,
-        complexity,
-        effectiveComplexity,
-      }
-    }
+  // Walk the configured provider order; the first provider available for this
+  // tier wins, failing to the next. Default order: local → groq → gateway.
+  for (const kind of resolveProviderOrder()) {
+    const result =
+      kind === 'ollama' ? await attemptOllama(ctx)
+      : kind === 'groq' ? await attemptGroq(ctx)
+      : attemptGateway(ctx)
+    if (result) return result
   }
 
-  if (!apiKey) {
-    console.warn('[AI Gateway] No gateway key and no local/Groq provider — gateway unavailable')
-    return null
-  }
-
-  const config = TASK_MODEL_MAP[effectiveComplexity]
-
-  const provider = createGateway({ apiKey })
-  const model = provider.languageModel(config.primary)
-
-  // Build gateway provider options for native fallback + tracking
-  const gatewayOpts: Record<string, unknown> = {
-    models: config.fallbacks,
-  }
-
-  if (tracking?.tenantId || tracking?.userId) {
-    gatewayOpts.user = `t${tracking.tenantId || 0}-u${tracking.userId || 0}`
-  }
-  const tags = [...(tracking?.tags || []), `tier-${effectiveComplexity}`]
-  gatewayOpts.tags = tags
-
-  return {
-    model,
-    providerOptions: { gateway: gatewayOpts },
-    modelId: config.primary,
-    complexity,
-    effectiveComplexity,
-  }
+  console.warn('[AI Gateway] No provider available for this request (order exhausted)')
+  return null
 }
 
 /**

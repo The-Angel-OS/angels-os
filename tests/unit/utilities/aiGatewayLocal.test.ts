@@ -39,6 +39,7 @@ const LOCAL_ENV_KEYS = [
   'GROQ_API_KEY',
   'GROQ_MODEL',
   'GROQ_PRIMARY_TIERS',
+  'AI_PROVIDER_ORDER',
 ]
 
 beforeEach(() => {
@@ -192,6 +193,36 @@ describe('getSmartModel — Groq (fast/cheap cloud interim)', () => {
     delete process.env.AI_GATEWAY_API_KEY
     process.env.GROQ_API_KEY = 'groq-key'
     const result = await getSmartModel('medium')
+    expect(result!.modelId.startsWith('groq/')).toBe(true)
+  })
+})
+
+describe('getSmartModel — configurable provider order (AI_PROVIDER_ORDER)', () => {
+  it('respects a reordered preference (groq before local)', async () => {
+    process.env.AI_PROVIDER_ORDER = 'groq,ollama,gateway'
+    process.env.OLLAMA_BASE_URL = 'https://ollama.kendev.co/v1'
+    process.env.OLLAMA_PRIMARY_TIERS = 'low'
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('low')
+    // both available for 'low', but groq is first in the order now
+    expect(result!.modelId.startsWith('groq/')).toBe(true)
+  })
+
+  it('a single-provider order forces that provider', async () => {
+    process.env.AI_PROVIDER_ORDER = 'gateway'
+    process.env.OLLAMA_BASE_URL = 'https://ollama.kendev.co/v1'
+    process.env.OLLAMA_PRIMARY_TIERS = 'low'
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('low')
+    expect(result!.modelId.startsWith('groq/')).toBe(false)
+    expect(result!.modelId.startsWith('ollama/')).toBe(false)
+  })
+
+  it('ignores unknown provider names and falls back to the default order', async () => {
+    process.env.AI_PROVIDER_ORDER = 'bogus,,nonsense'
+    process.env.GROQ_API_KEY = 'groq-key'
+    const result = await getSmartModel('low')
+    // default order applies → groq handles low
     expect(result!.modelId.startsWith('groq/')).toBe(true)
   })
 })
