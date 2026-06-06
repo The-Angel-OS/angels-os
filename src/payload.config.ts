@@ -94,6 +94,7 @@ import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
+import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -618,6 +619,12 @@ export default buildConfig({
       path: '/comment-ops/flag',
       method: 'post',
       handler: commentFlagHandler,
+    },
+    // Backfill Channel docs for pre-existing page: messages (idempotent).
+    {
+      path: '/provision-ops/ensure-page-channels',
+      method: 'get',
+      handler: ensurePageChannelsHandler,
     },
     {
       path: '/booking-ops/checkout',

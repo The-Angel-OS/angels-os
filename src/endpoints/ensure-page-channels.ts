@@ -1,0 +1,98 @@
+/**
+ * Ensure Page Channels — GET /api/provision-ops/ensure-page-channels
+ *
+ * Backfill Channel documents for any `page:` messages that were written before
+ * ensurePageChannel shipped. Scans all messages whose channel starts with
+ * "page:", groups by unique (space, channel) pairs, and find-or-creates the
+ * Channel doc so those conversations appear in the AI Bus Spaces viewer.
+ *
+ * Idempotent — safe to run repeatedly. super_admin or ?key=CRON_SECRET.
+ *
+ * ?tenant=<slug>  heal one tenant
+ * ?all=1          heal every tenant
+ */
+import type { PayloadHandler } from 'payload'
+import { ensurePageChannel } from '@/utilities/ensurePageChannel'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+
+export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  const url = new URL(req.url || '', 'http://localhost')
+
+  const secret = process.env.CRON_SECRET
+  const key = url.searchParams.get('key')
+  const authHeader = req.headers?.get('authorization') || ''
+  const isSuperAdmin = Boolean(
+    user && ((user as { roles?: string[] }).roles || []).includes('super_admin'),
+  )
+  const keyOk = Boolean(secret && (key === secret || authHeader === `Bearer ${secret}`))
+  if (!isSuperAdmin && !keyOk) {
+    return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
+  }
+
+  const slug = url.searchParams.get('tenant')?.trim()
+  const all = ['1', 'true'].includes(url.searchParams.get('all') || '')
+
+  // Resolve target tenant IDs
+  let tenantIds: Array<number | string> = []
+  if (slug) {
+    const t = await fetchTenantBySlug(slug)
+    if (!t) return Response.json({ error: `tenant '${slug}' not found` }, { status: 404 })
+    tenantIds = [t.id]
+  } else if (all) {
+    const res = await payload.find({ collection: 'tenants', limit: 500, depth: 0, overrideAccess: true })
+    tenantIds = (res.docs as { id: number | string }[]).map((t) => t.id)
+  } else {
+    return Response.json({ error: 'pass ?tenant=<slug> or ?all=1' }, { status: 400 })
+  }
+
+  const results: Array<{ tenant: string | number; created: number; errors: number }> = []
+
+  for (const tenantId of tenantIds) {
+    let created = 0
+    let errors = 0
+
+    // Find all page: messages for this tenant (select only needed fields)
+    const msgs = await payload.find({
+      collection: 'messages',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { channel: { contains: 'page:' } },
+        ],
+      },
+      limit: 2000,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // Collect unique (spaceId, channel) pairs
+    const seen = new Set<string>()
+    for (const msg of msgs.docs as Array<{ channel?: string; space?: unknown }>) {
+      const channel = msg.channel
+      const spaceRaw = msg.space
+      const spaceId =
+        spaceRaw && typeof spaceRaw === 'object'
+          ? (spaceRaw as { id: number | string }).id
+          : (spaceRaw as number | string)
+      if (!channel?.startsWith('page:') || spaceId == null) continue
+
+      const key = `${spaceId}::${channel}`
+      if (seen.has(key)) continue
+      seen.add(key)
+
+      try {
+        await ensurePageChannel(payload, { channel, spaceId: spaceId as number, tenantId })
+        created++
+      } catch (e) {
+        console.warn('[ensure-page-channels]', e instanceof Error ? e.message : e)
+        errors++
+      }
+    }
+
+    results.push({ tenant: tenantId, created, errors })
+  }
+
+  const totalCreated = results.reduce((s, r) => s + r.created, 0)
+  return Response.json({ ok: true, totalCreated, results })
+}
