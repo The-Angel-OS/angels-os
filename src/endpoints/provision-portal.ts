@@ -17,6 +17,8 @@ import { findOrCreateTenant, findOrCreateTenantMembership } from '@/endpoints/se
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
 import { createLexicalContent, createHeadingNode, createParagraphNode } from '@/utilities/lexicalHelpers'
+import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
+import type { EndeavorType } from '@/utilities/spaceProvisioning'
 
 export const provisionPortalHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -135,6 +137,23 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
       log.push(`endeavor #${endeavor.id}`)
     } else {
       log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
+    }
+
+    // 4b. Ensure the Community Space + channels exist (was missing — a tenant
+    //     without a Space has no AI Bus). Idempotent.
+    try {
+      const s = await ensureTenantSpaces(payload, tenant.id, {
+        endeavorType: endeavorType as EndeavorType,
+        spaceName: 'Community',
+        req,
+      })
+      log.push(
+        s.createdSpace
+          ? `community space #${s.spaceId} created (+ channels)`
+          : `space #${s.spaceId} present (backfilled: ${s.addedChannels.join(', ') || 'none'})`,
+      )
+    } catch (e) {
+      log.push(`spaces skipped: ${(e as Error).message}`)
     }
 
     // 5. Link the provisioning super_admin as tenant_admin + user.tenants

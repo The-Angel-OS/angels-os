@@ -20,6 +20,10 @@
     {
       "path": "/api/youtube/poll",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/provision-ops/ensure-spaces?all=1",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [

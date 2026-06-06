@@ -92,6 +92,7 @@ import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
+import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -603,6 +604,13 @@ export default buildConfig({
       path: '/provision-ops/portal',
       method: 'post',
       handler: provisionPortalHandler,
+    },
+    // Idempotent self-heal: ensure a tenant's baseline Spaces/Channels exist.
+    // GET so a super_admin can trigger it from the browser (?tenant=<slug> | ?all=1).
+    {
+      path: '/provision-ops/ensure-spaces',
+      method: 'get',
+      handler: ensureSpacesHandler,
     },
     {
       path: '/booking-ops/checkout',
