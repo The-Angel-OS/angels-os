@@ -20,6 +20,7 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { recordCostEvent } from '@/utilities/recordCostEvent'
 
 export const vercelSpendWebhookHandler: PayloadHandler = async (req) => {
   let body: Record<string, unknown>
@@ -72,6 +73,20 @@ export const vercelSpendWebhookHandler: PayloadHandler = async (req) => {
     } catch {
       // Audit log collection may not exist yet — non-fatal
       payload.logger.warn('[vercel-spend] Could not write to audit log')
+    }
+
+    // Operating-Costs ledger — persist platform infra spend (fail-soft).
+    // When Vercel reports a spend amount, record it so it shows alongside AI /
+    // telephony / storage cost in the panel. Platform-level (no tenant).
+    if (amount != null) {
+      await recordCostEvent(payload, {
+        category: 'infra',
+        source: 'vercel-spend',
+        provider: 'vercel',
+        costCents: Math.round(amount * 100 * 1000) / 1000,
+        costEstimated: false, // authoritative from Vercel billing
+        metadata: { eventType, percentage, limit, severity },
+      })
     }
 
     return Response.json({
