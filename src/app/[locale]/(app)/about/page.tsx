@@ -5,6 +5,9 @@ import React from 'react'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import { CollectionHero } from '@/components/CollectionHero'
+import { queryPageBySlug } from '@/utilities/queryPageBySlug'
+import { RenderBlocks } from '@/blocks/RenderBlocks'
+import { RenderHero } from '@/heros/RenderHero'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { tenant } = await resolveTenantFromHeaders()
@@ -24,31 +27,20 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function AboutPage() {
   const payload = await getPayload({ config: configPromise })
-  const { tenant, tenantFilter } = await resolveTenantFromHeaders()
+  const { tenant } = await resolveTenantFromHeaders()
 
-  // Check for CMS-managed about page
-  try {
-    const pages = await payload.find({
-      collection: 'pages',
-      where: {
-        and: [
-          { slug: { equals: 'about' } },
-          tenantFilter,
-          { _status: { equals: 'published' } },
-        ],
-      },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (pages.docs.length > 0) {
-      // CMS page exists — render via dynamic route
-      const { redirect } = await import('next/navigation')
-      redirect('/about')
-    }
-  } catch {
-    // Fall through to generated about page
+  // CMS-managed override: if an admin has authored an `about` Page, render it
+  // inline (hero + blocks). This route shadows the dynamic [slug] route, so we
+  // must render here directly — redirecting to /about would loop back to this
+  // same file. Falls through to the generated about page below when none exists.
+  const cmsPage = await queryPageBySlug({ slug: 'about' })
+  if (cmsPage) {
+    return (
+      <article className="pt-16 pb-24">
+        <RenderHero {...(cmsPage.hero as any)} />
+        <RenderBlocks blocks={cmsPage.layout} />
+      </article>
+    )
   }
 
   // Generate branded about page from tenant data
