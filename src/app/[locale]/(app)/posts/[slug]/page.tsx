@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { Post } from '@/payload-types'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
@@ -26,10 +27,11 @@ export default async function PostPage({ params }: Args) {
   if (!post) return notFound()
 
   const { hero, layout, id, relatedPosts, title, publishedOn, categories } = post
-  const related = (relatedPosts ?? []).filter(
-    (p): p is import('@/payload-types').Post =>
-      typeof p === 'object' && p != null && 'slug' in p,
-  )
+  // relatedPosts arrive at the post's depth (1), so each related post's own image
+  // relations (meta.image / hero.media — one level deeper) come back as raw IDs,
+  // and the cards render "No image". Re-fetch the related posts at depth 2 so
+  // their thumbnails resolve. (Deepens only these few cards, not the main layout.)
+  const related = await loadRelatedPosts(relatedPosts)
 
   const cats = (categories ?? [])
     .map((c) => (typeof c === 'object' && c != null ? c.title : null))
@@ -75,6 +77,33 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const post = await queryPostBySlug({ slug })
   return generateMeta({ doc: post })
+}
+
+/**
+ * Load related posts with depth 2 so their meta.image / hero.media populate
+ * (the parent query is depth 1, which leaves those nested relations as IDs →
+ * "No image" cards). Scoped to the related IDs and preserves author order.
+ */
+async function loadRelatedPosts(relatedPosts: Post['relatedPosts']): Promise<Post[]> {
+  const ids = (relatedPosts ?? [])
+    .map((p) => (typeof p === 'object' && p != null ? p.id : p))
+    .filter((v): v is number => typeof v === 'number')
+  if (ids.length === 0) return []
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const result = await payload.find({
+      collection: 'posts',
+      where: { id: { in: ids } },
+      depth: 2,
+      limit: ids.length,
+      overrideAccess: true,
+      pagination: false,
+    })
+    const byId = new Map(result.docs.map((d) => [d.id, d]))
+    return ids.map((id) => byId.get(id)).filter((d): d is Post => Boolean(d))
+  } catch {
+    return []
+  }
 }
 
 async function queryPostBySlug({ slug }: { slug: string }) {
