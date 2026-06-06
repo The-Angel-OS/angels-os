@@ -293,9 +293,108 @@ export interface SmartModelResult {
 }
 
 /**
+ * Local model (Ollama / any OpenAI-compatible endpoint) — env-gated, fully
+ * inert unless OLLAMA_BASE_URL is set. Lazy-imported so the provider package is
+ * never loaded when local routing is off.
+ *
+ * Auth (both optional, combine as needed):
+ *  - OLLAMA_API_KEY → `Authorization: Bearer` (if a proxy/origin checks it).
+ *  - CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET → Cloudflare Access service-
+ *    token headers — the recommended way to gate a Cloudflare Tunnel placed in
+ *    front of Ollama (which has no auth of its own).
+ *
+ * OLLAMA_MODEL defaults to a 7B tool-calling model that fits an 8GB GPU.
+ */
+async function resolveLocalModel(): Promise<{ model: LanguageModel; modelId: string } | null> {
+  const baseURL = process.env.OLLAMA_BASE_URL
+  if (!baseURL) return null
+  try {
+    const { createOpenAICompatible } = await import('@ai-sdk/openai-compatible')
+    const modelId = process.env.OLLAMA_MODEL || 'qwen2.5:7b-instruct'
+    const headers: Record<string, string> = {}
+    const cfId = process.env.CF_ACCESS_CLIENT_ID
+    const cfSecret = process.env.CF_ACCESS_CLIENT_SECRET
+    if (cfId && cfSecret) {
+      headers['CF-Access-Client-Id'] = cfId
+      headers['CF-Access-Client-Secret'] = cfSecret
+    }
+    const provider = createOpenAICompatible({
+      name: 'ollama',
+      baseURL,
+      apiKey: process.env.OLLAMA_API_KEY,
+      headers: Object.keys(headers).length ? headers : undefined,
+    })
+    return { model: provider.chatModel(modelId), modelId: `ollama/${modelId}` }
+  } catch (err) {
+    console.warn('[AI Gateway] Local model unavailable:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+/** Complexity tiers that route to the local model by default (opt-in via env). */
+function localPrimaryTiers(): Set<TaskComplexity> {
+  const raw = process.env.OLLAMA_PRIMARY_TIERS
+  if (!raw) return new Set<TaskComplexity>()
+  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean) as TaskComplexity[])
+}
+
+/** Auth headers for reaching the local endpoint (bearer and/or CF Access token). */
+function localAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (process.env.OLLAMA_API_KEY) headers['Authorization'] = `Bearer ${process.env.OLLAMA_API_KEY}`
+  if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
+    headers['CF-Access-Client-Id'] = process.env.CF_ACCESS_CLIENT_ID
+    headers['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET
+  }
+  return headers
+}
+
+let _localHealth: { healthy: boolean; checkedAt: number } | null = null
+const LOCAL_HEALTH_TTL = 30 * 1000 // 30s
+
+/**
+ * Local-first failover gate: is the local endpoint actually reachable right now?
+ * A quick GET /models with a short timeout, cached 30s. When this returns false
+ * (home box off, tunnel down, Ollama not running), getSmartModel falls through
+ * to the cloud gateway instead of handing back a dead model. This is what makes
+ * "from here if available, elsewhere if not" robust rather than fragile.
+ */
+async function isLocalModelHealthy(): Promise<boolean> {
+  const baseURL = process.env.OLLAMA_BASE_URL
+  if (!baseURL) return false
+  if (_localHealth && Date.now() - _localHealth.checkedAt < LOCAL_HEALTH_TTL) {
+    return _localHealth.healthy
+  }
+  let healthy = false
+  try {
+    const res = await fetch(`${baseURL.replace(/\/$/, '')}/models`, {
+      headers: localAuthHeaders(),
+      signal: AbortSignal.timeout(2500),
+    })
+    healthy = res.ok
+  } catch {
+    healthy = false
+  }
+  _localHealth = { healthy, checkedAt: Date.now() }
+  return healthy
+}
+
+/** Invalidate the local-model health cache (e.g. after a config change). */
+export function invalidateLocalHealthCache(): void {
+  _localHealth = null
+}
+
+/**
  * Returns a model + providerOptions pre-configured for the given task complexity.
  * Includes gateway-native fallback chains, credit-aware downshifting, and
  * per-request tracking tags.
+ *
+ * Local-model integration (env-gated, all inert unless OLLAMA_BASE_URL is set):
+ *   - Tiers listed in OLLAMA_PRIMARY_TIERS route to the local model directly.
+ *   - When cloud credits are critically exhausted, falls back to local instead
+ *     of erroring — LEO keeps answering (more simply) on a dead wallet.
+ *   - When no AI_GATEWAY_API_KEY is configured at all, local becomes the only
+ *     provider (self-hosted node with a GPU, no cloud gateway).
  *
  * Usage:
  *   const smart = await getSmartModel('medium', { tenantId: 5, userId: 12 })
@@ -308,17 +407,46 @@ export async function getSmartModel(
   tracking?: { tenantId?: number; userId?: number; tags?: string[] },
 ): Promise<SmartModelResult | null> {
   const apiKey = resolveGatewayKey()
-  if (!apiKey) {
-    console.warn('[AI Gateway] AI_GATEWAY_API_KEY not set — gateway unavailable')
-    return null
-  }
 
   // Psalm 119:105 — "Thy word is a lamp unto my feet, and a light unto my path."
   // Every intelligence call begins with the sacred lamp invocation.
   console.log(`[AI Gateway] 🕯️ ${GENESIS_BREATH.split('\n')[0]}`)
 
-  const credits = await checkCredits()
+  const credits = apiKey ? await checkCredits() : null
   const effectiveComplexity = applyCreditPressure(complexity, credits)
+
+  // ── Local-model routing (env-gated; inert unless OLLAMA_BASE_URL is set) ──
+  // Use the local model when: (1) no cloud gateway key exists at all, or
+  // (2) cloud credits are critically exhausted, or (3) this tier is opted into
+  // local-primary. Otherwise fall through to the cloud gateway below.
+  const creditsExhausted = !!credits && credits.balance < CREDIT_THRESHOLD_CRITICAL
+  if (!apiKey || creditsExhausted || localPrimaryTiers().has(effectiveComplexity)) {
+    const local = await resolveLocalModel()
+    if (local) {
+      // Local-first failover: when a cloud gateway is available, only use local
+      // if it's actually reachable right now; otherwise fall through to cloud.
+      // With no gateway key, local is the only provider — use it regardless.
+      const localUsable = !apiKey || (await isLocalModelHealthy())
+      if (localUsable) {
+        const reason = !apiKey ? 'no-gateway-key' : creditsExhausted ? 'credits-exhausted' : 'tier-routing'
+        console.log(`[AI Gateway] 🏠 Local model ${local.modelId} (${reason})`)
+        return {
+          model: local.model,
+          providerOptions: {},
+          modelId: local.modelId,
+          complexity,
+          effectiveComplexity,
+        }
+      }
+      console.warn('[AI Gateway] Local model unreachable — failing over to cloud gateway')
+    }
+  }
+
+  if (!apiKey) {
+    console.warn('[AI Gateway] AI_GATEWAY_API_KEY not set and no local model — gateway unavailable')
+    return null
+  }
+
   const config = TASK_MODEL_MAP[effectiveComplexity]
 
   const provider = createGateway({ apiKey })
