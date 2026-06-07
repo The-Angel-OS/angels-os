@@ -20,6 +20,7 @@ import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getAiCostSummary } from '@/utilities/aiCostTelemetry'
 import { getCostLedgerSummary } from '@/utilities/costLedger'
 import { getTenantAiBudgetStatus } from '@/utilities/aiBudget'
+import { computeFeeReconciliation, nonAiPlatformCostFromLedger } from '@/utilities/feeReconciliation'
 
 export const aiCostsHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -67,7 +68,7 @@ export const aiCostsHandler: PayloadHandler = async (req) => {
         collection: 'tenants',
         id: tenantId,
         depth: 0,
-        select: { agentWallet: true, aiConfig: true } as any,
+        select: { agentWallet: true, aiConfig: true, bootstrapFees: true } as any,
         overrideAccess: true,
       })
       .catch(() => null)
@@ -83,7 +84,18 @@ export const aiCostsHandler: PayloadHandler = async (req) => {
         tenantAiConfig: (tenantDoc as any)?.aiConfig ?? null,
       }),
     ])
-    return Response.json({ ...summary, ledger, budget })
+    // Fee reconciliation — make the platform fee honest against real cost.
+    const feeRevenueToDateCents =
+      Number((tenantDoc as any)?.bootstrapFees?.totalFeesCollectedCents) || 0
+    const reconciliation = computeFeeReconciliation({
+      scope: 'tenant',
+      windowDays: summary.windowDays,
+      aiCostCents: summary.totals.costCents,
+      nonAiCostCents: nonAiPlatformCostFromLedger(ledger),
+      feeRevenueToDateCents,
+    })
+
+    return Response.json({ ...summary, ledger, budget, reconciliation })
   } catch (err: any) {
     return Response.json(
       { error: 'AI cost aggregation failed', detail: err?.message || String(err) },

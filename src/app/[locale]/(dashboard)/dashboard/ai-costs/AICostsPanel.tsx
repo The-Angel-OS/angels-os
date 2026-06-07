@@ -48,6 +48,22 @@ interface AiCostSummary {
   scanned: number
   ledger?: CostLedgerSummary
   budget?: AiBudgetStatus
+  reconciliation?: FeeReconciliation
+}
+
+interface FeeReconciliation {
+  scope: 'tenant' | 'platform'
+  windowDays: number
+  aiCostCents: number
+  nonAiCostCents: number
+  costCents: number
+  feeRevenueToDateCents: number
+  coverageRatio: number | null
+  surplusCents: number
+  shortfallCents: number
+  recommendedJusticeContributionCents: number
+  verdict: 'platform-investing' | 'cost-recovered' | 'surplus-to-justice'
+  note: string
 }
 
 interface AiBudgetStatus {
@@ -321,6 +337,65 @@ export default function AICostsPanel() {
                 : `Past the free budget, add a provider key under Settings → AI to keep serving at $0 to the platform, or AI routes to the free local tier${data.budget.enforcementEnabled ? '.' : ' (when enforcement is enabled).'}`}
             </p>
           )}
+        </div>
+      )}
+
+      {/* ── Fee Reconciliation (non-extractive transparency) ───── */}
+      {data.reconciliation && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              Fee Reconciliation
+            </h2>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                data.reconciliation.verdict === 'surplus-to-justice'
+                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                  : data.reconciliation.verdict === 'platform-investing'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}
+            >
+              {data.reconciliation.verdict === 'surplus-to-justice'
+                ? 'Surplus → Justice Fund'
+                : data.reconciliation.verdict === 'platform-investing'
+                  ? 'Platform investing'
+                  : 'Cost recovered'}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <div className="text-xs text-muted-foreground">Cost (last {data.reconciliation.windowDays}d)</div>
+              <div className="text-xl font-bold">{fmtUsd(data.reconciliation.costCents)}</div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                AI {fmtUsd(data.reconciliation.aiCostCents)} · other {fmtUsd(data.reconciliation.nonAiCostCents)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Platform fees to date</div>
+              <div className="text-xl font-bold">{fmtUsd(data.reconciliation.feeRevenueToDateCents)}</div>
+              <div className="mt-1 text-[11px] text-muted-foreground">bootstrap, refundable</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">
+                {data.reconciliation.shortfallCents > 0 ? 'Platform investment' : 'Surplus → Justice'}
+              </div>
+              <div className="text-xl font-bold">
+                {fmtUsd(
+                  data.reconciliation.shortfallCents > 0
+                    ? data.reconciliation.shortfallCents
+                    : data.reconciliation.surplusCents,
+                )}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                coverage{' '}
+                {data.reconciliation.coverageRatio == null
+                  ? '—'
+                  : `${Math.round(data.reconciliation.coverageRatio * 100)}%`}
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">{data.reconciliation.note}</p>
         </div>
       )}
 
