@@ -48,6 +48,7 @@ import { EventRegistrations } from '@/collections/EventRegistrations'
 import { Workflows } from '@/collections/Workflows'
 import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
+import { Presence } from '@/collections/Presence'
 import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
@@ -91,6 +92,8 @@ import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
+import { presencePingHandler } from '@/endpoints/presence-ping'
+import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
@@ -223,6 +226,7 @@ export default buildConfig({
     Posts,
     Projects,
     Comments,
+    Presence,
     Categories,
     Media,
     HolonCapabilities,
@@ -421,6 +425,16 @@ export default buildConfig({
       path: '/chat/send',
       method: 'post',
       handler: chatSendHandler,
+    },
+    {
+      path: '/presence-ops/ping',
+      method: 'post',
+      handler: presencePingHandler,
+    },
+    {
+      path: '/presence-ops/online',
+      method: 'get',
+      handler: presenceOnlineHandler,
     },
     {
       path: '/leo',
