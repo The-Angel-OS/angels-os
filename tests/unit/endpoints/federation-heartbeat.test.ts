@@ -44,7 +44,9 @@ const DEFAULT_TENANT = {
 
 function makePayload(overrides: Record<string, unknown> = {}) {
   const findMock = vi.fn().mockImplementation(({ collection, where }: any) => {
-    if (collection === 'endeavors' && where?.['federation.federationId']) {
+    // Inbound heartbeat upserts the sender into federation-peers (Diocese model),
+    // keyed by a flat federationId.
+    if (collection === 'federation-peers' && where?.federationId) {
       return Promise.resolve({ docs: [{ id: 1 }], totalDocs: 1 })
     }
     if (collection === 'tenants') {
@@ -157,7 +159,7 @@ describe('federationHeartbeatHandler', () => {
     expect(body.error).toMatch(/mismatch/i)
   })
 
-  it('updates existing endeavor for known peer', async () => {
+  it('updates existing federation-peer for a known peer', async () => {
     const updateMock = vi.fn().mockResolvedValue({})
     const req = makeReq({}, VALID_BODY, { update: updateMock })
     const res = await federationHeartbeatHandler(req)
@@ -165,13 +167,13 @@ describe('federationHeartbeatHandler', () => {
     expect(updateMock).toHaveBeenCalledOnce()
   })
 
-  it('creates new endeavor for unknown peer', async () => {
+  it('creates a new federation-peer for an unknown peer', async () => {
     const createMock = vi.fn().mockResolvedValue({ id: 200 })
     const req = makeReq({}, VALID_BODY, {
       find: vi.fn().mockImplementation(({ collection }: any) => {
         if (collection === 'tenants')
           return Promise.resolve({ docs: [DEFAULT_TENANT], totalDocs: 1 })
-        return Promise.resolve({ docs: [], totalDocs: 0 }) // no endeavors found
+        return Promise.resolve({ docs: [], totalDocs: 0 }) // peer not found
       }),
       create: createMock,
     })

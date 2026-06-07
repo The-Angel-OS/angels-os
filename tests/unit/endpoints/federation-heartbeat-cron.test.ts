@@ -56,21 +56,26 @@ const DEFAULT_TENANT = {
   setup: { federationId: 'fed-clearwater-001' },
 }
 
+// FederationPeers (Diocese) shape: top-level domain/federationId/networkVisible.
 const PEER_WITH_DOMAIN = {
   id: 10,
-  name: 'peer.spacesangels.com', // name is used as domain
+  name: 'Peer Diocese',
+  domain: 'peer.spacesangels.com',
+  federationId: 'fed-peer-001',
+  networkVisible: true,
+  ministryStatus: 'active',
   createdAt: new Date().toISOString(),
-  federation: {
-    federationId: 'fed-peer-001',
-    lastPingAt: new Date(Date.now() - 60 * 1000).toISOString(),
-  },
+  lastHeartbeatAt: new Date(Date.now() - 60 * 1000).toISOString(),
 }
 
 const PEER_NO_DOMAIN = {
   id: 11,
   name: 'Unknown Peer',
+  federationId: 'fed-peer-002',
+  networkVisible: true,
+  ministryStatus: 'active',
   createdAt: new Date().toISOString(),
-  federation: {}, // no federationId → peerDomain undefined
+  // no `domain` → peerDomain undefined → marked "No domain known"
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -80,7 +85,7 @@ const originalEnv = process.env
 function makePayload(overrides: Record<string, unknown> = {}) {
   const findMock = vi.fn().mockImplementation(({ collection }: any) => {
     if (collection === 'tenants') return Promise.resolve({ docs: [DEFAULT_TENANT], totalDocs: 1 })
-    if (collection === 'endeavors') return Promise.resolve({ docs: [PEER_WITH_DOMAIN], totalDocs: 1 })
+    if (collection === 'federation-peers') return Promise.resolve({ docs: [PEER_WITH_DOMAIN], totalDocs: 1 })
     return Promise.resolve({ docs: [], totalDocs: 0 })
   })
   return { find: findMock, ...overrides }
@@ -196,7 +201,7 @@ describe('federationHeartbeatCronHandler', () => {
     const req = makeReq({}, {
       find: vi.fn().mockImplementation(({ collection }: any) => {
         if (collection === 'tenants') return Promise.resolve({ docs: [DEFAULT_TENANT], totalDocs: 1 })
-        if (collection === 'endeavors') return Promise.resolve({ docs: [PEER_NO_DOMAIN], totalDocs: 1 })
+        if (collection === 'federation-peers') return Promise.resolve({ docs: [PEER_NO_DOMAIN], totalDocs: 1 })
         return Promise.resolve({ docs: [], totalDocs: 0 })
       }),
     })

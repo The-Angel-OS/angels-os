@@ -17,6 +17,10 @@ import {
   type TimeSlot,
 } from '@/utilities/bookingEngine'
 
+// Future-relative date (see bookingEngine.test.ts) so slots clear the
+// min-advance-booking guard and the tests never expire as real time advances.
+const D = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
 // ---------------------------------------------------------------------------
 // Wrapper to skip min/max advance booking guards (same pattern as main tests)
 // ---------------------------------------------------------------------------
@@ -33,7 +37,7 @@ function generateTimeSlots(
 }
 
 // Far-future test date to avoid advance booking constraints
-const testDate = new Date('2026-03-15T00:00:00')
+const testDate = new Date(`${D}T00:00:00`)
 
 // ---------------------------------------------------------------------------
 // Edge-Case Tests
@@ -48,8 +52,8 @@ describe('Booking Engine — Edge Cases', () => {
       // Booking [10:00-11:00). Slot [09:00-10:00) should NOT overlap.
       const bookings = [{
         id: 'b1',
-        startDateTime: new Date('2026-03-15T10:00:00').toISOString(),
-        endDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+        startDateTime: new Date(`${D}T10:00:00`).toISOString(),
+        endDateTime: new Date(`${D}T11:00:00`).toISOString(),
       }]
       const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 0, bookings)
       const nineToTen = slots.find((s) => s.startTime.getHours() === 9 && s.slotType !== 'buffer')
@@ -60,8 +64,8 @@ describe('Booking Engine — Edge Cases', () => {
       // Booking [10:00-11:00). Slot [11:00-12:00) should NOT overlap.
       const bookings = [{
         id: 'b1',
-        startDateTime: new Date('2026-03-15T10:00:00').toISOString(),
-        endDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+        startDateTime: new Date(`${D}T10:00:00`).toISOString(),
+        endDateTime: new Date(`${D}T11:00:00`).toISOString(),
       }]
       const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 0, bookings)
       const elevenToTwelve = slots.find((s) => s.startTime.getHours() === 11 && s.slotType !== 'buffer')
@@ -71,8 +75,8 @@ describe('Booking Engine — Edge Cases', () => {
     it('slot exactly matching booking is marked booked', () => {
       const bookings = [{
         id: 'b1',
-        startDateTime: new Date('2026-03-15T10:00:00').toISOString(),
-        endDateTime: new Date('2026-03-15T11:00:00').toISOString(),
+        startDateTime: new Date(`${D}T10:00:00`).toISOString(),
+        endDateTime: new Date(`${D}T11:00:00`).toISOString(),
       }]
       const slots = generateTimeSlots(testDate, '10:00', '11:00', 60, 0, bookings)
       expect(slots.length).toBeGreaterThanOrEqual(1)
@@ -92,7 +96,7 @@ describe('Booking Engine — Edge Cases', () => {
       const slots = generateTimeSlots(testDate, '09:00', '10:15', 60, 30, [])
       const bufferSlots = slots.filter((s) => s.slotType === 'buffer')
       for (const buf of bufferSlots) {
-        const windowEnd = new Date('2026-03-15T10:15:00')
+        const windowEnd = new Date(`${D}T10:15:00`)
         expect(buf.endTime.getTime()).toBeLessThanOrEqual(windowEnd.getTime())
       }
     })
@@ -112,9 +116,9 @@ describe('Booking Engine — Edge Cases', () => {
   describe('multiple overlapping bookings', () => {
     it('marks slot as booked even with 3 overlapping bookings', () => {
       const bookings = [
-        { id: 'b1', startDateTime: new Date('2026-03-15T10:00:00').toISOString(), endDateTime: new Date('2026-03-15T11:00:00').toISOString() },
-        { id: 'b2', startDateTime: new Date('2026-03-15T10:15:00').toISOString(), endDateTime: new Date('2026-03-15T10:45:00').toISOString() },
-        { id: 'b3', startDateTime: new Date('2026-03-15T09:45:00').toISOString(), endDateTime: new Date('2026-03-15T10:30:00').toISOString() },
+        { id: 'b1', startDateTime: new Date(`${D}T10:00:00`).toISOString(), endDateTime: new Date(`${D}T11:00:00`).toISOString() },
+        { id: 'b2', startDateTime: new Date(`${D}T10:15:00`).toISOString(), endDateTime: new Date(`${D}T10:45:00`).toISOString() },
+        { id: 'b3', startDateTime: new Date(`${D}T09:45:00`).toISOString(), endDateTime: new Date(`${D}T10:30:00`).toISOString() },
       ]
       const slots = generateTimeSlots(testDate, '09:00', '12:00', 60, 0, bookings)
       const tenSlot = slots.find((s) => s.startTime.getHours() === 10 && s.slotType !== 'buffer')
@@ -127,7 +131,7 @@ describe('Booking Engine — Edge Cases', () => {
   // =========================================================================
   describe('merge with unsorted input', () => {
     it('merges reverse-ordered available slots correctly', () => {
-      const base = new Date('2026-03-15T09:00:00')
+      const base = new Date(`${D}T09:00:00`)
       const slots: TimeSlot[] = [
         { startTime: new Date(base.getTime() + 120 * 60000), endTime: new Date(base.getTime() + 180 * 60000), available: true, slotType: 'available' },
         { startTime: new Date(base.getTime() + 60 * 60000), endTime: new Date(base.getTime() + 120 * 60000), available: true, slotType: 'available' },
@@ -141,7 +145,7 @@ describe('Booking Engine — Edge Cases', () => {
     })
 
     it('preserves booked slots without merging', () => {
-      const base = new Date('2026-03-15T09:00:00')
+      const base = new Date(`${D}T09:00:00`)
       const slots: TimeSlot[] = [
         { startTime: base, endTime: new Date(base.getTime() + 60 * 60000), available: true, slotType: 'available' },
         { startTime: new Date(base.getTime() + 60 * 60000), endTime: new Date(base.getTime() + 120 * 60000), available: false, slotType: 'booked', bookingId: 'b1' },
@@ -158,8 +162,8 @@ describe('Booking Engine — Edge Cases', () => {
   // =========================================================================
   describe('harmonic score symmetry', () => {
     it('returns same score regardless of time direction', () => {
-      const requested = new Date('2026-03-15T10:00:00')
-      const later = new Date('2026-03-17T14:00:00')
+      const requested = new Date(`${D}T10:00:00`)
+      const later = new Date(requested.getTime() + 52 * 60 * 60 * 1000)
       const scoreLater = calculateHarmonicScore(requested, later)
       const scoreEarlier = calculateHarmonicScore(later, requested)
       // Math.abs makes it symmetric
@@ -167,18 +171,18 @@ describe('Booking Engine — Edge Cases', () => {
     })
 
     it('returns 100 for times less than 1 hour apart', () => {
-      const a = new Date('2026-03-15T10:00:00')
-      const b = new Date('2026-03-15T10:30:00')
+      const a = new Date(`${D}T10:00:00`)
+      const b = new Date(`${D}T10:30:00`)
       expect(calculateHarmonicScore(a, b)).toBe(100)
     })
 
     it('returns 100 for identical times', () => {
-      const a = new Date('2026-03-15T10:00:00')
+      const a = new Date(`${D}T10:00:00`)
       expect(calculateHarmonicScore(a, a)).toBe(100)
     })
 
     it('never returns below 10 even for very far apart times', () => {
-      const a = new Date('2026-03-15T10:00:00')
+      const a = new Date(`${D}T10:00:00`)
       const b = new Date('2027-03-15T10:00:00') // 1 year later
       const score = calculateHarmonicScore(a, b)
       expect(score).toBeGreaterThanOrEqual(10)
@@ -235,25 +239,25 @@ describe('Booking Engine — Edge Cases', () => {
   // =========================================================================
   describe('harmonic score decay curve', () => {
     it('returns 90 for 2-hour difference (within 1-4 hour band)', () => {
-      const a = new Date('2026-03-15T10:00:00')
-      const b = new Date('2026-03-15T12:00:00')
+      const a = new Date(`${D}T10:00:00`)
+      const b = new Date(`${D}T12:00:00`)
       expect(calculateHarmonicScore(a, b)).toBe(90)
     })
 
     it('returns 70 for 12-hour difference (within same-day band)', () => {
-      const a = new Date('2026-03-15T06:00:00')
-      const b = new Date('2026-03-15T18:00:00')
+      const a = new Date(`${D}T06:00:00`)
+      const b = new Date(`${D}T18:00:00`)
       expect(calculateHarmonicScore(a, b)).toBe(70)
     })
 
     it('returns 50 for 36-hour difference (next-day band)', () => {
-      const a = new Date('2026-03-15T10:00:00')
-      const b = new Date('2026-03-16T22:00:00')
+      const a = new Date(`${D}T10:00:00`)
+      const b = new Date(a.getTime() + 36 * 60 * 60 * 1000) // exactly 36h later
       expect(calculateHarmonicScore(a, b)).toBe(50)
     })
 
     it('score decreases monotonically as time difference increases', () => {
-      const base = new Date('2026-03-15T10:00:00')
+      const base = new Date(`${D}T10:00:00`)
       const diffs = [0.5, 2, 12, 36, 72, 168] // hours
       const scores = diffs.map((h) =>
         calculateHarmonicScore(base, new Date(base.getTime() + h * 3600000)),
