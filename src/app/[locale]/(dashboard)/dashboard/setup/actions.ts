@@ -11,6 +11,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -29,19 +30,10 @@ export interface WizardProgress {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-async function resolveTenantId(payload: Awaited<ReturnType<typeof getPayload>>, headersList: Headers): Promise<number | null> {
-  const tenantSlug =
-    headersList.get('x-tenant-id') || process.env.DEFAULT_TENANT_SLUG || 'default'
-  if (!tenantSlug) return null
-
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: tenantSlug } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  return (tenants.docs?.[0]?.id as number) ?? null
+async function resolveTenantId(): Promise<number | null> {
+  // Shared resolution (x-tenant-id → domain → DEFAULT_TENANT_SLUG); apex-safe.
+  const { tenantId } = await resolveTenantFromHeaders()
+  return (tenantId as number) ?? null
 }
 
 // ── checkIsAdmin ─────────────────────────────────────────────────────────────
@@ -71,8 +63,7 @@ export async function checkIsAdmin(): Promise<boolean> {
 export async function checkSetupRequired(): Promise<boolean> {
   try {
     const payload = await getPayload({ config })
-    const headersList = await headers()
-    const tenantId = await resolveTenantId(payload, headersList)
+    const tenantId = await resolveTenantId()
     if (!tenantId) return false
 
     const tenant = await payload.findByID({
@@ -122,7 +113,7 @@ export async function getWizardProgress(): Promise<{
       return { progress: { currentStep: 0, completedSteps: [] }, wizardComplete: false, tenantId: null }
     }
 
-    const tenantId = await resolveTenantId(payload, headersList)
+    const tenantId = await resolveTenantId()
     if (!tenantId) {
       return { progress: { currentStep: 0, completedSteps: [] }, wizardComplete: false, tenantId: null }
     }
@@ -171,7 +162,7 @@ export async function saveWizardProgress(
 
     if (!user) return { success: false, error: 'Not authenticated' }
 
-    const tenantId = await resolveTenantId(payload, headersList)
+    const tenantId = await resolveTenantId()
     if (!tenantId) return { success: false, error: 'Tenant not found' }
 
     // Merge with existing progress
@@ -236,7 +227,7 @@ export async function ensureWizardChannel(): Promise<{
     const { user } = await payload.auth({ headers: headersList })
     if (!user) return { spaceId: null, channelSlug: WIZARD_CHANNEL_SLUG }
 
-    const tenantId = await resolveTenantId(payload, headersList)
+    const tenantId = await resolveTenantId()
     if (!tenantId) return { spaceId: null, channelSlug: WIZARD_CHANNEL_SLUG }
 
     // Find or create a space for this tenant
@@ -328,7 +319,7 @@ export async function loadWizardMessages(
     const { user } = await payload.auth({ headers: headersList })
     if (!user) return []
 
-    const tenantId = await resolveTenantId(payload, headersList)
+    const tenantId = await resolveTenantId()
     if (!tenantId) return []
 
     // Find the wizard channel

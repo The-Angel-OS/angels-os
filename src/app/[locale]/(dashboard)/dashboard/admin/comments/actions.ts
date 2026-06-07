@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,18 +55,9 @@ async function getAuthenticatedAdmin() {
     return { payload, user, tenantId: null, error: 'Insufficient permissions' }
   }
 
-  // Resolve tenant from header
-  const tenantSlug =
-    headersList.get('x-tenant-id') || process.env.DEFAULT_TENANT_SLUG || 'default'
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: tenantSlug } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  const tenantId = tenants.docs[0]?.id
+  // Shared tenant resolution (x-tenant-id → domain → DEFAULT_TENANT_SLUG) so the
+  // apex/federation host resolves correctly. See AUTH_CONTEXT_REFACTOR.md.
+  const { tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) {
     return { payload, user, tenantId: null, error: 'Tenant not found' }
   }

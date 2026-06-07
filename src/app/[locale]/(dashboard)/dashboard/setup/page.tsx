@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { getWizardProgress, ensureWizardChannel, checkIsAdmin } from './actions'
 import { SetupWizard } from './SetupWizard'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 /**
  * Enterprise Setup page — /dashboard/setup
@@ -38,10 +38,9 @@ export default async function SetupPage({
   // Ensure the wizard-setup channel exists
   const { spaceId, channelSlug } = await ensureWizardChannel()
 
-  // Read tenant slug from headers for client-side API calls
-  const headersList = await headers()
-  const tenantSlug =
-    headersList.get('x-tenant-id') || process.env.DEFAULT_TENANT_SLUG || 'default'
+  // Resolve the tenant slug the apex-safe way (x-tenant-id → domain → default).
+  const { tenant } = await resolveTenantFromHeaders()
+  const tenantSlug = tenant?.slug || process.env.DEFAULT_TENANT_SLUG || 'default'
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
