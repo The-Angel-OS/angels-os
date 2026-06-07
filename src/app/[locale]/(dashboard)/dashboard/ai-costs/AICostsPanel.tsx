@@ -46,6 +46,38 @@ interface AiCostSummary {
   byProvider: CostBucket[]
   sampled: boolean
   scanned: number
+  ledger?: CostLedgerSummary
+}
+
+interface LedgerCategoryBucket {
+  category: string
+  events: number
+  costCents: number
+  byokCostCents: number
+  platformCostCents: number
+}
+
+interface CostLedgerSummary {
+  available: boolean
+  totals: { events: number; costCents: number; platformCostCents: number; byokCostCents: number }
+  byCategory: LedgerCategoryBucket[]
+  byProvider: { provider: string; category: string; events: number; costCents: number }[]
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  intelligence: 'Intelligence (AI)',
+  telephony: 'Telephony / Realtime',
+  storage: 'Storage',
+  infra: 'Infrastructure',
+  other: 'Other',
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
+  intelligence: 'bg-purple-500',
+  telephony: 'bg-cyan-500',
+  storage: 'bg-blue-500',
+  infra: 'bg-orange-500',
+  other: 'bg-gray-400',
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +263,51 @@ export default function AICostsPanel() {
           </div>
         </Card>
       </div>
+
+      {/* ── Operating Costs by Category (unified ledger) ───────── */}
+      {data.ledger?.available && data.ledger.byCategory.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              Operating Costs by Category
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              ledger · {fmtUsd(data.ledger.totals.costCents)} total
+              {data.ledger.totals.byokCostCents > 0 && (
+                <> · {fmtUsd(data.ledger.totals.byokCostCents)} BYOK ($0 to platform)</>
+              )}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {data.ledger.byCategory.map((c) => {
+              const share = data.ledger!.totals.costCents > 0 ? c.costCents / data.ledger!.totals.costCents : 0
+              const color = CATEGORY_COLORS[c.category] || 'bg-gray-400'
+              return (
+                <div key={c.category} className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${color}`} />
+                    <span className="font-medium">{CATEGORY_LABELS[c.category] || c.category}</span>
+                    <span className="ml-auto shrink-0 font-semibold">{fmtUsd(c.costCents)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(2, share * 100)}%` }} />
+                    </div>
+                    <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground">
+                      {c.events} event{c.events === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Live from the cost-events ledger — accrues forward across all cost sources (AI,
+            telephony, storage, infra). The AI breakdown below covers full history from message
+            telemetry.
+          </p>
+        </div>
+      )}
 
       {/* ── Daily spend sparkline + Failover/Latency ───────────── */}
       <div className="grid gap-4 lg:grid-cols-3">

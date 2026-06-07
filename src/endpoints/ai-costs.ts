@@ -18,6 +18,7 @@ import type { PayloadHandler } from 'payload'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getAiCostSummary } from '@/utilities/aiCostTelemetry'
+import { getCostLedgerSummary } from '@/utilities/costLedger'
 
 export const aiCostsHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -57,10 +58,14 @@ export const aiCostsHandler: PayloadHandler = async (req) => {
   const days = daysRaw ? Number(daysRaw) : undefined
 
   try {
-    const summary = await getAiCostSummary(payload, tenantId, {
-      days: Number.isFinite(days as number) ? (days as number) : undefined,
-    })
-    return Response.json(summary)
+    const windowDays = Number.isFinite(days as number) ? (days as number) : undefined
+    // AI history (Messages.metadata scan) + the unified ledger (all categories).
+    // Both fail-soft; the ledger is "unavailable" until its table exists.
+    const [summary, ledger] = await Promise.all([
+      getAiCostSummary(payload, tenantId, { days: windowDays }),
+      getCostLedgerSummary(payload, tenantId, { days: windowDays }),
+    ])
+    return Response.json({ ...summary, ledger })
   } catch (err: any) {
     return Response.json(
       { error: 'AI cost aggregation failed', detail: err?.message || String(err) },
