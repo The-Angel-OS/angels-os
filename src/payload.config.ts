@@ -145,6 +145,8 @@ import { federationPulseHandler } from '@/endpoints/federation-pulse'
 import { federationMessageHandler } from '@/endpoints/federation-message'
 import { cicStatusHandler } from '@/endpoints/cic-status'
 import { aiCostsHandler } from '@/endpoints/ai-costs'
+import { costStorageProbeHandler } from '@/endpoints/cost-storage-probe'
+import { livekitWebhookHandler } from '@/endpoints/livekit-webhook'
 import { updateAllNavHandler } from '@/endpoints/update-all-nav'
 import { vercelSpendWebhookHandler } from '@/endpoints/vercel-spend-webhook'
 import { authDiscordInitHandler, authDiscordCallbackHandler } from '@/endpoints/auth-discord'
@@ -1006,6 +1008,22 @@ export default buildConfig({
       path: '/cic/ai-costs',
       method: 'get',
       handler: aiCostsHandler,
+    },
+    // ─── Operating-Costs sources ──────────────────────────────
+    {
+      path: '/cost-ops/storage-probe',
+      method: 'get',
+      handler: costStorageProbeHandler,
+    },
+    {
+      path: '/cost-ops/storage-probe',
+      method: 'post',
+      handler: costStorageProbeHandler,
+    },
+    {
+      path: '/webhooks/livekit',
+      method: 'post',
+      handler: livekitWebhookHandler,
     },
     // ─── Admin: Update All Nav ───────────────────────────────
     {
