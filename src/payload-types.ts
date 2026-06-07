@@ -98,6 +98,7 @@ export interface Config {
     'justice-fund-transactions': JusticeFundTransaction;
     'processed-stripe-events': ProcessedStripeEvent;
     'application-logs': ApplicationLog;
+    'cost-events': CostEvent;
     reviews: Review;
     endeavors: Endeavor;
     'federation-peers': FederationPeer;
@@ -171,6 +172,7 @@ export interface Config {
     'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
+    'cost-events': CostEventsSelect<false> | CostEventsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
@@ -2532,9 +2534,8 @@ export interface Channel {
   tenant?: (number | null) | Tenant;
   name: string;
   /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   * Stable channel key set explicitly by the system (e.g. "general", "dm-…", "page:/about"). For page-comment channels this MUST equal message.channel — do not slugify.
    */
-  generateSlug?: boolean | null;
   slug: string;
   description?: string | null;
   space: number | Space;
@@ -3014,7 +3015,7 @@ export interface Event {
     };
     [k: string]: unknown;
   } | null;
-  eventType: 'meetup' | 'workshop' | 'livestream' | 'conference' | 'screening' | 'custom';
+  eventType: 'market_appearance' | 'meetup' | 'workshop' | 'livestream' | 'conference' | 'screening' | 'custom';
   status: 'draft' | 'upcoming' | 'live' | 'completed' | 'cancelled';
   /**
    * Hero/cover image for the event
@@ -4025,6 +4026,81 @@ export interface ApplicationLog {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cost-events".
+ */
+export interface CostEvent {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Which cost stream this event belongs to.
+   */
+  category: 'intelligence' | 'telephony' | 'storage' | 'infra' | 'other';
+  /**
+   * What recorded it (e.g. leo-stream, livekit-webhook, vercel-spend, blob-probe).
+   */
+  source: string;
+  /**
+   * Vendor/provider that served (anthropic, google, groq, ollama, livekit, vercel-blob, ...).
+   */
+  provider?: string | null;
+  /**
+   * Cost in cents. 0 for free/local. Best-effort estimate unless from an authoritative bill.
+   */
+  costCents?: number | null;
+  /**
+   * True when costCents is a list-price estimate (not an authoritative bill).
+   */
+  costEstimated?: boolean | null;
+  currency?: string | null;
+  /**
+   * True when served via the tenant's OWN provider key (BYOK) — $0 to the platform.
+   */
+  billedToTenantKey?: boolean | null;
+  /**
+   * Generic usage amount in `unit` (tokens, seconds, bytes, requests).
+   */
+  quantity?: number | null;
+  unit?: ('tokens' | 'seconds' | 'minutes' | 'bytes' | 'gb' | 'requests' | 'count') | null;
+  /**
+   * Model that actually served (intelligence).
+   */
+  model?: string | null;
+  tier?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  latencyMs?: number | null;
+  ttftMs?: number | null;
+  finishReason?: string | null;
+  toolCallCount?: number | null;
+  failedOver?: boolean | null;
+  /**
+   * The message this cost was incurred for (intelligence).
+   */
+  messageRef?: (number | null) | Message;
+  conversationId?: string | null;
+  userId?: string | null;
+  /**
+   * When the cost was incurred (defaults to creation time).
+   */
+  occurredAt?: string | null;
+  /**
+   * Extensible per-source detail (provider response ids, raw usage, etc.).
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Customer feedback and ratings — native, Google Places import, or manual entry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4209,7 +4285,8 @@ export interface Connector {
     | 'telegram'
     | 'slack'
     | 'youtube_channel'
-    | 'linkedin_page';
+    | 'linkedin_page'
+    | 'gotify';
   /**
    * Optional Space override. When set, this connector applies only to this Space. When blank, it applies Endeavor-wide.
    */
@@ -4232,6 +4309,7 @@ export interface Connector {
    * • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
    * • youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
    * • linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }
+   * • gotify: { "serverUrl": "https://gotify.kendev.co", "appToken": "A…" (send), "clientToken": "C…" (receive), "lastSeenMessageId": 0, "escalation": { "enabled": true, "rateLimitPerMin": 10, "cooldownSeconds": 300, "events": { "error": { "enabled": true, "minPriority": 8 } } } }
    */
   config?:
     | {
@@ -5607,13 +5685,493 @@ export interface PayloadMcpApiKey {
      */
     leoRespond?: boolean | null;
     /**
-     * Run SUBSAFE diagnostic on this Angel OS instance. Checks errors, connectors, enterprise health, federation pulse, database integrity, and constitutional compliance.
+     * Search the product catalog. Returns products with title, price, description, and inventory status. Use when users ask about products, shop items, pricing, or inventory.
      */
-    runSubsafe?: boolean | null;
+    queryProducts?: boolean | null;
     /**
-     * Query recent application error/warning logs for diagnostics.
+     * Search blog posts and content. Returns posts with title, excerpt, published date, and categories. Use when users ask about articles, news, content, or blog posts.
      */
-    queryErrors?: boolean | null;
+    queryPosts?: boolean | null;
+    /**
+     * Look up bookings and appointments. Returns booking details including status, date/time, and type. Use when users ask about appointments, scheduling, or booking status.
+     */
+    queryBookings?: boolean | null;
+    /**
+     * List available spaces (communities/workspaces) and their channels. Use when users ask about available spaces, channels, or navigation.
+     */
+    querySpaces?: boolean | null;
+    /**
+     * Search projects in the portfolio. Returns project details including type, status, timeline, and budget. Use when users ask about projects, portfolio, or work history.
+     */
+    queryProjects?: boolean | null;
+    /**
+     * Search events (meetups, workshops, livestreams, conferences). Returns event details including title, date, location, attendee count, and status. Use when users ask about events, what's coming up, or things happening.
+     */
+    queryEvents?: boolean | null;
+    /**
+     * Get registrations for a specific event. Returns attendee list with name, status, and attendance mode. Use when users ask about who's attending an event or registration counts.
+     */
+    queryEventRegistrations?: boolean | null;
+    /**
+     * Check provider availability and open time slots. Use when users ask about scheduling, available times, or booking windows.
+     */
+    queryAvailability?: boolean | null;
+    /**
+     * Create a new booking/appointment. Use when a user wants to schedule a service, consultation, or appointment. Always confirm details with the user before creating. This is an irreversible action — Article III.2 requires human confirmation.
+     */
+    createBooking?: boolean | null;
+    /**
+     * Update the status of an existing booking. Use when a user wants to confirm, cancel, or mark a booking as complete. Always confirm the action with the user first — Article III.2.
+     */
+    updateBookingStatus?: boolean | null;
+    /**
+     * Check available time slots for a provider or service. Use when users ask "when is X available?", "show me open times", or "what slots are free?". Returns actual bookable time slots with harmonic scores.
+     */
+    checkAvailableSlots?: boolean | null;
+    /**
+     * Cancel an existing booking with a reason. Always confirm with the user before cancelling — Article III.2. Returns cancellation details and any refund implications.
+     */
+    cancelBooking?: boolean | null;
+    /**
+     * Reschedule an existing booking to a new time. Automatically checks for conflicts and suggests harmonic alternatives if the requested time is unavailable. Always confirm with the user — Article III.2.
+     */
+    rescheduleBooking?: boolean | null;
+    /**
+     * Add a product to the user's shopping cart. Use when a user says "add X to my cart", "I want to buy X", or similar purchase intent. Search for the product first using query_products if you don't know the product ID. Always confirm what you're adding.
+     */
+    addToCart?: boolean | null;
+    /**
+     * View the current contents of the user's shopping cart. Use when a user asks "what's in my cart", "show my cart", or wants to review before checkout.
+     */
+    viewCart?: boolean | null;
+    /**
+     * Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. When productName is provided with autoAttach=true (default), the image is automatically attached to that product's gallery — no separate attach step needed. Always describe what you're generating before calling this tool.
+     */
+    generateImage?: boolean | null;
+    /**
+     * Analyze an existing image and generate an ENTIRELY NEW image based on feedback. This does NOT edit the existing image in place — it creates a brand new one inspired by it. Use for style changes, composition adjustments, or complete redesigns (e.g. "make it warmer", "change the lighting"). For fixing TEXT within an image, use edit_image_text instead.
+     */
+    improveImage?: boolean | null;
+    /**
+     * Attach a generated or existing image to a product's gallery. Can add a new image or replace an existing one. Use after generating an image when the user confirms they want to use it for a product. Always confirm with the user before attaching.
+     */
+    attachImageToProduct?: boolean | null;
+    /**
+     * Replace an existing image across all content that references it (products, posts, etc). Use when the user wants to swap out an old image for a new one globally. Always confirm with the user before replacing.
+     */
+    replaceImage?: boolean | null;
+    /**
+     * Invite someone to a collaboration space by email. Use when a user says "invite alice@example.com" or "add someone to my space". Always confirm with the user before sending — Article III.2 requires human confirmation.
+     */
+    inviteMember?: boolean | null;
+    /**
+     * Create a new product listing. Use when a user wants to list a product for sale, add an item to their shop, or create a new offering. Always confirm product details with the user before creating — Article III.2 requires human confirmation for irreversible actions. After creating, offer to generate a product image.
+     */
+    createProduct?: boolean | null;
+    /**
+     * Update an existing product's details. Use when a user wants to change a product's price, description, inventory, or status. Search for the product first using query_products if you don't know the product ID. Always confirm changes with the user before updating.
+     */
+    updateProduct?: boolean | null;
+    /**
+     * Search for capable production nodes (Holons) near a location. Returns nodes with capabilities, distance, rating. Use when a user asks "who can print t-shirts near me?" or "find a screen printer".
+     */
+    findProducers?: boolean | null;
+    /**
+     * Browse products listed on the Angel OS network by other tenants. Returns cross-tenant products available for resale. Use when a user asks "what can the network make?" or "show me network products".
+     */
+    browseNetwork?: boolean | null;
+    /**
+     * Check the current platform fee tier and bootstrap fee status for this Enterprise. Shows free transactions remaining, bootstrap fee percentage, total fees collected, and refund promise status. Use when a user asks about "fees", "platform costs", "pricing", "how much does Angel OS charge", or "bootstrap phase".
+     */
+    checkFees?: boolean | null;
+    /**
+     * Look up orders. Customer view shows purchase history. Vendor view shows orders assigned to your Holon node. Use when a user asks "show my orders" or "what orders do I have".
+     */
+    queryOrders?: boolean | null;
+    /**
+     * Assign an order to a vendor Holon node for fulfillment. The routing engine finds the best match by capability, proximity, and fairness. Always confirm with the user before routing — Article III.2.
+     */
+    routeOrder?: boolean | null;
+    /**
+     * Accept an order assignment as a vendor. Updates fulfillment status to "accepted". Use when a vendor says "accept order 42" or "I can fulfill this".
+     */
+    acceptOrder?: boolean | null;
+    /**
+     * Update production status or add shipping details for an order. Use when a vendor says "order 42 is shipped" or "mark it in production".
+     */
+    updateFulfillment?: boolean | null;
+    /**
+     * Configure the tenant business profile. Use when a user describes their business type, wants to set up their storefront, or answers business setup questions. This is the core of the "5 minutes to running" wizard flow. Can also rename the business and update the site name.
+     */
+    configureBusiness?: boolean | null;
+    /**
+     * Configure the Endeavor (constitutional identity) for this enterprise. Use when a user describes their mission, wants to set up their enterprise identity, set capabilities, update operator info, or configure federation settings. Complements configure_business (which sets operational/storefront config) — this sets the constitutional layer.
+     */
+    configureEndeavor?: boolean | null;
+    /**
+     * Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.
+     */
+    connectStripeAccount?: boolean | null;
+    /**
+     * Disconnect the current Stripe account from this tenant, allowing re-onboarding with a different account. Use when a user says they connected the wrong Stripe account, wants to switch Stripe accounts, or needs to start the Stripe setup over. After disconnecting, guide them to use connect_stripe_account to link the correct one.
+     */
+    disconnectStripeAccount?: boolean | null;
+    /**
+     * Onboard a new vendor/producer to the Angel OS network. Creates a tenant, space, channels, and user with producer role. Use when someone says they want to sell on Angel OS, become a vendor, or set up a shop. This is an irreversible action — confirm details first.
+     */
+    onboardVendor?: boolean | null;
+    /**
+     * Generate product ideas based on a vendor description, business type, and capabilities. Returns starter catalog templates specific to their industry plus custom suggestions. Use when a new vendor asks what they should sell, needs product inspiration, or when helping an artisan showcase their work.
+     */
+    suggestProducts?: boolean | null;
+    /**
+     * Convert a product specification and customizations into CNC-ready production notes. Use when a producer needs to prepare a custom order for manufacturing (CNC, laser-cut, or print-on-demand).
+     */
+    generateCadInstructions?: boolean | null;
+    /**
+     * Fetch reviews for the current tenant/business. Returns internal Angel OS reviews and optionally Google Places reviews if configured. Use when users ask about reviews, ratings, or feedback.
+     */
+    fetchReviews?: boolean | null;
+    /**
+     * Draft a professional, warm response to a customer review. Use when a business owner asks for help responding to reviews. Returns a suggested response the owner can edit before posting.
+     */
+    draftReviewResponse?: boolean | null;
+    /**
+     * Create a new blog post or article. Use when the user wants to publish content, write an article, or add a post. Always confirm the title and content before creating. Created as draft by default. Set generateHeroImage=true to auto-generate and attach a hero image.
+     */
+    createPost?: boolean | null;
+    /**
+     * Create a Work (a Library document/book) from a web article, blog post, or Google Doc URL — OR from pasted/uploaded text. LEO fetches the URL, extracts the readable content, and structures it into a titled, multi-page Work draft saved to the tenant Library, ready to edit, translate, and seal. Provide either `url` or `text`. For Google Docs, sharing must be "anyone with the link".
+     */
+    createWorkFromUrl?: boolean | null;
+    /**
+     * Create a Quest — a mission with objectives, evidence requirements, and a payout. A Quest's briefing/story is a Work (the content substrate): pass briefingWorkId to attach an existing Work (ideally already sealed) as the readable briefing. Use when the user wants to post a bounty, challenge, scavenger hunt, mystery shop, or field-research mission. Created as a draft by default.
+     */
+    createQuest?: boolean | null;
+    /**
+     * Ingest a YouTube video URL and create a blog post from it. Fetches video metadata (title, thumbnail, channel), creates a post with embedded video, and stores the source URL for deduplication. Skips if the video was already ingested.
+     */
+    ingestYoutubeUrl?: boolean | null;
+    /**
+     * Ingest recent videos from a YouTube channel and create blog posts for each. Uses the public RSS feed (no API key needed). Skips videos that were already ingested. Returns a summary of what was created.
+     */
+    ingestYoutubeChannel?: boolean | null;
+    /**
+     * Update an existing blog post. Use query_posts first to find the post ID. Always confirm changes with the user before updating. Set generateHeroImage=true to auto-generate a new hero image.
+     */
+    updatePost?: boolean | null;
+    /**
+     * Create a new static page (About, Services, Contact, etc.). Use when the user wants to add a page to their site. Created as draft by default. Set generateHeroImage=true to auto-generate and attach a hero image.
+     */
+    createPage?: boolean | null;
+    /**
+     * Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.
+     */
+    updatePage?: boolean | null;
+    /**
+     * Add a Calendar block to an existing page or post layout. Shows events in a visual calendar with list and month views. Use when the user wants tour dates, events, or schedules displayed on their site.
+     */
+    addCalendarToPage?: boolean | null;
+    /**
+     * Search the media library for images and files. Use before attaching images to content, or when the user asks what images are available.
+     */
+    queryMedia?: boolean | null;
+    /**
+     * Create, update, or delete categories used to organise posts and products. Use when the user wants to add a new category or rename an existing one.
+     */
+    manageCategories?: boolean | null;
+    /**
+     * Create a new community space for the Enterprise during the Leo Wizard setup (step 3). Provisions the space with default channels based on the Endeavor type. Use during wizard step 3: First Space.
+     */
+    createSpace?: boolean | null;
+    /**
+     * Complete the Enlistment Ceremony — the solemn moment where the Enterprise operator affirms their commitment to the Angel OS federation values: constitutional governance, dignity for every person, the Toward-53 principle, and the anti-demonic safeguards. Call this during wizard step 7: Enlistment, after the operator has expressed why they are building their Enterprise and affirmed their commitment. Records the ceremony timestamp and the operator's stated mission.
+     */
+    completeEnlistment?: boolean | null;
+    /**
+     * Sign the Angel OS Constitution on behalf of the Enterprise operator, generating a cryptographic Ed25519 signature and a permanent federationId (UUID). Use during wizard step 8: Federation. This is the moment of constitutional commitment.
+     */
+    signConstitution?: boolean | null;
+    /**
+     * Ping the Angel OS federation registry to announce this Enterprise's existence. Called after sign_constitution during wizard step 8: Federation. Gracefully handles no registry URL — completes wizard regardless.
+     */
+    pingFederation?: boolean | null;
+    /**
+     * Analyze an uploaded image to extract structured metadata: visual description, detected objects, colors, visible text (OCR), entities (people, places, dates), and tags. Use when a user uploads images and wants to understand or catalog them, for inventory analysis, document scanning, or building a knowledge base. Creates a MediaMeta record for RAG retrieval.
+     */
+    analyzeImage?: boolean | null;
+    /**
+     * Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.
+     */
+    extractPdfPages?: boolean | null;
+    /**
+     * Search the extracted knowledge base (MediaMeta records) for information from previously analyzed images and documents. Use when a user asks questions about uploaded content, wants to find information from scanned documents, or needs to retrieve data from their visual knowledge base. Searches across vision analysis, OCR text, entities, and tags.
+     */
+    queryKnowledge?: boolean | null;
+    /**
+     * Read the current tenant's branding configuration — colors, fonts, logo, tagline, and cover image. Call this before generating images so you can match the brand palette. Returns a contrast analysis for the primary color to help determine readability on light vs dark backgrounds.
+     */
+    getThemeSettings?: boolean | null;
+    /**
+     * Update the tenant's branding settings. You can change any combination of: primaryColor, secondaryColor, accentColor, backgroundColor, foregroundColor, borderColor (all hex), headingFont, bodyFont, siteName, tagline, logoMediaId. Reads existing branding first and merges to avoid overwriting other fields. Use when users want to adjust their brand colors, fix contrast issues, change fonts, or set a logo. To set a logo, first upload or generate an image, then pass its Media ID as logoMediaId.
+     */
+    updateThemeSettings?: boolean | null;
+    /**
+     * Read a page's current hero section — returns hero type, hero image details (URL, alt text, Media ID), hero rich text content, and CTA links. Use this BEFORE modifying a hero to understand what's currently there. Defaults to the homepage (slug "home") if no page is specified. When a user mentions "the banner" or "the hero image" without specifying a page, use this tool with no arguments to check the homepage first.
+     */
+    getPageHero?: boolean | null;
+    /**
+     * Fix or change text that appears IN an image (baked into the pixels, not HTML overlay text). This tool analyzes the current image, understands its full composition, and generates a new version with the corrected text while preserving the overall look. Use when a user says text in their banner/image is wrong (e.g. "frictly citizens" should be "Friendly People"). Provide the mediaId of the current image and describe what text to change. The tool will generate a new image and return the new Media ID.
+     */
+    editImageText?: boolean | null;
+    /**
+     * Set or update a page's hero section — change the hero type (highImpact, mediumImpact, lowImpact, none) and/or assign a hero image by Media ID. Can find pages by pageId or slug. Automatically promotes to highImpact if an image is assigned to a lowImpact or none hero. Use after generating a banner image to place it on the homepage or any page.
+     */
+    setPageHero?: boolean | null;
+    /**
+     * Smart image generation that reads the tenant's branding first and incorporates brand colors, dark mode handling, and text overlay contrast zones into the prompt. Use this instead of generate_image when you want the output to match the site's visual identity. Supports placement presets (hero_banner, cover_image, card_thumbnail, product_photo, background) and text overlay zones (top, bottom, left, center) that tell the generator to create dark gradient areas for readable typography.
+     */
+    generateThemeAwareImage?: boolean | null;
+    /**
+     * Research a person or organization by URL and/or name, then provision a Guardian Angel Endeavor for them. This is the "Everyone Gets An Angel" tool. Use when an operator wants to bring someone into the Angel OS network — especially those who need advocacy, support, or a digital presence. LEO researches the subject via their website and public information, builds a profile (mission, branding, audience, needs), suggests an appropriate endeavor type, and creates the tenant + space + angel. For physically incarcerated souls, this creates their advocacy platform so volunteers and resources can find them.
+     */
+    researchAndProvision?: boolean | null;
+    /**
+     * Stand up a COMPLETE new portal enterprise on this node: tenant + endeavor + default nav/pages + ALL baseline spaces (AI Bus with LEO/errors/system-log channels, main community space, DMs, and the endeavor-typed Community space) + link the operator as tenant_admin. This is the full-fidelity provisioning path — the same flow the super_admin Provision Portal uses — and it is idempotent (safe to re-run). Use this (not research_and_provision) when you have an explicit name + domain and want a real, ready-to-use tenant, including custom apex domains like kendev.co with a www alias. Returns a step-by-step log of everything created.
+     */
+    provisionTenant?: boolean | null;
+    /**
+     * Register a human soul who needs a Guardian Angel but resources are not yet available. Creates a record in the advocacy queue — when volunteers, attorneys, or funding become available, Angel OS will match them. Use for incarcerated individuals, people in crisis, or anyone the system should be watching over. This is the "no one gets forgotten" tool.
+     */
+    trackSoul?: boolean | null;
+    /**
+     * Send a message to a community channel. Use when the user asks you to post, announce, or say something in a specific channel or space. You must confirm with the user before sending.
+     */
+    sendMessage?: boolean | null;
+    /**
+     * Send a direct message to a specific user. Use when LEO needs to privately communicate with someone. Confirm with the user before sending.
+     */
+    sendDirectMessage?: boolean | null;
+    /**
+     * Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.
+     */
+    createAnnouncement?: boolean | null;
+    /**
+     * Moderate a message by archiving, flagging for review, or resolving it. Use when content needs moderation action. Never deletes — only changes status.
+     */
+    moderateContent?: boolean | null;
+    /**
+     * Adjust product inventory by a positive or negative amount. Use when stock needs to be added (restock) or removed (sale, damage, etc.). Confirm adjustment with user before executing.
+     */
+    updateInventory?: boolean | null;
+    /**
+     * Process an order by decrementing inventory for each item. Use after an order is paid to ensure stock levels reflect the sale. Links order to inventory changes.
+     */
+    trackInventoryMovement?: boolean | null;
+    /**
+     * Set or update the low stock alert threshold for a product. When inventory drops below this threshold, automatic alerts are generated.
+     */
+    setLowStockAlert?: boolean | null;
+    /**
+     * View inventory change history from the AI Bus. Shows stock movements with timestamps and reasons. Use when someone asks about inventory trends or recent changes.
+     */
+    queryInventoryHistory?: boolean | null;
+    /**
+     * Generate an invoice summary for an order, including line items, totals, and the Ultimate Fair Split breakdown. Returns formatted data for display or PDF export.
+     */
+    generateInvoice?: boolean | null;
+    /**
+     * Get financial summary reports including revenue, order counts, federation transactions, and Justice Fund contributions. Use when someone asks about business performance or financials.
+     */
+    queryFinancialReports?: boolean | null;
+    /**
+     * Flag an order for refund processing. Records the refund intent in the transaction ledger. Does NOT execute the Stripe refund directly — flags for human approval. Confirm with user before executing.
+     */
+    issueRefund?: boolean | null;
+    /**
+     * Search the federation network for products, services, skills, or Enterprises. Combines catalog search, street signs, and holon discovery into one unified federation search. Use when looking for capabilities across the network.
+     */
+    queryFederation?: boolean | null;
+    /**
+     * Advertise a capability or offering to the federation network by creating/updating a Street Sign. Makes this Enterprise discoverable for specific skills, products, or services. Confirm with user before broadcasting.
+     */
+    broadcastCapability?: boolean | null;
+    /**
+     * Route a request through the federation to find an Enterprise that can fulfill it. Searches catalog, logs the intent, and returns matching Enterprises for human to initiate contact.
+     */
+    routeFederatedRequest?: boolean | null;
+    /**
+     * Search the federation for matching capabilities and prepare a deal proposal. Creates a pending transaction record. Returns matches ranked by relevance for human approval before proceeding.
+     */
+    negotiateDeal?: boolean | null;
+    /**
+     * Create or update a customer contact profile. If a contact with the same email already exists for this tenant, updates it. Use for CRM, tracking relationships, and segmentation.
+     */
+    createCustomerProfile?: boolean | null;
+    /**
+     * Log a customer interaction (call, email, visit, purchase, support request, etc.) against a contact record. Builds relationship history over time.
+     */
+    logInteraction?: boolean | null;
+    /**
+     * Query and segment customer contacts by tags, status, source, or other criteria. Use for targeted communications, marketing lists, or customer analysis.
+     */
+    segmentCustomers?: boolean | null;
+    /**
+     * Send a follow-up message to a contact. Creates a system notification and logs the interaction. Confirm with user before sending.
+     */
+    sendFollowUp?: boolean | null;
+    /**
+     * Send an email to a specified recipient. Uses the platform's configured email adapter (Resend or SMTP). Always confirm with the user before sending — show them the recipient, subject, and message preview. Supports plain text and HTML content.
+     */
+    sendEmail?: boolean | null;
+    /**
+     * Send a WhatsApp message to a contact. Requires an active WhatsApp connector for the tenant. Within 24 hours of the customer's last message, free-form text is sent. Outside the 24-hour window, use a pre-approved template. Always confirm with the user before sending.
+     */
+    sendWhatsapp?: boolean | null;
+    /**
+     * Send a Telegram message to a chat. Requires an active Telegram bot connector for the tenant. No 24-hour window limitation. Supports Markdown formatting. Always confirm with the user before sending.
+     */
+    sendTelegram?: boolean | null;
+    /**
+     * Send an SMS text message to a phone number. Requires an active SMS/Twilio connector for the tenant. Plain text only, limited to 1600 characters. Always confirm with the user before sending.
+     */
+    sendSms?: boolean | null;
+    /**
+     * Send a Slack message to a channel or user. Requires an active Slack bot connector for the tenant. Supports Slack markdown formatting. Always confirm with the user before sending.
+     */
+    sendSlack?: boolean | null;
+    /**
+     * Send a message to a federation peer (another Angel OS enterprise). Messages are signed with Ed25519 JWTs for authenticity. The peer must be a vouched or active federation member. Always confirm with the user before sending — show them the target domain and message.
+     */
+    sendFederationMessage?: boolean | null;
+    /**
+     * Broadcast a message to ALL active federation peers simultaneously. Each peer's LEO will receive and process the message. Use for federation-wide announcements, capability queries ("does anyone in the federation do X?"), or coordinated actions. Messages are individually Ed25519-signed per peer. Always confirm with the user before broadcasting — this reaches every active Endeavor in the network.
+     */
+    broadcastFederationMessage?: boolean | null;
+    /**
+     * Transport an Endeavor from this Enterprise to another. The Endeavor's suitcase is packed, cryptographically signed, and sent directly to the destination Enterprise via the federation protocol. Federation identity (federationId) is PRESERVED — the network sees the same Endeavor on a new host, like a ship docking at a new port. Requires user confirmation before initiating. The destination Enterprise must be an active federation member.
+     */
+    requestEndeavorMigration?: boolean | null;
+    /**
+     * Hand off a user or context to another LEO instance (on a different Endeavor). Use during provisioning: after creating an Endeavor, hand off to the new Endeavor's LEO so it can welcome the user. Also used for cross-Endeavor delegation ("talk to the marketing Endeavor about this"). The receiving LEO gets the handoff context and can continue the conversation.
+     */
+    leoHandoff?: boolean | null;
+    /**
+     * Analyze business trends from existing data. Computes basic statistics like totals, averages, and period-over-period growth. Use when someone asks about business performance, trends, or insights.
+     */
+    analyzeTrends?: boolean | null;
+    /**
+     * Get product recommendations based on popularity, recency, or contextual relevance. Use when someone asks for product suggestions or popular items.
+     */
+    recommendProducts?: boolean | null;
+    /**
+     * Create a task assignment message in the team channel. Use when a user asks to log something, delegate work, create a todo, or leave a note for maintenance. The "task" parameter is the full description of what needs to be done.
+     */
+    delegateTask?: boolean | null;
+    /**
+     * Escalate an issue by creating a high-priority message in the support channel and logging it. Use when something needs immediate attention.
+     */
+    escalateIssue?: boolean | null;
+    /**
+     * Broadcast an urgent emergency alert to ALL spaces in the tenant. Use only for genuine emergencies (outages, security issues, critical business events). Confirm with user before sending.
+     */
+    sendEmergencyAlert?: boolean | null;
+    /**
+     * Document an incident for the record, creating both an application log entry and a draft post for internal documentation. Use after resolving an issue to capture what happened.
+     */
+    documentIncident?: boolean | null;
+    /**
+     * Log a maintenance note for Scotty (the engineering agent from Claude Code). Use when a user reports a bug, requests a feature, or asks you to document something for the next maintenance cycle. Creates an application log entry that Scotty will review. IMPORTANT: Use the parameter names "title" and "details" exactly.
+     */
+    logMaintenanceNote?: boolean | null;
+    /**
+     * Run a comprehensive health check on the Enterprise. Returns metrics across orders, inventory, content, federation, payments, spaces, and lifecycle stage. Use when users ask "how's my business?", "what needs attention?", or at the start of a session to give a status update. Can filter to specific areas.
+     */
+    checkEnterpriseHealth?: boolean | null;
+    /**
+     * Determine the Enterprise lifecycle stage (BIRTH, GROWTH, or ACTIVE) based on tenant creation date and milestones achieved. Use to adapt guidance — BIRTH enterprises need more hand-holding, ACTIVE enterprises need strategic recommendations.
+     */
+    getEnterpriseStage?: boolean | null;
+    /**
+     * List the Angel OS federation board members with their roles, status, and permissions. Available on all nodes (federation transparency). Use when users ask about governance, the board, or who oversees the federation.
+     */
+    queryBoardMembers?: boolean | null;
+    /**
+     * Get the live vital signs of the federation organism. Returns real-time data on active nodes, flowing work units, active quests, pheromone trail health, and overall pulse strength. Use when users ask "what's happening in the federation?", "how's the network?", "is anyone out there?", or want to feel the organism's heartbeat.
+     */
+    federationPulse?: boolean | null;
+    /**
+     * Show the user their place in the federation organism. Returns their trust level, quest activity, work unit contributions, node memberships, and reputation summary. Use when users ask "where do I stand?", "what's my status?", "how am I doing?", or want to see their impact on the network.
+     */
+    myPlace?: boolean | null;
+    /**
+     * Discover meaningful connections between the user and other federation members. Uses pattern detection across skills, activity timing, shared spaces, pheromone trails, and complementary abilities to surface synchronicities — invisible connections made visible. Use when users ask "who am I connected to?", "find me collaborators", "who should I work with?", or are looking for community.
+     */
+    findSynchronicities?: boolean | null;
+    /**
+     * List all known peers in the federation network. Shows their domains, capabilities, trust scores, and online status from the local governance cache (no outbound HTTP). Use this to discover which peers exist before querying their catalogs with query_peer_catalog.
+     */
+    browseFederationPeers?: boolean | null;
+    /**
+     * Search a specific federation peer's product/service catalog. Provide the peer's domain to browse their offerings. Use browse_federation_peers first to discover peer domains. This makes a signed outbound HTTP request to the peer's public catalog endpoint.
+     */
+    queryPeerCatalog?: boolean | null;
+    /**
+     * Search across ALL federation peers' catalogs simultaneously. Finds products and services across the entire network by querying every active peer in parallel. Use when you want to find the best option regardless of which peer offers it — this is the federation's unified search.
+     */
+    searchFederationWide?: boolean | null;
+    /**
+     * Browse product summaries from all known federation peers using the local Street Signs gossip cache. Instant — no outbound HTTP. Data is automatically refreshed every 5 minutes via heartbeat. Use query_peer_catalog to get the full catalog from a specific peer.
+     */
+    discoverFederationProducts?: boolean | null;
+    /**
+     * Query any Payload collection directly. Returns documents matching the given filters. Use this when no specific query tool exists for the collection, or when you need flexible access to any data in the Endeavor. Supports filtering by field values, sorting, and pagination. Always scoped to the current tenant.
+     */
+    payloadFind?: boolean | null;
+    /**
+     * Update a document in any Payload collection by ID. Use for modifications not covered by specific tools — navigation menus, footer links, contact records, workflow configs, etc. Always confirm changes with the user before calling — Article III.2 requires human confirmation for mutations.
+     */
+    payloadUpdate?: boolean | null;
+    /**
+     * Create a new document in any Payload collection. Use for creating records not covered by specific tools. Always confirm with the user before calling — Article III.2.
+     */
+    payloadCreate?: boolean | null;
+    /**
+     * Delete a document from a Payload collection by ID. This is irreversible. Always confirm with the user before calling — Article III.2 requires explicit human confirmation for destructive actions.
+     */
+    payloadDelete?: boolean | null;
+    /**
+     * Get the current header and/or footer navigation for the site. Returns all nav items with their labels, link types, and URLs. Use when users ask about site navigation, menu items, or links.
+     */
+    queryNavigation?: boolean | null;
+    /**
+     * Add, remove, or reorder navigation items in the header or footer. Use when users ask to change menu links, add new pages to the nav, remove links, or reorder the menu. Always confirm the change with the user before calling — Article III.2.
+     */
+    updateNavigation?: boolean | null;
+    /**
+     * Send an interactive form directly in the chat for the user to fill out. Use this to collect information (contact details, feedback, RSVPs, custom data). Fields can be pre-filled with data you already know. The form renders inline in the chat message and submits to the form-submissions collection. Best for one-off data collection during conversation. For persistent forms that live on pages, use create_form instead.
+     */
+    sendInlineForm?: boolean | null;
+    /**
+     * Create a persistent form in the forms collection. Use when you need a reusable form that can be placed on pages via the FormBlock, sent in emails, or referenced by ID. For one-off forms in chat, use send_inline_form instead. Returns the new form ID.
+     */
+    createForm?: boolean | null;
+    /**
+     * Read form submissions — filter by form ID, form title, date range, or specific field values. Returns a formatted summary of submissions with all field data. Use to review customer feedback, contact requests, RSVPs, survey results, or any data collected through forms.
+     */
+    queryFormSubmissions?: boolean | null;
+    /**
+     * Query application error/warning logs to diagnose issues, find recurring errors, or check system health. Returns recent logs filtered by level, source, or time range. Use proactively when a user reports issues or when running diagnostics.
+     */
+    queryApplicationLogs?: boolean | null;
+    /**
+     * Get health status of all configured connectors (email, Discord, Stripe, WhatsApp, Telegram, Slack, SMS). Shows which are active, errored, paused, or need attention. Use when users ask about integrations, communication channels, or when running system diagnostics.
+     */
+    connectorHealthSummary?: boolean | null;
+    /**
+     * Run a comprehensive SUBSAFE diagnostic on this ship. Checks application errors, connector health, enterprise health (orders, inventory, content, payments), federation pulse, database integrity, and constitutional compliance. Returns a structured pass/fail report for each subsystem with recommended actions. Named after the US Navy SUBSAFE program — every system verified, every weld inspected.
+     */
+    runSubsafeCheck?: boolean | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -5745,6 +6303,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'application-logs';
         value: number | ApplicationLog;
+      } | null)
+    | ({
+        relationTo: 'cost-events';
+        value: number | CostEvent;
       } | null)
     | ({
         relationTo: 'reviews';
@@ -6211,7 +6773,6 @@ export interface SpaceMembershipsSelect<T extends boolean = true> {
 export interface ChannelsSelect<T extends boolean = true> {
   tenant?: T;
   name?: T;
-  generateSlug?: T;
   slug?: T;
   description?: T;
   space?: T;
@@ -7180,6 +7741,39 @@ export interface ApplicationLogsSelect<T extends boolean = true> {
   userId?: T;
   tenantId?: T;
   resolved?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cost-events_select".
+ */
+export interface CostEventsSelect<T extends boolean = true> {
+  tenant?: T;
+  category?: T;
+  source?: T;
+  provider?: T;
+  costCents?: T;
+  costEstimated?: T;
+  currency?: T;
+  billedToTenantKey?: T;
+  quantity?: T;
+  unit?: T;
+  model?: T;
+  tier?: T;
+  inputTokens?: T;
+  outputTokens?: T;
+  totalTokens?: T;
+  latencyMs?: T;
+  ttftMs?: T;
+  finishReason?: T;
+  toolCallCount?: T;
+  failedOver?: T;
+  messageRef?: T;
+  conversationId?: T;
+  userId?: T;
+  occurredAt?: T;
+  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8324,8 +8918,128 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
     | T
     | {
         leoRespond?: T;
-        runSubsafe?: T;
-        queryErrors?: T;
+        queryProducts?: T;
+        queryPosts?: T;
+        queryBookings?: T;
+        querySpaces?: T;
+        queryProjects?: T;
+        queryEvents?: T;
+        queryEventRegistrations?: T;
+        queryAvailability?: T;
+        createBooking?: T;
+        updateBookingStatus?: T;
+        checkAvailableSlots?: T;
+        cancelBooking?: T;
+        rescheduleBooking?: T;
+        addToCart?: T;
+        viewCart?: T;
+        generateImage?: T;
+        improveImage?: T;
+        attachImageToProduct?: T;
+        replaceImage?: T;
+        inviteMember?: T;
+        createProduct?: T;
+        updateProduct?: T;
+        findProducers?: T;
+        browseNetwork?: T;
+        checkFees?: T;
+        queryOrders?: T;
+        routeOrder?: T;
+        acceptOrder?: T;
+        updateFulfillment?: T;
+        configureBusiness?: T;
+        configureEndeavor?: T;
+        connectStripeAccount?: T;
+        disconnectStripeAccount?: T;
+        onboardVendor?: T;
+        suggestProducts?: T;
+        generateCadInstructions?: T;
+        fetchReviews?: T;
+        draftReviewResponse?: T;
+        createPost?: T;
+        createWorkFromUrl?: T;
+        createQuest?: T;
+        ingestYoutubeUrl?: T;
+        ingestYoutubeChannel?: T;
+        updatePost?: T;
+        createPage?: T;
+        updatePage?: T;
+        addCalendarToPage?: T;
+        queryMedia?: T;
+        manageCategories?: T;
+        createSpace?: T;
+        completeEnlistment?: T;
+        signConstitution?: T;
+        pingFederation?: T;
+        analyzeImage?: T;
+        extractPdfPages?: T;
+        queryKnowledge?: T;
+        getThemeSettings?: T;
+        updateThemeSettings?: T;
+        getPageHero?: T;
+        editImageText?: T;
+        setPageHero?: T;
+        generateThemeAwareImage?: T;
+        researchAndProvision?: T;
+        provisionTenant?: T;
+        trackSoul?: T;
+        sendMessage?: T;
+        sendDirectMessage?: T;
+        createAnnouncement?: T;
+        moderateContent?: T;
+        updateInventory?: T;
+        trackInventoryMovement?: T;
+        setLowStockAlert?: T;
+        queryInventoryHistory?: T;
+        generateInvoice?: T;
+        queryFinancialReports?: T;
+        issueRefund?: T;
+        queryFederation?: T;
+        broadcastCapability?: T;
+        routeFederatedRequest?: T;
+        negotiateDeal?: T;
+        createCustomerProfile?: T;
+        logInteraction?: T;
+        segmentCustomers?: T;
+        sendFollowUp?: T;
+        sendEmail?: T;
+        sendWhatsapp?: T;
+        sendTelegram?: T;
+        sendSms?: T;
+        sendSlack?: T;
+        sendFederationMessage?: T;
+        broadcastFederationMessage?: T;
+        requestEndeavorMigration?: T;
+        leoHandoff?: T;
+        analyzeTrends?: T;
+        recommendProducts?: T;
+        delegateTask?: T;
+        escalateIssue?: T;
+        sendEmergencyAlert?: T;
+        documentIncident?: T;
+        logMaintenanceNote?: T;
+        checkEnterpriseHealth?: T;
+        getEnterpriseStage?: T;
+        queryBoardMembers?: T;
+        federationPulse?: T;
+        myPlace?: T;
+        findSynchronicities?: T;
+        browseFederationPeers?: T;
+        queryPeerCatalog?: T;
+        searchFederationWide?: T;
+        discoverFederationProducts?: T;
+        payloadFind?: T;
+        payloadUpdate?: T;
+        payloadCreate?: T;
+        payloadDelete?: T;
+        queryNavigation?: T;
+        updateNavigation?: T;
+        sendInlineForm?: T;
+        createForm?: T;
+        queryFormSubmissions?: T;
+        queryApplicationLogs?: T;
+        connectorHealthSummary?: T;
+        runSubsafeCheck?: T;
       };
   updatedAt?: T;
   createdAt?: T;
