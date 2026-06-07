@@ -17,6 +17,18 @@ export const INITIAL_USER_EMAILS = {
   guardian: 'guardian@spacesangels.com',
 } as const
 
+/**
+ * Founder accounts — ALWAYS seeded as super_admins, idempotently.
+ * findOrCreateUser only sets a password on first create, so re-seeding never
+ * resets an existing login. Password (first-create only) comes from
+ * FOUNDER_PASSWORD or falls back to the dev default.
+ */
+export const FOUNDER_ACCOUNTS = [
+  { email: 'kenneth.courtney@gmail.com', name: 'Kenneth Courtney' },
+  { email: 'tylersuzanne84@gmail.com', name: 'Tyler Suzanne' },
+  { email: 'clearwatercruisin@gmail.com', name: 'Clearwater Cruisin' },
+] as const
+
 export const DEFAULT_TENANT_SLUG = 'default'
 export const PLATFORM_TENANT_ID = 'platform'
 

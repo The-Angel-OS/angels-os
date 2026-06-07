@@ -23,6 +23,7 @@ import {
   seedPlatformTenant,
   seedArchangelLeo,
   INITIAL_USER_EMAILS,
+  FOUNDER_ACCOUNTS,
 } from './seed-helpers'
 
 // Deletion order matters: delete children (FK dependants) before parents.
@@ -285,6 +286,19 @@ export const seed = async ({
   })
   const guardianUserId = guardianUser.id as number
   payload.logger.info(`— Guardian user: ${guardianUser.email} id=${guardianUserId}`)
+
+  // Founder accounts — always seeded as super_admins (idempotent; never resets
+  // an existing password). Ken, Ty, and the shared Clearwater Cruisin account.
+  for (const founder of FOUNDER_ACCOUNTS) {
+    const founderUser = await findOrCreateUser(payload, req, {
+      email: founder.email,
+      name: founder.name,
+      password: process.env.FOUNDER_PASSWORD || 'angelos',
+      roles: ['super_admin', 'customer'],
+      tenantId: defaultTenantId,
+    })
+    payload.logger.info(`— Founder (super_admin): ${founderUser.email} id=${founderUser.id}`)
+  }
 
   await findOrCreateTenantMembership(payload, req, {
     userId: adminUserId,
