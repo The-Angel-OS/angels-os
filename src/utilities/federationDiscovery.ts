@@ -67,10 +67,17 @@ function mapRemoteHolon(
     },
     logo: absolutizeMedia(raw.logo, peer.origin),
     coverImage: absolutizeMedia(raw.coverImage, peer.origin),
-    // Producer doesn't return per-endeavor storefront URLs yet — link to the
-    // peer Enterprise root so the card still goes somewhere useful.
-    storefrontUrl: peer.origin,
-    tenant: null,
+    // Prefer the producer's per-endeavor storefront URL (deep-links to the
+    // specific Endeavor); fall back to the peer Enterprise root.
+    storefrontUrl: typeof raw.storefrontUrl === 'string' && raw.storefrontUrl ? raw.storefrontUrl : peer.origin,
+    tenant:
+      raw.tenant && typeof raw.tenant === 'object'
+        ? {
+            slug: raw.tenant.slug || '',
+            siteName: raw.tenant.siteName || null,
+            domain: raw.tenant.domain || null,
+          }
+        : null,
     origin: { enterprise: peer.name, domain: peer.domain },
   }
 }

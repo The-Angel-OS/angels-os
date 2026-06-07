@@ -21,6 +21,25 @@
 import type { PayloadHandler, Where } from 'payload'
 import { logFederationAction } from '@/federation/auditLog'
 
+/** Strip a leading/embedded www. so we never emit slug.www.example.com. */
+const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
+
+/**
+ * Canonical public storefront URL for an Endeavor, resolved from its tenant on
+ * THIS node (the producer knows its own domains). Lets remote Discovery cards
+ * deep-link to the specific Endeavor instead of just the peer's root.
+ */
+function computeStorefrontUrl(
+  tenant: { domain?: string | null; slug?: string | null } | null,
+  federationDomain: string | null,
+): string | null {
+  const isReal = (d?: string | null) =>
+    !!d && !d.endsWith('.local') && !d.includes('localhost')
+  if (isReal(tenant?.domain)) return `https://${stripWww(tenant!.domain as string)}`
+  if (isReal(federationDomain)) return `https://${stripWww(federationDomain as string)}`
+  return null
+}
+
 export const federationHolonsHandler: PayloadHandler = async (req) => {
   const startTime = Date.now()
   const url = new URL(req.url || 'http://localhost', 'http://localhost')
@@ -80,31 +99,45 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
     })
 
     // Transform to public-safe shape
-    const holons = endeavors.docs.map((doc: any) => ({
-      id: doc.id,
-      name: doc.name || 'Unnamed Enterprise',
-      tagline: doc.tagline || '',
-      description: doc.description || '',
-      endeavorType: doc.endeavorType || 'custom',
-      holonTypes: doc.holonTypes || [],
-      missionStatement: doc.missionStatement || '',
-      status: doc.status || 'forming',
-      capabilities: (doc.capabilities || []).map((c: any) => ({
-        skill: c.skill,
-        description: c.description || '',
-      })),
-      region: {
-        city: doc.region?.city || '',
-        state: doc.region?.state || '',
-        country: doc.region?.country || 'US',
-      },
-      federation: {
-        federationId: doc.federation?.federationId || '',
-        ministryStatus: doc.federation?.ministryStatus || 'applicant',
-      },
-      logo: doc.logo?.url || doc.logo?.filename || null,
-      coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
-    }))
+    const holons = endeavors.docs.map((doc: any) => {
+      // depth:1 resolves the tenant relation to an object (branding/domain/slug).
+      const tenant = typeof doc.tenant === 'object' && doc.tenant ? doc.tenant : null
+      const federationDomain = (doc.federation?.domain as string) || null
+      return {
+        id: doc.id,
+        name: doc.name || 'Unnamed Enterprise',
+        tagline: doc.tagline || '',
+        description: doc.description || '',
+        endeavorType: doc.endeavorType || 'custom',
+        holonTypes: doc.holonTypes || [],
+        missionStatement: doc.missionStatement || '',
+        status: doc.status || 'forming',
+        capabilities: (doc.capabilities || []).map((c: any) => ({
+          skill: c.skill,
+          description: c.description || '',
+        })),
+        region: {
+          city: doc.region?.city || '',
+          state: doc.region?.state || '',
+          country: doc.region?.country || 'US',
+        },
+        federation: {
+          federationId: doc.federation?.federationId || '',
+          ministryStatus: doc.federation?.ministryStatus || 'applicant',
+        },
+        logo: doc.logo?.url || doc.logo?.filename || null,
+        coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
+        // Per-endeavor storefront so remote cards deep-link to the right place.
+        storefrontUrl: computeStorefrontUrl(tenant, federationDomain),
+        tenant: tenant?.slug
+          ? {
+              slug: tenant.slug,
+              siteName: tenant.branding?.siteName || null,
+              domain: tenant.domain || null,
+            }
+          : null,
+      }
+    })
 
     // Audit log (fire-and-forget)
     const callerFedId = req.headers.get('x-federation-id')
