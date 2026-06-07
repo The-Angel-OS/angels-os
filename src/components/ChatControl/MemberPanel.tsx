@@ -45,6 +45,11 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
   const [inviteMessage, setInviteMessage] = useState('')
   const [isInviting, setIsInviting] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // Add-existing-member browser (search portal/workspace members not in the space)
+  const [addQuery, setAddQuery] = useState('')
+  const [candidates, setCandidates] = useState<Array<{ userId: string; name: string; email: string }>>([])
+  const [searching, setSearching] = useState(false)
+  const [addingId, setAddingId] = useState<string | null>(null)
 
   const canInvite = currentUserRole === 'space_admin' || currentUserRole === 'moderator'
 
@@ -84,6 +89,54 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
   useEffect(() => {
     if (isOpen) fetchMembers()
   }, [isOpen, fetchMembers])
+
+  // Debounced search of portal members not already in the space.
+  useEffect(() => {
+    if (!canInvite || !isOpen) return
+    let cancelled = false
+    const handle = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(
+          `/api/space-ops/members/candidates?spaceId=${spaceId}&q=${encodeURIComponent(addQuery.trim())}`,
+          { credentials: 'include' },
+        )
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          setCandidates(Array.isArray(data.candidates) ? data.candidates : [])
+        }
+      } catch {
+        /* non-critical */
+      } finally {
+        if (!cancelled) setSearching(false)
+      }
+    }, 250)
+    return () => { cancelled = true; clearTimeout(handle) }
+  }, [addQuery, spaceId, canInvite, isOpen])
+
+  const addMember = useCallback(async (userId: string) => {
+    setAddingId(userId)
+    setFeedback(null)
+    try {
+      const res = await fetch('/api/space-ops/members/add', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spaceId, userId, role: 'member' }),
+      })
+      if (res.ok) {
+        setCandidates((prev) => prev.filter((c) => c.userId !== userId))
+        await fetchMembers()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setFeedback({ type: 'error', text: err.error || 'Failed to add member.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Network error. Please try again.' })
+    } finally {
+      setAddingId(null)
+    }
+  }, [spaceId, fetchMembers])
 
   const handleInvite = async () => {
     if (!inviteEmail.trim() || isInviting) return
@@ -220,6 +273,47 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
             >
               dismiss
             </button>
+          </div>
+        )}
+
+        {/* Add existing portal members (search workspace members) */}
+        {canInvite && (
+          <div className="border-b border-border p-3">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add members</label>
+            <input
+              type="text"
+              value={addQuery}
+              onChange={(e) => setAddQuery(e.target.value)}
+              placeholder="Search workspace members…"
+              className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+            />
+            {(searching || candidates.length > 0) && (
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-border">
+                {searching && candidates.length === 0 ? (
+                  <div className="px-2.5 py-2 text-xs text-muted-foreground">Searching…</div>
+                ) : candidates.length === 0 ? (
+                  <div className="px-2.5 py-2 text-xs text-muted-foreground">No matching members</div>
+                ) : (
+                  candidates.map((c) => (
+                    <button
+                      key={c.userId}
+                      onClick={() => addMember(c.userId)}
+                      disabled={addingId === c.userId}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted/60 disabled:opacity-50"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
+                        {(c.name || '?').charAt(0).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{c.name}</span>
+                        {c.email && <span className="block truncate text-xs text-muted-foreground">{c.email}</span>}
+                      </span>
+                      <UserPlus size={13} className="shrink-0 text-muted-foreground" />
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 

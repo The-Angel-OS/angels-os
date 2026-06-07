@@ -83,7 +83,7 @@ import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
 import { tenantInviteAcceptHandler } from '@/endpoints/tenant-invite-accept'
-import { spaceMembersRemoveHandler } from '@/endpoints/space-members'
+import { spaceMembersRemoveHandler, spaceMemberCandidatesHandler, spaceMemberAddHandler } from '@/endpoints/space-members'
 import { orderRouteHandler } from '@/endpoints/order-route'
 import { orderAcceptHandler } from '@/endpoints/order-accept'
 import { orderFulfillHandler } from '@/endpoints/order-fulfill'
@@ -564,6 +564,16 @@ export default buildConfig({
       path: '/space-ops/members/remove',
       method: 'post',
       handler: spaceMembersRemoveHandler,
+    },
+    {
+      path: '/space-ops/members/candidates',
+      method: 'get',
+      handler: spaceMemberCandidatesHandler,
+    },
+    {
+      path: '/space-ops/members/add',
+      method: 'post',
+      handler: spaceMemberAddHandler,
     },
     // ─── Tenant Invitation Endpoint ─────────────────────────────
     {
