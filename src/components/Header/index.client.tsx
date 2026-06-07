@@ -59,7 +59,7 @@ const DISCOVER_NAV_ITEM = {
   id: 'discover',
   link: {
     type: 'custom' as const,
-    label: 'Discover',
+    label: 'Discovery', // shuttle nomenclature: Enterprise · Endeavor · Discovery
     url: '/federation/discover',
     newTab: false,
   },

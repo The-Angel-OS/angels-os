@@ -63,7 +63,7 @@ export function FederationDiscover({ initialHolons, total }: FederationDiscoverP
     <div className="container py-12">
       {/* Hero */}
       <div className="mb-10 text-center">
-        <h1 className="mb-3 text-3xl font-bold md:text-4xl">Discover the Federation</h1>
+        <h1 className="mb-3 text-3xl font-bold md:text-4xl">Discovery — Explore the Federation</h1>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
           Browse Enterprises in the Angel OS network. Find partners, discover services, and grow
           together through constitutional commerce.

@@ -11,6 +11,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { headers } from 'next/headers'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,18 +58,13 @@ async function getAuthenticatedAdmin() {
     return { payload, user, tenantId: null, error: 'Insufficient permissions' }
   }
 
-  // Resolve tenant from header
-  const tenantSlug =
-    headersList.get('x-tenant-id') || process.env.DEFAULT_TENANT_SLUG || 'default'
-  const tenants = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: tenantSlug } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  const tenantId = tenants.docs[0]?.id
+  // Resolve tenant the SAME way the dashboard layout does — x-tenant-id, then a
+  // host/domain lookup, then DEFAULT_TENANT_SLUG. The previous hand-rolled
+  // `x-tenant-id || 'default'` lacked the domain fallback, so on an apex/
+  // federation host (no subdomain header, e.g. federation.kendev.co) it resolved
+  // a non-existent 'default' tenant → "Tenant not found" → the page's
+  // "Unable to load Endeavor data" dead-end even though an endeavor existed.
+  const { tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) {
     return { payload, user, tenantId: null, error: 'Tenant not found' }
   }
