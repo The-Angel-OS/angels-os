@@ -9,7 +9,7 @@ import { MobileMenu } from './MobileMenu'
 import { AccountMenu } from './AccountMenu'
 import type { Header, Media, Tenant } from '@/payload-types'
 
-import { LogoIcon } from '@/components/icons/logo'
+import { AngelIcon } from '@/components/icons/AngelIcon'
 import { useAuth } from '@/providers/Auth'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
@@ -207,7 +207,7 @@ export function HeaderClient({ header, tenant }: Props) {
               {tenantLogoUrl ? (
                 <img src={tenantLogoUrl} alt={tenant?.branding?.siteName || tenant?.name || 'Home'} className="h-6 w-auto object-contain" />
               ) : (
-                <LogoIcon className="w-6 h-auto" />
+                <AngelIcon className="h-7 w-7 text-[#f5a623]" />
               )}
             </Link>
             {menu.length ? (

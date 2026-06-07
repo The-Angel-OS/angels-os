@@ -87,7 +87,16 @@ export function PortalSwitcher({
             <ChevronIcon open={open} />
           </>
         )}
-        {compact && <ChevronIcon open={open} />}
+        {compact && (
+          <>
+            {/* Show the current portal name so the switcher is discoverable as
+                "you're in X — click to switch" (hidden on narrow screens). */}
+            <span className="hidden max-w-[140px] truncate text-left text-sm font-medium lg:inline">
+              {currentPortal?.name || 'Switch portal'}
+            </span>
+            <ChevronIcon open={open} />
+          </>
+        )}
       </button>
 
       {open && (
