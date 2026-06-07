@@ -149,14 +149,23 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
                 <span>{regionText}</span>
               </>
             )}
-            <span className="text-border">|</span>
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                STATUS_STYLES[holon.federation.ministryStatus] || STATUS_STYLES.applicant
-              }`}
-            >
-              {holon.federation.ministryStatus}
-            </span>
+            {/* Admission/trust (applicant/probation/active/vouched) is an
+                ENTERPRISE property — an Endeavor inherits it and never wears its
+                own "Applicant" badge. Show only the positive, established states
+                as a presence signal; applicants appear cleanly (inclusive trust
+                default — moderate reactively, don't stigmatize on arrival). */}
+            {['active', 'vouched', 'full'].includes(holon.federation.ministryStatus) && (
+              <>
+                <span className="text-border">|</span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+                    STATUS_STYLES[holon.federation.ministryStatus] || ''
+                  }`}
+                >
+                  {holon.federation.ministryStatus}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Capabilities */}

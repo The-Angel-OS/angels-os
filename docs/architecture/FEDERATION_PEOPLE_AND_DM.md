@@ -87,14 +87,43 @@ makes "leave the network" a clean local delete.
 5. **LiveKit cross-node rooms** (token minting per node on a shared room name).
 6. **Request/accept handshake + rate limits** (anti-spam).
 
-## Open decisions
-- `federatedPersonId` hashing scheme + salt rotation (must be stable network-wide
-  → a shared, published salt or a deterministic email-normalization + hash).
-- Directory default visibility per Enterprise (root/showcase = on? endeavors = off
-  until opted in?).
-- Trust gating: do `probation`/`applicant` Enterprises appear in the unified
-  directory, or only `active`/`vouched`+ ? (ties to the Diocese trust model).
-- Message-relay durability guarantees (best-effort vs. a durable outbox).
+## Decisions (resolved 2026-06-07)
+
+- **Admission/trust is an ENTERPRISE property, not an Endeavor one.** applicant /
+  probation / active / vouched / full describe the *Enterprise* (Diocese); an
+  Endeavor **inherits** its Enterprise's standing and must never display its own
+  admission badge. (Bug fixed: KenDev.Co — the Enterprise's root presence — was
+  showing "Applicant" on a Discovery *endeavor* card.) Discovery cards now show
+  only the positive established states as a presence signal; applicants appear
+  cleanly. The deeper re-grain (move `ministryStatus` off `endeavors` onto
+  `FederationPeers`/Enterprise, endeavors inherit) is the canonical fix — this
+  display change is the interim.
+
+- **`federatedPersonId` (best practice):** normalize the verified email
+  (trim + lowercase; for gmail.com/googlemail.com strip dots and the `+tag` in
+  the local-part — Google treats them as one mailbox; do NOT dot-strip other
+  providers), then `HMAC-SHA256(normalizedEmail, NETWORK_SALT)` → hex. The salt is
+  a **network-wide shared secret published to member Enterprises** (not public),
+  so the same person hashes identically on every node (enables dedupe) while the
+  directory never exposes raw emails and the ids aren't rainbow-table-reversible.
+  Salt rotation = a versioned salt (`v1:<hash>`) so a future rotation can be rolled
+  forward without breaking existing matches.
+
+- **Directory/Discovery default visibility:** reuse the existing pattern —
+  visible **when configured** (the `federation.networkVisible` flag we already
+  have for endeavors; an equivalent `directoryVisible` for people) **plus an admin
+  override**. Root/showcase Enterprise = on by default.
+
+- **Trust gating = inclusive by default.** Show applicant/probation Enterprises in
+  the unified directory from the start (anyone motivated enough to stand up an
+  instance is acting in good faith); make **hiding/suspension a reactive network
+  governance function** triggered on bad action — not an upfront gate.
+
+## Still open
+- **Message-relay durability.** Recommendation: ship **best-effort + idempotency**
+  (`metadata.federationMessageId` dedupe, heartbeat retry) first; upgrade to a
+  **durable outbox** (persisted unsent queue with backoff) if/when we see real
+  drop rates. Start simple, instrument, harden.
 
 Related: [[../architecture/AUTH_CONTEXT_REFACTOR.md]] (PortalContext scopes the
 *local* People view), the Diocese/federation trust model, and the governance
