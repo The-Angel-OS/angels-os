@@ -1,10 +1,9 @@
 'use client'
-import { CMSLink } from '@/components/Link'
 import { Cart } from '@/components/Cart'
 import { OpenCartButton } from '@/components/Cart/OpenCart'
 import { PortalSwitcher, type PortalInfo } from '@/components/PortalSwitcher'
 import Link from 'next/link'
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
 
 import { MobileMenu } from './MobileMenu'
 import type { Header, Media, Tenant } from '@/payload-types'
@@ -13,7 +12,15 @@ import { LogoIcon } from '@/components/icons/logo'
 import { useAuth } from '@/providers/Auth'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
-import { useClickOutside } from '@/hooks/useClickOutside'
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu'
 
 // How many primary nav items stay inline before the rest collapse into "More ▾".
 const MAX_INLINE_NAV = 6
@@ -105,6 +112,17 @@ const LEARN_NAV_ITEM = {
   },
 }
 
+// Resolve an href from a nav item's link, mirroring CMSLink's reference/custom logic.
+function resolveHref(link: { type?: string | null; url?: string | null; reference?: any } | undefined): string {
+  if (!link) return '#'
+  if (link.type === 'reference' && link.reference && typeof link.reference.value === 'object') {
+    const rel = link.reference.relationTo
+    const slug = link.reference.value?.slug
+    if (slug) return `${rel !== 'pages' ? `/${rel}` : ''}/${slug}`
+  }
+  return link.url || '#'
+}
+
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
 
@@ -166,15 +184,13 @@ export function HeaderClient({ header, tenant }: Props) {
   // the bar never wraps to a second row regardless of how many nav items exist.
   const primaryItems = menu.slice(0, MAX_INLINE_NAV)
   const overflowItems = menu.slice(MAX_INLINE_NAV)
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef<HTMLLIElement>(null)
-  useClickOutside(moreRef, () => setMoreOpen(false), moreOpen)
-  useEffect(() => setMoreOpen(false), [pathname])
 
-  const navLinkClass = (url?: string | null) =>
-    cn('relative navLink whitespace-nowrap', {
-      active: url && url !== '/' ? pathname.includes(url) : false,
-    })
+  const isActive = (url?: string | null) =>
+    url && url !== '/' ? pathname.includes(url) : false
+
+  // Shared classes so NavigationMenu links keep the existing uppercase nav look.
+  const navItemClass =
+    'navLink h-auto bg-transparent px-0 text-xs font-medium uppercase tracking-wider whitespace-nowrap hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent'
 
   return (
     <div className="relative z-20 border-b">
@@ -194,58 +210,54 @@ export function HeaderClient({ header, tenant }: Props) {
               )}
             </Link>
             {menu.length ? (
-              <ul className="hidden gap-5 text-xs font-medium uppercase tracking-wider md:flex md:items-center flex-nowrap">
-                {primaryItems.map((item) => (
-                  <li key={item.id}>
-                    <CMSLink
-                      {...item.link}
-                      size={'clear'}
-                      className={navLinkClass(item.link.url)}
-                      appearance="nav"
-                    />
-                  </li>
-                ))}
-
-                {overflowItems.length > 0 && (
-                  <li className="relative" ref={moreRef}>
-                    <button
-                      type="button"
-                      onClick={() => setMoreOpen((v) => !v)}
-                      aria-expanded={moreOpen}
-                      aria-haspopup="true"
-                      className="navLink flex items-center gap-1 whitespace-nowrap uppercase tracking-wider"
-                    >
-                      More
-                      <svg
-                        className={cn('h-3 w-3 transition-transform', moreOpen && 'rotate-180')}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+              <NavigationMenu viewport={false} className="hidden md:flex">
+                <NavigationMenuList className="gap-5">
+                  {primaryItems.map((item) => (
+                    <NavigationMenuItem key={item.id}>
+                      <NavigationMenuLink
+                        asChild
+                        active={isActive(item.link.url)}
+                        className={cn(navigationMenuTriggerStyle(), navItemClass)}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
+                        <Link
+                          href={resolveHref(item.link)}
+                          {...(item.link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                        >
+                          {item.link.label}
+                        </Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  ))}
 
-                    {moreOpen && (
-                      <div className="absolute left-0 top-full z-50 mt-2 min-w-44 rounded-md border border-border bg-background py-1 shadow-lg">
-                        {overflowItems.map((item) => (
-                          <CMSLink
-                            key={item.id}
-                            {...item.link}
-                            appearance="inline"
-                            className={cn(
-                              'block px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors hover:bg-muted',
-                              item.link.url && item.link.url !== '/' && pathname.includes(item.link.url)
-                                ? 'text-foreground'
-                                : 'text-muted-foreground hover:text-foreground',
-                            )}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                )}
-              </ul>
+                  {overflowItems.length > 0 && (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className={cn(navigationMenuTriggerStyle(), navItemClass)}>
+                        More
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-56 gap-0.5 p-2">
+                          {overflowItems.map((item) => (
+                            <li key={item.id}>
+                              <NavigationMenuLink
+                                asChild
+                                active={isActive(item.link.url)}
+                                className="block rounded-md px-3 py-2 text-xs font-medium uppercase tracking-wider"
+                              >
+                                <Link
+                                  href={resolveHref(item.link)}
+                                  {...(item.link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                >
+                                  {item.link.label}
+                                </Link>
+                              </NavigationMenuLink>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )}
+                </NavigationMenuList>
+              </NavigationMenu>
             ) : null}
           </div>
 
