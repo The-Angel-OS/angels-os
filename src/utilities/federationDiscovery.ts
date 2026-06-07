@@ -89,18 +89,29 @@ async function fetchPeerHolons(peer: { name: string; domain: string }): Promise<
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), PEER_FETCH_TIMEOUT_MS)
+  const url = `${origin}/api/federation/holons?limit=100`
   try {
-    const res = await fetch(`${origin}/api/federation/holons?limit=100`, {
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: { accept: 'application/json' },
       next: { revalidate: PEER_CACHE_SECONDS },
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      console.warn(`[FederationDiscovery] peer ${peer.domain} → HTTP ${res.status}`)
+      return []
+    }
     const data = (await res.json()) as { holons?: unknown[] }
-    if (!Array.isArray(data.holons)) return []
+    if (!Array.isArray(data.holons)) {
+      console.warn(`[FederationDiscovery] peer ${peer.domain} → no holons array`)
+      return []
+    }
+    console.log(`[FederationDiscovery] peer ${peer.domain} → ${data.holons.length} holon(s)`)
     return data.holons.map((h) => mapRemoteHolon(h, { ...peer, origin }))
-  } catch {
-    // Offline, timeout, or bad response — skip this Diocese silently.
+  } catch (err) {
+    console.warn(
+      `[FederationDiscovery] peer ${peer.domain} fetch failed (${url}):`,
+      err instanceof Error ? err.message : err,
+    )
     return []
   } finally {
     clearTimeout(timer)
@@ -130,10 +141,12 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
     peers = (result.docs as any[]) // eslint-disable-line @typescript-eslint/no-explicit-any
       .map((p) => ({ name: p.name || p.domain, domain: p.domain as string }))
       .filter((p) => p.domain)
-  } catch {
+  } catch (err) {
+    console.warn('[FederationDiscovery] peer query failed:', err instanceof Error ? err.message : err)
     return []
   }
 
+  console.log(`[FederationDiscovery] ${peers.length} visible peer(s): ${peers.map((p) => p.domain).join(', ') || '(none)'}`)
   if (peers.length === 0) return []
 
   const settled = await Promise.allSettled(peers.map(fetchPeerHolons))
