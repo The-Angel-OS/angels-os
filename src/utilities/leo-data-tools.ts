@@ -10744,7 +10744,7 @@ async function handleSendWhatsApp(
     const sender = await resolveWhatsAppSender(payload, ctx.tenantId, ctx.spaceId)
 
     if (!sender) {
-      return 'Error: No WhatsApp connector is configured for this tenant. Please set up a WhatsApp connector in Admin → Connectors.'
+      return 'Error: No WhatsApp connector is configured for this tenant. Please set up a WhatsApp connector in Account → Integrations.'
     }
 
     if (templateName) {
@@ -10786,7 +10786,7 @@ async function handleSendTelegram(
     const sender = await resolveTelegramSender(payload, ctx.tenantId, ctx.spaceId)
 
     if (!sender) {
-      return 'Error: No Telegram connector is configured for this tenant. Please set up a Telegram bot connector in Admin → Connectors.'
+      return 'Error: No Telegram connector is configured for this tenant. Please set up a Telegram bot connector in Account → Integrations.'
     }
 
     await sender.sendText(chatId, text, 'Markdown')
@@ -10820,7 +10820,7 @@ async function handleSendSms(
     const sender = await resolveSmsSender(payload, ctx.tenantId, ctx.spaceId)
 
     if (!sender) {
-      return 'Error: No SMS connector is configured for this tenant. Please set up a Twilio SMS connector in Admin → Connectors.'
+      return 'Error: No SMS connector is configured for this tenant. Please set up a Twilio SMS connector in Account → Integrations.'
     }
 
     await sender.sendText(to, body)
@@ -10851,7 +10851,7 @@ async function handleSendSlack(
     const sender = await resolveSlackSender(payload, ctx.tenantId, ctx.spaceId)
 
     if (!sender) {
-      return 'Error: No Slack connector is configured for this tenant. Please set up a Slack bot connector in Admin → Connectors.'
+      return 'Error: No Slack connector is configured for this tenant. Please set up a Slack bot connector in Account → Integrations.'
     }
 
     await sender.sendText(channelId, text, threadTs)

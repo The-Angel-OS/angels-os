@@ -414,7 +414,7 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
       {/* ─── Header ─────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Connectors</h1>
+          <h1 className="text-2xl font-bold">Integrations</h1>
           <p className="text-muted-foreground">
             Manage integrations for {tenantName}. Connect messaging platforms, email,
             and other services to LEO.

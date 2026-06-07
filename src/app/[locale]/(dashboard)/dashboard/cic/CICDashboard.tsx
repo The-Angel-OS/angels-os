@@ -424,7 +424,7 @@ export default function CICDashboard() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No connectors configured. Add one under Admin → Connectors to bridge WhatsApp, Discord, voice, and more onto the bus.
+              No connectors configured. Add one under Account → Integrations to bridge WhatsApp, Discord, voice, and more onto the bus.
             </p>
           )}
         </div>

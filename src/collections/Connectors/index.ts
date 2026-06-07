@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { checkRole } from '@/access/utilities'
+import { connectorScopedAccess, connectorCreateAccess } from '@/access/connectorAccess'
 
 /**
  * Connectors — Endeavor-level integration configuration.
@@ -25,11 +25,13 @@ export const Connectors: CollectionConfig = {
     hidden: ({ user }) =>
       !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },
+  // Endeavor owners self-serve their own tenant's integrations (tenant_admin /
+  // tenant_manager); super_admin manages all. See @/access/connectorAccess.
   access: {
-    create: ({ req: { user } }) => Boolean(checkRole(['super_admin'], user)),
-    read: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(checkRole(['super_admin'], user)),
-    delete: ({ req: { user } }) => Boolean(checkRole(['super_admin'], user)),
+    create: connectorCreateAccess,
+    read: connectorScopedAccess,
+    update: connectorScopedAccess,
+    delete: connectorScopedAccess,
   },
   fields: [
     {

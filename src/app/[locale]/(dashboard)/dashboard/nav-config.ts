@@ -186,6 +186,18 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        // Enterprise integrations (Email, WhatsApp, Stripe, Gotify…). Distinct
+        // from "Connections" (personal OAuth sign-ins). Owners self-serve their
+        // own tenant's integrations; access is enforced on the Connectors
+        // collection (tenant_admin / tenant_manager / super_admin).
+        key: 'integrations',
+        label: 'Integrations',
+        icon: 'plug',
+        href: (p) => `${p}/dashboard/account/integrations`,
+        isActive: active('/dashboard/account/integrations'),
+        visible: adminOrBusinessOwner,
+      },
+      {
         key: 'addresses',
         label: 'Addresses',
         icon: 'map-pin',
@@ -418,14 +430,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'book-open',
         href: (p) => `${p}/dashboard/admin/contacts`,
         isActive: active('/dashboard/admin/contacts'),
-        visible: always,
-      },
-      {
-        key: 'connectors',
-        label: 'Connectors',
-        icon: 'plug',
-        href: (p) => `${p}/dashboard/admin/connectors`,
-        isActive: active('/dashboard/admin/connectors'),
         visible: always,
       },
       {
