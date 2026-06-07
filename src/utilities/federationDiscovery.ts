@@ -135,6 +135,20 @@ async function fetchPeerHolons(peer: { name: string; domain: string }): Promise<
  * Aggregate network-visible holons from all active peer Dioceses.
  * Returns a flat, deduped list (deduped by federationId, then name+origin).
  */
+/** Coerce a jsonb endeavors value (array OR JSON string from the adapter) into an array. */
+function coerceEndeavors(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 export async function aggregatePeerHolons(payload: Payload): Promise<FederationHolon[]> {
   let peers: { name: string; domain: string; endeavors: unknown[] }[] = []
   try {
@@ -156,7 +170,9 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
         name: p.name || p.domain,
         domain: p.domain as string,
         // Endeavors gossiped via heartbeat (preferred — no render-time fetch).
-        endeavors: Array.isArray(p.endeavors) ? p.endeavors : [],
+        // The Postgres jsonb field can come back as a string from the internal
+        // find (vs parsed by the REST serializer), so coerce defensively.
+        endeavors: coerceEndeavors(p.endeavors),
       }))
       .filter((p) => p.domain)
   } catch (err) {
@@ -174,6 +190,7 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
     peers.map(async (peer) => {
       const origin = toOrigin(peer.domain)
       if (peer.endeavors.length > 0 && origin) {
+        console.warn(`[FederationDiscovery] peer ${peer.domain} → ${peer.endeavors.length} cached endeavor(s)`)
         return peer.endeavors.map((h) =>
           mapRemoteHolon(h, { name: peer.name, domain: peer.domain, origin }),
         )
