@@ -174,6 +174,10 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
         id: membership.id,
         tenantId: tenant?.id || membership.tenant,
         tenantName: tenant?.name || 'Unknown',
+        // Slug/domain let the client land the user INSIDE the tenant they just
+        // joined (their identity is platform-global; this routes them in).
+        tenantSlug: tenant?.slug || null,
+        tenantDomain: tenant?.domain || null,
         role: membership.role,
       },
     })
