@@ -21,7 +21,11 @@ import type { FederationHolon } from '@/components/FederationCard'
 /** Peer trust states whose Endeavors we surface in Discovery. */
 const VISIBLE_PEER_STATUSES = ['active', 'probation', 'vouched', 'full']
 
-const PEER_FETCH_TIMEOUT_MS = 3000
+// Generous: a peer node's Payload can take several seconds to cold-boot the
+// /api/federation/holons handler. 3s was too tight and silently dropped a
+// reachable-but-cold peer. (The proper long-term fix is to serve peer endeavors
+// from heartbeat-cached data instead of a render-time fetch.)
+const PEER_FETCH_TIMEOUT_MS = 12000
 
 /** Normalize a stored domain to an https origin (no trailing slash, no scheme dupes). */
 function toOrigin(domain: string): string | null {
