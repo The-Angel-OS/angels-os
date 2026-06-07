@@ -120,6 +120,7 @@ import { connectorTestHandler } from '@/endpoints/connector-test'
 import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import { youtubePollHandler } from '@/endpoints/youtube-poll'
+import { gotifyPollHandler } from '@/endpoints/gotify-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
@@ -796,6 +797,14 @@ export default buildConfig({
       path: '/youtube/poll',
       method: 'get',
       handler: youtubePollHandler,
+    },
+    // ─── Gotify Inbound Poll (Vercel Cron: */5 * * * *) ──────────
+    // Mirrors Gotify server messages (Uptime-Kuma, system alerts) onto the
+    // AI Bus for all enabled gotify connectors; dedupes by Gotify message id.
+    {
+      path: '/gotify/poll',
+      method: 'get',
+      handler: gotifyPollHandler,
     },
     // ─── Documentation Endpoint ──────────────────────────────────
     {

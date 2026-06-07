@@ -36,6 +36,8 @@ export async function runProbe(
       return probeSlack(cfg)
     case 'youtube_channel':
       return probeYouTubeChannel(cfg)
+    case 'gotify':
+      return probeGotify(cfg)
     case 'email_inbound':
       return { ok: true, message: 'IMAP probe not implemented (requires TCP connection)' }
     default:
@@ -182,4 +184,37 @@ async function probeSlack(cfg: Record<string, unknown>): Promise<ProbeResult> {
   const data = (await res.json()) as { ok: boolean; user?: string; team?: string; error?: string }
   if (!data.ok) return { ok: false, message: `Slack error: ${data.error || 'unknown'}` }
   return { ok: true, message: `Connected: ${data.user || 'bot'} in ${data.team || 'workspace'}` }
+}
+
+async function probeGotify(cfg: Record<string, unknown>): Promise<ProbeResult> {
+  const serverUrl = String(cfg.serverUrl || process.env.GOTIFY_SERVER_URL || '').replace(/\/+$/, '')
+  const clientToken = String(cfg.clientToken || '')
+  const appToken = String(cfg.appToken || '')
+  if (!serverUrl) return { ok: false, message: 'Missing serverUrl' }
+  if (!clientToken && !appToken) return { ok: false, message: 'Missing clientToken and appToken' }
+
+  // Prefer validating the CLIENT (receive) token via a non-destructive GET.
+  // App (send) tokens can only POST /message, so for app-only connectors we just
+  // confirm server reachability via the public /health endpoint.
+  try {
+    if (clientToken) {
+      const res = await fetch(`${serverUrl}/message?limit=1`, {
+        headers: { 'X-Gotify-Key': clientToken },
+      })
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, message: `Gotify rejected clientToken (${res.status})` }
+      }
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        return { ok: false, message: `Gotify ${res.status}: ${body.slice(0, 200)}` }
+      }
+      return { ok: true, message: `Connected: clientToken valid${appToken ? ' (appToken not GET-verifiable)' : ''}` }
+    }
+
+    const res = await fetch(`${serverUrl}/health`)
+    if (!res.ok) return { ok: false, message: `Gotify /health ${res.status}` }
+    return { ok: true, message: 'Server reachable (appToken send-only — not GET-verifiable)' }
+  } catch (err) {
+    return { ok: false, message: `Gotify fetch failed: ${err instanceof Error ? err.message : 'unknown'}` }
+  }
 }

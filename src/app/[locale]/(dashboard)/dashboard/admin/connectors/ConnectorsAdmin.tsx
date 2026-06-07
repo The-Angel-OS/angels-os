@@ -157,6 +157,29 @@ const CONNECTOR_CATALOG: ConnectorTypeDef[] = [
       { key: 'callbackUrl', label: 'Reply Callback URL', type: 'text', placeholder: 'https://your-service.com/callback' },
     ],
   },
+  {
+    type: 'gotify',
+    label: 'Gotify',
+    icon: '🔔',
+    description:
+      'Push notifications to/from a Gotify server. Receives alerts (e.g. Uptime-Kuma) onto the AI Bus, sends Angel OS events out. Multiple Gotify connectors per tenant are supported — each with its own server + tokens.',
+    category: 'integration',
+    fields: [
+      { key: 'serverUrl', label: 'Server URL', type: 'text', placeholder: 'https://gotify.kendev.co', required: true },
+      { key: 'appToken', label: 'App Token (send, A…)', type: 'password', placeholder: 'A…', helpText: 'Gotify → Apps. Used to PUSH Angel OS events out.' },
+      { key: 'clientToken', label: 'Client Token (receive, C…)', type: 'password', placeholder: 'C…', helpText: 'Gotify → Clients. Used to POLL inbound messages onto the AI Bus.' },
+      { key: 'limit', label: 'Poll Limit', type: 'number', placeholder: '50', helpText: 'Max messages fetched per poll (1–200).' },
+      // ── Escalation policy (dotted keys → nested config.escalation) ──
+      { key: 'escalation.enabled', label: 'Escalation: Master Switch', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Push Angel OS events to this Gotify.' },
+      { key: 'escalation.events.error.enabled', label: 'Push: Errors', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.events.error.minPriority', label: 'Errors: Min Priority (0–10)', type: 'number', placeholder: '8' },
+      { key: 'escalation.events.warning.enabled', label: 'Push: Warnings', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.events.budget_exceeded.enabled', label: 'Push: AI Budget Exceeded', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.events.provider_failover.enabled', label: 'Push: Provider Failover', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.rateLimitPerMin', label: 'Rate Limit (per min)', type: 'number', placeholder: '10', helpText: 'Caps the flap-storm.' },
+      { key: 'escalation.cooldownSeconds', label: 'Dedupe Cooldown (sec)', type: 'number', placeholder: '300' },
+    ],
+  },
 ]
 
 // ─── Connector Status Utilities ──────────────────────────────
@@ -222,13 +245,28 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
     try {
       const name = connectorName.trim() || `${selectedType.label} Connector`
 
-      // Build config from form values
+      // Build config from form values. Dotted keys (e.g. "escalation.events.error.enabled")
+      // are folded into nested objects so connectors can declare structured config
+      // through the same flat field form. Boolean-ish selects ('true'/'false') coerce.
       const config: Record<string, unknown> = {}
+      const assignNested = (target: Record<string, unknown>, path: string, value: unknown) => {
+        const parts = path.split('.')
+        let node = target
+        for (let i = 0; i < parts.length - 1; i++) {
+          const k = parts[i]
+          if (typeof node[k] !== 'object' || node[k] === null) node[k] = {}
+          node = node[k] as Record<string, unknown>
+        }
+        node[parts[parts.length - 1]] = value
+      }
       for (const field of selectedType.fields) {
         const val = formValues[field.key]
-        if (val !== undefined && val !== '') {
-          config[field.key] = field.type === 'number' ? Number(val) : val
-        }
+        if (val === undefined || val === '') continue
+        let coerced: unknown = val
+        if (field.type === 'number') coerced = Number(val)
+        else if (val === 'true') coerced = true
+        else if (val === 'false') coerced = false
+        assignNested(config, field.key, coerced)
       }
 
       // Validate required fields

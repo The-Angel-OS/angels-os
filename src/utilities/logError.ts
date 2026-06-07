@@ -88,6 +88,25 @@ export async function logError(options: LogErrorOptions): Promise<void> {
       await emitToAiBus(payload, options).catch(() => {
         // Non-critical — don't let AI Bus failure block error logging
       })
+
+      // 3. Escalate to Gotify per connector policy (errors/warnings only).
+      //    Fully fail-soft + rate-limited inside the dispatcher.
+      const level = options.level ?? 'error'
+      if (level === 'error' || level === 'warning') {
+        try {
+          const { dispatchToGotify } = await import('@/utilities/gotifyEscalation')
+          await dispatchToGotify(payload as never, {
+            tenantId: options.tenantId,
+            eventType: level,
+            title: `${level === 'error' ? '⛔' : '⚠️'} ${options.source}`,
+            message: options.message,
+            dedupeKey: options.source,
+            priority: level === 'error' ? 8 : 5,
+          }).catch(() => {})
+        } catch {
+          // Non-critical — escalation must never block error logging
+        }
+      }
     }
   } catch (err) {
     // Fallback: if we can't log to DB, at least log to console

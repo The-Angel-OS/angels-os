@@ -20,6 +20,7 @@ const AI_BUS_CHANNELS = [
   { name: 'errors', slug: 'errors', description: 'System errors and warnings — LEO monitors this channel', type: 'general', isDefault: false },
   { name: 'system-log', slug: 'system-log', description: 'System event log — cron jobs, integrations, provisioning', type: 'general', isDefault: false },
   { name: 'Email', slug: 'email-inbox', description: 'Inbound email threads — messages arrive here from connected email accounts', type: 'email', isDefault: false },
+  { name: 'Gotify', slug: 'gotify', description: 'Inbound Gotify notifications (Uptime-Kuma, system alerts) mirrored from connected Gotify servers', type: 'social', isDefault: false },
 ] as const
 
 /**

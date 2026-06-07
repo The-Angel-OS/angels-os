@@ -60,6 +60,7 @@ export const Connectors: CollectionConfig = {
         { label: 'Slack', value: 'slack' },
         { label: 'YouTube Channel', value: 'youtube_channel' },
         { label: 'LinkedIn Page', value: 'linkedin_page' },
+        { label: 'Gotify', value: 'gotify' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',
@@ -106,7 +107,8 @@ export const Connectors: CollectionConfig = {
 • discord: { "botToken": "MTI...", "applicationId": "123...", "guildIds": ["987..."], "leoChannelName": "leo", "webhookSecret": "..." }
 • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
 • youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
-• linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }`,
+• linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }
+• gotify: { "serverUrl": "https://gotify.kendev.co", "appToken": "A…" (send), "clientToken": "C…" (receive), "lastSeenMessageId": 0, "escalation": { "enabled": true, "rateLimitPerMin": 10, "cooldownSeconds": 300, "events": { "error": { "enabled": true, "minPriority": 8 } } } }`,
       },
     },
     // ─── Routing ───────────────────────────────────────────────
