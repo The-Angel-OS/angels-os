@@ -9,12 +9,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockValidateGovernanceSync = vi.hoisted(() => vi.fn())
+const mockBuildGovernanceSnapshot = vi.hoisted(() =>
+  vi.fn().mockReturnValue({
+    registryVersion: 0,
+    ministries: [],
+    trustScores: {},
+    vouchGraph: [],
+    lastUpdated: '2025-01-01T00:00:00Z',
+  }),
+)
 const mockGetActiveConstitution = vi.hoisted(() =>
   vi.fn().mockReturnValue({ version: '1.0.0', checksum: 'abc123' }),
 )
 
 vi.mock('@/utilities/federationEngine', () => ({
   validateGovernanceSync: mockValidateGovernanceSync,
+  buildGovernanceSnapshot: mockBuildGovernanceSnapshot,
 }))
 vi.mock('@/federation/constitution', () => ({
   getActiveConstitution: mockGetActiveConstitution,
@@ -70,13 +80,18 @@ describe('federationGovernanceSyncHandler', () => {
 
   // ── GET ───────────────────────────────────────────────────────────────────
 
-  it('GET returns 404 when governance cache is empty', async () => {
+  it('GET builds governance from live mesh when cache is empty (200)', async () => {
+    // New contract: the endpoint always reflects the network — an empty cache
+    // is rebuilt from our own live mesh view (self + federation-peers) rather
+    // than 404ing.
     const req = makeReq('GET')
     const res = await federationGovernanceSyncHandler(req)
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.success).toBe(false)
-    expect(body.error).toMatch(/no governance data/i)
+    expect(body.success).toBe(true)
+    expect(body.source).toBe('live-mesh')
+    expect(body.governance).toBeTruthy()
+    expect(mockBuildGovernanceSnapshot).toHaveBeenCalled()
   })
 
   it('GET returns 200 with cached governance data when populated', async () => {

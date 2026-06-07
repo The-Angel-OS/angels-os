@@ -213,9 +213,9 @@ describe('stubRegistryResponse', () => {
     expect(result.message).toContain('Clearwater')
   })
 
-  it('sets ministryStatus to applicant', () => {
+  it('sets ministryStatus to active (sovereign nodes are live by default)', () => {
     const result = stubRegistryResponse('fed-123', 'Test')
-    expect(result.ministryStatus).toBe('applicant')
+    expect(result.ministryStatus).toBe('active')
   })
 })
 

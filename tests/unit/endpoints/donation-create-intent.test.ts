@@ -152,14 +152,14 @@ describe('donation-create-intent', () => {
     )
 
     const call = mockCreate.mock.calls[0][0]
-    expect(call.description).toBe('Angel OS Donation from Kenneth')
+    expect(call.description).toBe('Donation to the Justice Fund from Kenneth')
   })
 
   it('sets generic description without donor name', async () => {
     await donationCreateIntentHandler(makeReq({ amount: 5000 }))
 
     const call = mockCreate.mock.calls[0][0]
-    expect(call.description).toBe('Angel OS Donation')
+    expect(call.description).toBe('Donation to the Justice Fund')
   })
 
   it('enables automatic payment methods', async () => {
