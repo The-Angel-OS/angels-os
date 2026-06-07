@@ -26,6 +26,54 @@ export interface SendTenantInvitationEmailOptions {
   cc?: string | string[]
 }
 
+/**
+ * Resolve the base URL the invite should point at — the TENANT's own host, not
+ * the platform apex. So an invite to Clearwater Cruisin links to
+ * clearwater-cruisin.spacesangels.com/tenant-invite/... (where the invitee signs
+ * in and accepts on the right subdomain), not platform.spacesangels.com.
+ *
+ * Prefers a real custom domain, else {slug}.{apex} derived from the server URL,
+ * else falls back to the apex. Returns '' for localhost/dev so the caller uses
+ * the plain server URL (no subdomains in dev).
+ */
+async function resolveTenantInviteBaseUrl(
+  payload: Payload,
+  tenantId?: number | string | null,
+): Promise<string> {
+  const serverUrl = getServerSideURL()
+  if (!tenantId) return serverUrl
+
+  const stripWww = (d: string) => d.replace(/^www\./, '')
+  const isReal = (d?: string | null) => !!d && !d.endsWith('.local') && !d.includes('localhost')
+  const proto = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+
+  try {
+    const tenant = (await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })) as { domain?: string | null; slug?: string | null }
+
+    if (isReal(tenant?.domain)) return `${proto}://${stripWww(tenant!.domain as string)}`
+
+    const slug = tenant?.slug
+    if (slug && slug !== 'default' && slug !== 'platform') {
+      const host = new URL(serverUrl).host.split(':')[0]
+      if (host && !host.includes('localhost') && !host.endsWith('.local')) {
+        // Derive the registrable apex from the server host (drop a leading
+        // subdomain like "platform"/"www"): platform.spacesangels.com → spacesangels.com
+        const labels = stripWww(host).split('.')
+        const apex = labels.length > 2 ? labels.slice(1).join('.') : labels.join('.')
+        return `${proto}://${slug}.${apex}`
+      }
+    }
+  } catch {
+    // Tenant lookup failed — fall back to the apex.
+  }
+  return serverUrl
+}
+
 /** Escape user-supplied values for safe HTML interpolation */
 function esc(str: string): string {
   return str
@@ -52,7 +100,8 @@ export async function sendTenantInvitationEmail(
     cc,
   } = opts
 
-  const baseUrl = getServerSideURL()
+  // Build the accept link against the tenant's own host, not the platform apex.
+  const baseUrl = inviteUrl.startsWith('http') ? '' : await resolveTenantInviteBaseUrl(payload, tenantId)
   const fullInviteUrl = inviteUrl.startsWith('http') ? inviteUrl : `${baseUrl}${inviteUrl}`
 
   const roleLabel = role.replace('tenant_', '').replace('_', ' ')
