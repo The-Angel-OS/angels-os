@@ -25,6 +25,14 @@ export interface FederationHolon {
     siteName: string | null
     domain: string | null
   } | null
+  /**
+   * Provenance: which federated Enterprise (Diocese) this holon came from.
+   * Undefined/null = local node. Set for holons aggregated from a peer.
+   */
+  origin?: {
+    enterprise: string
+    domain: string
+  } | null
 }
 
 const HOLON_LABELS: Record<string, string> = {
@@ -122,6 +130,14 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
               <h3 className="truncate text-base font-semibold">{holon.name}</h3>
               {holon.tagline && (
                 <p className="truncate text-sm text-muted-foreground">{holon.tagline}</p>
+              )}
+              {holon.origin && (
+                <p
+                  className="mt-0.5 truncate text-xs text-muted-foreground/70"
+                  title={`Federated from ${holon.origin.enterprise} (${holon.origin.domain})`}
+                >
+                  via {holon.origin.enterprise}
+                </p>
               )}
             </div>
           </div>

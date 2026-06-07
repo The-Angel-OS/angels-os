@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { FederationDiscover } from './FederationDiscover'
+import { aggregatePeerHolons } from '@/utilities/federationDiscovery'
 
 export const metadata = {
   title: 'Discover the Federation',
@@ -161,7 +162,13 @@ export default async function FederationDiscoverPage({
     enterprises = 1
   }
 
+  // Cross-node aggregation: pull network-visible Endeavors from active peer
+  // Dioceses and merge them in, tagged with their origin Enterprise. Resilient —
+  // offline/slow peers are skipped, so this never blocks the local listing.
+  const peerHolons = await aggregatePeerHolons(payload)
+  const allHolons = [...holons, ...peerHolons]
+
   return (
-    <FederationDiscover initialHolons={holons} total={endeavors.totalDocs} enterprises={enterprises} />
+    <FederationDiscover initialHolons={allHolons} total={allHolons.length} enterprises={enterprises} />
   )
 }
