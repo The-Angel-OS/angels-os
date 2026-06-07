@@ -78,6 +78,37 @@ describe('aiBusPollHandler', () => {
     expect(body.lastId).toBe(1)
   })
 
+  it('resolves tenant from the space when spaceId is provided (authoritative)', async () => {
+    // User's header/tenant resolution would give a DIFFERENT tenant (5), but the
+    // space authoritatively belongs to tenant 42 — the poll must use the space's.
+    const findByID = vi.fn().mockResolvedValue({ id: 3, tenant: { id: 42 } })
+    const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })
+    const req = makeReq(
+      'http://localhost/api/ai-bus/poll?spaceId=3&channel=page:/about',
+      { id: 10, tenants: [{ tenant: { id: 5 } }] },
+      { find: findMock, findByID },
+    )
+    const res = await aiBusPollHandler(req)
+    expect(res.status).toBe(200)
+    expect(findByID).toHaveBeenCalled()
+    const whereStr = JSON.stringify(findMock.mock.calls[0][0].where)
+    expect(whereStr).toContain('42') // tenant from the space, not the user's 5
+  })
+
+  it('falls back to header/user tenant when space lookup fails', async () => {
+    const findByID = vi.fn().mockRejectedValue(new Error('space gone'))
+    const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })
+    const req = makeReq(
+      'http://localhost/api/ai-bus/poll?spaceId=3',
+      { id: 10, tenants: [{ tenant: { id: 5 } }] },
+      { find: findMock, findByID },
+    )
+    const res = await aiBusPollHandler(req)
+    expect(res.status).toBe(200)
+    const whereStr = JSON.stringify(findMock.mock.calls[0][0].where)
+    expect(whereStr).toContain('5') // fell back to the user's tenant
+  })
+
   it('resolves tenant from servesTenant field', async () => {
     const user = { id: 10, servesTenant: { id: 99 } }
     const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })

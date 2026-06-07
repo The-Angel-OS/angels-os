@@ -36,7 +36,36 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
   const userDoc = user as unknown as Record<string, unknown>
   let tenantId: number | string | undefined
 
-  if (userDoc.servesTenant) {
+  // When a spaceId is supplied, the SPACE authoritatively determines the tenant —
+  // it's the exact tenant chat-send writes the message against. Resolving from the
+  // space is strictly more reliable than header/subdomain resolution, which can be
+  // degraded on apex domains (see [resolveTenantFromHeaders] warnings) and would
+  // mismatch the space's tenant → empty results, or 400 "could not resolve tenant"
+  // → a permanent red error in the PageComments panel. This guarantees poll and
+  // send agree on the tenant.
+  if (spaceId) {
+    try {
+      const spaceDoc = await payload.findByID({
+        collection: 'spaces',
+        id: (Number(spaceId) || spaceId) as number,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (spaceDoc) {
+        tenantId =
+          typeof spaceDoc.tenant === 'object' && spaceDoc.tenant !== null
+            ? (spaceDoc.tenant as { id: number | string }).id
+            : (spaceDoc.tenant as number | string)
+      }
+    } catch (e) {
+      console.warn(
+        '[AI Bus Poll] space→tenant resolution failed, falling back to headers:',
+        e instanceof Error ? e.message : e,
+      )
+    }
+  }
+
+  if (!tenantId && userDoc.servesTenant) {
     // System agent — serves a specific tenant
     tenantId =
       typeof userDoc.servesTenant === 'object' && userDoc.servesTenant !== null

@@ -93,6 +93,7 @@ export function PageComments({ spaceId }: { spaceId?: string }) {
       const data = await res.json()
       const msgs: BusMessage[] = Array.isArray(data.messages) ? data.messages : []
       setMessages(msgs)
+      setError(null) // recovered — clear any stale error so a transient blip doesn't stick
       return msgs
     } catch (e) {
       setError((e as Error).message)

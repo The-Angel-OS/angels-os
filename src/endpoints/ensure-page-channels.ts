@@ -46,11 +46,40 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'pass ?tenant=<slug> or ?all=1' }, { status: 400 })
   }
 
-  const results: Array<{ tenant: string | number; created: number; errors: number }> = []
+  const results: Array<{ tenant: string | number; created: number; deleted: number; errors: number }> = []
 
   for (const tenantId of tenantIds) {
     let created = 0
+    let deleted = 0
     let errors = 0
+
+    // Heal legacy mangled docs: before the channelSlugField fix, the auto slug
+    // field slugified `page:/about` → `pageabout` on save, so these channels
+    // (name "Page: …") carry a slug that never matches message.channel and were
+    // re-created as duplicates on every run. Delete any "Page: …" channel whose
+    // slug isn't a proper `page:` key; ensurePageChannel re-creates it correctly.
+    const legacy = await payload.find({
+      collection: 'channels',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { name: { like: 'Page:' } },
+        ],
+      },
+      limit: 2000,
+      depth: 0,
+      overrideAccess: true,
+    })
+    for (const ch of legacy.docs as Array<{ id: number | string; slug?: string }>) {
+      if (typeof ch.slug === 'string' && ch.slug.startsWith('page:')) continue // already correct
+      try {
+        await payload.delete({ collection: 'channels', id: ch.id, overrideAccess: true })
+        deleted++
+      } catch (e) {
+        console.warn('[ensure-page-channels] delete legacy', e instanceof Error ? e.message : e)
+        errors++
+      }
+    }
 
     // Find all page: messages for this tenant (select only needed fields)
     const msgs = await payload.find({
@@ -90,9 +119,10 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       }
     }
 
-    results.push({ tenant: tenantId, created, errors })
+    results.push({ tenant: tenantId, created, deleted, errors })
   }
 
   const totalCreated = results.reduce((s, r) => s + r.created, 0)
-  return Response.json({ ok: true, totalCreated, results })
+  const totalDeleted = results.reduce((s, r) => s + r.deleted, 0)
+  return Response.json({ ok: true, totalCreated, totalDeleted, results })
 }

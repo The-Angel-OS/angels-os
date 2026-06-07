@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { simpleSlugField } from '@/fields/simpleSlugField'
+import { channelSlugField } from '@/fields/channelSlugField'
 
 /**
  * Discord-style channel within a Space.
@@ -34,7 +34,7 @@ export const Channels: CollectionConfig = {
       type: 'text',
       required: true,
     },
-    simpleSlugField,
+    channelSlugField,
     {
       name: 'description',
       type: 'textarea',
