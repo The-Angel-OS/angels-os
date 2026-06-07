@@ -208,6 +208,43 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
     ],
   },
 
+  // ── PEOPLE ──
+  // Promoted out of ADMIN so the member/user manager + CRM are discoverable
+  // (no more digging into Payload admin). "People" = members of the current
+  // portal/endeavor (tenant-memberships); "Contacts" = leads/CRM.
+  {
+    key: 'people',
+    label: 'PEOPLE',
+    collapsible: true,
+    visible: adminOrBusinessOwner,
+    items: [
+      {
+        key: 'people-members',
+        label: 'People',
+        icon: 'users',
+        href: (p) => `${p}/dashboard/admin/team`,
+        isActive: active('/dashboard/admin/team'),
+        visible: always,
+      },
+      {
+        key: 'people-contacts',
+        label: 'Contacts',
+        icon: 'book-open',
+        href: (p) => `${p}/dashboard/admin/contacts`,
+        isActive: active('/dashboard/admin/contacts'),
+        visible: always,
+      },
+      {
+        key: 'people-invitations',
+        label: 'Invitations',
+        icon: 'mail',
+        href: (p) => `${p}/dashboard/admin/invitations`,
+        isActive: active('/dashboard/admin/invitations'),
+        visible: always,
+      },
+    ],
+  },
+
   // ── BUSINESS OPS ──
   {
     key: 'business-ops',
@@ -345,14 +382,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         className: 'text-emerald-600 dark:text-emerald-400',
       },
       {
-        key: 'team',
-        label: 'Team',
-        icon: 'users',
-        href: (p) => `${p}/dashboard/admin/team`,
-        isActive: active('/dashboard/admin/team'),
-        visible: always,
-      },
-      {
         key: 'crew',
         label: 'Crew',
         icon: 'anchor',
@@ -414,22 +443,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'calendar-event',
         href: (p) => `${p}/dashboard/admin/bookings`,
         isActive: active('/dashboard/admin/bookings'),
-        visible: always,
-      },
-      {
-        key: 'invitations',
-        label: 'Invitations',
-        icon: 'mail',
-        href: (p) => `${p}/dashboard/admin/invitations`,
-        isActive: active('/dashboard/admin/invitations'),
-        visible: always,
-      },
-      {
-        key: 'contacts',
-        label: 'Contacts',
-        icon: 'book-open',
-        href: (p) => `${p}/dashboard/admin/contacts`,
-        isActive: active('/dashboard/admin/contacts'),
         visible: always,
       },
       {

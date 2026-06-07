@@ -157,9 +157,9 @@ export function FederationDiscover({ initialHolons, total, enterprises = 1 }: Fe
           </div>
           {initialHolons.length === 0 ? (
             <>
-              <h3 className="mb-1 text-lg font-semibold">No Enterprises yet</h3>
+              <h3 className="mb-1 text-lg font-semibold">No Endeavors yet</h3>
               <p className="text-sm text-muted-foreground">
-                The federation network is growing. Be the first to make your Enterprise visible!
+                The federation network is growing. Be the first to make your Endeavor visible!
               </p>
             </>
           ) : (

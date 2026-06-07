@@ -46,6 +46,35 @@ export default async function FederationDiscoverPage({
     || 'http://localhost:3000'
   const serverHost = new URL(serverUrl).host.replace(/^www\./, '') // e.g. spacesangels.com or localhost:3000
 
+  // Default Discovery banner = each Endeavor's tenant HOME PAGE unfurl image
+  // (Pages.meta.image). One batched query → tenantId → image URL. The viewer on
+  // the home page "slots into" this card banner across the network.
+  const homeImageByTenant = new Map<string, string>()
+  try {
+    const tenantIds = endeavors.docs
+      .map((d: any) => (typeof d.tenant === 'object' ? d.tenant?.id : d.tenant))
+      .filter((v: unknown) => v != null)
+    if (tenantIds.length) {
+      const homes = await payload.find({
+        collection: 'pages',
+        where: { and: [{ slug: { equals: 'home' } }, { tenant: { in: tenantIds } }] },
+        depth: 1,
+        limit: 200,
+        overrideAccess: true,
+      })
+      for (const p of homes.docs as any[]) {
+        const tid = typeof p.tenant === 'object' ? p.tenant?.id : p.tenant
+        const img =
+          p.meta?.image && typeof p.meta.image === 'object'
+            ? p.meta.image.url || p.meta.image.filename
+            : null
+        if (tid != null && img) homeImageByTenant.set(String(tid), img)
+      }
+    }
+  } catch {
+    // Non-critical — cards just fall back to the letter avatar.
+  }
+
   const holons = endeavors.docs.map((doc: any) => {
     // Resolve tenant branding (multiTenantPlugin injects 'tenant' relation)
     const tenant = typeof doc.tenant === 'object' ? doc.tenant : null
@@ -93,8 +122,17 @@ export default async function FederationDiscoverPage({
         federationId: doc.federation?.federationId || '',
         ministryStatus: doc.federation?.ministryStatus || 'applicant',
       },
-      logo: doc.logo?.url || doc.logo?.filename || null,
-      coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
+      logo:
+        doc.logo?.url ||
+        doc.logo?.filename ||
+        (typeof tenant?.branding?.logo === 'object' ? tenant.branding.logo?.url : null) ||
+        null,
+      // Banner: explicit endeavor coverImage → tenant home-page unfurl image.
+      coverImage:
+        doc.coverImage?.url ||
+        doc.coverImage?.filename ||
+        homeImageByTenant.get(String(tenant?.id)) ||
+        null,
       storefrontUrl,
       // Tenant branding context
       tenant: tenantSlug
