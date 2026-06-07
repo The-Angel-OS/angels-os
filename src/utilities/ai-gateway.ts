@@ -741,6 +741,47 @@ export function getImageModel(
 }
 
 // ---------------------------------------------------------------------------
+// Per-Tenant BYOK Text Model (budget enforcement)
+// ---------------------------------------------------------------------------
+
+export interface ByokModelResult {
+  model: LanguageModel
+  /** Prefixed id (e.g. `openrouter/openai/gpt-4o-mini`) so telemetry attributes the provider. */
+  modelId: string
+  provider: 'openrouter' | 'openai'
+}
+
+/**
+ * Build a text model from the tenant's OWN provider key (BYOK), for when a tenant
+ * is over its platform AI budget — the cost then falls on the tenant, $0 to the
+ * platform. Supports OpenAI-compatible providers (OpenRouter, OpenAI) since those
+ * are the SDK adapters we ship; Anthropic-direct BYOK is deferred (no SDK adapter).
+ * Model ids are env-overridable per provider. Returns null when no usable key.
+ */
+export async function buildByokModel(
+  cfg?: Record<string, unknown> | null,
+): Promise<ByokModelResult | null> {
+  if (!cfg) return null
+  const { createOpenAICompatible } = await import('@ai-sdk/openai-compatible')
+
+  const orKey = typeof cfg.openrouterApiKey === 'string' ? cfg.openrouterApiKey.trim() : ''
+  if (orKey) {
+    const modelId = process.env.BYOK_OPENROUTER_MODEL || 'openai/gpt-4o-mini'
+    const provider = createOpenAICompatible({ name: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: orKey })
+    return { model: provider.languageModel(modelId), modelId: `openrouter/${modelId}`, provider: 'openrouter' }
+  }
+
+  const oaKey = typeof cfg.openaiApiKey === 'string' ? cfg.openaiApiKey.trim() : ''
+  if (oaKey) {
+    const modelId = process.env.BYOK_OPENAI_MODEL || 'gpt-4o-mini'
+    const provider = createOpenAICompatible({ name: 'openai', baseURL: 'https://api.openai.com/v1', apiKey: oaKey })
+    return { model: provider.languageModel(modelId), modelId: `openai/${modelId}`, provider: 'openai' }
+  }
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Per-Tenant Image Provider Resolution (Sprint 44)
 // ---------------------------------------------------------------------------
 

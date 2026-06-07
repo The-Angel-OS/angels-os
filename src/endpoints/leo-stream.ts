@@ -48,6 +48,8 @@ import { trimToTokenBudget } from '@/utilities/contextWindow'
 import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
 import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/aiUsage'
 import { recordAiUsage } from '@/utilities/recordCostEvent'
+import { buildByokModel } from '@/utilities/ai-gateway'
+import { isBudgetEnforcementEnabled, getTenantAiBudgetStatusCached } from '@/utilities/aiBudget'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -1069,6 +1071,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       let hadError = false
       let streamErrorDetail: string | undefined
       let streamTelemetry: AiResponseTelemetry | undefined
+      let streamBilledToTenantKey = false
 
       // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
       // Sends a comment line every 15s, which SSE clients silently ignore.
@@ -1148,6 +1151,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             })
             fullText = gwResult.text
             streamTelemetry = gwResult.telemetry
+            streamBilledToTenantKey = gwResult.billedToTenantKey ?? false
             if (gwResult.hadStreamError) {
               hadError = true
               streamErrorDetail = gwResult.errorMessage
@@ -1321,6 +1325,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
           conversationId: resolvedConversationId ? String(resolvedConversationId) : undefined,
           userId: req.user?.id as number | undefined,
           messageRef: savedMessageId,
+          billedToTenantKey: streamBilledToTenantKey,
         }).catch(() => {/* best-effort — never block SSE */})
       }
 
@@ -1396,7 +1401,7 @@ async function streamViaGateway(opts: {
   tenantAiConfig?: Record<string, unknown>
   /** Role-filtered tool subset (defaults to the full registry). */
   availableTools?: typeof LEO_TOOLS
-}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry }> {
+}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -1404,17 +1409,41 @@ async function streamViaGateway(opts: {
     tenantAiConfig, availableTools = LEO_TOOLS,
   } = opts
 
+  // Budget/BYOK enforcement (env-gated; OFF by default). When a tenant is over
+  // its monthly AI budget AND has its own provider key, serve via that key — the
+  // cost falls on the tenant ($0 to platform). Fail-soft: any hiccup falls
+  // through to normal credit-aware routing, so LEO never stops answering.
+  let smart: Awaited<ReturnType<typeof getSmartModel>> = null
+  let billedToTenantKey = false
+  if (isBudgetEnforcementEnabled() && tenantId) {
+    try {
+      const status = await getTenantAiBudgetStatusCached(payload, tenantId)
+      if (status.overBudget && status.hasOwnKey) {
+        const byok = await buildByokModel(tenantAiConfig)
+        if (byok) {
+          smart = { model: byok.model, providerOptions: {}, modelId: byok.modelId, complexity, effectiveComplexity: complexity }
+          billedToTenantKey = true
+          console.log(`[LEO Stream] 💳 Tenant ${tenantId} over budget → BYOK ${byok.modelId} ($0 to platform)`)
+        }
+      }
+    } catch {
+      /* fail-soft — fall through to normal routing */
+    }
+  }
+
   // Smart model selection: credit-aware tier + gateway-native fallback chain
   // The complexity is determined by the escalation rhythm (turn-based rotation)
-  const smart = await getSmartModel(complexity, {
-    tenantId,
-    userId,
-    tags: [
-      'leo-stream',
-      isWizardMode ? 'wizard' : 'chat',
-      ...(isEscalationRound ? ['deep-think'] : []),
-    ],
-  })
+  if (!smart) {
+    smart = await getSmartModel(complexity, {
+      tenantId,
+      userId,
+      tags: [
+        'leo-stream',
+        isWizardMode ? 'wizard' : 'chat',
+        ...(isEscalationRound ? ['deep-think'] : []),
+      ],
+    })
+  }
   if (!smart) throw new Error('AI Gateway model could not be created')
   const { model, providerOptions: smartProviderOptions, modelId: smartModelId, effectiveComplexity: servedTier } = smart
 
@@ -1676,7 +1705,7 @@ async function streamViaGateway(opts: {
     /* telemetry is best-effort — never let it affect the response */
   }
 
-  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry }
+  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry, billedToTenantKey }
 }
 
 // ---------------------------------------------------------------------------

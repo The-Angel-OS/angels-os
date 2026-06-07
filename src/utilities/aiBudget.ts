@@ -75,8 +75,13 @@ const spendCache = new Map<string, { value: number; expires: number }>()
 
 /** Clear a tenant's cached spend (call after a known large spend, or in tests). */
 export function invalidateBudgetSpend(tenantId?: number | string): void {
-  if (tenantId == null) spendCache.clear()
-  else spendCache.delete(String(tenantId))
+  if (tenantId == null) {
+    spendCache.clear()
+    statusCache.clear()
+  } else {
+    spendCache.delete(String(tenantId))
+    statusCache.delete(String(tenantId))
+  }
 }
 
 function daysSinceMonthStart(now: number): number {
@@ -106,6 +111,49 @@ export async function getMonthToDateSpendCents(
   }
   spendCache.set(key, { value: spent, expires: nowMs + SPEND_TTL_MS })
   return spent
+}
+
+// ── full-status cache (per tenant) — used by the hot path (enforcement) ────────
+const statusCache = new Map<string, { value: TenantAiBudgetStatus; expires: number }>()
+
+export function invalidateBudgetStatus(tenantId?: number | string): void {
+  if (tenantId == null) statusCache.clear()
+  else statusCache.delete(String(tenantId))
+}
+
+/**
+ * Budget status for a tenant, fetching its agentWallet + aiConfig itself and
+ * caching the whole status (5 min) so the streaming hot path can check budget
+ * without a per-request tenant fetch. Fail-soft.
+ */
+export async function getTenantAiBudgetStatusCached(
+  payload: Payload,
+  tenantId: number | string,
+  nowMs: number = Date.now(),
+): Promise<TenantAiBudgetStatus> {
+  const key = String(tenantId)
+  const hit = statusCache.get(key)
+  if (hit && hit.expires > nowMs) return hit.value
+
+  let agentWallet: BudgetInputs['agentWallet'] = null
+  let tenantAiConfig: BudgetInputs['tenantAiConfig'] = null
+  try {
+    const doc = await payload.findByID({
+      collection: 'tenants' as any,
+      id: tenantId,
+      depth: 0,
+      select: { agentWallet: true, aiConfig: true } as any,
+      overrideAccess: true,
+    })
+    agentWallet = (doc as any)?.agentWallet ?? null
+    tenantAiConfig = (doc as any)?.aiConfig ?? null
+  } catch {
+    /* fail-soft — use defaults */
+  }
+
+  const value = await getTenantAiBudgetStatus(payload, { tenantId, agentWallet, tenantAiConfig }, nowMs)
+  statusCache.set(key, { value, expires: nowMs + SPEND_TTL_MS })
+  return value
 }
 
 /**
