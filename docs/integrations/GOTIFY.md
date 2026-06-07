@@ -74,9 +74,12 @@ Source: [`src/utilities/gotifyEscalation.ts`](../../src/utilities/gotifyEscalati
 
 ## Health / Test
 
-The **Test** button (and the `*/30` `connector-health-cron`) run `probeGotify`:
-validates the client token via a non-destructive `GET /message?limit=1`, or falls
-back to `GET /health` for app-only connectors.
+The `*/30` `connector-health-cron` runs `probeGotify` (non-destructive): validates
+the client token via `GET /message?limit=1`, or `GET /health` for app-only
+connectors. The on-demand **Test** button does the same probe **and then sends a
+real test notification** via the app token (`POST /message`) — so you get a
+visible round-trip in the Gotify client and the send path is validated, not just
+receive. (The cron never sends, so it won't spam.)
 
 ## Going live (per node)
 

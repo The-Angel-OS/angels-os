@@ -85,6 +85,32 @@ export const connectorTestHandler: PayloadHandler = async (req) => {
     }
   }
 
+  // ── Gotify: also SEND a visible test push (on-demand test only) ──────
+  // Validates the app/send token AND gives the operator a round-trip they can
+  // see in the Gotify client. NOT done in connector-health-cron (which calls
+  // runProbe directly) so the */30 health check never spams notifications.
+  if (type === 'gotify' && cfg.appToken) {
+    try {
+      const { gotifyNotify } = await import('@/utilities/gotifyNotify')
+      const sent = await gotifyNotify(
+        {
+          title: '🔔 Angel OS connector test',
+          message: `Test from "${(connector as { name?: string }).name || 'Angel OS'}" — if you see this, send works.`,
+          priority: 5,
+        },
+        { serverUrl: String(cfg.serverUrl || ''), appToken: String(cfg.appToken || '') },
+      )
+      probeResult = {
+        ok: probeResult.ok && sent.ok,
+        message: sent.ok
+          ? `${probeResult.message} · test notification sent ✓`
+          : `${probeResult.message} · send failed: ${sent.error}`,
+      }
+    } catch (e) {
+      probeResult = { ok: false, message: `${probeResult.message} · send error: ${e instanceof Error ? e.message : 'unknown'}` }
+    }
+  }
+
   const latencyMs = Date.now() - start
 
   // ── Update connector status ─────────────────────────────────

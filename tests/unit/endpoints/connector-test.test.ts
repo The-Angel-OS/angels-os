@@ -130,6 +130,33 @@ describe('connectorTestHandler', () => {
     expect(data.message).toContain('@test_bot')
   })
 
+  it('probes Gotify connector AND sends a visible test notification', async () => {
+    const connector = {
+      id: 'go-1',
+      type: 'gotify',
+      name: 'Gotify — Test',
+      config: { serverUrl: 'https://gotify.example.com', clientToken: 'C1', appToken: 'A1' },
+    }
+    const req = makeReq({ connectorId: 'go-1' }, connector)
+
+    // 1) probe: GET /message?limit=1 (receive validation)
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ messages: [] }) })
+    // 2) send: POST /message via gotifyNotify (validates app token + visible push)
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve('') })
+
+    const res = await connectorTestHandler(req)
+    const data = await res.json()
+
+    expect(data.status).toBe('ok')
+    expect(data.message).toMatch(/test notification sent/i)
+    // The send POST used the app token.
+    const sendCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => String(c[0]).endsWith('/message') && (c[1] as { method?: string })?.method === 'POST',
+    )
+    expect(sendCall).toBeTruthy()
+    expect((sendCall![1] as { headers: Record<string, string> }).headers['X-Gotify-Key']).toBe('A1')
+  })
+
   it('probes SMS (Twilio) connector successfully', async () => {
     const connector = {
       id: 'sms-1',
