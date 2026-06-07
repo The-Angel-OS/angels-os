@@ -112,5 +112,29 @@ export const Contacts: CollectionConfig = {
       type: 'textarea',
       admin: { description: 'Internal notes about this contact' },
     },
+    // ── Campaign / email metering ──────────────────────────────────────────
+    {
+      name: 'unsubscribeToken',
+      type: 'text',
+      index: true,
+      admin: {
+        description: 'Opaque token for one-click unsubscribe links (generated on first send)',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'lastEmailedAt',
+      type: 'date',
+      admin: {
+        date: { pickerAppearance: 'dayAndTime' },
+        description: 'When this contact was last sent a campaign email',
+      },
+    },
+    {
+      name: 'emailCount',
+      type: 'number',
+      defaultValue: 0,
+      admin: { description: 'Number of campaign emails sent to this contact' },
+    },
   ],
 }

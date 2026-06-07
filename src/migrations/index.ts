@@ -18,6 +18,7 @@ import * as migration_20260604_000000_tenant_branding_favicon from './20260604_0
 import * as migration_20260605_000000_membership_user_nullable from './20260605_000000_membership_user_nullable';
 import * as migration_20260605_045919_add_federation_peers from './20260605_045919_add_federation_peers';
 import * as migration_20260605_060000_user_dashboard_prefs from './20260605_060000_user_dashboard_prefs';
+import * as migration_20260607_120000_contacts_campaign_fields from './20260607_120000_contacts_campaign_fields';
 
 export const migrations = [
   {
@@ -119,5 +120,10 @@ export const migrations = [
     up: migration_20260605_060000_user_dashboard_prefs.up,
     down: migration_20260605_060000_user_dashboard_prefs.down,
     name: '20260605_060000_user_dashboard_prefs',
+  },
+  {
+    up: migration_20260607_120000_contacts_campaign_fields.up,
+    down: migration_20260607_120000_contacts_campaign_fields.down,
+    name: '20260607_120000_contacts_campaign_fields',
   },
 ];

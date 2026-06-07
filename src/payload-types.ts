@@ -4386,6 +4386,18 @@ export interface Contact {
    * Internal notes about this contact
    */
   notes?: string | null;
+  /**
+   * Opaque token for one-click unsubscribe links (generated on first send)
+   */
+  unsubscribeToken?: string | null;
+  /**
+   * When this contact was last sent a campaign email
+   */
+  lastEmailedAt?: string | null;
+  /**
+   * Number of campaign emails sent to this contact
+   */
+  emailCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7958,6 +7970,9 @@ export interface ContactsSelect<T extends boolean = true> {
   lastInvitedAt?: T;
   inviteCount?: T;
   notes?: T;
+  unsubscribeToken?: T;
+  lastEmailedAt?: T;
+  emailCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }

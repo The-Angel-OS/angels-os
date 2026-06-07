@@ -12,6 +12,8 @@ import {
   isValidEmail,
 } from '@/utilities/invitationSystem'
 import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
+import { resolveEmailSender } from '@/utilities/resolveEmailSender'
+import { getServerSideURL } from '@/utilities/getURL'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -527,4 +529,235 @@ export async function deleteContacts(
   }
 
   return { success: true, deleted }
+}
+
+// ── Metered Campaign Send ──────────────────────────────────────────────────────
+//
+// Marketing/broadcast email to a filtered audience, metered by the CLIENT: the UI
+// calls sendCampaignChunk repeatedly, paced to a chosen rate, so a single send
+// never exceeds the connector's limits or a serverless timeout. State lives on the
+// contact rows (lastEmailedAt/emailCount), so a run is idempotent and resumable —
+// `since` gates out anyone already emailed in this run.
+
+export interface CampaignAudience {
+  /** Restrict to a single source (e.g. 'clerk-lms') */
+  source?: string
+  /** Restrict to contacts carrying this tag */
+  tag?: string
+  /** Restrict by invite status */
+  inviteStatus?: string
+}
+
+export interface CampaignAudienceResult {
+  success: boolean
+  eligible: number
+  suppressed: number
+  error?: string
+}
+
+export interface SendCampaignChunkOptions {
+  subject: string
+  /** Body HTML (plain newline text is converted to HTML by the caller) */
+  html: string
+  /** Plain-text alternative */
+  text?: string
+  audience: CampaignAudience
+  /** ISO timestamp the run started; only contacts NOT emailed since this are sent */
+  since: string
+  /** Max emails to send this call (default 10) */
+  chunkSize?: number
+}
+
+export interface CampaignChunkResult {
+  success: boolean
+  sent: number
+  failed: number
+  remaining: number
+  provider?: string
+  errors: string[]
+  error?: string
+}
+
+/** Build the Payload `where` for an audience (excludes unsubscribed + bounced). */
+function buildAudienceWhere(tenantId: number | string, audience: CampaignAudience): any[] {
+  const where: any[] = [
+    { tenant: { equals: tenantId } },
+    { contactStatus: { not_in: ['unsubscribed', 'bounced'] } },
+  ]
+  if (audience.source) where.push({ source: { equals: audience.source } })
+  if (audience.tag) where.push({ tags: { contains: audience.tag } })
+  if (audience.inviteStatus) where.push({ inviteStatus: { equals: audience.inviteStatus } })
+  return where
+}
+
+/** Personalize a template: {{name}}, {{email}}, {{unsubscribe_url}}. */
+function personalize(
+  template: string,
+  vars: { name: string; email: string; unsubscribeUrl: string },
+): string {
+  return template
+    .replace(/\{\{\s*name\s*\}\}/g, vars.name)
+    .replace(/\{\{\s*email\s*\}\}/g, vars.email)
+    .replace(/\{\{\s*unsubscribe_url\s*\}\}/g, vars.unsubscribeUrl)
+}
+
+/**
+ * Count the eligible audience for a campaign (excludes unsubscribed/bounced),
+ * plus how many matching contacts are suppressed — so the admin sees the real
+ * reach before hitting send.
+ */
+export async function getCampaignAudience(
+  audience: CampaignAudience,
+): Promise<CampaignAudienceResult> {
+  const { payload, tenantId, error } = await getAuthenticatedAdmin()
+  if (error || !tenantId) {
+    return { success: false, eligible: 0, suppressed: 0, error: error || 'No tenant' }
+  }
+
+  const baseWhere: any[] = [{ tenant: { equals: tenantId } }]
+  if (audience.source) baseWhere.push({ source: { equals: audience.source } })
+  if (audience.tag) baseWhere.push({ tags: { contains: audience.tag } })
+  if (audience.inviteStatus) baseWhere.push({ inviteStatus: { equals: audience.inviteStatus } })
+
+  const [eligible, total] = await Promise.all([
+    payload.count({
+      collection: 'contacts',
+      where: { and: buildAudienceWhere(tenantId, audience) },
+      overrideAccess: true,
+    }),
+    payload.count({
+      collection: 'contacts',
+      where: { and: baseWhere },
+      overrideAccess: true,
+    }),
+  ])
+
+  return {
+    success: true,
+    eligible: eligible.totalDocs,
+    suppressed: total.totalDocs - eligible.totalDocs,
+  }
+}
+
+/**
+ * Send one metered chunk of a campaign. The client calls this repeatedly, paced
+ * to the chosen rate. Returns how many were sent/failed and how many remain so
+ * the client knows when to stop.
+ */
+export async function sendCampaignChunk(
+  options: SendCampaignChunkOptions,
+): Promise<CampaignChunkResult> {
+  const { payload, tenantId, error } = await getAuthenticatedAdmin()
+  if (error || !tenantId) {
+    return { success: false, sent: 0, failed: 0, remaining: 0, errors: [], error: error || 'No tenant' }
+  }
+
+  const subject = (options.subject || '').trim()
+  if (!subject || !options.html?.trim()) {
+    return { success: false, sent: 0, failed: 0, remaining: 0, errors: [], error: 'Subject and body are required' }
+  }
+
+  const chunkSize = Math.min(Math.max(options.chunkSize || 10, 1), 50)
+  const since = options.since
+
+  // Only contacts in-audience AND not already emailed in this run.
+  const where = {
+    and: [
+      ...buildAudienceWhere(tenantId, options.audience),
+      { or: [{ lastEmailedAt: { exists: false } }, { lastEmailedAt: { less_than: since } }] },
+    ],
+  }
+
+  const batch = await payload.find({
+    collection: 'contacts',
+    where,
+    limit: chunkSize,
+    sort: 'createdAt',
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if (batch.docs.length === 0) {
+    return { success: true, sent: 0, failed: 0, remaining: 0, errors: [] }
+  }
+
+  const sender = await resolveEmailSender(payload, tenantId)
+  const baseUrl = getServerSideURL()
+  const nowIso = new Date().toISOString()
+
+  let sent = 0
+  let failed = 0
+  const errors: string[] = []
+
+  for (const contact of batch.docs as any[]) {
+    const email = (contact.email as string).toLowerCase()
+    try {
+      // Lazily mint an unsubscribe token the first time we email this contact.
+      let token = contact.unsubscribeToken as string | undefined
+      if (!token) {
+        token = generateInvitationToken()
+        await payload.update({
+          collection: 'contacts',
+          id: contact.id,
+          data: { unsubscribeToken: token } as any,
+          overrideAccess: true,
+        })
+      }
+      const unsubscribeUrl = `${baseUrl}/unsubscribe/${token}`
+      const name = (contact.name as string) || ''
+      const vars = { name, email, unsubscribeUrl }
+
+      const bodyHtml = personalize(options.html, vars)
+      const bodyText = personalize(options.text || '', vars)
+
+      const html = `${bodyHtml}
+        <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+        <p style="font-size:12px;color:#999;text-align:center;">
+          You're receiving this because you're on our contact list.
+          <a href="${unsubscribeUrl}" style="color:#999;">Unsubscribe</a>
+        </p>`
+      const text = `${bodyText || bodyHtml.replace(/<[^>]+>/g, '')}\n\nUnsubscribe: ${unsubscribeUrl}`
+
+      await sender.sendEmail({ to: email, subject: personalize(subject, vars), html, text })
+
+      // Stamp lastEmailedAt on success so the run advances and never re-sends.
+      await payload.update({
+        collection: 'contacts',
+        id: contact.id,
+        data: {
+          lastEmailedAt: nowIso,
+          emailCount: (contact.emailCount || 0) + 1,
+        } as any,
+        overrideAccess: true,
+      })
+      sent++
+    } catch (err) {
+      failed++
+      errors.push(`${email}: ${err instanceof Error ? err.message : 'failed'}`)
+      // Stamp lastEmailedAt even on failure so a transient error doesn't trap the
+      // run in an infinite retry of the same row. Admin can re-run later.
+      try {
+        await payload.update({
+          collection: 'contacts',
+          id: contact.id,
+          data: { lastEmailedAt: nowIso } as any,
+          overrideAccess: true,
+        })
+      } catch {
+        /* non-critical */
+      }
+    }
+  }
+
+  // How many still remain for this run (in-audience, not yet emailed since `since`).
+  const remainingCount = await payload.count({ collection: 'contacts', where, overrideAccess: true })
+
+  return {
+    success: true,
+    sent,
+    failed,
+    remaining: remainingCount.totalDocs,
+    provider: sender.provider,
+    errors: errors.slice(0, 50),
+  }
 }

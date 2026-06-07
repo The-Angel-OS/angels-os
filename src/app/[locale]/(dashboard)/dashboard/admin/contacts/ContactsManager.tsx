@@ -1,19 +1,22 @@
 'use client'
 
-import React, { useCallback, useEffect, useState, useTransition } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import {
   importContacts,
   getContacts,
   getContactStats,
   bulkInvite,
   deleteContacts,
+  getCampaignAudience,
+  sendCampaignChunk,
   type ContactRecord,
   type ContactStats,
   type ImportResult,
   type BulkInviteResult,
+  type CampaignAudience,
 } from './actions'
 
-type Tab = 'import' | 'contacts' | 'invite'
+type Tab = 'import' | 'contacts' | 'invite' | 'campaign'
 
 export default function ContactsManager() {
   const [activeTab, setActiveTab] = useState<Tab>('contacts')
@@ -55,17 +58,17 @@ export default function ContactsManager() {
 
       {/* Tab Bar */}
       <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
-        {(['import', 'contacts', 'invite'] as Tab[]).map((tab) => (
+        {(['import', 'contacts', 'invite', 'campaign'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium capitalize transition-colors ${
               activeTab === tab
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {tab === 'import' ? 'Import' : tab === 'contacts' ? 'Contacts' : 'Invite'}
+            {tab}
           </button>
         ))}
       </div>
@@ -74,6 +77,7 @@ export default function ContactsManager() {
       {activeTab === 'import' && <ImportTab onImported={loadStats} />}
       {activeTab === 'contacts' && <ContactsTab onChanged={loadStats} />}
       {activeTab === 'invite' && <InviteTab stats={stats} onInvited={loadStats} />}
+      {activeTab === 'campaign' && <CampaignTab onSent={loadStats} />}
     </div>
   )
 }
@@ -615,6 +619,325 @@ function InviteTab({
             </details>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ── Campaign Tab ─────────────────────────────────────────────────────────────
+
+type CampaignStatus = 'idle' | 'running' | 'paused' | 'done'
+
+// Send 5 per chunk; the delay between chunks is derived from the chosen rate.
+const CAMPAIGN_CHUNK = 5
+
+function CampaignTab({ onSent }: { onSent: () => void }) {
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [source, setSource] = useState('')
+  const [tag, setTag] = useState('')
+  const [inviteStatus, setInviteStatus] = useState('')
+  const [rate, setRate] = useState(30) // emails per minute
+
+  const [audienceInfo, setAudienceInfo] = useState<{ eligible: number; suppressed: number } | null>(null)
+  const [status, setStatus] = useState<CampaignStatus>('idle')
+  const [stats, setStats] = useState({ sent: 0, failed: 0, remaining: 0 })
+  const [provider, setProvider] = useState<string | null>(null)
+  const [errors, setErrors] = useState<string[]>([])
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Loop control lives in a ref so the async loop reads live values, not stale closures.
+  const control = useRef<{ running: boolean; since: string }>({ running: false, since: '' })
+
+  const audience = useCallback(
+    (): CampaignAudience => ({
+      source: source || undefined,
+      tag: tag.trim() || undefined,
+      inviteStatus: inviteStatus || undefined,
+    }),
+    [source, tag, inviteStatus],
+  )
+
+  // Preview the reachable audience whenever the filters change (only while idle).
+  useEffect(() => {
+    if (status !== 'idle') return
+    let cancelled = false
+    getCampaignAudience(audience()).then((r) => {
+      if (!cancelled && r.success) setAudienceInfo({ eligible: r.eligible, suppressed: r.suppressed })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [audience, status])
+
+  const delayMs = Math.max((CAMPAIGN_CHUNK / Math.max(rate, 1)) * 60000, 250)
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+  const runLoop = useCallback(async () => {
+    const html = body.replace(/\n/g, '<br/>')
+    while (control.current.running) {
+      const res = await sendCampaignChunk({
+        subject,
+        html,
+        text: body,
+        audience: audience(),
+        since: control.current.since,
+        chunkSize: CAMPAIGN_CHUNK,
+      })
+
+      if (!res.success) {
+        setErrorMsg(res.error || 'Send failed')
+        control.current.running = false
+        setStatus('idle')
+        return
+      }
+
+      setProvider(res.provider || null)
+      setStats((s) => ({ sent: s.sent + res.sent, failed: s.failed + res.failed, remaining: res.remaining }))
+      if (res.errors.length) setErrors((prev) => [...prev, ...res.errors].slice(0, 50))
+      onSent()
+
+      // Nothing left, or a chunk made no progress → we're done.
+      if (res.remaining <= 0 || (res.sent === 0 && res.failed === 0)) {
+        control.current.running = false
+        setStatus('done')
+        return
+      }
+
+      await sleep(delayMs)
+    }
+  }, [subject, body, audience, delayMs, onSent])
+
+  const start = () => {
+    const eligible = audienceInfo?.eligible || 0
+    if (!subject.trim() || !body.trim()) {
+      setErrorMsg('Subject and body are required.')
+      return
+    }
+    if (eligible === 0) {
+      setErrorMsg('No eligible contacts match this audience.')
+      return
+    }
+    if (!confirm(`Send "${subject}" to ${eligible.toLocaleString()} contacts at ~${rate}/min?`)) return
+
+    setErrorMsg(null)
+    setErrors([])
+    setStats({ sent: 0, failed: 0, remaining: eligible })
+    control.current = { running: true, since: new Date().toISOString() }
+    setStatus('running')
+    void runLoop()
+  }
+
+  const pause = () => {
+    control.current.running = false
+    setStatus('paused')
+  }
+
+  const resume = () => {
+    control.current.running = true
+    setStatus('running')
+    void runLoop()
+  }
+
+  const reset = () => {
+    control.current.running = false
+    setStatus('idle')
+    setStats({ sent: 0, failed: 0, remaining: 0 })
+    setErrors([])
+    setErrorMsg(null)
+  }
+
+  const eligible = audienceInfo?.eligible ?? 0
+  const total = stats.sent + stats.failed + stats.remaining
+  const pct = total > 0 ? Math.round(((stats.sent + stats.failed) / total) * 100) : 0
+  const locked = status === 'running' || status === 'paused'
+
+  return (
+    <div className="space-y-5">
+      {/* Compose */}
+      <div className="space-y-4 rounded-lg border border-border bg-card p-5">
+        <h3 className="text-lg font-semibold">Compose Campaign</h3>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            disabled={locked}
+            placeholder="A note from Clearwater Cruisin'…"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Body</label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            disabled={locked}
+            rows={8}
+            placeholder={'Hi {{name}},\n\nWrite your message here. Plain text or HTML both work.\n\nTokens: {{name}}, {{email}}, {{unsubscribe_url}}'}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm disabled:opacity-60"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            An unsubscribe link is appended automatically. Tokens: <code>{'{{name}}'}</code>,{' '}
+            <code>{'{{email}}'}</code>, <code>{'{{unsubscribe_url}}'}</code>.
+          </p>
+        </div>
+      </div>
+
+      {/* Audience + Rate */}
+      <div className="space-y-4 rounded-lg border border-border bg-card p-5">
+        <h3 className="text-lg font-semibold">Audience &amp; Rate</h3>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Source</label>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              disabled={locked}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+            >
+              <option value="">All Sources</option>
+              <option value="clerk-lms">Clerk LMS</option>
+              <option value="csv-import">CSV Import</option>
+              <option value="json-import">JSON Import</option>
+              <option value="manual">Manual</option>
+              <option value="referral">Referral</option>
+              <option value="signup">Signup</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Tag</label>
+            <input
+              type="text"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              disabled={locked}
+              placeholder="e.g. lms-student"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Rate (emails/min)</label>
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={rate}
+              onChange={(e) => setRate(Math.max(1, Math.min(600, Number(e.target.value) || 1)))}
+              disabled={locked}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <span className="font-medium text-primary">
+            {eligible.toLocaleString()} eligible
+          </span>
+          {audienceInfo && audienceInfo.suppressed > 0 && (
+            <span className="text-muted-foreground">
+              {audienceInfo.suppressed.toLocaleString()} suppressed (unsubscribed/bounced)
+            </span>
+          )}
+          {eligible > 0 && (
+            <span className="text-muted-foreground">
+              ≈ {Math.ceil(eligible / Math.max(rate, 1))} min to send
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        {status === 'idle' && (
+          <button
+            onClick={start}
+            className="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+          >
+            Send Campaign
+          </button>
+        )}
+        {status === 'running' && (
+          <button
+            onClick={pause}
+            className="rounded-lg bg-amber-600 px-6 py-3 text-sm font-medium text-white hover:bg-amber-700 transition-colors"
+          >
+            Pause
+          </button>
+        )}
+        {status === 'paused' && (
+          <>
+            <button
+              onClick={resume}
+              className="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+            >
+              Resume
+            </button>
+            <button
+              onClick={reset}
+              className="rounded-lg border border-border px-6 py-3 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Stop
+            </button>
+          </>
+        )}
+        {status === 'done' && (
+          <button
+            onClick={reset}
+            className="rounded-lg border border-border px-6 py-3 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            New Campaign
+          </button>
+        )}
+        {status === 'running' && (
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+            Sending… {provider && `via ${provider}`}
+          </span>
+        )}
+      </div>
+
+      {/* Progress */}
+      {status !== 'idle' && (
+        <div className="space-y-2 rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">
+              {status === 'done' ? 'Campaign complete' : status === 'paused' ? 'Paused' : 'Sending'}
+            </span>
+            <span className="text-muted-foreground">{pct}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-4 pt-1 text-sm">
+            <span className="text-emerald-600 dark:text-emerald-400">{stats.sent} sent</span>
+            {stats.failed > 0 && <span className="text-red-600 dark:text-red-400">{stats.failed} failed</span>}
+            <span className="text-muted-foreground">{stats.remaining} remaining</span>
+          </div>
+        </div>
+      )}
+
+      {/* Errors */}
+      {errorMsg && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/10 dark:text-red-400">
+          {errorMsg}
+        </div>
+      )}
+      {errors.length > 0 && (
+        <details className="rounded-lg border border-border bg-muted/20 p-4">
+          <summary className="cursor-pointer text-sm text-muted-foreground">
+            {errors.length} send error{errors.length !== 1 ? 's' : ''}
+          </summary>
+          <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+            {errors.map((err, i) => (
+              <li key={i}>{err}</li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   )
