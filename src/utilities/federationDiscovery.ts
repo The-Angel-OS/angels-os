@@ -135,18 +135,26 @@ async function fetchPeerHolons(peer: { name: string; domain: string }): Promise<
  * Aggregate network-visible holons from all active peer Dioceses.
  * Returns a flat, deduped list (deduped by federationId, then name+origin).
  */
-/** Coerce a jsonb endeavors value (array OR JSON string from the adapter) into an array. */
+/**
+ * Coerce a jsonb endeavors value into an array of holon objects. The adapter can
+ * hand it back as a JS array, a JSON string, or an indexed object ({0:…,1:…}) —
+ * normalize all three. Filters to plausible holon objects (must have a `name`).
+ */
 function coerceEndeavors(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') {
+  let v = value
+  if (typeof v === 'string') {
     try {
-      const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed : []
+      v = JSON.parse(v)
     } catch {
       return []
     }
   }
-  return []
+  let arr: unknown[]
+  if (Array.isArray(v)) arr = v
+  else if (v && typeof v === 'object') arr = Object.values(v as Record<string, unknown>)
+  else return []
+  // Guard against an unwrapped single object being spread into field-values.
+  return arr.filter((h) => h && typeof h === 'object' && 'name' in (h as object))
 }
 
 export async function aggregatePeerHolons(payload: Payload): Promise<FederationHolon[]> {
@@ -166,14 +174,19 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
       overrideAccess: true,
     })
     peers = (result.docs as any[]) // eslint-disable-line @typescript-eslint/no-explicit-any
-      .map((p) => ({
-        name: p.name || p.domain,
-        domain: p.domain as string,
-        // Endeavors gossiped via heartbeat (preferred — no render-time fetch).
-        // The Postgres jsonb field can come back as a string from the internal
-        // find (vs parsed by the REST serializer), so coerce defensively.
-        endeavors: coerceEndeavors(p.endeavors),
-      }))
+      .map((p) => {
+        // Diagnostic (single-token tag for reliable log search): the exact shape
+        // the adapter returns for the jsonb `endeavors` field.
+        console.warn(
+          `[FedDiscShape] ${p.domain} typeof=${typeof p.endeavors} isArr=${Array.isArray(p.endeavors)} sample=${(() => { try { return JSON.stringify(p.endeavors)?.slice(0, 140) } catch { return '<unstringifiable>' } })()}`,
+        )
+        return {
+          name: p.name || p.domain,
+          domain: p.domain as string,
+          // Endeavors gossiped via heartbeat (preferred — no render-time fetch).
+          endeavors: coerceEndeavors(p.endeavors),
+        }
+      })
       .filter((p) => p.domain)
   } catch (err) {
     console.warn('[FederationDiscovery] peer query failed:', err instanceof Error ? err.message : err)
