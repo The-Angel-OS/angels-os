@@ -19,6 +19,7 @@ import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { getAiCostSummary } from '@/utilities/aiCostTelemetry'
 import { getCostLedgerSummary } from '@/utilities/costLedger'
+import { getTenantAiBudgetStatus } from '@/utilities/aiBudget'
 
 export const aiCostsHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -59,13 +60,30 @@ export const aiCostsHandler: PayloadHandler = async (req) => {
 
   try {
     const windowDays = Number.isFinite(days as number) ? (days as number) : undefined
-    // AI history (Messages.metadata scan) + the unified ledger (all categories).
-    // Both fail-soft; the ledger is "unavailable" until its table exists.
-    const [summary, ledger] = await Promise.all([
+
+    // Tenant config for budget status (agentWallet override + BYOK keys). Fail-soft.
+    const tenantDoc = await payload
+      .findByID({
+        collection: 'tenants',
+        id: tenantId,
+        depth: 0,
+        select: { agentWallet: true, aiConfig: true } as any,
+        overrideAccess: true,
+      })
+      .catch(() => null)
+
+    // AI history (Messages.metadata scan) + the unified ledger (all categories) +
+    // budget status. All fail-soft; the ledger is "unavailable" until its table exists.
+    const [summary, ledger, budget] = await Promise.all([
       getAiCostSummary(payload, tenantId, { days: windowDays }),
       getCostLedgerSummary(payload, tenantId, { days: windowDays }),
+      getTenantAiBudgetStatus(payload, {
+        tenantId,
+        agentWallet: (tenantDoc as any)?.agentWallet ?? null,
+        tenantAiConfig: (tenantDoc as any)?.aiConfig ?? null,
+      }),
     ])
-    return Response.json({ ...summary, ledger })
+    return Response.json({ ...summary, ledger, budget })
   } catch (err: any) {
     return Response.json(
       { error: 'AI cost aggregation failed', detail: err?.message || String(err) },

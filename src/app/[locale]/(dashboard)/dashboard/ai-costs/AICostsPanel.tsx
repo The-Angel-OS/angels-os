@@ -47,6 +47,19 @@ interface AiCostSummary {
   sampled: boolean
   scanned: number
   ledger?: CostLedgerSummary
+  budget?: AiBudgetStatus
+}
+
+interface AiBudgetStatus {
+  limitCents: number
+  spentCents: number
+  remainingCents: number
+  usedRatio: number
+  overBudget: boolean
+  hasOwnKey: boolean
+  ownKeyProvider: 'anthropic' | 'openrouter' | 'openai' | null
+  limitSource: 'tenant' | 'default'
+  enforcementEnabled: boolean
 }
 
 interface LedgerCategoryBucket {
@@ -263,6 +276,53 @@ export default function AICostsPanel() {
           </div>
         </Card>
       </div>
+
+      {/* ── AI Budget (the economic close) ─────────────────────── */}
+      {data.budget && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              AI Budget · month to date
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {fmtUsd(data.budget.spentCents)} of {fmtUsd(data.budget.limitCents)} used
+              {' · '}
+              {data.budget.limitSource === 'tenant' ? 'tenant budget' : 'free tier'}
+            </span>
+          </div>
+          <div className="mb-2 h-3 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full ${data.budget.overBudget ? 'bg-red-500' : data.budget.usedRatio > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, Math.max(1, data.budget.usedRatio * 100))}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span className={data.budget.overBudget ? 'font-medium text-red-600' : 'text-emerald-600'}>
+              {data.budget.overBudget
+                ? 'Over budget'
+                : `${fmtUsd(data.budget.remainingCents)} remaining`}
+            </span>
+            <span className="text-muted-foreground">
+              BYOK key:{' '}
+              {data.budget.hasOwnKey ? (
+                <span className="text-foreground">{data.budget.ownKeyProvider} ✓</span>
+              ) : (
+                <span>none</span>
+              )}
+            </span>
+            <span className="text-muted-foreground">
+              Enforcement: {data.budget.enforcementEnabled ? 'on' : 'off (visibility only)'}
+            </span>
+          </div>
+          {data.budget.overBudget && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {data.budget.hasOwnKey
+                ? `Past the free budget, this tenant's own ${data.budget.ownKeyProvider} key serves AI at $0 to the platform${data.budget.enforcementEnabled ? '.' : ' (when enforcement is enabled).'}`
+                : `Past the free budget, add a provider key under Settings → AI to keep serving at $0 to the platform, or AI routes to the free local tier${data.budget.enforcementEnabled ? '.' : ' (when enforcement is enabled).'}`}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Operating Costs by Category (unified ledger) ───────── */}
       {data.ledger?.available && data.ledger.byCategory.length > 0 && (
