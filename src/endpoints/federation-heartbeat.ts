@@ -87,7 +87,11 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
     capabilities: senderCapabilities,
     catalogEntryCount,
     capacity: senderCapacity,
+    endeavors: senderEndeavors,
   } = body
+  // Endeavor gossip — cache the sender's network-visible endeavors so Discovery
+  // can list them locally (no render-time cross-node fetch). Cap defensively.
+  const cachedEndeavors = Array.isArray(senderEndeavors) ? senderEndeavors.slice(0, 200) : undefined
 
   if (!senderFedId || typeof senderFedId !== 'string') {
     return Response.json(
@@ -127,6 +131,7 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
           ...(typeof senderName === 'string' ? { name: senderName } : {}),
           ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
           ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
+          ...(cachedEndeavors ? { endeavors: cachedEndeavors } : {}),
         } as any,
         overrideAccess: true,
       })
@@ -147,6 +152,7 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
           lastHeartbeatAt: now,
           ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
           ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
+          ...(cachedEndeavors ? { endeavors: cachedEndeavors } : {}),
         } as any,
         overrideAccess: true,
       })

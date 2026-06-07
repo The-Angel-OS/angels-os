@@ -63,6 +63,12 @@ export interface HeartbeatPayload {
   status: 'healthy' | 'degraded'
   capabilities: string[]
   catalogEntryCount: number
+  /**
+   * This node's network-visible endeavors (gossip). The receiver caches these
+   * on the peer record so Discovery can list them from local data instead of a
+   * render-time cross-node fetch (which serverless egress / a WAF can block).
+   */
+  endeavors?: unknown[]
 }
 
 export interface HeartbeatResponse {

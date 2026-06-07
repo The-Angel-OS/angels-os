@@ -18,7 +18,7 @@
  * Constitutional Reference: Article VII — Federation marketplace
  */
 
-import type { PayloadHandler, Where } from 'payload'
+import type { Payload, PayloadHandler, Where } from 'payload'
 import { logFederationAction } from '@/federation/auditLog'
 
 /** Strip a leading/embedded www. so we never emit slug.www.example.com. */
@@ -38,6 +38,62 @@ function computeStorefrontUrl(
   if (isReal(tenant?.domain)) return `https://${stripWww(tenant!.domain as string)}`
   if (isReal(federationDomain)) return `https://${stripWww(federationDomain as string)}`
   return null
+}
+
+/** Shape one endeavor doc (resolved at depth:1) into a public-safe holon. */
+function shapeHolon(doc: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const tenant = typeof doc.tenant === 'object' && doc.tenant ? doc.tenant : null
+  const federationDomain = (doc.federation?.domain as string) || null
+  return {
+    id: doc.id,
+    name: doc.name || 'Unnamed Enterprise',
+    tagline: doc.tagline || '',
+    description: doc.description || '',
+    endeavorType: doc.endeavorType || 'custom',
+    holonTypes: doc.holonTypes || [],
+    missionStatement: doc.missionStatement || '',
+    status: doc.status || 'forming',
+    capabilities: (doc.capabilities || []).map((c: any) => ({ skill: c.skill, description: c.description || '' })), // eslint-disable-line @typescript-eslint/no-explicit-any
+    region: {
+      city: doc.region?.city || '',
+      state: doc.region?.state || '',
+      country: doc.region?.country || 'US',
+    },
+    federation: {
+      federationId: doc.federation?.federationId || '',
+      ministryStatus: doc.federation?.ministryStatus || 'applicant',
+    },
+    logo: doc.logo?.url || doc.logo?.filename || null,
+    coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
+    storefrontUrl: computeStorefrontUrl(tenant, federationDomain),
+    tenant: tenant?.slug
+      ? { slug: tenant.slug, siteName: tenant.branding?.siteName || null, domain: tenant.domain || null }
+      : null,
+  }
+}
+
+export type LocalHolon = ReturnType<typeof shapeHolon>
+
+/**
+ * Build this node's network-visible holons (public-safe shape). Shared by the
+ * /api/federation/holons endpoint AND the outbound heartbeat gossip, so peers
+ * can cache our endeavors locally rather than fetching at render time (which a
+ * WAF/serverless-egress block can defeat — see project_federation_discovery_finding).
+ */
+export async function buildLocalHolons(
+  payload: Payload,
+  conditions: Where[] = [{ 'federation.networkVisible': { equals: true } }],
+  limit = 100,
+): Promise<{ holons: LocalHolon[]; total: number }> {
+  const endeavors = await payload.find({
+    collection: 'endeavors',
+    where: { and: conditions },
+    limit,
+    depth: 1, // resolve logo/coverImage media + tenant
+    overrideAccess: true,
+    sort: '-updatedAt',
+  })
+  return { holons: endeavors.docs.map(shapeHolon), total: endeavors.totalDocs }
 }
 
 export const federationHolonsHandler: PayloadHandler = async (req) => {
@@ -89,55 +145,7 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
       conditions.push({ 'federation.ministryStatus': { equals: ministryStatus } })
     }
 
-    const endeavors = await req.payload.find({
-      collection: 'endeavors',
-      where: { and: conditions },
-      limit,
-      depth: 1, // Resolve logo/coverImage media
-      overrideAccess: true,
-      sort: '-updatedAt',
-    })
-
-    // Transform to public-safe shape
-    const holons = endeavors.docs.map((doc: any) => {
-      // depth:1 resolves the tenant relation to an object (branding/domain/slug).
-      const tenant = typeof doc.tenant === 'object' && doc.tenant ? doc.tenant : null
-      const federationDomain = (doc.federation?.domain as string) || null
-      return {
-        id: doc.id,
-        name: doc.name || 'Unnamed Enterprise',
-        tagline: doc.tagline || '',
-        description: doc.description || '',
-        endeavorType: doc.endeavorType || 'custom',
-        holonTypes: doc.holonTypes || [],
-        missionStatement: doc.missionStatement || '',
-        status: doc.status || 'forming',
-        capabilities: (doc.capabilities || []).map((c: any) => ({
-          skill: c.skill,
-          description: c.description || '',
-        })),
-        region: {
-          city: doc.region?.city || '',
-          state: doc.region?.state || '',
-          country: doc.region?.country || 'US',
-        },
-        federation: {
-          federationId: doc.federation?.federationId || '',
-          ministryStatus: doc.federation?.ministryStatus || 'applicant',
-        },
-        logo: doc.logo?.url || doc.logo?.filename || null,
-        coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
-        // Per-endeavor storefront so remote cards deep-link to the right place.
-        storefrontUrl: computeStorefrontUrl(tenant, federationDomain),
-        tenant: tenant?.slug
-          ? {
-              slug: tenant.slug,
-              siteName: tenant.branding?.siteName || null,
-              domain: tenant.domain || null,
-            }
-          : null,
-      }
-    })
+    const { holons, total } = await buildLocalHolons(req.payload, conditions, limit)
 
     // Audit log (fire-and-forget)
     const callerFedId = req.headers.get('x-federation-id')
@@ -154,7 +162,7 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
 
     return Response.json({
       holons,
-      total: endeavors.totalDocs,
+      total,
       query: { type: holonType, region, q, status: ministryStatus, limit },
     })
   } catch (err) {

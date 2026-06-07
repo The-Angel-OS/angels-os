@@ -136,7 +136,7 @@ async function fetchPeerHolons(peer: { name: string; domain: string }): Promise<
  * Returns a flat, deduped list (deduped by federationId, then name+origin).
  */
 export async function aggregatePeerHolons(payload: Payload): Promise<FederationHolon[]> {
-  let peers: { name: string; domain: string }[] = []
+  let peers: { name: string; domain: string; endeavors: unknown[] }[] = []
   try {
     const result = await payload.find({
       collection: 'federation-peers',
@@ -152,7 +152,12 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
       overrideAccess: true,
     })
     peers = (result.docs as any[]) // eslint-disable-line @typescript-eslint/no-explicit-any
-      .map((p) => ({ name: p.name || p.domain, domain: p.domain as string }))
+      .map((p) => ({
+        name: p.name || p.domain,
+        domain: p.domain as string,
+        // Endeavors gossiped via heartbeat (preferred — no render-time fetch).
+        endeavors: Array.isArray(p.endeavors) ? p.endeavors : [],
+      }))
       .filter((p) => p.domain)
   } catch (err) {
     console.warn('[FederationDiscovery] peer query failed:', err instanceof Error ? err.message : err)
@@ -162,7 +167,20 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
   console.log(`[FederationDiscovery] ${peers.length} visible peer(s): ${peers.map((p) => p.domain).join(', ') || '(none)'}`)
   if (peers.length === 0) return []
 
-  const settled = await Promise.allSettled(peers.map(fetchPeerHolons))
+  // Prefer cached gossip (heartbeat-carried endeavors); only live-fetch peers
+  // that haven't gossiped yet. The cached path is immune to WAF/serverless-egress
+  // blocks that can defeat a render-time cross-node fetch.
+  const settled = await Promise.allSettled(
+    peers.map(async (peer) => {
+      const origin = toOrigin(peer.domain)
+      if (peer.endeavors.length > 0 && origin) {
+        return peer.endeavors.map((h) =>
+          mapRemoteHolon(h, { name: peer.name, domain: peer.domain, origin }),
+        )
+      }
+      return fetchPeerHolons(peer)
+    }),
+  )
   const all = settled.flatMap((s) => (s.status === 'fulfilled' ? s.value : []))
 
   // Dedupe: prefer federationId, fall back to name+origin domain.

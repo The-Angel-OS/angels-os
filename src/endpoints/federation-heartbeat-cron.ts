@@ -31,6 +31,7 @@ import {
 import { buildCapacitySnapshot, type WorkerCapabilities } from '@/utilities/workload-engine'
 import { getCachedGovernance, setCachedGovernanceWithPersist } from './federation-governance-sync'
 import { buildStreetSigns } from '@/utilities/streetSigns'
+import { buildLocalHolons } from './federation-holons'
 
 export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
   // ── Verify cron authorization ─────────────────────────────────
@@ -243,6 +244,16 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       streetSigns = undefined
     }
 
+    // ── Build our endeavors for the peer to cache (Discovery gossip) ──
+    let localEndeavors: unknown[] = []
+    try {
+      const { holons } = await buildLocalHolons(req.payload)
+      localEndeavors = holons
+    } catch {
+      // Non-fatal — heartbeat continues without endeavor gossip
+      localEndeavors = []
+    }
+
     // ── Send heartbeats ─────────────────────────────────────────
     const heartbeat: HeartbeatPayload = {
       federationId,
@@ -253,6 +264,7 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
       status: 'healthy',
       capabilities: derivedCapabilities,
       catalogEntryCount,
+      endeavors: localEndeavors,  // Discovery gossip — peer caches these locally
       capacity: capacitySnapshot, // Sprint 31: live workload capacity broadcast
       streetSigns,               // Sprint 39: product gossip
     } as HeartbeatPayload & { capacity: unknown; streetSigns: unknown }
