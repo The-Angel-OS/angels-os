@@ -99,8 +99,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   // Default: no existing tenant (slug available)
   mockFind.mockResolvedValue({ docs: [] })
-  // Default: auth returns a user
-  mockAuth.mockResolvedValue({ user: { id: 1, email: 'test@test.com', roles: ['customer'] } })
+  // Default: auth returns an ADMIN user (provisioning is invite-only / admin-gated)
+  mockAuth.mockResolvedValue({ user: { id: 1, email: 'test@test.com', roles: ['admin', 'customer'] } })
   // Default: tenant creation returns an object
   mockFindOrCreateTenant.mockResolvedValue({ id: 42, slug: 'test-endeavor', name: 'Test Endeavor' })
   // Default: space creation returns a spaceId
@@ -198,6 +198,15 @@ describe('provisionTenant', () => {
     const result = await provisionTenant(makeWizardState())
     expect(result.success).toBe(false)
     expect(result.error).toMatch(/logged in/)
+  })
+
+  it('rejects non-admin users (invite-only / admin-gated provisioning)', async () => {
+    mockAuth.mockResolvedValueOnce({ user: { id: 2, email: 'member@test.com', roles: ['customer'] } })
+    const result = await provisionTenant(makeWizardState())
+    expect(result.success).toBe(false)
+    expect(result.error).toMatch(/administrator/i)
+    // Must not have created anything
+    expect(mockFindOrCreateTenant).not.toHaveBeenCalled()
   })
 
   it('creates tenant with correct name and slug', async () => {
