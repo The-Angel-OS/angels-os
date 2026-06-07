@@ -118,9 +118,11 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // Auto-join user to ALL tenant spaces. Done in 2 queries + parallel creates
-    // (was 1 + 2×N sequential round-trips, which 504'd on the constrained
-    // Vercel pool). Idempotent: we compute the missing set up front.
+    // Auto-join user to ALL tenant spaces. 2 read queries to compute the missing
+    // set, then SEQUENTIAL creates. NOTE: do NOT parallelize the creates — on the
+    // max=3 Vercel pool, parallel creates each grab a connection while their hooks
+    // need another, deadlocking the pool for ~30s (504 + cascading timeouts on
+    // heartbeat/email). Sequential holds ≤1 connection at a time.
     if (tenantId) {
       try {
         const spaces = await payload.find({
@@ -149,10 +151,10 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
           )
           const missing = spaces.docs.filter((s) => !joined.has(s.id))
 
-          // Create the missing memberships in parallel — never throws (allSettled).
-          await Promise.allSettled(
-            missing.map((space) =>
-              payload.create({
+          // Create the missing memberships SEQUENTIALLY (pool-safe — see note above).
+          for (const space of missing) {
+            try {
+              await payload.create({
                 collection: 'space-memberships',
                 data: {
                   user: user.id as number,
@@ -163,9 +165,11 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
                   tenant: tenantId as number,
                 },
                 overrideAccess: true,
-              }),
-            ),
-          )
+              })
+            } catch {
+              // Non-critical — keep going; the user already joined the tenant.
+            }
+          }
           if (missing.length > 0) {
             payload.logger.info(
               `[tenant-invite-accept] ${(user as any).email} auto-joined ${missing.length} space(s) (tenant ${tenantId})`,

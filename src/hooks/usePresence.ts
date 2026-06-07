@@ -29,8 +29,10 @@ interface UsePresenceOptions {
 export function usePresence({
   enabled = true,
   spaceId = null,
-  pingMs = 30000,
-  pollMs = 25000,
+  // Gentle by default — the prod Postgres pool is small (max=3 on Vercel), so
+  // presence stays light: a ping a minute, a poll every ~45s.
+  pingMs = 60000,
+  pollMs = 45000,
 }: UsePresenceOptions = {}) {
   const [online, setOnline] = useState<OnlineUser[]>([])
   const [count, setCount] = useState(0)
