@@ -17,7 +17,9 @@ import { SPACE_TEMPLATES } from '@/utilities/spaceProvisioning'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 import { createInvitation, isValidEmail } from '@/utilities/invitationSystem'
 import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
-import { detectTenantFromHostname } from '@/middleware/detectTenant'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { logError } from '@/utilities/logError'
 
 const COMMON_CHANNELS = [
   { name: 'general', type: 'general', description: 'General discussion', isDefault: true },
@@ -36,24 +38,19 @@ export const spaceCreateHandler: PayloadHandler = async (req) => {
   if (rateLimited) return rateLimited
 
   // ── Resolve tenant ────────────────────────────────────────────────────────
-  const tenantSlug =
-    req.headers.get('x-tenant-id') ||
-    detectTenantFromHostname(req.headers.get('host')?.split(':')[0] || 'localhost') ||
-    'default'
+  // Same chain as resolveTenantFromHeaders (which the dashboard layout uses),
+  // applied to req.headers: x-tenant-id slug → host/domain → user membership.
+  // The previous hostname→slug guess ("federation.kendev.co" → "federation")
+  // matched no tenant, and the user fallback fails for a super_admin (empty
+  // tenants[]) → "Could not resolve tenant" on the federation apex.
+  const xTenant = req.headers.get('x-tenant-id')
+  const host = req.headers.get('host') || req.headers.get('x-forwarded-host') || ''
+  let tenantId: number | string | undefined
 
-  const tenantResult = await payload.find({
-    collection: 'tenants',
-    where: { slug: { equals: tenantSlug } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  let tenantId = tenantResult.docs[0]?.id as number | string | undefined
+  if (xTenant) tenantId = (await fetchTenantBySlug(xTenant))?.id
+  if (!tenantId && host) tenantId = (await fetchTenantByDomain(host))?.id // domain → subdomain → DEFAULT_TENANT_SLUG
   if (!tenantId) {
-    // The hostname-derived slug isn't a real tenant — e.g. federation.kendev.co
-    // resolves to "federation", which has no Tenants row. Fall back to the
-    // authenticated user's own tenant membership (the node they're acting on).
+    // Last resort: the acting user's own tenant membership.
     const fullUser = (await payload.findByID({
       collection: 'users',
       id: user.id,
@@ -64,6 +61,14 @@ export const spaceCreateHandler: PayloadHandler = async (req) => {
     tenantId = typeof ut === 'object' ? ut?.id : ut
   }
   if (!tenantId) {
+    // Surface this in the error log (it previously failed silently to the client).
+    await logError({
+      source: 'space-create',
+      message: 'Could not resolve tenant for space creation',
+      details: `host=${host} x-tenant-id=${xTenant ?? '(none)'} user=${user.id}`,
+      statusCode: 400,
+      userId: user.id as number,
+    }).catch(() => {})
     return Response.json({ error: 'Could not resolve tenant' }, { status: 400 })
   }
 

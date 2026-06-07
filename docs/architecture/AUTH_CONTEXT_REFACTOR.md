@@ -160,6 +160,28 @@ Each phase: build-gate + the existing access tests (`tenantAccessControl`,
 
 ---
 
+## 6b. Interim point-fixes shipped (pending the full refactor)
+
+These are the same fragmentation bug surfacing one endpoint at a time; each was
+fixed by routing tenant resolution through the shared
+`resolveTenantFromHeaders` chain (slug → domain → DEFAULT_TENANT_SLUG), which is
+what the PortalContext will centralize:
+
+- **`dashboard/endeavor/actions.ts`** (2026-06-07) — hand-rolled
+  `x-tenant-id || 'default'` failed on the federation apex →
+  "Unable to load Endeavor data". Now uses `resolveTenantFromHeaders`.
+- **`endpoints/space-create.ts`** (2026-06-07) — derived a slug from the
+  hostname (`federation.kendev.co` → `federation`, no tenant) then fell back to
+  `user.tenants[0]`, which is empty for a super_admin → "Could not resolve
+  tenant" (and was **not logged**). Now resolves via `fetchTenantBySlug` →
+  `fetchTenantByDomain` → user membership, and `logError`s the unresolved case.
+
+**Known symptom, not yet fixed:** Google OAuth occasionally lands on the Payload
+admin on the first attempt and works on retry — a cookie-propagation race in
+`/api/auth/complete` (it has a "cookie may not have been received" branch). The
+PortalContext/session-hardening work should make post-login destination
+deterministic; tracked here so it isn't lost.
+
 ## 7. What this closes
 
 - The runaround (one auth source, one admin definition).
