@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useClickOutside } from '@/hooks/useClickOutside'
+import { usePresence } from '@/hooks/usePresence'
 
 /**
  * DashboardHeader — LCARS-styled header bar with user dropdown menu.
@@ -23,6 +24,9 @@ export function DashboardHeader({ prefix, userName, userInitials, isAuthenticate
   const menuRef = useRef<HTMLDivElement>(null)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
   useClickOutside(menuRef, closeMenu, menuOpen)
+
+  // Presence — marks this user online + counts the crew currently in the hub.
+  const { count: onlineCount, isOnline } = usePresence({ enabled: isAuthenticated })
 
   return (
     <header
@@ -55,6 +59,17 @@ export function DashboardHeader({ prefix, userName, userInitials, isAuthenticate
       <div className="relative flex items-center gap-3" ref={menuRef}>
         {isAuthenticated ? (
           <>
+            {/* Presence — N online in the hub */}
+            {onlineCount > 0 && (
+              <span
+                className="hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider sm:inline-flex"
+                style={{ background: 'rgba(72, 187, 120, 0.12)', color: '#48bb78' }}
+                title={`${onlineCount} online now`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 [animation:pulse_2s_ease-in-out_infinite]" />
+                {onlineCount} online
+              </span>
+            )}
             {/* User avatar button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -63,14 +78,24 @@ export function DashboardHeader({ prefix, userName, userInitials, isAuthenticate
               title="User menu"
             >
               <span className="hidden text-xs font-mono sm:inline">{userName}</span>
-              <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold font-mono"
-                style={{
-                  background: 'rgba(245, 166, 35, 0.15)',
-                  color: 'var(--lcars-amber)',
-                }}
-              >
-                {userInitials}
+              <span className="relative">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold font-mono"
+                  style={{
+                    background: 'rgba(245, 166, 35, 0.15)',
+                    color: 'var(--lcars-amber)',
+                  }}
+                >
+                  {userInitials}
+                </span>
+                {isOnline && (
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500"
+                    style={{ border: '2px solid var(--lcars-dark-bg)' }}
+                    title="Online"
+                    aria-label="Online"
+                  />
+                )}
               </span>
               <svg
                 className={`hidden h-3 w-3 transition-transform sm:block ${menuOpen ? 'rotate-180' : ''}`}

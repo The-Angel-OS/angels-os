@@ -11,6 +11,7 @@ import type { Header, Media, Tenant } from '@/payload-types'
 
 import { AngelIcon } from '@/components/icons/AngelIcon'
 import { useAuth } from '@/providers/Auth'
+import { usePresence } from '@/hooks/usePresence'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
 import {
@@ -126,6 +127,9 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
 
 export function HeaderClient({ header, tenant }: Props) {
   const { user } = useAuth()
+
+  // Presence — marks this user online + counts who else is, site-wide.
+  const { count: onlineCount, isOnline } = usePresence({ enabled: Boolean(user) })
 
   // Fetch the user's portals for the switcher (client-side, only when logged in).
   // Super-admins have global access, so the switcher lists ALL tenants for them —
@@ -270,10 +274,20 @@ export function HeaderClient({ header, tenant }: Props) {
                     <PortalSwitcher portals={userPortals} currentTenantId={tenant?.id} compact targetPath="/" />
                   </div>
                 )}
+                {onlineCount > 0 && (
+                  <span
+                    className="hidden items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground lg:inline-flex"
+                    title={`${onlineCount} online now`}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 [animation:pulse_2s_ease-in-out_infinite]" />
+                    {onlineCount} online
+                  </span>
+                )}
                 <div className="hidden md:block">
                   <AccountMenu
                     name={(user as { name?: string | null }).name}
                     email={(user as { email?: string | null }).email}
+                    online={isOnline}
                   />
                 </div>
               </>

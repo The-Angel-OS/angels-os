@@ -21,7 +21,16 @@ function getInitials(name?: string | null, email?: string | null): string {
  * Dashboard / Account / Logout. Replaces the loose "Account" + "Logout" text
  * links in the header for a tighter, identity-forward right rail.
  */
-export function AccountMenu({ name, email }: { name?: string | null; email?: string | null }) {
+export function AccountMenu({
+  name,
+  email,
+  online = false,
+}: {
+  name?: string | null
+  email?: string | null
+  /** Presence — shows a green status dot on the avatar when true. */
+  online?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useClickOutside(ref, () => setOpen(false), open)
@@ -42,8 +51,17 @@ export function AccountMenu({ name, email }: { name?: string | null; email?: str
         aria-label="Account menu"
         className="flex items-center gap-1.5 rounded-full p-0.5 pr-1.5 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          {initials}
+        <span className="relative">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            {initials}
+          </span>
+          {online && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
+              title="Online"
+              aria-label="Online"
+            />
+          )}
         </span>
         <ChevronDown
           className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', open && 'rotate-180')}
