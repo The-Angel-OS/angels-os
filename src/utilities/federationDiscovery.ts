@@ -22,7 +22,6 @@ import type { FederationHolon } from '@/components/FederationCard'
 const VISIBLE_PEER_STATUSES = ['active', 'probation', 'vouched', 'full']
 
 const PEER_FETCH_TIMEOUT_MS = 3000
-const PEER_CACHE_SECONDS = 60
 
 /** Normalize a stored domain to an https origin (no trailing slash, no scheme dupes). */
 function toOrigin(domain: string): string | null {
@@ -91,26 +90,36 @@ async function fetchPeerHolons(peer: { name: string; domain: string }): Promise<
   const timer = setTimeout(() => controller.abort(), PEER_FETCH_TIMEOUT_MS)
   const url = `${origin}/api/federation/holons?limit=100`
   try {
+    // no-store, not next.revalidate: this runs inside a force-dynamic page, where
+    // mixing revalidate with the route's no-store default can make the fetch
+    // misbehave. We want a fresh server-to-server pull each render anyway.
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { accept: 'application/json' },
-      next: { revalidate: PEER_CACHE_SECONDS },
+      headers: { accept: 'application/json', 'user-agent': 'AngelOS-Federation/1.0' },
+      cache: 'no-store',
     })
     if (!res.ok) {
-      console.warn(`[FederationDiscovery] peer ${peer.domain} → HTTP ${res.status}`)
+      const snippet = await res.text().then((t) => t.slice(0, 160)).catch(() => '')
+      console.warn(`[FederationDiscovery] peer ${peer.domain} → HTTP ${res.status} ${res.statusText} :: ${snippet}`)
       return []
     }
-    const data = (await res.json()) as { holons?: unknown[] }
+    const raw = await res.text()
+    let data: { holons?: unknown[] }
+    try {
+      data = JSON.parse(raw) as { holons?: unknown[] }
+    } catch {
+      console.warn(`[FederationDiscovery] peer ${peer.domain} → non-JSON body :: ${raw.slice(0, 160)}`)
+      return []
+    }
     if (!Array.isArray(data.holons)) {
-      console.warn(`[FederationDiscovery] peer ${peer.domain} → no holons array`)
+      console.warn(`[FederationDiscovery] peer ${peer.domain} → no holons array :: keys=${Object.keys(data).join(',')}`)
       return []
     }
-    console.log(`[FederationDiscovery] peer ${peer.domain} → ${data.holons.length} holon(s)`)
+    console.warn(`[FederationDiscovery] peer ${peer.domain} → ${data.holons.length} holon(s) OK`)
     return data.holons.map((h) => mapRemoteHolon(h, { ...peer, origin }))
   } catch (err) {
     console.warn(
-      `[FederationDiscovery] peer ${peer.domain} fetch failed (${url}):`,
-      err instanceof Error ? err.message : err,
+      `[FederationDiscovery] peer ${peer.domain} fetch threw (${url}): ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
     )
     return []
   } finally {
