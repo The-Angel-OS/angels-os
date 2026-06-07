@@ -9,6 +9,7 @@ import {
   fetchMemberSpaces,
   addMemberToAllSpaces,
   removeMemberFromSpace,
+  resendTenantInvitation,
 } from './actions'
 import { sendQuickInvite } from '../invitations/actions'
 import {
@@ -61,6 +62,18 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const handleResend = async (id: string) => {
+    setResendingId(id)
+    const res = await resendTenantInvitation(id)
+    setResendingId(null)
+    if (res.success) {
+      showToast(res.emailSent ? 'Invitation re-sent' : 'Invitation refreshed (email not configured)', 'success')
+    } else {
+      showToast(res.error || 'Resend failed', 'error')
+    }
   }
 
   const filtered = useMemo(
@@ -173,6 +186,16 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
+                    {member.status === 'pending' && (
+                      <button
+                        onClick={() => handleResend(member.id)}
+                        disabled={resendingId === member.id}
+                        className="mr-3 text-xs font-medium text-emerald-600 hover:underline disabled:opacity-50 dark:text-emerald-400"
+                        title="Re-send the invitation email"
+                      >
+                        {resendingId === member.id ? 'Sending…' : 'Resend'}
+                      </button>
+                    )}
                     <button
                       onClick={() => setEditingId(editingId === member.id ? null : member.id)}
                       className="text-xs font-medium text-primary hover:underline"

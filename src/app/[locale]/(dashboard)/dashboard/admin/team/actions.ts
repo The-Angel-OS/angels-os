@@ -15,6 +15,8 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { ALL_PERMISSION_KEYS } from '@/constants/permissions'
 import type { TenantRole } from '@/constants/permissions'
+import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
+import { calculateExpiration } from '@/utilities/invitationSystem'
 
 // NOTE: sendQuickInvite lives in ../invitations/actions — import directly from there.
 // Re-exports are NOT allowed in 'use server' files (Turbopack treats them as non-async).
@@ -367,5 +369,80 @@ export async function removeMemberFromSpace(
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to remove from space' }
+  }
+}
+
+// ── Resend a pending tenant (Enterprise) invitation ──────────────────────────
+
+export async function resendTenantInvitation(
+  membershipId: string | number,
+): Promise<{ success: boolean; emailSent?: boolean; error?: string }> {
+  const { payload, user, tenantId, error } = await getAuthorizedUser()
+  if (error || !tenantId || !user) {
+    return { success: false, error: error || 'Unauthorized' }
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const membership = (await payload.findByID({
+      collection: 'tenant-memberships',
+      id: membershipId,
+      depth: 1,
+      overrideAccess: true,
+    })) as any
+
+    if (!membership) return { success: false, error: 'Invitation not found.' }
+
+    const mTenant = typeof membership.tenant === 'object' ? membership.tenant?.id : membership.tenant
+    if (String(mTenant) !== String(tenantId)) {
+      return { success: false, error: 'Invitation does not belong to this Enterprise.' }
+    }
+    if (membership.status !== 'pending') {
+      return { success: false, error: 'Only pending invitations can be resent.' }
+    }
+
+    const details = membership.invitationDetails || {}
+    const token = details.invitationToken
+    const email = details.invitationEmail
+    if (!token || !email) {
+      return { success: false, error: 'This invitation has no token/email to resend.' }
+    }
+
+    // Extend the expiry (fresh 7 days), then re-send via the shared tenant sender
+    // (which now points the accept link at the tenant's own subdomain).
+    const newExpiry = calculateExpiration(7)
+    await payload.update({
+      collection: 'tenant-memberships',
+      id: membershipId,
+      data: {
+        invitationDetails: { ...details, invitationExpiresAt: newExpiry.toISOString() },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      overrideAccess: true,
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = (await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })) as any
+    const enterpriseName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
+    const inviterName = (user as { name?: string; email?: string }).name || (user as { email?: string }).email || 'An admin'
+
+    const emailSent = await sendTenantInvitationEmail({
+      payload,
+      tenantId,
+      recipientEmail: email,
+      inviterName,
+      enterpriseName,
+      inviteUrl: `/tenant-invite/${token}`,
+      role: membership.role || 'tenant_member',
+    })
+
+    return { success: true, emailSent }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Resend failed' }
   }
 }

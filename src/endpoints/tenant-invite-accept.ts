@@ -82,104 +82,94 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
-    // Update corresponding Contact record if one exists
     const invitationEmail = membership.invitationDetails?.invitationEmail
     const tenantId =
       typeof membership.tenant === 'object' ? membership.tenant?.id : membership.tenant
+    const userId = user.id
 
-    if (invitationEmail && tenantId) {
-      try {
-        const contacts = await payload.find({
-          collection: 'contacts',
-          where: {
-            and: [
-              { email: { equals: invitationEmail.toLowerCase() } },
-              { tenant: { equals: tenantId } },
-            ],
-          },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
-
-        if (contacts.docs.length > 0) {
-          await payload.update({
+    // ── Best-effort secondary work — MUST NOT block the response ──────────────
+    // The membership is now ACTIVE, so the user is in regardless. Under DB-pool
+    // pressure (max=3 Vercel pool) these extra queries can stall ~30s and 504 the
+    // whole function — so we fire-and-forget. All of it is idempotent and re-runs
+    // harmlessly (the dashboard also reconciles space membership on load).
+    void (async () => {
+      // Mark the Contact accepted.
+      if (invitationEmail && tenantId) {
+        try {
+          const contacts = await payload.find({
             collection: 'contacts',
-            id: contacts.docs[0]!.id,
-            data: {
-              contactStatus: 'accepted',
-              inviteStatus: 'accepted',
-            },
-            overrideAccess: true,
-          })
-        }
-      } catch {
-        // Non-critical — contact update failure shouldn't block acceptance
-      }
-    }
-
-    // Auto-join user to ALL tenant spaces. 2 read queries to compute the missing
-    // set, then SEQUENTIAL creates. NOTE: do NOT parallelize the creates — on the
-    // max=3 Vercel pool, parallel creates each grab a connection while their hooks
-    // need another, deadlocking the pool for ~30s (504 + cascading timeouts on
-    // heartbeat/email). Sequential holds ≤1 connection at a time.
-    if (tenantId) {
-      try {
-        const spaces = await payload.find({
-          collection: 'spaces',
-          where: { tenant: { equals: tenantId } },
-          sort: 'createdAt',
-          limit: 100,
-          depth: 0,
-          overrideAccess: true,
-        })
-        const spaceIds = spaces.docs.map((s) => s.id)
-
-        if (spaceIds.length > 0) {
-          // One query for all existing memberships → diff against the space set.
-          const existing = await payload.find({
-            collection: 'space-memberships',
             where: {
-              and: [{ user: { equals: user.id } }, { space: { in: spaceIds } }],
+              and: [
+                { email: { equals: invitationEmail.toLowerCase() } },
+                { tenant: { equals: tenantId } },
+              ],
             },
-            limit: 1000,
+            limit: 1,
             depth: 0,
             overrideAccess: true,
           })
-          const joined = new Set(
-            existing.docs.map((m: any) => (typeof m.space === 'object' ? m.space?.id : m.space)), // eslint-disable-line @typescript-eslint/no-explicit-any
-          )
-          const missing = spaces.docs.filter((s) => !joined.has(s.id))
+          if (contacts.docs.length > 0) {
+            await payload.update({
+              collection: 'contacts',
+              id: contacts.docs[0]!.id,
+              data: { contactStatus: 'accepted', inviteStatus: 'accepted' },
+              overrideAccess: true,
+            })
+          }
+        } catch {
+          /* non-critical */
+        }
+      }
 
-          // Create the missing memberships SEQUENTIALLY (pool-safe — see note above).
-          for (const space of missing) {
-            try {
-              await payload.create({
-                collection: 'space-memberships',
-                data: {
-                  user: user.id as number,
-                  space: space.id as number,
-                  role: 'member',
-                  status: 'active',
-                  joinedAt: new Date().toISOString(),
-                  tenant: tenantId as number,
-                },
-                overrideAccess: true,
-              })
-            } catch {
-              // Non-critical — keep going; the user already joined the tenant.
+      // Auto-join tenant spaces — SEQUENTIAL only (never parallelize on the max=3
+      // pool; parallel creates deadlock it). Idempotent via the missing-set diff.
+      if (tenantId) {
+        try {
+          const spaces = await payload.find({
+            collection: 'spaces',
+            where: { tenant: { equals: tenantId } },
+            sort: 'createdAt',
+            limit: 100,
+            depth: 0,
+            overrideAccess: true,
+          })
+          const spaceIds = spaces.docs.map((s) => s.id)
+          if (spaceIds.length > 0) {
+            const existing = await payload.find({
+              collection: 'space-memberships',
+              where: { and: [{ user: { equals: userId } }, { space: { in: spaceIds } }] },
+              limit: 1000,
+              depth: 0,
+              overrideAccess: true,
+            })
+            const joined = new Set(
+              existing.docs.map((m: any) => (typeof m.space === 'object' ? m.space?.id : m.space)), // eslint-disable-line @typescript-eslint/no-explicit-any
+            )
+            const missing = spaces.docs.filter((s) => !joined.has(s.id))
+            for (const space of missing) {
+              try {
+                await payload.create({
+                  collection: 'space-memberships',
+                  data: {
+                    user: userId as number,
+                    space: space.id as number,
+                    role: 'member',
+                    status: 'active',
+                    joinedAt: new Date().toISOString(),
+                    tenant: tenantId as number,
+                  },
+                  overrideAccess: true,
+                })
+              } catch {
+                /* keep going */
+              }
             }
           }
-          if (missing.length > 0) {
-            payload.logger.info(
-              `[tenant-invite-accept] ${(user as any).email} auto-joined ${missing.length} space(s) (tenant ${tenantId})`,
-            )
-          }
+        } catch {
+          /* non-critical */
         }
-      } catch {
-        // Non-critical — user joined the tenant even if space auto-join fails
       }
-    }
+    })()
 
     // Extract tenant info for response
     const tenant = typeof membership.tenant === 'object' ? membership.tenant : null
