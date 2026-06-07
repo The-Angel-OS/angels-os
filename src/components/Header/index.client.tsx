@@ -6,6 +6,7 @@ import Link from 'next/link'
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
 
 import { MobileMenu } from './MobileMenu'
+import { AccountMenu } from './AccountMenu'
 import type { Header, Media, Tenant } from '@/payload-types'
 
 import { LogoIcon } from '@/components/icons/logo'
@@ -269,12 +270,12 @@ export function HeaderClient({ header, tenant }: Props) {
                     <PortalSwitcher portals={userPortals} currentTenantId={tenant?.id} compact targetPath="/" />
                   </div>
                 )}
-                <Link href="/dashboard/account" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
-                  Account
-                </Link>
-                <Link href="/logout" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
-                  Logout
-                </Link>
+                <div className="hidden md:block">
+                  <AccountMenu
+                    name={(user as { name?: string | null }).name}
+                    email={(user as { email?: string | null }).email}
+                  />
+                </div>
               </>
             ) : (
               <>

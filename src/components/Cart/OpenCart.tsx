@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button'
-import clsx from 'clsx'
 import { ShoppingCart } from 'lucide-react'
 import React from 'react'
+
+import { cn } from '@/utilities/cn'
 
 export function OpenCartButton({
   className,
@@ -15,16 +16,16 @@ export function OpenCartButton({
     <Button
       variant="nav"
       size="clear"
-      className="navLink relative items-end hover:cursor-pointer"
+      aria-label={quantity ? `Open cart, ${quantity} item${quantity === 1 ? '' : 's'}` : 'Open cart'}
+      className={cn('navLink relative hover:cursor-pointer', className)}
       {...rest}
     >
-      <span>Cart</span>
+      <ShoppingCart className="h-5 w-5" />
 
       {quantity ? (
-        <>
-          <span>•</span>
-          <span>{quantity}</span>
-        </>
+        <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+          {quantity}
+        </span>
       ) : null}
     </Button>
   )
