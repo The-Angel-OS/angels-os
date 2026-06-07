@@ -14,10 +14,13 @@ const HOLON_FILTERS = [
 
 interface FederationDiscoverProps {
   initialHolons: FederationHolon[]
+  /** Number of Endeavors (ministries/works) listed. */
   total: number
+  /** Number of Enterprises (federated nodes / Dioceses) on the network. */
+  enterprises?: number
 }
 
-export function FederationDiscover({ initialHolons, total }: FederationDiscoverProps) {
+export function FederationDiscover({ initialHolons, total, enterprises = 1 }: FederationDiscoverProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
@@ -65,11 +68,11 @@ export function FederationDiscover({ initialHolons, total }: FederationDiscoverP
       <div className="mb-10 text-center">
         <h1 className="mb-3 text-3xl font-bold md:text-4xl">Discovery — Explore the Federation</h1>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Browse Enterprises in the Angel OS network. Find partners, discover services, and grow
+          Browse Endeavors across the Angel OS federation. Find partners, discover services, and grow
           together through constitutional commerce.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {total} Enterprise{total !== 1 ? 's' : ''} in the network
+          {total} Endeavor{total !== 1 ? 's' : ''} · {enterprises} Enterprise{enterprises !== 1 ? 's' : ''} on the Network
         </p>
       </div>
 
@@ -94,7 +97,7 @@ export function FederationDiscover({ initialHolons, total }: FederationDiscoverP
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search enterprises, capabilities, descriptions..."
+            placeholder="Search endeavors, capabilities, descriptions..."
             className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm outline-none focus:border-primary"
           />
         </div>

@@ -36,7 +36,7 @@ export default async function FederationDiscoverPage({
     })
   } catch (err) {
     console.error('[FederationDiscover] Query failed:', err)
-    return <FederationDiscover initialHolons={[]} total={0} />
+    return <FederationDiscover initialHolons={[]} total={0} enterprises={1} />
   }
 
   // Build base URL from server environment for storefront URL resolution
@@ -107,5 +107,23 @@ export default async function FederationDiscoverPage({
     }
   })
 
-  return <FederationDiscover initialHolons={holons} total={endeavors.totalDocs} />
+  // Enterprises = federated nodes (Dioceses) on the network = peers (excluding
+  // revoked/suspended) + this Enterprise itself. Distinct from Endeavors (the
+  // ministries listed above), which is the conceptual grain: Enterprise = the
+  // trust/federation unit, Endeavor = a work hosted within one.
+  let enterprises = 1
+  try {
+    const peers = await payload.count({
+      collection: 'federation-peers',
+      where: { ministryStatus: { not_in: ['revoked', 'suspended'] } },
+      overrideAccess: true,
+    })
+    enterprises = (peers.totalDocs || 0) + 1
+  } catch {
+    enterprises = 1
+  }
+
+  return (
+    <FederationDiscover initialHolons={holons} total={endeavors.totalDocs} enterprises={enterprises} />
+  )
 }
