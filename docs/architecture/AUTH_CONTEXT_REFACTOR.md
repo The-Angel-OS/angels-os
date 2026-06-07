@@ -170,6 +170,11 @@ what the PortalContext will centralize:
 - **`dashboard/endeavor/actions.ts`** (2026-06-07) — hand-rolled
   `x-tenant-id || 'default'` failed on the federation apex →
   "Unable to load Endeavor data". Now uses `resolveTenantFromHeaders`.
+- **admin `contacts` / `comments` / `invitations` + `setup` actions & page**
+  (2026-06-07) — all hand-rolled `x-tenant-id || 'default'` and failed on the
+  federation apex ("Tenant not found" on the Contacts importer, blocking the bulk
+  invite flow). All now use `resolveTenantFromHeaders`. (5 surfaces in one pass —
+  the tenant-resolution slice of this refactor, applied early to unblock invites.)
 - **`endpoints/space-create.ts`** (2026-06-07) — derived a slug from the
   hostname (`federation.kendev.co` → `federation`, no tenant) then fell back to
   `user.tenants[0]`, which is empty for a super_admin → "Could not resolve
