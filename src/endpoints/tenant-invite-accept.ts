@@ -32,14 +32,15 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
   }
 
   try {
-    // Find the pending tenant membership by token
+    // Find the pending tenant membership by token. depth:1 resolves the tenant
+    // relation (id/slug/domain/name) — all we need; depth:2 was wasteful.
     const memberships = await payload.find({
       collection: 'tenant-memberships',
       where: {
         'invitationDetails.invitationToken': { equals: token },
       },
       limit: 1,
-      depth: 2,
+      depth: 1,
       overrideAccess: true,
     })
 
@@ -117,7 +118,9 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // Auto-join user to ALL tenant spaces (not just the main one)
+    // Auto-join user to ALL tenant spaces. Done in 2 queries + parallel creates
+    // (was 1 + 2×N sequential round-trips, which 504'd on the constrained
+    // Vercel pool). Idempotent: we compute the missing set up front.
     if (tenantId) {
       try {
         const spaces = await payload.find({
@@ -128,35 +131,44 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
           depth: 0,
           overrideAccess: true,
         })
+        const spaceIds = spaces.docs.map((s) => s.id)
 
-        for (const space of spaces.docs) {
-          // Check if already a member (idempotent)
-          const existingMembership = await payload.find({
+        if (spaceIds.length > 0) {
+          // One query for all existing memberships → diff against the space set.
+          const existing = await payload.find({
             collection: 'space-memberships',
             where: {
-              user: { equals: user.id },
-              space: { equals: space.id },
+              and: [{ user: { equals: user.id } }, { space: { in: spaceIds } }],
             },
-            limit: 1,
+            limit: 1000,
             depth: 0,
             overrideAccess: true,
           })
+          const joined = new Set(
+            existing.docs.map((m: any) => (typeof m.space === 'object' ? m.space?.id : m.space)), // eslint-disable-line @typescript-eslint/no-explicit-any
+          )
+          const missing = spaces.docs.filter((s) => !joined.has(s.id))
 
-          if (existingMembership.totalDocs === 0) {
-            await payload.create({
-              collection: 'space-memberships',
-              data: {
-                user: user.id as number,
-                space: space.id as number,
-                role: 'member',
-                status: 'active',
-                joinedAt: new Date().toISOString(),
-                tenant: tenantId as number,
-              },
-              overrideAccess: true,
-            })
+          // Create the missing memberships in parallel — never throws (allSettled).
+          await Promise.allSettled(
+            missing.map((space) =>
+              payload.create({
+                collection: 'space-memberships',
+                data: {
+                  user: user.id as number,
+                  space: space.id as number,
+                  role: 'member',
+                  status: 'active',
+                  joinedAt: new Date().toISOString(),
+                  tenant: tenantId as number,
+                },
+                overrideAccess: true,
+              }),
+            ),
+          )
+          if (missing.length > 0) {
             payload.logger.info(
-              `[tenant-invite-accept] User ${(user as any).email} auto-joined space "${space.name}" (tenant ${tenantId})`,
+              `[tenant-invite-accept] ${(user as any).email} auto-joined ${missing.length} space(s) (tenant ${tenantId})`,
             )
           }
         }
