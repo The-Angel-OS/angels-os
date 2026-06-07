@@ -8,11 +8,12 @@ import { checkRole } from '@/access/utilities'
 
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
 import { autoJoinTenantSpaces } from './hooks/autoJoinTenantSpaces'
+import { notifyUserRegistered } from './hooks/notifyUserRegistered'
 
 export const Users: CollectionConfig = {
   slug: 'users',
   hooks: {
-    afterChange: [autoJoinTenantSpaces],
+    afterChange: [autoJoinTenantSpaces, notifyUserRegistered],
   },
   access: {
     // super_admin: full platform access

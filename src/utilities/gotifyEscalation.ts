@@ -24,10 +24,25 @@ import type { Payload } from 'payload'
 import { findAllConnectors } from '@/utilities/resolveConnector'
 import { gotifyNotify } from '@/utilities/gotifyNotify'
 
-/** Canonical Angel OS event types that can be escalated to Gotify. */
+/**
+ * Canonical Angel OS event types that can be escalated to Gotify.
+ *
+ * WIRED today: `error` / `warning` (logError tap, src/utilities/logError.ts —
+ * funnels most system events) and `user_registered` (Users afterChange hook,
+ * src/collections/Users/hooks/notifyUserRegistered.ts — the operator's pulse on
+ * a quiet node).
+ *
+ * SEAM (stored in policy, not yet emitted): `conversation_started`,
+ * `budget_exceeded`, `provider_failover`, `vercel_spend`, `federation`, `order`,
+ * `donation`, `booking`, `itsm_incident`. To enable one, call
+ * `dispatchToGotify(payload, { eventType, … })` at that event's source (e.g. the
+ * over-budget branch in leo-stream, the Orders paid transition). No changes here.
+ */
 export type EscalationEventType =
   | 'error'
   | 'warning'
+  | 'user_registered'
+  | 'conversation_started'
   | 'budget_exceeded'
   | 'provider_failover'
   | 'vercel_spend'

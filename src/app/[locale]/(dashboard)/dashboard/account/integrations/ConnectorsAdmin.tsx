@@ -170,12 +170,16 @@ const CONNECTOR_CATALOG: ConnectorTypeDef[] = [
       { key: 'clientToken', label: 'Client Token (receive, C…)', type: 'password', placeholder: 'C…', helpText: 'Gotify → Clients. Used to POLL inbound messages onto the AI Bus.' },
       { key: 'limit', label: 'Poll Limit', type: 'number', placeholder: '50', helpText: 'Max messages fetched per poll (1–200).' },
       // ── Escalation policy (dotted keys → nested config.escalation) ──
+      // error + warning are dispatched live via the logError tap (covers most
+      // system events). budget/failover are stored but not yet emitted at their
+      // source — labelled "(planned)" until those dispatch points are wired.
       { key: 'escalation.enabled', label: 'Escalation: Master Switch', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Push Angel OS events to this Gotify.' },
-      { key: 'escalation.events.error.enabled', label: 'Push: Errors', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.events.error.enabled', label: 'Push: Errors', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Live — any logError(error) for this tenant.' },
       { key: 'escalation.events.error.minPriority', label: 'Errors: Min Priority (0–10)', type: 'number', placeholder: '8' },
-      { key: 'escalation.events.warning.enabled', label: 'Push: Warnings', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
-      { key: 'escalation.events.budget_exceeded.enabled', label: 'Push: AI Budget Exceeded', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
-      { key: 'escalation.events.provider_failover.enabled', label: 'Push: Provider Failover', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }] },
+      { key: 'escalation.events.warning.enabled', label: 'Push: Warnings', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Live — any logError(warning) for this tenant.' },
+      { key: 'escalation.events.user_registered.enabled', label: 'Push: New User Registered', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Live — fires when someone registers (who they are).' },
+      { key: 'escalation.events.budget_exceeded.enabled', label: 'Push: AI Budget Exceeded (planned)', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Stored now; dispatched once the budget source is wired.' },
+      { key: 'escalation.events.provider_failover.enabled', label: 'Push: Provider Failover (planned)', type: 'select', options: [{ label: 'On', value: 'true' }, { label: 'Off', value: 'false' }], helpText: 'Stored now; dispatched once the failover source is wired.' },
       { key: 'escalation.rateLimitPerMin', label: 'Rate Limit (per min)', type: 'number', placeholder: '10', helpText: 'Caps the flap-storm.' },
       { key: 'escalation.cooldownSeconds', label: 'Dedupe Cooldown (sec)', type: 'number', placeholder: '300' },
     ],
