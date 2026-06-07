@@ -14,7 +14,7 @@
       "schedule": "*/5 * * * *"
     },
     {
-      "path": "/api/connectors/health",
+      "path": "/api/connector-ops/health",
       "schedule": "*/30 * * * *"
     },
     {

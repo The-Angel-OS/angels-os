@@ -161,34 +161,47 @@ async function pollOne(
     return { connectorId, created: 0, skipped: 0, lastSeenMessageId: lastSeen, error: 'Could not resolve AI Bus space/channel' }
   }
 
+  // Dedupe by Gotify message id in ONE query (defensive — handles overlap if
+  // lastSeen lagged), instead of N queries inside the loop.
+  let alreadySeen = new Set<number>()
+  try {
+    const existing = await payload.find({
+      collection: 'messages' as 'messages',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { 'metadata.gotifyMessageId': { in: fresh.map((m) => Number(m.id)) } },
+        ],
+      },
+      limit: fresh.length,
+      depth: 0,
+      overrideAccess: true,
+    })
+    alreadySeen = new Set(
+      (existing.docs as Array<{ metadata?: { gotifyMessageId?: number } }>)
+        .map((d) => Number(d.metadata?.gotifyMessageId))
+        .filter((n) => Number.isFinite(n)),
+    )
+  } catch {
+    // fail-open (better a possible dup than a dropped alert)
+  }
+
   let created = 0
   let skipped = 0
+  // High-water mark only advances over CONTIGUOUSLY-handled messages (oldest
+  // first). On the first create failure we stop advancing, so the failed alert is
+  // retried next poll rather than silently skipped past. Already-mirrored dups
+  // before that point still advance it.
   let maxId = lastSeen
+  let blocked = false
 
   for (const m of fresh) {
     const gotifyId = Number(m.id)
-    if (gotifyId > maxId) maxId = gotifyId
 
-    // Dedupe by Gotify message id (defensive — handles overlap if lastSeen lagged).
-    try {
-      const existing = await payload.find({
-        collection: 'messages' as 'messages',
-        where: {
-          and: [
-            { tenant: { equals: tenantId } },
-            { 'metadata.gotifyMessageId': { equals: gotifyId } },
-          ],
-        },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      if (existing.docs?.length) {
-        skipped++
-        continue
-      }
-    } catch {
-      // fail-open for messages (better a possible dup than a dropped alert)
+    if (alreadySeen.has(gotifyId)) {
+      skipped++
+      if (!blocked) maxId = gotifyId
+      continue
     }
 
     const title = (m.title || 'Gotify').trim()
@@ -217,9 +230,11 @@ async function pollOne(
         overrideAccess: true,
       })
       created++
+      if (!blocked) maxId = gotifyId
     } catch (err) {
       logCaughtError('gotify-poll/create-message', err)
       skipped++
+      blocked = true // freeze the high-water mark so this id is retried next poll
     }
   }
 

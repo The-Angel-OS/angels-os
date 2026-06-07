@@ -171,11 +171,22 @@ export async function dispatchToGotify(
       continue
     }
 
+    // Prune-and-store the rolling window up front so it self-prunes on every
+    // path (not only on success — otherwise a connector that's always failing
+    // accumulates stale timestamps).
     const recent = (sendWindow.get(connector.id) || []).filter((t) => now - t < 60_000)
+    sendWindow.set(connector.id, recent)
     if (recent.length >= rateLimit) {
       result.suppressed++
       continue
     }
+
+    // Record the attempt against BOTH gates BEFORE sending. A dead/slow server
+    // makes gotifyNotify return ok:false; if we only counted successes, a flap
+    // storm against a down server would retry every event with zero throttling —
+    // exactly what the limiter exists to prevent. Counting the attempt caps it.
+    recent.push(now)
+    cooldownAt.set(cdKey, now)
 
     const sendResult = await gotifyNotify(
       {
@@ -187,14 +198,8 @@ export async function dispatchToGotify(
       { serverUrl, appToken },
     )
 
-    if (sendResult.ok) {
-      result.sent++
-      recent.push(now)
-      sendWindow.set(connector.id, recent)
-      cooldownAt.set(cdKey, now)
-    } else {
-      result.failed++
-    }
+    if (sendResult.ok) result.sent++
+    else result.failed++
   }
 
   return result

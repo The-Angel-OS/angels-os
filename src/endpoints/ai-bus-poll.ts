@@ -36,13 +36,29 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
   const userDoc = user as unknown as Record<string, unknown>
   let tenantId: number | string | undefined
 
+  // Authorization signals from the user doc (no DB cost).
+  const roles = Array.isArray((user as { roles?: unknown[] }).roles)
+    ? ((user as { roles: unknown[] }).roles as unknown[])
+    : []
+  const isSuper = roles.includes('super_admin')
+  const servesTenantId =
+    typeof userDoc.servesTenant === 'object' && userDoc.servesTenant !== null
+      ? (userDoc.servesTenant as { id: number | string }).id
+      : (userDoc.servesTenant as number | string | undefined)
+  const userTenantIds = (Array.isArray(userDoc.tenants) ? userDoc.tenants : []).map((t) => {
+    const tt = (t as { tenant?: unknown }).tenant
+    return tt && typeof tt === 'object' ? (tt as { id: number | string }).id : (tt as number | string)
+  })
+  const sameId = (a: unknown, b: unknown) => a != null && b != null && String(a) === String(b)
+
   // When a spaceId is supplied, the SPACE authoritatively determines the tenant —
-  // it's the exact tenant chat-send writes the message against. Resolving from the
-  // space is strictly more reliable than header/subdomain resolution, which can be
-  // degraded on apex domains (see [resolveTenantFromHeaders] warnings) and would
-  // mismatch the space's tenant → empty results, or 400 "could not resolve tenant"
-  // → a permanent red error in the PageComments panel. This guarantees poll and
-  // send agree on the tenant.
+  // the exact tenant chat-send writes against — which is more reliable than header
+  // resolution on apex domains. BUT we must NOT trust a caller-supplied space to
+  // pick the tenant unconditionally, or any authenticated user could read another
+  // tenant's messages by passing a foreign spaceId (the query below runs with
+  // overrideAccess). Only adopt the space's tenant when the user is actually
+  // entitled to it; otherwise fall through to user/header resolution (which will
+  // scope to the user's OWN tenant, returning nothing for a foreign space).
   if (spaceId) {
     try {
       const spaceDoc = await payload.findByID({
@@ -52,10 +68,17 @@ export const aiBusPollHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
       if (spaceDoc) {
-        tenantId =
+        const spaceTenantId =
           typeof spaceDoc.tenant === 'object' && spaceDoc.tenant !== null
             ? (spaceDoc.tenant as { id: number | string }).id
             : (spaceDoc.tenant as number | string)
+        const spaceVisibility = (spaceDoc as { visibility?: string }).visibility
+        const authorized =
+          isSuper ||
+          sameId(servesTenantId, spaceTenantId) ||
+          userTenantIds.some((id) => sameId(id, spaceTenantId)) ||
+          spaceVisibility === 'public'
+        if (authorized) tenantId = spaceTenantId
       }
     } catch (e) {
       console.warn(

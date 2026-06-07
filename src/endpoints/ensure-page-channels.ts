@@ -70,7 +70,11 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       depth: 0,
       overrideAccess: true,
     })
-    for (const ch of legacy.docs as Array<{ id: number | string; slug?: string }>) {
+    for (const ch of legacy.docs as Array<{ id: number | string; slug?: string; name?: string }>) {
+      // `like` is a substring match, so guard against deleting a real channel that
+      // merely CONTAINS "Page:" (e.g. "Front Page: News"): only treat docs whose
+      // NAME starts with our generated "Page:" prefix as legacy page channels.
+      if (typeof ch.name !== 'string' || !ch.name.startsWith('Page:')) continue
       if (typeof ch.slug === 'string' && ch.slug.startsWith('page:')) continue // already correct
       try {
         await payload.delete({ collection: 'channels', id: ch.id, overrideAccess: true })

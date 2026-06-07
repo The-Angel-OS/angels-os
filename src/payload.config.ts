@@ -771,14 +771,17 @@ export default buildConfig({
       handler: bridgeInboundHandler,
     },
     // ─── Connector Health Probe ───────────────────────────────────
+    // NOTE: paths MUST NOT start with `/connectors` — that's a collection slug,
+    // so Payload's collection REST routes (/api/connectors/:id) shadow them and
+    // return "Route not found". Use the `-ops` suffix convention (Sprint 42 rule).
     {
-      path: '/connectors/test',
+      path: '/connector-ops/test',
       method: 'post',
       handler: connectorTestHandler,
     },
     // ─── Connector Health Cron (Vercel Cron: */30 * * * *) ───────
     {
-      path: '/connectors/health',
+      path: '/connector-ops/health',
       method: 'get',
       handler: connectorHealthCronHandler,
     },

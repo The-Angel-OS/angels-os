@@ -11,5 +11,8 @@ export default async function LegacyConnectorsRedirect({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  redirect(`/${locale}/dashboard/account/integrations`)
+  // localePrefix is 'as-needed' (default 'en' has no prefix) — match that so the
+  // English canonical URL doesn't take a second normalization hop.
+  const prefix = locale === 'en' ? '' : `/${locale}`
+  redirect(`${prefix}/dashboard/account/integrations`)
 }

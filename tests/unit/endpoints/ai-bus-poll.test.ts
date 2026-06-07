@@ -78,21 +78,51 @@ describe('aiBusPollHandler', () => {
     expect(body.lastId).toBe(1)
   })
 
-  it('resolves tenant from the space when spaceId is provided (authoritative)', async () => {
-    // User's header/tenant resolution would give a DIFFERENT tenant (5), but the
-    // space authoritatively belongs to tenant 42 — the poll must use the space's.
+  it('resolves tenant from the space when the user is entitled to it', async () => {
+    // User is a member of tenant 42 (user.tenants), and the space belongs to 42 —
+    // the space authoritatively scopes the poll to 42.
     const findByID = vi.fn().mockResolvedValue({ id: 3, tenant: { id: 42 } })
     const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })
     const req = makeReq(
       'http://localhost/api/ai-bus/poll?spaceId=3&channel=page:/about',
-      { id: 10, tenants: [{ tenant: { id: 5 } }] },
+      { id: 10, tenants: [{ tenant: { id: 42 } }] },
       { find: findMock, findByID },
     )
     const res = await aiBusPollHandler(req)
     expect(res.status).toBe(200)
     expect(findByID).toHaveBeenCalled()
     const whereStr = JSON.stringify(findMock.mock.calls[0][0].where)
-    expect(whereStr).toContain('42') // tenant from the space, not the user's 5
+    expect(whereStr).toContain('42')
+  })
+
+  it('adopts a public space tenant even without membership (public read)', async () => {
+    const findByID = vi.fn().mockResolvedValue({ id: 3, tenant: { id: 42 }, visibility: 'public' })
+    const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })
+    const req = makeReq(
+      'http://localhost/api/ai-bus/poll?spaceId=3',
+      { id: 10, tenants: [{ tenant: { id: 5 } }] },
+      { find: findMock, findByID },
+    )
+    await aiBusPollHandler(req)
+    expect(JSON.stringify(findMock.mock.calls[0][0].where)).toContain('42')
+  })
+
+  it('does NOT adopt a foreign tenant from a caller-supplied space (cross-tenant guard)', async () => {
+    // User belongs only to tenant 5; passes a private space owned by tenant 42.
+    // The poll must NOT use 42 — it falls back to the user's own tenant (5), so a
+    // foreign spaceId yields the user's own scope (and no foreign messages).
+    const findByID = vi.fn().mockResolvedValue({ id: 3, tenant: { id: 42 } }) // no visibility → private
+    const findMock = vi.fn().mockResolvedValue({ docs: [], hasNextPage: false, totalDocs: 0 })
+    const req = makeReq(
+      'http://localhost/api/ai-bus/poll?spaceId=3',
+      { id: 10, tenants: [{ tenant: { id: 5 } }] },
+      { find: findMock, findByID },
+    )
+    const res = await aiBusPollHandler(req)
+    expect(res.status).toBe(200)
+    const whereStr = JSON.stringify(findMock.mock.calls[0][0].where)
+    expect(whereStr).toContain('5') // user's own tenant
+    expect(whereStr).not.toContain('42') // foreign tenant NOT adopted
   })
 
   it('falls back to header/user tenant when space lookup fails', async () => {

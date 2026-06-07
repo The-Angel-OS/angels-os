@@ -374,7 +374,7 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
     setTesting(id)
     setTestResult((prev) => ({ ...prev, [id]: { status: 'testing', message: 'Testing...' } }))
     try {
-      const res = await fetch('/api/connectors/test', {
+      const res = await fetch('/api/connector-ops/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connectorId: id }),

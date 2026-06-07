@@ -1,7 +1,7 @@
 /**
  * Connector Health Cron — periodic active health checks.
  *
- * GET /api/connectors/health
+ * GET /api/connector-ops/health  (NOT /api/connectors/* — collection routes shadow that)
  *
  * Vercel Cron job (every 30 min) that iterates all enabled connectors,
  * runs the per-type probe from connectorProbes.ts, and updates each

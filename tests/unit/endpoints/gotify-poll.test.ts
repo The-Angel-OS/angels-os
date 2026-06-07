@@ -94,7 +94,8 @@ describe('gotifyPollHandler', () => {
       ok: true,
       json: async () => ({ messages: [{ id: 5, title: 'dup', message: 'x' }] }),
     }) as never
-    const payload = makePayload({ find: vi.fn().mockResolvedValue({ docs: [{ id: 999 }] }) }) // already seen
+    // Batch dedup matches on metadata.gotifyMessageId — return an existing doc for id 5.
+    const payload = makePayload({ find: vi.fn().mockResolvedValue({ docs: [{ id: 999, metadata: { gotifyMessageId: 5 } }] }) })
     const res = await gotifyPollHandler(makeReq(payload))
     const body = await res.json()
     expect(body.totalCreated).toBe(0)

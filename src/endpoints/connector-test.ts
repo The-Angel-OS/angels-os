@@ -1,7 +1,7 @@
 /**
  * Connector Test Endpoint — Active health probe for any connector.
  *
- * POST /api/connectors/test
+ * POST /api/connector-ops/test  (NOT /api/connectors/* — collection routes shadow that)
  * Body: { connectorId: string }
  *
  * Runs a lightweight, non-destructive probe against the external service
