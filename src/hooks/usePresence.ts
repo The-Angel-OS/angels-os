@@ -16,6 +16,12 @@ interface UsePresenceOptions {
   enabled?: boolean
   /** Scope presence to a space (for per-space "N online"); null = global. */
   spaceId?: number | string | null
+  /**
+   * When false, only POLL (read) — never ping. Use for read-only consumers
+   * (e.g. a member panel) so they don't fight the single global pinger over the
+   * user's presence row.
+   */
+  ping?: boolean
   pingMs?: number
   pollMs?: number
 }
@@ -29,6 +35,7 @@ interface UsePresenceOptions {
 export function usePresence({
   enabled = true,
   spaceId = null,
+  ping: shouldPing = true,
   // Gentle by default — the prod Postgres pool is small (max=3 on Vercel), so
   // presence stays light: a ping a minute, a poll every ~45s.
   pingMs = 60000,
@@ -75,27 +82,29 @@ export function usePresence({
     }
 
     // Fire immediately, then on intervals (ping only while the tab is visible).
-    void ping()
+    if (shouldPing) void ping()
     void poll()
-    const pingTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') void ping()
-    }, pingMs)
+    const pingTimer = shouldPing
+      ? setInterval(() => {
+          if (document.visibilityState === 'visible') void ping()
+        }, pingMs)
+      : undefined
     const pollTimer = setInterval(() => void poll(), pollMs)
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        void ping()
+        if (shouldPing) void ping()
         void poll()
       }
     }
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      clearInterval(pingTimer)
+      if (pingTimer) clearInterval(pingTimer)
       clearInterval(pollTimer)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [enabled, ping, poll, pingMs, pollMs])
+  }, [enabled, shouldPing, ping, poll, pingMs, pollMs])
 
   return { online, count, isOnline }
 }

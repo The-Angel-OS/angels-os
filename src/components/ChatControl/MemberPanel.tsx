@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Users, X, UserPlus, Shield, Crown, Eye, MoreVertical } from 'lucide-react'
 import { Backdrop } from '@/components/Backdrop'
+import { usePresence } from '@/hooks/usePresence'
 
 /**
  * MemberPanel — Slide-out member list for Space chat views.
@@ -37,6 +38,9 @@ const ROLE_CONFIG = {
 } as const
 
 export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: MemberPanelProps) {
+  // Presence (read-only — the global pinger owns writes): who's online right now.
+  const { online } = usePresence({ enabled: isOpen, ping: false })
+  const onlineIds = new Set(online.map((o) => String(o.userId)))
   const [members, setMembers] = useState<SpaceMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showInviteForm, setShowInviteForm] = useState(false)
@@ -191,6 +195,15 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
             <h3 className="text-sm font-semibold">
               Members {!isLoading && `(${members.length})`}
             </h3>
+            {(() => {
+              const n = members.filter((m) => onlineIds.has(String(m.userId))).length
+              return n > 0 ? (
+                <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400" title={`${n} online now`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {n} online
+                </span>
+              ) : null
+            })()}
           </div>
           <div className="flex items-center gap-1">
             {canInvite && (
@@ -345,9 +358,18 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
                     key={member.id}
                     className="group flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
                   >
-                    {/* Avatar */}
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
-                      {member.userName.charAt(0).toUpperCase()}
+                    {/* Avatar + presence dot */}
+                    <div className="relative shrink-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                        {member.userName.charAt(0).toUpperCase()}
+                      </div>
+                      {onlineIds.has(String(member.userId)) && (
+                        <span
+                          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
+                          title="Online"
+                          aria-label="Online"
+                        />
+                      )}
                     </div>
 
                     {/* Name + role */}
