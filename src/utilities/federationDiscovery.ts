@@ -18,8 +18,14 @@
 import type { Payload } from 'payload'
 import type { FederationHolon } from '@/components/FederationCard'
 
-/** Peer trust states whose Endeavors we surface in Discovery. */
-const VISIBLE_PEER_STATUSES = ['active', 'probation', 'vouched', 'full']
+/**
+ * Peer trust states EXCLUDED from Discovery. We surface everything else
+ * (active/probation/vouched/full/applicant/dormant) — matching the Discovery
+ * page's Enterprise COUNT filter so "N Enterprises" and the actual listed
+ * Endeavors agree, and honoring the inclusive-trust default (don't stigmatize
+ * an applicant/dormant peer by hiding its work).
+ */
+const HIDDEN_PEER_STATUSES = ['revoked', 'suspended']
 
 // Generous: a peer node's Payload can take several seconds to cold-boot the
 // /api/federation/holons handler. 3s was too tight and silently dropped a
@@ -165,7 +171,7 @@ export async function aggregatePeerHolons(payload: Payload): Promise<FederationH
       where: {
         and: [
           { networkVisible: { equals: true } },
-          { ministryStatus: { in: VISIBLE_PEER_STATUSES } },
+          { ministryStatus: { not_in: HIDDEN_PEER_STATUSES } },
           { domain: { exists: true } },
         ],
       },
