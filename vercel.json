@@ -7,23 +7,23 @@
   "crons": [
     {
       "path": "/api/email/poll",
-      "schedule": "*/2 * * * *"
+      "schedule": "1-59/2 * * * *"
     },
     {
       "path": "/api/federation/heartbeat-cron",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/connector-ops/health",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/youtube/poll",
-      "schedule": "0 * * * *"
+      "schedule": "2-57/5 * * * *"
     },
     {
       "path": "/api/gotify/poll",
-      "schedule": "*/5 * * * *"
+      "schedule": "4-59/5 * * * *"
+    },
+    {
+      "path": "/api/connector-ops/health",
+      "schedule": "17,47 * * * *"
+    },
+    {
+      "path": "/api/youtube/poll",
+      "schedule": "37 * * * *"
     },
     {
       "path": "/api/provision-ops/ensure-spaces?all=1",
