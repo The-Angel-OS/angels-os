@@ -11,7 +11,6 @@ import {
   removeMemberFromSpace,
   resendTenantInvitation,
 } from './actions'
-import { sendQuickInvite } from '../invitations/actions'
 import {
   ALL_PERMISSIONS,
   ROLE_DEFAULT_PERMISSIONS,
@@ -108,8 +107,15 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
         </p>
       </div>
 
-      {/* Quick Invite */}
-      <InviteSection onInviteSent={() => showToast('Invitation sent', 'success')} />
+      {/* Inviting lives on the Invitations page (the invite funnel); Team is the
+          roster. Link there instead of duplicating a send form. */}
+      <a
+        href="/dashboard/admin/invitations"
+        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted"
+      >
+        + Invite people
+        <span aria-hidden className="text-muted-foreground">→</span>
+      </a>
 
       {/* Filter Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -243,92 +249,6 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
           {toast.message}
         </div>
       )}
-    </div>
-  )
-}
-
-// ─── InviteSection ──────────────────────────────────────────────
-
-function InviteSection({ onInviteSent }: { onInviteSent: () => void }) {
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('tenant_member')
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState('')
-
-  const handleInvite = () => {
-    if (!email.trim()) return
-    setError('')
-    startTransition(async () => {
-      const result = await sendQuickInvite({
-        email: email.trim(),
-        role,
-        firstName: firstName.trim() || undefined,
-        lastName: lastName.trim() || undefined,
-      })
-      if (result.success) {
-        setFirstName('')
-        setLastName('')
-        setEmail('')
-        setRole('tenant_member')
-        onInviteSent()
-      } else {
-        setError(result.error || 'Failed to send invite')
-      }
-    })
-  }
-
-  return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <h2 className="text-sm font-semibold mb-3">Invite a team member</h2>
-      {/* Name row — first + last, so the invite is addressed personally */}
-      <div className="flex flex-col sm:flex-row gap-2 mb-2">
-        <input
-          type="text"
-          placeholder="First name"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-        />
-        <input
-          type="text"
-          placeholder="Last name"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-        />
-      </div>
-      {/* Email + role + send */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="email"
-          placeholder="email@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none"
-        >
-          <option value="tenant_member">Member</option>
-          <option value="tenant_manager">Manager</option>
-          <option value="tenant_admin">Admin</option>
-        </select>
-        <button
-          onClick={handleInvite}
-          disabled={isPending || !email.trim()}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-        >
-          {isPending ? 'Sending...' : 'Send Invite'}
-        </button>
-      </div>
-      {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
     </div>
   )
 }

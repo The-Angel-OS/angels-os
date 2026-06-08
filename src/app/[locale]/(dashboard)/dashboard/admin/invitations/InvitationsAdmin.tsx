@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { sendQuickInvite, type QuickInviteResult } from './actions'
+import { resendTenantInvitation } from '../team/actions'
 
 /**
  * InvitationsAdmin — Quick Invite form + manage sent invitations.
@@ -34,6 +35,8 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Quick Invite form state
+  const [inviteFirstName, setInviteFirstName] = useState('')
+  const [inviteLastName, setInviteLastName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('tenant_member')
   const [inviteMessage, setInviteMessage] = useState('')
@@ -51,6 +54,8 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
       email: inviteEmail.trim(),
       role: inviteRole,
       message: inviteMessage.trim() || undefined,
+      firstName: inviteFirstName.trim() || undefined,
+      lastName: inviteLastName.trim() || undefined,
     })
 
     setInviteResult(result)
@@ -65,10 +70,12 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
       })
       setInviteEmail('')
       setInviteMessage('')
+      setInviteFirstName('')
+      setInviteLastName('')
     } else {
       setToast({ message: result.error || 'Failed to send invitation.', type: 'error' })
     }
-  }, [inviteEmail, inviteRole, inviteMessage])
+  }, [inviteEmail, inviteRole, inviteMessage, inviteFirstName, inviteLastName])
 
   const handleCopyUrl = useCallback(async (url: string) => {
     try {
@@ -83,28 +90,20 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
   const handleResend = useCallback(async (membershipId: string | number) => {
     setResendingId(membershipId)
     setToast(null)
-    try {
-      const res = await fetch('/api/space-ops/invite/resend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ membershipId }),
+    // Tenant-invite resend (extends expiry + re-sends to the tenant subdomain).
+    // Was wrongly hitting /api/space-ops/invite/resend (the SPACE flow).
+    const res = await resendTenantInvitation(membershipId)
+    if (res.success) {
+      setToast({
+        message: res.emailSent
+          ? 'Invitation resent successfully!'
+          : 'Invitation extended (email transport not configured).',
+        type: 'success',
       })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        setToast({
-          message: data.emailSent
-            ? 'Invitation resent successfully!'
-            : 'Invitation extended (email transport not configured).',
-          type: 'success',
-        })
-      } else {
-        setToast({ message: data.error || 'Failed to resend invitation.', type: 'error' })
-      }
-    } catch {
-      setToast({ message: 'Network error — could not resend invitation.', type: 'error' })
-    } finally {
-      setResendingId(null)
+    } else {
+      setToast({ message: res.error || 'Failed to resend invitation.', type: 'error' })
     }
+    setResendingId(null)
   }, [])
 
   return (
@@ -119,6 +118,23 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
       {/* Quick Invite Form */}
       <div className="rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
         <h2 className="mb-3 text-lg font-semibold">Quick Invite</h2>
+        {/* Name row — personalizes the invitation greeting */}
+        <div className="mb-3 grid gap-3 md:grid-cols-2">
+          <input
+            type="text"
+            value={inviteFirstName}
+            onChange={(e) => setInviteFirstName(e.target.value)}
+            placeholder="First name (optional)"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <input
+            type="text"
+            value={inviteLastName}
+            onChange={(e) => setInviteLastName(e.target.value)}
+            placeholder="Last name (optional)"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Email Address</label>
