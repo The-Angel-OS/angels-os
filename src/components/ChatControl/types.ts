@@ -10,6 +10,14 @@ export interface ChatMessage {
   content: string
   timestamp: Date
   authorName?: string
+  /** Author user id — lets the UI gate "edit your own message". */
+  authorId?: string
+  /** True once the message has been edited (metadata.edited). */
+  edited?: boolean
+  /** Prior versions, newest last — the append-only revision log (metadata.revisions). */
+  revisions?: Array<{ content: string; editedAt?: string; editedBy?: string | number | null; moderation?: boolean }>
+  /** True once a moderator (non-author) has redacted/edited this message. */
+  moderated?: boolean
   /** True while SSE is still streaming this message's content */
   isStreaming?: boolean
   /** Timestamp (ms) of the last SSE delta/tool_call event — drives the liveness indicator decay */

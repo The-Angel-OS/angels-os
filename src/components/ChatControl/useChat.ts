@@ -295,6 +295,16 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       ...textImages.filter((img) => !seenUrls.has(img.url)),
     ]
 
+    // Surface the edit/revision lineage (metadata.revisions, written by the
+    // versionOnEdit hook) so the UI can show "edited" + prior versions.
+    const rawRevisions = Array.isArray(msgMeta?.revisions) ? (msgMeta!.revisions as Array<Record<string, unknown>>) : []
+    const revisions = rawRevisions.map((r) => ({
+      content: extractText(r.content),
+      editedAt: r.editedAt as string | undefined,
+      editedBy: (r.editedBy as string | number | null) ?? null,
+      moderation: Boolean(r.moderation),
+    }))
+
     return {
       id: String(msg.id),
       role: isSystem || msg.messageType === 'ai_agent'
@@ -305,6 +315,10 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       content,
       timestamp: new Date(String(msg.createdAt)),
       authorName,
+      ...(author?.id != null ? { authorId: String(author.id) } : {}),
+      ...(msgMeta?.edited ? { edited: true } : {}),
+      ...(msgMeta?.moderated ? { moderated: true } : {}),
+      ...(revisions.length > 0 ? { revisions } : {}),
       ...(allImages.length > 0 ? { images: allImages } : {}),
       ...(fileAttachments.length > 0 ? { attachments: fileAttachments } : {}),
       ...(widgets?.length ? { widgets } : {}),

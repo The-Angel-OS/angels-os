@@ -656,6 +656,198 @@ function TruncatedMessage({
 }
 
 // ---------------------------------------------------------------------------
+// Current viewer (for "edit your own message" + moderator controls)
+// ---------------------------------------------------------------------------
+
+const MOD_ROLES = ['super_admin', 'admin', 'archangel']
+
+function useCurrentViewer() {
+  const [viewer, setViewer] = useState<{ id?: string; roles?: string[] } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    // Relative URL — same-origin so the session cookie rides along on subdomains.
+    fetch('/api/users/me', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.user) setViewer({ id: String(d.user.id), roles: d.user.roles })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+  return viewer
+}
+
+// ---------------------------------------------------------------------------
+// A single message row — owns its edit / history / moderation state
+// ---------------------------------------------------------------------------
+
+function CompactMessageRow({
+  msg,
+  isNewest,
+  viewer,
+  override,
+  onSaved,
+  onDispute,
+}: {
+  msg: ChatMessage
+  isNewest: boolean
+  viewer: { id?: string; roles?: string[] } | null
+  override?: string
+  onSaved: (id: string, content: string) => void
+  onDispute: (m: ChatMessage) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+
+  const content = override ?? msg.content
+  const isMine = Boolean(viewer?.id && msg.authorId && viewer.id === msg.authorId)
+  const isMod = Boolean(viewer?.roles?.some((r) => MOD_ROLES.includes(r)))
+  const canEdit = msg.role !== 'system' && !msg.isStreaming && (isMine || isMod)
+  const canModerate = msg.role !== 'system' && !msg.isStreaming && isMod && !isMine
+
+  // PATCH content — the server's versionOnEdit hook captures the prior version.
+  const patch = async (newContent: string) => {
+    if (!newContent.trim()) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/messages/${msg.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      })
+      if (res.ok) {
+        onSaved(msg.id, newContent)
+        setEditing(false)
+      }
+    } catch {
+      /* next poll reconciles; keep the editor open on failure */
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      id={`msg-${msg.id}`}
+      className={`group/msg flex scroll-mt-24 rounded-xl transition-colors duration-700 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+    >
+      <div className="max-w-[80%]">
+        <div
+          className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+            msg.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : msg.role === 'system'
+                ? 'border border-border bg-muted/50 text-muted-foreground italic'
+                : msg.isError
+                  ? 'border border-red-500/30 bg-red-500/5 text-foreground'
+                  : 'bg-muted text-foreground'
+          }`}
+        >
+          {msg.role !== 'system' && msg.authorName && (
+            <div className="mb-1 text-xs font-medium opacity-70">
+              {msg.authorName}
+              {msg.isDeepThink && !msg.isStreaming && (
+                <span className="ml-1 text-[10px] opacity-60" title="Deep think response">🧠</span>
+              )}
+            </div>
+          )}
+          {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
+
+          {editing ? (
+            <div className="flex flex-col gap-1.5">
+              <textarea
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={Math.min(8, draft.split('\n').length + 1)}
+                className="w-full resize-none rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground focus:border-primary focus:outline-none"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => patch(draft)}
+                  disabled={busy || !draft.trim()}
+                  className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40"
+                >
+                  {busy ? 'Saving…' : 'Save'}
+                </button>
+                <button onClick={() => setEditing(false)} className="rounded-md border border-border px-2.5 py-1 text-xs">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <TruncatedMessage content={content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={isNewest} />
+          )}
+
+          {msg.isError && msg.errorDetail && <ErrorDetail detail={msg.errorDetail} />}
+          {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
+          {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
+          {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
+          {msg.widgets?.map((w, i) =>
+            w.widgetType === 'inline_form' ? <InlineChatForm key={`widget-${i}`} config={w} /> : null,
+          )}
+
+          <div className="mt-1 flex items-center gap-1.5 text-[10px] opacity-50">
+            <span>{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            {(msg.edited || (msg.revisions && msg.revisions.length > 0)) && (
+              <button
+                onClick={() => setShowHistory((v) => !v)}
+                className="underline-offset-2 hover:underline"
+                title="View edit history"
+              >
+                {msg.moderated ? '(edited · moderated)' : '(edited)'}
+              </button>
+            )}
+          </div>
+
+          {showHistory && msg.revisions && msg.revisions.length > 0 && (
+            <div className="mt-1.5 space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2 text-[11px] text-foreground">
+              <p className="font-medium opacity-70">Edit history ({msg.revisions.length})</p>
+              {msg.revisions.map((r, i) => (
+                <div key={i} className="border-l-2 border-border pl-2">
+                  <p className="opacity-50">
+                    {r.moderation ? 'moderated' : 'edited'}
+                    {r.editedAt ? ` · ${new Date(r.editedAt).toLocaleString()}` : ''}
+                  </p>
+                  <p className="whitespace-pre-wrap opacity-80">{r.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Action row — LEO feedback buttons + author edit + moderator remove */}
+        <div className={`mt-0.5 flex items-center gap-1 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+          {msg.role === 'leo' && !msg.isStreaming && msg.content && (
+            <MessageActions message={msg} onDispute={onDispute} />
+          )}
+          {canEdit && !editing && (
+            <button
+              onClick={() => { setDraft(content); setEditing(true) }}
+              className="rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/msg:opacity-100"
+            >
+              Edit
+            </button>
+          )}
+          {canModerate && !editing && (
+            <button
+              onClick={() => patch('[removed by a moderator]')}
+              title="Redact — the original is kept in the message's edit history"
+              className="rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover/msg:opacity-100"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Compact Mode (existing bubble style — for MinimalistChat & MultiChannelChat)
 // ---------------------------------------------------------------------------
 
@@ -667,6 +859,12 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
   const prevCountRef = useRef(messages.length)
   const [showNewBadge, setShowNewBadge] = useState(false)
   const [disputeMsg, setDisputeMsg] = useState<ChatMessage | null>(null)
+  const viewer = useCurrentViewer()
+  // Optimistic content overrides after an edit — reconciled by the next poll.
+  const [overrides, setOverrides] = useState<Record<string, string>>({})
+  const onSaved = useCallback((id: string, content: string) => {
+    setOverrides((prev) => ({ ...prev, [id]: content }))
+  }, [])
 
   // Smart scroll — only auto-scroll if user is near bottom
   useEffect(() => {
@@ -755,55 +953,15 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
       {/* Spacer pushes messages toward the bottom when few messages exist */}
       <div className="flex-1" />
       {messages.map((msg, index) => (
-        <div
+        <CompactMessageRow
           key={msg.id}
-          id={`msg-${msg.id}`}
-          className={`group/msg flex scroll-mt-24 rounded-xl transition-colors duration-700 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-        >
-          <div className="max-w-[80%]">
-            <div
-              className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : msg.role === 'system'
-                    ? 'border border-border bg-muted/50 text-muted-foreground italic'
-                    : msg.isError
-                      ? 'border border-red-500/30 bg-red-500/5 text-foreground'
-                      : 'bg-muted text-foreground'
-              }`}
-            >
-              {/* Author name above every non-system message (incl. the user's own)
-                  — essential in a multi-user channel so it's always clear who sent
-                  what. */}
-              {msg.role !== 'system' && msg.authorName && (
-                <div className="mb-1 text-xs font-medium opacity-70">
-                  {msg.authorName}
-                  {msg.isDeepThink && !msg.isStreaming && (
-                    <span className="ml-1 text-[10px] opacity-60" title="Deep think response">🧠</span>
-                  )}
-                </div>
-              )}
-              {msg.activeToolCall && <ToolCallIndicator toolCall={msg.activeToolCall} />}
-              <TruncatedMessage content={msg.content} isStreaming={msg.isStreaming} useMarkdown={msg.role !== 'user'} isNewest={index === messages.length - 1} />
-              {msg.isError && msg.errorDetail && <ErrorDetail detail={msg.errorDetail} />}
-              {msg.isStreaming && msg.lastDeltaAt && <LivenessIndicator lastDeltaAt={msg.lastDeltaAt} />}
-              {msg.images && msg.images.length > 0 && <MessageImages images={msg.images} />}
-              {msg.attachments && msg.attachments.length > 0 && <MessageAttachments attachments={msg.attachments} />}
-              {msg.widgets?.map((w, i) =>
-                w.widgetType === 'inline_form' ? (
-                  <InlineChatForm key={`widget-${i}`} config={w} />
-                ) : null,
-              )}
-              <div className="mt-1 text-[10px] opacity-50">
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-            {/* Action buttons — LEO messages only, visible on hover */}
-            {msg.role === 'leo' && !msg.isStreaming && msg.content && (
-              <MessageActions message={msg} onDispute={setDisputeMsg} />
-            )}
-          </div>
-        </div>
+          msg={msg}
+          isNewest={index === messages.length - 1}
+          viewer={viewer}
+          override={overrides[msg.id]}
+          onSaved={onSaved}
+          onDispute={setDisputeMsg}
+        />
       ))}
 
       {/* Dispute dialog */}
