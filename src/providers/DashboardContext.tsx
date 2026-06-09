@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { ROLE_DEFAULT_PERMISSIONS } from '@/constants/permissions'
 import type { TenantPermission, TenantRole } from '@/constants/permissions'
@@ -75,9 +75,38 @@ export function DashboardProvider({
   defaultSpaceId?: string
   userRole?: DashboardUserRole | null
 }) {
-  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
+  // SSR-safe initial: the server-resolved default (so no hydration mismatch).
+  const [activeSpaceId, setActiveSpaceIdState] = useState<string | null>(
     defaultSpaceId || initialSpaces.find((s) => !s.isSystem)?.id || initialSpaces[0]?.id || null,
   )
+
+  // Sticky active space: persist the user's choice and restore it on mount, so
+  // navigating away and back doesn't bounce you to a different space's `general`
+  // (the "my messages disappeared" bug when a tenant has >1 community space).
+  // Validated against THIS tenant's spaces → a stored id from another tenant is
+  // ignored (cross-tenant-safe).
+  const STORAGE_KEY = 'angelos.activeSpaceId'
+  const setActiveSpaceId = useCallback((id: string) => {
+    setActiveSpaceIdState(id)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, id)
+    } catch {
+      /* private mode / unavailable — non-fatal */
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY)
+      if (stored && stored !== activeSpaceId && initialSpaces.some((s) => s.id === stored)) {
+        setActiveSpaceIdState(stored)
+      }
+    } catch {
+      /* non-fatal */
+    }
+    // Restore once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const activeSpace = initialSpaces.find((s) => s.id === activeSpaceId) || null
 
