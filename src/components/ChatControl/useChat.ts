@@ -215,9 +215,19 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
           }),
         )
         setChannels(mapped)
+        // No explicit channel (deep link) → restore the last channel viewed in
+        // THIS space, so leaving Spaces and coming back keeps your place. Falls
+        // back to the default/first channel.
         if (!channelSlug && mapped.length > 0) {
+          let restored: string | undefined
+          try {
+            const stored = window.localStorage.getItem(`angelos.activeChannel.${channelSpaceId}`)
+            if (stored && mapped.some((c) => c.slug === stored)) restored = stored
+          } catch {
+            /* unavailable — fall through to default */
+          }
           const defaultCh = mapped.find((c) => c.isDefault) || mapped[0]
-          setActiveChannel(defaultCh.slug)
+          setActiveChannel(restored || defaultCh.slug)
         }
       }
     } catch (err) {
@@ -985,7 +995,13 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     setActiveChannel(slug)
     setMessages([])
     setHasMore(true)
-  }, [resetPollInterval])
+    // Remember this channel for this space (restored on return — see loadChannels).
+    try {
+      window.localStorage.setItem(`angelos.activeChannel.${channelSpaceId}`, slug)
+    } catch {
+      /* non-fatal */
+    }
+  }, [resetPollInterval, channelSpaceId])
 
   // Load channels on mount
   useEffect(() => {
