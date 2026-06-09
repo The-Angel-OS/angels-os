@@ -37,8 +37,8 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 122 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(122)
+  it('has exactly 123 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(123)
   })
 
   describe('core toolset for small/free providers', () => {

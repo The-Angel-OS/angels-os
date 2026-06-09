@@ -101,6 +101,7 @@ import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
 import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
+import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -679,6 +680,13 @@ export default buildConfig({
       path: '/provision-ops/ensure-founders',
       method: 'get',
       handler: ensureFoundersHandler,
+    },
+    // Idempotent DB self-heal: ensure payload_locked_documents_rels has every
+    // collection column (dev-push drift breaks the lock query → write failures).
+    {
+      path: '/provision-ops/db-repair-locks',
+      method: 'get',
+      handler: dbRepairLocksHandler,
     },
     {
       path: '/booking-ops/checkout',
