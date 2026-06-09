@@ -21,6 +21,7 @@ import type { Media } from '@/payload-types'
 import { LeoNavigationBridge } from './LeoNavigationBridge'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { DashboardWidgetProvider, DismissedWidgetsTray } from '@/components/dashboard/widgets'
+import { autoActivatePendingMembership } from '@/utilities/autoActivatePendingMembership'
 
 /**
  * Dashboard layout — Rev 6 (anonymous access + tenant branding + space context).
@@ -236,6 +237,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           tenantRole: currentMembership.role || null,
           tenantPermissions: currentMembership.permissions || [],
           membershipId: currentMembership.id ? String(currentMembership.id) : null,
+        }
+      } else if (userId && tenant?.id) {
+        // No active membership — check for a pending one and auto-activate it.
+        // Navigation to the portal IS acceptance; fire-and-forget so it never
+        // blocks the layout render.
+        const pendingMembership = (membershipsData?.docs || []).find((m: any) => {
+          const tId = typeof m.tenant === 'object' ? m.tenant?.id : m.tenant
+          return String(tId) === String(tenant.id) && m.status === 'pending'
+        }) as any
+        if (pendingMembership) {
+          void autoActivatePendingMembership(pendingMembership.id, userId, tenant.id)
         }
       }
     }
