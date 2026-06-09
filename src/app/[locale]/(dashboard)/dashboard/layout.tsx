@@ -129,7 +129,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         ? getPayload({ config }).then((pl) =>
             pl.find({
               collection: 'tenant-memberships',
-              where: { user: { equals: userId }, status: { equals: 'active' } },
+              where: {
+                user: { equals: userId },
+                status: { in: ['active', 'pending'] },
+              },
               depth: 2,
               limit: 50,
             }),
@@ -194,7 +197,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Build the tenant chooser list.
   // super_admins: ALL tenants (includes the platform root, which has no membership row).
-  // Everyone else: the tenants they hold an active membership in.
+  // Everyone else: the tenants they hold an active OR pending membership in —
+  //   pending is included so invited users can navigate to the portal and accept.
+  //   Role/permission context is separately gated to active-only (see below).
   let userTenants: TenantInfo[] = []
   let userRoleData: DashboardUserRole | null = null
   const membershipsData = membershipsResult.status === 'fulfilled' ? membershipsResult.value : null
@@ -204,9 +209,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (isSuperAdmin && allTenantsData && 'docs' in allTenantsData) {
     userTenants = (allTenantsData.docs || []).map(toTenantInfo).filter(Boolean) as TenantInfo[]
   } else if (membershipsData && 'docs' in membershipsData) {
+    const seen = new Set<string>()
     userTenants = (membershipsData.docs || [])
       .map((m: any) => toTenantInfo(m.tenant))
-      .filter(Boolean) as TenantInfo[]
+      .filter((t): t is TenantInfo => {
+        if (!t) return false
+        const key = String(t.id)
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
   }
 
   // Current-tenant role/permission context comes from tenant-memberships for everyone.
@@ -216,7 +228,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       const currentMembership = (membershipsData.docs || []).find((m: any) => {
         const t = m.tenant
         const tId = typeof t === 'object' ? t?.id : t
-        return String(tId) === String(tenant.id)
+        return String(tId) === String(tenant.id) && m.status === 'active'
       }) as any
       if (currentMembership) {
         userRoleData = {
