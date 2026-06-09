@@ -84,12 +84,17 @@ single "marketplace" becomes the federated discovery mesh. Do NOT copy Oqtane's
 Tenant(DB)/Site split — Angel OS's layering already supersedes it.
 
 ## Sequencing (contract-first)
-1. **`Setting` table + `ISettingService`** — lowest risk, stops the deploy bleeding,
-   and it's a published interop shape. **Start here.**
-2. **`Permission` table + `can()` resolver** — kills the most cargo cult; unblocks the
-   auth-context refactor (`AUTH_CONTEXT_REFACTOR.md`).
-3. **`ServiceBase` + domain services** — fold the helpers in.
+1. ✅ **`Setting` table + `SettingService`** — SHIPPED (2026-06-09). `collections/Settings`
+   + `services/SettingService`. 8 tests. Stops the schema-drift bleeding.
+2. ✅ **`Permission` table + `can()` resolver** — SHIPPED (2026-06-09).
+   `collections/Permissions` + `services/PermissionService` (pure `isAuthorized`, 11
+   tests; Diocese rung = marked seam in `resolveGrantContext`). NON-BREAKING: zero rows
+   reproduces membership-derived behavior. NEXT consumer-migration: replace scattered
+   `checkRole`/membership checks with `can()` page-by-page (unblocks AUTH_CONTEXT_REFACTOR.md).
+3. **`ServiceBase` + domain services** — fold the `ensureX`/`verifyX` helpers in.
 4. **Applet/AppletInstance**, then the **Surface** abstraction.
 
-Spines 1–2 are the published contract; get their shapes right (Oqtane-verbatim) before
-anything builds on them.
+INTERLEAVE: **Dreams** (Leo cognitive arch — see proactive-agent roadmap memory) is the
+first real consumer of the Setting bag and a good next slice after spine 2.
+
+Spines 1–2 are the published contract; their shapes are Oqtane-verbatim — build on them.
