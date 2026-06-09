@@ -31,6 +31,7 @@ export const ensureFoundersHandler: PayloadHandler = async (req) => {
   const localReq = await createLocalReq({}, payload)
 
   const synced: Array<{ email: string; id: string | number }> = []
+  const failed: Array<{ email: string; error: string }> = []
   for (const founder of FOUNDER_ACCOUNTS) {
     try {
       // No tenantId → preserves each founder's existing tenants array; only
@@ -43,11 +44,11 @@ export const ensureFoundersHandler: PayloadHandler = async (req) => {
       })
       synced.push({ email: u.email, id: u.id })
     } catch (e) {
-      payload.logger?.warn?.(
-        `[ensure-founders] ${founder.email}: ${e instanceof Error ? e.message : String(e)}`,
-      )
+      const msg = e instanceof Error ? e.message : String(e)
+      payload.logger?.warn?.(`[ensure-founders] ${founder.email}: ${msg}`)
+      failed.push({ email: founder.email, error: msg })
     }
   }
 
-  return Response.json({ ok: true, synced })
+  return Response.json({ ok: failed.length === 0, synced, failed })
 }
