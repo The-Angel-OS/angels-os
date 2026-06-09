@@ -26,7 +26,7 @@
       "schedule": "37 * * * *"
     },
     {
-      "path": "/api/provision-ops/ensure-spaces?all=1",
+      "path": "/api/provision-ops/verify-onboarding?all=1",
       "schedule": "0 3 * * *"
     }
   ],

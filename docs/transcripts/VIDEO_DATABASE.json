@@ -9803,7 +9803,7 @@
       "DisabledVeteran"
     ],
     "needs_description": true,
-    "transcript_status": "error: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without"
+    "transcript_status": "IpBlocked"
   },
   {
     "filename": "260510 1046 St Alfred's Episcopal Church Mother's Day .md",
@@ -13570,7 +13570,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "error: ('Connection aborted.', ConnectionAbortedError(10053, 'An established connection",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -13954,7 +13954,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "error: ('Connection broken: IncompleteRead(9617 bytes read, 623 more expected)', Incomp",
+    "transcript_status": "disabled",
     "needs_description": true
   },
   {
@@ -17442,7 +17442,7 @@
     "status": "published",
     "has_description": false,
     "has_transcript": false,
-    "transcript_status": "error: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without",
+    "transcript_status": "IpBlocked",
     "needs_description": true
   },
   {

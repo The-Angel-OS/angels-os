@@ -18,6 +18,7 @@ import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNa
 import { createLexicalContent, createHeadingNode, createParagraphNode } from '@/utilities/lexicalHelpers'
 import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
 import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
+import { verifyEndeavorOnboarding } from '@/utilities/verifyEndeavorOnboarding'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 
 export interface ProvisionPortalInput {
@@ -238,6 +239,20 @@ export async function provisionPortal(
     }
   } else {
     log.push('admin link skipped (no acting user)')
+  }
+
+  // 6. Final onboarding assertion — idempotent self-heal. Confirms AI Bus/Main/DM
+  //    spaces, re-homes page channels onto the AI Bus, and backfills space-
+  //    memberships for every active member (incl. the admin just linked above).
+  try {
+    const v = await verifyEndeavorOnboarding(payload, tenant.id as number)
+    log.push(
+      `onboarding verified: ${v.spacesCount} spaces, ${v.membersCount} members, ` +
+        `${v.membersBackfilled} memberships backfilled, ${v.pageChannelsReparented} page channels re-homed` +
+        `${v.errors.length ? ` | warn: ${v.errors.join(', ')}` : ''}`,
+    )
+  } catch (e) {
+    log.push(`onboarding verify skipped: ${(e as Error).message}`)
   }
 
   return { ok: true, tenant: { id: tenant.id, slug: tenant.slug, domain }, url: `https://${domain}`, log }

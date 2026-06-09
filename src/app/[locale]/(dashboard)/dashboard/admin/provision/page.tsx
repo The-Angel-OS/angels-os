@@ -1,5 +1,6 @@
 import { setRequestLocale } from 'next-intl/server'
 import { ProvisionWizard } from './ProvisionWizard'
+import { VerifyOnboardingButton } from './VerifyOnboardingButton'
 
 export default async function ProvisionPage({
   params,
@@ -18,6 +19,11 @@ export default async function ProvisionPage({
         </p>
       </div>
       <ProvisionWizard />
+
+      <div className="mt-10 border-t border-border pt-6">
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Portal maintenance</h2>
+        <VerifyOnboardingButton />
+      </div>
     </div>
   )
 }

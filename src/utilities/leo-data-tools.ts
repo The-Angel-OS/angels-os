@@ -31,6 +31,7 @@ import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
 // file's LEO_TOOLS — a top-level import here would create a TDZ on LEO_TOOLS.
 import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
+import { verifyEndeavorOnboarding } from './verifyEndeavorOnboarding'
 import {
   findUserSynchronicities,
   buildActivityProfile,
@@ -851,6 +852,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         digitalProductsEnabled: { type: 'boolean', description: 'Whether to enable digital products' },
       },
       required: [],
+    },
+  },
+  {
+    name: 'check_endeavor_onboarding',
+    description:
+      "Verify and self-heal this portal's onboarding baseline. Use when the user reports missing spaces/channels, a newly-invited member who sees nothing, page-comment channels in the wrong place, or asks to \"verify onboarding\" / \"check setup\" for this enterprise. Idempotent: ensures the AI Bus, Community, and Direct Messages spaces (and their channels) exist, re-homes page-comment channels onto the AI Bus, and backfills space memberships so every active member is in every space. Returns a report of what was healed.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
     },
   },
   {
@@ -3380,6 +3390,8 @@ async function executeToolSwitch(
         return await handleConfigureBusiness(payload, toolInput, ctx)
       case 'configure_endeavor':
         return await handleConfigureEndeavor(payload, toolInput, ctx)
+      case 'check_endeavor_onboarding':
+        return await handleCheckEndeavorOnboarding(payload, ctx)
       case 'connect_stripe_account':
         return await handleConnectStripe(payload, toolInput, ctx)
       case 'disconnect_stripe_account':
@@ -5875,6 +5887,33 @@ async function handleConfigureBusiness(
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error configuring business: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * check_endeavor_onboarding — Verify + self-heal the portal's onboarding baseline.
+ */
+async function handleCheckEndeavorOnboarding(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  try {
+    const r = await verifyEndeavorOnboarding(payload, tenantId)
+    const lines = [
+      `Onboarding verified for this enterprise:`,
+      `• Spaces: ${r.spacesCount} (AI Bus ${r.aiBusSpaceId ? '✓' : '✗'}, Main ${r.mainSpaceId ? '✓' : '✗'}, DMs ${r.dmSpaceId ? '✓' : '✗'})`,
+      `• Members: ${r.membersCount} active`,
+      `• Memberships backfilled: ${r.membersBackfilled}`,
+      `• Page-comment channels re-homed onto the AI Bus: ${r.pageChannelsReparented}`,
+    ]
+    if (r.errors.length) lines.push(`• Warnings: ${r.errors.join('; ')}`)
+    else lines.push(`Everything is at baseline — no issues found.`)
+    return lines.join('\n')
+  } catch (err) {
+    return `Error verifying onboarding: ${err instanceof Error ? err.message : String(err)}`
   }
 }
 

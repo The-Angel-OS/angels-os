@@ -12,6 +12,8 @@ import {
 import { headers } from 'next/headers'
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
+import { verifyEndeavorOnboarding } from '@/utilities/verifyEndeavorOnboarding'
+import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 /** Nimue archetype - default LEO personality. */
@@ -199,6 +201,17 @@ export async function provisionTenant(state: WizardState): Promise<{
       tenantId: tenant.id,
     })
 
+    // 5b. Ensure the FULL onboarding baseline — this wizard only created a
+    //     template space; verifyEndeavorOnboarding adds the AI Bus + Main + DM
+    //     spaces (and channels), re-homes page channels, and backfills member
+    //     space-memberships. Idempotent self-heal. (This gap is why some
+    //     wizard-provisioned portals had no AI Bus / Community Hub.)
+    try {
+      await verifyEndeavorOnboarding(payload, tenant.id)
+    } catch (vErr) {
+      console.warn('[Provision] Non-critical: onboarding verify failed:', vErr)
+    }
+
     // 6. Activate tenant
     await payload.update({
       collection: 'tenants',
@@ -224,4 +237,63 @@ export async function provisionTenant(state: WizardState): Promise<{
 /** Get the default Nimue personality for the wizard. */
 export async function getDefaultPersonality(): Promise<string> {
   return NIMUE_PERSONALITY
+}
+
+/**
+ * Run the repeatable onboarding verifier against a tenant (admin-only).
+ * Heals AI Bus/Main/DM spaces, re-homes page channels, backfills memberships.
+ * `slug` defaults to the current tenant when omitted.
+ */
+export async function verifyOnboardingAction(slug?: string): Promise<{
+  success: boolean
+  report?: {
+    spacesCount: number
+    membersCount: number
+    membersBackfilled: number
+    pageChannelsReparented: number
+    aiBus: boolean
+    main: boolean
+    dms: boolean
+    errors: string[]
+  }
+  error?: string
+}> {
+  try {
+    const payload = await getPayload({ config })
+    const headersList = await headers()
+    const { user } = await payload.auth({ headers: headersList })
+    if (!user) return { success: false, error: 'You must be logged in.' }
+    if (!checkRole(ADMIN_ROLES, user)) {
+      return { success: false, error: 'Only an administrator can verify onboarding.' }
+    }
+
+    let tenantId: string | number | undefined
+    if (slug) {
+      const t = await fetchTenantBySlug(slug)
+      if (!t) return { success: false, error: `Tenant '${slug}' not found.` }
+      tenantId = t.id
+    } else {
+      const { resolveTenantFromHeaders } = await import('@/utilities/resolveTenantFromHeaders')
+      const resolved = await resolveTenantFromHeaders()
+      tenantId = resolved.tenantId ?? undefined
+    }
+    if (!tenantId) return { success: false, error: 'No tenant context.' }
+
+    const r = await verifyEndeavorOnboarding(payload, tenantId)
+    return {
+      success: true,
+      report: {
+        spacesCount: r.spacesCount,
+        membersCount: r.membersCount,
+        membersBackfilled: r.membersBackfilled,
+        pageChannelsReparented: r.pageChannelsReparented,
+        aiBus: Boolean(r.aiBusSpaceId),
+        main: Boolean(r.mainSpaceId),
+        dms: Boolean(r.dmSpaceId),
+        errors: r.errors,
+      },
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Verify failed' }
+  }
 }
