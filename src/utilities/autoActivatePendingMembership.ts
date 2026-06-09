@@ -111,6 +111,15 @@ export async function autoActivatePendingMembership(
     } catch {
       /* non-critical */
     }
+
+    // Collapse any duplicate memberships for this person (e.g. an orphaned pending
+    // email invite left behind when they joined) — "one person, one membership".
+    try {
+      const { reconcileDuplicateMemberships } = await import('./reconcileTenantMemberships')
+      await reconcileDuplicateMemberships(payload, tenantId)
+    } catch {
+      /* non-critical — idempotent, can re-run */
+    }
   } catch {
     /* never surface to the user — this runs fire-and-forget */
   }

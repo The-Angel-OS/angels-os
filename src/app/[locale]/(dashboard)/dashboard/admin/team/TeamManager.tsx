@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useTransition, useCallback } from 'react'
+import Link from 'next/link'
 import {
   updateMember,
   suspendMember,
@@ -10,6 +11,7 @@ import {
   addMemberToAllSpaces,
   removeMemberFromSpace,
   resendTenantInvitation,
+  cleanupDuplicateMembers,
 } from './actions'
 import {
   ALL_PERMISSIONS,
@@ -75,6 +77,31 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
     }
   }
 
+  // Detect duplicate memberships (same email appears more than once) — the
+  // "active member + orphaned pending invite" bug. Drives the cleanup banner.
+  const duplicateEmails = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const m of members) {
+      const email = (m.userEmail || m.invitationEmail || '').trim().toLowerCase()
+      if (email) counts.set(email, (counts.get(email) || 0) + 1)
+    }
+    return [...counts.entries()].filter(([, n]) => n > 1).map(([e]) => e)
+  }, [members])
+
+  const [isCleaning, setIsCleaning] = useState(false)
+  const handleCleanup = async () => {
+    setIsCleaning(true)
+    const res = await cleanupDuplicateMembers()
+    setIsCleaning(false)
+    if (res.success) {
+      const note = res.promotions ? ` (${res.promotions} role${res.promotions > 1 ? 's' : ''} reconciled to the higher invite)` : ''
+      showToast(`Merged ${res.merged || 0} duplicate${(res.merged || 0) === 1 ? '' : 's'}, removed ${res.deleted || 0} stale row${(res.deleted || 0) === 1 ? '' : 's'}${note}`, 'success')
+      setTimeout(() => window.location.reload(), 800)
+    } else {
+      showToast(res.error || 'Cleanup failed', 'error')
+    }
+  }
+
   const filtered = useMemo(
     () =>
       members.filter((m) => {
@@ -109,13 +136,35 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
 
       {/* Inviting lives on the Invitations page (the invite funnel); Team is the
           roster. Link there instead of duplicating a send form. */}
-      <a
+      <Link
         href="/dashboard/admin/invitations"
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted"
       >
         + Invite people
         <span aria-hidden className="text-muted-foreground">→</span>
-      </a>
+      </Link>
+
+      {/* Duplicate-membership warning — one person should have one membership */}
+      {duplicateEmails.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30">
+          <div className="text-sm">
+            <p className="font-medium text-amber-800 dark:text-amber-300">
+              {duplicateEmails.length} duplicate membership{duplicateEmails.length > 1 ? 's' : ''} detected
+            </p>
+            <p className="mt-0.5 text-xs text-amber-700/80 dark:text-amber-400/70">
+              The same email has more than one row (e.g. an active member plus an orphaned pending invite).
+              Resolving merges them into one membership with the higher role.
+            </p>
+          </div>
+          <button
+            onClick={handleCleanup}
+            disabled={isCleaning}
+            className="shrink-0 rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+          >
+            {isCleaning ? 'Resolving…' : 'Resolve duplicates'}
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-1 border-b border-border">

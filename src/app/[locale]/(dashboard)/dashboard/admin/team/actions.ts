@@ -372,6 +372,26 @@ export async function removeMemberFromSpace(
   }
 }
 
+// ── Clean up duplicate memberships (one person, one membership) ──────────────
+
+export async function cleanupDuplicateMembers(): Promise<{
+  success: boolean
+  merged?: number
+  deleted?: number
+  promotions?: number
+  error?: string
+}> {
+  const { payload, tenantId, error } = await getAuthorizedUser()
+  if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
+  try {
+    const { reconcileDuplicateMemberships } = await import('@/utilities/reconcileTenantMemberships')
+    const r = await reconcileDuplicateMemberships(payload, tenantId)
+    return { success: true, merged: r.groupsMerged, deleted: r.membershipsDeleted, promotions: r.rolePromotions }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Cleanup failed' }
+  }
+}
+
 // ── Resend a pending tenant (Enterprise) invitation ──────────────────────────
 
 export async function resendTenantInvitation(
