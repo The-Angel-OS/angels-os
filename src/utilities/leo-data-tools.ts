@@ -2424,6 +2424,36 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Gotify push + cross-channel dispatch ──────────────────────────────
+  {
+    name: 'send_gotify',
+    description:
+      "Push a notification to Gotify via the tenant's Gotify connector (or env fallback). Gotify is push-only — no recipient needed. Use for system alerts or a test push when the user asks to 'send to Gotify'.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        message: { type: 'string', description: 'Notification body.' },
+        title: { type: 'string', description: 'Optional title (defaults to "Angel OS").' },
+        priority: { type: 'number', description: 'Gotify priority 0–10; ≥8 buzzes the device. Default 5.' },
+      },
+      required: ['message'],
+    },
+  },
+  {
+    name: 'dispatch_to_channel',
+    description:
+      "Cross-channel dispatch: post a message into ANOTHER channel in this space, and — if that channel is bound to an outbound connector (e.g. Gotify) — also push it out through that connector. Use this when the capability you need lives on a different channel (e.g. you're in #general but need the Gotify connector that lives on #gotify). Resolves the connector by the target channel's routing binding. This is how LEO in one channel reaches a connector bound to another.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        channel: { type: 'string', description: 'Target channel slug (e.g. "gotify").' },
+        content: { type: 'string', description: 'Message / notification text.' },
+        title: { type: 'string', description: 'Optional title for connector pushes.' },
+      },
+      required: ['channel', 'content'],
+    },
+  },
+
   // ── Federation Messaging (Sprint 36) ──────────────────────────────────
   {
     name: 'send_federation_message',
@@ -3260,6 +3290,13 @@ export type ToolExecutorContext = {
   tenantId?: number
   spaceId?: number
   userId?: number
+  /**
+   * The channel LEO is answering in (slug). Lets tools resolve the connector
+   * BOUND to this channel — the seam that was missing, so "LEO in #gotify" can
+   * reach the Gotify connector instead of being channel-blind. See
+   * resolveConnectorByChannel + the dispatch_to_channel tool.
+   */
+  channelSlug?: string
   /** Sprint 44: Per-tenant AI provider config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
 }
@@ -3521,6 +3558,10 @@ async function executeToolSwitch(
         return await handleSendSms(payload, toolInput, ctx)
       case 'send_slack':
         return await handleSendSlack(payload, toolInput, ctx)
+      case 'send_gotify':
+        return await handleSendGotify(payload, toolInput, ctx)
+      case 'dispatch_to_channel':
+        return await handleDispatchToChannel(payload, toolInput, ctx)
       // Federation
       case 'send_federation_message':
         return await handleSendFederationMessage(payload, toolInput, ctx)
@@ -10900,6 +10941,103 @@ async function handleSendSlack(
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return `Error sending Slack message: ${msg}`
   }
+}
+
+// ---------------------------------------------------------------------------
+// Gotify push + cross-channel dispatch
+// ---------------------------------------------------------------------------
+
+/** Push to Gotify via the tenant's gotify connector (or env). Push-only. */
+async function handleSendGotify(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const message = (input.message as string)?.trim()
+  if (!message) return 'Error: message is required.'
+  const title = (input.title as string)?.trim() || 'Angel OS'
+  const priority = typeof input.priority === 'number' ? input.priority : undefined
+
+  const { gotifyNotify } = await import('./gotifyNotify')
+  const res = await gotifyNotify(
+    { title, message, priority },
+    { payload, tenantId: ctx.tenantId, spaceId: ctx.spaceId },
+  )
+  if (res.ok) return `Gotify push sent (via ${res.via}). Title: "${title}".`
+  return `Could not send to Gotify: ${res.error}. Add a Gotify connector (Account → Integrations) with serverUrl + appToken, or set GOTIFY_SERVER_URL / GOTIFY_APP_TOKEN.`
+}
+
+/**
+ * Cross-channel dispatch — the switching mechanism. Posts `content` into the
+ * target channel (universal, works for any channel), and if that channel is
+ * bound to an outbound connector, also dispatches through it (Gotify push
+ * today; other types report what's needed). This is how LEO in one channel
+ * reaches a connector that lives on another.
+ */
+async function handleDispatchToChannel(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId, spaceId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const channel = (input.channel as string)?.trim()
+  const content = (input.content as string)?.trim()
+  if (!channel) return 'Error: target channel slug is required.'
+  if (!content) return 'Error: content is required.'
+  const title = (input.title as string)?.trim() || undefined
+
+  const out: string[] = []
+
+  // 1) Post the message INTO the target channel (universal cross-channel comms).
+  try {
+    const space = await resolveSpace(payload, tenantId, spaceId)
+    if (space) {
+      const leoUserId = await findLeoUser(payload, tenantId)
+      const msg = await payload.create({
+        collection: 'messages',
+        data: {
+          content,
+          space: space.id,
+          channel,
+          messageType: 'ai_agent',
+          author: leoUserId || (ctx.userId as number) || 1,
+          tenant: tenantId,
+          visibility: 'tenant',
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        overrideAccess: true,
+      })
+      out.push(`posted to #${channel} (id ${msg.id})`)
+    } else {
+      out.push(`could not resolve a space for #${channel}`)
+    }
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    out.push(`could not post to #${channel}`)
+  }
+
+  // 2) If the target channel is bound to an outbound connector, dispatch through it.
+  try {
+    const { resolveConnectorByChannel } = await import('./resolveConnector')
+    const conn = await resolveConnectorByChannel(payload, { channelSlug: channel, tenantId, spaceId })
+    if (conn?.type === 'gotify') {
+      const { gotifyNotify } = await import('./gotifyNotify')
+      const r = await gotifyNotify(
+        { title: title || `#${channel}`, message: content },
+        { payload, tenantId, spaceId },
+      )
+      out.push(r.ok ? `pushed via Gotify connector (${r.via})` : `Gotify push failed: ${r.error}`)
+    } else if (conn) {
+      out.push(
+        `#${channel} is bound to a '${conn.type}' connector — the message is on the bus; an outbound ${conn.type} send needs a recipient (use send_${conn.type}).`,
+      )
+    }
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+  }
+
+  return `Dispatched to #${channel}: ${out.join('; ')}.`
 }
 
 // ---------------------------------------------------------------------------

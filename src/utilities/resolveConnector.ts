@@ -82,6 +82,62 @@ export async function resolveConnector(
 }
 
 /**
+ * Resolve the connector BOUND to a channel (the reverse of resolveConnector).
+ *
+ * Connectors declare an inbound `routingChannel` — the channel their messages
+ * land in (e.g. the gotify connector → the "gotify" channel). This looks that
+ * binding up from the channel side, so LEO in a given channel can reach the
+ * capability that channel represents. Returns the connector incl. its `type`,
+ * so the caller can dispatch outbound by type.
+ */
+export async function resolveConnectorByChannel(
+  payload: Payload,
+  opts: { channelSlug: string; tenantId: number | string; spaceId?: number | string | null },
+): Promise<{ id: string; type: string; config: Record<string, unknown>; channelId: string } | null> {
+  const { channelSlug, tenantId, spaceId } = opts
+
+  // 1. Resolve the channel id from its slug (scoped to tenant, and space if known).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chWhere: any = { and: [{ slug: { equals: channelSlug } }, { tenant: { equals: tenantId } }] }
+  if (spaceId) chWhere.and.push({ space: { equals: spaceId } })
+  const channels = await payload.find({
+    collection: 'channels' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    where: chWhere,
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const channelId = channels.docs?.[0]?.id
+  if (channelId == null) return null
+
+  // 2. The enabled connector whose routingChannel points at that channel.
+  const conns = await payload.find({
+    collection: 'connectors' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    where: {
+      and: [
+        { routingChannel: { equals: channelId } },
+        { tenant: { equals: tenantId } },
+        { enabled: { equals: true } },
+        { status: { not_equals: 'error' } },
+      ],
+    },
+    sort: '-priority',
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = conns.docs?.[0] as any
+  if (!doc) return null
+  return {
+    id: String(doc.id),
+    type: String(doc.type),
+    config: (doc.config as Record<string, unknown>) || {},
+    channelId: String(channelId),
+  }
+}
+
+/**
  * Find all enabled connectors of a given type across all tenants.
  * Used by cron jobs that need to iterate all active connectors
  * (e.g., email poll iterates all email_inbound connectors).

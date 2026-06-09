@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { resolveConnector, findAllConnectors } from '@/utilities/resolveConnector'
+import { resolveConnector, findAllConnectors, resolveConnectorByChannel } from '@/utilities/resolveConnector'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -179,5 +179,32 @@ describe('findAllConnectors', () => {
     const payload = { find: vi.fn().mockResolvedValue({}) } as any
     const result = await findAllConnectors(payload, 'sms')
     expect(result).toEqual([])
+  })
+})
+
+// ── resolveConnectorByChannel (the channel→connector binding) ─────────────────
+
+describe('resolveConnectorByChannel', () => {
+  // find() is called twice: first the channel-by-slug lookup, then the connector
+  // whose routingChannel points at that channel.
+  it('resolves the connector bound to a channel slug', async () => {
+    const payload = makePayload([
+      [{ id: 'ch-9' }], // channels lookup
+      [makeConnectorDoc({ id: 'gotify-conn', type: 'gotify', routingChannel: 'ch-9' })], // connectors
+    ])
+    const result = await resolveConnectorByChannel(payload, { channelSlug: 'gotify', tenantId: 1, spaceId: 2 })
+    expect(result).toEqual({ id: 'gotify-conn', type: 'gotify', config: { apiKey: 'test-key' }, channelId: 'ch-9' })
+  })
+
+  it('returns null when the channel slug does not resolve', async () => {
+    const payload = makePayload([[]]) // no channel
+    const result = await resolveConnectorByChannel(payload, { channelSlug: 'nope', tenantId: 1 })
+    expect(result).toBeNull()
+  })
+
+  it('returns null when the channel exists but has no bound connector', async () => {
+    const payload = makePayload([[{ id: 'ch-9' }], []]) // channel found, no connector
+    const result = await resolveConnectorByChannel(payload, { channelSlug: 'general', tenantId: 1 })
+    expect(result).toBeNull()
   })
 })

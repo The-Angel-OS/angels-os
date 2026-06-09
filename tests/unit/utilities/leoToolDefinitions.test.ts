@@ -37,8 +37,14 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 123 tools defined', () => {
-    expect(LEO_TOOLS.length).toBe(123)
+  it('has exactly 125 tools defined', () => {
+    expect(LEO_TOOLS.length).toBe(125)
+  })
+
+  it('registers the connector dispatch tools (send_gotify + dispatch_to_channel)', () => {
+    const names = LEO_TOOLS.map((t) => t.name)
+    expect(names).toContain('send_gotify')
+    expect(names).toContain('dispatch_to_channel')
   })
 
   describe('core toolset for small/free providers', () => {

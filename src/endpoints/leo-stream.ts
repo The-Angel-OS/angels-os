@@ -1148,6 +1148,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               isEscalationRound,
               tenantAiConfig,
               availableTools,
+              resolvedChannel,
             })
             fullText = gwResult.text
             streamTelemetry = gwResult.telemetry
@@ -1200,6 +1201,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 tenantSlug,
                 tenantAiConfig,
                 availableTools,
+                resolvedChannel,
               })
               fullText = result.fullText
             } else {
@@ -1401,12 +1403,14 @@ async function streamViaGateway(opts: {
   tenantAiConfig?: Record<string, unknown>
   /** Role-filtered tool subset (defaults to the full registry). */
   availableTools?: typeof LEO_TOOLS
+  /** The channel LEO is answering in — threaded into the tool context. */
+  resolvedChannel?: string
 }): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
-    tenantAiConfig, availableTools = LEO_TOOLS,
+    tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel,
   } = opts
 
   // Budget/BYOK enforcement (env-gated; OFF by default). When a tenant is over
@@ -1515,6 +1519,7 @@ async function streamViaGateway(opts: {
     tenantId,
     spaceId: resolvedSpaceId,
     userId,
+    channelSlug: resolvedChannel,
     tenantAiConfig,
   }
   const tools = convertToolsForAISDK(effectiveTools, executeToolCall, toolCtx)
@@ -1731,11 +1736,13 @@ async function streamViaAnthropic(opts: {
   tenantAiConfig?: Record<string, unknown>
   /** Role-filtered tool subset (defaults to the full registry). */
   availableTools?: typeof LEO_TOOLS
+  /** The channel LEO is answering in — threaded into the tool context. */
+  resolvedChannel?: string
 }): Promise<{ fullText: string }> {
   const {
     controller, encoder, client, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
-    isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS,
+    isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel,
   } = opts
 
   // Build user content (with images if present)
@@ -1865,6 +1872,7 @@ async function streamViaAnthropic(opts: {
         tenantId,
         spaceId: resolvedSpaceId,
         userId,
+        channelSlug: resolvedChannel,
         tenantAiConfig,
       }
 
