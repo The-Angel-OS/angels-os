@@ -51,6 +51,7 @@ import { Tenants } from '@/collections/Tenants'
 import { Presence } from '@/collections/Presence'
 import { Settings } from '@/collections/Settings'
 import { Permissions } from '@/collections/Permissions'
+import { Vendors } from '@/collections/Vendors'
 import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
@@ -234,6 +235,7 @@ export default buildConfig({
     Presence,
     Settings,
     Permissions,
+    Vendors,
     Categories,
     Media,
     HolonCapabilities,
@@ -313,6 +315,7 @@ export default buildConfig({
         'site-settings': {},
         settings: {},
         permissions: {},
+        vendors: {},
         // ─── Sprint 18B/19/20 ──────────────────────────────
         'media-meta': {},
         connectors: {},

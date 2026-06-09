@@ -27,7 +27,7 @@ const REL_COLUMNS = [
   'logistics_nodes_id', 'transports_id', 'shipments_id', 'pheromones_id', 'work_units_id',
   'crew_assignments_id', 'forms_id', 'form_submissions_id', 'addresses_id', 'variants_id',
   'variant_types_id', 'variant_options_id', 'products_id', 'carts_id', 'orders_id',
-  'transactions_id', 'payload_mcp_api_keys_id', 'settings_id', 'permissions_id',
+  'transactions_id', 'payload_mcp_api_keys_id', 'settings_id', 'permissions_id', 'vendors_id',
 ]
 
 const TABLE = 'payload_locked_documents_rels'
