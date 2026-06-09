@@ -23,9 +23,14 @@ export const presenceOnlineHandler: PayloadHandler = async (req) => {
   }
   if (spaceId) where.and.push({ space: { equals: spaceId } })
 
+  // Presence types aren't generated yet — cast payload to any rather than the
+  // collection to never (which poisons the call generic; see presence-ping.ts).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = payload as any
+
   try {
-    const result = await payload.find({
-      collection: 'presence' as never,
+    const result = await db.find({
+      collection: 'presence',
       where,
       limit: 200,
       depth: 1, // resolve user name/email

@@ -32,30 +32,34 @@ export const presencePingHandler: PayloadHandler = async (req) => {
   const data: any = { status, lastSeenAt: now, space: spaceId }
   if (path) data.path = path
 
+  // The Presence collection types aren't generated yet (generate:types is broken
+  // locally), so the 'presence' slug isn't in the typed CollectionSlug union.
+  // Cast payload to any for these calls — casting the *collection* to never
+  // poisons the call's generic and every argument with it (broke 8 deploys).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = payload as any
+
   try {
-    const existing = await payload.find({
-      collection: 'presence' as never,
+    const existing = await db.find({
+      collection: 'presence',
       where: { user: { equals: user.id } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
 
-    // The `'presence' as never` collection cast poisons docs to never[]; the
-    // Presence collection types aren't generated yet (generate:types broken
-    // locally), so narrow the doc explicitly to read its id.
     const existingDoc = existing.docs[0] as { id: string | number } | undefined
 
     if (existingDoc) {
-      await payload.update({
-        collection: 'presence' as never,
+      await db.update({
+        collection: 'presence',
         id: existingDoc.id,
         data,
         overrideAccess: true,
       })
     } else {
-      await payload.create({
-        collection: 'presence' as never,
+      await db.create({
+        collection: 'presence',
         data: { user: user.id, ...data },
         overrideAccess: true,
       })
