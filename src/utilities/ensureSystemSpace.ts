@@ -88,6 +88,35 @@ export async function ensureSystemSpace(
 }
 
 /**
+ * Resolve the AI Bus space id for a tenant from an existing Payload instance.
+ * Cheap query first; falls back to ensureSystemSpace (which creates it) only if
+ * missing. This is the canonical "where do automated/integration/page channels
+ * live" lookup — they ALL belong on the AI Bus, never a human community space.
+ */
+export async function resolveAiBusSpaceId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: { find: (...args: any[]) => Promise<any> },
+  tenantId: number | string,
+): Promise<string | undefined> {
+  try {
+    const existing = await payload.find({
+      collection: 'spaces',
+      where: {
+        and: [{ tenant: { equals: tenantId } }, { slug: { equals: AI_BUS_SPACE_SLUG } }],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs?.[0]) return String(existing.docs[0].id)
+  } catch {
+    /* fall through to create */
+  }
+  // Not found — create it (and its channels) via the heavier path.
+  return ensureSystemSpace(tenantId)
+}
+
+/**
  * Ensure default channels exist for a space, creating missing ones
  * and backfilling tenant IDs on orphaned channels (self-healing).
  */

@@ -10,6 +10,7 @@
  * with a readable name. Idempotent; cheap; bounded by actual commenting activity.
  */
 import type { Payload } from 'payload'
+import { resolveAiBusSpaceId } from './ensureSystemSpace'
 
 export const PAGE_CHANNEL_PREFIX = 'page:'
 
@@ -19,16 +20,28 @@ export function pageChannelName(channel: string): string {
   return path === '/' ? 'Page: Home' : `Page: ${path}`
 }
 
+/**
+ * Find-or-create the Channel doc for a `page:<path>` conversation.
+ *
+ * Page-comment channels ALWAYS live on the tenant's AI Bus space — they are
+ * automated/system surfaces, not human community channels. (Previously they were
+ * created in whatever space the commenter posted from, so they leaked into the
+ * Community Hub.) The channel home is resolved here, centrally — callers no
+ * longer choose the space.
+ */
 export async function ensurePageChannel(
   payload: Payload,
-  opts: { channel: string; spaceId: number | string; tenantId: number | string },
+  opts: { channel: string; tenantId: number | string },
 ): Promise<void> {
-  const { channel, spaceId, tenantId } = opts
+  const { channel, tenantId } = opts
   if (!channel.startsWith(PAGE_CHANNEL_PREFIX)) return
+
+  const aiBusSpaceId = await resolveAiBusSpaceId(payload, tenantId)
+  if (!aiBusSpaceId) return
 
   const existing = await payload.find({
     collection: 'channels',
-    where: { and: [{ slug: { equals: channel } }, { space: { equals: spaceId } }] },
+    where: { and: [{ slug: { equals: channel } }, { space: { equals: aiBusSpaceId } }] },
     limit: 1,
     depth: 0,
     overrideAccess: true,
@@ -41,10 +54,64 @@ export async function ensurePageChannel(
       name: pageChannelName(channel),
       slug: channel, // MUST equal message.channel so the viewer loads these messages
       description: 'Comments left on this page (AI bus).',
-      space: spaceId as number,
+      space: aiBusSpaceId as unknown as number,
       type: 'social',
       tenant: tenantId as number,
     } as never,
     overrideAccess: true,
   })
+}
+
+/**
+ * Re-home any page-comment channels that drifted onto the wrong space (e.g. the
+ * Community Hub) back onto the AI Bus. Idempotent self-heal. Returns the count
+ * moved. Used by the onboarding verifier + the backfill cron.
+ */
+export async function reparentPageChannelsToAiBus(
+  payload: Payload,
+  tenantId: number | string,
+  aiBusSpaceId: number | string,
+): Promise<number> {
+  // Page channels carry slug `page:…`; `like` is a substring match so we filter
+  // by the proper prefix below.
+  const candidates = await payload.find({
+    collection: 'channels',
+    where: { and: [{ tenant: { equals: tenantId } }, { slug: { like: 'page:' } }] },
+    limit: 2000,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  let moved = 0
+  for (const ch of candidates.docs as Array<{ id: number | string; slug?: string; space?: unknown }>) {
+    if (typeof ch.slug !== 'string' || !ch.slug.startsWith(PAGE_CHANNEL_PREFIX)) continue
+    const currentSpace =
+      ch.space && typeof ch.space === 'object' ? (ch.space as { id: number | string }).id : ch.space
+    if (String(currentSpace) === String(aiBusSpaceId)) continue // already home
+    try {
+      // If an AI-Bus channel with this slug already exists, the drifted one is a
+      // duplicate — delete it rather than create a slug collision on the Bus.
+      const onBus = await payload.find({
+        collection: 'channels',
+        where: { and: [{ slug: { equals: ch.slug } }, { space: { equals: aiBusSpaceId } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (onBus.docs?.length) {
+        await payload.delete({ collection: 'channels', id: ch.id, overrideAccess: true })
+      } else {
+        await payload.update({
+          collection: 'channels',
+          id: ch.id,
+          data: { space: aiBusSpaceId as unknown as number } as never,
+          overrideAccess: true,
+        })
+      }
+      moved++
+    } catch (e) {
+      console.warn('[reparentPageChannels]', e instanceof Error ? e.message : e)
+    }
+  }
+  return moved
 }

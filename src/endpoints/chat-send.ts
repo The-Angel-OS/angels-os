@@ -163,9 +163,10 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     })
 
     // Surface page-comment channels in the Spaces viewer (find-or-create,
-    // non-blocking — never delays the send or fails it).
+    // non-blocking — never delays the send or fails it). The channel always
+    // homes on the AI Bus, regardless of which space the comment was posted from.
     if (channel.startsWith('page:') && tenantId != null) {
-      ensurePageChannel(req.payload, { channel, spaceId: spaceId as number | string, tenantId }).catch((e) =>
+      ensurePageChannel(req.payload, { channel, tenantId }).catch((e) =>
         console.warn('[chat-send] ensurePageChannel failed:', e instanceof Error ? e.message : e),
       )
     }

@@ -12,7 +12,8 @@
  * ?all=1          heal every tenant
  */
 import type { PayloadHandler } from 'payload'
-import { ensurePageChannel } from '@/utilities/ensurePageChannel'
+import { ensurePageChannel, reparentPageChannelsToAiBus } from '@/utilities/ensurePageChannel'
+import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 
 export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
@@ -46,12 +47,23 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'pass ?tenant=<slug> or ?all=1' }, { status: 400 })
   }
 
-  const results: Array<{ tenant: string | number; created: number; deleted: number; errors: number }> = []
+  const results: Array<{ tenant: string | number; created: number; deleted: number; reparented: number; errors: number }> = []
 
   for (const tenantId of tenantIds) {
     let created = 0
     let deleted = 0
     let errors = 0
+    let reparented = 0
+
+    // Re-home any page channels that drifted onto a non-AI-Bus space.
+    const aiBusSpaceId = await resolveAiBusSpaceId(payload, tenantId)
+    if (aiBusSpaceId) {
+      try {
+        reparented = await reparentPageChannelsToAiBus(payload, tenantId, aiBusSpaceId)
+      } catch (e) {
+        console.warn('[ensure-page-channels] reparent', e instanceof Error ? e.message : e)
+      }
+    }
 
     // Heal legacy mangled docs: before the channelSlugField fix, the auto slug
     // field slugified `page:/about` → `pageabout` on save, so these channels
@@ -115,7 +127,7 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       seen.add(key)
 
       try {
-        await ensurePageChannel(payload, { channel, spaceId: spaceId as number, tenantId })
+        await ensurePageChannel(payload, { channel, tenantId })
         created++
       } catch (e) {
         console.warn('[ensure-page-channels]', e instanceof Error ? e.message : e)
@@ -123,10 +135,11 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       }
     }
 
-    results.push({ tenant: tenantId, created, deleted, errors })
+    results.push({ tenant: tenantId, created, deleted, reparented, errors })
   }
 
   const totalCreated = results.reduce((s, r) => s + r.created, 0)
   const totalDeleted = results.reduce((s, r) => s + r.deleted, 0)
-  return Response.json({ ok: true, totalCreated, totalDeleted, results })
+  const totalReparented = results.reduce((s, r) => s + r.reparented, 0)
+  return Response.json({ ok: true, totalCreated, totalDeleted, totalReparented, results })
 }

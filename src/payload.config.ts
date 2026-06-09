@@ -99,6 +99,7 @@ import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
+import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -662,6 +663,14 @@ export default buildConfig({
       path: '/provision-ops/ensure-page-channels',
       method: 'get',
       handler: ensurePageChannelsHandler,
+    },
+    // Repeatable onboarding invariant check: AI Bus + Main + DM spaces, page
+    // channels re-homed onto the AI Bus, members backfilled into spaces.
+    // GET so a super_admin can trigger from the browser (?tenant=<slug> | ?all=1).
+    {
+      path: '/provision-ops/verify-onboarding',
+      method: 'get',
+      handler: verifyOnboardingHandler,
     },
     {
       path: '/booking-ops/checkout',
