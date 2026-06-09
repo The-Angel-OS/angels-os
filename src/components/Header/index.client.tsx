@@ -134,7 +134,8 @@ export function HeaderClient({ header, tenant }: Props) {
   // Fetch the user's portals for the switcher (client-side, only when logged in).
   // Super-admins have global access, so the switcher lists ALL tenants for them —
   // not just rows they happen to have a membership for (which is why an endeavor
-  // like WDEG could be missing). Everyone else sees their active memberships.
+  // like WDEG could be missing). Everyone else sees their active + pending
+  // memberships (pending so invited users can navigate to the portal and accept).
   const [userPortals, setUserPortals] = useState<PortalInfo[]>([])
   useEffect(() => {
     if (!user?.id) { setUserPortals([]); return }
@@ -155,7 +156,7 @@ export function HeaderClient({ header, tenant }: Props) {
       ? fetch(`/api/tenants?limit=100&depth=1&sort=name`)
           .then((r) => r.json())
           .then((data) => (data.docs || []).map(toPortal))
-      : fetch(`/api/tenant-memberships?where[user][equals]=${user.id}&where[status][equals]=active&depth=2&limit=50`)
+      : fetch(`/api/tenant-memberships?where[user][equals]=${user.id}&where[status][in][0]=active&where[status][in][1]=pending&depth=2&limit=50`)
           .then((r) => r.json())
           .then((data) => (data.docs || []).map((m: any) => toPortal(m.tenant)))
     req.then((portals) => setUserPortals(portals.filter(Boolean))).catch(() => {})

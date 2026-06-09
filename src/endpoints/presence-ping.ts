@@ -41,10 +41,15 @@ export const presencePingHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
-    if (existing.docs[0]) {
+    // The `'presence' as never` collection cast poisons docs to never[]; the
+    // Presence collection types aren't generated yet (generate:types broken
+    // locally), so narrow the doc explicitly to read its id.
+    const existingDoc = existing.docs[0] as { id: string | number } | undefined
+
+    if (existingDoc) {
       await payload.update({
         collection: 'presence' as never,
-        id: existing.docs[0].id,
+        id: existingDoc.id,
         data,
         overrideAccess: true,
       })
