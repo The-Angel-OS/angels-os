@@ -9,8 +9,7 @@
  * yet super_admin — the chicken-and-egg the full seed endpoint can't solve).
  */
 import type { PayloadHandler } from 'payload'
-import { createLocalReq } from 'payload'
-import { FOUNDER_ACCOUNTS, findOrCreateUser } from '@/endpoints/seed/seed-helpers'
+import { FOUNDER_ACCOUNTS } from '@/endpoints/seed/seed-helpers'
 
 export const ensureFoundersHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -27,22 +26,40 @@ export const ensureFoundersHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
   }
 
-  // System-level req so the role update isn't constrained by the caller's tenant.
-  const localReq = await createLocalReq({}, payload)
-
-  const synced: Array<{ email: string; id: string | number }> = []
+  // Direct find+update (NOT findOrCreateUser): the shared helper passes a `req`,
+  // which triggers Payload's document-locking check — and payload_locked_documents
+  // currently fails on a newer collection's missing rel column (migration drift),
+  // which is also why the full seed can't run. We update with overrideLock:true +
+  // overrideAccess:true and no req to skip the broken lock query entirely.
+  const synced: Array<{ email: string; id: string | number; alreadyAdmin: boolean }> = []
   const failed: Array<{ email: string; error: string }> = []
   for (const founder of FOUNDER_ACCOUNTS) {
     try {
-      // No tenantId → preserves each founder's existing tenants array; only
-      // roles/name are reconciled. Password is set on first-create only.
-      const u = await findOrCreateUser(payload, localReq, {
-        email: founder.email,
-        name: founder.name,
-        password: process.env.FOUNDER_PASSWORD || 'angelos',
-        roles: ['super_admin', 'customer'],
+      const existing = await payload.find({
+        collection: 'users',
+        where: { email: { equals: founder.email } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
       })
-      synced.push({ email: u.email, id: u.id })
+      const u = existing.docs?.[0] as { id: string | number; roles?: string[] } | undefined
+      if (!u) {
+        failed.push({ email: founder.email, error: 'no such user (login once first)' })
+        continue
+      }
+      const alreadyAdmin = Array.isArray(u.roles) && u.roles.includes('super_admin')
+      if (!alreadyAdmin) {
+        const roles = Array.from(new Set([...(u.roles || []), 'super_admin', 'customer']))
+        await payload.update({
+          collection: 'users',
+          id: u.id,
+          data: { roles } as never,
+          overrideAccess: true,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          overrideLock: true as any, // skip the broken payload_locked_documents query
+        })
+      }
+      synced.push({ email: founder.email, id: u.id, alreadyAdmin })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       payload.logger?.warn?.(`[ensure-founders] ${founder.email}: ${msg}`)
