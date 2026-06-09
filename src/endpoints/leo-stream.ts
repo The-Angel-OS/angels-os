@@ -29,6 +29,7 @@ import type { EnterpriseStage, NodeRole } from '@/utilities/constitutional-promp
 import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import { truncateHistoryMessage } from '@/utilities/truncateHistoryMessage'
+import { assembleHistoryTurns } from '@/utilities/assembleHistoryTurns'
 import {
   hashContext as hashPheromoneContext,
   calculateStrength as calcPheromoneStrength,
@@ -394,6 +395,8 @@ You are speaking with **${displayName}**${userEmail ? ` (${userEmail})` : ''}.
 - Access level: ${accessLevel}
 - Roles: ${roles.length > 0 ? roles.join(', ') : 'standard user'}
 
+The most recent message is from **${displayName}** — address THEM. This channel may include other people; earlier messages in the history are prefixed with the speaker's name (e.g. "Alex: ..."). Never assume you are talking to someone who appears earlier in the history — always greet and address the current user, **${displayName}**.
+
 Tailor your responses to their access level. Administrators can see all data and configure the platform. Customers should only see their own bookings, orders, and public content. Be helpful to everyone, but respect the access boundaries.
 
 `
@@ -514,30 +517,28 @@ async function fetchConversationHistory(
       overrideAccess: true,
     })
 
-    const messages: Anthropic.MessageParam[] = []
     const docs = [...result.docs].reverse()
 
-    for (const msg of docs) {
-      const author = msg.author as unknown as Record<string, unknown> | null
-      const isSystem =
-        author &&
-        (author.isSystemUser === true ||
-          (Array.isArray(author.roles) && author.roles.includes('system')))
-      const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-      let content = extractTextFromContent(msg.content)
-
-      // Truncate long messages (e.g. tool results echoed back) to prevent context bloat
-      content = truncateHistoryMessage(content)
-
-      if (content.trim()) {
-        const lastMsg = messages[messages.length - 1]
-        if (lastMsg && lastMsg.role === role) {
-          lastMsg.content = `${lastMsg.content}\n${content}`
-        } else {
-          messages.push({ role, content })
+    // Attribute human turns by speaker so LEO can tell participants apart in a
+    // multi-user channel (else it parrots whichever name dominates the history —
+    // the "greeted Tyler as Kenneth" bug). See assembleHistoryTurns.
+    const messages: Anthropic.MessageParam[] = assembleHistoryTurns(
+      docs.map((msg) => {
+        const author = msg.author as unknown as Record<string, unknown> | null
+        const isSystem = Boolean(
+          author &&
+            (author.isSystemUser === true ||
+              (Array.isArray(author.roles) && author.roles.includes('system'))),
+        )
+        const authorName =
+          (author && ((author.name as string) || (author.email as string)?.split('@')[0])) || 'User'
+        return {
+          isSystem,
+          authorName,
+          content: truncateHistoryMessage(extractTextFromContent(msg.content)),
         }
-      }
-    }
+      }),
+    )
 
     while (messages.length > 0 && messages[0].role !== 'user') {
       messages.shift()

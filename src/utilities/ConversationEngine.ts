@@ -29,6 +29,7 @@ import { logError } from './logError'
 import { validateConstitutionalResponse } from './constitutional-prompt'
 import { LEO_TOOLS, executeToolCall } from './leo-data-tools'
 import { truncateHistoryMessage } from './truncateHistoryMessage'
+import { assembleHistoryTurns } from './assembleHistoryTurns'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
 import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from './ai-gateway'
@@ -651,30 +652,28 @@ You are responding on behalf of your Enterprise to a peer in the federation netw
         overrideAccess: true,
       })
 
-      const messages: Anthropic.MessageParam[] = []
       const docs = [...result.docs].reverse()
 
-      for (const msg of docs) {
-        const author = msg.author as unknown as Record<string, unknown> | null
-        const isSystem =
-          author &&
-          (author.isSystemUser === true ||
-            (Array.isArray(author.roles) && author.roles.includes('system')))
-        const role: 'user' | 'assistant' = isSystem ? 'assistant' : 'user'
-        let content = extractTextFromContent(msg.content)
-
-        // Truncate long messages (e.g. tool results echoed back) to prevent context bloat
-        content = truncateHistoryMessage(content)
-
-        if (content.trim()) {
-          const lastMsg = messages[messages.length - 1]
-          if (lastMsg && lastMsg.role === role) {
-            lastMsg.content = `${lastMsg.content}\n${content}`
-          } else {
-            messages.push({ role, content })
+      // Attribute human turns by speaker (shared with leo-stream) so LEO can tell
+      // participants apart in a multi-user channel — the "greeted Tyler as
+      // Kenneth" bug. See assembleHistoryTurns.
+      const messages: Anthropic.MessageParam[] = assembleHistoryTurns(
+        docs.map((msg) => {
+          const author = msg.author as unknown as Record<string, unknown> | null
+          const isSystem = Boolean(
+            author &&
+              (author.isSystemUser === true ||
+                (Array.isArray(author.roles) && author.roles.includes('system'))),
+          )
+          const authorName =
+            (author && ((author.name as string) || (author.email as string)?.split('@')[0])) || 'User'
+          return {
+            isSystem,
+            authorName,
+            content: truncateHistoryMessage(extractTextFromContent(msg.content)),
           }
-        }
-      }
+        }),
+      )
 
       while (messages.length > 0 && messages[0].role !== 'user') {
         messages.shift()
