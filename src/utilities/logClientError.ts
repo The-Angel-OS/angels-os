@@ -8,7 +8,10 @@
  *
  * @see project_deep_link_navigation — the error-logging rule for this layer.
  */
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Relative URL — same-origin so the session cookie rides along on tenant
+// subdomains (NEXT_PUBLIC_SERVER_URL points at the apex → cross-origin). See
+// useSpaces.ts / FilesBrowser.tsx for the same gotcha.
+const SERVER_URL = ''
 
 export interface ClientErrorInput {
   /** Component + action, e.g. 'FilesBrowser/load' */

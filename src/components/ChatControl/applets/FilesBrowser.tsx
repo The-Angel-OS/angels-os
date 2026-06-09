@@ -5,7 +5,11 @@ import { FolderOpen, FileText, Download, MessageSquare, Loader2, Hash } from 'lu
 import { logClientError } from '@/utilities/logClientError'
 import type { ChatChannel } from '../types'
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
+// Relative URLs — NEXT_PUBLIC_SERVER_URL points at the apex, so on a tenant
+// subdomain (clearwater-cruisin.spacesangels.com) an absolute URL is cross-origin
+// and the session cookie doesn't ride along → 401/403 → "Couldn't load files".
+// Same gotcha + fix as useSpaces.ts / useChat.ts: always fetch same-origin.
+const SERVER_URL = ''
 
 interface FilesBrowserProps {
   /** Channel slug — messages are keyed by channel slug (matches useChat). */
