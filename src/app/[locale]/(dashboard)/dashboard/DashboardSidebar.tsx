@@ -227,21 +227,9 @@ export function DashboardSidebar({
             </Link>
           )
         )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
-            isCollapsed ? 'mx-auto mt-1' : ''
-          }`}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            {isCollapsed ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-            )}
-          </svg>
-        </button>
+        {/* Collapse toggle moved to the bottom-left row below — keeping it here
+            put it under the TenantChooser's z-50 dropdown in full-screen, making
+            it unclickable. */}
       </div>
 
       {/* Shared nav content */}
@@ -253,6 +241,26 @@ export function DashboardSidebar({
         sectionState={sectionState}
         onToggleSection={toggleSection}
       />
+
+      {/* Collapse toggle — bottom-left, clear of the TenantChooser dropdown */}
+      <div className="shrink-0 border-t border-border px-2 py-2">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`flex h-7 items-center gap-2 rounded-md px-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
+            isCollapsed ? 'w-full justify-center' : 'w-full'
+          }`}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {isCollapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+            )}
+          </svg>
+          {!isCollapsed && <span className="text-xs font-medium">Collapse</span>}
+        </button>
+      </div>
 
       {/* User footer */}
       {userName && (
