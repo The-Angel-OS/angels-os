@@ -93,3 +93,36 @@ describe('matchVendors', () => {
     expect(bestVendor({ zip: '00000' }, vendors)).toBeNull()
   })
 })
+
+describe('matchVendors — minTrust eligibility (liability gate)', () => {
+  const vendors = [
+    V({ id: 'prob', trustLevel: 'probation' }),
+    V({ id: 'vouch', trustLevel: 'vouched' }),
+    V({ id: 'full', trustLevel: 'full' }),
+  ]
+
+  it('no minTrust → all eligible (probation still ranks last)', () => {
+    const out = matchVendors({ zip: '33755' }, vendors)
+    expect(out.map((v) => v.id)).toEqual(['full', 'vouch', 'prob'])
+  })
+
+  it("minTrust 'vouched' excludes probation (verified-insured only)", () => {
+    const out = matchVendors({ zip: '33755', minTrust: 'vouched' }, vendors)
+    expect(out.map((v) => v.id)).toEqual(['full', 'vouch'])
+  })
+
+  it("minTrust 'full' admits only fully-trusted vendors", () => {
+    const out = matchVendors({ zip: '33755', minTrust: 'full' }, vendors)
+    expect(out.map((v) => v.id)).toEqual(['full'])
+  })
+
+  it("minTrust 'probation' admits everyone (floor)", () => {
+    const out = matchVendors({ zip: '33755', minTrust: 'probation' }, vendors)
+    expect(out.map((v) => v.id).sort()).toEqual(['full', 'prob', 'vouch'])
+  })
+
+  it('a vendor with a missing trustLevel is treated as probation (gated out by vouched+)', () => {
+    const out = matchVendors({ zip: '33755', minTrust: 'vouched' }, [V({ id: 'x', trustLevel: null })])
+    expect(out).toEqual([])
+  })
+})

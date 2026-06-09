@@ -24,6 +24,8 @@ export interface VendorLike {
   maxConcurrent?: number | null
 }
 
+export type TrustLevel = 'full' | 'vouched' | 'probation'
+
 export interface LeadRequest {
   /** Service-area key — zip-list MVP. Normalized to its 5-digit form. */
   zip: string
@@ -31,9 +33,23 @@ export interface LeadRequest {
   size?: string
   /** Per-vendor active-lead counts, by vendor id — for capacity filtering. */
   activeCounts?: Record<string, number>
+  /**
+   * Minimum trust a vendor must hold to be ELIGIBLE for this lead. The liability
+   * gate: a vertical that requires verified-insured operators passes `'vouched'`
+   * so unverified (`probation`) vendors never enter the failover ladder. Omit to
+   * allow any trust level (probation still ranks last). See PermissionService /
+   * project_kendev_commercial_arm: COI + license verification promotes a vendor
+   * off `probation`.
+   */
+  minTrust?: TrustLevel
 }
 
 const TRUST_RANK: Record<string, number> = { full: 0, vouched: 1, probation: 2 }
+
+/** Rank of a (possibly missing) trust level — unknown/absent → probation. */
+function trustRank(level: string | null | undefined): number {
+  return TRUST_RANK[level ?? 'probation'] ?? 2
+}
 
 /** Coerce a json field that may be an array, JSON-string, or null → string[]. */
 function toStringArray(v: unknown): string[] {
@@ -62,9 +78,12 @@ export function matchVendors(req: LeadRequest, vendors: VendorLike[]): VendorLik
   const zip = normalizeZip(req.zip)
   const wantSize = req.size?.trim()
   const counts = req.activeCounts || {}
+  const minTrustRank = req.minTrust != null ? trustRank(req.minTrust) : null
 
   const eligible = vendors.filter((v) => {
     if ((v.status ?? 'active') !== 'active') return false
+    // Liability gate: below the required trust → not eligible (never gets the lead).
+    if (minTrustRank != null && trustRank(v.trustLevel) > minTrustRank) return false
     if (!toStringArray(v.serviceZips).map(normalizeZip).includes(zip)) return false
     if (wantSize) {
       const sizes = toStringArray(v.sizes)
@@ -79,8 +98,8 @@ export function matchVendors(req: LeadRequest, vendors: VendorLike[]): VendorLik
   return eligible
     .map((v, i) => ({ v, i })) // index preserves stable order within a tier
     .sort((a, b) => {
-      const ta = TRUST_RANK[a.v.trustLevel ?? 'probation'] ?? 2
-      const tb = TRUST_RANK[b.v.trustLevel ?? 'probation'] ?? 2
+      const ta = trustRank(a.v.trustLevel)
+      const tb = trustRank(b.v.trustLevel)
       if (ta !== tb) return ta - tb
       // More headroom first (uncapped counts as most).
       const ha = a.v.maxConcurrent && a.v.maxConcurrent > 0 ? a.v.maxConcurrent - (counts[String(a.v.id)] || 0) : Infinity
