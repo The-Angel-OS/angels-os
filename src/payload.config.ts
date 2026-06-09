@@ -49,6 +49,7 @@ import { Workflows } from '@/collections/Workflows'
 import { TenantMemberships } from '@/collections/TenantMemberships'
 import { Tenants } from '@/collections/Tenants'
 import { Presence } from '@/collections/Presence'
+import { Settings } from '@/collections/Settings'
 import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
@@ -230,6 +231,7 @@ export default buildConfig({
     Projects,
     Comments,
     Presence,
+    Settings,
     Categories,
     Media,
     HolonCapabilities,
@@ -307,6 +309,7 @@ export default buildConfig({
         header: {},
         footer: {},
         'site-settings': {},
+        settings: {},
         // ─── Sprint 18B/19/20 ──────────────────────────────
         'media-meta': {},
         connectors: {},
