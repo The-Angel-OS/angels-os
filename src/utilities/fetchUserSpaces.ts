@@ -77,8 +77,10 @@ export async function fetchUserSpaces(
       })
     }
 
-    // Also fetch spaces where user might not have explicit membership but is admin
-    // (e.g., AI Bus space for super_admins)
+    // Role-inherits-non-private: surface ALL of the tenant's non-private spaces
+    // (public + invite_only), not just explicit memberships — mirrors
+    // PermissionService.resolveVisibleSpaceIds so the sidebar matches read access.
+    // Private spaces only appear via the explicit-membership loop above.
     const tenantSpaces = await payload.find({
       collection: 'spaces',
       where: { tenant: { equals: tenantId } },
@@ -90,10 +92,9 @@ export async function fetchUserSpaces(
     for (const space of tenantSpaces.docs) {
       const id = String(space.id)
       if (seen.has(id)) continue
-      // Only add public spaces or the AI Bus space (system)
       const slug = space.slug || ''
       const visibility = space.visibility ?? 'invite_only'
-      if (visibility === 'public' || slug === AI_BUS_SLUG) {
+      if (visibility !== 'private' || slug === AI_BUS_SLUG) {
         seen.add(id)
         spaces.push({
           id,

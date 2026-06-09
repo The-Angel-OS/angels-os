@@ -24,7 +24,12 @@ export const Channels: CollectionConfig = {
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),
-    read: ({ req: { user } }) => Boolean(user),
+    // Channels inherit the space's visibility — same resolver as Spaces.read +
+    // Messages.read (role-inherits-non-private + explicit-private-grants).
+    read: async ({ req: { user, payload } }) => {
+      const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
+      return buildSpaceVisibilityFilter(payload, user, 'space')
+    },
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),
   },

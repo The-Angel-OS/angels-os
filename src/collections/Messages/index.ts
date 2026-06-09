@@ -47,48 +47,17 @@ function isAdminOrSystem(user: any): boolean {
 }
 
 /**
- * Messages read access: admins see all; regular users see only messages
- * in spaces where they have an active SpaceMemberships entry.
- * Visibility filtering further restricts based on message visibility level.
+ * Messages read access: admins/system see all; everyone else sees messages only
+ * in spaces visible to them under the ONE shared rule — role-inherits-non-private
+ * + explicit-private-grants. Same resolver as Spaces.read + Channels.read, so a
+ * member no longer needs a per-space membership row to read their tenant's spaces.
+ *
+ * @see PermissionService.buildSpaceVisibilityFilter
  */
 const readMessages: Access = async ({ req }) => {
   const { user, payload } = req
-  if (!user) return false
-  if (isAdminOrSystem(user)) return true
-
-  // Fetch user's active space memberships
-  try {
-    const memberships = await payload.find({
-      collection: 'space-memberships',
-      where: {
-        and: [
-          { user: { equals: user.id } },
-          { status: { equals: 'active' } },
-        ],
-      },
-      limit: 100,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    const spaceIds = memberships.docs
-      .map((m) => (typeof m.space === 'object' ? m.space?.id : m.space))
-      .filter(Boolean)
-
-    if (spaceIds.length === 0) {
-      // No memberships — no messages visible
-      return false
-    }
-
-    // Return a Where clause that restricts to user's spaces
-    // Also filter out private messages not addressed to this user
-    return {
-      space: { in: spaceIds },
-    }
-  } catch {
-    // If membership check fails, deny access (fail closed)
-    return false
-  }
+  const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
+  return buildSpaceVisibilityFilter(payload, user, 'space')
 }
 
 export const Messages: CollectionConfig = {

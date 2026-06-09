@@ -116,11 +116,20 @@ describe('fetchUserSpaces', () => {
     expect(result.some(s => s.slug === 'ai-bus')).toBe(true)
   })
 
-  it('does not add invite-only non-ai-bus tenant spaces', async () => {
-    const privateSpace = makeSpace({ id: 22, slug: 'private-club', visibility: 'invite_only', tenant: 1 })
+  it('adds invite-only tenant spaces by role (role-inherits-non-private)', async () => {
+    // Policy change: invite_only is non-private, so a tenant member inherits it
+    // WITHOUT an explicit membership row — this is the Tyler fix.
+    const inviteOnly = makeSpace({ id: 22, slug: 'community-hub', visibility: 'invite_only', tenant: 1 })
+    mockGetPayload.mockResolvedValue(makePayload([], [inviteOnly]))
+    const result = await fetchUserSpaces(1, 1)
+    expect(result.some(s => s.id === '22')).toBe(true)
+  })
+
+  it('does NOT add truly-private tenant spaces without an explicit membership', async () => {
+    const privateSpace = makeSpace({ id: 23, slug: 'war-room', visibility: 'private', tenant: 1 })
     mockGetPayload.mockResolvedValue(makePayload([], [privateSpace]))
     const result = await fetchUserSpaces(1, 1)
-    expect(result.some(s => s.id === '22')).toBe(false)
+    expect(result.some(s => s.id === '23')).toBe(false)
   })
 
   it('sorts ai-bus (system) space last', async () => {

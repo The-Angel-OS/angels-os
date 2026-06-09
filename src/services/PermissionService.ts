@@ -234,6 +234,125 @@ export async function can(
   return isAuthorized(ctx, opts.permissionName, rows)
 }
 
+// ── Space visibility (the read-access grain for everything-is-a-channel) ─────
+//
+// ONE resolver for "which spaces can this user see?", consumed verbatim by
+// Spaces.read, Channels.read, and Messages.read so the three never drift. Policy:
+//
+//   role-inherits-non-private  — an active member of a tenant sees ALL of that
+//                                tenant's public + invite_only spaces by ROLE,
+//                                with NO per-space membership row required.
+//   explicit-private-grants    — `private` spaces (and cross-tenant invites) are
+//                                visible only via an active space-membership row.
+//
+// space-membership rows thus become the explicit-grant + "joined/notifications"
+// surface — never the gate for ordinary spaces. Membership drift can no longer
+// cost a member access to spaces they should plainly see (the Typer/Tyler bug).
+//
+// Perf: 3 small depth-0 queries per read request (not per doc). The SiteState
+// fast path (cache the visible-id set per request) is the intended optimization;
+// see [[project_auth_context_refactor]].
+
+import type { Where } from 'payload'
+
+/** Union of role-derived (non-private) + explicitly-granted space ids. Pure. */
+export function mergeVisibleSpaceIds(
+  nonPrivate: Array<string | number | null | undefined>,
+  explicit: Array<string | number | null | undefined>,
+): Array<string | number> {
+  const set = new Set<string | number>()
+  for (const id of [...nonPrivate, ...explicit]) {
+    if (id != null) set.add(id)
+  }
+  return [...set]
+}
+
+/**
+ * Resolve the set of space ids a user may see.
+ * @returns `true` — see everything (platform admin / system user)
+ *          `false` — see nothing (anonymous, or a member of nothing)
+ *          `number[]` — the union of non-private tenant spaces + explicit grants
+ */
+export async function resolveVisibleSpaceIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+): Promise<true | false | Array<string | number>> {
+  if (!user) return false
+  if (user.isSystemUser || checkRole(ADMIN_ROLES, user)) return true
+
+  const norm = (rel: unknown): string | number | null =>
+    rel != null && typeof rel === 'object' ? (rel as { id: string | number }).id : (rel as string | number | null)
+
+  // 1. The user's active tenants.
+  let tenantIds: Array<string | number> = []
+  try {
+    const tm = await payload.find({
+      collection: 'tenant-memberships',
+      where: { and: [{ user: { equals: user.id } }, { status: { equals: 'active' } }] },
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
+    tenantIds = (tm.docs || []).map((d: Record<string, unknown>) => norm(d.tenant)).filter(Boolean) as Array<string | number>
+  } catch {
+    /* fall through — explicit grants may still apply */
+  }
+
+  // 2. Non-private spaces in those tenants → role-inherited visibility.
+  let nonPrivate: Array<string | number> = []
+  if (tenantIds.length > 0) {
+    try {
+      const sp = await payload.find({
+        collection: 'spaces',
+        where: { and: [{ tenant: { in: tenantIds } }, { visibility: { not_equals: 'private' } }] },
+        limit: 500,
+        depth: 0,
+        overrideAccess: true,
+      })
+      nonPrivate = (sp.docs || []).map((s: Record<string, unknown>) => s.id as string | number)
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  // 3. Explicit space-membership grants — covers private spaces + cross-tenant invites.
+  let explicit: Array<string | number> = []
+  try {
+    const sm = await payload.find({
+      collection: 'space-memberships',
+      where: { and: [{ user: { equals: user.id } }, { status: { equals: 'active' } }] },
+      limit: 200,
+      depth: 0,
+      overrideAccess: true,
+    })
+    explicit = (sm.docs || []).map((m: Record<string, unknown>) => norm(m.space)).filter(Boolean) as Array<string | number>
+  } catch {
+    /* non-fatal */
+  }
+
+  const ids = mergeVisibleSpaceIds(nonPrivate, explicit)
+  return ids.length === 0 ? false : ids
+}
+
+/**
+ * Read-access filter for space-grained collections. `field` is the doc field that
+ * holds the space id: `'id'` for the Spaces collection itself, `'space'` for
+ * Channels / Messages.
+ */
+export async function buildSpaceVisibilityFilter(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+  field: 'id' | 'space',
+): Promise<true | false | Where> {
+  const ids = await resolveVisibleSpaceIds(payload, user)
+  if (ids === true || ids === false) return ids
+  return { [field]: { in: ids } } as Where
+}
+
 // ── Administration (Leo-capable; never in the enforcement path) ──────────────
 
 /** Grant or deny a permission to a role or user on an entity. Upsert by identity. */

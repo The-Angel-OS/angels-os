@@ -23,7 +23,13 @@ export const Spaces: CollectionConfig = {
       if (!tenantId) return false
       return canManageSpaces(user, tenantId)
     },
-    read: ({ req: { user } }) => Boolean(user),
+    // Role-inherits-non-private + explicit-private-grants — one resolver, shared
+    // with Channels.read + Messages.read so visibility never drifts. See
+    // PermissionService.buildSpaceVisibilityFilter.
+    read: async ({ req: { user, payload } }) => {
+      const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
+      return buildSpaceVisibilityFilter(payload, user, 'id')
+    },
     update: adminOnly,
     delete: adminOnly,
   },

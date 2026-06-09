@@ -6,6 +6,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   isAuthorized,
+  mergeVisibleSpaceIds,
+  resolveVisibleSpaceIds,
+  buildSpaceVisibilityFilter,
   ROLE_ALL_USERS,
   ROLE_REGISTERED,
   type GrantContext,
@@ -93,5 +96,101 @@ describe('PermissionService.isAuthorized', () => {
       { permissionName: 'Edit', user: 99, isAuthorized: false }, // deny for someone else
     ]
     expect(isAuthorized(ctx({ userId: 1, roles: ['space_admin'] }), 'Edit', rows)).toBe(true)
+  })
+})
+
+// ── Space visibility resolver ────────────────────────────────────────────────
+
+describe('mergeVisibleSpaceIds (pure)', () => {
+  it('unions and dedupes, dropping nullish', () => {
+    expect(mergeVisibleSpaceIds([1, 2, null], [2, 3, undefined])).toEqual([1, 2, 3])
+  })
+  it('empty inputs → empty', () => {
+    expect(mergeVisibleSpaceIds([], [])).toEqual([])
+  })
+})
+
+/**
+ * Mock payload.find keyed by collection. Each collection returns canned docs.
+ */
+function mockPayload(byCollection: Record<string, Array<Record<string, unknown>>>) {
+  return {
+    find: async ({ collection }: { collection: string }) => ({
+      docs: byCollection[collection] || [],
+    }),
+  }
+}
+
+describe('resolveVisibleSpaceIds', () => {
+  it('anonymous → false (sees nothing)', async () => {
+    expect(await resolveVisibleSpaceIds(mockPayload({}), null)).toBe(false)
+  })
+
+  it('platform admin → true (sees everything, no queries needed)', async () => {
+    expect(await resolveVisibleSpaceIds(mockPayload({}), { id: 1, roles: ['super_admin'] })).toBe(true)
+  })
+
+  it('system user → true', async () => {
+    expect(await resolveVisibleSpaceIds(mockPayload({}), { id: 9, isSystemUser: true })).toBe(true)
+  })
+
+  it('member inherits ALL non-private spaces of their tenant — no membership row needed (the Tyler fix)', async () => {
+    // Tyler: active CCM tenant membership, ZERO space-memberships.
+    const payload = mockPayload({
+      'tenant-memberships': [{ tenant: 5, status: 'active' }],
+      spaces: [{ id: 10 }, { id: 11 }], // CCM's public + invite_only spaces
+      'space-memberships': [], // none
+    })
+    const ids = await resolveVisibleSpaceIds(payload, { id: 1, roles: ['member'] })
+    expect(ids).toEqual([10, 11])
+  })
+
+  it('private spaces require an explicit grant — union with role-inherited set', async () => {
+    const payload = mockPayload({
+      'tenant-memberships': [{ tenant: 5, status: 'active' }],
+      spaces: [{ id: 10 }], // only the non-private one is returned by the query
+      'space-memberships': [{ space: 99 }], // explicit grant to a private space
+    })
+    const ids = await resolveVisibleSpaceIds(payload, { id: 1, roles: ['member'] })
+    expect(ids).toEqual([10, 99])
+  })
+
+  it('normalizes populated relationship objects', async () => {
+    const payload = mockPayload({
+      'tenant-memberships': [{ tenant: { id: 5 }, status: 'active' }],
+      spaces: [{ id: 10 }],
+      'space-memberships': [{ space: { id: 10 } }], // dup of role-inherited → deduped
+    })
+    expect(await resolveVisibleSpaceIds(payload, { id: 1, roles: ['member'] })).toEqual([10])
+  })
+
+  it('member of nothing → false (fail closed)', async () => {
+    const payload = mockPayload({ 'tenant-memberships': [], spaces: [], 'space-memberships': [] })
+    expect(await resolveVisibleSpaceIds(payload, { id: 1, roles: ['member'] })).toBe(false)
+  })
+})
+
+describe('buildSpaceVisibilityFilter', () => {
+  const payload = mockPayload({
+    'tenant-memberships': [{ tenant: 5, status: 'active' }],
+    spaces: [{ id: 10 }, { id: 11 }],
+    'space-memberships': [],
+  })
+
+  it("shapes the filter onto the doc's own id for Spaces.read", async () => {
+    expect(await buildSpaceVisibilityFilter(payload, { id: 1, roles: ['member'] }, 'id')).toEqual({
+      id: { in: [10, 11] },
+    })
+  })
+
+  it("shapes the filter onto the 'space' field for Channels/Messages.read", async () => {
+    expect(await buildSpaceVisibilityFilter(payload, { id: 1, roles: ['member'] }, 'space')).toEqual({
+      space: { in: [10, 11] },
+    })
+  })
+
+  it('passes through true/false unchanged', async () => {
+    expect(await buildSpaceVisibilityFilter(mockPayload({}), { id: 1, roles: ['admin'] }, 'space')).toBe(true)
+    expect(await buildSpaceVisibilityFilter(mockPayload({}), null, 'space')).toBe(false)
   })
 })

@@ -84,16 +84,18 @@ export function useSpaces(initialSpaces?: ChatSpace[]) {
         })
       }
 
-      // Also fetch public spaces the user may not have joined yet
-      // (mirrors fetchUserSpaces server-side logic for consistency)
+      // Also surface every space the user can READ but hasn't an explicit row for.
+      // Access control (PermissionService.buildSpaceVisibilityFilter) now returns
+      // the tenant's non-private spaces by role, so an unfiltered query yields
+      // exactly the visible set — no need to special-case `public` here.
       try {
-        const pubRes = await fetch(
-          `${SERVER_URL}/api/spaces?where[visibility][equals]=public&depth=0&limit=50`,
+        const accRes = await fetch(
+          `${SERVER_URL}/api/spaces?depth=0&limit=100`,
           { credentials: 'include' },
         )
-        if (pubRes.ok) {
-          const pubData = await pubRes.json()
-          for (const space of pubData.docs || []) {
+        if (accRes.ok) {
+          const accData = await accRes.json()
+          for (const space of accData.docs || []) {
             const id = String(space.id)
             if (seen.has(id)) continue
             seen.add(id)
@@ -102,7 +104,7 @@ export function useSpaces(initialSpaces?: ChatSpace[]) {
               name: String(space.name || ''),
               slug: String(space.slug || ''),
               description: space.description ? String(space.description) : undefined,
-              visibility: 'public',
+              visibility: (space.visibility as ChatSpace['visibility']) || 'invite_only',
               isSystem: String(space.slug || '') === AI_BUS_SPACE_SLUG,
             })
           }
