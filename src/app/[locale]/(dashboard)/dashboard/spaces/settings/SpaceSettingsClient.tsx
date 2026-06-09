@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { Settings, Users, Hash, AlertTriangle, Save, Loader2, Trash2, UserPlus } from 'lucide-react'
 import { useDashboard } from '@/providers/DashboardContext'
 import type { SerializedSpace } from '@/utilities/fetchUserSpaces'
@@ -93,7 +94,15 @@ export function SpaceSettingsClient({
       {activeTab === 'general' && <GeneralTab spaceId={activeSpaceId} space={activeSpace} />}
       {activeTab === 'members' && <MembersTab spaceId={activeSpaceId} isAdmin={isAdmin} tenantId={tenantId} />}
       {activeTab === 'channels' && <ChannelsTab spaceId={activeSpaceId} />}
-      {activeTab === 'danger' && <DangerTab spaceId={activeSpaceId} spaceName={activeSpace.name} />}
+      {activeTab === 'danger' && (
+        <DangerTab
+          spaceId={activeSpaceId}
+          spaceName={activeSpace.name}
+          spaceSlug={(activeSpace as { slug?: string }).slug}
+          isSystem={Boolean((activeSpace as { isSystem?: boolean }).isSystem)}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   )
 }
@@ -593,9 +602,24 @@ function MembersTab({ spaceId, isAdmin, tenantId }: { spaceId: string; isAdmin: 
 
 // ─── Channels Tab ────────────────────────────────────────────
 
+const CHANNEL_TYPE_LABELS: Record<string, string> = {
+  general: 'General',
+  announcements: 'Announcements',
+  support: 'Support',
+  sales: 'Sales',
+  inventory: 'Inventory',
+  pdf: 'PDF',
+  video: 'Video',
+  team: 'Team',
+  social: 'Social',
+}
+
+type ChannelSort = 'default' | 'name' | 'type'
+
 function ChannelsTab({ spaceId }: { spaceId: string }) {
   const [channels, setChannels] = useState<SpaceChannel[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [sort, setSort] = useState<ChannelSort>('default')
 
   const fetchChannels = useCallback(async () => {
     setIsLoading(true)
@@ -624,21 +648,39 @@ function ChannelsTab({ spaceId }: { spaceId: string }) {
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
 
-  const CHANNEL_TYPE_LABELS: Record<string, string> = {
-    general: 'General',
-    announcements: 'Announcements',
-    support: 'Support',
-    sales: 'Sales',
-    inventory: 'Inventory',
-    pdf: 'PDF',
-    video: 'Video',
-    team: 'Team',
-    social: 'Social',
-  }
+  // Apply a non-destructive display sort. (Persistent drag-order needs a
+  // `position` column on Channels — deferred to a deliberate migration to avoid
+  // the dev-push ALTER lock-drift hazard.)
+  const sorted = [...channels].sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name)
+    if (sort === 'type') return a.type.localeCompare(b.type) || a.name.localeCompare(b.name)
+    // 'default': default channels first, then alphabetical.
+    if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+
+  // Optimistic local edits so the list updates without a refetch round-trip.
+  const applyRename = (id: string, name: string) =>
+    setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)))
+  const applyDelete = (id: string) => setChannels((prev) => prev.filter((c) => c.id !== id))
 
   return (
     <div className="space-y-4">
-      <Card title="Channels" description={`${channels.length} channel${channels.length !== 1 ? 's' : ''} in this space.`}>
+      <Card title="Channels" description={`${channels.length} channel${channels.length !== 1 ? 's' : ''} in this space. Rename or remove channels below.`}>
+        {!isLoading && channels.length > 1 && (
+          <div className="flex items-center justify-end gap-2">
+            <label className="text-xs text-muted-foreground">Sort</label>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as ChannelSort)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+            >
+              <option value="default">Default first</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="type">Type</option>
+            </select>
+          </div>
+        )}
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
@@ -649,17 +691,8 @@ function ChannelsTab({ spaceId }: { spaceId: string }) {
           <p className="text-sm text-muted-foreground">No channels yet. Create one from the chat view.</p>
         ) : (
           <div className="divide-y divide-border">
-            {channels.map((ch) => (
-              <div key={ch.id} className="flex items-center gap-3 py-2.5">
-                <Hash size={14} className="text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{ch.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {CHANNEL_TYPE_LABELS[ch.type] || ch.type}
-                    {ch.isDefault && ' · Default'}
-                  </p>
-                </div>
-              </div>
+            {sorted.map((ch) => (
+              <ChannelRow key={ch.id} channel={ch} onRenamed={applyRename} onDeleted={applyDelete} />
             ))}
           </div>
         )}
@@ -668,11 +701,207 @@ function ChannelsTab({ spaceId }: { spaceId: string }) {
   )
 }
 
+// ─── Channel Row (inline rename + typed-confirm delete) ──────
+
+function ChannelRow({
+  channel,
+  onRenamed,
+  onDeleted,
+}: {
+  channel: SpaceChannel
+  onRenamed: (id: string, name: string) => void
+  onDeleted: (id: string) => void
+}) {
+  const [mode, setMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [name, setName] = useState(channel.name)
+  const [confirmName, setConfirmName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Rename: PATCH name only — NEVER the slug. Messages are keyed by channel slug,
+  // so changing it would orphan the channel's history (channelSlugField gotcha).
+  const saveRename = async () => {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === channel.name) { setMode('view'); return }
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/channels/${channel.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: trimmed }),
+      })
+      if (!res.ok) throw new Error(`Rename failed (${res.status})`)
+      onRenamed(channel.id, trimmed)
+      setMode('view')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const doDelete = async () => {
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/channels/${channel.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+      onDeleted(channel.id)
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(false)
+    }
+  }
+
+  if (mode === 'edit') {
+    return (
+      <div className="flex items-center gap-2 py-2.5">
+        <Hash size={14} className="text-muted-foreground shrink-0" />
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') { setName(channel.name); setMode('view') } }}
+          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm focus:border-primary focus:outline-none"
+        />
+        <button onClick={saveRename} disabled={busy} className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40">
+          {busy ? '…' : 'Save'}
+        </button>
+        <button onClick={() => { setName(channel.name); setMode('view'); setError(null) }} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+          Cancel
+        </button>
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
+    )
+  }
+
+  if (mode === 'delete') {
+    return (
+      <div className="space-y-2 py-2.5">
+        <p className="text-xs text-muted-foreground">
+          Delete <strong>#{channel.name}</strong> and its messages? Type the name to confirm.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            autoFocus
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={channel.name}
+            className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm focus:border-red-500 focus:outline-none"
+          />
+          <button
+            onClick={doDelete}
+            disabled={confirmName !== channel.name || busy}
+            className="flex items-center gap-1 rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Trash2 size={12} />
+            {busy ? 'Deleting…' : 'Delete'}
+          </button>
+          <button onClick={() => { setConfirmName(''); setMode('view'); setError(null) }} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+            Cancel
+          </button>
+        </div>
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="group flex items-center gap-3 py-2.5">
+      <Hash size={14} className="text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{channel.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {CHANNEL_TYPE_LABELS[channel.type] || channel.type}
+          {channel.isDefault && ' · Default'}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button onClick={() => setMode('edit')} className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+          Rename
+        </button>
+        <button
+          onClick={() => setMode('delete')}
+          disabled={channel.isDefault}
+          title={channel.isDefault ? 'The default channel cannot be deleted' : `Delete #${channel.name}`}
+          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground disabled:cursor-not-allowed"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Danger Tab ──────────────────────────────────────────────
 
-function DangerTab({ spaceId, spaceName }: { spaceId: string; spaceName: string }) {
+function DangerTab({
+  spaceId,
+  spaceName,
+  spaceSlug,
+  isSystem,
+  isAdmin,
+}: {
+  spaceId: string
+  spaceName: string
+  spaceSlug?: string
+  isSystem: boolean
+  isAdmin: boolean
+}) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [confirmName, setConfirmName] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Structural spaces must never be deleted from the UI — deleting the AI Bus or
+  // the main community space breaks onboarding + the AI bus routing.
+  const isProtected = isSystem || spaceSlug === 'ai-bus' || spaceSlug === 'direct-messages'
+
+  const deleteSpace = async () => {
+    setIsDeleting(true); setError(null)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/spaces/${spaceId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        throw new Error(
+          res.status === 403
+            ? 'You don’t have permission to delete this space.'
+            : `Delete failed (${res.status}).`,
+        )
+      }
+      // Back to the spaces view (strip the /settings segment, keep the locale prefix).
+      router.push(pathname.replace(/\/spaces\/settings$/, '/spaces'))
+      router.refresh()
+    } catch (e) {
+      setError((e as Error).message)
+      setIsDeleting(false)
+    }
+  }
+
+  if (isProtected) {
+    return (
+      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        <p>
+          <strong>{spaceName}</strong> is a system space and can’t be deleted — it’s required for
+          onboarding and the AI bus.
+        </p>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        Only an admin can delete a space.
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -683,7 +912,7 @@ function DangerTab({ spaceId, spaceName }: { spaceId: string; spaceName: string 
         </div>
         <p className="text-sm text-muted-foreground">
           Permanently delete <strong>{spaceName}</strong> and all its channels and messages.
-          This action cannot be undone.
+          This action cannot be undone. (Useful for clearing out empty / phantom spaces.)
         </p>
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">
@@ -698,12 +927,14 @@ function DangerTab({ spaceId, spaceName }: { spaceId: string; spaceName: string 
           />
         </div>
         <button
+          onClick={deleteSpace}
           disabled={confirmName !== spaceName || isDeleting}
           className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Trash2 size={14} />
           {isDeleting ? 'Deleting...' : 'Delete Space'}
         </button>
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </div>
   )
