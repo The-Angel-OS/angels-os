@@ -66,9 +66,9 @@ export const presencePingHandler: PayloadHandler = async (req) => {
     }
     return Response.json({ ok: true, status, at: now })
   } catch (err) {
-    return Response.json(
-      { error: err instanceof Error ? err.message : 'ping failed' },
-      { status: 500 },
-    )
+    // Degrade gracefully — a failed heartbeat must never surface raw SQL or break
+    // the page. High-frequency poll → console (not the errors channel) for triage.
+    console.error('[presence-ping] upsert failed:', err instanceof Error ? err.message : err)
+    return Response.json({ ok: false, degraded: true }, { status: 200 })
   }
 }

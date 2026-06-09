@@ -52,9 +52,11 @@ export const presenceOnlineHandler: PayloadHandler = async (req) => {
 
     return Response.json({ count: online.length, windowSec, online })
   } catch (err) {
-    return Response.json(
-      { error: err instanceof Error ? err.message : 'query failed', count: 0, online: [] },
-      { status: 500 },
-    )
+    // Presence is cosmetic ("N online"). Degrade gracefully — NEVER surface a raw
+    // SQL string to the client — and log server-side. This is a high-frequency
+    // poll, so console (not the AI Bus errors channel) to avoid spamming it while
+    // presence is degraded; the platform log captures it for triage.
+    console.error('[presence-online] query failed:', err instanceof Error ? err.message : err)
+    return Response.json({ count: 0, online: [], degraded: true }, { status: 200 })
   }
 }
