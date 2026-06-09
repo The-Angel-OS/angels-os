@@ -132,6 +132,7 @@ export default async function SoulPage({
       soul={soul}
       activeDocId={activeDoc.id}
       allContents={allContents}
+      basePath={`/learn/${soulId}`}
     />
   )
 }

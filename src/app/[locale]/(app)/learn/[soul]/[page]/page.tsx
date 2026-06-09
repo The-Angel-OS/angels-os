@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
+import path from 'path'
+import fs from 'fs'
 import { getSoul } from '@/souls'
 import { BookReader } from '@/components/Library/BookReader'
+import { SoulViewer } from '../SoulViewer'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { tenantHeroImage } from '@/utilities/tenantHeroImage'
@@ -24,37 +27,70 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { soul: soulId, page } = await params
   const soul = getSoul(soulId)
-  if (!soul?.bookSlug) return {}
-
-  const loaded = loadBookFromPublic(soul.bookSlug)
-  if (!loaded) return {}
-
-  const idx = resolvePageIndex(loaded, page)
-  const p = loaded.manifest.pages[idx]
-  const inferredTitle = loaded.pageTitles[idx]
-  const excerpt = pageExcerpt(loaded.baseText[String(p?.order)])
-  const description = excerpt || loaded.manifest.subtitle || soul.description || ''
+  if (!soul) return {}
 
   const origin = await originFromHeaders()
-  const canonical = `${origin}/learn/${soulId}/${loaded.pageSlugs[idx]}`
-
-  // Unfurl image fallback chain so EVERY deep link has a pretty banner — not just
-  // works (like WDEG) where every page is illustrated:
-  //   this page's image → the work's first illustration (its "cover")
-  //   → the tenant's home hero (branding.coverImage).
   const toAbs = (u?: string | null): string | undefined =>
     u ? (u.startsWith('http') ? u : `${origin}${u}`) : undefined
-  let image = toAbs(p?.image)
-  if (!image) image = toAbs(loaded.manifest.pages.find((pg) => pg.image)?.image)
+
+  // ── Book works (WDEG): per-page image → cover → tenant hero ──────────────────
+  if (soul.bookSlug) {
+    const loaded = loadBookFromPublic(soul.bookSlug)
+    if (!loaded) return {}
+
+    const idx = resolvePageIndex(loaded, page)
+    const p = loaded.manifest.pages[idx]
+    const inferredTitle = loaded.pageTitles[idx]
+    const excerpt = pageExcerpt(loaded.baseText[String(p?.order)])
+    const description = excerpt || loaded.manifest.subtitle || soul.description || ''
+    const canonical = `${origin}/learn/${soulId}/${loaded.pageSlugs[idx]}`
+
+    let image = toAbs(p?.image)
+    if (!image) image = toAbs(loaded.manifest.pages.find((pg) => pg.image)?.image)
+    if (!image) {
+      const { tenant } = await resolveTenantFromHeaders()
+      image = toAbs(tenantHeroImage(tenant))
+    }
+    const pageTitle = inferredTitle
+      ? `${inferredTitle} · ${loaded.manifest.title}`
+      : `${loaded.manifest.title} · page ${idx + 1}`
+
+    return {
+      title: pageTitle,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title: pageTitle,
+        description,
+        type: 'article',
+        url: canonical,
+        siteName: loaded.manifest.title,
+        ...(image ? { images: [{ url: image, alt: inferredTitle || loaded.manifest.title }] } : {}),
+      },
+      twitter: {
+        card: image ? 'summary_large_image' : 'summary',
+        title: pageTitle,
+        description,
+        ...(image ? { images: [image] } : {}),
+      },
+    }
+  }
+
+  // ── Document souls (Answer53, Rainmaker): per-section deep link + OG ──────────
+  // Same fallback chain: this section's image → the work's first illustrated
+  // section → the tenant home hero. So every chapter unfurls with a banner.
+  const doc = soul.docs.find((d) => d.id === page)
+  if (!doc) return {}
+
+  const canonical = `${origin}/learn/${soulId}/${doc.id}`
+  let image = toAbs(doc.image)
+  if (!image) image = toAbs(soul.docs.find((d) => d.image)?.image)
   if (!image) {
     const { tenant } = await resolveTenantFromHeaders()
     image = toAbs(tenantHeroImage(tenant))
   }
-
-  // The unfurl banner is THIS page's illustration.
-  const pageTitle = inferredTitle
-    ? `${inferredTitle} · ${loaded.manifest.title}`
-    : `${loaded.manifest.title} · page ${idx + 1}`
+  const pageTitle = `${doc.title} · ${soul.title}`
+  const description = doc.description || soul.subtitle || soul.description || ''
 
   return {
     title: pageTitle,
@@ -65,8 +101,8 @@ export async function generateMetadata({
       description,
       type: 'article',
       url: canonical,
-      siteName: loaded.manifest.title,
-      ...(image ? { images: [{ url: image, alt: inferredTitle || loaded.manifest.title }] } : {}),
+      siteName: soul.title,
+      ...(image ? { images: [{ url: image, alt: doc.title }] } : {}),
     },
     twitter: {
       card: image ? 'summary_large_image' : 'summary',
@@ -77,7 +113,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function BookDeepLinkPage({
+export default async function DeepLinkPage({
   params,
 }: {
   params: Promise<{ locale: string; soul: string; page: string }>
@@ -87,22 +123,43 @@ export default async function BookDeepLinkPage({
 
   const soul = getSoul(soulId)
   if (!soul) notFound()
-  // Deep-link pages are for illustrated/paged book works; document souls keep
-  // their `?doc=` model — send their page-shaped URLs back to the soul entry.
-  if (!soul.bookSlug) redirect(`/learn/${soulId}`)
 
-  const loaded = loadBookFromPublic(soul.bookSlug)
-  if (!loaded) notFound()
+  // ── Book works → the illustrated paged reader ───────────────────────────────
+  if (soul.bookSlug) {
+    const loaded = loadBookFromPublic(soul.bookSlug)
+    if (!loaded) notFound()
+    const idx = resolvePageIndex(loaded, page)
+    return (
+      <BookReader
+        manifest={loaded.manifest}
+        initialIndex={idx}
+        basePath={`/learn/${soulId}`}
+        pageSlugs={loaded.pageSlugs}
+        title={soul.title}
+      />
+    )
+  }
 
-  const idx = resolvePageIndex(loaded, page)
+  // ── Document souls → the chapter, deep-linked at /learn/<soul>/<docId> ───────
+  const doc = soul.docs.find((d) => d.id === page)
+  if (!doc) redirect(`/learn/${soulId}`)
+
+  const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
+  const allContents: Record<string, string> = {}
+  for (const d of soul.docs) {
+    try {
+      allContents[d.id] = fs.readFileSync(path.join(docsBase, d.filename), 'utf-8')
+    } catch {
+      allContents[d.id] = `# ${d.title}\n\n*Document not found.*`
+    }
+  }
 
   return (
-    <BookReader
-      manifest={loaded.manifest}
-      initialIndex={idx}
+    <SoulViewer
+      soul={soul}
+      activeDocId={doc.id}
+      allContents={allContents}
       basePath={`/learn/${soulId}`}
-      pageSlugs={loaded.pageSlugs}
-      title={soul.title}
     />
   )
 }

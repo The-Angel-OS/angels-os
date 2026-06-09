@@ -10,6 +10,8 @@ export interface SoulDoc {
   badge?: string
   badgeColor?: string
   tier: 'index' | 'status' | 'legal' | 'evidence' | 'forensics' | 'contacts' | 'historical' | 'action' | 'chapter'
+  /** Optional per-section banner — drives this chapter's deep-link OG unfurl. */
+  image?: string
 }
 
 export interface SoulManifest {

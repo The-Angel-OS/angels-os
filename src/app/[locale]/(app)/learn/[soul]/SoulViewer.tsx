@@ -55,6 +55,12 @@ interface Props {
   soul: SoulManifest
   activeDocId: string
   allContents: Record<string, string>
+  /**
+   * When set (e.g. "/learn/answer53"), chapter navigation rewrites the URL to
+   * `${basePath}/${docId}` so every section is a shareable deep link with real
+   * Back/Forward — without a server round-trip (content is already loaded).
+   */
+  basePath?: string
 }
 
 // Props passed to ReactMarkdown custom element renderers.
@@ -64,7 +70,7 @@ type MdProps = {
   className?: string
 }
 
-export function SoulViewer({ soul, activeDocId, allContents }: Props) {
+export function SoulViewer({ soul, activeDocId, allContents, basePath }: Props) {
   const [currentDocId, setCurrentDocId] = useState(activeDocId)
   const [search, setSearch] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -89,10 +95,35 @@ export function SoulViewer({ soul, activeDocId, allContents }: Props) {
     return map
   }, [soul.docs])
 
-  const goToDoc = useCallback((id: string) => {
-    setCurrentDocId(id)
-    mainRef.current?.scrollTo({ top: 0 })
-  }, [])
+  const goToDoc = useCallback(
+    (id: string) => {
+      setCurrentDocId(id)
+      mainRef.current?.scrollTo({ top: 0 })
+      // Shallow URL sync → shareable deep link + Back/Forward, no reload.
+      if (basePath) {
+        try {
+          window.history.pushState(null, '', `${basePath}/${id}`)
+        } catch {
+          /* non-fatal */
+        }
+      }
+    },
+    [basePath],
+  )
+
+  // Browser Back/Forward → sync the active chapter from the URL's last segment.
+  useEffect(() => {
+    if (!basePath) return
+    const onPop = () => {
+      const seg = window.location.pathname.split('/').filter(Boolean).pop()
+      if (seg && soul.docs.some((d) => d.id === seg)) {
+        setCurrentDocId(seg)
+        mainRef.current?.scrollTo({ top: 0 })
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [basePath, soul.docs])
 
   const selectDoc = useCallback(
     (id: string) => {
