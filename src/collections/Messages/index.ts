@@ -3,6 +3,7 @@ import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 import { runWorkflows } from './hooks/runWorkflows'
 import { setAuthor } from './hooks/setAuthor'
+import { versionOnEdit } from './hooks/versionOnEdit'
 import { setTenantFromSpace } from './hooks/setTenantFromSpace'
 import { broadcastToSubscribers } from '@/endpoints/ai-bus-stream'
 import { autoAnalyzeMedia } from './hooks/autoAnalyzeMedia'
@@ -256,7 +257,9 @@ export const Messages: CollectionConfig = {
   ],
   hooks: {
     beforeValidate: [setTenantFromSpace],
-    beforeChange: [setAuthor],
+    // versionOnEdit AFTER setAuthor: capture prior content into metadata.revisions
+    // on every content change (edits + moderator redactions), append-only.
+    beforeChange: [setAuthor, versionOnEdit],
     afterChange: [
       runWorkflows,
       // Broadcast to SSE subscribers for real-time updates
