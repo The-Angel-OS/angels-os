@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FolderOpen, FileText, Download, MessageSquare, Loader2 } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FolderOpen, FileText, Download, MessageSquare, Loader2, Hash } from 'lucide-react'
+import { logClientError } from '@/utilities/logClientError'
+import type { ChatChannel } from '../types'
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || ''
 
@@ -9,8 +11,14 @@ interface FilesBrowserProps {
   /** Channel slug — messages are keyed by channel slug (matches useChat). */
   channelSlug?: string
   spaceId?: string | null
-  /** Switch to the chat view and scroll to the source message. */
-  onJumpToMessage?: (messageId: string) => void
+  /** All channels in the space — powers the "All channels" scope + slug→name labels. */
+  channels?: ChatChannel[]
+  /**
+   * Switch to the chat view and scroll to the source message. When the file came
+   * from another channel (space scope), `channelSlug` tells the host to switch
+   * channels first.
+   */
+  onJumpToMessage?: (messageId: string, channelSlug?: string) => void
 }
 
 interface FileItem {
@@ -25,7 +33,10 @@ interface FileItem {
   authorName: string
   createdAt: string
   isImage: boolean
+  channelSlug: string
 }
+
+type Scope = 'channel' | 'space'
 
 function formatSize(bytes?: number): string {
   if (!bytes || bytes <= 0) return ''
@@ -50,19 +61,29 @@ function extractText(content: unknown): string {
 }
 
 /**
- * Files applet — the channel's shared library.
+ * Files applet — the shared library for a channel, or the whole space.
  *
- * Reads every message attachment in the channel (Media on Messages.attachments)
- * and renders each file/image with a link back to its source message in context.
+ * Reads every message attachment (Media on Messages.attachments) and renders each
+ * file/image with a link back to its source message in context. The scope toggle
+ * widens from the active channel to all channels in the space; in space scope each
+ * file is labelled with the channel it lives in and the jump-back switches channels.
  */
-export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBrowserProps) {
+export function FilesBrowser({ channelSlug, spaceId, channels, onJumpToMessage }: FilesBrowserProps) {
   const [files, setFiles] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [scope, setScope] = useState<Scope>('channel')
   const abortRef = useRef<AbortController | null>(null)
 
+  // slug → display name, for the per-file channel chips in space scope.
+  const channelNames = useMemo(() => {
+    const map = new Map<string, string>()
+    ;(channels || []).forEach((c) => map.set(c.slug, c.name))
+    return map
+  }, [channels])
+
   const load = useCallback(async () => {
-    if (!channelSlug || !spaceId) {
+    if (!spaceId || (scope === 'channel' && !channelSlug)) {
       setFiles([])
       setLoading(false)
       return
@@ -73,10 +94,14 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
     setLoading(true)
     setError(null)
     try {
+      const channelFilter =
+        scope === 'channel'
+          ? `&where[channel][equals]=${encodeURIComponent(channelSlug as string)}`
+          : ''
       const res = await fetch(
         `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}` +
-          `&where[channel][equals]=${encodeURIComponent(channelSlug)}` +
-          `&sort=-createdAt&limit=200&depth=1`,
+          channelFilter +
+          `&sort=-createdAt&limit=300&depth=1`,
         { signal: ctrl.signal, credentials: 'include' },
       )
       if (!res.ok) throw new Error(`Failed to load files (${res.status})`)
@@ -93,6 +118,7 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
             ? (author.name as string) || (author.email as string)
             : '') || 'Unknown'
         const snippet = extractText(msg.content).slice(0, 80)
+        const msgChannel = typeof msg.channel === 'string' ? msg.channel : channelSlug || ''
         atts.forEach((att: Record<string, unknown>, idx: number) => {
           const media = att.media as Record<string, unknown> | number | null
           if (!media || typeof media !== 'object') return
@@ -110,23 +136,53 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
             authorName,
             createdAt: String(msg.createdAt || ''),
             isImage: mimeType.startsWith('image/'),
+            channelSlug: msgChannel,
           })
         })
       }
       setFiles(collected)
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        setError((e as Error).message || 'Failed to load files')
+        const msg = (e as Error).message || 'Failed to load files'
+        setError(msg)
+        // User action (opened the file viewer) → route to logError, not console.
+        logClientError({
+          source: 'FilesBrowser/load',
+          message: msg,
+          details: `scope=${scope} channel=${channelSlug ?? ''} space=${spaceId ?? ''}`,
+          spaceId,
+        })
       }
     } finally {
       if (!ctrl.signal.aborted) setLoading(false)
     }
-  }, [channelSlug, spaceId])
+  }, [channelSlug, spaceId, scope])
 
   useEffect(() => {
     load()
     return () => abortRef.current?.abort()
   }, [load])
+
+  const ScopeToggle = (channels && channels.length > 1) ? (
+    <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 text-[11px]">
+      <button
+        onClick={() => setScope('channel')}
+        className={`rounded-md px-2 py-1 font-medium transition-colors ${
+          scope === 'channel' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        This channel
+      </button>
+      <button
+        onClick={() => setScope('space')}
+        className={`rounded-md px-2 py-1 font-medium transition-colors ${
+          scope === 'space' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        All channels
+      </button>
+    </div>
+  ) : null
 
   if (loading) {
     return (
@@ -140,7 +196,7 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="text-xs text-destructive">Couldn&rsquo;t load files. Please try again.</p>
         <button
           onClick={load}
           className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted"
@@ -154,13 +210,15 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
   if (files.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+        {ScopeToggle && <div className="mb-4">{ScopeToggle}</div>}
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
           <FolderOpen size={32} className="text-muted-foreground/40" />
         </div>
         <h3 className="text-sm font-semibold text-foreground">No files yet</h3>
         <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-          Shared files and media for this channel will appear here. Drop files into the chat to
-          start building your library.
+          {scope === 'space'
+            ? 'Shared files and media across this space will appear here.'
+            : 'Shared files and media for this channel will appear here. Drop files into the chat to start building your library.'}
         </p>
       </div>
     )
@@ -168,10 +226,11 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground">
           Files <span className="text-muted-foreground">({files.length})</span>
         </h3>
+        {ScopeToggle}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -215,10 +274,17 @@ export function FilesBrowser({ channelSlug, spaceId, onJumpToMessage }: FilesBro
                 {[formatSize(f.filesize), f.authorName].filter(Boolean).join(' · ')}
               </p>
 
+              {scope === 'space' && f.channelSlug && (
+                <span className="inline-flex w-fit items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                  <Hash size={9} />
+                  {channelNames.get(f.channelSlug) || f.channelSlug}
+                </span>
+              )}
+
               <div className="mt-auto flex items-center justify-between pt-1">
                 {onJumpToMessage ? (
                   <button
-                    onClick={() => onJumpToMessage(f.messageId)}
+                    onClick={() => onJumpToMessage(f.messageId, f.channelSlug)}
                     className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
                     title={f.messageSnippet ? `In context: "${f.messageSnippet}…"` : 'View in chat'}
                   >

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings, Bot, User } from 'lucide-react'
 import { MessageList } from './MessageList'
@@ -106,9 +106,14 @@ export function MultiChannelChat({
   const [activeApplet, setActiveApplet] = useState<string>('chat')
 
   // Switch to the chat applet and scroll/highlight a specific message (used by
-  // the Files applet's "in context" link).
-  const jumpToMessage = useCallback((messageId: string) => {
-    setActiveApplet('chat')
+  // the Files applet's "in context" link). When the message lives in another
+  // channel (space-wide file scope), switch channels first.
+  //
+  // Also seeds the deep-link convention: a jump rewrites the URL to
+  // ?channel=<slug>&msg=<id> so the exact message is shareable / restorable.
+  // (The Spaces app is still state-driven; this is the first surface to address
+  // a Surface={space,channel,position} in the URL — see project_deep_link_navigation.)
+  const scrollToMessage = useCallback((messageId: string) => {
     let tries = 0
     const attempt = () => {
       const el = document.getElementById(`msg-${messageId}`)
@@ -118,12 +123,57 @@ export function MultiChannelChat({
         window.setTimeout(() => {
           el.classList.remove('ring-2', 'ring-primary', 'bg-primary/5')
         }, 2200)
-      } else if (tries++ < 20) {
+      } else if (tries++ < 30) {
         window.setTimeout(attempt, 100)
       }
     }
     window.setTimeout(attempt, 80)
   }, [])
+
+  const jumpToMessage = useCallback(
+    (messageId: string, targetChannelSlug?: string) => {
+      setActiveApplet('chat')
+      const needsSwitch = targetChannelSlug && targetChannelSlug !== activeChannel
+      if (needsSwitch) switchChannel(targetChannelSlug!)
+      // Reflect the destination in the URL (shareable deep link).
+      try {
+        const slug = targetChannelSlug || activeChannel || ''
+        const params = new URLSearchParams(window.location.search)
+        if (slug) params.set('channel', slug)
+        params.set('msg', messageId)
+        window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+      } catch {
+        /* history not available — non-fatal */
+      }
+      // Give a channel switch time to load its messages before scrolling.
+      window.setTimeout(() => scrollToMessage(messageId), needsSwitch ? 350 : 0)
+    },
+    [activeChannel, switchChannel, scrollToMessage],
+  )
+
+  // Deep-link restore: on first load, honor ?channel=&msg= by switching to that
+  // channel and scrolling to the message once channels are available.
+  const deepLinkApplied = useRef(false)
+  useEffect(() => {
+    if (deepLinkApplied.current) return
+    if (isLoadingChannels || channels.length === 0) return
+    let params: URLSearchParams
+    try {
+      params = new URLSearchParams(window.location.search)
+    } catch {
+      return
+    }
+    const ch = params.get('channel')
+    const msg = params.get('msg')
+    if (!ch && !msg) {
+      deepLinkApplied.current = true
+      return
+    }
+    deepLinkApplied.current = true
+    if (ch && ch !== activeChannel) switchChannel(ch)
+    if (msg) window.setTimeout(() => scrollToMessage(msg), ch && ch !== activeChannel ? 400 : 100)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingChannels, channels])
 
   // Find active channel data from both regular and DM channels
   const activeChannelData =
@@ -565,6 +615,7 @@ export function MultiChannelChat({
           <FilesBrowser
             channelSlug={activeChannel}
             spaceId={activeSpaceId}
+            channels={channels}
             onJumpToMessage={jumpToMessage}
           />
         ) : activeApplet === 'tasks' ? (

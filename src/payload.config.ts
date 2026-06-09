@@ -97,6 +97,7 @@ import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { presencePingHandler } from '@/endpoints/presence-ping'
 import { presenceOnlineHandler } from '@/endpoints/presence-online'
+import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
@@ -447,6 +448,11 @@ export default buildConfig({
       path: '/presence-ops/online',
       method: 'get',
       handler: presenceOnlineHandler,
+    },
+    {
+      path: '/log-ops/client-error',
+      method: 'post',
+      handler: clientErrorHandler,
     },
     {
       path: '/leo',
