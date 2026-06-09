@@ -772,7 +772,10 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
                       : 'bg-muted text-foreground'
               }`}
             >
-              {msg.role === 'leo' && msg.authorName && (
+              {/* Author name above every non-system message (incl. the user's own)
+                  — essential in a multi-user channel so it's always clear who sent
+                  what. */}
+              {msg.role !== 'system' && msg.authorName && (
                 <div className="mb-1 text-xs font-medium opacity-70">
                   {msg.authorName}
                   {msg.isDeepThink && !msg.isStreaming && (
@@ -1015,8 +1018,8 @@ function FullPageMessageList({
               <div
                 className={`flex min-w-0 flex-1 flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}
               >
-                {/* Author name — only for LEO, shown once per group */}
-                {isLeo && group.authorName && (
+                {/* Author name — shown once per group for everyone except system */}
+                {!isSystem && group.authorName && (
                   <span className="mb-0.5 text-xs font-medium text-muted-foreground">
                     {group.authorName}
                   </span>
