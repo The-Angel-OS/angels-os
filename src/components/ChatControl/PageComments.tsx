@@ -59,10 +59,26 @@ const idOf = (author: unknown): string | undefined => {
 const pageChannel = (pathname: string): string =>
   'page:' + (pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/')
 
-export function PageComments({ spaceId }: { spaceId?: string }) {
+export function PageComments({ spaceId: spaceIdProp }: { spaceId?: string }) {
   const pathname = usePathname() || '/'
   const { user } = useAuth()
   const channel = useMemo(() => pageChannel(pathname), [pathname])
+
+  // On platform pages (e.g. www.spacesangels.com home) the server passes no
+  // spaceId — tenant is intentionally null there for isolation. Resolve a space
+  // client-side so the comments bubble still appears (mirrors FloatingBubble).
+  const [resolvedSpaceId, setResolvedSpaceId] = useState(spaceIdProp || '')
+  useEffect(() => {
+    if (spaceIdProp || !user || resolvedSpaceId) return
+    fetch('/api/spaces?limit=1&sort=createdAt&depth=0', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const first = d?.docs?.[0]
+        if (first?.id) setResolvedSpaceId(String(first.id))
+      })
+      .catch(() => {})
+  }, [spaceIdProp, user, resolvedSpaceId])
+  const spaceId = spaceIdProp || resolvedSpaceId
 
   const userId = idOf(user)
   const roles = (user as { roles?: string[] } | null)?.roles
