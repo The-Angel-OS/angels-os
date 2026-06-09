@@ -10,6 +10,7 @@ import { useDashboard } from '@/providers/DashboardContext'
 import { NAV_SECTIONS } from './nav-config'
 import type { NavVisibilityContext, NavSectionConfig, NavItemConfig } from './nav-config'
 import { NAV_ICONS } from './nav-icons'
+import { CommandMenu } from './CommandMenu'
 
 /**
  * DashboardSidebar — Rev 5, data-driven.
@@ -125,10 +126,20 @@ export function DashboardSidebar({
     }
   }, [isMobile, isMobileOpen])
 
+  // ⌘K command palette — mounted once, driven by the same nav config.
+  const commandMenu = (
+    <CommandMenu
+      prefix={prefix}
+      visCtx={visCtx}
+      spaces={dashboard.spaces as Array<{ id: string | number; name: string; slug?: string }>}
+    />
+  )
+
   // ─── Mobile layout ──────────────────────────────────────────────
   if (isMobile) {
     return (
       <>
+        {commandMenu}
         <button
           onClick={() => setIsMobileOpen(true)}
           className="fixed left-3 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm active:bg-muted md:hidden"
@@ -202,6 +213,8 @@ export function DashboardSidebar({
 
   // ─── Desktop layout ─────────────────────────────────────────────
   return (
+    <>
+      {commandMenu}
     <aside
       className={`flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-60'
@@ -230,6 +243,27 @@ export function DashboardSidebar({
         {/* Collapse toggle moved to the bottom-left row below — keeping it here
             put it under the TenantChooser's z-50 dropdown in full-screen, making
             it unclickable. */}
+      </div>
+
+      {/* ⌘K search affordance */}
+      <div className="px-2 pt-2">
+        <button
+          onClick={() => window.dispatchEvent(new Event('commandmenu:open'))}
+          className={`flex w-full items-center gap-2 rounded-md border border-border bg-background/60 text-muted-foreground transition-colors hover:bg-muted ${
+            isCollapsed ? 'justify-center p-2' : 'px-2.5 py-1.5'
+          }`}
+          title="Search (⌘K)"
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+          </svg>
+          {!isCollapsed && (
+            <>
+              <span className="flex-1 text-left text-xs">Search…</span>
+              <kbd className="rounded border border-border px-1 text-[10px] text-muted-foreground/70">⌘K</kbd>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Shared nav content */}
@@ -283,6 +317,7 @@ export function DashboardSidebar({
         </Link>
       )}
     </aside>
+    </>
   )
 }
 
