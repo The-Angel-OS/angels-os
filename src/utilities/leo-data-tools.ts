@@ -1202,11 +1202,12 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_post',
     description:
-      'Update an existing blog post. Use query_posts first to find the post ID. Always confirm changes with the user before updating. Set generateHeroImage=true to auto-generate a new hero image.',
+      'Update an existing blog post. Identify the post by postId OR slug (at least one required). Use query_posts to find either. Always confirm changes with the user before updating. Set generateHeroImage=true to auto-generate a new hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        postId: { type: 'number', description: 'Numeric ID of the post to update (required)' },
+        postId: { type: 'number', description: 'Numeric ID of the post to update (postId or slug required)' },
+        slug: { type: 'string', description: 'Slug of the post to update, e.g. "where-did-everyone-go" (postId or slug required)' },
         title: { type: 'string', description: 'New post title (optional)' },
         content: { type: 'string', description: 'New post body text (optional)' },
         excerpt: { type: 'string', description: 'New excerpt / summary (optional)' },
@@ -1230,7 +1231,6 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           description: 'Custom prompt for the hero image (optional).',
         },
       },
-      required: ['postId'],
     },
   },
   {
@@ -3715,7 +3715,15 @@ async function queryPosts(
 ): Promise<string> {
   const limit = Math.min(Number(input.limit) || 5, 10)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const conditions: any[] = [{ _status: { equals: 'published' } }]
+  const conditions: any[] = []
+
+  // LEO is the authoring agent — it must see its own drafts, not just published
+  // posts. Filter by status only when explicitly requested; otherwise return
+  // both drafts and published so update_post can act on a freshly-created draft.
+  const status = typeof input.status === 'string' ? input.status : undefined
+  if (status === 'published' || status === 'draft') {
+    conditions.push({ _status: { equals: status } })
+  }
 
   // Always scope to tenant — if no tenantId, return nothing (fail closed)
   conditions.push({ tenant: tenantId ? { equals: tenantId } : { exists: false } })
@@ -3728,13 +3736,13 @@ async function queryPosts(
     collection: 'posts',
     where: { and: conditions } as Where,
     limit,
-    sort: '-publishedOn',
+    sort: '-updatedAt',
     depth: 1,
-    overrideAccess: true, // Published posts are public
+    overrideAccess: true, // LEO authoring agent — see drafts + published
   })
 
   if (result.docs.length === 0) {
-    return 'No published posts found.'
+    return 'No posts found.'
   }
 
   const posts = result.docs.map((p) => {
@@ -3742,7 +3750,9 @@ async function queryPosts(
     const publishedOn = str(p, 'publishedOn')
     const date = publishedOn ? new Date(publishedOn).toLocaleDateString() : 'No date'
     const slug = str(p, 'slug')
-    return `- **${title}** (${date})${slug ? ` — /posts/${slug}` : ''}`
+    const st = str(p, '_status', 'draft')
+    // Surface the ID + status so update_post can be called without re-querying.
+    return `- **${title}** (#${p.id}, ${st}, ${date})${slug ? ` — /posts/${slug}` : ''}`
   })
 
   return `Found ${result.totalDocs} post(s)${result.totalDocs > limit ? ` (showing first ${limit})` : ''}:\n${posts.join('\n')}`
@@ -7437,8 +7447,23 @@ async function updatePost(
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
-  const postId = Number(input.postId)
-  if (!postId) return 'Error: postId is required. Use query_posts to find the post ID first.'
+  let postId = Number(input.postId)
+
+  // Allow identifying the post by slug when no numeric ID was supplied.
+  if (!postId && typeof input.slug === 'string' && input.slug.trim()) {
+    const bySlug = await payload.find({
+      collection: 'posts',
+      where: { slug: { equals: input.slug.trim() } } as Where,
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const found = bySlug.docs[0]
+    if (!found) return `Error: No post found with slug "${input.slug}". Use query_posts to list posts.`
+    postId = Number(found.id)
+  }
+
+  if (!postId) return 'Error: postId or slug is required. Use query_posts to find the post first.'
 
   // Verify post belongs to current tenant before modifying
   if (ctx.tenantId) {
