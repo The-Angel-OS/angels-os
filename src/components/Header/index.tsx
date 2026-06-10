@@ -73,7 +73,8 @@ export async function Header({ tenant }: Props) {
       // sorted most-recent for now — a popularity ranking can replace the sort later.
       const products = await payload.find({
         collection: 'products',
-        where: { tenant: { equals: tenantId } },
+        // Published only — draft products have no live /products/<slug> page (404).
+        where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
         limit: DEFAULT_SHOP_DROPDOWN_COUNT,
         depth: 1, // resolve gallery[].image → media
         sort: '-createdAt',
@@ -117,7 +118,8 @@ export async function Header({ tenant }: Props) {
     try {
       const payload = await getPayload({ config })
       const [products, events] = await Promise.all([
-        payload.count({ collection: 'products', where: { tenant: { equals: tenantId } }, overrideAccess: true }),
+        // Published only — a draft-only catalog shouldn't make Shop first-class.
+        payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
         payload.count({ collection: 'events', where: { tenant: { equals: tenantId } }, overrideAccess: true }),
       ])
       hasProducts = products.totalDocs > 0
