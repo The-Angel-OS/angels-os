@@ -91,7 +91,14 @@ export async function Header({ tenant }: Props) {
       // Upcoming events → Events dropdown, each with its cover image as a thumbnail.
       const events = await payload.find({
         collection: 'events',
-        where: { and: [{ tenant: { equals: tenantId } }, { startDateTime: { greater_than_equal: new Date().toISOString() } }] },
+        where: {
+          and: [
+            { tenant: { equals: tenantId } },
+            { startDateTime: { greater_than_equal: new Date().toISOString() } },
+            // Public statuses only — draft/completed/cancelled have no live page.
+            { status: { in: ['upcoming', 'live'] } },
+          ],
+        },
         limit: DEFAULT_EVENTS_DROPDOWN_COUNT,
         depth: 1, // resolve coverImage → media
         sort: 'startDateTime', // soonest first
@@ -120,7 +127,7 @@ export async function Header({ tenant }: Props) {
       const [products, events] = await Promise.all([
         // Published only — a draft-only catalog shouldn't make Shop first-class.
         payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
-        payload.count({ collection: 'events', where: { tenant: { equals: tenantId } }, overrideAccess: true }),
+        payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
       ])
       hasProducts = products.totalDocs > 0
       hasEvents = events.totalDocs > 0
