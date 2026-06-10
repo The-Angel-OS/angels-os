@@ -106,6 +106,7 @@ import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
 import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
+import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-columns'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
@@ -708,6 +709,14 @@ export default buildConfig({
       path: '/provision-ops/db-repair-locks',
       method: 'get',
       handler: dbRepairLocksHandler,
+    },
+    // Idempotent: add the per-section listing-hero columns to `tenants` ahead of
+    // the Payload fields that reference them (Posts/Events/Shop hero images).
+    // Runs against the deployment's own DB so each prod DB can be healed by URL.
+    {
+      path: '/provision-ops/ensure-tenant-hero-columns',
+      method: 'get',
+      handler: ensureTenantHeroColumnsHandler,
     },
     // Factory primitive: grant a user tenant-scoped access (find-or-create user +
     // active tenant-membership at a role). POST; super_admin or ?key=CRON_SECRET.
