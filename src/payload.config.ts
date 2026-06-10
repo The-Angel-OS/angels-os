@@ -108,6 +108,7 @@ import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
+import { navRepairHandler } from '@/endpoints/nav-repair'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -718,6 +719,12 @@ export default buildConfig({
       path: '/messages-ops/dm-roster',
       method: 'get',
       handler: dmRosterHandler,
+    },
+    // Backfill missing default nav links onto existing tenants. GET; super_admin or ?key=.
+    {
+      path: '/provision-ops/nav-repair',
+      method: 'get',
+      handler: navRepairHandler,
     },
     {
       path: '/booking-ops/checkout',
