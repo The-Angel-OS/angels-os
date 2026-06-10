@@ -246,7 +246,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                             {item.link.label}
                           </NavigationMenuTrigger>
                           <NavigationMenuContent>
-                            <ul className={cn('grid gap-0.5 p-2', children.some((c: { image?: string }) => c.image) ? 'w-72' : 'w-56')}>
+                            <ul className={cn('grid gap-0.5 p-2 text-start', children.some((c: { image?: string }) => c.image) ? 'w-72' : 'w-56')}>
                               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {([item, ...children] as any[]).map((c: any, ci: number) => (
                                 <li key={c.id || `${item.id}-c${ci}`}>
@@ -298,13 +298,13 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                         More
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <ul className="grid w-56 gap-0.5 p-2">
+                        <ul className="grid w-56 gap-0.5 p-2 text-start">
                           {overflowItems.map((item) => (
                             <li key={item.id}>
                               <NavigationMenuLink
                                 asChild
                                 active={isActive(item.link.url)}
-                                className="block rounded-md px-3 py-2 text-xs font-medium uppercase tracking-wider"
+                                className="block rounded-md px-3 py-2 text-xs font-medium uppercase tracking-wider text-start"
                               >
                                 <Link
                                   href={resolveHref(item.link)}

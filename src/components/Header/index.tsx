@@ -5,6 +5,7 @@ import config from '@payload-config'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, type PageLite } from '@/utilities/pagesNav'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
+import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 
 import './index.css'
 import { HeaderClient } from './index.client'
@@ -66,11 +67,31 @@ export async function Header({ tenant }: Props) {
         image: thumb(p.meta?.image),
       }))
 
+      // Top products → Shop dropdown, each with its first gallery image as a
+      // thumbnail. Defaults to the top N (configurable via DEFAULT_SHOP_DROPDOWN_COUNT);
+      // sorted most-recent for now — a popularity ranking can replace the sort later.
+      const products = await payload.find({
+        collection: 'products',
+        where: { tenant: { equals: tenantId } },
+        limit: DEFAULT_SHOP_DROPDOWN_COUNT,
+        depth: 1, // resolve gallery[].image → media
+        sort: '-createdAt',
+        overrideAccess: true,
+      })
+      const productList: ProductLite[] = (
+        products.docs as Array<{ slug?: string | null; title?: string | null; gallery?: Array<{ image?: unknown }> }>
+      ).map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        image: thumb(p.gallery?.[0]?.image),
+      }))
+
       let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList)
       navItems = injectPostsUnderNav(navItems, postList)
+      navItems = injectProductsUnderNav(navItems, productList)
       header = { ...header, navItems }
     } catch (err) {
-      console.error('[Header] Failed to inject dynamic nav (pages/posts):', err)
+      console.error('[Header] Failed to inject dynamic nav (pages/posts/products):', err)
     }
   }
 
