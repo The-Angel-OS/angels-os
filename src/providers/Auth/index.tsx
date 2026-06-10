@@ -28,6 +28,30 @@ function getApiUrl(): string {
   return process.env.NEXT_PUBLIC_SERVER_URL || ''
 }
 
+/**
+ * Promote the session cookie to the registrable apex (.kendev.co, .spacesangels.com,
+ * a vendor's own domain) so ONE login is shared across every subdomain — the same
+ * apex-scoped cookie the OAuth flow already sets. Payload's built-in /api/users/login
+ * sets only a HOST-ONLY cookie, so without this a session created on
+ * federation.kendev.co reads as anonymous on harpazo.kendev.co (403/401 on every API).
+ *
+ * Best-effort: the host-only login cookie is already set, so a failure here just
+ * means no cross-subdomain SSO — never block the login on it.
+ */
+async function promoteCookieToApex(token?: string): Promise<void> {
+  if (!token) return
+  try {
+    await fetch(`${getApiUrl()}/api/auth/set-cookie`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+  } catch {
+    /* non-fatal — host-only cookie still works on this subdomain */
+  }
+}
+
 // eslint-disable-next-line no-unused-vars
 type ResetPassword = (args: {
   password: string
@@ -91,7 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (loginRes.ok) {
-        const { user: loggedInUser } = await loginRes.json()
+        const { user: loggedInUser, token } = await loginRes.json()
+        await promoteCookieToApex(token)
         setUser(loggedInUser)
         setStatus('loggedIn')
       } else {
@@ -118,8 +143,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (res.ok) {
-        const { errors, user } = await res.json()
+        const { errors, user, token } = await res.json()
         if (errors) throw new Error(errors[0].message)
+        // Promote the session cookie to the registrable apex so it's shared across
+        // ALL subdomains (harpazo.kendev.co etc.) — Payload's built-in login only
+        // sets a host-only cookie, which is why deep portals read as anonymous.
+        await promoteCookieToApex(token)
         setUser(user)
         setStatus('loggedIn')
         return user
