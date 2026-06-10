@@ -36,6 +36,19 @@ describe('navPartition.partitionNavItems', () => {
     expect(urls(primary)).not.toContain('/events')
   })
 
+  it('pins force-primary items (Discovery) to primary, beating cap and demotion', () => {
+    const m = ['/', '/shop', '/posts', '/events', '/donate', '/federation/discover', '/dashboard'].map(item)
+    const { primary, overflow } = partitionNavItems(m, {
+      maxInline: 2,
+      forcePrimaryUrls: ['/federation/discover'],
+      forceOverflowUrls: ['/dashboard'],
+      demoteUrls: ['/federation/discover'], // even if also demoted, force-primary wins
+    })
+    expect(urls(primary)).toContain('/federation/discover')
+    expect(urls(overflow)).not.toContain('/federation/discover')
+    expect(urls(overflow)).toContain('/dashboard')
+  })
+
   it('handles empty menu', () => {
     expect(partitionNavItems([], { maxInline: 3 })).toEqual({ primary: [], overflow: [] })
   })

@@ -19,6 +19,8 @@ const urlOf = (i: NavItem): string | undefined => i?.link?.url ?? undefined
 
 export interface PartitionOpts {
   maxInline: number
+  /** ALWAYS primary, regardless of cap or demotion (e.g. /federation/discover). */
+  forcePrimaryUrls?: string[]
   forceOverflowUrls?: string[]
   demoteUrls?: string[]
 }
@@ -27,12 +29,16 @@ export function partitionNavItems(
   menu: NavItem[],
   opts: PartitionOpts,
 ): { primary: NavItem[]; overflow: NavItem[] } {
+  const forcePrimary = new Set(opts.forcePrimaryUrls ?? [])
   const demote = new Set([...(opts.forceOverflowUrls ?? []), ...(opts.demoteUrls ?? [])])
   const primary: NavItem[] = []
   const overflow: NavItem[] = []
 
   for (const item of Array.isArray(menu) ? menu : []) {
-    if (demote.has(urlOf(item) as string)) {
+    const u = urlOf(item) as string
+    if (forcePrimary.has(u)) {
+      primary.push(item) // pinned top-level — wins over cap and demotion
+    } else if (demote.has(u)) {
       overflow.push(item)
     } else if (primary.length < opts.maxInline) {
       primary.push(item)

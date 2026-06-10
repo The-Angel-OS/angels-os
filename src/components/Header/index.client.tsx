@@ -199,6 +199,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (!hasEvents) demoteUrls.push('/events')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
+    forcePrimaryUrls: ['/federation/discover'], // Discovery is always top-level
     forceOverflowUrls: ['/dashboard'],
     demoteUrls,
   })
@@ -228,8 +229,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
               )}
             </Link>
             {menu.length ? (
-              <NavigationMenu viewport={false} className="hidden md:flex">
-                <NavigationMenuList className="gap-5">
+              <NavigationMenu viewport={false} className="hidden md:flex justify-start">
+                {/* justify-start (not the shadcn default justify-center) = left-aligned,
+                    and direction-aware: it flips to the right under dir="rtl" (Arabic). */}
+                <NavigationMenuList className="gap-5 justify-start">
                   {primaryItems.map((item) => {
                     // Hierarchical: any item with children renders as a dropdown
                     // (the parent stays reachable as the first entry), so Pages
