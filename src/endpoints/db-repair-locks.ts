@@ -32,6 +32,36 @@ const REL_COLUMNS = [
 
 const TABLE = 'payload_locked_documents_rels'
 
+/**
+ * Derive the full set of `<collection>_id` columns the LIVE config expects on the
+ * rels table, by introspecting Payload's own drizzle schema. This is the exact
+ * same source Payload uses to GENERATE the lock-check query — so whatever it will
+ * query, we guarantee exists. Falls back to (and unions with) the static
+ * REL_COLUMNS list so the repair is always a superset and can never regress, even
+ * if introspection shape changes across Payload versions.
+ */
+function deriveRelColumns(payload: { db?: unknown }): string[] {
+  const cols = new Set(REL_COLUMNS)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const relTable = (payload.db as any)?.tables?.[TABLE]
+    if (relTable && typeof relTable === 'object') {
+      for (const key of Object.keys(relTable)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const name = (relTable as any)[key]?.name
+        // Only the FK relation columns (every one ends in _id); never parent_id,
+        // which is the table's own self-reference, not a collection relation.
+        if (typeof name === 'string' && name.endsWith('_id') && name !== 'parent_id') {
+          cols.add(name)
+        }
+      }
+    }
+  } catch {
+    /* introspection unavailable — static list still applies */
+  }
+  return [...cols]
+}
+
 export const dbRepairLocksHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
   const url = new URL(req.url || '', 'http://localhost')
@@ -54,18 +84,41 @@ export const dbRepairLocksHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'no pg pool on payload.db' }, { status: 500 })
   }
 
-  const added: string[] = []
+  const columns = deriveRelColumns(payload)
+
+  // Which of those already exist? One catalog query, so we can report exactly
+  // which columns this run actually had to create (the drift that was healed).
+  const existing = new Set<string>()
+  try {
+    const res = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = $1`,
+      [TABLE],
+    )
+    for (const row of res.rows as Array<{ column_name: string }>) existing.add(row.column_name)
+  } catch {
+    /* if we can't introspect, fall through and just ADD IF NOT EXISTS everything */
+  }
+
+  const ensured: string[] = []
+  const created: string[] = []
   const errors: Array<{ column: string; error: string }> = []
-  for (const col of REL_COLUMNS) {
+  for (const col of columns) {
     try {
-      // IF NOT EXISTS → idempotent. Column name is from a fixed allow-list above,
-      // never user input, so this static interpolation is safe.
+      // IF NOT EXISTS → idempotent. Column names come from the config-derived/
+      // static allow-list, never user input, so this interpolation is safe.
       await pool.query(`ALTER TABLE "${TABLE}" ADD COLUMN IF NOT EXISTS "${col}" integer;`)
-      added.push(col)
+      ensured.push(col)
+      if (!existing.has(col)) created.push(col)
     } catch (e) {
       errors.push({ column: col, error: e instanceof Error ? e.message : String(e) })
     }
   }
 
-  return Response.json({ ok: errors.length === 0, ensured: added.length, errors })
+  return Response.json({
+    ok: errors.length === 0,
+    ensured: ensured.length,
+    created, // columns that were actually missing and just got added
+    derivedFromSchema: columns.length > REL_COLUMNS.length,
+    errors,
+  })
 }
