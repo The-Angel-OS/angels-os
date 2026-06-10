@@ -218,22 +218,57 @@ export function HeaderClient({ header, tenant }: Props) {
             {menu.length ? (
               <NavigationMenu viewport={false} className="hidden md:flex">
                 <NavigationMenuList className="gap-5">
-                  {primaryItems.map((item) => (
-                    <NavigationMenuItem key={item.id}>
-                      <NavigationMenuLink
-                        asChild
-                        active={isActive(item.link.url)}
-                        className={cn(navigationMenuTriggerStyle(), navItemClass)}
-                      >
-                        <Link
-                          href={resolveHref(item.link)}
-                          {...(item.link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  {primaryItems.map((item) => {
+                    // Hierarchical: any item with children renders as a dropdown
+                    // (the parent stays reachable as the first entry), so Pages
+                    // hang under Home and any future parent gets the same treatment.
+                    const children = Array.isArray(item.children) ? item.children : []
+                    if (children.length > 0) {
+                      return (
+                        <NavigationMenuItem key={item.id}>
+                          <NavigationMenuTrigger className={cn(navigationMenuTriggerStyle(), navItemClass)}>
+                            {item.link.label}
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            <ul className="grid w-56 gap-0.5 p-2">
+                              {[item, ...children].map((c, ci) => (
+                                <li key={c.id || `${item.id}-c${ci}`}>
+                                  <NavigationMenuLink
+                                    asChild
+                                    active={isActive(c.link?.url)}
+                                    className="block rounded-md px-3 py-2 text-xs font-medium uppercase tracking-wider"
+                                  >
+                                    <Link
+                                      href={resolveHref(c.link)}
+                                      {...(c.link?.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                    >
+                                      {c.link?.label}
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </li>
+                              ))}
+                            </ul>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      )
+                    }
+                    return (
+                      <NavigationMenuItem key={item.id}>
+                        <NavigationMenuLink
+                          asChild
+                          active={isActive(item.link.url)}
+                          className={cn(navigationMenuTriggerStyle(), navItemClass)}
                         >
-                          {item.link.label}
-                        </Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
-                  ))}
+                          <Link
+                            href={resolveHref(item.link)}
+                            {...(item.link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                          >
+                            {item.link.label}
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                    )
+                  })}
 
                   {overflowItems.length > 0 && (
                     <NavigationMenuItem>

@@ -62,11 +62,25 @@ export function MobileMenu({ menu, siteName }: Props) {
         <div className="py-4">
           {menu?.length ? (
             <ul className="flex w-full flex-col">
-              {menu.map((item) => (
-                <li className="py-2" key={item.id}>
-                  <CMSLink {...item.link} appearance="link" />
-                </li>
-              ))}
+              {menu.map((item) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const children: any[] = Array.isArray((item as any).children) ? (item as any).children : []
+                return (
+                  <li className="py-2" key={item.id}>
+                    <CMSLink {...item.link} appearance="link" />
+                    {children.length > 0 && (
+                      <ul className="mt-1 ml-3 flex flex-col border-l border-border pl-3">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {children.map((c: any, ci: number) => (
+                          <li className="py-1.5" key={c.id || `${item.id}-c${ci}`}>
+                            <CMSLink {...c.link} appearance="link" />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           ) : null}
         </div>
