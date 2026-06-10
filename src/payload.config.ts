@@ -106,6 +106,7 @@ import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
 import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
+import { setMembershipHandler } from '@/endpoints/set-membership'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -702,6 +703,13 @@ export default buildConfig({
       path: '/provision-ops/db-repair-locks',
       method: 'get',
       handler: dbRepairLocksHandler,
+    },
+    // Factory primitive: grant a user tenant-scoped access (find-or-create user +
+    // active tenant-membership at a role). POST; super_admin or ?key=CRON_SECRET.
+    {
+      path: '/provision-ops/set-membership',
+      method: 'post',
+      handler: setMembershipHandler,
     },
     {
       path: '/booking-ops/checkout',
