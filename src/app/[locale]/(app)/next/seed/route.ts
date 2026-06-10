@@ -12,7 +12,7 @@ import { checkRole, ADMIN_ROLES } from '@/access/utilities'
  */
 export const maxDuration = 300
 
-export async function POST(): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
   try {
     const payload = await getPayload({ config })
     const requestHeaders = await headers()
@@ -48,6 +48,47 @@ export async function POST(): Promise<Response> {
           { status: 403 },
         )
       }
+    }
+
+    // ── Destructive-seed guard (defense in depth) ──────────────────────────
+    // seed() runs deleteMany({ where: {} }) across spaces/channels/messages/
+    // tenant-memberships/products/pages/... GLOBALLY before reseeding the sample
+    // 'default' tenant. On a provisioned node that erases real client data (e.g.
+    // the Harpazo portal + its owner's membership). So: refuse to seed when ANY
+    // real (non-platform, non-default) tenant exists. A super_admin can still
+    // force it with ?force=true after reading the error — an explicit, eyes-open act.
+    // Multiple independent signals — so a partial delete of any ONE collection
+    // (e.g. all pages removed) can't trick the guard into thinking the DB is fresh.
+    // Real tenants OR any real content/memberships ⇒ this is a live node, refuse.
+    let dataSignal = -1 // -1 = couldn't verify (fail safe → treat as populated)
+    try {
+      const [realTenants, spaces, products, memberships] = await Promise.all([
+        payload.count({
+          collection: 'tenants',
+          where: { and: [{ slug: { not_equals: 'default' } }, { type: { not_equals: 'platform' } }] },
+          overrideAccess: true,
+        }),
+        payload.count({ collection: 'spaces', overrideAccess: true }),
+        payload.count({ collection: 'products', overrideAccess: true }),
+        payload.count({ collection: 'tenant-memberships', overrideAccess: true }),
+      ])
+      dataSignal = realTenants.totalDocs + spaces.totalDocs + products.totalDocs + memberships.totalDocs
+    } catch {
+      dataSignal = -1
+    }
+    const force = new URL(request.url).searchParams.get('force') === 'true'
+    const isSuperAdmin = Boolean(user && checkRole(['super_admin'], user))
+    if (dataSignal !== 0 && !(force && isSuperAdmin)) {
+      return Response.json(
+        {
+          success: false,
+          error:
+            dataSignal < 0
+              ? 'Refusing to seed: could not verify the database is empty. Seeding wipes spaces, channels, memberships, and products across ALL tenants.'
+              : 'Refusing to seed: this node already has real data (tenants, spaces, products, or memberships). Seeding wipes spaces, channels, memberships, posts, and products across ALL tenants. Use Provision for per-tenant setup. A super_admin may override with ?force=true.',
+        },
+        { status: 409 },
+      )
     }
 
     // Create a system-level request (no user context) so seed operations

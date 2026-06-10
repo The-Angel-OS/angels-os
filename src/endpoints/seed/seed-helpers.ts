@@ -148,8 +148,12 @@ export async function findOrCreateUser(
     const u = existing.docs[0] as { id: number | string; email: string; roles?: string[] }
     // Ensure roles, name, and tenant assignment are up to date
     const updateData: Record<string, unknown> = {}
+    // MERGE roles (union) — never clobber. An existing user may carry custom or
+    // elevated roles (e.g. super_admin, a granted analytics role); overwriting
+    // with the seed's base set would silently downgrade them. Only write when the
+    // union actually adds something, to keep the update idempotent.
     if (data.roles?.length && (!u.roles || !data.roles.every((r) => u.roles?.includes(r)))) {
-      updateData.roles = data.roles
+      updateData.roles = Array.from(new Set([...(u.roles || []), ...data.roles]))
     }
     if (data.name) updateData.name = data.name
     if (data.tenantId != null) {

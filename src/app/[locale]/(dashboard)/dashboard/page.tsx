@@ -70,6 +70,10 @@ export default async function DashboardPage({
   let recentActivity: Array<{ action: string; detail?: string; createdAt: string; allowed?: boolean }> = []
   // Content drafts count
   let draftCount = 0
+  // Node-level "is this a fresh DB?" signal — independent of the CURRENT tenant.
+  // A provisioned node (real tenants or spaces anywhere) must never be offered the
+  // destructive global seed, even if the tenant you're viewing happens to be empty.
+  let nodeHasData = false
 
   let feeStatus: {
     tier: string
@@ -97,6 +101,22 @@ export default async function DashboardPage({
 
     // Resolve current tenant (cached, React.cache deduped)
     const { tenant: currentTenant } = await resolveTenantFromHeaders()
+
+    // Node-level data signal (not tenant-scoped) — drives whether the destructive
+    // seed banner may appear at all. Cheap counts; fail-safe to "has data".
+    try {
+      const [realTenants, anySpaces] = await Promise.all([
+        payload.count({
+          collection: 'tenants',
+          where: { and: [{ slug: { not_equals: 'default' } }, { type: { not_equals: 'platform' } }] },
+          overrideAccess: true,
+        }),
+        payload.count({ collection: 'spaces', overrideAccess: true }),
+      ])
+      nodeHasData = realTenants.totalDocs > 0 || anySpaces.totalDocs > 0
+    } catch {
+      nodeHasData = true // can't verify → don't offer a destructive seed
+    }
 
     if (user) {
       const roles = (user as any).roles as string[] | undefined
@@ -271,8 +291,11 @@ export default async function DashboardPage({
     // Not authenticated or DB not ready — show defaults
   }
 
-  // Unseeded = no spaces AND no products (tenants may exist from initial migration)
-  const isSeeded = stats.spaces > 0 || stats.products > 0
+  // "Seeded" = the current tenant has content OR the NODE is already provisioned
+  // (real tenants/spaces anywhere). The node-level signal prevents the misleading
+  // "database hasn't been seeded yet" banner — and its destructive Seed button —
+  // from showing on a live federated node just because the current tenant is empty.
+  const isSeeded = stats.spaces > 0 || stats.products > 0 || nodeHasData
 
   // Stardate display: YYYY.DDD format
   const now = new Date()
