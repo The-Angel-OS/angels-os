@@ -6,6 +6,7 @@ import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, type PageLite } from '@/utilities/pagesNav'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
+import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 
 import './index.css'
 import { HeaderClient } from './index.client'
@@ -86,12 +87,26 @@ export async function Header({ tenant }: Props) {
         image: thumb(p.gallery?.[0]?.image),
       }))
 
+      // Upcoming events → Events dropdown, each with its cover image as a thumbnail.
+      const events = await payload.find({
+        collection: 'events',
+        where: { and: [{ tenant: { equals: tenantId } }, { startDateTime: { greater_than_equal: new Date().toISOString() } }] },
+        limit: DEFAULT_EVENTS_DROPDOWN_COUNT,
+        depth: 1, // resolve coverImage → media
+        sort: 'startDateTime', // soonest first
+        overrideAccess: true,
+      })
+      const eventList: EventLite[] = (
+        events.docs as Array<{ slug?: string | null; title?: string | null; coverImage?: unknown }>
+      ).map((e) => ({ slug: e.slug, title: e.title, image: thumb(e.coverImage) }))
+
       let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList)
       navItems = injectPostsUnderNav(navItems, postList)
       navItems = injectProductsUnderNav(navItems, productList)
+      navItems = injectEventsUnderNav(navItems, eventList)
       header = { ...header, navItems }
     } catch (err) {
-      console.error('[Header] Failed to inject dynamic nav (pages/posts/products):', err)
+      console.error('[Header] Failed to inject dynamic nav (pages/posts/products/events):', err)
     }
   }
 
