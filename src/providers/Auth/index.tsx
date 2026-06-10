@@ -141,6 +141,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
       })
 
+      // Also expire the apex-scoped cookie that /api/auth/set-cookie set for
+      // cross-subdomain SSO — Payload's built-in logout only clears the host-only
+      // cookie, so without this an OAuth session would linger after logout.
+      await fetch(`${getApiUrl()}/api/auth/clear-cookie`, {
+        credentials: 'include',
+        method: 'POST',
+      }).catch(() => {})
+
       if (res.ok) {
         setUser(null)
         setStatus('loggedOut')

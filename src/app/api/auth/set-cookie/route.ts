@@ -30,6 +30,7 @@
 import { jwtVerify } from 'jose'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { cookieDomainForHost } from '@/utilities/cookieDomain'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,12 @@ export async function POST(request: Request) {
   const envCookieDomain = process.env.COOKIE_DOMAIN || ''
   const isProduction = process.env.NODE_ENV === 'production'
 
+  // Cookie domain resolution:
+  //   1. explicit COOKIE_DOMAIN env, IF it matches this host (operator override)
+  //   2. otherwise the host's own registrable apex (.spacesangels.com, .vendor.com,
+  //      .acme.co.uk, …) → "log in once, roam every subdomain" on ANY domain,
+  //      automatically — no per-deploy config. Falls back to host-only when no
+  //      Domain may be set (localhost, IPs, *.vercel.app).
   let effectiveCookieDomain = envCookieDomain
   if (effectiveCookieDomain) {
     const domainBase = effectiveCookieDomain.startsWith('.')
@@ -75,13 +82,12 @@ export async function POST(request: Request) {
       hostWithoutPort.endsWith(`.${domainBase}`)
 
     if (!domainMatches) {
-      console.warn(
-        '[Auth Set-Cookie] COOKIE_DOMAIN mismatch! Domain "%s" does not match host "%s". Dropping Domain attribute.',
-        effectiveCookieDomain,
-        hostWithoutPort,
-      )
-      effectiveCookieDomain = ''
+      // The env override is for a different apex (e.g. a custom domain on a
+      // multi-apex deploy) — use THIS host's apex instead of dropping to host-only.
+      effectiveCookieDomain = cookieDomainForHost(host) || ''
     }
+  } else {
+    effectiveCookieDomain = cookieDomainForHost(host) || ''
   }
 
   const maxAge = 14 * 24 * 60 * 60 // 14 days

@@ -72,6 +72,6 @@ export const config = {
      * handled like /api (header injection, no i18n routing) so that the
      * PayloadAdminLEO component and admin server rendering know the tenant.
      */
-    '/((?!_next|_vercel|api/auth/complete|api/auth/set-cookie|.*\\..*).*)',
+    '/((?!_next|_vercel|api/auth/complete|api/auth/set-cookie|api/auth/clear-cookie|.*\\..*).*)',
   ],
 }
