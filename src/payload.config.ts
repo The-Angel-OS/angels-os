@@ -111,6 +111,7 @@ import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
+import { endeavorListHandler } from '@/endpoints/endeavor-list'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -741,6 +742,13 @@ export default buildConfig({
       path: '/provision-ops/contact-form-repair',
       method: 'get',
       handler: contactFormRepairHandler,
+    },
+    // READ-ONLY: list endeavors + the fields that gate Discovery (networkVisible,
+    // tenant, federationId) — diagnose "real portal missing from Discovery".
+    {
+      path: '/provision-ops/endeavor-list',
+      method: 'get',
+      handler: endeavorListHandler,
     },
     {
       path: '/booking-ops/checkout',
