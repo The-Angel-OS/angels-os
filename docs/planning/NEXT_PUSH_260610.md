@@ -107,10 +107,16 @@ The content-federation counterpart to the catalog mesh. **Publish-once-canonical
   though provisioning creates the page. Added. ⚠️ Only affects NEW tenants;
   existing tenants (harpazo) keep their already-created nav (createDefaultTenantNavigation
   is find-or-create, won't overwrite) — backfill via admin or a one-shot nav-repair.
-- [ ] **New pages overflow into a dropdown** today. Idea (Kenneth): replace/augment
-  with an **active "Posts" popup dropdown showing the latest posts + their meta/OG
-  icon (thumbnail)** — a dynamic, visual menu instead of a flat overflow list.
-  Same pattern could surface latest of any content type.
+- ✅ **Hierarchical nav generalized + Pages under Home** (fa754c4) — the Header now
+  renders ANY navItem's `children` as a dropdown (parent reachable as first entry);
+  the server injects the tenant's published Pages as Home's children dynamically, so
+  new pages appear with zero maintenance (one level, no nesting). Desktop + mobile.
+  `injectPagesUnderHome` is pure (6 tests).
+- ✅ **nav-repair** (63ed4be) — `GET /api/provision-ops/nav-repair?key=` backfills
+  missing default links (e.g. Contact) onto existing tenants. Run once for harpazo.
+- [ ] **Posts → latest-N dropdown with OG/meta thumbnails** — same children mechanism,
+  inject the most recent ~4-5 posts (with their meta image) as the Posts item's
+  children. Events → its events likewise. Overflow stays in "More". (Discovery chill.)
 
 ## Virtual DM roster (Direct Messages = everyone, presence-aware)
 
