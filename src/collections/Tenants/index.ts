@@ -212,7 +212,28 @@ export const Tenants: CollectionConfig = {
           name: 'coverImage',
           type: 'upload',
           relationTo: 'media',
-          admin: { description: 'Hero/cover image for the storefront' },
+          admin: {
+            description:
+              'Hero/cover image for the storefront. Also the default hero for the Posts, Events, and Shop list pages unless a per-section image below is set.',
+          },
+        },
+        {
+          name: 'postsHeroImage',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Header image for the Posts list page. Falls back to Cover Image.' },
+        },
+        {
+          name: 'eventsHeroImage',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Header image for the Events list page. Falls back to Cover Image.' },
+        },
+        {
+          name: 'shopHeroImage',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Header image for the Shop list page. Falls back to Cover Image.' },
         },
         {
           name: 'contactEmail',

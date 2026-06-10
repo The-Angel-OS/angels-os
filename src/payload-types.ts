@@ -357,9 +357,21 @@ export interface Tenant {
      */
     description?: string | null;
     /**
-     * Hero/cover image for the storefront
+     * Hero/cover image for the storefront. Also the default hero for the Posts, Events, and Shop list pages unless a per-section image below is set.
      */
     coverImage?: (number | null) | Media;
+    /**
+     * Header image for the Posts list page. Falls back to Cover Image.
+     */
+    postsHeroImage?: (number | null) | Media;
+    /**
+     * Header image for the Events list page. Falls back to Cover Image.
+     */
+    eventsHeroImage?: (number | null) | Media;
+    /**
+     * Header image for the Shop list page. Falls back to Cover Image.
+     */
+    shopHeroImage?: (number | null) | Media;
     contactEmail?: string | null;
     contactPhone?: string | null;
     /**
@@ -6713,6 +6725,9 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         description?: T;
         coverImage?: T;
+        postsHeroImage?: T;
+        eventsHeroImage?: T;
+        shopHeroImage?: T;
         contactEmail?: T;
         contactPhone?: T;
         socialLinks?:
