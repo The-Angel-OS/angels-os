@@ -56,7 +56,8 @@ Policy in `config.escalation`:
   "events": {
     "error":           { "enabled": true, "minPriority": 8 },
     "warning":         { "enabled": true, "minPriority": 5 },
-    "user_registered": { "enabled": true, "minPriority": 7 }
+    "user_registered": { "enabled": true, "minPriority": 7 },
+    "form_submission": { "enabled": true, "minPriority": 5 }
   }
 }
 ```
@@ -64,8 +65,10 @@ Policy in `config.escalation`:
 `dispatchToGotify(payload, event)` fans an event out to **every** matching
 connector for the tenant, each using its own token, gated by the policy +
 rate-limit + cooldown. **Wired today:** `error` / `warning` (via the `logError`
-tap) and `user_registered` (Users afterChange — the operator's pulse on a quiet
-node: who just signed up). **Seam (stored, not yet emitted):**
+tap), `user_registered` (Users afterChange — the operator's pulse on a quiet
+node: who just signed up), and `form_submission` (`routeFormToAIBus` — a new
+contact/lead-capture submission lights up the operator's phone; deduped per
+form via `dedupeKey: form:<id>`). **Seam (stored, not yet emitted):**
 `conversation_started`, `budget_exceeded`, `provider_failover`, `vercel_spend`,
 `federation`, `order`, `donation`, `booking`, `itsm_incident` — enable one by
 calling `dispatchToGotify` at its source (see the backlog in the comms-layer
