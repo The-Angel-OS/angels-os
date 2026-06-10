@@ -16,17 +16,21 @@ import type { Payload } from 'payload'
 import crypto from 'crypto'
 
 export interface CatalogIndexEntry {
-  /** Product id on the owning node (for the lazy full-doc fetch). */
+  /** What kind of offering this is — products and quests are both economic types. */
+  kind: 'product' | 'quest'
+  /** Item id on the owning node (for the lazy full-doc fetch). */
   id: number | string
   /** Content address — stable cache key; identical items dedupe across nodes. */
   checksum: string
   title: string
   slug?: string
-  /** Price in cents (integer) for compact, currency-neutral comparison. */
+  /** Price in cents (product = buyer pays; quest = payout the quester earns). */
   priceCents?: number
+  /** Karma / reputation reward (quests only) — the MMORPG incentive. */
+  karma?: number
   /** Capability/category tags for local Discovery filtering. */
   tags: string[]
-  /** 'self' | 'network' — whether the mesh may route fulfillment. */
+  /** 'self' | 'network' (product), or 'quest' for quest offerings. */
   fulfillmentMode: string
 }
 
@@ -61,6 +65,7 @@ export function toCatalogEntry(p: Record<string, unknown>): CatalogIndexEntry {
   const tags = reqCaps.map((c) => c?.skill).filter((s): s is string => Boolean(s))
   const fulfillmentMode = String(p.fulfillmentMode || 'self')
   return {
+    kind: 'product',
     id: p.id as number | string,
     checksum: catalogEntryChecksum({ title, priceCents, fulfillmentMode, tags }),
     title,
@@ -72,15 +77,46 @@ export function toCatalogEntry(p: Record<string, unknown>): CatalogIndexEntry {
 }
 
 /**
- * Build the network-visible catalog index for one tenant (an endeavor's tenant).
- * Only `networkListing: true` products — the owner's explicit opt-in to the mesh.
+ * Map one raw quest doc into an index entry. Quests are a first-class economic
+ * type: an Endeavor (often a Guardian Angel) offers them, a quester accepts and
+ * completes multi-step geo-verified objectives. They're ALSO the human-facing
+ * work-dispatch unit (dumpster delivery, assembly) — the accept-side of the
+ * workload/routing/pheromone engines (Suarez Daemon/Freedom holon model).
+ */
+export function toQuestEntry(q: Record<string, unknown>): CatalogIndexEntry {
+  const title = String(q.title || 'Untitled Quest')
+  const payout = (q.payout && typeof q.payout === 'object' ? q.payout : {}) as { amount?: number }
+  const priceCents = typeof payout.amount === 'number' ? Math.round(payout.amount * 100) : undefined
+  const karma = typeof q.reputationReward === 'number' ? (q.reputationReward as number) : undefined
+  const tags = [
+    ...(typeof q.questType === 'string' && q.questType ? [q.questType as string] : []),
+    ...(typeof q.difficulty === 'string' && q.difficulty ? [q.difficulty as string] : []),
+  ]
+  return {
+    kind: 'quest',
+    id: q.id as number | string,
+    checksum: catalogEntryChecksum({ title, priceCents, fulfillmentMode: 'quest', tags }),
+    title,
+    slug: typeof q.slug === 'string' ? q.slug : undefined,
+    priceCents,
+    karma,
+    tags,
+    fulfillmentMode: 'quest',
+  }
+}
+
+/**
+ * Build the network-visible catalog index for one tenant (an endeavor's tenant):
+ * both `networkListing: true` products AND quests — the owner's explicit opt-in
+ * to the mesh. Products and quests are both economic offerings; the `kind`
+ * discriminator lets Discovery and the dispatch layer treat them appropriately.
  */
 export async function buildCatalogIndexForTenant(
   payload: Payload,
   tenantId: number | string,
   limit = MAX_CATALOG_ENTRIES_PER_ENDEAVOR,
 ): Promise<CatalogIndexEntry[]> {
-  const res = await payload.find({
+  const products = await payload.find({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     collection: 'products' as any,
     where: { and: [{ tenant: { equals: tenantId } }, { networkListing: { equals: true } }] },
@@ -89,5 +125,29 @@ export async function buildCatalogIndexForTenant(
     overrideAccess: true,
     sort: '-updatedAt',
   })
-  return (res.docs as Array<Record<string, unknown>>).map(toCatalogEntry)
+  const entries: CatalogIndexEntry[] = (products.docs as Array<Record<string, unknown>>).map(toCatalogEntry)
+
+  // Quests ride the same index — they may not exist on every node, so stay non-fatal.
+  try {
+    const quests = await payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      collection: 'quests' as any,
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { networkListing: { equals: true } },
+          { status: { in: ['posted', 'active'] } },
+        ],
+      },
+      limit,
+      depth: 0,
+      overrideAccess: true,
+      sort: '-updatedAt',
+    })
+    for (const q of quests.docs as Array<Record<string, unknown>>) entries.push(toQuestEntry(q))
+  } catch {
+    /* quests collection absent on this node — products-only index */
+  }
+
+  return entries
 }
