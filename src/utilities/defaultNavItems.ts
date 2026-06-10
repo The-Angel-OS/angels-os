@@ -14,6 +14,8 @@ export const DEFAULT_HEADER_NAV = [
   navLink('Posts', '/posts'),
   navLink('Events', '/events'),
   navLink('Donate', '/donate'),
+  // Provisioning creates a /contact page — surface it in nav (was the missing link).
+  navLink('Contact', '/contact'),
   navLink('Dashboard', '/dashboard'),
 ]
 
