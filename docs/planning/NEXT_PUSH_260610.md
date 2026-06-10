@@ -68,6 +68,33 @@ No representation yet — design as a sibling that reuses the quest objective/ge
 
 ---
 
+## Works canonical-root + syndication (endeavor-scoped Works, slice #3)
+
+The content-federation counterpart to the catalog mesh. **Publish-once-canonical:**
+- A Work is canonical at its **publishing endeavor's root** — the single indexed source
+  of truth. WDEG → `wheredideveryonego.spacesangels.com/...`; **answer53 + rainmaker →
+  Clearwater Cruisin** (not the platform).
+- **Subscription = a copy, not a fork.** Any endeavor subscribes and renders its own
+  readable copy, but every copy emits `rel="canonical"` to the publisher → spiders/SEO
+  credit stay with the canonical root; the author keeps authority.
+- **Echo up / percolate down.** Echoes UP to the Angel OS index; endeavors subscribe so
+  it percolates DOWN as a canonical-pointed copy. Ron's book readable wherever subscribed,
+  always his.
+
+**Current state / gap:**
+- Reader `src/app/[locale]/(app)/learn/[soul]/[page]/page.tsx:46` already emits
+  `alternates:{canonical}` + OG `url` — BUT from the current request `origin`, so every
+  node self-claims canonical. Souls are still a GLOBAL file-based registry
+  (`src/souls/index.ts`), not endeavor-scoped.
+
+**TODO:**
+- [ ] Each Work declares `canonicalEndeavor` + canonical base URL.
+- [ ] Reader `canonical` = the declared publisher root, NOT the serving origin.
+- [ ] Subscription mechanism (gossip-and-cache like the catalog index; the cached item
+      carries its canonical URL) + echo-up to the Angel OS index.
+
+---
+
 ## Federation roadmap (identity + catalog hardening, in order)
 
 Decisions locked this session (chosen by Kenneth): **global identity claim** (not SSO yet),
