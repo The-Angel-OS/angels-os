@@ -253,18 +253,17 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                                   <NavigationMenuLink
                                     asChild
                                     active={isActive(c.link?.url)}
-                                    className="block rounded-md px-2 py-1.5 text-xs font-medium uppercase tracking-wider"
+                                    className="flex w-full items-center justify-start gap-2 rounded-md px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider"
                                   >
                                     <Link
                                       href={resolveHref(c.link)}
                                       {...(c.link?.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                      className="flex items-center gap-2"
                                     >
                                       {c.image ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img src={c.image} alt="" className="h-8 w-8 flex-shrink-0 rounded object-cover" />
                                       ) : null}
-                                      <span className={cn('min-w-0 truncate', c.image && 'normal-case')}>{c.link?.label}</span>
+                                      <span className={cn('min-w-0 truncate text-start', c.image && 'normal-case')}>{c.link?.label}</span>
                                     </Link>
                                   </NavigationMenuLink>
                                 </li>
