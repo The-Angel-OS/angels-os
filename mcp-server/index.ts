@@ -84,17 +84,24 @@ async function deriveAuthToken(): Promise<string> {
 
     if (res.ok) {
       const data = (await res.json()) as { token: string; user: { id: number; email: string }; expiresAt: string }
-      process.stderr.write(
-        `[angel-os-mcp] Authenticated as ${data.user.email} (session expires ${data.expiresAt})\n`,
-      )
+      // Write to stderr only in debug mode — Cursor treats ANY stderr as startup failure
+      if (process.env.ANGEL_OS_DEBUG) {
+        process.stderr.write(
+          `[angel-os-mcp] Authenticated as ${data.user.email} (session expires ${data.expiresAt})\n`,
+        )
+      }
       return data.token
     }
 
-    process.stderr.write(
-      `[angel-os-mcp] system-token returned ${res.status} — falling back to local JWT\n`,
-    )
+    if (process.env.ANGEL_OS_DEBUG) {
+      process.stderr.write(
+        `[angel-os-mcp] system-token returned ${res.status} — falling back to local JWT\n`,
+      )
+    }
   } catch (err) {
-    process.stderr.write(`[angel-os-mcp] system-token endpoint unreachable — falling back to local JWT\n`)
+    if (process.env.ANGEL_OS_DEBUG) {
+      process.stderr.write(`[angel-os-mcp] system-token endpoint unreachable — falling back to local JWT\n`)
+    }
   }
 
   // Fallback: sign a basic JWT locally (no session — works for public/unauthenticated endpoints)
@@ -113,7 +120,9 @@ async function deriveAuthToken(): Promise<string> {
 
     return token
   } catch (err) {
-    process.stderr.write(`[angel-os-mcp] JWT fallback failed: ${err}\n`)
+    if (process.env.ANGEL_OS_DEBUG) {
+      process.stderr.write(`[angel-os-mcp] JWT fallback failed: ${err}\n`)
+    }
     return ''
   }
 }
@@ -123,11 +132,7 @@ let authReady: Promise<void> | null = null
 if (!AUTH_TOKEN) {
   authReady = deriveAuthToken().then((token) => {
     AUTH_TOKEN = token
-    if (token) {
-      process.stderr.write('[angel-os-mcp] Auto-authenticated via PAYLOAD_SECRET\n')
-    } else {
-      process.stderr.write('[angel-os-mcp] No auth configured (set ANGEL_OS_API_KEY or PAYLOAD_SECRET)\n')
-    }
+    // Suppress informational messages — only log errors. Cursor treats ANY stderr as failure.
   })
 }
 
@@ -1334,6 +1339,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  process.stderr.write(`Angel OS MCP server fatal error: ${err}\n`)
+  // Fatal errors always go to stderr
+  process.stderr.write(`[angel-os-mcp] Fatal: ${err}\n`)
   process.exit(1)
 })

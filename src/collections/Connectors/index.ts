@@ -63,6 +63,7 @@ export const Connectors: CollectionConfig = {
         { label: 'YouTube Channel', value: 'youtube_channel' },
         { label: 'LinkedIn Page', value: 'linkedin_page' },
         { label: 'Gotify', value: 'gotify' },
+        { label: 'X (Twitter)', value: 'x_twitter' },
       ],
       admin: {
         description: 'Integration type. Multiple connectors of the same type are allowed.',
@@ -110,7 +111,8 @@ export const Connectors: CollectionConfig = {
 • telegram: { "botToken": "123:ABC...", "webhookSecret": "..." }
 • youtube_channel: { "channelId": "UCxxxx", "limit": 10, "status": "published", "categories": ["Ministry"] }
 • linkedin_page: { "organizationId": "123456", "accessToken": "AQV...", "limit": 10, "status": "published", "categories": ["Updates"] }
-• gotify: { "serverUrl": "https://gotify.kendev.co", "appToken": "A…" (send), "clientToken": "C…" (receive), "lastSeenMessageId": 0, "escalation": { "enabled": true, "rateLimitPerMin": 10, "cooldownSeconds": 300, "events": { "error": { "enabled": true, "minPriority": 8 } } } }`,
+• gotify: { "serverUrl": "https://gotify.kendev.co", "appToken": "A…" (send), "clientToken": "C…" (receive), "lastSeenMessageId": 0, "escalation": { "enabled": true, "rateLimitPerMin": 10, "cooldownSeconds": 300, "events": { "error": { "enabled": true, "minPriority": 8 } } } }
+• x_twitter: { "clientId": "...", "clientSecret": "...", "accessToken": "...", "refreshToken": "...", "expiresAt": "ISO-8601", "handle": "@Sl4rt1b4rtf45t", "userId": "123...", "scopes": ["tweet.read", "tweet.write", "users.read", "offline.access"] }`,
       },
     },
     // ─── Routing ───────────────────────────────────────────────
