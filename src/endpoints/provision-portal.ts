@@ -18,8 +18,34 @@ import { provisionPortal } from '@/utilities/provisionPortal'
 export const provisionPortalHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
 
-  if (!user || !((user as { roles?: string[] }).roles)?.includes('super_admin')) {
-    return Response.json({ error: 'super_admin required' }, { status: 403 })
+  // Auth: a super_admin session, OR ?key=CRON_SECRET (so provisioning is
+  // scriptable for the factory — LEO/cron/CLI can stand up a vertical without an
+  // interactive session). Same pattern as db-repair-locks / ensure-founders.
+  const url = new URL(req.url || 'http://localhost', 'http://localhost')
+  const key = url.searchParams.get('key')
+  const isSuperAdmin = Boolean(((user as { roles?: string[] } | undefined)?.roles)?.includes('super_admin'))
+  const keyValid = Boolean(key && process.env.CRON_SECRET && key === process.env.CRON_SECRET)
+  if (!isSuperAdmin && !keyValid) {
+    return Response.json({ error: 'super_admin or ?key=CRON_SECRET required' }, { status: 403 })
+  }
+
+  // Who owns the new portal as tenant_admin: the session user, or — on the key
+  // path — the first super_admin found (so a scripted provision still gets an
+  // admin linked). Null is fine: provisionPortal just skips the admin link.
+  let actingUserId: number | string | undefined = user?.id
+  if (actingUserId == null && keyValid) {
+    try {
+      const admins = await payload.find({
+        collection: 'users',
+        where: { roles: { contains: 'super_admin' } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      actingUserId = admins.docs?.[0]?.id
+    } catch {
+      /* no admin resolvable — portal still provisions, just unlinked */
+    }
   }
 
   let body: Record<string, unknown> = {}
@@ -53,7 +79,7 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
         missionStatement: typeof body.missionStatement === 'string' ? body.missionStatement : undefined,
         endeavorType: typeof body.endeavorType === 'string' ? body.endeavorType : undefined,
       },
-      { req, actingUserId: user.id },
+      { req, actingUserId },
     )
     return Response.json(result)
   } catch (e) {
