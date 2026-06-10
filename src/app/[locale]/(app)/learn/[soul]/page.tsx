@@ -10,6 +10,7 @@ import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { tenantHeroImage } from '@/utilities/tenantHeroImage'
+import { resolveCanonicalOrigin } from '@/utilities/worksCanonical'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,9 @@ export async function generateMetadata({
   const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''
   const toAbs = (u?: string | null): string | undefined =>
     u ? (u.startsWith('http') ? u : `${origin}${u}`) : undefined
+  // Canonical/og:url point to the Work's publisher root (publish-once-canonical);
+  // images stay on the serving origin (the local copy renders its own assets).
+  const canonicalUrl = `${resolveCanonicalOrigin(soul.canonical, origin)}/learn/${soulId}`
   // Always land on a pretty unfurl: preferred image → tenant home hero.
   const resolveImage = async (preferred?: string | null): Promise<string | undefined> => {
     const direct = toAbs(preferred)
@@ -48,12 +52,12 @@ export async function generateMetadata({
     return {
       title: soul.title,
       description,
-      alternates: { canonical: `${origin}/learn/${soulId}` },
+      alternates: { canonical: canonicalUrl },
       openGraph: {
         title: soul.title,
         description,
         type: 'book',
-        url: `${origin}/learn/${soulId}`,
+        url: canonicalUrl,
         ...(image ? { images: [{ url: image, alt: soul.title }] } : {}),
       },
       twitter: { card: image ? 'summary_large_image' : 'summary', title: soul.title, description, ...(image ? { images: [image] } : {}) },
@@ -69,7 +73,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description: soul.description,
-      url: `${origin}/learn/${soulId}`,
+      url: canonicalUrl,
       ...(image ? { images: [{ url: image, alt: soul.title }] } : {}),
     },
     twitter: { card: image ? 'summary_large_image' : 'summary', title, description: soul.description, ...(image ? { images: [image] } : {}) },

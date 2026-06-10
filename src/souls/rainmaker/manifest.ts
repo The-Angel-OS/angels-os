@@ -14,6 +14,20 @@ export interface SoulDoc {
   image?: string
 }
 
+/**
+ * Canonical-root declaration for a Work. When set, this Work is canonical at the
+ * publishing endeavor's root — the single indexed source of truth. The reader
+ * emits rel=canonical to `origin` even when served from a subscriber's domain, so
+ * SEO/authority flow home to the publisher (publish-once-canonical). When unset,
+ * the Work falls back to self-canonical at the serving origin (legacy behavior).
+ */
+export interface SoulCanonical {
+  /** Canonical origin, e.g. "https://wheredideveryonego.spacesangels.com" (no trailing slash). */
+  origin: string
+  /** Owner-of-record: the publishing endeavor's slug (metadata; `origin` drives the URL). */
+  endeavor?: string
+}
+
 export interface SoulManifest {
   id: string
   title: string
@@ -25,6 +39,8 @@ export interface SoulManifest {
   defaultDoc: string
   docs: SoulDoc[]
   links?: { label: string; url: string }[]
+  /** Canonical publishing root — see SoulCanonical. Unset ⇒ self-canonical. */
+  canonical?: SoulCanonical
   /**
    * If set, this work is a paged book — the reader loads
    * public/library/<bookSlug>/manifest.json and renders <BookReader>
@@ -35,6 +51,9 @@ export interface SoulManifest {
 
 export const rainmakerManifest: SoulManifest = {
   id: 'rainmaker',
+  // Canonical to Clearwater Cruisin (Ken & Ty's endeavor). Adjust origin if a
+  // custom domain replaces the spacesangels subdomain.
+  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin' },
   title: 'THE RAINMAKER',
   subtitle: 'Hilkert v. Courtney et al. — Pinellas County, FL',
   description:

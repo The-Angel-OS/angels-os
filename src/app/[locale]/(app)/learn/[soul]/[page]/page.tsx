@@ -10,6 +10,7 @@ import { SoulViewer } from '../SoulViewer'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { tenantHeroImage } from '@/utilities/tenantHeroImage'
+import { buildWorkCanonicalUrl } from '@/utilities/worksCanonical'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,9 @@ export async function generateMetadata({
     const inferredTitle = loaded.pageTitles[idx]
     const excerpt = pageExcerpt(loaded.baseText[String(p?.order)])
     const description = excerpt || loaded.manifest.subtitle || soul.description || ''
-    const canonical = `${origin}/learn/${soulId}/${loaded.pageSlugs[idx]}`
+    // Canonical points to the Work's PUBLISHER root (publish-once-canonical), not
+    // the serving origin — so a subscriber's copy credits the canonical home.
+    const canonical = buildWorkCanonicalUrl(soul.canonical, soulId, loaded.pageSlugs[idx], origin)
 
     let image = toAbs(p?.image)
     if (!image) image = toAbs(loaded.manifest.pages.find((pg) => pg.image)?.image)
@@ -82,7 +85,7 @@ export async function generateMetadata({
   const doc = soul.docs.find((d) => d.id === page)
   if (!doc) return {}
 
-  const canonical = `${origin}/learn/${soulId}/${doc.id}`
+  const canonical = buildWorkCanonicalUrl(soul.canonical, soulId, doc.id, origin)
   let image = toAbs(doc.image)
   if (!image) image = toAbs(soul.docs.find((d) => d.image)?.image)
   if (!image) {

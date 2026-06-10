@@ -5,6 +5,8 @@ import type { SoulManifest } from '../rainmaker/manifest'
 
 export const wdegManifest: SoulManifest = {
   id: 'wdeg',
+  // Canonical to Ron's WDEG endeavor — the publisher of record.
+  canonical: { origin: 'https://wheredideveryonego.spacesangels.com', endeavor: 'wdeg' },
   title: 'WHERE DID EVERYONE GO',
   subtitle: 'A book — in production for the Library',
   description:
