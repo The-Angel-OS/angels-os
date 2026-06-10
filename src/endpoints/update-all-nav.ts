@@ -12,6 +12,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { DEFAULT_HEADER_NAV, DEFAULT_FOOTER_NAV } from '@/utilities/defaultNavItems'
+import { backfillNavItems } from '@/utilities/navRepair'
 import { buildRichText } from '@/utilities/buildRichText'
 
 export const updateAllNavHandler: PayloadHandler = async (req) => {
@@ -21,11 +22,15 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
   }
 
   const payload = req.payload
-  const results: Array<{ tenant: string; headerId: number; status: string; donatePage?: string }> = []
+  const url = new URL(req.url || '', 'http://localhost')
+  const tenantSlug = url.searchParams.get('tenant')?.trim()
+  const dryRun = ['1', 'true'].includes(url.searchParams.get('dryRun') || '')
+  const results: Array<{ tenant: string; headerId: number; status: string; donatePage?: string; navAdded?: string[] }> = []
 
   const tenants = await payload.find({
     collection: 'tenants',
-    limit: 100,
+    where: tenantSlug ? { slug: { equals: tenantSlug } } : {},
+    limit: tenantSlug ? 1 : 200,
     depth: 0,
     overrideAccess: true,
     select: { id: true, slug: true, name: true },
@@ -51,17 +56,23 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
       // ── Header ───────────────────────────────────────────
       let headerStatus: string
       let headerId: number
+      let navAdded: string[] = []
 
       if (headers.docs.length > 0) {
         const primary = headers.docs[0]
         headerId = primary.id as number
-        ops.push(payload.update({ collection: 'header', id: primary.id, data: { navItems: DEFAULT_HEADER_NAV } as any, overrideAccess: true }))
-        // Delete duplicates concurrently
-        if (headers.docs.length > 1) {
+        // MERGE missing defaults (backfill) — do NOT clobber a tenant's custom nav.
+        const { items, added } = backfillNavItems((primary as any).navItems || [], DEFAULT_HEADER_NAV)
+        navAdded = added
+        if (added.length > 0 && !dryRun) {
+          ops.push(payload.update({ collection: 'header', id: primary.id, data: { navItems: items } as any, overrideAccess: true }))
+        }
+        // Delete duplicate header docs (the extras, not the primary).
+        if (headers.docs.length > 1 && !dryRun) {
           ops.push(...headers.docs.slice(1).map((d) => payload.delete({ collection: 'header', id: d.id, overrideAccess: true })))
         }
-        headerStatus = `nav updated (${headers.docs.length - 1} dupes removed)`
-      } else {
+        headerStatus = `${added.length ? `+${added.join(',')}` : 'nav present'}${headers.docs.length > 1 ? ` (${headers.docs.length - 1} dupes${dryRun ? ' would be' : ''} removed)` : ''}`
+      } else if (!dryRun) {
         const created = await payload.create({
           collection: 'header',
           data: { tenant: tenantId, label: 'Main Header', navItems: DEFAULT_HEADER_NAV } as any,
@@ -69,21 +80,29 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
         })
         headerId = created.id as number
         headerStatus = 'header created'
+      } else {
+        headerId = -1
+        headerStatus = 'header would be created'
       }
 
       // ── Footer ───────────────────────────────────────────
       if (footers.docs.length > 0) {
-        ops.push(payload.update({ collection: 'footer', id: footers.docs[0].id, data: { navItems: DEFAULT_FOOTER_NAV } as any, overrideAccess: true }))
-        if (footers.docs.length > 1) {
+        const { items, added } = backfillNavItems((footers.docs[0] as any).navItems || [], DEFAULT_FOOTER_NAV)
+        if (added.length > 0 && !dryRun) {
+          ops.push(payload.update({ collection: 'footer', id: footers.docs[0].id, data: { navItems: items } as any, overrideAccess: true }))
+        }
+        if (footers.docs.length > 1 && !dryRun) {
           ops.push(...footers.docs.slice(1).map((d) => payload.delete({ collection: 'footer', id: d.id, overrideAccess: true })))
         }
-      } else {
+      } else if (!dryRun) {
         ops.push(payload.create({ collection: 'footer', data: { tenant: tenantId, label: 'Main Footer', navItems: DEFAULT_FOOTER_NAV } as any, overrideAccess: true }))
       }
 
       // ── Donate page ──────────────────────────────────────
       let donatePageStatus = 'already exists'
-      if (existingDonate.docs.length === 0) {
+      if (existingDonate.docs.length === 0 && dryRun) {
+        donatePageStatus = 'would be created'
+      } else if (existingDonate.docs.length === 0) {
         ops.push(
           payload.create({
             collection: 'pages',
@@ -109,15 +128,16 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
         donatePageStatus = 'created'
       }
 
-      await Promise.all(ops)
+      if (!dryRun) await Promise.all(ops)
 
-      results.push({ tenant: slug, headerId, status: headerStatus, donatePage: donatePageStatus })
+      results.push({ tenant: slug, headerId, status: headerStatus, donatePage: donatePageStatus, ...(navAdded.length ? { navAdded } : {}) })
     }),
   )
 
   return Response.json({
     success: true,
-    message: `Updated ${results.length} tenants: nav + donate pages`,
+    dryRun,
+    message: `${dryRun ? 'DRY RUN — ' : ''}Scanned ${results.length} tenant(s): nav backfill + donate pages`,
     results,
   })
 }

@@ -53,11 +53,15 @@ exists unless explicitly forced, and (c) never be advertised by a fragile
 - **Fix when ready:** scope each delete to the default tenant, or split "reset
   default tenant" from "fresh bootstrap" explicitly.
 
-### update-all-nav — iterates ALL tenants, concurrent deletes
+### update-all-nav — iterated ALL tenants, CLOBBERED nav  ✅ fixed
 - **Where:** `src/endpoints/update-all-nav.ts`
-- **Guard:** super_admin only (acceptable reachability).
-- **Fix when ready:** add `?tenant=<slug>` scoping + `?dryRun=true`; make duplicate
-  deletion sequential with per-doc logging.
+- **Guard:** super_admin only.
+- **Was:** overwrote each tenant's `navItems` with DEFAULT_HEADER_NAV — wiping any
+  custom nav — across all 100 tenants, no scope, no preview.
+- **Done:** now MERGES via `backfillNavItems` (never clobbers custom nav), adds
+  `?tenant=<slug>` scoping and `?dryRun=true` (reports `navAdded[]` + would-create/
+  would-remove, mutates nothing). Largely superseded by `nav-repair`; kept for the
+  donate-page + duplicate-doc cleanup it also does.
 
 ### ensure-page-channels — naive "Page:" name match  ✅ dry-run added
 - **Where:** `src/endpoints/ensure-page-channels.ts`
