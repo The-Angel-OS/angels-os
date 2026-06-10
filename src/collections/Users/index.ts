@@ -6,6 +6,7 @@ import { publicAccess } from '@/access/publicAccess'
 import { adminOrSelf } from '@/access/adminOrSelf'
 import { checkRole } from '@/access/utilities'
 
+import { computeFederatedIdentityId } from '@/utilities/federatedIdentity'
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
 import { autoJoinTenantSpaces } from './hooks/autoJoinTenantSpaces'
 import { notifyUserRegistered } from './hooks/notifyUserRegistered'
@@ -44,6 +45,21 @@ export const Users: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+    },
+    {
+      // Deterministic GLOBAL identity, derived from email — the same person across
+      // every federation node. Virtual: computed on read, never stored, so it adds
+      // no column and cannot drift across the two databases. See federatedIdentity.ts.
+      name: 'federatedIdentityId',
+      type: 'text',
+      virtual: true,
+      admin: {
+        readOnly: true,
+        description: 'Stable global identity (derived from email). Same value on every Angel OS node.',
+      },
+      hooks: {
+        afterRead: [({ data }) => computeFederatedIdentityId((data?.email as string) || '')],
+      },
     },
     {
       name: 'isSystemUser',
