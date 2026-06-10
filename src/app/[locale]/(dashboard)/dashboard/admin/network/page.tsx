@@ -20,7 +20,7 @@ export default async function NetworkPage({ params }: { params: Promise<{ locale
 
   const payload = await getPayload({ config })
   const { user } = await payload.auth({ headers: await headers() })
-  if (!user) redirect(`${prefix}/login`)
+  if (!user) redirect(`${prefix}/dashboard`) // loop-proof: never /login from a deep page
   if (!checkRole(ADMIN_ROLES, user)) redirect(`${prefix}/dashboard`)
 
   return (

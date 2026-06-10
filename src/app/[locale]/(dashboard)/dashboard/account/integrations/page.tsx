@@ -22,7 +22,7 @@ export default async function DashboardConnectorsPage({
   const payload = await getPayload({ config: configPromise })
 
   const { user } = await payload.auth({ headers: await headers() })
-  if (!user) redirect(`${prefix}/login`)
+  if (!user) redirect(`${prefix}/dashboard`) // loop-proof: never /login from a deep page
 
   // Resolve tenant (cached, React.cache deduped)
   const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()

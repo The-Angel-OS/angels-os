@@ -24,7 +24,7 @@ export default async function CrewPage({ params }: { params: Promise<{ locale: s
   const payload = await getPayload({ config })
   const headersList = await headers()
   const { user } = await payload.auth({ headers: headersList })
-  if (!user) redirect(`${prefix}/login`)
+  if (!user) redirect(`${prefix}/dashboard`) // loop-proof: never /login from a deep page
 
   const { tenant, tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) redirect(`${prefix}/dashboard`)

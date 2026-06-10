@@ -23,7 +23,12 @@ export default async function WorksPage({ params }: { params: Promise<{ locale: 
   const payload = await getPayload({ config })
   const headersList = await headers()
   const { user } = await payload.auth({ headers: headersList })
-  if (!user) redirect(`${prefix}/login`)
+  // Loop-proof: send unauthorized visitors to the (publicly viewable) dashboard,
+  // NEVER to /login. Redirecting a deep admin page to /login causes a Google-auth
+  // loop when the session cookie isn't readable in this context (e.g. on www.*
+  // for a user who logged in on a tenant subdomain). The dashboard layout already
+  // serves anonymous users, so /dashboard is always a safe, non-looping landing.
+  if (!user) redirect(`${prefix}/dashboard`)
 
   const { tenant, tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) redirect(`${prefix}/dashboard`)
