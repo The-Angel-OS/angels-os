@@ -65,9 +65,14 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
 
     // Final fallback: return the default tenant so the site always has context
     const fallbackSlug = process.env.DEFAULT_TENANT_SLUG || 'default'
+    // ⚠️ DO NOT cache this generic fallback under `domain`. Caching the DEFAULT
+    // tenant under a real host key (e.g. harpazo.kendev.co) poisons that host for
+    // the full TTL: one transient domain miss under load → every later request
+    // serves the platform/default home for 120s. We only cache the fallback under
+    // its own SLUG key, so a real domain re-attempts its match next request and
+    // self-heals. (This was the "harpazo sometimes loads Angel OS default" bug.)
     const cachedFallback = tenantBySlugCache.get(fallbackSlug) as Tenant | undefined
     if (cachedFallback !== undefined) {
-      tenantByDomainCache.set(domain, cachedFallback)
       return cachedFallback
     }
     const defaults = await payload.find({
@@ -79,8 +84,7 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
     })
 
     const result = defaults.docs?.[0] ?? null
-    tenantBySlugCache.set(fallbackSlug, result)
-    tenantByDomainCache.set(domain, result)
+    if (result) tenantBySlugCache.set(fallbackSlug, result) // never cache null
     return result
   } catch (err) {
     console.error('[fetchTenantByDomain] DB query failed for domain:', domain, err)
