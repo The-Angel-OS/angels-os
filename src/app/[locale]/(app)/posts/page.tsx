@@ -32,7 +32,7 @@ export default async function PostsPage() {
   try {
     const payload = await getPayload({ config: configPromise })
     const { tenantFilter, tenant } = await resolveTenantFromHeaders()
-    heroImage = tenantHeroImage(tenant)
+    heroImage = tenantHeroImage(tenant, 'posts')
 
     posts = (await payload.find({
       collection: 'posts',

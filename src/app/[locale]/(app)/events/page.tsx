@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EventsPage() {
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter, tenant } = await resolveTenantFromHeaders()
-  const heroImage = tenantHeroImage(tenant)
+  const heroImage = tenantHeroImage(tenant, 'events')
 
   let events: { docs: any[]; totalDocs: number } = { docs: [], totalDocs: 0 }
   try {

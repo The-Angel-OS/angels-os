@@ -16,7 +16,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
           title="Shop"
           subtitle="Products crafted with care"
           icon="🛍️"
-          image={tenantHeroImage(tenant)}
+          image={tenantHeroImage(tenant, 'shop')}
         />
         <Search className="mb-4" />
 
