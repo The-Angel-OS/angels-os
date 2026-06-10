@@ -110,6 +110,7 @@ import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { accountAuditHandler } from '@/endpoints/account-audit'
+import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -733,6 +734,13 @@ export default buildConfig({
       path: '/provision-ops/account-audit',
       method: 'get',
       handler: accountAuditHandler,
+    },
+    // Backfill the Form Builder contact form (LEO/AI-Bus hook) onto existing
+    // tenants whose /contact is still plain text. GET; super_admin or ?key=.
+    {
+      path: '/provision-ops/contact-form-repair',
+      method: 'get',
+      handler: contactFormRepairHandler,
     },
     {
       path: '/booking-ops/checkout',

@@ -19,6 +19,7 @@ import { createLexicalContent, createHeadingNode, createParagraphNode } from '@/
 import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
 import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
 import { verifyEndeavorOnboarding } from '@/utilities/verifyEndeavorOnboarding'
+import { ensureTenantContactForm } from '@/utilities/ensureTenantContactForm'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
 
 export interface ProvisionPortalInput {
@@ -178,6 +179,15 @@ export async function provisionPortal(
     log.push(`endeavor #${endeavor.id}`)
   } else {
     log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
+  }
+
+  // 4a2. Wire the real Form Builder contact form (submissions route to LEO via
+  //      the AI Bus). Idempotent; non-fatal so provisioning never fails on it.
+  try {
+    const cf = await ensureTenantContactForm(payload, tenant.id, req)
+    log.push(`contact form: ${cf.note}`)
+  } catch (e) {
+    log.push(`contact form skipped: ${(e as Error).message}`)
   }
 
   // 4b. Ensure ALL baseline spaces exist: AI Bus + main + DMs + community.
