@@ -109,6 +109,7 @@ import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
+import { accountAuditHandler } from '@/endpoints/account-audit'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -725,6 +726,13 @@ export default buildConfig({
       path: '/provision-ops/nav-repair',
       method: 'get',
       handler: navRepairHandler,
+    },
+    // READ-ONLY account classification (system/founder/test/member/orphan).
+    // GET; super_admin or ?key=. Nothing mutated.
+    {
+      path: '/provision-ops/account-audit',
+      method: 'get',
+      handler: accountAuditHandler,
     },
     {
       path: '/booking-ops/checkout',
