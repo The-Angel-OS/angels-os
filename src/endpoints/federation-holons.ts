@@ -20,6 +20,7 @@
 
 import type { Payload, PayloadHandler, Where } from 'payload'
 import { logFederationAction } from '@/federation/auditLog'
+import { buildCatalogIndexForTenant, type CatalogIndexEntry } from '@/utilities/catalogIndex'
 
 /** Strip a leading/embedded www. so we never emit slug.www.example.com. */
 const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
@@ -84,6 +85,7 @@ export async function buildLocalHolons(
   payload: Payload,
   conditions: Where[] = [{ 'federation.networkVisible': { equals: true } }],
   limit = 100,
+  opts: { attachCatalog?: boolean } = {},
 ): Promise<{ holons: LocalHolon[]; total: number }> {
   const endeavors = await payload.find({
     collection: 'endeavors',
@@ -93,7 +95,33 @@ export async function buildLocalHolons(
     overrideAccess: true,
     sort: '-updatedAt',
   })
-  return { holons: endeavors.docs.map(shapeHolon), total: endeavors.totalDocs }
+
+  // Default path (directory browse): no per-endeavor product queries — keep it cheap.
+  if (!opts.attachCatalog) {
+    return { holons: endeavors.docs.map(shapeHolon), total: endeavors.totalDocs }
+  }
+
+  // Gossip path (outbound heartbeat): attach each endeavor's compact catalog index
+  // so the peer caches it locally — rides inside the existing `endeavors` json,
+  // so Discovery gets cross-node catalog with zero new schema and zero render-time fetch.
+  const holons = await Promise.all(
+    endeavors.docs.map(async (doc) => {
+      const base = shapeHolon(doc)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawTenant = (doc as any).tenant
+      const tenantId = rawTenant && typeof rawTenant === 'object' ? rawTenant.id : rawTenant
+      let catalog: CatalogIndexEntry[] = []
+      if (tenantId != null) {
+        try {
+          catalog = await buildCatalogIndexForTenant(payload, tenantId)
+        } catch {
+          catalog = [] // non-fatal — gossip the endeavor without its catalog
+        }
+      }
+      return { ...base, catalog }
+    }),
+  )
+  return { holons, total: endeavors.totalDocs }
 }
 
 export const federationHolonsHandler: PayloadHandler = async (req) => {

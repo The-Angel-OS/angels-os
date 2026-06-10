@@ -247,7 +247,14 @@ export const federationHeartbeatCronHandler: PayloadHandler = async (req) => {
     // ── Build our endeavors for the peer to cache (Discovery gossip) ──
     let localEndeavors: unknown[] = []
     try {
-      const { holons } = await buildLocalHolons(req.payload)
+      // attachCatalog: each gossiped endeavor carries its compact catalog index,
+      // so peers cache cross-node catalog locally (Discovery searches it offline).
+      const { holons } = await buildLocalHolons(
+        req.payload,
+        undefined,
+        100,
+        { attachCatalog: true },
+      )
       localEndeavors = holons
     } catch {
       // Non-fatal — heartbeat continues without endeavor gossip
