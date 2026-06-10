@@ -107,6 +107,7 @@ import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { setMembershipHandler } from '@/endpoints/set-membership'
+import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
@@ -710,6 +711,13 @@ export default buildConfig({
       path: '/provision-ops/set-membership',
       method: 'post',
       handler: setMembershipHandler,
+    },
+    // Virtual DM roster: every tenant member (+ LEO) as a DM marker, channel
+    // created lazily on first use. GET; authenticated. ?tenantId=<id>.
+    {
+      path: '/messages-ops/dm-roster',
+      method: 'get',
+      handler: dmRosterHandler,
     },
     {
       path: '/booking-ops/checkout',
