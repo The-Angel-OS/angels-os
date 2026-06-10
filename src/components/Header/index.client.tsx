@@ -222,7 +222,8 @@ export function HeaderClient({ header, tenant }: Props) {
                     // Hierarchical: any item with children renders as a dropdown
                     // (the parent stays reachable as the first entry), so Pages
                     // hang under Home and any future parent gets the same treatment.
-                    const children = Array.isArray(item.children) ? item.children : []
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const children: any[] = Array.isArray((item as any).children) ? (item as any).children : []
                     if (children.length > 0) {
                       return (
                         <NavigationMenuItem key={item.id}>
@@ -230,19 +231,25 @@ export function HeaderClient({ header, tenant }: Props) {
                             {item.link.label}
                           </NavigationMenuTrigger>
                           <NavigationMenuContent>
-                            <ul className="grid w-56 gap-0.5 p-2">
-                              {[item, ...children].map((c, ci) => (
+                            <ul className={cn('grid gap-0.5 p-2', children.some((c: { image?: string }) => c.image) ? 'w-72' : 'w-56')}>
+                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                              {([item, ...children] as any[]).map((c: any, ci: number) => (
                                 <li key={c.id || `${item.id}-c${ci}`}>
                                   <NavigationMenuLink
                                     asChild
                                     active={isActive(c.link?.url)}
-                                    className="block rounded-md px-3 py-2 text-xs font-medium uppercase tracking-wider"
+                                    className="block rounded-md px-2 py-1.5 text-xs font-medium uppercase tracking-wider"
                                   >
                                     <Link
                                       href={resolveHref(c.link)}
                                       {...(c.link?.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                      className="flex items-center gap-2"
                                     >
-                                      {c.link?.label}
+                                      {c.image ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={c.image} alt="" className="h-8 w-8 flex-shrink-0 rounded object-cover" />
+                                      ) : null}
+                                      <span className={cn('min-w-0 truncate', c.image && 'normal-case')}>{c.link?.label}</span>
                                     </Link>
                                   </NavigationMenuLink>
                                 </li>

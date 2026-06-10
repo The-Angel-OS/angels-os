@@ -4,6 +4,7 @@ import config from '@payload-config'
 
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, type PageLite } from '@/utilities/pagesNav'
+import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 
 import './index.css'
 import { HeaderClient } from './index.client'
@@ -44,9 +45,32 @@ export async function Header({ tenant }: Props) {
         slug: p.slug,
         title: p.title,
       }))
-      header = { ...header, navItems: injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList) }
+
+      // Latest posts → Posts dropdown, each with its meta image as a thumbnail.
+      const posts = await payload.find({
+        collection: 'posts',
+        where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
+        limit: 5,
+        depth: 1, // resolve meta.image → media
+        sort: '-publishedOn',
+        overrideAccess: true,
+      })
+      const thumb = (m: unknown): string | null => {
+        if (!m || typeof m !== 'object') return null
+        const media = m as { url?: string | null; sizes?: { thumbnail?: { url?: string | null } } }
+        return media.sizes?.thumbnail?.url || media.url || null
+      }
+      const postList: PostLite[] = (posts.docs as Array<{ slug?: string | null; title?: string | null; meta?: { image?: unknown } }>).map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        image: thumb(p.meta?.image),
+      }))
+
+      let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList)
+      navItems = injectPostsUnderNav(navItems, postList)
+      header = { ...header, navItems }
     } catch (err) {
-      console.error('[Header] Failed to inject Pages under Home:', err)
+      console.error('[Header] Failed to inject dynamic nav (pages/posts):', err)
     }
   }
 
