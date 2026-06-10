@@ -28,9 +28,11 @@ import { gotifyNotify } from '@/utilities/gotifyNotify'
  * Canonical Angel OS event types that can be escalated to Gotify.
  *
  * WIRED today: `error` / `warning` (logError tap, src/utilities/logError.ts —
- * funnels most system events) and `user_registered` (Users afterChange hook,
+ * funnels most system events), `user_registered` (Users afterChange hook,
  * src/collections/Users/hooks/notifyUserRegistered.ts — the operator's pulse on
- * a quiet node).
+ * a quiet node), and `form_submission` (routeFormToAIBus, src/hooks/
+ * routeFormToAIBus.ts — a new contact/lead-capture submission lights up the
+ * operator's phone).
  *
  * SEAM (stored in policy, not yet emitted): `conversation_started`,
  * `budget_exceeded`, `provider_failover`, `vercel_spend`, `federation`, `order`,
@@ -42,6 +44,7 @@ export type EscalationEventType =
   | 'error'
   | 'warning'
   | 'user_registered'
+  | 'form_submission'
   | 'conversation_started'
   | 'budget_exceeded'
   | 'provider_failover'

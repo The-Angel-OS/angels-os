@@ -1,5 +1,6 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { createFormSubmissionContent } from '@/utilities/messageContent'
+import { dispatchToGotify } from '@/utilities/gotifyEscalation'
 
 /**
  * Route form submissions to the AI Bus (Messages collection).
@@ -174,6 +175,23 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
       } as any,
       overrideAccess: true,
     })
+
+    // Escalate to Gotify so the operator's phone lights up on a new lead/contact.
+    // Fail-soft and policy-gated per gotify connector (see gotifyEscalation.ts) —
+    // dedupeKey is per-form so a burst of one form's submissions is throttled but
+    // different forms still each get through.
+    const firstValue = (name: string) =>
+      submissionData.find((f) => f.field.toLowerCase().includes(name))?.value
+    const who = firstValue('name') || firstValue('email') || 'someone'
+    void dispatchToGotify(payload, {
+      tenantId,
+      eventType: 'form_submission',
+      title: `📋 ${formTitle}`,
+      message: `New submission from ${String(who)}`,
+      priority: 5,
+      dedupeKey: `form:${formId}`,
+      extras: { formId, submissionId: doc.id },
+    }).catch(() => {})
   } catch (err) {
     // Non-blocking: log but never fail the form submission
     req.payload.logger?.error?.({

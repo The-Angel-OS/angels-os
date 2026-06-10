@@ -7,6 +7,7 @@ import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { angelOsStripeAdapter } from '@/lib/angel-os-stripe-adapter'
 import { routeFormToAIBus } from '@/hooks/routeFormToAIBus'
+import { angelOsEmailLayout } from '@/utilities/angelOsEmailLayout'
 
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -37,6 +38,17 @@ export const plugins: Plugin[] = [
     fields: {
       payment: false,
     },
+    // Wrap every Form Builder submission email in the shared Angel OS branded
+    // shell (green "A" mark + "Powered by Angel OS" footer) so a contact/lead
+    // form notification looks like the rest of our mail, not raw plugin HTML.
+    beforeEmail: (emails) =>
+      emails.map((email) => ({
+        ...email,
+        html: angelOsEmailLayout({
+          heading: email.subject,
+          bodyHtml: email.html,
+        }),
+      })),
     formSubmissionOverrides: {
       admin: {
         group: 'Content',
