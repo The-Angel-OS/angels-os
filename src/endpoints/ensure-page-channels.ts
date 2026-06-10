@@ -33,6 +33,9 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
 
   const slug = url.searchParams.get('tenant')?.trim()
   const all = ['1', 'true'].includes(url.searchParams.get('all') || '')
+  // Preview mode: report which legacy channels WOULD be deleted without touching
+  // them, so an operator can confirm none are legitimately-named before running.
+  const dryRun = ['1', 'true'].includes(url.searchParams.get('dryRun') || '')
 
   // Resolve target tenant IDs
   let tenantIds: Array<number | string> = []
@@ -47,17 +50,25 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'pass ?tenant=<slug> or ?all=1' }, { status: 400 })
   }
 
-  const results: Array<{ tenant: string | number; created: number; deleted: number; reparented: number; errors: number }> = []
+  const results: Array<{
+    tenant: string | number
+    created: number
+    deleted: number
+    reparented: number
+    errors: number
+    deletedChannels?: Array<{ id: number | string; name?: string; slug?: string }>
+  }> = []
 
   for (const tenantId of tenantIds) {
     let created = 0
     let deleted = 0
     let errors = 0
+    const deletedChannels: Array<{ id: number | string; name?: string; slug?: string }> = []
     let reparented = 0
 
     // Re-home any page channels that drifted onto a non-AI-Bus space.
     const aiBusSpaceId = await resolveAiBusSpaceId(payload, tenantId)
-    if (aiBusSpaceId) {
+    if (aiBusSpaceId && !dryRun) {
       try {
         reparented = await reparentPageChannelsToAiBus(payload, tenantId, aiBusSpaceId)
       } catch (e) {
@@ -88,6 +99,12 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       // NAME starts with our generated "Page:" prefix as legacy page channels.
       if (typeof ch.name !== 'string' || !ch.name.startsWith('Page:')) continue
       if (typeof ch.slug === 'string' && ch.slug.startsWith('page:')) continue // already correct
+      // Record every candidate (for visibility), then delete unless previewing.
+      deletedChannels.push({ id: ch.id, name: ch.name, slug: ch.slug })
+      if (dryRun) {
+        deleted++ // count as "would delete"
+        continue
+      }
       try {
         await payload.delete({ collection: 'channels', id: ch.id, overrideAccess: true })
         deleted++
@@ -126,6 +143,10 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       if (seen.has(key)) continue
       seen.add(key)
 
+      if (dryRun) {
+        created++ // count as "would create"
+        continue
+      }
       try {
         await ensurePageChannel(payload, { channel, tenantId })
         created++
@@ -135,11 +156,11 @@ export const ensurePageChannelsHandler: PayloadHandler = async (req) => {
       }
     }
 
-    results.push({ tenant: tenantId, created, deleted, reparented, errors })
+    results.push({ tenant: tenantId, created, deleted, reparented, errors, ...(deletedChannels.length ? { deletedChannels } : {}) })
   }
 
   const totalCreated = results.reduce((s, r) => s + r.created, 0)
   const totalDeleted = results.reduce((s, r) => s + r.deleted, 0)
   const totalReparented = results.reduce((s, r) => s + r.reparented, 0)
-  return Response.json({ ok: true, totalCreated, totalDeleted, totalReparented, results })
+  return Response.json({ ok: true, dryRun, totalCreated, totalDeleted, totalReparented, results })
 }

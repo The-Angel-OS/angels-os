@@ -59,12 +59,16 @@ exists unless explicitly forced, and (c) never be advertised by a fragile
 - **Fix when ready:** add `?tenant=<slug>` scoping + `?dryRun=true`; make duplicate
   deletion sequential with per-doc logging.
 
-### ensure-page-channels — naive "Page:" name match
-- **Where:** `src/endpoints/ensure-page-channels.ts:~85-98`
+### ensure-page-channels — naive "Page:" name match  ✅ dry-run added
+- **Where:** `src/endpoints/ensure-page-channels.ts`
 - **Guard:** super_admin or `?key=CRON_SECRET`.
 - **Issue:** deletes channels whose name starts with "Page:" but slug is malformed —
   a legit "Page: FAQ" channel could be culled on the next cron run.
-- **Fix when ready:** match only the auto-generated pattern; add `?dryRun=true` + log.
+- **Done:** `?dryRun=true` reports `deletedChannels[]` (id/name/slug) per tenant and
+  mutates NOTHING (skips delete + create + reparent) — preview before running.
+  Default deletions also now report `deletedChannels[]` for visibility.
+- **Still open:** a positive discriminator for auto-generated vs hand-named "Page:"
+  channels (e.g. a type/flag) so the match can't false-positive at all.
 
 ### setup wizard re-trigger heuristic
 - **Where:** `src/app/[locale]/(dashboard)/dashboard/setup/actions.ts` `checkSetupRequired`
