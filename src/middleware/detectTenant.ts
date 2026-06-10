@@ -10,6 +10,12 @@
  *   localhost → env.DEFAULT_TENANT_SLUG (development)
  */
 
+/**
+ * Subdomains that are platform/infrastructure context, NEVER a tenant slug.
+ * A tenant can't be named any of these (and shouldn't want to).
+ */
+const RESERVED_SUBDOMAINS = new Set(['www', 'platform', 'app', 'admin', 'default', 'api'])
+
 export function detectTenantFromHostname(hostname: string): string | null {
   // Check explicit tenant domain mappings from env
   const mapping = process.env.TENANT_DOMAINS
@@ -60,8 +66,12 @@ export function detectTenantFromHostname(hostname: string): string | null {
 
   // If we have at least 3 parts (subdomain.domain.tld), extract subdomain
   if (parts.length >= 3) {
-    // Skip www. prefix — treat as platform/root context (no tenant)
-    if (parts[0] === 'www') return null
+    // Reserved infrastructure subdomains are PLATFORM context, not tenants — so
+    // platform.spacesangels.com behaves exactly like www.spacesangels.com.
+    // (Before, only 'www' was skipped, so 'platform' was parsed as a tenant slug
+    // → it resolved to a different/empty context: the "Kenneth sees no channels
+    // on platform.* but Tyler does on www.*" bug.)
+    if (RESERVED_SUBDOMAINS.has(parts[0])) return null
     // For *.kendev.co, take everything before kendev.co
     const subdomain = parts.slice(0, -2).join('-').toLowerCase()
     return subdomain || null
