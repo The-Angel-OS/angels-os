@@ -14,6 +14,7 @@ import { useAuth } from '@/providers/Auth'
 import { usePresence } from '@/hooks/usePresence'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
+import { partitionNavItems } from '@/utilities/navPartition'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -30,6 +31,10 @@ const MAX_INLINE_NAV = 6
 type Props = {
   header: Header | null
   tenant?: Tenant | null
+  /** Shop is first-class only when there are products; else it collapses to More. */
+  hasProducts?: boolean
+  /** Events is first-class only when there are events; else it collapses to More. */
+  hasEvents?: boolean
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -125,7 +130,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true }: Props) {
   const { user } = useAuth()
 
   // Presence — marks this user online + counts who else is, site-wide.
@@ -186,10 +191,17 @@ export function HeaderClient({ header, tenant }: Props) {
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
 
-  // Keep the primary items inline; collapse the rest into a "More ▾" dropdown so
-  // the bar never wraps to a second row regardless of how many nav items exist.
-  const primaryItems = menu.slice(0, MAX_INLINE_NAV)
-  const overflowItems = menu.slice(MAX_INLINE_NAV)
+  // Keep primary items inline; collapse the rest into "More ▾". Dashboard always
+  // lives in More; Shop/Events demote to More until they're populated (then they
+  // become first-class automatically, since the flags come from live counts).
+  const demoteUrls: string[] = []
+  if (!hasProducts) demoteUrls.push('/shop')
+  if (!hasEvents) demoteUrls.push('/events')
+  const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
+    maxInline: MAX_INLINE_NAV,
+    forceOverflowUrls: ['/dashboard'],
+    demoteUrls,
+  })
 
   const isActive = (url?: string | null) =>
     url && url !== '/' ? pathname.includes(url) : false
