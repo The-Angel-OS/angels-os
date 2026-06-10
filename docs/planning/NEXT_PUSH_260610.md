@@ -101,6 +101,27 @@ The content-federation counterpart to the catalog mesh. **Publish-once-canonical
 
 ---
 
+## Virtual DM roster (Direct Messages = everyone, presence-aware)
+
+Vision: every portal member sees each other (+ LEO) as **virtual DM channels** under
+Direct Messages — the marker is always there, the channel is created lazily on first
+use. Presence dots show who's online here. Later, a **federation-wide DM band**
+appears underneath (dynamic cross-node DMs), same entry shape.
+
+✅ **Data layer SHIPPED (afa036d):** `src/utilities/dmRoster.ts` (pure: `dmSlugFor`
+mirrors `dmChannels.findOrCreateDM`, `buildDmRoster` = LEO first, self excluded,
+existing convos floated up) + `GET /api/messages-ops/dm-roster?tenantId=<id>` (active
+members + LEO, each with `dmSlug` + `hasChannel`). 8 tests.
+
+**TODO (UI + federation):**
+- [ ] Render the roster under Direct Messages in `MultiChannelChat` — virtual entries
+      for members with no channel yet; click → `POST /api/dm/find-or-create` (lazy),
+      then open. Today only existing dm channels render (`dmChannels.length > 0`).
+- [ ] Overlay presence dots by userId from `usePresence` (online/away) — "who's online here".
+- [ ] Federation-wide DM band underneath (`scope:'federation'`, resolved across peers).
+
+---
+
 ## Federation roadmap (identity + catalog hardening, in order)
 
 Decisions locked this session (chosen by Kenneth): **global identity claim** (not SSO yet),
