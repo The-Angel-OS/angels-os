@@ -70,6 +70,12 @@ No representation yet — design as a sibling that reuses the quest objective/ge
 
 ## Works canonical-root + syndication (endeavor-scoped Works, slice #3)
 
+**North-star goal: an Audible-like ecosystem** — a listenable/readable subscription
+library. Creators publish canonically (Ron's book, answer53, rainmaker, WDEG); users
+subscribe and *consume* (read + listen, building on the existing book-viewer + read-aloud)
+across endeavors; the platform syndicates copies while canonical authority/SEO credit
+flows home to the publisher. Works = the catalog of this library.
+
 The content-federation counterpart to the catalog mesh. **Publish-once-canonical:**
 - A Work is canonical at its **publishing endeavor's root** — the single indexed source
   of truth. WDEG → `wheredideveryonego.spacesangels.com/...`; **answer53 + rainmaker →
