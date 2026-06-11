@@ -192,29 +192,42 @@ const queryProductBySlug = async ({ slug }: { slug: string }) => {
   const { tenantFilter } = await resolveTenantFromHeaders()
   const payload = await getPayload({ config: configPromise })
 
-  const result = await payload.find({
-    collection: 'products',
-    depth: 3,
-    draft,
-    limit: 1,
-    overrideAccess: true, // Public products must be readable without auth
-    pagination: false,
-    where: {
-      and: [
-        { slug: { equals: slug } },
-        ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-        tenantFilter,
-      ],
-    },
-    populate: {
-      variants: {
-        title: true,
-        priceInUSD: true,
-        inventory: true,
-        options: true,
+  const findProduct = (useDraft: boolean) =>
+    payload.find({
+      collection: 'products',
+      depth: 3,
+      draft: useDraft,
+      limit: 1,
+      overrideAccess: true, // Public products must be readable without auth
+      pagination: false,
+      where: {
+        and: [
+          { slug: { equals: slug } },
+          ...(useDraft ? [] : [{ _status: { equals: 'published' } }]),
+          tenantFilter,
+        ],
       },
-    },
-  })
+      populate: {
+        variants: {
+          title: true,
+          priceInUSD: true,
+          inventory: true,
+          options: true,
+        },
+      },
+    })
 
-  return result.docs?.[0] || null
+  const result = await findProduct(draft)
+  if (result.docs?.[0]) return result.docs[0]
+
+  // A published product must never 404 just because the visitor has draft mode on
+  // (e.g. a lingering __prerender_bypass cookie from a past admin preview). The
+  // draft query reads the versions table, which is empty for products seeded as
+  // published — so fall back to the published query before giving up.
+  if (draft) {
+    const published = await findProduct(false)
+    return published.docs?.[0] || null
+  }
+
+  return null
 }
