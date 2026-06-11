@@ -21,6 +21,7 @@
  */
 
 import type { Payload, Where } from 'payload'
+import type { ExecutionTrace } from '@/utilities/executionTrace'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { BookingEngine } from './bookingEngine'
@@ -3299,6 +3300,14 @@ export type ToolExecutorContext = {
   channelSlug?: string
   /** Sprint 44: Per-tenant AI provider config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
+  /**
+   * Optional per-turn audit trail. When present, executeToolCall records each
+   * tool call as a step (ok/fail + timing) so a multi-tool LEO turn leaves a
+   * breadcrumb of how it got there. The caller (leo-stream) creates one trace
+   * per turn, threads it here, then persists trace.toJSON() to the assistant
+   * message metadata and escalates on failure. See src/utilities/executionTrace.ts.
+   */
+  trace?: ExecutionTrace
 }
 
 /**
@@ -3332,7 +3341,13 @@ export async function executeToolCall(
 
   // Validate mutation/outbound tool inputs before execution
   const validationError = validateToolInput(toolName, toolInput)
-  if (validationError) return validationError
+  if (validationError) {
+    ctx.trace?.skip(toolName, 'input rejected', { validationError })
+    return validationError
+  }
+
+  // Audit each tool call as a step on the per-turn trace (if the caller wired one).
+  const step = ctx.trace?.begin(toolName, { input: redactToolInput(toolInput) })
 
   try {
     const result = await executeToolSwitch(toolName, toolInput, ctx, payload, tenantId)
@@ -3344,11 +3359,30 @@ export async function executeToolCall(
       revalidateAfterMutation({ collection, slug, tenantId: Number(tenantId) })
     }
 
+    if (step) ctx.trace?.end(step, 'ok', { meta: { bytes: result?.length ?? 0 } })
     return result
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error'
+    if (step) ctx.trace?.end(step, 'fail', { error: errMsg })
     logCaughtError(`leo-tools/${toolName}`, err).catch(() => {})
-    return `Error querying data: ${err instanceof Error ? err.message : 'Unknown error'}`
+    return `Error querying data: ${errMsg}`
   }
+}
+
+/**
+ * Shallow-redact a tool input for the audit trail: drop obvious secrets and
+ * truncate long strings so the breadcrumb stays small and safe to persist.
+ */
+function redactToolInput(input: Record<string, unknown>): Record<string, unknown> {
+  const SECRET = /token|secret|password|apikey|api_key|authorization/i
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(input || {})) {
+    if (SECRET.test(k)) out[k] = '[redacted]'
+    else if (typeof v === 'string') out[k] = v.length > 120 ? `${v.slice(0, 120)}…` : v
+    else if (v && typeof v === 'object') out[k] = Array.isArray(v) ? `[${v.length} items]` : '{…}'
+    else out[k] = v
+  }
+  return out
 }
 
 /** @internal — extracted from executeToolCall for Sprint 44 cache invalidation */

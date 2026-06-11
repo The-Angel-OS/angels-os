@@ -21,8 +21,7 @@
  * @see src/utilities/gotifyNotify.ts  @see src/utilities/logError.ts
  */
 import type { Payload } from 'payload'
-import { findAllConnectors } from '@/utilities/resolveConnector'
-import { gotifyNotify } from '@/utilities/gotifyNotify'
+import { getTransport } from '@/utilities/connectorTransports'
 
 /**
  * Canonical Angel OS event types that can be escalated to Gotify.
@@ -125,44 +124,71 @@ export function policyAdmits(
   return { admit: true, priority }
 }
 
+/** All enabled, non-error connectors for a tenant (any type). */
+async function findTenantConnectors(
+  payload: Payload,
+  tenantId: number | string,
+): Promise<Array<{ id: string; type: string; config: Record<string, unknown> }>> {
+  const res = await payload.find({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    collection: 'connectors' as any,
+    where: {
+      and: [
+        { tenant: { equals: tenantId } },
+        { enabled: { equals: true } },
+        { status: { not_equals: 'error' } },
+      ],
+    },
+    limit: 100,
+    depth: 0,
+    overrideAccess: true,
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (res.docs as any[]).map((d) => ({
+    id: String(d.id),
+    type: String(d.type),
+    config: (d.config as Record<string, unknown>) || {},
+  }))
+}
+
 /**
- * Fan an event out to every enabled gotify connector for the tenant whose
- * escalation policy admits it. Fail-soft; returns counts.
+ * Fan an escalation event out to every enabled connector for the tenant whose
+ * escalation policy admits it, routing each through the transport for its medium
+ * (Gotify, Telegram, Webhook, …). Medium-agnostic — Gotify is just one transport.
+ * Fail-soft; returns counts.
  */
-export async function dispatchToGotify(
+export async function dispatchEscalation(
   payload: Payload,
   event: EscalationEvent,
   now: number = Date.now(),
 ): Promise<EscalationDispatchResult> {
   const result: EscalationDispatchResult = { matched: 0, sent: 0, suppressed: 0, failed: 0 }
 
-  let connectors: Awaited<ReturnType<typeof findAllConnectors>>
+  let connectors: Array<{ id: string; type: string; config: Record<string, unknown> }>
   try {
-    connectors = await findAllConnectors(payload, 'gotify')
+    connectors = await findTenantConnectors(payload, event.tenantId)
   } catch {
     return result
   }
 
-  // Scope to this tenant.
-  const forTenant = connectors.filter((c) => String(c.tenantId) === String(event.tenantId))
+  for (const connector of connectors) {
+    const transport = getTransport(connector.type)
+    if (!transport) continue // medium has no escalation transport yet — skip silently
 
-  for (const connector of forTenant) {
-    const cfg = (connector.config || {}) as Record<string, unknown>
+    const cfg = connector.config || {}
     const policy = (cfg.escalation as EscalationPolicy) || undefined
 
     const verdict = policyAdmits(policy, event)
     if (!verdict.admit) continue
     result.matched++
 
-    const serverUrl = String(cfg.serverUrl || process.env.GOTIFY_SERVER_URL || '')
-    const appToken = String(cfg.appToken || '')
-    if (!serverUrl || !appToken) {
-      // Configured to escalate but missing transport — skip (not a hard failure).
+    if (!transport.ready(cfg)) {
+      // Configured to escalate but the transport is missing its keys — not a hard failure.
       result.failed++
       continue
     }
 
-    // Rate-limit + cooldown gates (best-effort).
+    // Rate-limit + cooldown gates (best-effort, per connector).
     const rateLimit = Number(policy?.rateLimitPerMin ?? DEFAULT_RATE_LIMIT)
     const cooldownMs = Number(policy?.cooldownSeconds ?? DEFAULT_COOLDOWN_SECONDS) * 1000
     const dedupeKey = event.dedupeKey || event.title
@@ -184,22 +210,19 @@ export async function dispatchToGotify(
       continue
     }
 
-    // Record the attempt against BOTH gates BEFORE sending. A dead/slow server
-    // makes gotifyNotify return ok:false; if we only counted successes, a flap
-    // storm against a down server would retry every event with zero throttling —
-    // exactly what the limiter exists to prevent. Counting the attempt caps it.
+    // Record the attempt against BOTH gates BEFORE sending. A dead/slow medium
+    // returns ok:false; if we only counted successes, a flap storm against a down
+    // server would retry every event with zero throttling — exactly what the
+    // limiter exists to prevent. Counting the attempt caps it.
     recent.push(now)
     cooldownAt.set(cdKey, now)
 
-    const sendResult = await gotifyNotify(
-      {
-        title: event.title,
-        message: event.message,
-        priority: verdict.priority,
-        extras: event.extras,
-      },
-      { serverUrl, appToken },
-    )
+    const sendResult = await transport.send(cfg, {
+      title: event.title,
+      message: event.message,
+      priority: verdict.priority,
+      extras: event.extras,
+    })
 
     if (sendResult.ok) result.sent++
     else result.failed++
@@ -207,3 +230,10 @@ export async function dispatchToGotify(
 
   return result
 }
+
+/**
+ * @deprecated Back-compat alias — escalation is no longer Gotify-specific.
+ * Prefer `dispatchEscalation`. Kept so existing callers (logError, form-submission,
+ * user-registered) keep working and now fan out across every configured medium.
+ */
+export const dispatchToGotify = dispatchEscalation

@@ -38,6 +38,8 @@ import {
 } from '@/utilities/pheromone-engine'
 import type { Payload } from 'payload'
 import type { ToolExecutorContext } from '@/utilities/leo-data-tools'
+import { ExecutionTrace } from '@/utilities/executionTrace'
+import { createLogger } from '@/utilities/createLogger'
 import { routeToAgent } from '@/utilities/AgentRouter'
 import { extractTextFromContent, wrapTextContent } from '@/utilities/messageContent'
 import { logError } from '@/utilities/logError'
@@ -1514,6 +1516,9 @@ async function streamViaGateway(opts: {
     messages[messages.length - 1] = { role: 'user', content: parts }
   }
 
+  // Per-turn tool-chain audit trail — every executeToolCall records a step.
+  const toolTrace = new ExecutionTrace('leo-toolchain')
+
   // Convert tools with execute functions bound to Payload context
   const toolCtx: ToolExecutorContext = {
     payload,
@@ -1522,6 +1527,7 @@ async function streamViaGateway(opts: {
     userId,
     channelSlug: resolvedChannel,
     tenantAiConfig,
+    trace: toolTrace,
   }
   const tools = convertToolsForAISDK(effectiveTools, executeToolCall, toolCtx)
 
@@ -1711,7 +1717,30 @@ async function streamViaGateway(opts: {
     /* telemetry is best-effort — never let it affect the response */
   }
 
+  // Attach the tool-chain breadcrumb to telemetry → flows into Message.metadata
+  // (persistence sites spread telemetry). Emit/escalate on failure.
+  if (toolTrace.steps.length) {
+    telemetry = { ...(telemetry ?? {}), toolChain: toolTrace.toJSON() } as AiResponseTelemetry
+    await emitToolChainTrace(toolTrace, tenantId)
+  }
+
   return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry, billedToTenantKey }
+}
+
+/**
+ * Emit a finished LEO tool-chain trace. Silent on success (the trace is still
+ * persisted to the assistant Message.metadata.toolChain for inspection); on
+ * failure it logs through createLogger → ApplicationLogs + AI-Bus errors channel
+ * + connector escalation (any medium). Fail-soft — never breaks the response.
+ */
+async function emitToolChainTrace(trace: ExecutionTrace, tenantId?: number): Promise<void> {
+  if (!trace.steps.length || !trace.failed) return
+  try {
+    const log = createLogger('leo-toolchain', { tenantId })
+    await log.error(`tool chain failed at ${trace.failedStep?.name}`, { details: trace.render() })
+  } catch {
+    /* observability must never break the answer */
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1797,6 +1826,8 @@ async function streamViaAnthropic(opts: {
   // Within-request guard: count failures per tool so we stop re-calling one that
   // keeps failing this session (persists across rounds).
   const toolFailCounts = new Map<string, number>()
+  // Per-turn tool-chain audit trail — accumulates across all rounds of this turn.
+  const toolTrace = new ExecutionTrace('leo-toolchain')
 
   while (round < MAX_TOOL_ROUNDS) {
     round++
@@ -1875,6 +1906,7 @@ async function streamViaAnthropic(opts: {
         userId,
         channelSlug: resolvedChannel,
         tenantAiConfig,
+        trace: toolTrace,
       }
 
       // Execute one tool, writing its result into a fixed index so order is
@@ -1941,5 +1973,6 @@ async function streamViaAnthropic(opts: {
     )
   }
 
+  await emitToolChainTrace(toolTrace, tenantId)
   return { fullText }
 }
