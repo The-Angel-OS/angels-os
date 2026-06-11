@@ -253,7 +253,11 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                                   <NavigationMenuLink
                                     asChild
                                     active={isActive(c.link?.url)}
-                                    className="flex w-full items-center justify-start gap-2 rounded-md px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider"
+                                    // flex-row is required: the shadcn NavigationMenuLink base
+                                    // class sets flex-col, which (without an explicit row) stacks
+                                    // the thumbnail above a centered label. flex-row restores the
+                                    // left-aligned icon+label row that matches the More dropdown.
+                                    className="flex flex-row w-full items-center justify-start gap-2 rounded-md px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider"
                                   >
                                     <Link
                                       href={resolveHref(c.link)}
@@ -261,7 +265,17 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                                     >
                                       {c.image ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={c.image} alt="" className="h-8 w-8 flex-shrink-0 rounded object-cover" />
+                                        <img
+                                          src={c.image}
+                                          alt=""
+                                          className="h-8 w-8 flex-shrink-0 rounded object-cover"
+                                          // A missing/dead thumbnail variant (older uploads whose
+                                          // sizes.thumbnail blob no longer exists) would show a torn-
+                                          // image icon. Hide it instead so the label stands alone.
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none'
+                                          }}
+                                        />
                                       ) : null}
                                       <span className={cn('min-w-0 truncate text-start', c.image && 'normal-case')}>{c.link?.label}</span>
                                     </Link>
