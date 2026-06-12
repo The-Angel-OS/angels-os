@@ -115,6 +115,7 @@ import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { fundFloatHandler } from '@/endpoints/fund-float'
 import { walletBalanceHandler } from '@/endpoints/wallet-balance'
 import { clockHandler, addCostHandler, finalizeHandler } from '@/endpoints/booking-work-session'
+import { tenantDoctorHandler } from '@/endpoints/tenant-doctor'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
@@ -757,6 +758,8 @@ export default buildConfig({
     { path: '/booking-ops/clock', method: 'post', handler: clockHandler },
     { path: '/booking-ops/add-cost', method: 'post', handler: addCostHandler },
     { path: '/booking-ops/finalize', method: 'post', handler: finalizeHandler },
+    // Read-only tenant ownership diagnosis (which tenant owns header/settings/etc).
+    { path: '/provision-ops/tenant-doctor', method: 'get', handler: tenantDoctorHandler },
     // Factory primitive: grant a user tenant-scoped access (find-or-create user +
     // active tenant-membership at a role). POST; super_admin or ?key=CRON_SECRET.
     {
