@@ -69,6 +69,8 @@ import { MediaMeta } from '@/collections/MediaMeta'
 import { StreetSigns } from '@/collections/StreetSigns'
 import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
+import { TokenLedger } from '@/collections/TokenLedger'
+import { Wallets } from '@/collections/Wallets'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { Pheromones, WorkUnits } from '@/collections/Intelligence'
@@ -262,6 +264,8 @@ export default buildConfig({
     StreetSigns,
     Quests,
     QuestParticipations,
+    TokenLedger,
+    Wallets,
     BoardMembers,
     LogisticsNodes,
     Transports,

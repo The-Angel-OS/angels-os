@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
+import { creditOnApproval } from './hooks/creditOnApproval'
 
 export const QuestParticipations: CollectionConfig = {
   slug: 'quest-participations',
@@ -15,6 +16,10 @@ export const QuestParticipations: CollectionConfig = {
     read: authenticated,
     update: authenticated,
     delete: adminOnly,
+  },
+  hooks: {
+    // On approval, settle the token payout from the Diocese float (ledger-backed).
+    afterChange: [creditOnApproval],
   },
   fields: [
     // ─── Core Relationships ───────────────────────────

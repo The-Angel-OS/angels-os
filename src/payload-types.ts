@@ -114,6 +114,8 @@ export interface Config {
     'street-signs': StreetSign;
     quests: Quest;
     'quest-participations': QuestParticipation;
+    'token-ledger': TokenLedger;
+    wallets: Wallet;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
     transports: Transport;
@@ -192,6 +194,8 @@ export interface Config {
     'street-signs': StreetSignsSelect<false> | StreetSignsSelect<true>;
     quests: QuestsSelect<false> | QuestsSelect<true>;
     'quest-participations': QuestParticipationsSelect<false> | QuestParticipationsSelect<true>;
+    'token-ledger': TokenLedgerSelect<false> | TokenLedgerSelect<true>;
+    wallets: WalletsSelect<false> | WalletsSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
     transports: TransportsSelect<false> | TransportsSelect<true>;
@@ -5146,6 +5150,65 @@ export interface QuestParticipation {
   createdAt: string;
 }
 /**
+ * Hash-linked, append-only token ledger (Angel Tokens, Karma Coins, Legacy Tokens).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "token-ledger".
+ */
+export interface TokenLedger {
+  id: number;
+  tenant: number | Tenant;
+  /**
+   * Namespaced account, e.g. 'user:123', 'float:tenant:5', 'reserve:justice-fund'.
+   */
+  account: string;
+  tokenKind: 'AT' | 'KC' | 'LT';
+  direction: 'credit' | 'debit';
+  /**
+   * Positive integer, minor units (cents-equivalent).
+   */
+  amount: number;
+  reason: string;
+  /**
+   * Source, e.g. 'questParticipation:42'.
+   */
+  ref?: string | null;
+  /**
+   * Per-tenant chain sequence.
+   */
+  seq: number;
+  balanceAfter: number;
+  prevHash: string;
+  hash: string;
+  /**
+   * ISO timestamp used in the hash (authoritative over createdAt).
+   */
+  at: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Denormalized token balances (cache of the TokenLedger).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallets".
+ */
+export interface Wallet {
+  id: number;
+  tenant: number | Tenant;
+  /**
+   * Namespaced account, e.g. 'user:123', 'float:tenant:5'.
+   */
+  account: string;
+  tokenKind: 'AT' | 'KC' | 'LT';
+  /**
+   * Current balance, minor units.
+   */
+  balance: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Federation governance board members
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6562,6 +6625,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'quest-participations';
         value: number | QuestParticipation;
+      } | null)
+    | ({
+        relationTo: 'token-ledger';
+        value: number | TokenLedger;
+      } | null)
+    | ({
+        relationTo: 'wallets';
+        value: number | Wallet;
       } | null)
     | ({
         relationTo: 'board-members';
@@ -8444,6 +8515,38 @@ export interface QuestParticipationsSelect<T extends boolean = true> {
   completedAt?: T;
   teamId?: T;
   teamMembers?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "token-ledger_select".
+ */
+export interface TokenLedgerSelect<T extends boolean = true> {
+  tenant?: T;
+  account?: T;
+  tokenKind?: T;
+  direction?: T;
+  amount?: T;
+  reason?: T;
+  ref?: T;
+  seq?: T;
+  balanceAfter?: T;
+  prevHash?: T;
+  hash?: T;
+  at?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallets_select".
+ */
+export interface WalletsSelect<T extends boolean = true> {
+  tenant?: T;
+  account?: T;
+  tokenKind?: T;
+  balance?: T;
   updatedAt?: T;
   createdAt?: T;
 }
