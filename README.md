@@ -58,7 +58,25 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 
 ---
 
-## Latest (June 2026) — The Federation is LIVE 🛰️
+## Latest (June 2026) — The Angel Token Economy 🪙
+
+People can now be **paid for the work they do**, in tokens that are backed and (eventually) convertible — built on a ledger with blockchain *data properties* so the chain underneath is a later substrate swap, not a rewrite.
+
+- **Three token kinds** — **Angel Tokens (AT)**: real, backed, convertible value (quest payouts, services). **Karma Coins (KC)**: the ungated social/karma layer (tips, reputation), never directly cashable. **Legacy Tokens (LT)**: long-term governance weight.
+- **Hash-linked ledger** (`tokenLedger.ts`) — append-only, each entry hashes the previous (Merkle-style tamper-evidence); balances are a deterministic replay. `verifyChain` detects tampering, reordering, broken links. Persisted in the `TokenLedger` collection; balances cached in `Wallets`.
+- **Two-tier banking — the Diocese is its own bank** — each Enterprise's **float** (local treasury) backs the AT it issues; the **Justice Fund** is the central reserve. `buildTransfer` (double-entry) guarantees issuance never exceeds the float. Monetary policy is governance-votable, not hardcoded.
+- **Quest → payout, end to end** — approving a `QuestParticipation` (its geo-tagged evidence + review = Proof of Human Worth) fires `creditQuestPayout`: debits the float, credits the performer's wallet, writes the ledger. **Proven on a live DB.** Funding: `POST /api/provision-ops/fund-float` (backed AT issuance). Read side: `GET /api/wallet-ops/balance` — what the dashboard and Nimue (Android, custodial thin client) render.
+- **Phase 3 mapped** — the consortium-consensus / Merkle / DAO-legal material in Bambara's *Blockchain: A Practical Guide* is mapped onto **Delegated Proof of Human Worth** in [`docs/vision/ANGEL_CHAIN_TECH_APPENDIX.md`](docs/vision/ANGEL_CHAIN_TECH_APPENDIX.md).
+
+See [`docs/vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md`](docs/vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md).
+
+## Latest (June 2026) — Observability & Self-Healing 🩺
+
+- **LEO tool-chain audit** — every LEO turn leaves a breadcrumb: `executeToolCall` (the one chokepoint for all ~125 tools) records each call as an `ExecutionTrace` step; the trail lands in `Message.metadata.toolChain` and, on failure, escalates with the full path of *how it got there*.
+- **Connector-agnostic escalation** — escalation is no longer Gotify-only. `dispatchEscalation` fans an event out to **every** configured medium (Gotify, Telegram, Webhook → Discord/Slack…) via a `ConnectorTransport` registry, gated per-connector. Powers `logError`, form submissions, and operator alerts.
+- **`createLogger(source)`** — a source-bound logger factory over `logError`; every line auto-attributed to ApplicationLogs + the AI-Bus errors channel + escalation.
+
+## The Federation is LIVE 🛰️ (June 2026)
 
 Two **sovereign nodes** now federate over the live mesh — separate processes, separate databases, no shared state:
 
@@ -488,7 +506,26 @@ Leo manages both sides of every transaction from the same schema:
 - **Buyer side:** product search, cart, checkout, order tracking, cancel/refund
 - **Seller side:** product creation, order acceptance, fulfillment updates, equipment registration, queue claiming
 
-### Angel Token Flow
+### Angel Token Economy
+
+Two related uses of Angel Tokens, both backed:
+
+**1. Quest payouts (the token economy)** — a ledger-backed wallet system.
+
+```
+Diocese float funded (backed AT issuance)        POST /api/provision-ops/fund-float
+  → float:tenant:N credited on the hash-linked ledger
+QuestParticipation approved (evidence + review = Proof of Human Worth)
+  → creditQuestPayout: buildTransfer(float → user)        (double-entry, always backed)
+  → float debited, performer's user:<id> AT wallet credited
+  → two hash-linked TokenLedger entries written; payoutStatus → 'paid'
+Holder reads balance + history                    GET /api/wallet-ops/balance
+  → AT/KC/LT balances (Wallets cache) + recent ledger (custodial; Nimue renders it)
+```
+
+Token kinds: **AT** (backed, convertible) · **KC** (ungated social, not cashable) · **LT** (governance). Backing is two-tier: Enterprise **float** = local bank, **Justice Fund** = central reserve. See [`docs/vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md`](docs/vision/ANGEL_TOKENS_BLOCKCHAIN_ECONOMY.md) + [`ANGEL_CHAIN_TECH_APPENDIX.md`](docs/vision/ANGEL_CHAIN_TECH_APPENDIX.md).
+
+**2. Order-fulfillment claims (pay-now, receive-value-later)** — when an order has no maker yet.
 
 ```
 Customer places order

@@ -1,7 +1,7 @@
 # Angel OS — Status, Plan & What's Next
 
-> *Filed: June 4, 2026*
-> *Version: v0.47.x-dev*
+> *Filed: June 11, 2026*
+> *Version: v0.48.x-dev*
 
 ---
 
@@ -13,9 +13,9 @@ Angel OS is a live, federated cooperative operating system at [spacesangels.com]
 
 | Metric | Count |
 |--------|-------|
-| **Payload CMS collections** | 42 |
-| **Leo AI tools** | 119 |
-| **API endpoints** | 75+ |
+| **Payload CMS collections** | 44 (added TokenLedger, Wallets) |
+| **Leo AI tools** | 125 |
+| **API endpoints** | 80+ |
 | **Unit tests** | 5,210+ across 230 files |
 | **E2E test suites** | 14 (Playwright) |
 | **Total test files** | 237 |
@@ -24,6 +24,27 @@ Angel OS is a live, federated cooperative operating system at [spacesangels.com]
 | **Deployment** | Vercel (serverless) |
 | **Stripe** | Live (Direct Charges + Donations) |
 | **Engines** | 15 |
+
+### What's New (June 11, 2026 — Token Economy + Observability)
+
+- **The Angel Token Economy** — people can be paid for quests in backed tokens. A
+  hash-linked, append-only ledger (`tokenLedger.ts`, `verifyChain`) + `TokenLedger`
+  and `Wallets` collections; **AT** (backed/convertible), **KC** (ungated social),
+  **LT** (governance). Two-tier "Diocese-as-bank" backing (Enterprise float + Justice
+  Fund reserve); `buildTransfer` keeps issuance backed. Quest approval →
+  `creditQuestPayout` (proven end-to-end on a live DB). Endpoints: `fund-float`
+  (issuance), `wallet-ops/balance` (read side, for the Nimue thin client). Phase-3
+  chain mapped to Bambara's book in `docs/vision/ANGEL_CHAIN_TECH_APPENDIX.md`.
+- **LEO tool-chain audit** — `executeToolCall` records every tool call as an
+  `ExecutionTrace` step → `Message.metadata.toolChain`; failures escalate the full
+  breadcrumb. `createLogger(source)` factory over `logError`.
+- **Connector-agnostic escalation** — `dispatchEscalation` + `ConnectorTransport`
+  registry: alerts fan out across any medium (Gotify/Telegram/Webhook→Discord/Slack),
+  not just Gotify.
+- ⚠️ **Prod schema ritual documented** — new collections need three steps on each
+  prod DB (rels columns via `db-repair-locks`, table via `ensure-*-tables` endpoint,
+  local via pool script); prod runs neither push nor migrations. See the schema-deploy
+  memory / `DESTRUCTIVE_OPERATIONS.md`.
 
 ### What's New (June 2026 — Library, Bookings, Multi-tenancy)
 
