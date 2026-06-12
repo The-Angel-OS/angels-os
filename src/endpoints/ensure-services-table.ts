@@ -33,6 +33,17 @@ const STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "services_tenant_idx" ON "services" ("tenant_id");`,
   `CREATE INDEX IF NOT EXISTS "services_service_id_idx" ON "services" ("service_id");`,
   `CREATE INDEX IF NOT EXISTS "services_enabled_idx" ON "services" ("enabled");`,
+  // ── Pricing model extension (idempotent; safe on a table that predates it) ──
+  `DO $$ BEGIN CREATE TYPE enum_services_pricing_model AS ENUM ('fixed','hourly','per_unit'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "pricing_model" enum_services_pricing_model DEFAULT 'fixed';`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "hourly_rate_usd" numeric;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "billing_increment_minutes" numeric DEFAULT 15;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "minimum_minutes" numeric;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "unit_label" varchar;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "unit_rate_usd" numeric;`,
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "allows_extra_costs" boolean DEFAULT true;`,
+  // Hourly/per-unit services have no fixed price — relax the original NOT NULL.
+  `ALTER TABLE "services" ALTER COLUMN "price_usd" DROP NOT NULL;`,
 ]
 
 export const ensureServicesTableHandler: PayloadHandler = async (req) => {

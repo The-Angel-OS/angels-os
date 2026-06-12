@@ -25,6 +25,8 @@ export interface FieldDef {
   required?: boolean
   help?: string
   placeholder?: string
+  /** Only show this field when another field's value is one of these (e.g. pricingModel). */
+  showWhen?: { field: string; in: string[] }
 }
 
 export interface OfferingConfiguratorProps {
@@ -137,7 +139,9 @@ export function OfferingConfigurator(props: OfferingConfiguratorProps) {
         <div className="rounded-lg border border-border p-4 space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wider">{editing.id ? `Edit ${kind}` : `New ${kind}`}</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            {fields.map((fd) => (
+            {fields
+              .filter((fd) => !fd.showWhen || fd.showWhen.in.includes(String(form[fd.showWhen.field] ?? '')))
+              .map((fd) => (
               <label key={fd.name} className={`flex flex-col gap-1 text-sm ${fd.type === 'textarea' ? 'sm:col-span-2' : ''}`}>
                 <span className="font-medium">{fd.label}{fd.required ? ' *' : ''}</span>
                 {fd.type === 'textarea' ? (
@@ -195,8 +199,12 @@ export function OfferingConfigurator(props: OfferingConfiguratorProps) {
 /** A short one-line summary per kind for the list rows. */
 function summary(kind: string, item: Record<string, any>): string {
   if (kind === 'service') {
-    const price = item.priceUsd != null ? `$${item.priceUsd}` : '—'
-    return `${price} · ${item.durationMinutes ?? '?'} min · ${item.enabled === false ? 'hidden' : 'enabled'}`
+    const pm = item.pricingModel
+    const price =
+      pm === 'hourly' ? `$${item.hourlyRateUsd ?? '?'}/hr (time on the clock)`
+      : pm === 'per_unit' ? `$${item.unitRateUsd ?? '?'}/${item.unitLabel || 'unit'}`
+      : item.priceUsd != null ? `$${item.priceUsd}` : '—'
+    return `${price} · ${item.enabled === false ? 'hidden' : 'enabled'}`
   }
   if (kind === 'quest') {
     const amt = getPath(item, 'payout.amount')

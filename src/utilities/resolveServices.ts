@@ -18,9 +18,16 @@ function toBookableService(doc: any): BookableService {
     label: doc.label,
     description: doc.description ?? '',
     bookingType: doc.bookingType ?? 'service',
-    priceUSD: Number(doc.priceUsd),
-    depositPercent: Number(doc.depositPercent),
-    durationMinutes: Number(doc.durationMinutes),
+    priceUSD: Number(doc.priceUsd ?? 0),
+    depositPercent: Number(doc.depositPercent ?? 0),
+    durationMinutes: Number(doc.durationMinutes ?? 0),
+    pricingModel: doc.pricingModel ?? 'fixed',
+    hourlyRateUSD: doc.hourlyRateUsd != null ? Number(doc.hourlyRateUsd) : undefined,
+    billingIncrementMinutes: doc.billingIncrementMinutes != null ? Number(doc.billingIncrementMinutes) : undefined,
+    minimumMinutes: doc.minimumMinutes != null ? Number(doc.minimumMinutes) : undefined,
+    unitLabel: doc.unitLabel ?? undefined,
+    unitRateUSD: doc.unitRateUsd != null ? Number(doc.unitRateUsd) : undefined,
+    allowsExtraCosts: doc.allowsExtraCosts ?? undefined,
   }
 }
 

@@ -18,12 +18,23 @@ export interface BookableService {
   description: string
   /** Maps to Bookings.bookingType. */
   bookingType: 'service' | 'consultation' | 'rental' | 'class' | 'event' | 'custom'
-  /** Total price of the service, in USD. */
+  /** Total price of the service, in USD (FIXED pricing model). */
   priceUSD: number
   /** Percentage charged up front to reserve the slot (balance due on completion). */
   depositPercent: number
   /** How long the booking occupies the provider's calendar, in minutes. */
   durationMinutes: number
+  // ── Pricing model (optional; static seed is all 'fixed') ──
+  /** 'fixed' (priceUSD), 'hourly' (hourlyRateUSD), or 'per_unit' (unitRateUSD/unitLabel). */
+  pricingModel?: 'fixed' | 'hourly' | 'per_unit'
+  /** HOURLY: rate per hour; only time on the clock is billed. */
+  hourlyRateUSD?: number
+  billingIncrementMinutes?: number
+  minimumMinutes?: number
+  /** PER-UNIT: e.g. 'sq ft' @ unitRateUSD. */
+  unitLabel?: string
+  unitRateUSD?: number
+  allowsExtraCosts?: boolean
 }
 
 const CATALOG: Record<string, BookableService[]> = {

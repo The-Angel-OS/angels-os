@@ -5228,17 +5228,45 @@ export interface Service {
   image?: (number | null) | Media;
   bookingType?: ('service' | 'consultation' | 'rental' | 'class' | 'event' | 'custom') | null;
   /**
-   * Total price in USD.
+   * How this service is priced.
    */
-  priceUsd: number;
+  pricingModel?: ('fixed' | 'hourly' | 'per_unit') | null;
+  /**
+   * FIXED: total price in USD.
+   */
+  priceUsd?: number | null;
+  /**
+   * HOURLY: rate per hour. Only time actually on the clock is billed — phone calls/breaks are clocked out and not charged.
+   */
+  hourlyRateUsd?: number | null;
+  /**
+   * HOURLY: round billed time to this increment (1 = bill exact minutes).
+   */
+  billingIncrementMinutes?: number | null;
+  /**
+   * HOURLY: minimum billable time per visit (optional).
+   */
+  minimumMinutes?: number | null;
+  /**
+   * PER-UNIT: the unit being priced (e.g. 'sq ft', 'window', 'visit').
+   */
+  unitLabel?: string | null;
+  /**
+   * PER-UNIT: price per unit.
+   */
+  unitRateUsd?: number | null;
+  /**
+   * Allow adding materials / disposal / trip-fee line items to the final bill per job.
+   */
+  allowsExtraCosts?: boolean | null;
   /**
    * Percent charged up front to reserve; balance due on completion.
    */
-  depositPercent: number;
+  depositPercent?: number | null;
   /**
-   * How long the booking occupies the provider's calendar.
+   * Estimated/scheduled time the booking holds on the calendar (actual billed time can differ for hourly).
    */
-  durationMinutes: number;
+  durationMinutes?: number | null;
   /**
    * Unchecked = hidden from the booking page.
    */
@@ -8603,7 +8631,14 @@ export interface ServicesSelect<T extends boolean = true> {
   description?: T;
   image?: T;
   bookingType?: T;
+  pricingModel?: T;
   priceUsd?: T;
+  hourlyRateUsd?: T;
+  billingIncrementMinutes?: T;
+  minimumMinutes?: T;
+  unitLabel?: T;
+  unitRateUsd?: T;
+  allowsExtraCosts?: T;
   depositPercent?: T;
   durationMinutes?: T;
   enabled?: T;
