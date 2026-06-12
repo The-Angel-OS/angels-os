@@ -261,6 +261,22 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'services',
+        label: 'Services',
+        icon: 'calendar',
+        href: (p) => `${p}/dashboard/services`,
+        isActive: active('/dashboard/services'),
+        visible: always,
+      },
+      {
+        key: 'quests',
+        label: 'Quests',
+        icon: 'clipboard',
+        href: (p) => `${p}/dashboard/quests`,
+        isActive: active('/dashboard/quests'),
+        visible: always,
+      },
+      {
         key: 'orders',
         label: 'Orders',
         icon: 'clipboard',
