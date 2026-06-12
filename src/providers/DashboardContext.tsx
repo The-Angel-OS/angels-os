@@ -1,7 +1,8 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { getSurface, setSurface, subscribeSurface } from '@/components/ChatControl/surfaceStore'
 import { ROLE_DEFAULT_PERMISSIONS } from '@/constants/permissions'
 import type { TenantPermission, TenantRole } from '@/constants/permissions'
 
@@ -86,25 +87,44 @@ export function DashboardProvider({
   // Validated against THIS tenant's spaces → a stored id from another tenant is
   // ignored (cross-tenant-safe).
   const STORAGE_KEY = 'angelos.activeSpaceId'
+  // Mirror the active space so the surface subscriber compares without stale closures.
+  const activeSpaceRef = useRef(activeSpaceId)
+  useEffect(() => { activeSpaceRef.current = activeSpaceId }, [activeSpaceId])
+
   const setActiveSpaceId = useCallback((id: string) => {
+    activeSpaceRef.current = id
     setActiveSpaceIdState(id)
+    // The shared Surface store is the single source of truth — this is what syncs
+    // the chat side viewer (which reads the same store) and persists across pages.
+    setSurface({ spaceId: id })
     try {
-      window.localStorage.setItem(STORAGE_KEY, id)
+      window.localStorage.setItem(STORAGE_KEY, id) // legacy key kept for back-compat
     } catch {
       /* private mode / unavailable — non-fatal */
     }
   }, [])
 
   useEffect(() => {
+    // Restore the active space from the shared Surface (preferred) or the legacy
+    // key, validated against THIS tenant's spaces (cross-tenant-safe).
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY)
-      if (stored && stored !== activeSpaceId && initialSpaces.some((s) => s.id === stored)) {
-        setActiveSpaceIdState(stored)
+      const restore = getSurface().spaceId || window.localStorage.getItem(STORAGE_KEY)
+      if (restore && restore !== activeSpaceRef.current && initialSpaces.some((s) => s.id === restore)) {
+        activeSpaceRef.current = restore
+        setActiveSpaceIdState(restore)
+        setSurface({ spaceId: restore }) // re-publish so the chat side starts in lock-step
       }
     } catch {
       /* non-fatal */
     }
-    // Restore once on mount.
+    // Live sync: when the side viewer / another tab changes space, follow it here.
+    const unsub = subscribeSurface((s) => {
+      if (s.spaceId && s.spaceId !== activeSpaceRef.current && initialSpaces.some((sp) => sp.id === s.spaceId)) {
+        activeSpaceRef.current = s.spaceId
+        setActiveSpaceIdState(s.spaceId)
+      }
+    })
+    return unsub
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

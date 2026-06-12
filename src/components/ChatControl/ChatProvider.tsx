@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useChat } from './useChat'
+import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
 import type { ChatMessage, ChatChannel, ChatSpace } from './types'
 
 // Use relative URLs so fetch always targets the current domain/subdomain.
@@ -87,7 +88,11 @@ export function ChatProvider({
   spaces,
   userId,
 }: ChatProviderProps) {
-  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(defaultSpaceId || null)
+  // Initial Surface comes from the shared store (survives navigation across the
+  // separate ChatProvider mounts) and falls back to defaultSpaceId on first ever use.
+  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
+    () => getSurface().spaceId || defaultSpaceId || null,
+  )
   const [activeView, setActiveView] = useState<'full' | 'sidebar' | 'bubble' | null>(null)
   const [dmChannels, setDmChannels] = useState<ChatChannel[]>([])
   const [leoDMChannel, setLeoDMChannel] = useState<ChatChannel | null>(null)
@@ -95,7 +100,9 @@ export function ChatProvider({
   // Local channel slug — NOT redundant with chat.activeChannel.
   // Breaks the circular dependency: effectiveSpaceId → useChat → effectiveSpaceId.
   // Updated synchronously in switchChannel before chat.switchChannel propagates.
-  const [activeChannelSlugLocal, setActiveChannelSlugLocal] = useState<string>('')
+  const [activeChannelSlugLocal, setActiveChannelSlugLocal] = useState<string>(
+    () => getSurface().channelSlug || '',
+  )
 
   // ─── Effective Space ID ───────────────────────────────────────
   // When the active channel is a DM, route queries to the DM space
@@ -218,9 +225,18 @@ export function ChatProvider({
 
   // ─── Navigation helpers ─────────────────────────────────────
 
+  // Refs mirror the active selection so the surface subscriber can compare without
+  // stale closures and skip re-applying a change this mount just made.
+  const activeSpaceRef = useRef(activeSpaceId)
+  const activeChannelRef = useRef(activeChannelSlugLocal)
+  useEffect(() => { activeSpaceRef.current = activeSpaceId }, [activeSpaceId])
+  useEffect(() => { activeChannelRef.current = activeChannelSlugLocal }, [activeChannelSlugLocal])
+
   const setActiveSpace = useCallback(
     (spaceId: string) => {
+      activeSpaceRef.current = spaceId
       setActiveSpaceId(spaceId)
+      setSurface({ spaceId }) // publish to the shared store (persist + sync other views)
     },
     [],
   )
@@ -230,11 +246,30 @@ export function ChatProvider({
   // which aborts in-flight streams and resets messages/poll state.
   const switchChannel = useCallback(
     (slug: string) => {
+      activeChannelRef.current = slug
       setActiveChannelSlugLocal(slug)
       chat.switchChannel(slug)
+      setSurface({ channelSlug: slug }) // publish to the shared store
     },
     [chat.switchChannel],
   )
+
+  // Subscribe to the shared Surface: when ANOTHER mount (the side viewer, another
+  // tab) changes the space/channel, mirror it here so both views stay in lock-step.
+  // The ref guards skip changes this mount originated (no feedback loop).
+  useEffect(() => {
+    return subscribeSurface((s) => {
+      if (s.spaceId && s.spaceId !== activeSpaceRef.current) {
+        activeSpaceRef.current = s.spaceId
+        setActiveSpaceId(s.spaceId)
+      }
+      if (s.channelSlug && s.channelSlug !== activeChannelRef.current) {
+        activeChannelRef.current = s.channelSlug
+        setActiveChannelSlugLocal(s.channelSlug)
+        chat.switchChannel(s.channelSlug)
+      }
+    })
+  }, [chat.switchChannel])
 
   const openDM = useCallback(
     (targetUserId: string) => {
