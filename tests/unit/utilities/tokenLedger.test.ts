@@ -105,6 +105,21 @@ describe('tokenLedger', () => {
     expect(verifyChain([debit, credit])).toEqual({ ok: true })
   })
 
+  it('verifyChain survives a DB round-trip (string numerics, tenantId dropped)', () => {
+    // appended with numbers + tenantId...
+    const e0 = appendEntry(null, { account: 'float:tenant:2', tokenKind: 'AT', direction: 'credit', amount: 1000, reason: 'fund', tenantId: 2, at: '2026-06-11T00:00:00Z' }, 0)
+    const e1 = appendEntry(e0, { account: 'user:4', tokenKind: 'AT', direction: 'credit', amount: 300, reason: 'payout', tenantId: 2, at: '2026-06-11T00:00:00Z' }, 0)
+    // ...as Postgres/Payload returns them: numeric → string, no `tenantId` column.
+    const fromDb = [e0, e1].map((e) => ({
+      ...e,
+      seq: String(e.seq),
+      amount: String(e.amount),
+      balanceAfter: String(e.balanceAfter),
+      tenantId: undefined,
+    })) as unknown as LedgerEntry[]
+    expect(verifyChain(fromDb)).toEqual({ ok: true })
+  })
+
   it('buildTransfer refuses to issue more than the float holds (unbacked mint)', () => {
     expect(() =>
       buildTransfer(null, {

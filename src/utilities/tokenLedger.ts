@@ -57,11 +57,19 @@ export interface LedgerEntry extends LedgerEntryInput {
 
 export const GENESIS_HASH = '0'.repeat(64)
 
-/** Canonical SHA-256 of an entry (excluding its own hash). Stable field order. */
+/**
+ * Canonical SHA-256 of an entry (excluding its own hash). Stable field order.
+ *
+ * Round-trip-stable on purpose: numerics are coerced (Postgres returns `numeric`
+ * columns as strings) and `tenantId` is EXCLUDED — it's chain context, persisted as
+ * the `tenant` relationship and not read back as `tenantId`, so including it would
+ * make a hash recomputed from a DB-read entry differ from the one written at append
+ * time. The per-tenant chain + seq + prevHash already bind an entry to its chain.
+ */
 export function hashEntry(e: Omit<LedgerEntry, 'hash'>): string {
   const canonical = JSON.stringify([
-    e.seq, e.account, e.tokenKind, e.direction, e.amount, e.reason,
-    e.ref ?? null, e.tenantId ?? null, e.at, e.balanceAfter, e.prevHash,
+    Number(e.seq), e.account, e.tokenKind, e.direction, Number(e.amount), e.reason,
+    e.ref ?? null, e.at, Number(e.balanceAfter), e.prevHash,
   ])
   return createHash('sha256').update(canonical).digest('hex')
 }
@@ -113,7 +121,7 @@ export function verifyChain(entries: LedgerEntry[]): ChainVerdict {
   let prevHash = GENESIS_HASH
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i]
-    if (e.seq !== i) return { ok: false, brokenAt: i, reason: `seq ${e.seq} ≠ index ${i}` }
+    if (Number(e.seq) !== i) return { ok: false, brokenAt: i, reason: `seq ${e.seq} ≠ index ${i}` }
     if (e.prevHash !== prevHash) return { ok: false, brokenAt: i, reason: 'prevHash does not link' }
     const recomputed = hashEntry({
       seq: e.seq, account: e.account, tokenKind: e.tokenKind, direction: e.direction,
