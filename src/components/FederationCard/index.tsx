@@ -211,19 +211,22 @@ export function FederationCard({ holon }: { holon: FederationHolon }) {
             <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{holon.description}</p>
           )}
 
-          {/* Storefront URL + Federation ID */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground/60">
+          {/* Storefront URL + Federation ID.
+              min-w-0 lets the truncating children actually shrink — without it a
+              long URL forces the grid column wider than a mobile viewport and the
+              whole card bleeds off-screen. */}
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground/60">
             {holon.storefrontUrl ? (
-              <span className="truncate" title={holon.storefrontUrl}>
+              <span className="min-w-0 truncate" title={holon.storefrontUrl}>
                 {holon.storefrontUrl.replace(/^https?:\/\//, '')}
               </span>
             ) : holon.tenant?.slug ? (
-              <span className="truncate">
+              <span className="min-w-0 truncate">
                 {holon.tenant.siteName || holon.tenant.slug}
               </span>
             ) : null}
             {holon.federation.federationId && (
-              <code className="rounded bg-muted px-1 text-[10px]">{holon.federation.federationId.slice(0, 12)}...</code>
+              <code className="shrink-0 rounded bg-muted px-1 text-[10px]">{holon.federation.federationId.slice(0, 12)}...</code>
             )}
           </div>
         </div>
