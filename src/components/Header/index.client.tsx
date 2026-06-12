@@ -133,6 +133,14 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
 export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true }: Props) {
   const { user } = useAuth()
 
+  // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
+  // admin-ish global role; the resolver endpoint + Payload admin are the final
+  // access gate, so this only decides whether to offer the affordance.
+  const canEditContent = useMemo(() => {
+    const roles = (user as { roles?: string[] } | null)?.roles
+    return Array.isArray(roles) && roles.some((r) => /super_admin|admin|editor|owner/i.test(r))
+  }, [user])
+
   // Presence — marks this user online + counts who else is, site-wide.
   const { count: onlineCount, isOnline } = usePresence({ enabled: Boolean(user) })
 
@@ -340,9 +348,15 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
           <div className="flex justify-end flex-shrink-0 gap-4 items-center">
             {user ? (
               <>
-                {userPortals.length > 1 && (
+                {(userPortals.length > 1 || canEditContent) && (
                   <div className="hidden md:block">
-                    <PortalSwitcher portals={userPortals} currentTenantId={tenant?.id} compact targetPath="/" />
+                    <PortalSwitcher
+                      portals={userPortals}
+                      currentTenantId={tenant?.id}
+                      compact
+                      targetPath="/"
+                      showEditLink={canEditContent}
+                    />
                   </div>
                 )}
                 {onlineCount > 0 && (

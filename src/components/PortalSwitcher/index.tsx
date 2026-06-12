@@ -16,11 +16,17 @@ export interface PortalInfo {
  * Used in both the Dashboard sidebar and the public Header.
  * Navigates via subdomain: {slug}.{baseDomain}/dashboard
  */
+interface EditTarget {
+  adminUrl: string
+  label: string
+}
+
 export function PortalSwitcher({
   portals,
   currentTenantId,
   compact = false,
   targetPath,
+  showEditLink = false,
 }: {
   portals: PortalInfo[]
   currentTenantId?: number | string
@@ -28,9 +34,31 @@ export function PortalSwitcher({
   compact?: boolean
   /** Path to navigate to on switch (default: /dashboard) */
   targetPath?: string
+  /**
+   * When true, the menu lazily resolves the current public page to its Payload
+   * admin editor and surfaces an "Edit this page" link (for logged-in editors).
+   * Resolution runs the first time the menu opens — zero cost until then.
+   */
+  showEditLink?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  // Lazy "Edit this page" resolution — only fires the first time the menu opens.
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
+  const [editResolved, setEditResolved] = useState(false)
+  React.useEffect(() => {
+    if (!open || !showEditLink || editResolved) return
+    setEditResolved(true)
+    const path = window.location.pathname
+    const tid = currentTenantId != null ? `&tenantId=${encodeURIComponent(String(currentTenantId))}` : ''
+    fetch(`/api/edit-ops/resolve?path=${encodeURIComponent(path)}${tid}`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.editable && d.adminUrl) setEditTarget({ adminUrl: d.adminUrl, label: d.label || 'Edit this page' })
+      })
+      .catch(() => {})
+  }, [open, showEditLink, editResolved, currentTenantId])
 
   // Close on click outside
   React.useEffect(() => {
@@ -59,9 +87,12 @@ export function PortalSwitcher({
     [targetPath],
   )
 
-  if (portals.length < 2) return null
+  // Render when there are portals to switch between, OR when an editor could get
+  // an "Edit this page" link here (resolved lazily on open).
+  if (portals.length < 2 && !showEditLink) return null
 
   const currentPortal = portals.find((p) => String(p.id) === String(currentTenantId))
+  const hasPortalList = portals.length >= 2
 
   return (
     <div className="relative" ref={ref}>
@@ -101,10 +132,28 @@ export function PortalSwitcher({
 
       {open && (
         <div className={`absolute ${compact ? 'right-0' : 'left-0'} top-full z-50 mt-1 w-56 rounded-lg border border-border bg-background py-1 shadow-lg`}>
+          {/* Editor shortcut: jump straight to this page's Payload editor. */}
+          {editTarget && (
+            <>
+              <a
+                href={editTarget.adminUrl}
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="truncate">{editTarget.label}</span>
+              </a>
+              {hasPortalList && <div className="my-1 border-t border-border" />}
+            </>
+          )}
+          {hasPortalList && (
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Switch portal
           </div>
-          {portals.map((p) => (
+          )}
+          {hasPortalList && portals.map((p) => (
             <button
               key={String(p.id)}
               onClick={() => handleSwitch(p)}
@@ -127,6 +176,13 @@ export function PortalSwitcher({
               )}
             </button>
           ))}
+          {/* Single-portal editor whose current page has no editor — keep the
+              menu from rendering empty. */}
+          {!hasPortalList && !editTarget && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              {showEditLink && !editResolved ? 'Checking…' : 'No editor for this page'}
+            </div>
+          )}
         </div>
       )}
     </div>
