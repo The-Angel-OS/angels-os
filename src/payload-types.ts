@@ -116,6 +116,7 @@ export interface Config {
     'quest-participations': QuestParticipation;
     'token-ledger': TokenLedger;
     wallets: Wallet;
+    services: Service;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
     transports: Transport;
@@ -196,6 +197,7 @@ export interface Config {
     'quest-participations': QuestParticipationsSelect<false> | QuestParticipationsSelect<true>;
     'token-ledger': TokenLedgerSelect<false> | TokenLedgerSelect<true>;
     wallets: WalletsSelect<false> | WalletsSelect<true>;
+    services: ServicesSelect<false> | ServicesSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
     transports: TransportsSelect<false> | TransportsSelect<true>;
@@ -5209,6 +5211,42 @@ export interface Wallet {
   createdAt: string;
 }
 /**
+ * Bookable services offered by this tenant (the /book catalog).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services".
+ */
+export interface Service {
+  id: number;
+  tenant: number | Tenant;
+  /**
+   * Stable id used in the booking flow + stored on booking metadata (e.g. pressure-washing-driveway).
+   */
+  serviceId: string;
+  label: string;
+  description?: string | null;
+  image?: (number | null) | Media;
+  bookingType?: ('service' | 'consultation' | 'rental' | 'class' | 'event' | 'custom') | null;
+  /**
+   * Total price in USD.
+   */
+  priceUsd: number;
+  /**
+   * Percent charged up front to reserve; balance due on completion.
+   */
+  depositPercent: number;
+  /**
+   * How long the booking occupies the provider's calendar.
+   */
+  durationMinutes: number;
+  /**
+   * Unchecked = hidden from the booking page.
+   */
+  enabled?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Federation governance board members
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6633,6 +6671,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'wallets';
         value: number | Wallet;
+      } | null)
+    | ({
+        relationTo: 'services';
+        value: number | Service;
       } | null)
     | ({
         relationTo: 'board-members';
@@ -8547,6 +8589,24 @@ export interface WalletsSelect<T extends boolean = true> {
   account?: T;
   tokenKind?: T;
   balance?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services_select".
+ */
+export interface ServicesSelect<T extends boolean = true> {
+  tenant?: T;
+  serviceId?: T;
+  label?: T;
+  description?: T;
+  image?: T;
+  bookingType?: T;
+  priceUsd?: T;
+  depositPercent?: T;
+  durationMinutes?: T;
+  enabled?: T;
   updatedAt?: T;
   createdAt?: T;
 }

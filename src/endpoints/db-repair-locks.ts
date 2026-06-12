@@ -28,7 +28,7 @@ const REL_COLUMNS = [
   'crew_assignments_id', 'forms_id', 'form_submissions_id', 'addresses_id', 'variants_id',
   'variant_types_id', 'variant_options_id', 'products_id', 'carts_id', 'orders_id',
   'transactions_id', 'payload_mcp_api_keys_id', 'settings_id', 'permissions_id', 'vendors_id',
-  'token_ledger_id', 'wallets_id',
+  'token_ledger_id', 'wallets_id', 'services_id',
 ]
 
 const TABLE = 'payload_locked_documents_rels'

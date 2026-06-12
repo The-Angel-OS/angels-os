@@ -71,6 +71,7 @@ import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
 import { TokenLedger } from '@/collections/TokenLedger'
 import { Wallets } from '@/collections/Wallets'
+import { Services } from '@/collections/Services'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { Pheromones, WorkUnits } from '@/collections/Intelligence'
@@ -110,6 +111,7 @@ import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-columns'
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
+import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { fundFloatHandler } from '@/endpoints/fund-float'
 import { walletBalanceHandler } from '@/endpoints/wallet-balance'
 import { setMembershipHandler } from '@/endpoints/set-membership'
@@ -269,6 +271,7 @@ export default buildConfig({
     QuestParticipations,
     TokenLedger,
     Wallets,
+    Services,
     BoardMembers,
     LogisticsNodes,
     Transports,
@@ -731,6 +734,11 @@ export default buildConfig({
       path: '/provision-ops/ensure-token-tables',
       method: 'get',
       handler: ensureTokenTablesHandler,
+    },
+    {
+      path: '/provision-ops/ensure-services-table',
+      method: 'get',
+      handler: ensureServicesTableHandler,
     },
     // Controlled AT issuance: a super_admin funds a Diocese float (backed).
     {
