@@ -111,6 +111,7 @@ import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-columns'
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { fundFloatHandler } from '@/endpoints/fund-float'
+import { walletBalanceHandler } from '@/endpoints/wallet-balance'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
@@ -736,6 +737,12 @@ export default buildConfig({
       path: '/provision-ops/fund-float',
       method: 'post',
       handler: fundFloatHandler,
+    },
+    // Read side: a holder's token balances + recent ledger (dashboard / Nimue).
+    {
+      path: '/wallet-ops/balance',
+      method: 'get',
+      handler: walletBalanceHandler,
     },
     // Factory primitive: grant a user tenant-scoped access (find-or-create user +
     // active tenant-membership at a role). POST; super_admin or ?key=CRON_SECRET.
