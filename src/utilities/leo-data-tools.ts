@@ -909,6 +909,28 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'set_endeavor_image',
+    description:
+      "Set this Endeavor's logo or cover image — the imagery shown on its federation Discovery card. Use when a user wants to give their enterprise a logo/banner, or when a Discovery card is blank. The image can come from an existing media id, an image URL (fetched + uploaded), or an AI prompt (generated + uploaded). Operates on the current tenant's Endeavor only.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        which: {
+          type: 'string',
+          enum: ['logo', 'coverImage'],
+          description: "Which image to set — 'logo' (round avatar) or 'coverImage' (wide banner).",
+        },
+        mediaId: { type: 'number', description: 'Use an existing Media document id.' },
+        imageUrl: { type: 'string', description: 'Fetch this URL and upload it as the image.' },
+        generatePrompt: {
+          type: 'string',
+          description: 'AI-generate the image from this description, then use it. Reaches for the tenant image provider.',
+        },
+      },
+      required: ['which'],
+    },
+  },
+  {
     name: 'connect_stripe_account',
     description:
       'Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.',
@@ -3328,6 +3350,7 @@ const CONTENT_MUTATION_TOOLS: Record<string, (input: Record<string, unknown>) =>
   update_theme_settings: () => ({ collection: 'site-settings' }),
   update_navigation: () => ({ collection: 'header' }),
   configure_endeavor: () => ({ collection: 'endeavors' }),
+  set_endeavor_image: () => ({ collection: 'endeavors' }),
   payload_update: (i) => ({ collection: i.collection as string }),
   payload_create: (i) => ({ collection: i.collection as string }),
 }
@@ -3461,6 +3484,8 @@ async function executeToolSwitch(
         return await handleConfigureBusiness(payload, toolInput, ctx)
       case 'configure_endeavor':
         return await handleConfigureEndeavor(payload, toolInput, ctx)
+      case 'set_endeavor_image':
+        return await handleSetEndeavorImage(payload, toolInput, ctx)
       case 'check_endeavor_onboarding':
         return await handleCheckEndeavorOnboarding(payload, ctx)
       case 'connect_stripe_account':
@@ -6109,6 +6134,58 @@ async function handleConfigureEndeavor(
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error configuring endeavor: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+/**
+ * set_endeavor_image — Set the tenant Endeavor's logo or coverImage (the imagery
+ * on its federation Discovery card) from an existing media id, a URL, or an AI
+ * prompt. The conversational, tenant-scoped front-end of the set-media primitive.
+ */
+async function handleSetEndeavorImage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const which = input.which === 'logo' ? 'logo' : input.which === 'coverImage' ? 'coverImage' : null
+  if (!which) return "Error: 'which' must be 'logo' or 'coverImage'."
+
+  const mediaId = input.mediaId != null ? Number(input.mediaId) : undefined
+  const imageUrl = typeof input.imageUrl === 'string' ? input.imageUrl : undefined
+  const generatePrompt = typeof input.generatePrompt === 'string' ? input.generatePrompt : undefined
+  if (mediaId == null && !imageUrl && !generatePrompt) {
+    return 'Error: provide one of mediaId, imageUrl, or generatePrompt.'
+  }
+
+  // Resolve THIS tenant's Endeavor.
+  const existing = await payload.find({
+    collection: 'endeavors',
+    where: { tenant: { equals: tenantId } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const endeavor = existing.docs[0] as { id: number | string; name?: string } | undefined
+  if (!endeavor) {
+    return 'Error: no Endeavor exists for this tenant yet. Use configure_endeavor to create one first.'
+  }
+
+  const { setMediaField } = await import('./setMediaField')
+  const result = await setMediaField(payload, {
+    collection: 'endeavors',
+    id: endeavor.id,
+    field: which,
+    source: { mediaId, imageUrl, generate: generatePrompt ? { prompt: generatePrompt } : undefined },
+    tenantId: Number(tenantId),
+    alt: `${endeavor.name || 'Endeavor'} ${which === 'logo' ? 'logo' : 'cover image'}`,
+  })
+
+  if (!result.success) return `Error setting ${which}: ${result.error || 'unknown error'}`
+  const label = which === 'logo' ? 'logo' : 'cover image'
+  const how = result.via === 'generated' ? 'generated' : result.via === 'uploaded' ? 'uploaded' : 'set'
+  return `Done — ${label} ${how} (media #${result.mediaId}) on "${endeavor.name || 'your Endeavor'}". It will show on the Discovery card.${navDirective('/dashboard/endeavor', 'View Endeavor')}`
 }
 
 /**
