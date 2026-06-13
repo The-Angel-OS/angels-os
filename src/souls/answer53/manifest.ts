@@ -9,7 +9,7 @@ import type { SoulManifest } from '../rainmaker/manifest'
 export const answer53Manifest: SoulManifest = {
   id: 'answer53',
   // Canonical to Clearwater Cruisin (Ken & Ty's endeavor).
-  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin' },
+  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin', creditedTo: 'kenneth.courtney@gmail.com' },
   title: '53.3 — THE NEW ANSWER',
   subtitle: 'to Life, the Universe, and Everything',
   description:

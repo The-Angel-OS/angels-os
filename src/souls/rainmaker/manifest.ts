@@ -26,6 +26,13 @@ export interface SoulCanonical {
   origin: string
   /** Owner-of-record: the publishing endeavor's slug (metadata; `origin` drives the URL). */
   endeavor?: string
+  /**
+   * Author of record — the user (email) credited for this Work, shown as the
+   * byline and used for attribution/royalty accounting. This is the manifest
+   * DEFAULT; a runtime override may be set per-deployment via the Setting bag
+   * (see resolveWorkAttribution). e.g. "billthecat1022@gmail.com".
+   */
+  creditedTo?: string
 }
 
 export interface SoulManifest {
@@ -53,7 +60,7 @@ export const rainmakerManifest: SoulManifest = {
   id: 'rainmaker',
   // Canonical to Clearwater Cruisin (Ken & Ty's endeavor). Adjust origin if a
   // custom domain replaces the spacesangels subdomain.
-  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin' },
+  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin', creditedTo: 'kenneth.courtney@gmail.com' },
   title: 'THE RAINMAKER',
   subtitle: 'Hilkert v. Courtney et al. — Pinellas County, FL',
   description:
