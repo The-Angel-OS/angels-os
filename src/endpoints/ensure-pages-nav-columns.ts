@@ -21,6 +21,13 @@ const STATEMENTS: string[] = [
   `ALTER TABLE "pages" ADD COLUMN IF NOT EXISTS "show_in_nav" boolean DEFAULT true;`,
   `ALTER TABLE "pages" ADD COLUMN IF NOT EXISTS "nav_order" numeric;`,
   `ALTER TABLE "pages" ADD COLUMN IF NOT EXISTS "nav_label" varchar;`,
+  // ⚠️ Pages has drafts/versions enabled, so Payload expects EVERY field in the
+  // `_pages_v` version table too (version_ prefix). Omitting these makes the admin
+  // (which reads the versions/draft path) throw "column version_show_in_nav does
+  // not exist" while the PUBLIC site (reads `pages`) works — the exact incident.
+  `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_show_in_nav" boolean DEFAULT true;`,
+  `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_nav_order" numeric;`,
+  `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_nav_label" varchar;`,
   // ── nested-docs: parent relationship ──
   `ALTER TABLE "pages" ADD COLUMN IF NOT EXISTS "parent_id" integer;`,
   `CREATE INDEX IF NOT EXISTS "pages_parent_idx" ON "pages" ("parent_id");`,
@@ -71,6 +78,10 @@ export const ensurePagesNavColumnsHandler: PayloadHandler = async (req) => {
       `SELECT column_name FROM information_schema.columns WHERE table_name='pages' AND column_name IN ('show_in_nav','nav_order','nav_label','parent_id')`,
     )
     for (const r of cols.rows) have[r.column_name] = true
+    const vcols = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name='_pages_v' AND column_name IN ('version_show_in_nav','version_nav_order','version_nav_label')`,
+    )
+    for (const r of vcols.rows) have[r.column_name] = true
     const tbl = await pool.query(`SELECT 1 FROM information_schema.tables WHERE table_name='pages_breadcrumbs'`)
     have['pages_breadcrumbs'] = tbl.rows.length > 0
   } catch { /* best-effort */ }
