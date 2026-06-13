@@ -119,6 +119,7 @@ import { tenantDoctorHandler } from '@/endpoints/tenant-doctor'
 import { setMembershipHandler } from '@/endpoints/set-membership'
 import { setMediaHandler } from '@/endpoints/set-media'
 import { resolveEditHandler } from '@/endpoints/resolve-edit'
+import { ensurePagesNavColumnsHandler } from '@/endpoints/ensure-pages-nav-columns'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { accountAuditHandler } from '@/endpoints/account-audit'
@@ -769,6 +770,9 @@ export default buildConfig({
     // Map a public path → its Payload admin editor URL (for the "Edit this page"
     // link in the Portal Switcher). GET; logged-in user; read-only.
     { path: '/edit-ops/resolve', method: 'get', handler: resolveEditHandler },
+    // Provision Pages nav + nested-docs columns on a prod DB BEFORE the config
+    // that references them deploys (else Pages queries error). super_admin or ?key=.
+    { path: '/provision-ops/ensure-pages-nav-columns', method: 'get', handler: ensurePagesNavColumnsHandler },
     // Factory primitive: grant a user tenant-scoped access (find-or-create user +
     // active tenant-membership at a role). POST; super_admin or ?key=CRON_SECRET.
     {
