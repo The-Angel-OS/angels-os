@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
 import { creditOnApproval } from './hooks/creditOnApproval'
+import { enforceReviewAuthority } from './hooks/enforceReviewAuthority'
 
 export const QuestParticipations: CollectionConfig = {
   slug: 'quest-participations',
@@ -18,7 +19,11 @@ export const QuestParticipations: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    // Authorize the review transition (approve/reject) BEFORE it persists:
+    // no self-approval, reviewer must be admin or quest owner, valid state machine.
+    beforeChange: [enforceReviewAuthority],
     // On approval, settle the token payout from the Diocese float (ledger-backed).
+    // Runs only after enforceReviewAuthority has admitted the transition.
     afterChange: [creditOnApproval],
   },
   fields: [

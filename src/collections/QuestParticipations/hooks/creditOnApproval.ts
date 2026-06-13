@@ -19,6 +19,7 @@ export const creditOnApproval: CollectionAfterChangeHook = async ({ doc, previou
       quest: doc.quest,
       participant: doc.participant,
       tenant: doc.tenant,
+      status: doc.status,
     })
   } catch (err) {
     req.payload.logger?.error?.({ err, msg: `[creditOnApproval] payout failed for participation ${doc?.id}` })

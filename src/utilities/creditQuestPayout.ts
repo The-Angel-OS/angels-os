@@ -28,6 +28,13 @@ export interface QuestPayoutResult {
   tokenKind?: TokenKind
 }
 
+/**
+ * Hard ceiling on a single quest payout (in minor token units). Defense in depth
+ * against a mis-configured / malicious quest minting an absurd amount out of the
+ * float in one transfer. A legitimately larger payout is a deliberate config change.
+ */
+export const MAX_QUEST_PAYOUT = 1_000_000
+
 function floatAccount(tenantId: number | string): string {
   return `float:tenant:${tenantId}`
 }
@@ -89,6 +96,8 @@ export async function creditQuestPayout(
     quest: number | string | { id: number | string; payout?: unknown; tenant?: unknown }
     participant: number | string | { id: number | string }
     tenant?: number | string | { id: number | string }
+    /** Current participation status — payout only mints for an `approved` record. */
+    status?: string
   },
   now: string = new Date().toISOString(),
 ): Promise<QuestPayoutResult> {
@@ -96,6 +105,29 @@ export async function creditQuestPayout(
   try {
     const participationId = participation.id
     const ref = `questParticipation:${participationId}`
+
+    // Defense in depth: never mint unless the participation is actually approved.
+    // The caller (creditOnApproval) already checks this, but the mint path must not
+    // rely solely on its caller. When status is unknown (legacy call sites), we
+    // re-read the record to confirm rather than trusting the absence of a value.
+    let status = participation.status
+    if (status == null) {
+      try {
+        const fresh = (await payload.findByID({
+          collection: 'quest-participations' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          id: participationId,
+          depth: 0,
+          overrideAccess: true,
+        })) as { status?: string } | null
+        status = fresh?.status
+      } catch {
+        /* lookup failed — treat as unverified below */
+      }
+    }
+    if (status !== 'approved') {
+      await log.warn('payout refused — participation not approved', { details: `${ref} status=${status ?? 'unknown'}` })
+      return { ok: false, skipped: true, reason: 'participation not approved' }
+    }
 
     // Idempotency: already settled in the ledger? skip.
     const existing = await payload.find({
@@ -115,6 +147,11 @@ export async function creditQuestPayout(
     const amount = Number(quest?.payout?.amount)
     if (!Number.isInteger(amount) || amount <= 0) {
       return { ok: true, skipped: true, reason: 'quest has no positive token payout' }
+    }
+    // Reject absurd amounts before they can touch the float (mint-path guardrail).
+    if (amount > MAX_QUEST_PAYOUT) {
+      await log.error('payout refused — amount exceeds MAX_QUEST_PAYOUT', { details: `${ref} amount=${amount} max=${MAX_QUEST_PAYOUT}` })
+      return { ok: false, reason: 'payout exceeds maximum' }
     }
     const tokenKind: TokenKind = 'AT' // quest payouts pay in Angel Tokens
 

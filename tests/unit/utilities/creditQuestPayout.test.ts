@@ -36,7 +36,7 @@ function mockPayload(state: { settled?: boolean; floatBalance?: number; userBala
   return { payload, creates, updates }
 }
 
-const participation = { id: 42, quest: 7, participant: 9, tenant: 5 }
+const participation = { id: 42, quest: 7, participant: 9, tenant: 5, status: 'approved' }
 
 describe('creditQuestPayout', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -82,5 +82,23 @@ describe('creditQuestPayout', () => {
     const { payload } = mockPayload({ floatBalance: 1000, quest: { id: 7, title: 'X', payout: { amount: 0 }, tenant: 5 } })
     const r = await creditQuestPayout(payload as any, participation, '2026-06-11T00:00:00Z')
     expect(r).toMatchObject({ ok: true, skipped: true })
+  })
+
+  it('refuses to mint when the participation is not approved (caller-independent guard)', async () => {
+    const { payload, creates, updates } = mockPayload({ floatBalance: 1000 })
+    const r = await creditQuestPayout(payload as any, { ...participation, status: 'submitted' }, '2026-06-11T00:00:00Z')
+    expect(r).toMatchObject({ ok: false, skipped: true, reason: 'participation not approved' })
+    expect(creates).toHaveLength(0)
+    expect(updates).toHaveLength(0)
+  })
+
+  it('refuses an amount over MAX_QUEST_PAYOUT (mint-path ceiling)', async () => {
+    const { payload, creates } = mockPayload({
+      floatBalance: 10_000_000_000,
+      quest: { id: 7, title: 'Whale', payout: { amount: 5_000_000 }, tenant: 5 },
+    })
+    const r = await creditQuestPayout(payload as any, participation, '2026-06-11T00:00:00Z')
+    expect(r).toMatchObject({ ok: false, reason: 'payout exceeds maximum' })
+    expect(creates).toHaveLength(0)
   })
 })
