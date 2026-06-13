@@ -39,6 +39,15 @@ type Props = {
 
 const defaultLogoUrl = '/logo.svg'
 
+const HOME_NAV_ITEM = {
+  id: 'home',
+  link: {
+    type: 'custom' as const,
+    label: 'Home',
+    url: '/',
+    newTab: false,
+  },
+}
 const POSTS_NAV_ITEM = {
   id: 'posts',
   link: {
@@ -182,6 +191,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   const menu = useMemo(() => {
     const items = [...(navItems ?? [])]
     const urls = new Set(items.map((i) => i.link?.url))
+    // Home is always present and always FIRST — the appended defaults below never
+    // include it, so when the header doc fails to load (or omits Home) the nav
+    // would otherwise have no Home link at all (only the logo). Guarantee it.
+    if (!urls.has('/')) items.unshift(HOME_NAV_ITEM)
     // Ensure Posts, Events, Docs always present (even if CMS omits them)
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
