@@ -27,12 +27,17 @@ export interface SoulCanonical {
   /** Owner-of-record: the publishing endeavor's slug (metadata; `origin` drives the URL). */
   endeavor?: string
   /**
-   * Author of record — the user (email) credited for this Work, shown as the
-   * byline and used for attribution/royalty accounting. This is the manifest
-   * DEFAULT; a runtime override may be set per-deployment via the Setting bag
-   * (see resolveWorkAttribution). e.g. "billthecat1022@gmail.com".
+   * Primary author of record — the user (email) credited as the byline and used
+   * for attribution/royalty accounting. Manifest DEFAULT; a runtime override may
+   * be set per-deployment via the Setting bag (see resolveWorkAttribution).
+   * e.g. "billthecat1022@gmail.com".
    */
   creditedTo?: string
+  /**
+   * Additional credited authors (co-authors) beyond the primary byline — a Work
+   * can have many. Emails. The full credited set = [creditedTo, ...contributors].
+   */
+  contributors?: string[]
 }
 
 export interface SoulManifest {

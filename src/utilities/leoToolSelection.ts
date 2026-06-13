@@ -24,7 +24,7 @@ export const ADMIN_ONLY_TOOLS = new Set<string>([
   'connect_stripe_account', 'disconnect_stripe_account', 'issue_refund', 'generate_invoice',
   'query_financial_reports',
   // platform / tenant config
-  'configure_business', 'configure_endeavor', 'set_endeavor_image', 'update_theme_settings', 'update_navigation',
+  'configure_business', 'configure_endeavor', 'set_endeavor_image', 'set_work_attribution', 'update_theme_settings', 'update_navigation',
   'research_and_provision', 'provision_tenant', 'onboard_vendor', 'manage_categories',
   // moderation / governance / incident
   'moderate_content', 'send_emergency_alert', 'document_incident', 'run_subsafe_check',

@@ -21,10 +21,26 @@ export interface WorkAttribution {
   workId: string
   /** Publishing endeavor slug (the Work's canonical home / scope). */
   endeavor?: string
-  /** Author of record — user email credited for the Work. */
+  /** Primary author of record — user email (the byline). */
   creditedTo?: string
+  /** Co-authors beyond the byline. The full credited set = [creditedTo, ...contributors]. */
+  contributors: string[]
   /** Whether the resolved value came from the manifest default or a runtime override. */
   source: 'manifest' | 'override'
+}
+
+/** Parse a contributors value that may be a JSON-array string (bag) or array (manifest). */
+function parseContributors(v: unknown): string[] {
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string')
+  if (typeof v === 'string' && v.trim()) {
+    try {
+      const parsed = JSON.parse(v)
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+    } catch {
+      return []
+    }
+  }
+  return []
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +58,7 @@ export async function resolveWorkAttribution(
   const soul = getSoul(workId)
   if (!soul) return null
 
-  const manifest: { endeavor?: string; creditedTo?: string } = soul.canonical || {}
+  const manifest: { endeavor?: string; creditedTo?: string; contributors?: string[] } = soul.canonical || {}
   let override: Record<string, string> = {}
   if (opts.tenantId != null) {
     try {
@@ -52,11 +68,13 @@ export async function resolveWorkAttribution(
     }
   }
 
-  const hasOverride = Boolean(override.endeavor || override.creditedTo)
+  const hasOverride = Boolean(override.endeavor || override.creditedTo || override.contributors)
   return {
     workId,
     endeavor: override.endeavor || manifest.endeavor,
     creditedTo: override.creditedTo || manifest.creditedTo,
+    contributors:
+      override.contributors != null ? parseContributors(override.contributors) : parseContributors(manifest.contributors),
     source: hasOverride ? 'override' : 'manifest',
   }
 }
@@ -65,10 +83,11 @@ export async function resolveWorkAttribution(
 export async function setWorkAttribution(
   payload: AnyPayload,
   workId: string,
-  fields: { endeavor?: string; creditedTo?: string },
+  fields: { endeavor?: string; creditedTo?: string; contributors?: string[] },
   opts: { tenantId: string | number },
 ): Promise<void> {
   const scope = { entityName: WORK_ENTITY, entityId: workId, tenantId: opts.tenantId }
   if (fields.endeavor != null) await setSetting(payload, scope, 'endeavor', fields.endeavor)
   if (fields.creditedTo != null) await setSetting(payload, scope, 'creditedTo', fields.creditedTo)
+  if (fields.contributors != null) await setSetting(payload, scope, 'contributors', JSON.stringify(fields.contributors))
 }

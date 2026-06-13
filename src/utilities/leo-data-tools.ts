@@ -931,6 +931,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'set_work_attribution',
+    description:
+      "Set who a published Work (a book / case-file / 'soul' in the Library) is credited to and which endeavor publishes it. Use when assigning or correcting a Work's authorship/ownership — crediting a primary author, adding co-authors, or moving a Work to a different publishing endeavor. workId is the Work's id (e.g. 'wdeg', 'answer53', 'rainmaker'). This sets a runtime override on top of the Work's manifest default. Restricted to super_admin.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        workId: { type: 'string', description: "The Work/soul id, e.g. 'wdeg', 'answer53', 'rainmaker'." },
+        creditedTo: { type: 'string', description: 'Primary author email (the byline).' },
+        contributors: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Co-author emails beyond the primary byline (a Work can have many authors).',
+        },
+        endeavor: { type: 'string', description: 'Publishing endeavor slug — the Work\'s canonical home.' },
+      },
+      required: ['workId'],
+    },
+  },
+  {
     name: 'connect_stripe_account',
     description:
       'Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.',
@@ -3505,6 +3524,8 @@ async function executeToolSwitch(
         return await handleConfigureEndeavor(payload, toolInput, ctx)
       case 'set_endeavor_image':
         return await handleSetEndeavorImage(payload, toolInput, ctx)
+      case 'set_work_attribution':
+        return await handleSetWorkAttribution(payload, toolInput, ctx)
       case 'check_endeavor_onboarding':
         return await handleCheckEndeavorOnboarding(payload, ctx)
       case 'connect_stripe_account':
@@ -6205,6 +6226,42 @@ async function handleSetEndeavorImage(
   const label = which === 'logo' ? 'logo' : 'cover image'
   const how = result.via === 'generated' ? 'generated' : result.via === 'uploaded' ? 'uploaded' : 'set'
   return `Done — ${label} ${how} (media #${result.mediaId}) on "${endeavor.name || 'your Endeavor'}". It will show on the Discovery card.${navDirective('/dashboard/endeavor', 'View Endeavor')}`
+}
+
+/**
+ * set_work_attribution — set a Work's author(s) + publishing endeavor (runtime
+ * override over the manifest default). super_admin only; writes the Setting bag.
+ */
+async function handleSetWorkAttribution(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'Setting Work attribution')
+  if (denied) return denied
+
+  const workId = typeof input.workId === 'string' ? input.workId.trim() : ''
+  if (!workId) return 'Error: workId is required (e.g. "wdeg", "answer53").'
+  if (!ctx.tenantId) return 'Error: no tenant context for the attribution override.'
+
+  const { getSoul } = await import('@/souls')
+  if (!getSoul(workId)) return `Error: no Work found with id "${workId}".`
+
+  const fields: { creditedTo?: string; endeavor?: string; contributors?: string[] } = {}
+  if (typeof input.creditedTo === 'string') fields.creditedTo = input.creditedTo.trim()
+  if (typeof input.endeavor === 'string') fields.endeavor = input.endeavor.trim()
+  if (Array.isArray(input.contributors)) {
+    fields.contributors = (input.contributors as unknown[]).filter((x): x is string => typeof x === 'string')
+  }
+  if (Object.keys(fields).length === 0) {
+    return 'Error: provide at least one of creditedTo, contributors, or endeavor.'
+  }
+
+  const { setWorkAttribution, resolveWorkAttribution } = await import('./workAttribution')
+  await setWorkAttribution(payload, workId, fields, { tenantId: Number(ctx.tenantId) })
+  const a = await resolveWorkAttribution(payload, workId, { tenantId: Number(ctx.tenantId) })
+  const coauthors = a?.contributors?.length ? ` + ${a.contributors.length} co-author(s)` : ''
+  return `Done — "${workId}" credited to ${a?.creditedTo || '(unset)'}${coauthors}, published by ${a?.endeavor || '(unset)'}.`
 }
 
 /**

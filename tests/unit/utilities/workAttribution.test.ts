@@ -13,9 +13,11 @@ vi.mock('@/souls', () => ({
   getSoul: vi.fn((id: string) =>
     id === 'wdeg'
       ? { id: 'wdeg', title: 'WDEG', canonical: { endeavor: 'wheredideveryonego', creditedTo: 'billthecat1022@gmail.com' } }
-      : id === 'orphan'
-        ? { id: 'orphan', title: 'Orphan' } // no canonical
-        : null,
+      : id === 'coauthored'
+        ? { id: 'coauthored', title: 'Co', canonical: { creditedTo: 'a@x.com', contributors: ['b@x.com', 'c@x.com'] } }
+        : id === 'orphan'
+          ? { id: 'orphan', title: 'Orphan' } // no canonical
+          : null,
   ),
 }))
 
@@ -34,7 +36,20 @@ describe('workAttribution', () => {
 
   it('returns the manifest default when there is no override', async () => {
     const a = await resolveWorkAttribution(payload, 'wdeg', { tenantId: 1 })
-    expect(a).toEqual({ workId: 'wdeg', endeavor: 'wheredideveryonego', creditedTo: 'billthecat1022@gmail.com', source: 'manifest' })
+    expect(a).toEqual({ workId: 'wdeg', endeavor: 'wheredideveryonego', creditedTo: 'billthecat1022@gmail.com', contributors: [], source: 'manifest' })
+  })
+
+  it('returns manifest contributors (co-authors)', async () => {
+    const a = (await resolveWorkAttribution(payload, 'coauthored', { tenantId: 1 }))!
+    expect(a.creditedTo).toBe('a@x.com')
+    expect(a.contributors).toEqual(['b@x.com', 'c@x.com'])
+  })
+
+  it('lets a bag override replace contributors (JSON array string)', async () => {
+    mockGetSettings.mockResolvedValue({ contributors: '["new1@x.com","new2@x.com"]' })
+    const a = (await resolveWorkAttribution(payload, 'coauthored', { tenantId: 1 }))!
+    expect(a.contributors).toEqual(['new1@x.com', 'new2@x.com'])
+    expect(a.source).toBe('override')
   })
 
   it('lets a Setting-bag override win over the manifest', async () => {
@@ -58,7 +73,7 @@ describe('workAttribution', () => {
 
   it('handles a work with no canonical block', async () => {
     const a = await resolveWorkAttribution(payload, 'orphan', { tenantId: 1 })
-    expect(a).toEqual({ workId: 'orphan', endeavor: undefined, creditedTo: undefined, source: 'manifest' })
+    expect(a).toEqual({ workId: 'orphan', endeavor: undefined, creditedTo: undefined, contributors: [], source: 'manifest' })
   })
 
   it('writes an override through the bag, scoped to the work + tenant', async () => {

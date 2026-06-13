@@ -22,6 +22,7 @@ export const TOOL_LABELS: Record<string, string> = {
   attach_image_to_product: '\u{1F4CE} Attaching to product',
   replace_image: '\u{1F504} Replacing image',
   set_endeavor_image: '\u{1F5BC}\u{FE0F} Setting Endeavor image',
+  set_work_attribution: '\u{270D}\u{FE0F} Setting Work attribution',
 
   // Bookings
   create_booking: 'Creating booking',
