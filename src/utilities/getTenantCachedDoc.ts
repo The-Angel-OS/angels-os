@@ -40,7 +40,12 @@ export const getTenantCachedDoc = <T extends Header | Footer>(
   }
   return unstable_cache(
     async () => getTenantDoc<T>(collection, tenantId, depth),
-    [`tenant_${collection}`, String(tenantId)],
+    // NOTE: the trailing version segment ('v2') intentionally orphans pre-existing
+    // cache entries. unstable_cache records its revalidate metadata at WRITE time,
+    // so an entry written under the old (no-TTL) config stays infinite forever — a
+    // null cached before a tenant's header doc existed would never self-heal. Bump
+    // this version whenever the caching semantics change to force a clean re-fetch.
+    [`tenant_${collection}`, String(tenantId), 'v2'],
     {
       tags: [`tenant_${collection}_${tenantId}`],
       // Self-heal: without a TTL the entry caches indefinitely (Vercel's data cache
