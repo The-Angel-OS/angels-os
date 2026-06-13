@@ -18,6 +18,9 @@ async function getTenantDoc<T extends Header | Footer>(
     limit: 1,
     depth,
     pagination: false,
+    // Trusted server fetch, already explicitly scoped by tenant — bypass access
+    // control so a context-less (no x-tenant-id) render can't get the doc filtered.
+    overrideAccess: true,
   })
 
   return (result.docs?.[0] as T) ?? null
@@ -38,6 +41,13 @@ export const getTenantCachedDoc = <T extends Header | Footer>(
   return unstable_cache(
     async () => getTenantDoc<T>(collection, tenantId, depth),
     [`tenant_${collection}`, String(tenantId)],
-    { tags: [`tenant_${collection}_${tenantId}`] },
+    {
+      tags: [`tenant_${collection}_${tenantId}`],
+      // Self-heal: without a TTL the entry caches indefinitely (Vercel's data cache
+      // survives deploys), so a null cached before the doc existed would persist
+      // forever unless the tag is busted. 5-min revalidate bounds the staleness;
+      // the collection's afterChange hook busts the tag for instant correctness.
+      revalidate: 300,
+    },
   )
 }

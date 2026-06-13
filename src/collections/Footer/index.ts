@@ -2,6 +2,9 @@ import type { CollectionConfig } from 'payload'
 
 import { link } from '@/fields/link'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { revalidateTenantDoc } from '@/utilities/revalidateTenantDoc'
+
+const revalidate = revalidateTenantDoc('footer')
 
 export const Footer: CollectionConfig = {
   slug: 'footer',
@@ -13,6 +16,10 @@ export const Footer: CollectionConfig = {
   access: {
     // Each tenant has its own footer — scope to current tenant.
     read: publicWithTenantScope,
+  },
+  hooks: {
+    afterChange: [revalidate.afterChange],
+    afterDelete: [revalidate.afterDelete],
   },
   fields: [
     {

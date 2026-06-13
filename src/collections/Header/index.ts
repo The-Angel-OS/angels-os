@@ -2,6 +2,9 @@ import type { CollectionConfig } from 'payload'
 
 import { link } from '@/fields/link'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { revalidateTenantDoc } from '@/utilities/revalidateTenantDoc'
+
+const revalidate = revalidateTenantDoc('header')
 
 export const Header: CollectionConfig = {
   slug: 'header',
@@ -13,6 +16,10 @@ export const Header: CollectionConfig = {
   access: {
     // Each tenant has its own header — scope to current tenant.
     read: publicWithTenantScope,
+  },
+  hooks: {
+    afterChange: [revalidate.afterChange],
+    afterDelete: [revalidate.afterDelete],
   },
   fields: [
     {
