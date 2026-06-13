@@ -19,7 +19,7 @@ import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain, fetchTenantByExactDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
@@ -30,7 +30,10 @@ import './globals.css'
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
-  const tenant = tenantSlug ? await fetchTenantBySlug(tenantSlug) : null
+  // Subdomain tenant via x-tenant-id; platform/apex via exact-domain (own branding).
+  const tenant = tenantSlug
+    ? await fetchTenantBySlug(tenantSlug)
+    : await fetchTenantByExactDomain(headersList.get('host') ?? '')
   const siteName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
   const tagline =
     typeof (tenant as any)?.branding?.tagline === 'string'
@@ -83,8 +86,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       if (!tenant) {
         tenant = await fetchTenantByDomain(host)
       }
+    } else {
+      // Platform/apex domain (no x-tenant-id). Resolve ONLY by EXACT domain match —
+      // so a tenant that legitimately owns this apex (the platform tenant for
+      // www.spacesangels.com) loads its OWN header/pages/branding. Exact-only means
+      // no DEFAULT_TENANT_SLUG fallback, so an unowned apex still stays null (true
+      // platform context) — preserving the isolation guarantee above.
+      tenant = await fetchTenantByExactDomain(host)
     }
-    // When tenantSlug is null → platform context → tenant stays null
   } catch (err) {
     console.error('[AppLayout] Tenant resolution failed — rendering without tenant:', err)
   }

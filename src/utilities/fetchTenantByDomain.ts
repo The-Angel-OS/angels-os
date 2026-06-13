@@ -12,6 +12,36 @@ import { tenantByDomainCache, tenantBySlugCache } from './tenantCache'
  * Results are cached in-process for 60s (dev) / 120s (prod) to eliminate
  * per-request DB hits that can exhaust the connection pool.
  */
+/**
+ * Resolve a tenant by EXACT domain match ONLY — no subdomain-slug guessing and no
+ * DEFAULT_TENANT_SLUG fallback. Use for platform/apex domains (no x-tenant-id) so a
+ * tenant that legitimately OWNS that apex (e.g. the platform tenant for
+ * www.spacesangels.com) loads its own header/pages/branding, while any unowned
+ * domain stays null (true platform context) — zero leakage risk.
+ */
+export async function fetchTenantByExactDomain(host: string): Promise<Tenant | null> {
+  const domain = host?.split(':')[0]?.toLowerCase() || 'localhost'
+  const cacheKey = `exact:${domain}`
+  const cached = tenantByDomainCache.get(cacheKey) as Tenant | null | undefined
+  if (cached !== undefined) return cached
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const tenants = await payload.find({
+      collection: 'tenants',
+      where: { domain: { equals: domain } },
+      limit: 1,
+      depth: 2,
+      overrideAccess: true,
+    })
+    const result = tenants.docs?.[0] ?? null
+    tenantByDomainCache.set(cacheKey, result) // safe to cache: exact match, never the default
+    return result
+  } catch (err) {
+    console.error('[fetchTenantByExactDomain] DB query failed for domain:', domain, err)
+    return null
+  }
+}
+
 export async function fetchTenantByDomain(host: string): Promise<Tenant | null> {
   const domain = host?.split(':')[0]?.toLowerCase() || 'localhost'
 
