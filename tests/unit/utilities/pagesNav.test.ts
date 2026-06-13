@@ -29,6 +29,26 @@ describe('pagesNav.injectPagesUnderHome', () => {
     expect(home.children[0].link.label).toBe('faq')
   })
 
+  it('excludes pages with showInNav === false (e.g. campaign pages)', () => {
+    const out = injectPagesUnderHome(NAV, [
+      { slug: 'about', title: 'About' },
+      { slug: 'summer-promo', title: 'Summer Promo', showInNav: false },
+      { slug: 'services', title: 'Services' },
+    ])
+    const home = out.find((i) => i.link.url === '/')
+    expect(home.children.map((c: { link: { url: string } }) => c.link.url)).toEqual(['/about', '/services'])
+  })
+
+  it('sorts by navOrder then label, and honors navLabel override', () => {
+    const out = injectPagesUnderHome(NAV, [
+      { slug: 'z-last', title: 'Zeta', navOrder: 3 },
+      { slug: 'a-mid', title: 'Alpha' }, // no navOrder → sorts last among, after ordered
+      { slug: 'b-first', title: 'Bravo', navOrder: 1, navLabel: 'First!' },
+    ])
+    const home = out.find((i) => i.link.url === '/')
+    expect(home.children.map((c: { link: { label: string; url: string } }) => c.link.label)).toEqual(['First!', 'Zeta', 'Alpha'])
+  })
+
   it('merges with manually-authored children (dedup by URL)', () => {
     const nav = [item('Home', '/', { children: [{ link: { type: 'custom', label: 'Manual', url: '/about' } }] }), item('X', '/x')]
     const out = injectPagesUnderHome(nav, [{ slug: 'about', title: 'About' }, { slug: 'new', title: 'New' }])

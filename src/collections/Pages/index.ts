@@ -78,6 +78,38 @@ export const Pages: CollectionConfig = {
         ],
       },
     },
+    // ─── Navigation control ───────────────────────────────────────────────
+    // A published page is auto-listed in the Home menu UNLESS showInNav is off
+    // (e.g. a lead-capture / campaign landing page that should stay out of nav).
+    // navOrder sorts the menu; navLabel overrides the menu text; parent (from the
+    // nested-docs plugin) nests one level deep. See injectPagesUnderHome.
+    {
+      name: 'showInNav',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Show this page in the site navigation (Home menu). Turn off for campaign/landing pages.',
+      },
+    },
+    {
+      name: 'navLabel',
+      type: 'text',
+      admin: {
+        position: 'sidebar',
+        description: 'Optional menu label (defaults to the page title).',
+        condition: (data) => data?.showInNav !== false,
+      },
+    },
+    {
+      name: 'navOrder',
+      type: 'number',
+      admin: {
+        position: 'sidebar',
+        description: 'Sort order in the menu (lower first; blank sorts last, then by title).',
+        condition: (data) => data?.showInNav !== false,
+      },
+    },
     {
       type: 'tabs',
       tabs: [

@@ -43,9 +43,14 @@ export async function Header({ tenant }: Props) {
         sort: 'title',
         overrideAccess: true,
       })
-      const pageList: PageLite[] = (pages.docs as Array<{ slug?: string | null; title?: string | null }>).map((p) => ({
+      const pageList: PageLite[] = (
+        pages.docs as Array<{ slug?: string | null; title?: string | null; navLabel?: string | null; navOrder?: number | null; showInNav?: boolean | null }>
+      ).map((p) => ({
         slug: p.slug,
         title: p.title,
+        navLabel: p.navLabel,
+        navOrder: p.navOrder,
+        showInNav: p.showInNav,
       }))
 
       // Latest posts → Posts dropdown, each with its meta image as a thumbnail.

@@ -13,6 +13,12 @@
 export interface PageLite {
   slug?: string | null
   title?: string | null
+  /** Optional menu label override (defaults to title, then slug). */
+  navLabel?: string | null
+  /** Sort order in the menu; lower first. Blank sorts last (then by title). */
+  navOrder?: number | null
+  /** When false, the page is published but excluded from the nav (e.g. a campaign page). */
+  showInNav?: boolean | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,15 +29,24 @@ const isHomeItem = (item: NavItem): boolean => {
   return link?.url === '/' || (typeof link?.label === 'string' && link.label.toLowerCase() === 'home')
 }
 
-/** Build a child nav link from a page. */
+/** Build a child nav link from a page (navLabel overrides title). */
 const pageToChild = (p: PageLite): NavItem => ({
-  link: { type: 'custom', label: (p.title || p.slug) as string, url: `/${p.slug}` },
+  link: { type: 'custom', label: (p.navLabel || p.title || p.slug) as string, url: `/${p.slug}` },
 })
 
+/** Sort: by navOrder ascending (blank/last), then alphabetically by display label. */
+const byNavOrder = (a: PageLite, b: PageLite): number => {
+  const ao = typeof a.navOrder === 'number' ? a.navOrder : Number.POSITIVE_INFINITY
+  const bo = typeof b.navOrder === 'number' ? b.navOrder : Number.POSITIVE_INFINITY
+  if (ao !== bo) return ao - bo
+  return String(a.navLabel || a.title || a.slug).localeCompare(String(b.navLabel || b.title || b.slug))
+}
+
 /**
- * Inject the tenant's pages as children of the Home nav item. Returns navItems
- * unchanged when there are no eligible pages. `excludeSlugs` defaults to ['home']
- * (the page that IS Home). Capped by `max` so the dropdown stays sane.
+ * Inject the tenant's pages as children of the Home nav item. Pages with
+ * showInNav === false are excluded (e.g. campaign/landing pages). Sorted by
+ * navOrder then label. Returns navItems unchanged when there are no eligible
+ * pages. `excludeSlugs` defaults to ['home']. Capped by `max`.
  */
 export function injectPagesUnderHome(
   navItems: NavItem[],
@@ -44,6 +59,8 @@ export function injectPagesUnderHome(
 
   const pageChildren = (Array.isArray(pages) ? pages : [])
     .filter((p): p is PageLite & { slug: string } => Boolean(p?.slug) && !exclude.has(p.slug as string))
+    .filter((p) => p.showInNav !== false)
+    .sort(byNavOrder)
     .slice(0, max)
     .map(pageToChild)
 

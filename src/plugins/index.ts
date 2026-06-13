@@ -1,4 +1,5 @@
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
+import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { Plugin } from 'payload'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
@@ -33,6 +34,15 @@ export const plugins: Plugin[] = [
   seoPlugin({
     generateTitle,
     generateURL,
+  }),
+  // One-level (and beyond) page hierarchy: adds `parent` + auto `breadcrumbs` to
+  // Pages. Drives the hierarchical Home menu (a child page hangs under its parent).
+  // ⚠️ Adds pages.parent_id + the pages_breadcrumbs table — provision those columns
+  // on every prod DB (ensure-pages-nav-columns) BEFORE deploying this.
+  nestedDocsPlugin({
+    collections: ['pages'],
+    generateLabel: (_, doc) => (doc?.title as string) || '',
+    generateURL: (docs) => docs.reduce((url, doc) => `${url}/${(doc?.slug as string) || ''}`, ''),
   }),
   formBuilderPlugin({
     fields: {
