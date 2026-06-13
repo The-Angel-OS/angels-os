@@ -1152,6 +1152,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               tenantAiConfig,
               availableTools,
               resolvedChannel,
+              userRoles,
             })
             fullText = gwResult.text
             streamTelemetry = gwResult.telemetry
@@ -1205,6 +1206,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 tenantAiConfig,
                 availableTools,
                 resolvedChannel,
+                userRoles,
               })
               fullText = result.fullText
             } else {
@@ -1230,6 +1232,8 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             tenantSlug,
             tenantAiConfig,
             availableTools,
+            resolvedChannel,
+            userRoles,
           })
           fullText = result.fullText
         }
@@ -1408,12 +1412,14 @@ async function streamViaGateway(opts: {
   availableTools?: typeof LEO_TOOLS
   /** The channel LEO is answering in — threaded into the tool context. */
   resolvedChannel?: string
+  /** Acting user's roles — threaded into the tool context for privileged-tool gates. */
+  userRoles?: string[]
 }): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
-    tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel,
+    tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel, userRoles,
   } = opts
 
   // Budget/BYOK enforcement (env-gated; OFF by default). When a tenant is over
@@ -1526,6 +1532,7 @@ async function streamViaGateway(opts: {
     spaceId: resolvedSpaceId,
     userId,
     channelSlug: resolvedChannel,
+    roles: userRoles,
     tenantAiConfig,
     trace: toolTrace,
   }
@@ -1768,11 +1775,13 @@ async function streamViaAnthropic(opts: {
   availableTools?: typeof LEO_TOOLS
   /** The channel LEO is answering in — threaded into the tool context. */
   resolvedChannel?: string
+  /** Acting user's roles — threaded into the tool context for privileged-tool gates. */
+  userRoles?: string[]
 }): Promise<{ fullText: string }> {
   const {
     controller, encoder, client, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
-    isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel,
+    isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel, userRoles,
   } = opts
 
   // Build user content (with images if present)
@@ -1905,6 +1914,7 @@ async function streamViaAnthropic(opts: {
         spaceId: resolvedSpaceId,
         userId,
         channelSlug: resolvedChannel,
+        roles: userRoles,
         tenantAiConfig,
         trace: toolTrace,
       }

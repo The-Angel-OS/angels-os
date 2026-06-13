@@ -351,6 +351,7 @@ export class ConversationEngine {
             tenantId: this.context.sessionMemory?.tenantId as number | undefined,
             spaceId: this.context.sessionMemory?.spaceId as number | undefined,
             userId: (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id,
+            roles: (this.context.sessionMemory?.userContext as { roles?: string[] } | undefined)?.roles,
             channelSlug: this.context.sessionMemory?.channel as string | undefined,
             tenantAiConfig: this.context.sessionMemory?.tenantAiConfig as Record<string, unknown> | undefined,
           }

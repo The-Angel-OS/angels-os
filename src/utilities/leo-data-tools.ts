@@ -3320,6 +3320,12 @@ export type ToolExecutorContext = {
    * resolveConnectorByChannel + the dispatch_to_channel tool.
    */
   channelSlug?: string
+  /**
+   * The acting user's roles (e.g. ['super_admin']). Threaded from the auth context
+   * so privileged tools (provisioning, etc.) can gate at the single executor
+   * chokepoint. Absent/empty = treat as non-privileged.
+   */
+  roles?: string[]
   /** Sprint 44: Per-tenant AI provider config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
   /**
@@ -3330,6 +3336,19 @@ export type ToolExecutorContext = {
    * message metadata and escalates on failure. See src/utilities/executionTrace.ts.
    */
   trace?: ExecutionTrace
+}
+
+/**
+ * Gate a privileged tool at the executor layer. Returns an error string to return
+ * to the model when the acting user lacks super_admin, or null to proceed. Used by
+ * platform-level tools (provisioning a tenant/portal) so authority is enforced on
+ * the tool path, not only on the HTTP endpoint.
+ */
+export function ensureToolSuperAdmin(ctx: ToolExecutorContext, action: string): string | null {
+  const roles = ctx?.roles || []
+  return roles.includes('super_admin')
+    ? null
+    : `Error: ${action} requires super_admin privileges. This action provisions platform-level resources and is restricted.`
 }
 
 /**
@@ -9280,6 +9299,8 @@ async function handleProvisionTenant(
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'Provisioning a portal/tenant')
+  if (denied) return denied
   const name = typeof input.name === 'string' ? input.name.trim() : ''
   const domain = typeof input.domain === 'string' ? input.domain.trim() : ''
   if (!name) return 'Error: name is required.'
@@ -9338,6 +9359,8 @@ async function handleResearchAndProvision(
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'Researching and provisioning a Guardian Angel endeavor')
+  if (denied) return denied
   const name = (input.name as string) || ''
   const url = input.url as string | undefined
   const context = input.context as string | undefined

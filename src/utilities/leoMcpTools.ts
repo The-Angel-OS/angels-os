@@ -135,7 +135,7 @@ async function resolveCtx(req: PayloadRequest): Promise<{ ctx: ToolExecutorConte
   }
   const user = req.user as { id?: number; roles?: string[] } | null | undefined
   return {
-    ctx: { payload: req.payload, tenantId, userId: user?.id },
+    ctx: { payload: req.payload, tenantId, userId: user?.id, roles: user?.roles },
     roles: user?.roles,
   }
 }
