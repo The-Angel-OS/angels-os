@@ -40,6 +40,13 @@ Detail lives in the linked memories / planning docs — this is the index.
 ## 5. Token economy  ([[project_token_economy]])
 - ⬜ **fund-float** (backed AT issuance — also the billing buy-in) · ⬜ per-quest tokenKind · ⬜ human wallet UI · ⬜ convertibility exchange (= billing item above).
 
+## 5b. Church websites (gap analysis done — docs/planning/CHURCH_WEBSITE_GAP_ANALYSIS.md, [[project_church_websites]])
+- ⬜ **Church template + `ministry` endeavor type** (THE core ask) — provision Home/Worship&ServiceTimes/Sermons&Livestream/Events/Giving/About&Clergy/Ministries/Contact/PrayerRequests + nav + Community Hub w/ ministry channels.
+- ⬜ Low-effort blocks the template needs: video/livestream embed (Pages), bulletins/downloads PDF list, clergy/staff roster (collection + block).
+- ⬜ Recurring services/events (or a Service-Times block stopgap).
+- ⬜ Recurring + designated giving (Stripe subscriptions) + ⚠ verify/fix donations route to the ENDEAVOR, not 100% Justice Fund.
+- ⬜ St. Alfred's reference node stalfreds.spacesangels.com — ⚠️ CONSENT-gated (real parish; build unlisted demo, get Father Pete's blessing this week).
+
 ## 6. Rentals marketplace (tracked direction)  ([[project_rentals_marketplace]], docs/planning/RENTALS_MARKETPLACE.md)
 - ⬜ Rentable-asset / inventory model · ⬜ deposit-hold + return reverse-pipeline (Stripe manual-capture + inspection quest) · ⬜ P2P supply (host onboarding, per-lister payout).
 
