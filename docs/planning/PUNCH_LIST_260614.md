@@ -1,0 +1,68 @@
+# Angel OS — Master Punch List (2026-06-14)
+
+Single tracking list of all open slice work so nothing is lost. Status legend:
+**✅ done** · **🔄 in-flight** · **⬜ open** · **🅿️ banked** (explicitly deferred).
+Detail lives in the linked memories / planning docs — this is the index.
+
+---
+
+## 0. In-flight right now
+- ✅ **a11y `button-name` — VERIFIED FIXED** (`ce6fa39`, live). Re-ran axe against www.spacesangels.com: Home/Shop/Posts/Events/Book all show **0 violations**; the every-page critical is gone. (Root cause: footer ThemeSelector combobox had no accessible name — the first fix mislabeled the hamburger.) Only `/contact` color-contrast remains → §10.
+
+## 1. Shipped this session (for the record)
+- ✅ Constitution signed (all 8 tenants) · ✅ Human e-signature primitive (Signatures + SignaturePad + AgreementForm + sign-ops/capture) · ✅ Booking per-service rental agreement (gate deposit) · ✅ Form Builder signature field · ✅ LEO fixes (resolveWriteTenant tenant fallback for create_post "Assigned Tenant"; no "(edited)" on streamed msgs; maintenance note → #system-engineering AI bus) · ✅ Spaces Round 1a (AI Bus Catch-All channel + space-level Catch-All triage view) · ✅ axe a11y harness (`test:a11y`, report-only) · ✅ #131 election persistence (settings bag) · ✅ Federation roster dedup (self-peer shown twice) · ✅ Fee-tier card moved to AI Costs tab · ✅ Issue backlog triage (closed 12, filed #131).
+
+## 2. Spaces Big Ask — remaining sub-slices  ([[project_spaces_bigask_260613]])
+- ⬜ **1b · Per-channel AI Bus visibility** (this round's remaining half) — schema-first new `Channels.visibility` column (both DBs) + extend `buildSpaceVisibilityFilter` to hide private channels from non-admins + AI Bus space private→invite_only; mark sensitive channels (email-inbox, gotify) private, safe ones (leo/general/system-log/catch-all) tenant-visible.
+- 🅿️ **2 · DM virtual roster in UI** — wire existing `/api/messages-ops/dm-roster` into the Direct Messages section (virtual DM per space member, lazy-created). Backend done; UI not wired.
+- 🅿️ **3 · Street Signs brochure block** — `StreetSigns` block for Pages/Posts/Products (FeaturedEndeavors pattern) + RenderBlocks register + optional serving/impression instrumentation. (Events have no layout field — separate.)
+- 🅿️ **4 · Dialer + Ctrl+K people search** — enterprise-wide cross-tenant people search + dialer, integrated into Ctrl+K + DM section. Federation P2P (gnutella/emule) deferred to a later sub-slice.
+
+## 3. Community Dashboard — Discord/info-dense direction  ([[project_community_dashboard]])
+- ⬜ **Generic widget framework** — collapsible + dismiss/restore + role-aware + per-user persisted prefs + mobile-responsive grid (widgets still hard-coded in dashboard/page.tsx).
+- ⬜ **Presence / "who's online" roster widget** — wire `usePresence` into a dashboard panel (status rings, "N online"). Backend exists (Presence collection, ping/online endpoints, usePresence hook).
+- ⬜ **Activity feed (Ship's Log) widget** · ⬜ page-as-channel convos · ⬜ governance-vote widget.
+- ⬜ **Mobile-density pass** + responsive federation Command Center.
+
+## 4. Billing reconciliation (NEW — design done, not built)  ([[project_billing_reconciliation]])
+- ⬜ **Monthly reconciliation cron** per tenant → append-only reconciliation ledger entry, update refund liability, mint KC refund on graduation. (Build FIRST.)
+- ⬜ **Stripe-balance reconciliation matcher** (financial integrity: Stripe txns ↔ internal ledger).
+- ⬜ **KC→AT convertibility exchange** — gated by backing (float + Justice Fund) + governance rate + caps. (Build LAST; needs legal read for the cash-out leg.)
+- ⬜ Write `docs/architecture/BILLING_RECONCILIATION.md` + reconciliation-ledger schema + monthly-close algo.
+
+## 5. Token economy  ([[project_token_economy]])
+- ⬜ **fund-float** (backed AT issuance — also the billing buy-in) · ⬜ per-quest tokenKind · ⬜ human wallet UI · ⬜ convertibility exchange (= billing item above).
+
+## 6. Rentals marketplace (tracked direction)  ([[project_rentals_marketplace]], docs/planning/RENTALS_MARKETPLACE.md)
+- ⬜ Rentable-asset / inventory model · ⬜ deposit-hold + return reverse-pipeline (Stripe manual-capture + inspection quest) · ⬜ P2P supply (host onboarding, per-lister payout).
+
+## 7. Consent / policy / first-members polish  ([[project_signature_capture]], SESSION_HANDOFF_260613 C)
+- ⬜ **ensurePolicyPages** — Privacy/Terms/Cookie/Refund as tenant Pages (showInNav:false, footer-linked).
+- ⬜ Mount `<AgreementForm>` on ToS acceptance + human-constitution acceptance + waivers.
+
+## 8. Test/ops hardening (handoff D–E)
+- ⬜ **Safe test DB** before Playwright admin e2e (current e2e global-setup writes to PROD) + a create-page admin test (catches the missing-`_pages_v`-column class of bug).
+- ⬜ **pg_dump snapshot capability** (`_local` script + provision endpoint) + rule "snapshot before any schema-touching change" (Kenneth's ask).
+
+## 9. Guardian Angel mission (handoff F)  ([[project_mission_tracks_260613]])
+- ⬜ Provision the cohort: Ernesto Behrens, Matthew Takahashi, Carl Brown, Lloyd Thomas Johnson (W00102), + dormant Kenneth.
+- ⬜ **HelpDNA (tenant 8) has NO pages** — create real Home + Contact.
+- Guardrails: account-prune = audit-only; inmate-trust-fund = plan-only/compliance-gated.
+
+## 10. Accessibility (beyond the button fix)  ([[project_spaces_bigask_260613]] axe)
+- ⬜ `/contact` `color-contrast` (serious, 4 nodes) — design fix · ⬜ expand axe to dashboard/admin/mobile surfaces · ⬜ consider `AXE_STRICT` gate in CI once green · ⬜ (later, scoped) GitHub `accessibility-scanner` Action with a dedicated label so it doesn't flood the tracker.
+
+## 11. Federation / infra debt
+- ⬜ **Street Signs cross-holon sync protocol** (split out of #109; the audit-log itself shipped).
+- ⬜ Prod heartbeat 500s ([[project_federation_discovery_finding]]) · ⬜ Diocese re-graining: peers/trust live on `endeavors`, should be Enterprise ([[project_federation_diocese_model]]).
+- ⬜ LEO executor-level tenant resolution (deeper root cause behind the create_post bug; per-tool fallback shipped) ([[project_leo_tool_fixes_260613]]).
+
+## 12. Known latent items (watch)  
+- ⬜ Draft-mode 404 still latent for posts+pages ([[project_draft_mode_404]]) · ⬜ password login still host-only for cross-subdomain SSO ([[project_cross_subdomain_sso]]) · ⬜ LEO Dreams (cron memory consolidation) + escalation-event backlog (order/conversation/budget/failover) ([[project_proactive_agent_roadmap]]).
+
+## 13. Issue backlog (GitHub)  ([[project_issue_triage_260613]])
+- ✅ Triaged foundational #3–#114 (closed 12). ⬜ ~48 genuinely open (CRM collections, channel-widgets system, media-workflow cluster #110–#114, deploy scaffolding #21/#95/#96, PWA #101, Sentry #102, Three.js #87, …). 🅿️ Holodeck/federation epics #116–#129 (vision). #82 = master roadmap tracker.
+
+---
+
+**Suggested next pickups** (fast, surfaced organically): finish the a11y verify (0), then either **dashboard widget framework + presence roster** (§3) or **Spaces 1b visibility** (§2) — both were mid-stream. Billing (§4) and rentals (§6) are bigger design-led builds to schedule deliberately.
