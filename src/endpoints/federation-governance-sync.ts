@@ -135,11 +135,15 @@ async function buildGovernanceFromMesh(payload: Payload): Promise<GovernanceData
   const now = new Date()
   const ministries: Ministry[] = []
 
+  const normDomain = (d?: string) =>
+    (d || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '')
+
   // Self (the local Enterprise/Diocese)
   const tenants = await payload.find({ collection: 'tenants', limit: 1, depth: 0, overrideAccess: true, sort: 'createdAt' })
   const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
   const setup = (tenant?.setup as Record<string, unknown>) || {}
   const selfFedId = setup.federationId as string | undefined
+  const selfDomain = normDomain(tenant?.domain as string | undefined)
   if (selfFedId && tenant) {
     ministries.push({
       id: selfFedId,
@@ -164,8 +168,13 @@ async function buildGovernanceFromMesh(payload: Payload): Promise<GovernanceData
     overrideAccess: true,
   })
   for (const p of peers.docs as unknown as Array<Record<string, unknown>>) {
+    const peerFedId = (p.federationId as string) || String(p.id)
+    const peerDomain = normDomain(p.domain as string | undefined)
+    // Skip a peer row that is actually THIS node (self-peer) — same federationId
+    // or same registrable domain — so the local Enterprise isn't listed twice.
+    if ((selfFedId && peerFedId === selfFedId) || (selfDomain && peerDomain === selfDomain)) continue
     ministries.push({
-      id: (p.federationId as string) || String(p.id),
+      id: peerFedId,
       name: (p.name as string) || 'Unknown Diocese',
       domain: (p.domain as string) || '',
       operator: '',
@@ -178,7 +187,18 @@ async function buildGovernanceFromMesh(payload: Payload): Promise<GovernanceData
     })
   }
 
-  return buildGovernanceSnapshot(ministries, [], constitutionHash, governanceCache?.registryVersion ?? 0, now)
+  // Final dedupe by identity (federationId, else registrable domain, else name) —
+  // a gossip mesh can carry duplicate peer rows; collapse them, preferring active.
+  const byKey = new Map<string, Ministry>()
+  for (const m of ministries) {
+    const key = (m.id || normDomain(m.domain) || (m.name || '').toLowerCase()).toLowerCase()
+    const prior = byKey.get(key)
+    if (!prior) byKey.set(key, m)
+    else if (m.status === 'active' && prior.status !== 'active') byKey.set(key, m)
+  }
+  const deduped = Array.from(byKey.values())
+
+  return buildGovernanceSnapshot(deduped, [], constitutionHash, governanceCache?.registryVersion ?? 0, now)
 }
 
 export const federationGovernanceSyncHandler: PayloadHandler = async (req) => {
