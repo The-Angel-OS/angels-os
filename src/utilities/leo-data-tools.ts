@@ -3086,6 +3086,27 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['collection', 'id'],
     },
   },
+  // ─── Read-only SQL diagnostics (super_admin) ───────────────────────────
+  {
+    name: 'query_sql',
+    description:
+      'Run a READ-ONLY SQL SELECT against the platform database for cross-collection diagnostics — joins, aggregations, orphan/duplicate detection — that the tenant-scoped query tools cannot do (e.g. "which posts have a tenant_id that no longer exists", "count messages per channel across the space"). super_admin ONLY. Hard read-only: the query runs inside a READ ONLY transaction, so writes are physically impossible; only a single SELECT/WITH statement is accepted. Use this to INVESTIGATE before proposing any remediation — never assume; verify with a query first.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sql: {
+          type: 'string',
+          description:
+            'A single read-only SQL statement starting with SELECT or WITH. No semicolons (one statement), no INSERT/UPDATE/DELETE/DDL. Table names are the snake_case collection tables (e.g. posts, tenants, messages, channels, spaces). Add your own LIMIT; results are also capped.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max rows to return (default 100, max 500).',
+        },
+      },
+      required: ['sql'],
+    },
+  },
   // ─── Navigation Convenience Tools ──────────────────────────────────────
   {
     name: 'query_navigation',
@@ -3719,6 +3740,8 @@ async function executeToolSwitch(
         return await handlePayloadCreate(payload, toolInput, ctx)
       case 'payload_delete':
         return await handlePayloadDelete(payload, toolInput, ctx)
+      case 'query_sql':
+        return await handleQuerySql(payload, toolInput, ctx)
       case 'query_navigation':
         return await handleQueryNavigation(payload, toolInput, ctx)
       case 'update_navigation':
@@ -13234,6 +13257,75 @@ function summariseDoc(doc: any, depth: number = 0): string {
   if (doc.updatedAt) lines.push(`updatedAt: ${doc.updatedAt}`)
 
   return lines.join('\n')
+}
+
+/**
+ * query_sql — read-only SQL diagnostics (super_admin).
+ *
+ * The cross-collection investigation surface the tenant-scoped query tools lack
+ * (joins, aggregations, orphan/duplicate detection). Defense-in-depth: (1) super_admin
+ * gate; (2) single-statement SELECT/WITH only; (3) dangerous-keyword reject; (4) the
+ * query runs inside a READ ONLY transaction with a statement timeout, so any write is
+ * physically rejected by Postgres regardless of what slips past the string checks.
+ * Rung 2 of the LEO capability ladder — query anything, zero write power.
+ */
+async function handleQuerySql(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const gate = ensureToolSuperAdmin(ctx, 'query_sql (read-only DB diagnostics)')
+  if (gate) return gate
+
+  const raw = String(input.sql || '').trim()
+  if (!raw) return 'Error: provide a `sql` SELECT statement.'
+
+  // Single statement only (allow one optional trailing semicolon).
+  const stripped = raw.replace(/;\s*$/, '')
+  if (stripped.includes(';')) {
+    return 'Error: only a single statement is allowed (no semicolons).'
+  }
+  if (!/^(select|with)\b/i.test(stripped)) {
+    return 'Error: only read-only SELECT/WITH queries are allowed.'
+  }
+  // Defense-in-depth keyword reject (the READ ONLY transaction is the real guard).
+  if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|merge|vacuum|reindex|comment|call|do|set|begin|commit|rollback)\b/i.test(stripped)) {
+    return 'Error: query contains a non-read keyword. Only SELECT/WITH reads are permitted.'
+  }
+
+  const limit = Math.min(Math.max(Number(input.limit) || 100, 1), 500)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pool = (payload.db as any)?.pool
+  if (!pool?.connect) return 'Error: no database pool available.'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let client: any
+  try {
+    client = await pool.connect()
+    await client.query('BEGIN')
+    await client.query('SET TRANSACTION READ ONLY')
+    await client.query('SET LOCAL statement_timeout = 8000')
+    const res = await client.query(stripped)
+    await client.query('ROLLBACK')
+
+    const rows = (res.rows || []).slice(0, limit)
+    const truncated = (res.rows || []).length > limit
+    const preview = JSON.stringify(rows, null, 2)
+    const capped = preview.length > 6000 ? preview.slice(0, 6000) + '\n… (output truncated)' : preview
+    return [
+      `query_sql — ${res.rows?.length ?? 0} row(s)${truncated ? ` (showing first ${limit})` : ''}:`,
+      '```json',
+      capped,
+      '```',
+    ].join('\n')
+  } catch (e) {
+    try { if (client) await client.query('ROLLBACK') } catch { /* ignore */ }
+    const msg = e instanceof Error ? e.message : String(e)
+    return `Error running query: ${msg}`
+  } finally {
+    try { if (client) client.release() } catch { /* ignore */ }
+  }
 }
 
 async function handlePayloadFind(

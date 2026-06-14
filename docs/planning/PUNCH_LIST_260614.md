@@ -24,6 +24,13 @@ Detail lives in the linked memories / planning docs — this is the index.
 - ⬜ **Activity feed (Ship's Log) widget** · ⬜ page-as-channel convos · ⬜ governance-vote widget.
 - ⬜ **Mobile-density pass** + responsive federation Command Center.
 
+## 3b. LEO capability ladder — query anything / remediate safely  ([[project_leo_capability_ladder]], docs/architecture/LEO_CAPABILITY_LADDER.md)
+- ✅ **Rung 2a · `query_sql` read-only diagnostics tool** — super_admin, single SELECT/WITH, runs in a READ ONLY transaction (writes physically blocked, verified) + statement timeout + row cap. Gives LEO the cross-collection investigation the tenant-scoped tools lack. LEO_TOOLS 127→128.
+- ⬜ **Rung 1 · Model tiering** — route agentic/admin LEO sessions to Opus-class via ai-gateway.
+- ⬜ **Rung 3 · Agentic loop + verify-before-claim** — fixes LEO over-claiming (it asserts success it didn't check, e.g. mis-tenanted post 38, claimed unset metadata).
+- ⬜ **Rung 4 · Audit + snapshot floor** — ExecutionTrace through executeToolCall + pg_dump-before-remediation (precondition for any write power).
+- ⬜ **Rung 5 · Gated remediation** (writes: dry-run/preview + role + reversibility; bulk/destructive → confirm/quorum) · ⬜ **Rung 6 · Code remediation** (PR-based, worktree-isolated, never direct). 5–6 must NOT move until 4 solid.
+
 ## 4. Billing reconciliation (NEW — design done, not built)  ([[project_billing_reconciliation]])
 - ⬜ **Monthly reconciliation cron** per tenant → append-only reconciliation ledger entry, update refund liability, mint KC refund on graduation. (Build FIRST.)
 - ⬜ **Stripe-balance reconciliation matcher** (financial integrity: Stripe txns ↔ internal ledger).
