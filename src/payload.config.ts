@@ -132,6 +132,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
+import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -855,6 +856,9 @@ export default buildConfig({
       method: 'get',
       handler: ensureMembershipsTableHandler,
     },
+    // ⚠️ The settings table (SettingService bag: feature flags, election persistence,
+    // membership plans) was missing on prod — every settings read/write 500'd.
+    { path: '/provision-ops/ensure-settings-table', method: 'get', handler: ensureSettingsTableHandler },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.
     {
