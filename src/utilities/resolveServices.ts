@@ -28,6 +28,7 @@ function toBookableService(doc: any): BookableService {
     unitLabel: doc.unitLabel ?? undefined,
     unitRateUSD: doc.unitRateUsd != null ? Number(doc.unitRateUsd) : undefined,
     allowsExtraCosts: doc.allowsExtraCosts ?? undefined,
+    serviceAgreement: doc.serviceAgreement ?? undefined,
   }
 }
 

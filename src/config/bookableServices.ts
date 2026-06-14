@@ -35,6 +35,8 @@ export interface BookableService {
   unitLabel?: string
   unitRateUSD?: number
   allowsExtraCosts?: boolean
+  /** Optional rental/service agreement terms; when set, the customer must e-sign before the deposit. */
+  serviceAgreement?: string
 }
 
 const CATALOG: Record<string, BookableService[]> = {

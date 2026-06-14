@@ -76,6 +76,9 @@ export const Services: CollectionConfig = {
       admin: { description: "Estimated/scheduled time the booking holds on the calendar (actual billed time can differ for hourly)." } },
     { name: 'enabled', type: 'checkbox', defaultValue: true, index: true,
       admin: { description: 'Unchecked = hidden from the booking page.' } },
+    // ─── Consent ──────────────────────────────────────────────────────
+    { name: 'serviceAgreement', type: 'textarea',
+      admin: { description: 'Optional rental/service agreement or waiver terms. When set, the customer must sign (e-signature) before paying the deposit at the booking confirm step.' } },
   ],
   timestamps: true,
 }

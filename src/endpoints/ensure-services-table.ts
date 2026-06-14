@@ -44,6 +44,8 @@ const STATEMENTS: string[] = [
   `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "allows_extra_costs" boolean DEFAULT true;`,
   // Hourly/per-unit services have no fixed price — relax the original NOT NULL.
   `ALTER TABLE "services" ALTER COLUMN "price_usd" DROP NOT NULL;`,
+  // ── Consent: optional rental/service agreement terms (e-sign before deposit) ──
+  `ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "service_agreement" varchar;`,
 ]
 
 export const ensureServicesTableHandler: PayloadHandler = async (req) => {

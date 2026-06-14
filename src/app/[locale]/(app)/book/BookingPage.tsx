@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BookingDeposit } from './BookingDeposit'
+import { AgreementForm } from '@/components/signatures/AgreementForm'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAY_FULL_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -27,12 +28,16 @@ interface ServiceOption {
   priceUSD: number
   depositPercent: number
   durationMinutes: number
+  /** Optional rental/service agreement terms; when set, must be e-signed before deposit. */
+  serviceAgreement?: string
 }
 
 interface BookingPageProps {
   availabilitySlots: AvailabilitySlot[]
   endeavorName: string
   services: ServiceOption[]
+  tenantSlug?: string
+  tenantId?: number | string
 }
 
 interface PaymentData {
@@ -46,10 +51,13 @@ interface PaymentData {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
-export function BookingPage({ availabilitySlots, endeavorName, services }: BookingPageProps) {
+export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId }: BookingPageProps) {
   const [serviceId, setServiceId] = useState<string | null>(
     services.length === 1 ? services[0]!.id : null,
   )
+  // Rental/service agreement consent: keyed by serviceId so changing the selected
+  // service re-requires a signature for the new terms.
+  const [signedServiceId, setSignedServiceId] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [step, setStep] = useState<'service' | 'date' | 'time' | 'confirm'>(
@@ -64,6 +72,11 @@ export function BookingPage({ availabilitySlots, endeavorName, services }: Booki
     [services, serviceId],
   )
   const serviceDuration = selectedService?.durationMinutes ?? 60
+
+  // When the selected service carries an agreement, it must be signed (for THIS
+  // service) before the deposit/checkout can proceed.
+  const agreementRequired = Boolean(selectedService?.serviceAgreement?.trim())
+  const agreementSatisfied = !agreementRequired || signedServiceId === selectedService?.id
 
   // Generate the bookable date range (limited by maxAdvanceBooking)
   const dates = useMemo(() => {
@@ -426,12 +439,41 @@ export function BookingPage({ availabilitySlots, endeavorName, services }: Booki
                       )}
                     </div>
                   )}
+                  {agreementRequired && selectedService.serviceAgreement && (
+                    <div className="mb-4 rounded-lg border border-border bg-background p-4">
+                      {agreementSatisfied ? (
+                        <p className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Agreement signed — you can proceed to the deposit.
+                        </p>
+                      ) : (
+                        <AgreementForm
+                          documentRef={`service-agreement:${selectedService.id}`}
+                          documentType="agreement"
+                          documentTitle={`${selectedService.label} — Rental Agreement`}
+                          terms={selectedService.serviceAgreement}
+                          tenantSlug={tenantSlug}
+                          tenantId={tenantId}
+                          submitLabel="Sign Agreement"
+                          acknowledgeLabel="I have read and agree to the terms of this rental/service agreement."
+                          onSigned={() => setSignedServiceId(selectedService.id)}
+                        />
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={startCheckout}
-                    disabled={bookingState === 'loading'}
+                    disabled={bookingState === 'loading' || !agreementSatisfied}
+                    title={!agreementSatisfied ? 'Please sign the agreement above first' : undefined}
                     className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {bookingState === 'loading' ? 'Reserving…' : `Continue — ${money(depositCents)} deposit`}
+                    {bookingState === 'loading'
+                      ? 'Reserving…'
+                      : !agreementSatisfied
+                        ? 'Sign the agreement to continue'
+                        : `Continue — ${money(depositCents)} deposit`}
                   </button>
                   <p className="mt-3 text-center text-xs text-muted-foreground">
                     Constitutional commerce — balance due on completion · 5% to the Justice Fund

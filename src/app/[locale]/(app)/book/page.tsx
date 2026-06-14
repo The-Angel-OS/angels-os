@@ -3,7 +3,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BookingPage } from './BookingPage'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { getBookableServices } from '@/config/bookableServices'
+import { resolveServices } from '@/utilities/resolveServices'
 
 export const metadata = {
   title: 'Book a Service',
@@ -64,13 +64,20 @@ export default async function BookPage({
 
   const endeavorName = (endeavorResult?.docs?.[0] as any)?.name || tenant?.name || 'This Enterprise'
 
-  const services = getBookableServices(tenant?.slug).map((s) => ({
+  // DB-first (with static fallback) so owner-configured services — incl. a
+  // per-service rental/waiver agreement — drive the booking flow.
+  const resolved = await resolveServices(payload, {
+    tenantSlug: tenant?.slug,
+    tenantId: tenant?.id,
+  })
+  const services = resolved.map((s) => ({
     id: s.id,
     label: s.label,
     description: s.description,
     priceUSD: s.priceUSD,
     depositPercent: s.depositPercent,
     durationMinutes: s.durationMinutes,
+    serviceAgreement: s.serviceAgreement,
   }))
 
   return (
@@ -78,6 +85,8 @@ export default async function BookPage({
       availabilitySlots={availabilitySlots}
       endeavorName={endeavorName}
       services={services}
+      tenantSlug={tenant?.slug ?? undefined}
+      tenantId={tenant?.id ?? undefined}
     />
   )
 }
