@@ -23,8 +23,9 @@
  * @see src/federation/protocol.ts — Ed25519 signing primitives
  */
 
-import type { PayloadHandler } from 'payload'
+import type { PayloadHandler, Payload } from 'payload'
 import { verifySignature } from '@/federation/protocol'
+import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -83,9 +84,61 @@ export interface ElectionVote {
   votedAt: string
 }
 
-// ── In-Memory Store (production: persist to collection) ────────────────────
+// ── Persistent Store (settings bag — survives restart; #131) ───────────────
+// Elections are federation-global, so they live under the platform tenant in the
+// schema-drift-proof `settings` bag (entity 'federation-elections') rather than a
+// module-level Map that a serverless cold start would wipe.
+//
+// NOTE: this is load-modify-save per request. Governance is low-volume, but two
+// truly-concurrent votes could race the read-modify-write; a future hardening
+// would move to per-proposal atomic upserts. The durability bug (#131) is fixed.
 
-const proposals: Map<string, ElectionProposal> = new Map()
+const ELECTION_ENTITY = 'federation-elections'
+const ELECTION_ENTITY_ID = 'global'
+const ELECTION_SETTING = 'proposals'
+
+async function resolvePlatformTenantId(payload: Payload): Promise<number | string> {
+  try {
+    const res = await payload.find({
+      collection: 'tenants',
+      where: { type: { equals: 'platform' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const id = (res.docs?.[0] as { id?: number | string } | undefined)?.id
+    if (id != null) return id
+  } catch {
+    /* fall through */
+  }
+  return 1 // platform tenant is the id-1 singleton
+}
+
+async function loadProposals(
+  payload: Payload,
+  tenantId: number | string,
+): Promise<Map<string, ElectionProposal>> {
+  const obj =
+    (await getJsonSetting<Record<string, ElectionProposal>>(
+      payload,
+      { entityName: ELECTION_ENTITY, entityId: ELECTION_ENTITY_ID, tenantId },
+      ELECTION_SETTING,
+    )) || {}
+  return new Map(Object.entries(obj))
+}
+
+async function saveProposals(
+  payload: Payload,
+  tenantId: number | string,
+  proposals: Map<string, ElectionProposal>,
+): Promise<void> {
+  await setJsonSetting(
+    payload,
+    { entityName: ELECTION_ENTITY, entityId: ELECTION_ENTITY_ID, tenantId },
+    ELECTION_SETTING,
+    Object.fromEntries(proposals),
+  )
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -140,6 +193,9 @@ function tallyVotes(proposal: ElectionProposal, totalEligibleSentinels: number):
 
 export const federationElectionHandler: PayloadHandler = async (req) => {
   const method = (req as Request).method?.toUpperCase()
+  const payload = req.payload as Payload
+  const platformTenantId = await resolvePlatformTenantId(payload)
+  const proposals = await loadProposals(payload, platformTenantId)
 
   // ── GET: List active proposals ──────────────────────────────────
   if (method === 'GET') {
@@ -257,6 +313,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     }
 
     proposals.set(proposal.id, proposal)
+    await saveProposals(payload, platformTenantId, proposals)
 
     // Log to federation audit log
     try {
@@ -329,6 +386,7 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     // Check expiration
     if (new Date() > new Date(proposal.expiresAt)) {
       proposal.status = 'expired'
+      await saveProposals(payload, platformTenantId, proposals)
       return Response.json(
         { error: 'Voting period has expired' },
         { status: 400 },
@@ -378,6 +436,8 @@ export const federationElectionHandler: PayloadHandler = async (req) => {
     if (tally.supermajorityReached && tally.totalVotes >= Math.ceil(totalEligible * SUPERMAJORITY_FRACTION)) {
       proposal.status = 'passed'
     }
+
+    await saveProposals(payload, platformTenantId, proposals)
 
     return Response.json({
       success: true,
