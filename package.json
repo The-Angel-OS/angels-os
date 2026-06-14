@@ -27,6 +27,7 @@
     "test": "pnpm run test:unit && pnpm run test:int && pnpm run test:e2e",
     "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/unit",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --no-experimental-strip-types\" pnpm exec playwright test",
+    "test:a11y": "cross-env NODE_OPTIONS=\"--no-deprecation --no-experimental-strip-types\" pnpm exec playwright test --config ./playwright.a11y.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/int"
   },
   "dependencies": {
@@ -101,6 +102,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/eslintrc": "^3.2.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@next/eslint-plugin-next": "^15.5.4",
