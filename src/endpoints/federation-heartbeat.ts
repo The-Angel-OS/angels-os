@@ -136,26 +136,57 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
     } else {
-      // Unknown Diocese — a valid signed heartbeat means it accepted the
-      // constitution (Article VII), so it joins — but on PROBATION. It earns
-      // full trust via vouches / 90 days. (Bootstrap admits a chosen peer as active.)
-      await req.payload.create({
-        collection: 'federation-peers',
-        data: {
-          federationId: senderFedId,
-          name: (senderName as string) || `Diocese · ${(senderDomain as string) || senderFedId}`,
-          ministryStatus: 'probation',
-          trustLevel: 'probationary',
-          networkVisible: true,
-          firstSeenAt: now,
-          probationStartedAt: now,
-          lastHeartbeatAt: now,
-          ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
-          ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
-          ...(cachedEndeavors ? { endeavors: cachedEndeavors } : {}),
-        } as any,
-        overrideAccess: true,
-      })
+      // No federationId match. Before creating, check whether this DOMAIN already has
+      // a peer — a node that rotated its federationId (e.g. its tenant `setup` was
+      // reset and the id regenerated) would otherwise spawn a duplicate enterprise.
+      // If the domain is known, ADOPT the new id onto the existing row so trust and
+      // first-seen carry over (the row stays a single, stable peer). Only a genuinely
+      // new domain joins fresh — on PROBATION (Article VII; bootstrap admits as active).
+      const existingByDomain =
+        typeof senderDomain === 'string' && senderDomain
+          ? await req.payload.find({
+              collection: 'federation-peers',
+              where: { domain: { equals: senderDomain } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+          : { docs: [] as { id: string | number }[] }
+
+      if (existingByDomain.docs.length > 0) {
+        await req.payload.update({
+          collection: 'federation-peers',
+          id: existingByDomain.docs[0]!.id,
+          data: {
+            federationId: senderFedId, // adopt the rotated id — same node, same domain
+            lastHeartbeatAt: now,
+            networkVisible: true,
+            consecutiveFailures: 0,
+            ...(typeof senderName === 'string' ? { name: senderName } : {}),
+            ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
+            ...(cachedEndeavors ? { endeavors: cachedEndeavors } : {}),
+          } as any,
+          overrideAccess: true,
+        })
+      } else {
+        await req.payload.create({
+          collection: 'federation-peers',
+          data: {
+            federationId: senderFedId,
+            name: (senderName as string) || `Diocese · ${(senderDomain as string) || senderFedId}`,
+            ministryStatus: 'probation',
+            trustLevel: 'probationary',
+            networkVisible: true,
+            firstSeenAt: now,
+            probationStartedAt: now,
+            lastHeartbeatAt: now,
+            ...(typeof senderDomain === 'string' ? { domain: senderDomain } : {}),
+            ...(senderCapacity ? { capacitySnapshot: senderCapacity } : {}),
+            ...(cachedEndeavors ? { endeavors: cachedEndeavors } : {}),
+          } as any,
+          overrideAccess: true,
+        })
+      }
     }
   } catch (err) {
     // Non-fatal — heartbeat still acknowledged
