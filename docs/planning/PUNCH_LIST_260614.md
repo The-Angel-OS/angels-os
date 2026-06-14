@@ -27,7 +27,7 @@ Detail lives in the linked memories / planning docs — this is the index.
 ## 3b. LEO capability ladder — query anything / remediate safely  ([[project_leo_capability_ladder]], docs/architecture/LEO_CAPABILITY_LADDER.md)
 - ✅ **Rung 2a · `query_sql` read-only diagnostics tool** — super_admin, single SELECT/WITH, runs in a READ ONLY transaction (writes physically blocked, verified) + statement timeout + row cap. Gives LEO the cross-collection investigation the tenant-scoped tools lack. LEO_TOOLS 127→128.
 - ⬜ **Rung 1 · Model tiering** — route agentic/admin LEO sessions to Opus-class via ai-gateway.
-- ⬜ **Rung 3 · Agentic loop + verify-before-claim** — fixes LEO over-claiming (it asserts success it didn't check, e.g. mis-tenanted post 38, claimed unset metadata).
+- ✅ **Rung 3 · Verify-before-claim** — content creators (create_post/page/product) now re-read the persisted doc and report VERIFIED state (which tenant it landed on, status, whether SEO meta/image was actually set) via `describePersistedDoc`; + a constitutional-prompt "Honest Operation" directive (verify before claiming, never claim un-performed actions, surface tenant mismatches). Structurally fixes the post-38 over-claim class. (Full agentic observe→act→verify loop redesign still future; this nails the immediate trust gap.)
 - ⬜ **Rung 4 · Audit + snapshot floor** — ExecutionTrace through executeToolCall + pg_dump-before-remediation (precondition for any write power).
 - ⬜ **Rung 5 · Gated remediation** (writes: dry-run/preview + role + reversibility; bulk/destructive → confirm/quorum) · ⬜ **Rung 6 · Code remediation** (PR-based, worktree-isolated, never direct). 5–6 must NOT move until 4 solid.
 

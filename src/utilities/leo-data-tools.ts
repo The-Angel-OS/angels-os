@@ -4885,6 +4885,9 @@ async function createProduct(
       parts.push(`- Category "${category}" not found — you can add it in the admin panel`)
     }
 
+    const verified = await describePersistedDoc(payload, 'products', productId as number)
+    parts.push('', 'Verified persisted state:', ...verified)
+
     parts.push('')
     parts.push('Would you like me to generate a product image for this listing?')
 
@@ -7221,6 +7224,47 @@ async function resolveWriteTenant(
 }
 
 /**
+ * describePersistedDoc — verify-before-claim (LEO capability ladder rung 3).
+ *
+ * Re-reads a freshly written doc and describes its PERSISTED state — which tenant
+ * it actually landed on, its status, and whether SEO meta/image actually got set —
+ * so a tool's success report reflects the database, not the requested operation.
+ * Closes the over-claim gap (content landing on an unexpected tenant; "metadata set"
+ * when meta is empty). The returned lines are appended to the tool result so LEO
+ * narrates verified truth.
+ */
+async function describePersistedDoc(
+  payload: Payload,
+  collection: string,
+  id: number | string,
+): Promise<string[]> {
+  try {
+    const doc = (await payload.findByID({
+      collection: collection as never,
+      id,
+      depth: 1,
+      overrideAccess: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as Record<string, any>
+    const lines: string[] = []
+    const t = doc.tenant
+    if (t != null) {
+      const tName = typeof t === 'object' ? t.name || t.slug || t.id : t
+      const tId = typeof t === 'object' ? t.id : t
+      lines.push(`  ✓ Tenant: ${tName}${tId != null ? ` (id ${tId})` : ''}`)
+    }
+    if (doc._status) lines.push(`  ✓ Status: ${doc._status}`)
+    const meta = (doc.meta as Record<string, unknown>) || {}
+    const hasMeta = Boolean(meta.title || meta.description)
+    const hasImg = Boolean(meta.image)
+    lines.push(`  ${hasMeta ? '✓' : '⚠'} SEO meta: ${hasMeta ? 'set' : 'NOT set'}${hasImg ? ' + image' : hasMeta ? ' (no image)' : ''}`)
+    return lines
+  } catch {
+    return ['  ⚠ Could not verify persisted state — re-check before reporting success.']
+  }
+}
+
+/**
  * create_post — Creates a new blog post with title, body, and optional categories.
  */
 async function createPost(
@@ -7296,6 +7340,11 @@ async function createPost(
   }
 
   if (status === 'draft') lines.push(`\nThe post is saved as a draft. Say "publish post ${result.id}" when you're ready to make it live.`)
+
+  // Verify-before-claim: report the PERSISTED tenant/status/meta so the success
+  // message reflects reality (which Endeavor it landed on, whether meta was set).
+  const verified = await describePersistedDoc(payload, 'posts', result.id as number)
+  lines.push('', 'Verified persisted state:', ...verified)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
@@ -7861,6 +7910,9 @@ async function createPage(
   }
 
   if (status === 'draft') lines.push(`\nThe page is saved as a draft. Say "publish page ${result.id}" to make it live.`)
+
+  const verified = await describePersistedDoc(payload, 'pages', result.id as number)
+  lines.push('', 'Verified persisted state:', ...verified)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
 }
