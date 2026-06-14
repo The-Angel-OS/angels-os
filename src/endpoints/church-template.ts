@@ -58,8 +58,9 @@ export const churchTemplateHandler: PayloadHandler = async (req) => {
       ...incoming,
     }
 
-    const result = await provisionChurchSite(payload, tenant.id, profile)
-    return Response.json({ ok: true, tenant: tenantSlug, ...result })
+    const overwrite = body.overwrite === true || url.searchParams.get('overwrite') === 'true'
+    const result = await provisionChurchSite(payload, tenant.id, profile, { overwrite })
+    return Response.json({ ok: true, tenant: tenantSlug, overwrite, ...result })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[church-template] ${msg}`)

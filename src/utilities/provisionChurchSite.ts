@@ -273,13 +273,34 @@ export async function provisionChurchSite(
   payload: Payload,
   tenantId: number | string,
   profile: ChurchProfile,
-): Promise<ChurchProvisionResult> {
+  opts: { overwrite?: boolean } = {},
+): Promise<ChurchProvisionResult & { updated: string[] }> {
   const p: Required<ChurchProfile> = { ...DEFAULTS, churchName: profile.churchName, ...stripUndefined(profile) }
   const pages = buildPages(p)
   const created: string[] = []
+  const updated: string[] = []
   const skipped: string[] = []
 
   for (const spec of pages) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageData: any = {
+      slug: spec.slug,
+      title: spec.title,
+      _status: 'published',
+      tenant: tenantId,
+      showInNav: true,
+      navOrder: spec.navOrder,
+      hero: {
+        type: 'lowImpact',
+        richText: createLexicalContent([
+          createHeadingNode(spec.heroHeading, 'h1'),
+          ...(spec.heroSub ? [createParagraphNode(spec.heroSub)] : []),
+        ]),
+      },
+      layout: spec.layout,
+      meta: spec.meta,
+    }
+
     const existing = await payload.find({
       collection: 'pages',
       where: { and: [{ slug: { equals: spec.slug } }, { tenant: { equals: tenantId } }] },
@@ -287,37 +308,32 @@ export async function provisionChurchSite(
       depth: 0,
       overrideAccess: true,
     })
-    if (existing.docs.length > 0) {
-      skipped.push(spec.slug)
+    const existingDoc = existing.docs?.[0] as { id: number | string } | undefined
+
+    if (existingDoc) {
+      // Default behavior is idempotent skip. With overwrite, the template OWNS its
+      // core pages — replace the placeholder layout/hero/meta a generic provision
+      // left behind (e.g. the default Home), keeping the same doc id.
+      if (!opts.overwrite) {
+        skipped.push(spec.slug)
+        continue
+      }
+      await payload.update({
+        collection: 'pages',
+        id: existingDoc.id,
+        depth: 0,
+        overrideAccess: true,
+        data: pageData,
+      })
+      updated.push(spec.slug)
       continue
     }
-    await payload.create({
-      collection: 'pages',
-      depth: 0,
-      overrideAccess: true,
-      data: {
-        slug: spec.slug,
-        title: spec.title,
-        _status: 'published',
-        tenant: tenantId,
-        showInNav: true,
-        navOrder: spec.navOrder,
-        hero: {
-          type: 'lowImpact',
-          richText: createLexicalContent([
-            createHeadingNode(spec.heroHeading, 'h1'),
-            ...(spec.heroSub ? [createParagraphNode(spec.heroSub)] : []),
-          ]),
-        },
-        layout: spec.layout,
-        meta: spec.meta,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-    })
+
+    await payload.create({ collection: 'pages', depth: 0, overrideAccess: true, data: pageData })
     created.push(spec.slug)
   }
 
-  return { created, skipped }
+  return { created, updated, skipped }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
