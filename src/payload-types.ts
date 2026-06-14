@@ -117,6 +117,7 @@ export interface Config {
     'token-ledger': TokenLedger;
     wallets: Wallet;
     signatures: Signature;
+    memberships: Membership;
     services: Service;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
@@ -199,6 +200,7 @@ export interface Config {
     'token-ledger': TokenLedgerSelect<false> | TokenLedgerSelect<true>;
     wallets: WalletsSelect<false> | WalletsSelect<true>;
     signatures: SignaturesSelect<false> | SignaturesSelect<true>;
+    memberships: MembershipsSelect<false> | MembershipsSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
@@ -1704,6 +1706,22 @@ export interface Form {
             id?: string | null;
             blockName?: string | null;
             blockType: 'textarea';
+          }
+        | {
+            /**
+             * Field name stored in the submission (e.g. waiver-signature).
+             */
+            name: string;
+            label?: string | null;
+            /**
+             * Optional terms shown above the signature pad; the signer agrees to these (their hash pins the signature to this exact text).
+             */
+            agreementText?: string | null;
+            required?: boolean | null;
+            width?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'signature';
           }
       )[]
     | null;
@@ -5285,6 +5303,45 @@ export interface Signature {
   createdAt: string;
 }
 /**
+ * Recurring membership/dues subscriptions per endeavor.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "memberships".
+ */
+export interface Membership {
+  id: number;
+  tenant: number | Tenant;
+  /**
+   * The subscribing user, when known. Blank for email-only members.
+   */
+  member?: (number | null) | User;
+  memberEmail?: string | null;
+  memberName?: string | null;
+  /**
+   * Plan id from the tenant membership-plans (settings bag).
+   */
+  planId?: string | null;
+  planName?: string | null;
+  amountCents?: number | null;
+  interval?: ('month' | 'year') | null;
+  status?: ('active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete') | null;
+  stripeSubscriptionId?: string | null;
+  stripeCustomerId?: string | null;
+  currentPeriodEnd?: string | null;
+  startedAt?: string | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Bookable services offered by this tenant (the /book catalog).
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5345,6 +5402,10 @@ export interface Service {
    * Unchecked = hidden from the booking page.
    */
   enabled?: boolean | null;
+  /**
+   * Optional rental/service agreement or waiver terms. When set, the customer must sign (e-signature) before paying the deposit at the booking confirm step.
+   */
+  serviceAgreement?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6547,6 +6608,10 @@ export interface PayloadMcpApiKey {
      */
     payloadDelete?: boolean | null;
     /**
+     * Run a READ-ONLY SQL SELECT against the platform database for cross-collection diagnostics — joins, aggregations, orphan/duplicate detection — that the tenant-scoped query tools cannot do (e.g. "which posts have a tenant_id that no longer exists", "count messages per channel across the space"). super_admin ONLY. Hard read-only: the query runs inside a READ ONLY transaction, so writes are physically impossible; only a single SELECT/WITH statement is accepted. Use this to INVESTIGATE before proposing any remediation — never assume; verify with a query first.
+     */
+    querySql?: boolean | null;
+    /**
      * Get the current header and/or footer navigation for the site. Returns all nav items with their labels, link types, and URLs. Use when users ask about site navigation, menu items, or links.
      */
     queryNavigation?: boolean | null;
@@ -6785,6 +6850,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'signatures';
         value: number | Signature;
+      } | null)
+    | ({
+        relationTo: 'memberships';
+        value: number | Membership;
       } | null)
     | ({
         relationTo: 'services';
@@ -8733,6 +8802,28 @@ export interface SignaturesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "memberships_select".
+ */
+export interface MembershipsSelect<T extends boolean = true> {
+  tenant?: T;
+  member?: T;
+  memberEmail?: T;
+  memberName?: T;
+  planId?: T;
+  planName?: T;
+  amountCents?: T;
+  interval?: T;
+  status?: T;
+  stripeSubscriptionId?: T;
+  stripeCustomerId?: T;
+  currentPeriodEnd?: T;
+  startedAt?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "services_select".
  */
 export interface ServicesSelect<T extends boolean = true> {
@@ -8753,6 +8844,7 @@ export interface ServicesSelect<T extends boolean = true> {
   depositPercent?: T;
   durationMinutes?: T;
   enabled?: T;
+  serviceAgreement?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9104,6 +9196,17 @@ export interface FormsSelect<T extends boolean = true> {
               width?: T;
               defaultValue?: T;
               required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        signature?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              agreementText?: T;
+              required?: T;
+              width?: T;
               id?: T;
               blockName?: T;
             };
@@ -9624,6 +9727,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         payloadUpdate?: T;
         payloadCreate?: T;
         payloadDelete?: T;
+        querySql?: T;
         queryNavigation?: T;
         updateNavigation?: T;
         sendInlineForm?: T;

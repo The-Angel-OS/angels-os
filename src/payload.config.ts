@@ -72,6 +72,7 @@ import { QuestParticipations } from '@/collections/QuestParticipations'
 import { TokenLedger } from '@/collections/TokenLedger'
 import { Wallets } from '@/collections/Wallets'
 import { Signatures } from '@/collections/Signatures'
+import { Memberships } from '@/collections/Memberships'
 import { Services } from '@/collections/Services'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
@@ -128,6 +129,9 @@ import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
+import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
+import { membershipPlansHandler } from '@/endpoints/membership-plans'
+import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -283,6 +287,7 @@ export default buildConfig({
     TokenLedger,
     Wallets,
     Signatures,
+    Memberships,
     Services,
     BoardMembers,
     LogisticsNodes,
@@ -837,6 +842,18 @@ export default buildConfig({
       path: '/provision-ops/church-template',
       method: 'post',
       handler: churchTemplateHandler,
+    },
+    // Recurring memberships/dues (the universal unlock): plans (settings bag),
+    // subscription checkout (Connect destination charge + platform fee), and the
+    // schema-first Memberships table provisioner. Run checkout on a tenant's own
+    // host so dues route to that endeavor.
+    { path: '/membership-ops/plans', method: 'get', handler: membershipPlansHandler },
+    { path: '/membership-ops/plans', method: 'post', handler: membershipPlansHandler },
+    { path: '/membership-ops/checkout', method: 'post', handler: membershipCheckoutHandler },
+    {
+      path: '/provision-ops/ensure-memberships-table',
+      method: 'get',
+      handler: ensureMembershipsTableHandler,
     },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.

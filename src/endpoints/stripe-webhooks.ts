@@ -130,6 +130,13 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
         await handleChargeRefunded(payload, charge, connectedAccountId)
         break
       }
+      // ── Recurring memberships/dues — sync the Memberships collection ──
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        await upsertMembershipFromSubscription(payload, event.data.object as Stripe.Subscription)
+        break
+      }
       default: {
         // Unhandled event type — acknowledge receipt
         break
@@ -144,6 +151,63 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
 }
 
 // ─── Event Handlers ──────────────────────────────────────────────
+
+/**
+ * Sync a Stripe subscription → the Memberships collection (the authoritative
+ * "who's a member / dues current" record). Idempotent upsert by subscription id;
+ * the membership context (tenant, plan, member) rides on the subscription metadata
+ * set at checkout.
+ */
+async function upsertMembershipFromSubscription(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  sub: Stripe.Subscription,
+) {
+  const meta = (sub.metadata || {}) as Record<string, string>
+  if (meta.angelOs_type !== 'membership' || !meta.tenantId) return
+
+  // current_period_end moved off the top-level Subscription in newer API versions —
+  // read it defensively (top-level, else the first item's period end).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cpe = (sub as any).current_period_end ?? (sub as any).items?.data?.[0]?.current_period_end
+  const periodEnd = cpe ? new Date(cpe * 1000).toISOString() : undefined
+  const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id
+  const memberUserId = meta.memberUserId ? Number(meta.memberUserId) : undefined
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {
+    tenant: Number(meta.tenantId),
+    ...(memberUserId ? { member: memberUserId } : {}),
+    ...(meta.memberEmail ? { memberEmail: meta.memberEmail } : {}),
+    ...(meta.memberName ? { memberName: meta.memberName } : {}),
+    ...(meta.planId ? { planId: meta.planId } : {}),
+    ...(meta.planName ? { planName: meta.planName } : {}),
+    status: sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due' || sub.status === 'canceled'
+      ? sub.status
+      : 'incomplete',
+    stripeSubscriptionId: sub.id,
+    ...(customerId ? { stripeCustomerId: customerId } : {}),
+    ...(periodEnd ? { currentPeriodEnd: periodEnd } : {}),
+    startedAt: new Date((sub.start_date || sub.created) * 1000).toISOString(),
+  }
+
+  try {
+    const existing = await payload.find({
+      collection: 'memberships',
+      where: { stripeSubscriptionId: { equals: sub.id } },
+      limit: 1, depth: 0, overrideAccess: true,
+    })
+    const doc = existing.docs?.[0] as { id: number | string } | undefined
+    if (doc) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.update as any)({ collection: 'memberships', id: doc.id, data, overrideAccess: true })
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.create as any)({ collection: 'memberships', data, overrideAccess: true })
+    }
+  } catch (err) {
+    console.error('[Stripe Webhook] Failed to upsert membership:', err instanceof Error ? err.message : err)
+  }
+}
 
 async function handlePaymentIntentSucceeded(
   payload: Parameters<PayloadHandler>[0]['payload'],
