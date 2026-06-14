@@ -122,6 +122,7 @@ import { resolveEditHandler } from '@/endpoints/resolve-edit'
 import { ensurePagesNavColumnsHandler } from '@/endpoints/ensure-pages-nav-columns'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
+import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -792,6 +793,14 @@ export default buildConfig({
       path: '/provision-ops/nav-repair',
       method: 'get',
       handler: navRepairHandler,
+    },
+    // Rectify tenants with a null setup.constitutionSignedAt by running the same
+    // Ed25519 federation signing flow as the sign_constitution LEO tool.
+    // GET; super_admin or ?key=CRON_SECRET. ?tenant=<slug> / ?force=true.
+    {
+      path: '/provision-ops/sign-constitution-all',
+      method: 'get',
+      handler: signConstitutionAllHandler,
     },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.
