@@ -82,7 +82,13 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
   // with the constitutional Justice Fund share kept as the application fee.
   // Platform context (no tenant / not Connect-enabled) keeps the legacy
   // behavior: a platform charge, 100% to the Justice Fund.
-  const slug = typeof tenantSlug === 'string' ? tenantSlug : ''
+  // The HOST is authoritative for "whose site is this gift on": the middleware sets
+  // x-tenant-id from the hostname (e.g. grace-chapel.spacesangels.com → 'grace-chapel'),
+  // which is correct even when the client's payload-tenant cookie is absent or stale
+  // (the public church site has no such cookie). Body tenantSlug is the fallback.
+  const headerTenant = req.headers?.get('x-tenant-id') || ''
+  const bodySlug = typeof tenantSlug === 'string' && tenantSlug && tenantSlug !== 'default' ? tenantSlug : ''
+  const slug = headerTenant || bodySlug
   let connectedAccountId: string | null = null
   let recipientName = 'the Justice Fund'
   let chargeModel: 'destination' | 'platform' = 'platform'

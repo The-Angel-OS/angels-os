@@ -244,18 +244,25 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   // Map a raw Payload message doc to our ChatMessage type
   // Handles UMS JSON content via extractText for backward compatibility
   const mapMessage = useCallback((msg: Record<string, unknown>): ChatMessage => {
-    const author = msg.author as Record<string, unknown> | null
-    const authorName = author
-      ? String(author.name || author.email || 'Unknown')
-      : 'Unknown'
-    const isSystem =
-      author &&
-      (author.isSystemUser === true ||
-        (author.roles && Array.isArray(author.roles) && author.roles.includes('system')))
     // Extract metadata fields from the message's metadata JSON
     const msgMeta = msg.metadata && typeof msg.metadata === 'object'
       ? (msg.metadata as Record<string, unknown>)
       : undefined
+    const author = msg.author as Record<string, unknown> | null
+    const isAgentMsg = msg.messageType === 'ai_agent'
+    // Byline: a resolved author wins; otherwise an AI-agent message is its agent
+    // (LEO), not "Unknown" — agent messages may have no author row on a freshly
+    // provisioned tenant (no per-tenant LEO system user), and the name lives in
+    // metadata.agentName regardless.
+    const authorName = author
+      ? String(author.name || author.email || 'Unknown')
+      : isAgentMsg
+        ? String(msgMeta?.agentName || 'LEO')
+        : 'Unknown'
+    const isSystem =
+      author &&
+      (author.isSystemUser === true ||
+        (author.roles && Array.isArray(author.roles) && author.roles.includes('system')))
 
     // Extract images and file attachments from the attachments array
     const attachmentImages: ChatMessage['images'] = []
