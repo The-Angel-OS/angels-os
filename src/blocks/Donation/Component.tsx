@@ -76,6 +76,7 @@ export const DonationBlock: React.FC<{
   const [donorMessage, setDonorMessage] = useState('')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
 
   // Check for success return from Stripe
   React.useEffect(() => {
@@ -84,6 +85,25 @@ export const DonationBlock: React.FC<{
       setStep('success')
       const returnedAmount = parseInt(params.get('amount') || '0', 10)
       if (returnedAmount > 0) setAmountCents(returnedAmount)
+    }
+  }, [])
+
+  // Pre-fill name/email when signed in (anonymous giving stays untouched — the
+  // fields just collapse to the message). A logged-in donor shouldn't retype.
+  React.useEffect(() => {
+    let cancelled = false
+    fetch('/api/users/me', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const u = d?.user as { name?: string; email?: string } | undefined
+        if (cancelled || !u?.email) return
+        setViewer({ name: u.name, email: u.email })
+        setDonorName((prev) => prev || u.name || '')
+        setDonorEmail((prev) => prev || u.email || '')
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -149,8 +169,8 @@ export const DonationBlock: React.FC<{
           <div className="mb-4 text-5xl">&#10084;&#65039;</div>
           <h2 className="mb-2 text-2xl font-bold">Thank You!</h2>
           <p className="text-muted-foreground">
-            Your donation of <strong>${(amountCents / 100).toFixed(2)}</strong> has been received.
-            100% goes to the Justice Fund — no platform fees.
+            Your gift of <strong>${(amountCents / 100).toFixed(2)}</strong> has been received.
+            Thank you for your generosity.
           </p>
         </div>
       </div>
@@ -200,15 +220,25 @@ export const DonationBlock: React.FC<{
 
         {step === 'info' && (
           <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Your info (optional)</h3>
-            <div className="space-y-2">
-              <Label htmlFor="donor-name">Name</Label>
-              <Input id="donor-name" value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="Your name" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="donor-email">Email (for receipt)</Label>
-              <Input id="donor-email" type="email" value={donorEmail} onChange={(e) => setDonorEmail(e.target.value)} placeholder="you@example.com" />
-            </div>
+            <h3 className="text-lg font-semibold">{viewer ? 'Add a note (optional)' : 'Your info (optional)'}</h3>
+            {viewer ? (
+              // Signed in — name/email already known; just confirm + take a note.
+              <p className="text-sm text-muted-foreground">
+                Giving as <span className="font-medium text-foreground">{viewer.name || viewer.email}</span>
+                {viewer.name && viewer.email ? ` · ${viewer.email}` : ''} (receipt to this email).
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="donor-name">Name</Label>
+                  <Input id="donor-name" value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="Your name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="donor-email">Email (for receipt)</Label>
+                  <Input id="donor-email" type="email" value={donorEmail} onChange={(e) => setDonorEmail(e.target.value)} placeholder="you@example.com" />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label htmlFor="donor-message">Message</Label>
               <Input id="donor-message" value={donorMessage} onChange={(e) => setDonorMessage(e.target.value)} placeholder="Optional message" />
