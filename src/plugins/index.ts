@@ -7,6 +7,7 @@ import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { angelOsStripeAdapter } from '@/lib/angel-os-stripe-adapter'
 import { routeFormToAIBus } from '@/hooks/routeFormToAIBus'
+import { createFormSignatures } from '@/hooks/createFormSignatures'
 import { angelOsEmailLayout } from '@/utilities/angelOsEmailLayout'
 
 import { Page, Product } from '@/payload-types'
@@ -37,6 +38,24 @@ export const plugins: Plugin[] = [
   formBuilderPlugin({
     fields: {
       payment: false,
+      // Custom: a binding e-signature field. The captured signature is stored in
+      // the submission and turned into an immutable, tamper-evident Signatures row
+      // by the createFormSignatures hook (server-side, with tenant context).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signature: {
+        slug: 'signature',
+        labels: { singular: 'Signature', plural: 'Signature Fields' },
+        fields: [
+          { name: 'name', type: 'text', required: true,
+            admin: { description: 'Field name stored in the submission (e.g. waiver-signature).' } },
+          { name: 'label', type: 'text' },
+          { name: 'agreementText', type: 'textarea',
+            admin: { description: 'Optional terms shown above the signature pad; the signer agrees to these (their hash pins the signature to this exact text).' } },
+          { name: 'required', type: 'checkbox', defaultValue: true },
+          { name: 'width', type: 'number' },
+        ],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     },
     // Wrap every Form Builder submission email in the shared Angel OS branded
     // shell (green "A" mark + "Powered by Angel OS" footer) so a contact/lead
@@ -54,7 +73,7 @@ export const plugins: Plugin[] = [
         group: 'Content',
       },
       hooks: {
-        afterChange: [routeFormToAIBus],
+        afterChange: [routeFormToAIBus, createFormSignatures],
       },
     },
     formOverrides: {

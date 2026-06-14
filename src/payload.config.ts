@@ -126,6 +126,7 @@ import { navRepairHandler } from '@/endpoints/nav-repair'
 import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
+import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -820,6 +821,13 @@ export default buildConfig({
       path: '/provision-ops/ensure-signatures-table',
       method: 'get',
       handler: ensureSignaturesTableHandler,
+    },
+    // Provision the forms_blocks_signature table (custom Form Builder block) on a
+    // prod DB BEFORE the plugin config referencing it deploys. GET; super_admin or ?key=.
+    {
+      path: '/provision-ops/ensure-form-signature-block',
+      method: 'get',
+      handler: ensureFormSignatureBlockHandler,
     },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.

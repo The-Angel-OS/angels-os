@@ -135,14 +135,31 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
       // Use fallback author
     }
 
+    // Render a single submission value — signature fields are a JSON payload, so
+    // surface them as a readable "signed by" line instead of dumping raw JSON.
+    const renderValue = (raw: unknown): string => {
+      if (raw == null || raw === '') return '(empty)'
+      const str = String(raw)
+      if (str.includes('__signature')) {
+        try {
+          const s = JSON.parse(str) as { __signature?: boolean; signerName?: string; type?: string; agreement?: string }
+          if (s.__signature && s.signerName) {
+            return `✍️ Signed by ${s.signerName} (${s.type === 'drawn' ? 'drawn' : 'typed'})${s.agreement ? ' — agreement accepted' : ''}`
+          }
+        } catch {
+          /* fall through to raw */
+        }
+      }
+      return str
+    }
+
     // Build human-readable submission text
     const fieldLines = submissionData.map((f) => {
-      const val = f.value == null ? '(empty)' : String(f.value)
       // Convert field name to label: "full-name" → "Full Name"
       const label = f.field
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, (c) => c.toUpperCase())
-      return `• **${label}:** ${val}`
+      return `• **${label}:** ${renderValue(f.value)}`
     })
 
     const summaryText = [
@@ -180,8 +197,12 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
     // Fail-soft and policy-gated per gotify connector (see gotifyEscalation.ts) —
     // dedupeKey is per-form so a burst of one form's submissions is throttled but
     // different forms still each get through.
-    const firstValue = (name: string) =>
-      submissionData.find((f) => f.field.toLowerCase().includes(name))?.value
+    const firstValue = (name: string) => {
+      const hit = submissionData.find(
+        (f) => f.field.toLowerCase().includes(name) && typeof f.value === 'string' && !f.value.includes('__signature'),
+      )
+      return hit?.value
+    }
     const who = firstValue('name') || firstValue('email') || 'someone'
     void dispatchToGotify(payload, {
       tenantId,
