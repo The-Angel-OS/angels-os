@@ -41,7 +41,8 @@ Detail lives in the linked memories / planning docs — this is the index.
 - ⬜ **fund-float** (backed AT issuance — also the billing buy-in) · ⬜ per-quest tokenKind · ⬜ human wallet UI · ⬜ convertibility exchange (= billing item above).
 
 ## 5b. Church websites (gap analysis done — docs/planning/CHURCH_WEBSITE_GAP_ANALYSIS.md, [[project_church_websites]])
-- ⬜ **Church template + `ministry` endeavor type** (THE core ask) — provision Home/Worship&ServiceTimes/Sermons&Livestream/Events/Giving/About&Clergy/Ministries/Contact/PrayerRequests + nav + Community Hub w/ ministry channels.
+- ✅ **Church template (slice 1) — VERIFIED LIVE** at grace-chapel.spacesangels.com (angels, tenant 12; generic demo, NOT St Alfred's). `provisionChurchSite` stamps 9 parish pages from existing blocks (zero schema risk); `POST /provision-ops/church-template?overwrite=true`. 2-call stand-up: provision-portal → church-template. Commits 10f582f/34e81be/05d41c7.
+  - ⬜ follow-up: a `ministry` endeavor type + Community Hub ministry channels (template currently pages-only); fold into provisionPortal so one call does it all.
 - ⬜ Low-effort blocks the template needs: video/livestream embed (Pages), bulletins/downloads PDF list, clergy/staff roster (collection + block).
 - ⬜ Recurring services/events (or a Service-Times block stopgap).
 - ⬜ Recurring + designated giving (Stripe subscriptions) + ⚠ verify/fix donations route to the ENDEAVOR, not 100% Justice Fund.
