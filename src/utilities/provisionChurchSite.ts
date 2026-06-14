@@ -6,6 +6,7 @@ import {
   createUnorderedListNode,
 } from '@/utilities/lexicalHelpers'
 import { upsertMembershipPlan, type MembershipPlan } from '@/utilities/membershipPlans'
+import { ensurePolicyPages } from '@/utilities/ensurePolicyPages'
 
 /**
  * provisionChurchSite — the prototype CHURCH TEMPLATE.
@@ -383,6 +384,14 @@ export async function provisionChurchSite(
     await payload.create({ collection: 'pages', depth: 0, overrideAccess: true, data: pageData })
     created.push(spec.slug)
   }
+
+  // Legal/policy pages + footer links — a church takes donations (and optionally
+  // pledges), so it needs Privacy/Terms/Cookie/Refund.
+  await ensurePolicyPages(payload, tenantId, {
+    orgName: p.churchName,
+    contactEmail: p.contactEmail || undefined,
+    takesPayments: true,
+  }, { overwrite: opts.overwrite })
 
   return { created, updated, skipped }
 }

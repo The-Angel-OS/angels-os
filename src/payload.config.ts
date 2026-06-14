@@ -130,6 +130,7 @@ import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-tabl
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
+import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
@@ -851,6 +852,13 @@ export default buildConfig({
       path: '/provision-ops/fitness-template',
       method: 'post',
       handler: fitnessTemplateHandler,
+    },
+    // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
+    // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
+    {
+      path: '/provision-ops/policy-pages',
+      method: 'post',
+      handler: policyPagesHandler,
     },
     // Recurring memberships/dues (the universal unlock): plans (settings bag),
     // subscription checkout (Connect destination charge + platform fee), and the

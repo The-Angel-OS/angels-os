@@ -6,6 +6,7 @@ import {
   createUnorderedListNode,
 } from '@/utilities/lexicalHelpers'
 import { upsertMembershipPlan, type MembershipPlan } from '@/utilities/membershipPlans'
+import { ensurePolicyPages } from '@/utilities/ensurePolicyPages'
 
 /**
  * provisionFitnessSite — the generic FITNESS / GYM TEMPLATE.
@@ -301,6 +302,14 @@ export async function provisionFitnessSite(
     await payload.create({ collection: 'pages', depth: 0, overrideAccess: true, data: pageData })
     created.push(spec.slug)
   }
+
+  // Legal/policy pages + footer links — a gym sells memberships and collects SMS/
+  // contact consent, so it needs Privacy/Terms/Cookie/Refund.
+  await ensurePolicyPages(payload, tenantId, {
+    orgName: p.gymName,
+    contactEmail: p.contactEmail || undefined,
+    takesPayments: true,
+  }, { overwrite: opts.overwrite })
 
   return { created, updated, skipped }
 }
