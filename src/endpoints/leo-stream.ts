@@ -45,7 +45,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, complexityFloorForRoles } from '@/utilities/ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
 import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
@@ -1448,16 +1448,20 @@ async function streamViaGateway(opts: {
     }
   }
 
-  // Smart model selection: credit-aware tier + gateway-native fallback chain
-  // The complexity is determined by the escalation rhythm (turn-based rotation)
+  // Smart model selection: credit-aware tier + gateway-native fallback chain.
+  // The complexity is the escalation rhythm's tier, LIFTED to the floor the
+  // operator's stakes demand (a super_admin steering LEO is doing admin/agentic
+  // work → strong tier). Credit pressure still downshifts inside getSmartModel.
   if (!smart) {
-    smart = await getSmartModel(complexity, {
+    const effectiveComplexity = liftComplexity(complexity, complexityFloorForRoles(userRoles))
+    smart = await getSmartModel(effectiveComplexity, {
       tenantId,
       userId,
       tags: [
         'leo-stream',
         isWizardMode ? 'wizard' : 'chat',
         ...(isEscalationRound ? ['deep-think'] : []),
+        ...(effectiveComplexity !== complexity ? ['steward-floor'] : []),
       ],
     })
   }

@@ -32,7 +32,7 @@ import { truncateHistoryMessage } from './truncateHistoryMessage'
 import { assembleHistoryTurns } from './assembleHistoryTurns'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
-import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION } from './ai-gateway'
+import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, complexityFloorForRoles } from './ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
@@ -203,12 +203,16 @@ export class ConversationEngine {
     const agentModelStrategy = this.context.agent?.responseRules?.modelStrategy as
       Record<string, unknown> | undefined
     const strategy = parseAgentEscalation(agentModelStrategy) || DEFAULT_ESCALATION
-    const complexity = getEscalatedComplexity(userTurnCount, strategy)
+    const escalatedTier = getEscalatedComplexity(userTurnCount, strategy)
+    // Lift onto the floor the operator's stakes demand (super_admin → strong tier),
+    // separate from the deep-think rhythm. Credit pressure still downshifts later.
+    const actingRoles = (this.context.sessionMemory?.userContext as { roles?: string[] } | undefined)?.roles
+    const complexity = liftComplexity(escalatedTier, complexityFloorForRoles(actingRoles))
 
     const smart = await getSmartModel(complexity, {
       tenantId,
       userId,
-      tags: ['leo-chat', ...(complexity !== strategy.standardTier ? ['deep-think'] : [])],
+      tags: ['leo-chat', ...(escalatedTier !== strategy.standardTier ? ['deep-think'] : [])],
     })
     if (!smart) return this.buildFallbackResponse(userMessage)
 

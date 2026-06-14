@@ -187,6 +187,45 @@ function isValidTier(val: unknown): val is TaskComplexity {
 }
 
 // ---------------------------------------------------------------------------
+// Tier Floor — capability matched to the STAKES of who's operating
+// ---------------------------------------------------------------------------
+
+/** Ordinal rank so tiers can be compared and lifted (low < medium < high < critical). */
+const TIER_RANK: Record<TaskComplexity, number> = { low: 0, medium: 1, high: 2, critical: 3 }
+
+/**
+ * Lift `tier` UP to at least `floor` — never downshifts. The composable counterpart
+ * to applyCreditPressure (which only ever downshifts): a turn's tier is the message's
+ * complexity lifted to what the context demands, then bounded by what the wallet can
+ * afford. Capability rises with the stakes; solvency still has the final say.
+ */
+export function liftComplexity(tier: TaskComplexity, floor: TaskComplexity): TaskComplexity {
+  return TIER_RANK[tier] >= TIER_RANK[floor] ? tier : floor
+}
+
+/**
+ * The minimum tier a session's STAKES demand, independent of the message text.
+ *
+ * A platform steward (super_admin) operating LEO is doing admin / agentic /
+ * remediation work — the kind where a weak model is dangerous, not just unhelpful —
+ * so the floor lifts them onto the strong tier. An admin/archangel gets the mid tier;
+ * everyone else rides the cost-optimized default (floor 'low' = no lift). Composes
+ * cleanly: the escalation rhythm still adds periodic deep-think rounds ON TOP of the
+ * floor, and credit pressure still downshifts when the wallet is thin.
+ *
+ * The steward floor is env-tunable (LEO_STEWARD_TIER_FLOOR), defaulting to 'high'
+ * (Gemini Pro → Sonnet, with escalation rounds reaching critical = Sonnet → Opus).
+ */
+export function complexityFloorForRoles(roles?: string[] | null): TaskComplexity {
+  const r = roles || []
+  if (r.includes('super_admin')) {
+    return isValidTier(process.env.LEO_STEWARD_TIER_FLOOR) ? process.env.LEO_STEWARD_TIER_FLOOR : 'high'
+  }
+  if (r.includes('admin') || r.includes('archangel')) return 'medium'
+  return 'low'
+}
+
+// ---------------------------------------------------------------------------
 // Credit Balance Monitoring
 // ---------------------------------------------------------------------------
 
