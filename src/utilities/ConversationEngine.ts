@@ -33,6 +33,7 @@ import { assembleHistoryTurns } from './assembleHistoryTurns'
 import type { ToolExecutorContext } from './leo-data-tools'
 import { extractTextFromContent } from './messageContent'
 import { isGatewayAvailable, convertToolsForAISDK, getSmartModel, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, complexityFloorForRoles } from './ai-gateway'
+import { ExecutionTrace } from './executionTrace'
 import type { TaskComplexity, EscalationStrategy } from './ai-gateway'
 
 // ---------------------------------------------------------------------------
@@ -194,6 +195,9 @@ export class ConversationEngine {
     // Count conversation turns to determine if this is a "deep think" round
     const tenantId = this.context.sessionMemory?.tenantId as number | undefined
     const userId = (this.context.sessionMemory?.userContext as { id?: number } | undefined)?.id
+    // One per-turn tool-chain audit trace, shared by both the gateway and the
+    // Anthropic-fallback paths, so the DM/webhook LEO path is accountable too.
+    const toolTrace = new ExecutionTrace('leo-toolchain')
 
     // Determine escalated complexity based on turn history
     const historyMessages = await this.fetchConversationHistory()
@@ -234,7 +238,8 @@ export class ConversationEngine {
       }))
       messages.push({ role: 'user', content: userMessage.text || '' })
 
-      // Convert tools
+      // Convert tools. Audit every tool call on the per-turn trace (parity with
+      // leo-stream) so the DM/webhook LEO path is accountable, not just chat.
       const payload = this.context.sessionMemory?.payload as Payload | undefined
       const toolCtx: ToolExecutorContext = {
         payload: payload!,
@@ -242,6 +247,8 @@ export class ConversationEngine {
         spaceId: this.context.sessionMemory?.spaceId as number | undefined,
         userId,
         channelSlug: this.context.sessionMemory?.channel as string | undefined,
+        roles: actingRoles,
+        trace: toolTrace,
       }
       const tools = payload
         ? convertToolsForAISDK(LEO_TOOLS, executeToolCall, toolCtx)
@@ -274,6 +281,9 @@ export class ConversationEngine {
         text: responseText,
         metadata: {
           conversationId: this.context.conversationId,
+          // Tool-chain audit trail (when any tool ran) — persisted with the message
+          // so an admin can see exactly what LEO did on this turn.
+          ...(toolTrace.steps.length ? { toolChain: toolTrace.toJSON() } : {}),
           intent: {
             intentId: `intent_${Date.now()}`,
             name: 'ai_response',
@@ -327,6 +337,8 @@ export class ConversationEngine {
       const payload = this.context.sessionMemory?.payload as Payload | undefined
       const hasDataAccess = Boolean(payload)
       const tools = hasDataAccess ? LEO_TOOLS : undefined
+      // Per-turn tool-chain audit trace (parity with the gateway path).
+      const toolTrace = new ExecutionTrace('leo-toolchain')
 
       let responseText = ''
       let round = 0
@@ -358,6 +370,7 @@ export class ConversationEngine {
             roles: (this.context.sessionMemory?.userContext as { roles?: string[] } | undefined)?.roles,
             channelSlug: this.context.sessionMemory?.channel as string | undefined,
             tenantAiConfig: this.context.sessionMemory?.tenantAiConfig as Record<string, unknown> | undefined,
+            trace: toolTrace,
           }
 
           for (const toolBlock of toolUseBlocks) {
@@ -401,6 +414,9 @@ export class ConversationEngine {
         text: responseText,
         metadata: {
           conversationId: this.context.conversationId,
+          // Tool-chain audit trail (when any tool ran) — persisted with the message
+          // so an admin can see exactly what LEO did on this turn.
+          ...(toolTrace.steps.length ? { toolChain: toolTrace.toJSON() } : {}),
           intent: {
             intentId: `intent_${Date.now()}`,
             name: 'ai_response',
