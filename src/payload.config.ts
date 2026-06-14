@@ -127,6 +127,7 @@ import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
+import { churchTemplateHandler } from '@/endpoints/church-template'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -828,6 +829,14 @@ export default buildConfig({
       path: '/provision-ops/ensure-form-signature-block',
       method: 'get',
       handler: ensureFormSignatureBlockHandler,
+    },
+    // Apply the prototype church template (standard parish pages from existing
+    // blocks) to a tenant. POST; super_admin or ?key=. Run on spacesangels.com
+    // (angels DB) for real church sites — NOT kendev (commercial).
+    {
+      path: '/provision-ops/church-template',
+      method: 'post',
+      handler: churchTemplateHandler,
     },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.
