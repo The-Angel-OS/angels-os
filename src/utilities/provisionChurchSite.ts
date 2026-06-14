@@ -164,12 +164,16 @@ function buildPages(p: Required<ChurchProfile>): PageSpec[] {
       heroHeading: 'Parish Events',
       heroSub: 'Gather, serve, celebrate.',
       layout: [
+        content([
+          createParagraphNode('Services, formation, fellowship, and outreach — all in one place. Check back for our upcoming gatherings.'),
+        ]),
         {
           blockType: 'calendar',
           heading: 'Upcoming Events',
-          description: createLexicalContent([createParagraphNode('Services, formation, fellowship, and outreach — all in one place.')]),
+          description: createLexicalContent([createParagraphNode('Add events from the dashboard — they appear here automatically.')]),
           sourceType: 'manual',
-          events: p.serviceTimes.slice(0, 1).map((s) => ({ title: s.service, time: s.day, description: 'Weekly service' })),
+          // Events start empty (each requires a date); the parish admin adds them.
+          events: [],
         },
       ],
       meta: { title: `Events — ${name}`, description: 'Upcoming parish events.' },
