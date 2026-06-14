@@ -14,8 +14,28 @@ type Plan = {
   description?: string
 }
 
+type MyMembership = {
+  id: string | number
+  planName: string | null
+  amountCents: number | null
+  interval: 'month' | 'year' | null
+  status: string | null
+  currentPeriodEnd: string | null
+  canManage: boolean
+}
+
 const fmt = (cents: number, interval: 'month' | 'year') =>
   `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}/${interval === 'month' ? 'mo' : 'yr'}`
+
+const ACTIVE = new Set(['active', 'trialing', 'past_due'])
+
+const statusLabel: Record<string, string> = {
+  active: 'Active',
+  trialing: 'Trial',
+  past_due: 'Past due',
+  canceled: 'Canceled',
+  incomplete: 'Incomplete',
+}
 
 /**
  * Membership (Join) block — fetches the host endeavor's active plans and starts a
@@ -33,7 +53,9 @@ export const MembershipBlock: React.FC<{
   const [memberName, setMemberName] = useState('')
   const [memberEmail, setMemberEmail] = useState('')
   const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
+  const [member, setMember] = useState<MyMembership | null | undefined>(undefined) // undefined = loading
   const [submitting, setSubmitting] = useState(false)
+  const [managing, setManaging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Reflect the Stripe return state (success_url / cancel_url use ?membership=...).
@@ -78,6 +100,39 @@ export const MembershipBlock: React.FC<{
       .catch(() => {})
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  // Load the viewer's own membership for this endeavor (if signed in + a member).
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/membership-ops/my', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { memberships: [] }))
+      .then((d) => {
+        if (cancelled) return
+        const list = Array.isArray(d?.memberships) ? (d.memberships as MyMembership[]) : []
+        const current = list.find((m) => m.status && ACTIVE.has(m.status)) || list[0] || null
+        setMember(current)
+      })
+      .catch(() => {
+        if (!cancelled) setMember(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const openPortal = useCallback(async () => {
+    setManaging(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/membership-ops/portal', { method: 'POST', credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok || !data?.url) throw new Error(data?.error || 'Could not open billing portal')
+      window.location.href = data.url as string
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setManaging(false)
     }
   }, [])
 
@@ -139,8 +194,46 @@ export const MembershipBlock: React.FC<{
           </p>
         )}
 
-        {/* Plan selection */}
-        {(step === 'plans' || step === 'cancelled') && (
+        {/* Member's own membership — shown instead of the plan picker when active */}
+        {(step === 'plans' || step === 'cancelled') && member && member.status && ACTIVE.has(member.status) && (
+          <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold">Your membership</h3>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  member.status === 'past_due'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
+                }`}
+              >
+                {statusLabel[member.status] || member.status}
+              </span>
+            </div>
+            <div className="text-sm">
+              <p className="font-medium text-foreground">
+                {member.planName || 'Membership'}
+                {member.amountCents != null && member.interval ? ` · ${fmt(member.amountCents, member.interval)}` : ''}
+              </p>
+              {member.currentPeriodEnd && (
+                <p className="text-muted-foreground">
+                  {member.status === 'canceled' ? 'Access until' : 'Renews'}{' '}
+                  {new Date(member.currentPeriodEnd).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              )}
+            </div>
+            {member.canManage ? (
+              <Button onClick={openPortal} className="w-full" size="lg" disabled={managing}>
+                {managing ? 'Opening…' : 'Manage membership'}
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">Contact the organization to make changes to your membership.</p>
+            )}
+            <p className="text-xs text-muted-foreground">Update your card, view invoices, or cancel anytime.</p>
+          </div>
+        )}
+
+        {/* Plan selection — hidden once the viewer has an active membership */}
+        {(step === 'plans' || step === 'cancelled') && !(member && member.status && ACTIVE.has(member.status)) && (
           <div className="rounded-lg border border-border bg-card p-6 space-y-4">
             <h3 className="text-lg font-semibold">Choose your membership</h3>
 

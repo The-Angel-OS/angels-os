@@ -132,6 +132,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
+import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
@@ -867,6 +868,9 @@ export default buildConfig({
     { path: '/membership-ops/plans', method: 'get', handler: membershipPlansHandler },
     { path: '/membership-ops/plans', method: 'post', handler: membershipPlansHandler },
     { path: '/membership-ops/checkout', method: 'post', handler: membershipCheckoutHandler },
+    // Member self-service: view my membership + open the Stripe billing portal.
+    { path: '/membership-ops/my', method: 'get', handler: myMembershipsHandler },
+    { path: '/membership-ops/portal', method: 'post', handler: membershipPortalHandler },
     {
       path: '/provision-ops/ensure-memberships-table',
       method: 'get',
