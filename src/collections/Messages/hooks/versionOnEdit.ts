@@ -16,6 +16,10 @@ import {
 
 export const versionOnEdit: CollectionBeforeChangeHook = ({ data, originalDoc, operation, req }) => {
   if (operation !== 'update' || !originalDoc) return data
+  // Streaming finalize is NOT an edit: LEO pre-creates a message, streams chunks
+  // into it, then writes the assembled content once. That final write must not
+  // mark the message "(edited)". The streaming path passes this context flag.
+  if (req?.context?.skipMessageVersioning) return data
   // Only when content is actually being changed.
   if (!('content' in data) || !contentsDiffer(data.content, originalDoc.content)) return data
 

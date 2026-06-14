@@ -53,6 +53,7 @@ export type EscalationEventType =
   | 'donation'
   | 'booking'
   | 'itsm_incident'
+  | 'maintenance_note'
 
 export interface EscalationEvent {
   tenantId: number | string

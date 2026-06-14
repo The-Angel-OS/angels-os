@@ -73,7 +73,8 @@ import {
   fetchYouTubeChannelFeed,
   extractChannelId,
 } from './youtubeMetadata'
-import { createWidgetContent } from './messageContent'
+import { createWidgetContent, wrapTextContent } from './messageContent'
+import { dispatchToGotify } from './gotifyEscalation'
 import { runProbe } from './connectorProbes'
 import { GENESIS_BREATH } from './genesis-breath'
 import { buildConstitutionalPrompt, validateConstitutionalResponse } from './constitutional-prompt'
@@ -4767,10 +4768,12 @@ async function createProduct(
       _status: status,
     }
 
-    // Add tenant if available
-    if (ctx.tenantId) {
-      productData.tenant = ctx.tenantId
+    // Resolve the target tenant (ctx, else the acting user's home tenant).
+    const productTenant = await resolveWriteTenant(payload, ctx)
+    if (!productTenant) {
+      return 'Error: I couldn\'t determine which Endeavor to add the product to. Open a specific Endeavor\'s workspace (or tell me which Endeavor) and I\'ll add it there.'
     }
+    productData.tenant = productTenant
 
     // Add inventory if specified
     if (inventory !== undefined) {
@@ -7153,6 +7156,48 @@ async function generateAndAttachHeroImage(
 }
 
 /**
+ * resolveWriteTenant — the tenant a write should target.
+ *
+ * Prefers ctx.tenantId (the channel/space LEO is answering in). When that's absent
+ * — platform apex, a DM, or a cross-endeavor super_admin session — it falls back to
+ * the acting user's home tenant (servesTenant, else their most recent ACTIVE
+ * tenant-membership). Returns undefined only when nothing can be determined.
+ *
+ * This closes the cryptic "The following field is invalid: Assigned Tenant" failure
+ * that tenant-required collections (posts/pages/products/quests/categories) throw
+ * when a tool silently omitted the tenant because ctx.tenantId was empty.
+ */
+async function resolveWriteTenant(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<number | undefined> {
+  if (ctx.tenantId) return ctx.tenantId
+  const userId = ctx.userId
+  if (!userId) return undefined
+  try {
+    const user = await payload.findByID({ collection: 'users', id: userId, depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const serves = (user as any)?.servesTenant
+    if (serves != null) return Number(typeof serves === 'object' ? serves.id : serves)
+  } catch {
+    /* continue */
+  }
+  try {
+    const m = await payload.find({
+      collection: 'tenant-memberships',
+      where: { and: [{ user: { equals: userId } }, { status: { equals: 'active' } }] },
+      limit: 1, depth: 0, overrideAccess: true, sort: '-createdAt',
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mem = m.docs?.[0] as any
+    if (mem?.tenant != null) return Number(typeof mem.tenant === 'object' ? mem.tenant.id : mem.tenant)
+  } catch {
+    /* continue */
+  }
+  return undefined
+}
+
+/**
  * create_post — Creates a new blog post with title, body, and optional categories.
  */
 async function createPost(
@@ -7175,7 +7220,11 @@ async function createPost(
     _status: status,
   }
 
-  if (ctx.tenantId) postData.tenant = ctx.tenantId
+  const writeTenant = await resolveWriteTenant(payload, ctx)
+  if (!writeTenant) {
+    return 'Error: I couldn\'t determine which Endeavor to post under. Open a specific Endeavor\'s workspace (or tell me which Endeavor) and I\'ll create the post there.'
+  }
+  postData.tenant = writeTenant
 
   if (content) {
     postData.layout = textToContentLayout(content)
@@ -7309,7 +7358,11 @@ async function createQuest(
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
-  if (!ctx.tenantId) return 'Error: a tenant context is required to create a Quest.'
+  if (!ctx.tenantId) {
+    const t = await resolveWriteTenant(payload, ctx)
+    if (!t) return 'Error: I couldn\'t determine which Endeavor to create the Quest under. Open a specific Endeavor\'s workspace (or tell me which Endeavor) and I\'ll create it there.'
+    ctx.tenantId = t
+  }
 
   const title = (input.title as string)?.trim()
   if (!title) return 'Error: Quest title is required.'
@@ -7473,7 +7526,8 @@ async function ingestYouTubeUrl(
     layout: textToContentLayout(contentParts.join('\n\n')),
   }
 
-  if (ctx.tenantId) postData.tenant = ctx.tenantId
+  const ingestTenant = await resolveWriteTenant(payload, ctx)
+  if (ingestTenant) postData.tenant = ingestTenant
 
   // Resolve categories
   const categoryNames = input.categories as string[] | undefined
@@ -7590,7 +7644,8 @@ async function ingestYouTubeChannel(
         layout: textToContentLayout(contentParts.join('\n\n')),
       }
 
-      if (ctx.tenantId) postData.tenant = ctx.tenantId
+      const ingestTenant = await resolveWriteTenant(payload, ctx)
+  if (ingestTenant) postData.tenant = ingestTenant
       if (categoryIds.length) postData.categories = categoryIds
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7749,7 +7804,11 @@ async function createPage(
     _status: status,
   }
 
-  if (ctx.tenantId) pageData.tenant = ctx.tenantId
+  const pageTenant = await resolveWriteTenant(payload, ctx)
+  if (!pageTenant) {
+    return 'Error: I couldn\'t determine which Endeavor to create the page under. Open a specific Endeavor\'s workspace (or tell me which Endeavor) and I\'ll create it there.'
+  }
+  pageData.tenant = pageTenant
   if (input.slug) pageData.slug = (input.slug as string).toLowerCase().replace(/\s+/g, '-')
   if (content) pageData.layout = textToContentLayout(content)
 
@@ -7920,7 +7979,8 @@ async function manageCategories(
       if (!name) return 'Error: Category name is required to create a category.'
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: Record<string, any> = { title: name }
-      if (ctx.tenantId) data.tenant = ctx.tenantId
+      const catTenant = await resolveWriteTenant(payload, ctx)
+      if (catTenant) data.tenant = catTenant
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (payload.create as any)({
         collection: 'categories',
@@ -12201,7 +12261,70 @@ async function handleLogMaintenanceNote(
       overrideAccess: true,
     })
 
-    return `Maintenance note logged for Scotty:\n- **Title:** ${noteTitle}\n- **Category:** ${category}\n- **Reported by:** ${reportedBy}\n\nThis will be reviewed during the next maintenance cycle.`
+    // Surface the note on the AI bus too — an application-log is invisible to the
+    // operator, so post a visible message into the tenant's #system-engineering
+    // channel and route it through the escalation chain (Gotify). Fail-soft: a
+    // messaging hiccup must never fail the logging tool.
+    let posted = false
+    try {
+      const noteTenant = tenantId ?? (await resolveWriteTenant(payload, ctx))
+      if (noteTenant) {
+        const spaces = await payload.find({
+          collection: 'spaces', where: { tenant: { equals: noteTenant } },
+          limit: 1, depth: 0, overrideAccess: true, sort: '-createdAt',
+        })
+        const spaceId = spaces.docs?.[0]?.id as number | undefined
+        if (spaceId) {
+          let leoUserId: number | undefined
+          try {
+            const leo = await payload.find({
+              collection: 'users',
+              where: { and: [{ servesTenant: { equals: noteTenant } }, { 'agentConfig.agentType': { equals: 'leo' } }] },
+              limit: 1, depth: 0, overrideAccess: true,
+            })
+            leoUserId = leo.docs?.[0]?.id as number | undefined
+          } catch { /* fallback author */ }
+
+          const body = [
+            `🔧 **Maintenance note for Scotty**`,
+            `- **Title:** ${noteTitle}`,
+            `- **Category:** ${category}`,
+            `- **Reported by:** ${reportedBy}`,
+            '',
+            noteDetails,
+          ].join('\n')
+
+          await payload.create({
+            collection: 'messages',
+            data: {
+              content: wrapTextContent(body),
+              space: spaceId,
+              channel: 'system-engineering',
+              messageType: 'system',
+              author: leoUserId || 1,
+              tenant: noteTenant,
+              visibility: 'tenant',
+            } as any,
+            overrideAccess: true,
+          })
+          posted = true
+
+          void dispatchToGotify(payload, {
+            tenantId: noteTenant,
+            eventType: 'maintenance_note',
+            title: `🔧 Maintenance: ${noteTitle}`,
+            message: `${category} · reported by ${reportedBy}`,
+            priority: 4,
+            dedupeKey: `maintenance:${category}`,
+            extras: { category, reportedBy },
+          }).catch(() => {})
+        }
+      }
+    } catch (busErr) {
+      logCaughtError('leo-tools', busErr).catch(() => {})
+    }
+
+    return `Maintenance note logged for Scotty:\n- **Title:** ${noteTitle}\n- **Category:** ${category}\n- **Reported by:** ${reportedBy}\n${posted ? '- Posted to **#system-engineering** (AI bus) + escalation\n' : ''}\nThis will be reviewed during the next maintenance cycle.`
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error logging maintenance note: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -13235,12 +13358,13 @@ async function handlePayloadCreate(
 
   const data = input.data as Record<string, unknown>
 
-  // Strip any LLM-injected tenant field — we always enforce ctx.tenantId
+  // Strip any LLM-injected tenant field — we always enforce the resolved tenant
   delete data.tenant
 
-  // Inject tenant for multi-tenant scoping
-  if (ctx.tenantId) {
-    data.tenant = ctx.tenantId
+  // Inject tenant for multi-tenant scoping (ctx, else the acting user's home tenant).
+  const createTenant = await resolveWriteTenant(payload, ctx)
+  if (createTenant) {
+    data.tenant = createTenant
   }
 
   try {

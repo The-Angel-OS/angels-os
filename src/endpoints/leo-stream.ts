@@ -1264,7 +1264,9 @@ After this turn, you'll return to the faster model for responsive day-to-day int
 
         try {
           if (preCreatedMsgId) {
-            // Update the pre-created placeholder with final content
+            // Update the pre-created placeholder with final content. This is the
+            // streaming finalize, NOT an edit — skip message versioning so it never
+            // shows "(edited)".
             await req.payload.update({
               collection: 'messages',
               id: preCreatedMsgId,
@@ -1273,6 +1275,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 metadata: { streaming: false, model: resolveModelId(), partial: hadError, ...(streamTelemetry ?? {}) },
               } as any,
               overrideAccess: true,
+              context: { skipMessageVersioning: true },
             })
           } else {
             // Fallback: pre-create failed, save now
@@ -1319,6 +1322,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               metadata: { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail, ...(streamTelemetry ?? {}) },
             } as any,
             overrideAccess: true,
+            context: { skipMessageVersioning: true },
           })
         } catch (cleanupErr) {
           console.error('[LEO Stream] Failed to update pre-created message with error state:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
