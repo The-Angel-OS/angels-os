@@ -45,7 +45,8 @@ Detail lives in the linked memories / planning docs — this is the index.
   - ⬜ follow-up: a `ministry` endeavor type + Community Hub ministry channels (template currently pages-only); fold into provisionPortal so one call does it all.
 - ⬜ Low-effort blocks the template needs: video/livestream embed (Pages), bulletins/downloads PDF list, clergy/staff roster (collection + block).
 - ⬜ Recurring services/events (or a Service-Times block stopgap).
-- ⬜ Recurring + designated giving (Stripe subscriptions) + ⚠ verify/fix donations route to the ENDEAVOR, not 100% Justice Fund.
+- 🔄 **Designated giving — routing FIXED** (a82f563): create-intent now resolves the recipient tenant from the request HOST (x-tenant-id), not the absent payload-tenant cookie, so a Connect-enabled parish's gift is a destination charge to ITS account (5% Justice Fund app fee) — was falling back to 'default'→platform. ⬜ REMAINING ENABLER: Stripe Connect onboarding for a church (issue #86; connect_stripe_account tool + stripeConnect fields exist) so a parish can actually receive — until onboarded, gifts still go 100% Justice Fund (correct fallback). ⬜ later: recurring/subscription gifts + a fund selector (General/Building/Outreach).
+- ✅ **LEO byline "Unknown" → LEO** (a82f563) — mapMessage falls back to metadata.agentName||'LEO' for ai_agent msgs when no author row resolves (freshly provisioned tenants have no per-tenant LEO user).
 - ⬜ St. Alfred's reference node stalfreds.spacesangels.com — ⚠️ CONSENT-gated (real parish; build unlisted demo, get Father Pete's blessing this week).
 
 ## 6. Rentals marketplace (tracked direction)  ([[project_rentals_marketplace]], docs/planning/RENTALS_MARKETPLACE.md)
