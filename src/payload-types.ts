@@ -116,6 +116,7 @@ export interface Config {
     'quest-participations': QuestParticipation;
     'token-ledger': TokenLedger;
     wallets: Wallet;
+    signatures: Signature;
     services: Service;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
@@ -197,6 +198,7 @@ export interface Config {
     'quest-participations': QuestParticipationsSelect<false> | QuestParticipationsSelect<true>;
     'token-ledger': TokenLedgerSelect<false> | TokenLedgerSelect<true>;
     wallets: WalletsSelect<false> | WalletsSelect<true>;
+    signatures: SignaturesSelect<false> | SignaturesSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
@@ -1311,6 +1313,18 @@ export interface Page {
   tenant?: (number | null) | Tenant;
   title: string;
   publishedOn?: string | null;
+  /**
+   * Show this page in the site navigation (Home menu). Turn off for campaign/landing pages.
+   */
+  showInNav?: boolean | null;
+  /**
+   * Optional menu label (defaults to the page title).
+   */
+  navLabel?: string | null;
+  /**
+   * Sort order in the menu (lower first; blank sorts last, then by title).
+   */
+  navOrder?: number | null;
   hero: {
     type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
@@ -5211,6 +5225,66 @@ export interface Wallet {
   createdAt: string;
 }
 /**
+ * Immutable, tamper-evident human e-signature consent records.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signatures".
+ */
+export interface Signature {
+  id: number;
+  tenant: number | Tenant;
+  /**
+   * Typed legal name, or the name accompanying a drawn mark.
+   */
+  signerName: string;
+  /**
+   * Authenticated signer, when known. Blank for anonymous signing.
+   */
+  signer?: (number | null) | User;
+  documentType?: ('agreement' | 'waiver' | 'booking' | 'tos' | 'constitution' | 'form' | 'other') | null;
+  /**
+   * Stable reference to the signed thing, e.g. 'booking:42', 'agreement:tos-v3'.
+   */
+  documentRef: string;
+  /**
+   * Human label of what was signed (shown in the record + receipts).
+   */
+  documentTitle?: string | null;
+  /**
+   * SHA-256 of the exact document terms agreed to — pins the signature to specific content.
+   */
+  documentChecksum: string;
+  signatureType: 'typed' | 'drawn';
+  /**
+   * Typed string (typed) or PNG data-URL of the drawn mark (drawn).
+   */
+  signatureData: string;
+  /**
+   * SHA-256 tamper-evidence seal — computed server-side; do not edit.
+   */
+  contentHash?: string | null;
+  /**
+   * Moment of signing (ISO).
+   */
+  signedAt: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  /**
+   * Optional extra context (e.g. agreement version, witnessed-by).
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Bookable services offered by this tenant (the /book catalog).
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6125,6 +6199,14 @@ export interface PayloadMcpApiKey {
      */
     configureEndeavor?: boolean | null;
     /**
+     * Set this Endeavor's logo or cover image — the imagery shown on its federation Discovery card. Use when a user wants to give their enterprise a logo/banner, or when a Discovery card is blank. The image can come from an existing media id, an image URL (fetched + uploaded), or an AI prompt (generated + uploaded). Operates on the current tenant's Endeavor only.
+     */
+    setEndeavorImage?: boolean | null;
+    /**
+     * Set who a published Work (a book / case-file / 'soul' in the Library) is credited to and which endeavor publishes it. Use when assigning or correcting a Work's authorship/ownership — crediting a primary author, adding co-authors, or moving a Work to a different publishing endeavor. workId is the Work's id (e.g. 'wdeg', 'answer53', 'rainmaker'). This sets a runtime override on top of the Work's manifest default. Restricted to super_admin.
+     */
+    setWorkAttribution?: boolean | null;
+    /**
      * Guide the tenant through connecting their Stripe account for payment processing. Returns an onboarding URL. Use when a user asks about payments, getting paid, or connecting Stripe.
      */
     connectStripeAccount?: boolean | null;
@@ -6699,6 +6781,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'wallets';
         value: number | Wallet;
+      } | null)
+    | ({
+        relationTo: 'signatures';
+        value: number | Signature;
       } | null)
     | ({
         relationTo: 'services';
@@ -7551,6 +7637,9 @@ export interface PagesSelect<T extends boolean = true> {
   tenant?: T;
   title?: T;
   publishedOn?: T;
+  showInNav?: T;
+  navLabel?: T;
+  navOrder?: T;
   hero?:
     | T
     | {
@@ -8622,6 +8711,28 @@ export interface WalletsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signatures_select".
+ */
+export interface SignaturesSelect<T extends boolean = true> {
+  tenant?: T;
+  signerName?: T;
+  signer?: T;
+  documentType?: T;
+  documentRef?: T;
+  documentTitle?: T;
+  documentChecksum?: T;
+  signatureType?: T;
+  signatureData?: T;
+  contentHash?: T;
+  signedAt?: T;
+  ipAddress?: T;
+  userAgent?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "services_select".
  */
 export interface ServicesSelect<T extends boolean = true> {
@@ -9426,6 +9537,8 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         configureBusiness?: T;
         checkEndeavorOnboarding?: T;
         configureEndeavor?: T;
+        setEndeavorImage?: T;
+        setWorkAttribution?: T;
         connectStripeAccount?: T;
         disconnectStripeAccount?: T;
         onboardVendor?: T;

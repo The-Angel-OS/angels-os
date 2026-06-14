@@ -71,6 +71,7 @@ import { Quests } from '@/collections/Quests'
 import { QuestParticipations } from '@/collections/QuestParticipations'
 import { TokenLedger } from '@/collections/TokenLedger'
 import { Wallets } from '@/collections/Wallets'
+import { Signatures } from '@/collections/Signatures'
 import { Services } from '@/collections/Services'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
@@ -123,6 +124,8 @@ import { ensurePagesNavColumnsHandler } from '@/endpoints/ensure-pages-nav-colum
 import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
+import { signCaptureHandler } from '@/endpoints/sign-capture'
+import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
@@ -277,6 +280,7 @@ export default buildConfig({
     QuestParticipations,
     TokenLedger,
     Wallets,
+    Signatures,
     Services,
     BoardMembers,
     LogisticsNodes,
@@ -801,6 +805,21 @@ export default buildConfig({
       path: '/provision-ops/sign-constitution-all',
       method: 'get',
       handler: signConstitutionAllHandler,
+    },
+    // Human e-signature capture (the only writer of the Signatures collection;
+    // computes the document checksum + tamper-evidence hash server-side). POST;
+    // open to authenticated + anonymous signers. -ops prefix (route-shadowing rule).
+    {
+      path: '/sign-ops/capture',
+      method: 'post',
+      handler: signCaptureHandler,
+    },
+    // Provision the `signatures` table (+ enums + lock-rel column) on a prod DB
+    // BEFORE the config referencing it deploys. GET; super_admin or ?key=.
+    {
+      path: '/provision-ops/ensure-signatures-table',
+      method: 'get',
+      handler: ensureSignaturesTableHandler,
     },
     // READ-ONLY account classification (system/founder/test/member/orphan).
     // GET; super_admin or ?key=. Nothing mutated.
