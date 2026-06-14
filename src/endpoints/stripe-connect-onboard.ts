@@ -9,18 +9,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
-import Stripe from 'stripe'
-import { getServerSideURL } from '@/utilities/getURL'
-
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2025-08-27.basil',
-    })
-  }
-  return _stripe
-}
+import { createConnectOnboardingLink } from '@/utilities/stripeConnectOnboarding'
 
 export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -69,65 +58,12 @@ export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'You do not have access to this tenant.' }, { status: 403 })
   }
 
-  // Check if tenant already has a Stripe account
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant = await payload.findByID({ collection: 'tenants', id: tenantId as number, depth: 0 }) as any
-
-  if (tenant?.stripeConnect?.stripeAccountId && tenant?.stripeConnect?.stripeOnboardingComplete) {
-    return Response.json({
-      success: true,
-      alreadyConnected: true,
-      stripeAccountId: tenant.stripeConnect.stripeAccountId,
-    })
-  }
-
   try {
-    // Create or retrieve Stripe Express account
-    let accountId = tenant?.stripeConnect?.stripeAccountId
-
-    if (!accountId) {
-      const account = await getStripe().accounts.create({
-        type: 'express',
-        metadata: {
-          tenantId: String(tenantId),
-          tenantSlug: tenant.slug,
-          platform: 'angel-os',
-        },
-      })
-      accountId = account.id
-
-      // Save the account ID to the tenant
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (payload.update as any)({
-        collection: 'tenants',
-        id: tenantId,
-        data: {
-          stripeConnect: {
-            stripeAccountId: accountId,
-            stripeOnboardingComplete: false,
-            stripePayoutsEnabled: false,
-            stripeChargesEnabled: false,
-          },
-        },
-        overrideAccess: true,
-      })
+    const result = await createConnectOnboardingLink(payload, tenantId as number)
+    if (result.alreadyComplete) {
+      return Response.json({ success: true, alreadyConnected: true, stripeAccountId: result.stripeAccountId })
     }
-
-    // Generate the onboarding link
-    const baseUrl = getServerSideURL()
-
-    const accountLink = await getStripe().accountLinks.create({
-      account: accountId,
-      refresh_url: `${baseUrl}/dashboard/admin/payments?refresh=true`,
-      return_url: `${baseUrl}/dashboard/admin/payments?onboarding=complete`,
-      type: 'account_onboarding',
-    })
-
-    return Response.json({
-      success: true,
-      onboardingUrl: accountLink.url,
-      stripeAccountId: accountId,
-    })
+    return Response.json({ success: true, onboardingUrl: result.onboardingUrl, stripeAccountId: result.stripeAccountId })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to create Stripe onboarding link'
 

@@ -6309,25 +6309,31 @@ async function handleConnectStripe(
   }
 
   try {
-    // Check current Stripe status
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tenant = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0 }) as any
+    // Mint the REAL Stripe onboarding link (shared with the Payments dashboard),
+    // so "connect my bank" works conversationally — the link below takes you
+    // straight into Stripe's hosted onboarding; status syncs back automatically.
+    const { createConnectOnboardingLink } = await import('@/utilities/stripeConnectOnboarding')
+    const result = await createConnectOnboardingLink(payload, tenantId)
 
-    if (tenant?.stripeConnect?.stripeAccountId && tenant?.stripeConnect?.stripeOnboardingComplete) {
-      return `Your Stripe account is already connected (${tenant.stripeConnect.stripeAccountId}). Charges: ${tenant.stripeConnect.stripeChargesEnabled ? 'enabled' : 'pending'}, Payouts: ${tenant.stripeConnect.stripePayoutsEnabled ? 'enabled' : 'pending'}. You can manage your account in the Payments dashboard.`
+    if (result.alreadyComplete) {
+      return `Your Stripe account is already connected (${result.stripeAccountId}). Charges: ${result.chargesEnabled ? 'enabled' : 'pending'}, Payouts: ${result.payoutsEnabled ? 'enabled' : 'pending'}. You can manage it in the Payments dashboard.`
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-    const setupUrl = `${baseUrl}/dashboard/admin/payments`
-
-    if (tenant?.stripeConnect?.stripeAccountId) {
-      return `You started Stripe onboarding but haven't completed it yet. Please visit your Payments dashboard to continue: ${setupUrl}`
-    }
-
-    return `To start accepting payments with the Ultimate Fair split (you receive 60% of every transaction), visit your Payments dashboard to connect Stripe: ${setupUrl}\n\nThe setup takes about 5 minutes and requires basic business information and a bank account for payouts.`
+    return [
+      `Here's your secure Stripe onboarding link — it takes about 5 minutes and you'll need basic details and a bank account for payouts:`,
+      ``,
+      result.onboardingUrl,
+      ``,
+      `Once you finish, your gifts and payments flow straight to your account (the platform keeps only the small constitutional share). You can come back any time via the Payments dashboard.`,
+    ].join('\n')
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     logCaughtError('leo-tools', err).catch(() => {})
-    return `Error checking Stripe status: ${err instanceof Error ? err.message : 'Unknown error'}`
+    // Surface the common platform-profile gate as an actionable message.
+    if (message.includes('platform-profile') || message.includes('managing losses')) {
+      return 'Stripe needs the Angel OS platform owner to accept the Connect platform profile before new accounts can onboard (a one-time step at dashboard.stripe.com/settings/connect/platform-profile). I have flagged it — please try again shortly.'
+    }
+    return `I couldn't start Stripe onboarding right now: ${message}. You can also connect from the Payments dashboard.`
   }
 }
 
