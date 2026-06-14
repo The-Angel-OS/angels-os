@@ -129,6 +129,7 @@ import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
+import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
@@ -843,6 +844,13 @@ export default buildConfig({
       path: '/provision-ops/church-template',
       method: 'post',
       handler: churchTemplateHandler,
+    },
+    // Generic gym/studio template (CrossFit, yoga, Pilates, martial arts): stamps
+    // standard pages + seeds recurring membership plans. POST; super_admin or ?key=.
+    {
+      path: '/provision-ops/fitness-template',
+      method: 'post',
+      handler: fitnessTemplateHandler,
     },
     // Recurring memberships/dues (the universal unlock): plans (settings bag),
     // subscription checkout (Connect destination charge + platform fee), and the

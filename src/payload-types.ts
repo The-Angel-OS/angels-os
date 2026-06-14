@@ -1376,6 +1376,7 @@ export interface Page {
     | FormBlock
     | CalendarBlock
     | DonationBlock
+    | MembershipBlock
     | FeaturedEndeavorsBlock
   )[];
   meta?: {
@@ -1913,6 +1914,34 @@ export interface DonationBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'donation';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MembershipBlock".
+ */
+export interface MembershipBlock {
+  richText?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Label on the final join button (e.g. "Join now", "Start membership").
+   */
+  ctaText?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'membership';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6300,6 +6329,10 @@ export interface PayloadMcpApiKey {
      */
     createPost?: boolean | null;
     /**
+     * Create or update a recurring membership/dues plan for the current Endeavor (e.g. a gym, church, makerspace, or club). Plans appear on the public Join surface and bill via Stripe as recurring subscriptions. Use when the user wants to add a membership tier, dues level, or subscription option. Provide an amount in dollars and a billing interval. Idempotent by name/id — re-running with the same name updates that plan.
+     */
+    createMembershipPlan?: boolean | null;
+    /**
      * Create a Work (a Library document/book) from a web article, blog post, or Google Doc URL — OR from pasted/uploaded text. LEO fetches the URL, extracts the readable content, and structures it into a titled, multi-page Work draft saved to the tenant Library, ready to edit, translate, and seal. Provide either `url` or `text`. For Google Docs, sharing must be "anyone with the link".
      */
     createWorkFromUrl?: boolean | null;
@@ -7744,6 +7777,7 @@ export interface PagesSelect<T extends boolean = true> {
         formBlock?: T | FormBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
         donation?: T | DonationBlockSelect<T>;
+        membership?: T | MembershipBlockSelect<T>;
         featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
       };
   meta?:
@@ -7915,6 +7949,16 @@ export interface DonationBlockSelect<T extends boolean = true> {
   richText?: T;
   presetAmounts?: T;
   showDonorFields?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MembershipBlock_select".
+ */
+export interface MembershipBlockSelect<T extends boolean = true> {
+  richText?: T;
+  ctaText?: T;
   id?: T;
   blockName?: T;
 }
@@ -9650,6 +9694,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         fetchReviews?: T;
         draftReviewResponse?: T;
         createPost?: T;
+        createMembershipPlan?: T;
         createWorkFromUrl?: T;
         createQuest?: T;
         ingestYoutubeUrl?: T;

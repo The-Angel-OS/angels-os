@@ -5,6 +5,7 @@ import {
   createParagraphNode,
   createUnorderedListNode,
 } from '@/utilities/lexicalHelpers'
+import { upsertMembershipPlan, type MembershipPlan } from '@/utilities/membershipPlans'
 
 /**
  * provisionChurchSite — the prototype CHURCH TEMPLATE.
@@ -51,6 +52,12 @@ export interface ChurchProfile {
   contactPhone?: string
   /** Physical address, shown on Contact + footer. */
   address?: string
+  /**
+   * Optional recurring membership/pledge plans. When provided, a "Membership" page
+   * with the Join block is stamped and the plans are written to the membership-plans
+   * settings bag. Most parishes use one-time Giving instead — leave empty for that.
+   */
+  membershipPlans?: MembershipPlan[]
 }
 
 const DEFAULTS: Required<Omit<ChurchProfile, 'churchName'>> = {
@@ -74,6 +81,7 @@ const DEFAULTS: Required<Omit<ChurchProfile, 'churchName'>> = {
   contactEmail: '',
   contactPhone: '',
   address: '',
+  membershipPlans: [],
 }
 
 interface PageSpec {
@@ -102,7 +110,32 @@ function buildPages(p: Required<ChurchProfile>): PageSpec[] {
     ? p.clergy.map((c) => `${c.name} — ${c.role}`)
     : ['Clergy and staff listing coming soon.']
 
-  return [
+  // Optional Membership page — only when the parish offers recurring plans/pledges.
+  const membershipPage: PageSpec | null = p.membershipPlans.length
+    ? {
+        slug: 'membership',
+        title: 'Membership',
+        navOrder: 0, // reassigned below by final position
+        heroHeading: 'Become a Member',
+        heroSub: 'Make your commitment to our community.',
+        layout: [
+          content([
+            createParagraphNode(`Join the life of ${name} with a recurring membership or pledge. Your ongoing support sustains our worship, ministries, and care for one another.`),
+          ]),
+          {
+            blockType: 'membership',
+            richText: createLexicalContent([
+              createHeadingNode('Choose your membership', 'h2'),
+              createParagraphNode('Select a plan below to get started.'),
+            ]),
+            ctaText: 'Become a member',
+          },
+        ],
+        meta: { title: `Membership — ${name}`, description: `Become a member of ${name}.` },
+      }
+    : null
+
+  const pages: PageSpec[] = [
     {
       slug: 'home',
       title: 'Home',
@@ -262,6 +295,17 @@ function buildPages(p: Required<ChurchProfile>): PageSpec[] {
       meta: { title: `Contact — ${name}`, description: `Get in touch with ${name}.` },
     },
   ]
+
+  // Slot the Membership page right after Giving, then renumber nav by position so
+  // ordering stays clean whether or not the page is present.
+  if (membershipPage) {
+    const givingIdx = pages.findIndex((pg) => pg.slug === 'giving')
+    pages.splice(givingIdx >= 0 ? givingIdx + 1 : pages.length, 0, membershipPage)
+  }
+  pages.forEach((pg, i) => {
+    pg.navOrder = i
+  })
+  return pages
 }
 
 export interface ChurchProvisionResult {
@@ -276,6 +320,13 @@ export async function provisionChurchSite(
   opts: { overwrite?: boolean } = {},
 ): Promise<ChurchProvisionResult & { updated: string[] }> {
   const p: Required<ChurchProfile> = { ...DEFAULTS, churchName: profile.churchName, ...stripUndefined(profile) }
+
+  // Write any recurring plans to the membership-plans settings bag first, so the
+  // Join block on the Membership page has plans to render.
+  for (const plan of p.membershipPlans) {
+    await upsertMembershipPlan(payload, tenantId, plan)
+  }
+
   const pages = buildPages(p)
   const created: string[] = []
   const updated: string[] = []

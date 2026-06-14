@@ -9,6 +9,7 @@ import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { ThreeItemGridBlock } from '@/blocks/ThreeItemGrid/Component'
 import { CalendarBlock } from '@/blocks/Calendar/Component'
 import { DonationBlock } from '@/blocks/Donation/Component'
+import { MembershipBlock } from '@/blocks/Membership/Component'
 import { FeaturedEndeavorsBlock } from '@/blocks/FeaturedEndeavors/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
@@ -29,6 +30,7 @@ const blockComponents = {
   threeItemGrid: ThreeItemGridBlock,
   calendar: CalendarBlock,
   donation: DonationBlock,
+  membership: MembershipBlock,
   featuredEndeavors: FeaturedEndeavorsBlock,
 }
 

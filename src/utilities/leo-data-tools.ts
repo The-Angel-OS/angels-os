@@ -24,6 +24,7 @@ import type { Payload, Where } from 'payload'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
+import { getMembershipPlans, upsertMembershipPlan, type MembershipPlan } from './membershipPlans'
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
 // NOTE: provisionPortal is imported lazily inside its handlers (handleProvisionTenant
@@ -1121,6 +1122,29 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['title'],
+    },
+  },
+  {
+    name: 'create_membership_plan',
+    description:
+      'Create or update a recurring membership/dues plan for the current Endeavor (e.g. a gym, church, makerspace, or club). Plans appear on the public Join surface and bill via Stripe as recurring subscriptions. Use when the user wants to add a membership tier, dues level, or subscription option. Provide an amount in dollars and a billing interval. Idempotent by name/id — re-running with the same name updates that plan.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Plan name shown to members, e.g. "Unlimited", "Drop-in", "Family". (required)' },
+        amountUsd: { type: 'number', description: 'Recurring price in US dollars (e.g. 149 for $149). (required)' },
+        interval: {
+          type: 'string',
+          enum: ['month', 'year'],
+          description: 'Billing interval — "month" or "year". Defaults to "month".',
+        },
+        description: { type: 'string', description: 'Short blurb shown under the plan name on the join surface (optional).' },
+        active: {
+          type: 'boolean',
+          description: 'Whether the plan is offered publicly. Default true. Set false to keep billing existing members but hide it from new sign-ups.',
+        },
+      },
+      required: ['name', 'amountUsd'],
     },
   },
   {
@@ -3568,6 +3592,8 @@ async function executeToolSwitch(
       // ─── Sprint 14: Content Management ────────────────────────────────────
       case 'create_post':
         return await createPost(payload, toolInput, ctx)
+      case 'create_membership_plan':
+        return await createMembershipPlan(payload, toolInput, ctx)
       case 'create_work_from_url':
         return await createWorkFromContent(payload, toolInput, ctx)
       case 'create_quest':
@@ -7353,6 +7379,59 @@ async function createPost(
   lines.push('', 'Verified persisted state:', ...verified)
 
   return lines.join('\n') + navDirective('/dashboard/content-hub', 'View Content Hub')
+}
+
+/**
+ * create_membership_plan — add/update a recurring dues plan for the active Endeavor.
+ * Plans live in the membership-plans settings bag (no schema), surfaced on the public
+ * Join block and billed via Stripe Connect subscriptions. Idempotent by slugified name.
+ */
+async function createMembershipPlan(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const name = (input.name as string)?.trim()
+  if (!name) return 'Error: A plan name is required (e.g. "Unlimited", "Drop-in").'
+
+  const amountUsd = typeof input.amountUsd === 'number' ? input.amountUsd : Number(input.amountUsd)
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+    return 'Error: amountUsd must be a positive dollar amount (e.g. 149 for $149).'
+  }
+
+  const interval = input.interval === 'year' ? 'year' : 'month'
+  const active = input.active !== false
+
+  const writeTenant = await resolveWriteTenant(payload, ctx)
+  if (!writeTenant) {
+    return "Error: I couldn't determine which Endeavor to add this plan to. Open a specific Endeavor's workspace (or tell me which Endeavor) and I'll create the plan there."
+  }
+
+  const plan: MembershipPlan = {
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+    name,
+    amountCents: Math.round(amountUsd * 100),
+    interval,
+    description: typeof input.description === 'string' ? input.description.trim() || undefined : undefined,
+    active,
+  }
+
+  const existing = await getMembershipPlans(payload, writeTenant)
+  const isUpdate = existing.some((p) => p.id === plan.id)
+  await upsertMembershipPlan(payload, writeTenant, plan)
+
+  const priceLabel = `$${(plan.amountCents / 100).toFixed(plan.amountCents % 100 === 0 ? 0 : 2)}/${interval === 'month' ? 'mo' : 'yr'}`
+  const lines = [
+    isUpdate ? `Membership plan updated.` : `Membership plan created.`,
+    `- **${plan.name}** — ${priceLabel}`,
+    `- Plan id: \`${plan.id}\``,
+    `- ${active ? 'Visible on the public Join surface.' : 'Hidden from new sign-ups (existing members keep billing).'}`,
+  ]
+  lines.push(
+    '',
+    'Add a "Membership / Join" block to a page to let members sign up. Dues require Stripe Connect onboarding for this Endeavor.',
+  )
+  return lines.join('\n') + navDirective('/dashboard/business-ops', 'View Business Ops')
 }
 
 /**
