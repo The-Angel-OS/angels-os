@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Hash, MessageSquare, Plus, X, PanelLeftClose, PanelLeftOpen, Settings, Bot, User } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
-import { useChat } from './useChat'
+import { useChat, CATCH_ALL_SLUG } from './useChat'
 import { useChatContext } from './ChatProvider'
 import { useSpaces } from './useSpaces'
 import { SpacesMenuHeader } from './SpacesMenuHeader'
@@ -590,7 +590,7 @@ export function MultiChannelChat({
         {/* Content area — switches based on active applet */}
         {activeApplet === 'chat' ? (
           <>
-            <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
+            <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} showChannelTags={activeChannel === CATCH_ALL_SLUG} />
             <MessageInput
               onSend={sendMessage}
               disabled={isLoading}
@@ -675,7 +675,7 @@ export function SingleChannelChat({
         </h2>
       </div>
 
-      <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
+      <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} showChannelTags={activeChannel === CATCH_ALL_SLUG} />
       <MessageInput
         onSend={sendMessage}
         disabled={isLoading}

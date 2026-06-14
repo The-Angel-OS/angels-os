@@ -12,6 +12,8 @@ export interface ChatMessage {
   authorName?: string
   /** Author user id — lets the UI gate "edit your own message". */
   authorId?: string
+  /** Source channel slug — surfaced in the space-level Catch-All view for triage/jump. */
+  channel?: string
   /** True once the message has been edited (metadata.edited). */
   edited?: boolean
   /** Prior versions, newest last — the append-only revision log (metadata.revisions). */

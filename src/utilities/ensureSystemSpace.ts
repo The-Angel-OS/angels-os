@@ -21,6 +21,7 @@ const AI_BUS_CHANNELS = [
   { name: 'system-log', slug: 'system-log', description: 'System event log — cron jobs, integrations, provisioning', type: 'general', isDefault: false },
   { name: 'Email', slug: 'email-inbox', description: 'Inbound email threads — messages arrive here from connected email accounts', type: 'email', isDefault: false },
   { name: 'Gotify', slug: 'gotify', description: 'Inbound Gotify notifications (Uptime-Kuma, system alerts) mirrored from connected Gotify servers', type: 'social', isDefault: false },
+  { name: 'Catch-All', slug: 'catch-all', description: "Messages that don't fit any other channel — the triage bucket. Open the space-level Catch-All view to sort them.", type: 'general', isDefault: false },
 ] as const
 
 /**

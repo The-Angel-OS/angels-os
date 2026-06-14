@@ -27,6 +27,10 @@ const POLL_MIN_MS = 2000
 const POLL_MAX_MS = 30000
 const POLL_DECAY_FACTOR = 1.5
 
+/** Pseudo-channel slug for the space-level Catch-All triage view (also a real
+ *  AI Bus channel; the view aggregates messages whose channel isn't curated). */
+export const CATCH_ALL_SLUG = 'catch-all'
+
 import { TOOL_LABELS } from '@/constants/toolLabels'
 
 /**
@@ -325,6 +329,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       content,
       timestamp: new Date(String(msg.createdAt)),
       authorName,
+      ...(msg.channel ? { channel: String(msg.channel) } : {}),
       ...(author?.id != null ? { authorId: String(author.id) } : {}),
       ...(msgMeta?.edited ? { edited: true } : {}),
       ...(msgMeta?.moderated ? { moderated: true } : {}),
@@ -343,12 +348,29 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     }
   }, [])
 
+  // The space-level Catch-All view: when this pseudo-channel is active, load ALL
+  // messages in the space and keep only the "orphans" — those whose channel isn't
+  // one of the space's curated channels (page:* comment channels, connector slugs,
+  // anything routed to no recognized filter). Lets an admin triage + sort them.
+  const catchAllFilter = useCallback(
+    (docs: Array<{ channel?: unknown }>) => {
+      const known = new Set(
+        channels.map((c) => c.slug).filter((s) => s && s !== CATCH_ALL_SLUG),
+      )
+      return docs.filter((d) => !known.has(String(d.channel ?? '')))
+    },
+    [channels],
+  )
+
   // Fetch messages for active channel (latest page)
   const loadMessages = useCallback(async () => {
     if (!spaceId || !activeChannel || authFailedRef.current) return
+    const isCatchAll = activeChannel === CATCH_ALL_SLUG
     try {
       const res = await fetch(
-        `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&sort=-createdAt&limit=50&depth=1`,
+        isCatchAll
+          ? `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&sort=-createdAt&limit=100&depth=1`
+          : `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&sort=-createdAt&limit=50&depth=1`,
         { credentials: 'include' },
       )
 
@@ -363,7 +385,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
       if (res.ok) {
         const data = await res.json()
-        const mapped: ChatMessage[] = (data.docs || []).reverse().map(mapMessage)
+        const rawDocs = isCatchAll ? catchAllFilter(data.docs || []) : data.docs || []
+        const mapped: ChatMessage[] = rawDocs.reverse().map(mapMessage)
         // Only replace if not currently streaming AND outside grace period
         // The grace period prevents poll from clobbering messages before server persists
         setMessages((prev) => {
@@ -377,12 +400,13 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         if (mapped.length > 0) {
           lastMessageIdRef.current = mapped[mapped.length - 1].id
         }
-        setHasMore(data.totalDocs > (data.docs || []).length)
+        // Catch-All is a client-side-filtered triage view — keep it to one page.
+        setHasMore(isCatchAll ? false : data.totalDocs > (data.docs || []).length)
       }
     } catch (err) {
       console.error('Failed to load messages:', err)
     }
-  }, [spaceId, activeChannel, mapMessage])
+  }, [spaceId, activeChannel, mapMessage, catchAllFilter])
 
   // Load more (older) messages for infinite scroll — cursor-based.
   // Uses oldestTimestampRef instead of messages array to keep this callback

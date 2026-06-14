@@ -336,6 +336,8 @@ interface MessageListProps {
   isLoadingMore?: boolean
   hasMore?: boolean
   onLoadMore?: () => void
+  /** Catch-All triage view: show each message's source channel as a badge. */
+  showChannelTags?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -688,6 +690,7 @@ function CompactMessageRow({
   override,
   onSaved,
   onDispute,
+  showChannelTag,
 }: {
   msg: ChatMessage
   isNewest: boolean
@@ -695,6 +698,7 @@ function CompactMessageRow({
   override?: string
   onSaved: (id: string, content: string) => void
   onDispute: (m: ChatMessage) => void
+  showChannelTag?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -735,6 +739,11 @@ function CompactMessageRow({
       className={`group/msg flex scroll-mt-24 rounded-xl transition-colors duration-700 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
       <div className="max-w-[80%]">
+        {showChannelTag && msg.channel && (
+          <span className="mb-1 inline-block rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+            #{msg.channel}
+          </span>
+        )}
         <div
           className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
             msg.role === 'user'
@@ -851,7 +860,7 @@ function CompactMessageRow({
 // Compact Mode (existing bubble style — for MinimalistChat & MultiChannelChat)
 // ---------------------------------------------------------------------------
 
-function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoadMore }: MessageListProps) {
+function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoadMore, showChannelTags }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -961,6 +970,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
           override={overrides[msg.id]}
           onSaved={onSaved}
           onDispute={setDisputeMsg}
+          showChannelTag={showChannelTags}
         />
       ))}
 
