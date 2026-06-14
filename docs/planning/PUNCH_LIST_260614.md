@@ -37,6 +37,10 @@ Detail lives in the linked memories / planning docs — this is the index.
 - ⬜ **KC→AT convertibility exchange** — gated by backing (float + Justice Fund) + governance rate + caps. (Build LAST; needs legal read for the cash-out leg.)
 - ⬜ Write `docs/architecture/BILLING_RECONCILIATION.md` + reconciliation-ledger schema + monthly-close algo.
 
+## 4b. Recurring memberships/dues — THE UNIVERSAL UNLOCK  ([[project_community_os_verticals]])
+- ✅ **Engine SHIPPED (4f8ee8a)** — recurring revenue for every vertical (church pledges, gym memberships, makerspace/Toastmasters dues, market booth fees) + our platform fee. Memberships collection (schema-first, table on both prod DBs; "who's a member/dues current" primitive); plans in settings bag (/membership-ops/plans); /membership-ops/checkout = Stripe Checkout subscription as a Connect DESTINATION charge (dues→endeavor) + application_fee_percent (default 2% = our revenue); stripe-webhooks customer.subscription.* → upsert Memberships. Host-resolved tenant; 409s if endeavor not Connect-onboarded.
+- ⬜ NEXT slice: a Membership/Join BLOCK (schema-first block table) for Pages so a parish/gym can offer plans on-site; LEO `create_membership_plan` tool (conversational, like create_membership); wire into the church (+ future gym) template; member dashboard (my membership / manage). ⚠️ live end-to-end needs a Connect-onboarded endeavor + a real subscription.
+
 ## 5. Token economy  ([[project_token_economy]])
 - ⬜ **fund-float** (backed AT issuance — also the billing buy-in) · ⬜ per-quest tokenKind · ⬜ human wallet UI · ⬜ convertibility exchange (= billing item above).
 
