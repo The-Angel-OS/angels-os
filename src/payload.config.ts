@@ -133,6 +133,7 @@ import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
+import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
@@ -875,6 +876,14 @@ export default buildConfig({
       path: '/provision-ops/ensure-memberships-table',
       method: 'get',
       handler: ensureMembershipsTableHandler,
+    },
+    // The Membership page-BLOCK's tables (pages_blocks_membership + _pages_v variant).
+    // Net-new block ⇒ new tables; prod has no push, so create them or pages queries
+    // fail. Run on any node that adds the Membership block.
+    {
+      path: '/provision-ops/ensure-membership-block-tables',
+      method: 'get',
+      handler: ensureMembershipBlockTablesHandler,
     },
     // ⚠️ The settings table (SettingService bag: feature flags, election persistence,
     // membership plans) was missing on prod — every settings read/write 500'd.
