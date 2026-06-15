@@ -39,6 +39,8 @@ export interface PageFromSpec {
   showInNav?: boolean
   heroHeading: string
   heroSub?: string
+  /** Media id for a high-impact hero image. When set, hero.type becomes highImpact. */
+  heroImage?: number | string
   body?: SpecNode[]
   cta?: SpecCta
   donation?: { heading?: string; blurb?: string; presetAmounts?: string }
@@ -108,11 +110,12 @@ export async function provisionPagesFromSpec(
       showInNav: spec.showInNav !== false,
       ...(spec.navOrder != null ? { navOrder: spec.navOrder } : {}),
       hero: {
-        type: 'lowImpact',
+        type: spec.heroImage != null ? 'highImpact' : 'lowImpact',
         richText: createLexicalContent([
           createHeadingNode(spec.heroHeading, 'h1'),
           ...(spec.heroSub ? [createParagraphNode(spec.heroSub)] : []),
         ]),
+        ...(spec.heroImage != null ? { media: spec.heroImage } : {}),
       },
       layout,
       meta: {
