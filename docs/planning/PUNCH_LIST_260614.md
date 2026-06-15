@@ -44,8 +44,12 @@ Detail lives in the linked memories / planning docs — this is the index.
 - ✅ **Conversational factory SHIPPED (772b427)** — LEO tools: list_membership_plans (read), delete_membership_plan (admin), apply_site_template{fitness|church} (admin — one call: pages + default plans + policy pages). "LEO, set up a CrossFit site for ABF + add Unlimited $149/mo" works by chat.
 - ⬜ NEXT: ⚠️ live end-to-end needs a Connect-onboarded endeavor + a real subscription + the Stripe Billing Portal configured on the platform account (membership verification wakeup's domain). First gym pilot on kendev = first paying non-church customer.
 
-## 5. Token economy  ([[project_token_economy]])
+## 5. Token economy + karma  ([[project_token_economy]], [[project_karma_principles]])
 - ⬜ **fund-float** (backed AT issuance — also the billing buy-in) · ⬜ per-quest tokenKind · ⬜ human wallet UI · ⬜ convertibility exchange (= billing item above).
+- ✅ **Karma Principles PINNED** (66113af, docs/architecture/KARMA_PRINCIPLES.md) — six guardrails so reputation never becomes a social credit system, written BEFORE the feature.
+- ⬜ **Ratify the Constitution clause** ("Article — On Standing and Karma") via federated governance (bumps heartbeat constitution version; do NOT edit live constitution unilaterally) ([[project_federated_governance]]).
+- ⬜ **First reputation surface — WITHIN guardrails** — a user-owned "good done" history (additive, inspectable, exportable, NO single score, NO gating). Must pass the 6-guardrail checklist.
+- ⬜ **Banking-client tiering decision** (from 260614 discussion): KC + balance-view + receiving payouts stay UNIVERSAL (web, no app — guardrail #2 don't gate earning/dignity); high-assurance actions (cash-out, transfers above threshold, self-custody key signing) gated behind the Angel OS native client (Nimue) for hardware-backed keys + biometric + attestation/anti-sybil. ⚠️ orthogonal: cash-out leg still needs KYC/AML legal read regardless of client ([[project_nimue_android_client]], [[billing_reconciliation]]).
 
 ## 5b. Church websites (gap analysis done — docs/planning/CHURCH_WEBSITE_GAP_ANALYSIS.md, [[project_church_websites]])
 - ✅ **Church template (slice 1) — VERIFIED LIVE** at grace-chapel.spacesangels.com (angels, tenant 12; generic demo, NOT St Alfred's). `provisionChurchSite` stamps 9 parish pages from existing blocks (zero schema risk); `POST /provision-ops/church-template?overwrite=true`. 2-call stand-up: provision-portal → church-template. Commits 10f582f/34e81be/05d41c7.
@@ -80,6 +84,7 @@ Detail lives in the linked memories / planning docs — this is the index.
 ## 11. Federation / infra debt
 - ⬜ **Street Signs cross-holon sync protocol** (split out of #109; the audit-log itself shipped).
 - ⬜ Prod heartbeat 500s ([[project_federation_discovery_finding]]) · ⬜ Diocese re-graining: peers/trust live on `endeavors`, should be Enterprise ([[project_federation_diocese_model]]).
+- ⬜ **Network drill-down** — Federation Command Center renders Enterprises (Dioceses) as nodes correctly; add click-to-expand → fan out that Enterprise's endeavors (data already in heartbeat `peer.endeavors`) + (future) load-balanced compute nodes within an Enterprise (the distributed-intelligence mesh sub-layer). FederationSimulator.tsx / FederationNetworkLCARS.tsx.
 - ⬜ LEO executor-level tenant resolution (deeper root cause behind the create_post bug; per-tool fallback shipped) ([[project_leo_tool_fixes_260613]]).
 
 ## 12. Known latent items (watch)  
