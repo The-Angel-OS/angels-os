@@ -82,7 +82,7 @@ Detail lives in the linked memories / planning docs — this is the index.
 
 ## 9. Guardian Angel mission (handoff F)  ([[project_mission_tracks_260613]])
 - ⬜ Provision the cohort: Ernesto Behrens, Matthew Takahashi, Carl Brown, Lloyd Thomas Johnson (W00102), + dormant Kenneth.
-- ⬜ **HelpDNA (tenant 8) has NO pages** — create real Home + Contact.
+- ✅ **HelpDNA (tenant 8) — core site LIVE** (55b3817+7466da9): 6 pages migrated from helpdna.org via the new generic `pages-from-spec` provisioner — Home (hero img media#84) / Ernesto's Story / The Evidence / How You Can Help (donation) / Share Your Story / Contact. Live at helpdna.spacesangels.com. ⬜ **Phase 2:** the ~35 legal-document sections (court filings/motions/petitions/open letters) need per-subpage fetch from helpdna.org — batch job, content verbatim, not fabricated. ⬜ tenant.domain still dev placeholder (helpdna.angelos.local) — point helpdna.org here via custom-domain when ready. Reusable engine: `POST /provision-ops/pages-from-spec` ([[project_set_media_primitive]] sibling).
 - Guardrails: account-prune = audit-only; inmate-trust-fund = plan-only/compliance-gated.
 
 ## 10. Accessibility (beyond the button fix)  ([[project_spaces_bigask_260613]] axe)
