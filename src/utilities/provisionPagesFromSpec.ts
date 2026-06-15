@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, RequiredDataFromCollectionSlug } from 'payload'
 import {
   createLexicalContent,
   createHeadingNode,
@@ -44,6 +44,8 @@ export interface PageFromSpec {
   body?: SpecNode[]
   cta?: SpecCta
   donation?: { heading?: string; blurb?: string; presetAmounts?: string }
+  /** If true, append the tenant's contact form block at the bottom of the page. */
+  contactForm?: boolean
   meta?: { title?: string; description?: string }
 }
 
@@ -72,6 +74,18 @@ export async function provisionPagesFromSpec(
   pages: PageFromSpec[],
   opts: { overwrite?: boolean } = {},
 ): Promise<ProvisionPagesResult> {
+  // Lazily resolve the tenant's contact form once if any page needs it.
+  let contactFormId: number | string | null = null
+  const needsForm = pages.some((p) => p.contactForm)
+  if (needsForm) {
+    try {
+      const { ensureTenantContactForm } = await import('./ensureTenantContactForm')
+      const form = await ensureTenantContactForm(payload, tenantId, {} as never)
+      contactFormId = (form as unknown as { id: number | string } | null)?.id ?? null
+    } catch {
+      // Non-fatal — page will render without the form block if this fails.
+    }
+  }
   const created: string[] = []
   const updated: string[] = []
   const skipped: string[] = []
@@ -88,6 +102,9 @@ export async function provisionPagesFromSpec(
           link: { type: 'custom' as const, label: l.label, url: l.url, appearance: l.outline ? 'outline' : 'default' },
         })),
       })
+    }
+    if (spec.contactForm && contactFormId) {
+      layout.push({ blockType: 'formBlock', form: contactFormId, enableIntro: false })
     }
     if (spec.donation) {
       layout.push({
