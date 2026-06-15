@@ -33,6 +33,33 @@ export const Spaces: CollectionConfig = {
     update: adminOnly,
     delete: adminOnly,
   },
+  hooks: {
+    // Cascade-delete children before the space row is removed. Their `space` FK is
+    // ON DELETE SET NULL but the column is NOT NULL (channels/messages/space-
+    // memberships), so a bare space delete fails with a not-null violation (→ 500 /
+    // "Something went wrong" in the UI). Payload's convention is app-layer cascade;
+    // this hook implements it. Nullable refs (connectors/events/endeavors) SET NULL
+    // automatically and are left alone. Order: memberships → messages → channels.
+    beforeDelete: [
+      async ({ req, id }) => {
+        const { payload } = req
+        for (const collection of ['space-memberships', 'messages', 'channels'] as const) {
+          try {
+            await payload.delete({
+              collection,
+              where: { space: { equals: id } },
+              req,
+              overrideAccess: true,
+            })
+          } catch (err) {
+            payload.logger?.warn?.(
+              `[spaces.beforeDelete] cascade ${collection} for space ${id}: ${err instanceof Error ? err.message : String(err)}`,
+            )
+          }
+        }
+      },
+    ],
+  },
   fields: [
     // Note: 'tenant' field is auto-added by the multi-tenant plugin.
     // Do not define it here to avoid duplicate field errors.
