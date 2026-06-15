@@ -35,6 +35,8 @@ type Props = {
   hasProducts?: boolean
   /** Events is first-class only when there are events; else it collapses to More. */
   hasEvents?: boolean
+  /** Posts is first-class only when there are published posts; else it collapses to More. */
+  hasPosts?: boolean
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -139,7 +141,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -213,11 +215,12 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   const pathname = usePathname()
 
   // Keep primary items inline; collapse the rest into "More ▾". Dashboard always
-  // lives in More; Shop/Events demote to More until they're populated (then they
-  // become first-class automatically, since the flags come from live counts).
+  // lives in More; Shop/Posts/Events demote to More until they're populated (then
+  // they become first-class automatically, since the flags come from live counts).
   const demoteUrls: string[] = []
   if (!hasProducts) demoteUrls.push('/shop')
   if (!hasEvents) demoteUrls.push('/events')
+  if (!hasPosts) demoteUrls.push('/posts')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
     forcePrimaryUrls: ['/federation/discover'], // Discovery is always top-level

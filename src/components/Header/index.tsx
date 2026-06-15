@@ -123,23 +123,26 @@ export async function Header({ tenant }: Props) {
     }
   }
 
-  // Shop/Events are first-class only when populated — else they collapse into More.
+  // Shop/Posts/Events are first-class only when populated — else they collapse into More.
   let hasProducts = false
   let hasEvents = false
+  let hasPosts = false
   if (tenantId) {
     try {
       const payload = await getPayload({ config })
-      const [products, events] = await Promise.all([
+      const [products, events, posts] = await Promise.all([
         // Published only — a draft-only catalog shouldn't make Shop first-class.
         payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
         payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
+        payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
       ])
       hasProducts = products.totalDocs > 0
       hasEvents = events.totalDocs > 0
+      hasPosts = posts.totalDocs > 0
     } catch (err) {
-      console.error('[Header] Failed to count products/events:', err)
+      console.error('[Header] Failed to count products/events/posts:', err)
     }
   }
 
-  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} />
+  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} />
 }

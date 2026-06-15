@@ -6333,6 +6333,18 @@ export interface PayloadMcpApiKey {
      */
     createMembershipPlan?: boolean | null;
     /**
+     * List the current Endeavor's recurring membership/dues plans (name, price, interval, whether active/visible). Use when the user asks what plans exist or before editing/removing one.
+     */
+    listMembershipPlans?: boolean | null;
+    /**
+     * Remove a recurring membership/dues plan from the current Endeavor by its plan id (slugified name, e.g. "drop-in"). Existing subscribers keep billing in Stripe; this only removes the plan from the public Join surface. Use list_membership_plans first to get the id.
+     */
+    deleteMembershipPlan?: boolean | null;
+    /**
+     * Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor's public site.
+     */
+    applySiteTemplate?: boolean | null;
+    /**
      * Create a Work (a Library document/book) from a web article, blog post, or Google Doc URL — OR from pasted/uploaded text. LEO fetches the URL, extracts the readable content, and structures it into a titled, multi-page Work draft saved to the tenant Library, ready to edit, translate, and seal. Provide either `url` or `text`. For Google Docs, sharing must be "anyone with the link".
      */
     createWorkFromUrl?: boolean | null;
@@ -9695,6 +9707,9 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         draftReviewResponse?: T;
         createPost?: T;
         createMembershipPlan?: T;
+        listMembershipPlans?: T;
+        deleteMembershipPlan?: T;
+        applySiteTemplate?: T;
         createWorkFromUrl?: T;
         createQuest?: T;
         ingestYoutubeUrl?: T;
