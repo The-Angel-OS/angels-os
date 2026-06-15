@@ -27,7 +27,9 @@ import Stripe from 'stripe'
 
 import { getStripeApplicationFeeCents } from '@/lib/stripe-connect-config'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
-import { getBookableService, depositCents, totalCents } from '@/config/bookableServices'
+import { depositCents, totalCents } from '@/config/bookableServices'
+import { resolveServices } from '@/utilities/resolveServices'
+import { getBookingPaymentMode } from '@/utilities/bookingSettings'
 import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
 import { BookingEngine } from '@/utilities/bookingEngine'
 
@@ -77,18 +79,16 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       return Response.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    // Resolve Stripe Connect account
+    // Stripe Connect is OPTIONAL — only needed when a deposit is actually charged.
+    // A COD/pay-on-site business (e.g. an electrician) or a $0 / no-deposit service
+    // takes the booking as a REQUEST and settles on completion. No payment ≠ no service.
     const connect = tenant.stripeConnect as Record<string, unknown> | undefined
-    if (!connect?.stripeAccountId || !connect?.stripeChargesEnabled) {
-      return Response.json(
-        { error: 'This enterprise has not set up payments yet. Please contact them directly.' },
-        { status: 400 },
-      )
-    }
-    const connectedAccountId = connect.stripeAccountId as string
+    const connectEnabled = Boolean(connect?.stripeAccountId && connect?.stripeChargesEnabled)
+    const connectedAccountId = (connect?.stripeAccountId as string) || ''
 
-    // Resolve the service from the tenant's catalog → duration, price, deposit
-    const service = getBookableService(tenantSlug, serviceId)
+    // Resolve the service DB-first (the owner-configured Services catalog), static fallback.
+    const catalog = await resolveServices(payload, { tenantSlug, tenantId: tenant.id })
+    const service = catalog.find((s) => s.id === serviceId)
     if (!service) {
       return Response.json({ error: 'Unknown service for this enterprise' }, { status: 400 })
     }
@@ -97,6 +97,12 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const total = totalCents(service)
     const deposit = depositCents(service)
     const balanceCents = total - deposit
+
+    // Does this booking need an up-front online payment? Only when there's a real
+    // deposit AND the endeavor can take card AND it isn't explicitly COD. A $0 / no-
+    // deposit service, a COD endeavor, or one without Stripe → booking REQUEST.
+    const paymentMode = await getBookingPaymentMode(payload, tenant.id) // 'deposit' | 'cod' | null
+    const needsPayment = deposit > 0 && connectEnabled && paymentMode !== 'cod'
 
     // Get Endeavor (display name) + resolve the booking provider (one shared calendar)
     const endeavors = await payload.find({
@@ -171,9 +177,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
           serviceId: service.id,
           serviceLabel: service.label,
           depositPercent: service.depositPercent,
-          depositCents: deposit,
-          balanceDueCents: balanceCents,
-          paymentKind: 'deposit',
+          depositCents: needsPayment ? deposit : 0,
+          balanceDueCents: needsPayment ? balanceCents : total,
+          paymentKind: needsPayment ? 'deposit' : 'cod',
         },
       } as any,
       overrideAccess: true,
@@ -187,7 +193,28 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       // Non-fatal: booking proceeds regardless of propagation
     }
 
-    // Initialize Stripe
+    // ── COD / no-deposit path ──────────────────────────────────────────
+    // No online payment needed → the booking stands as a REQUEST. The owner
+    // confirms and collects on completion (cash, check, Zelle). This is the
+    // common case for trades and any $0/no-deposit service.
+    if (!needsPayment) {
+      return Response.json({
+        requested: true,
+        bookingId: booking.id,
+        totalCents: total,
+        depositCents: 0,
+        balanceCents: total,
+        currency,
+        serviceLabel: service.label,
+        endeavorName,
+        paymentNote:
+          total > 0
+            ? 'Payment is collected on completion (cash, check, or Zelle).'
+            : 'No payment required to request this booking.',
+      })
+    }
+
+    // Initialize Stripe (deposit path)
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY
     if (!stripeSecretKey) {
       return Response.json({ error: 'Payment system not configured' }, { status: 500 })

@@ -1209,6 +1209,18 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'configure_payment_method',
+    description:
+      'Set how this Endeavor collects payment for bookings. "deposit" charges a deposit online up front (requires Stripe Connect). "cod" takes the booking as a request and the owner collects on completion (cash, check, Zelle) — the right choice for trades like an electrician or for any pay-on-site business. Note: a $0 or no-deposit service never requires online payment regardless of this setting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mode: { type: 'string', enum: ['deposit', 'cod'], description: 'How bookings are paid: "deposit" (online) or "cod" (pay on completion).' },
+      },
+      required: ['mode'],
+    },
+  },
+  {
     name: 'query_booking_revenue',
     description:
       'Report booking revenue and job counts for the current Endeavor. Answers questions like "how much did I make this month?" or "how many jobs did I do in November?" Optionally filter by year, month (1-12), or service name.',
@@ -3692,6 +3704,8 @@ async function executeToolSwitch(
         return await listAvailability(payload, ctx)
       case 'configure_service':
         return await configureService(payload, toolInput, ctx)
+      case 'configure_payment_method':
+        return await configurePaymentMethod(payload, toolInput, ctx)
       case 'query_booking_revenue':
         return await queryBookingRevenue(payload, toolInput, ctx)
       case 'apply_site_template':
@@ -15676,6 +15690,34 @@ async function configureService(
   if (input.category) lines.push(`- Category: ${input.category}`)
 
   return lines.join('\n') + navDirective('/dashboard/services', 'View Services')
+}
+
+/**
+ * configure_payment_method — set how this Endeavor collects booking payments:
+ * 'deposit' (online deposit, needs Stripe) or 'cod' (pay on completion). Stored in
+ * the booking-settings bag; read by booking-checkout. ($0/no-deposit services never
+ * charge regardless.)
+ */
+async function configurePaymentMethod(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace."
+  }
+  const mode = input.mode === 'deposit' || input.mode === 'cod' ? input.mode : null
+  if (!mode) return 'Error: mode must be "deposit" or "cod".'
+
+  const { setBookingPaymentMode } = await import('./bookingSettings')
+  await setBookingPaymentMode(payload, tenantId, mode)
+
+  const msg =
+    mode === 'cod'
+      ? 'Bookings will be taken as requests — customers pay you on completion (cash, check, or Zelle). No online deposit is charged.'
+      : 'Bookings will charge a deposit online up front (requires Stripe Connect; services with a $0 deposit still book without payment).'
+  return `Payment method set to **${mode === 'cod' ? 'Cash on Delivery (pay on completion)' : 'Online Deposit'}**.\n\n${msg}` + navDirective('/dashboard/services', 'View Booking Settings')
 }
 
 /**

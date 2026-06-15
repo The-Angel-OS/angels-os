@@ -63,9 +63,10 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
   const [step, setStep] = useState<'service' | 'date' | 'time' | 'confirm'>(
     services.length === 1 ? 'date' : 'service',
   )
-  const [bookingState, setBookingState] = useState<'idle' | 'loading' | 'deposit' | 'success' | 'error'>('idle')
+  const [bookingState, setBookingState] = useState<'idle' | 'loading' | 'deposit' | 'success' | 'requested' | 'error'>('idle')
   const [bookingError, setBookingError] = useState('')
   const [payment, setPayment] = useState<PaymentData | null>(null)
+  const [requestInfo, setRequestInfo] = useState<{ bookingId: string; note: string; totalCents: number } | null>(null)
 
   const selectedService = useMemo(
     () => services.find((s) => s.id === serviceId) ?? null,
@@ -181,6 +182,17 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
         return
       }
 
+      // COD / no-deposit path — the booking stands as a request, no payment step.
+      if (data.requested) {
+        setRequestInfo({
+          bookingId: String(data.bookingId),
+          note: data.paymentNote || '',
+          totalCents: data.totalCents ?? 0,
+        })
+        setBookingState('requested')
+        return
+      }
+
       setPayment({
         clientSecret: data.clientSecret,
         stripeAccountId: data.stripeAccountId,
@@ -196,8 +208,26 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
     }
   }
 
-  const stepNum = (s: 'service' | 'date' | 'time' | 'confirm') =>
-    ({ service: 1, date: services.length === 1 ? 1 : 2, time: services.length === 1 ? 2 : 3, confirm: services.length === 1 ? 3 : 4 })[s]
+  // ── Wizard steps (progress bar echoes the completed selections) ─────────────
+  type StepKey = 'service' | 'date' | 'time' | 'confirm'
+  const wizardSteps: Array<{ key: StepKey; label: string; value: string | null }> = [
+    ...(services.length > 1
+      ? [{ key: 'service' as const, label: 'Service', value: selectedService?.label ?? null }]
+      : []),
+    { key: 'date', label: 'Date', value: selectedDateObj ? selectedDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null },
+    { key: 'time', label: 'Time', value: selectedTime ? (timeSlots.find((t) => t.time === selectedTime)?.label ?? selectedTime) : null },
+    { key: 'confirm', label: 'Confirm', value: null },
+  ]
+  const currentIdx = wizardSteps.findIndex((s) => s.key === step)
+
+  // Navigate back to an already-completed step via the progress bar.
+  const goToStep = (key: StepKey) => {
+    setBookingState('idle')
+    setBookingError('')
+    setStep(key)
+  }
+
+  const inWizard = bookingState !== 'success' && bookingState !== 'requested'
 
   return (
     <div className="container max-w-3xl py-12">
@@ -222,8 +252,45 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
         </div>
       ) : (
         <div className="space-y-8">
+          {/* Progress bar — shows steps with the chosen value echoed; click a
+              completed step to go back. */}
+          {inWizard && (
+            <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-2 sm:gap-2">
+              {wizardSteps.map((s, i) => {
+                const done = i < currentIdx && s.value != null
+                const current = i === currentIdx
+                const clickable = i <= currentIdx
+                return (
+                  <React.Fragment key={s.key}>
+                    {i > 0 && <div className={`h-px flex-1 min-w-3 ${i <= currentIdx ? 'bg-primary/40' : 'bg-border'}`} />}
+                    <button
+                      type="button"
+                      disabled={!clickable}
+                      onClick={() => clickable && goToStep(s.key)}
+                      className={`flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
+                        current ? 'bg-primary/10' : clickable ? 'hover:bg-muted' : 'opacity-50'
+                      }`}
+                    >
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        done ? 'bg-green-600 text-white' : current ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {done ? (
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        ) : (i + 1)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">{s.label}</span>
+                        {s.value && <span className="block truncate text-xs font-medium">{s.value}</span>}
+                      </span>
+                    </button>
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          )}
+
           {/* Step: Select Service (only when more than one) */}
-          {services.length > 1 && (
+          {step === 'service' && services.length > 1 && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center gap-3">
                 <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${step === 'service' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
@@ -262,12 +329,9 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
           )}
 
           {/* Step: Select Date */}
-          {selectedService && (
+          {step === 'date' && selectedService && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center gap-3">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${step === 'date' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  {stepNum('date')}
-                </span>
                 <h2 className="text-lg font-semibold">Select a Date</h2>
               </div>
 
@@ -306,12 +370,9 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
           )}
 
           {/* Step: Select Time */}
-          {selectedService && selectedDate && (
+          {step === 'time' && selectedService && selectedDate && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center gap-3">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${step === 'time' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  {stepNum('time')}
-                </span>
                 <h2 className="text-lg font-semibold">
                   Select a Time — {selectedDateObj && DAY_FULL_NAMES[selectedDateObj.getDay()]},{' '}
                   {selectedDateObj?.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
@@ -345,12 +406,9 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
           )}
 
           {/* Step: Confirm + deposit */}
-          {selectedService && selectedDate && selectedTime && (
+          {(step === 'confirm' || bookingState === 'success' || bookingState === 'requested') && selectedService && selectedDate && selectedTime && (
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                  {stepNum('confirm')}
-                </span>
                 <h2 className="text-lg font-semibold">Confirm &amp; Reserve</h2>
               </div>
 
@@ -379,22 +437,52 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                 </div>
 
                 <div className="mt-4 border-t border-border/60 pt-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Service total</span>
-                    <span className="font-medium">{money(totalCents)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Deposit due now ({selectedService.depositPercent}%)</span>
-                    <span className="font-semibold">{money(depositCents)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Balance on completion</span>
-                    <span className="font-medium">{money(totalCents - depositCents)}</span>
-                  </div>
+                  {totalCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Service total</span>
+                      <span className="font-medium">{money(totalCents)}</span>
+                    </div>
+                  )}
+                  {depositCents > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Deposit due now ({selectedService.depositPercent}%)</span>
+                        <span className="font-semibold">{money(depositCents)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Balance on completion</span>
+                        <span className="font-medium">{money(totalCents - depositCents)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Payment</span>
+                      <span className="font-medium">{totalCents > 0 ? 'Due on completion' : 'No charge to request'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {bookingState === 'success' ? (
+              {bookingState === 'requested' ? (
+                <div className="rounded-lg border-2 border-green-500/30 bg-green-500/5 p-6 text-center">
+                  <svg className="mx-auto mb-3 h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 className="mb-1 text-lg font-semibold text-green-700 dark:text-green-400">
+                    Booking Requested!
+                  </h3>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Your {selectedService.label.toLowerCase()} with {endeavorName} is requested for the time above.
+                    They&apos;ll confirm with you shortly.{requestInfo?.note ? ` ${requestInfo.note}` : ''}
+                  </p>
+                  {requestInfo?.bookingId && (
+                    <p className="text-xs text-muted-foreground">Booking ID: {requestInfo.bookingId}</p>
+                  )}
+                  <Link href="/dashboard" className="mt-4 inline-block rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                    View in Dashboard
+                  </Link>
+                </div>
+              ) : bookingState === 'success' ? (
                 <div className="rounded-lg border-2 border-green-500/30 bg-green-500/5 p-6 text-center">
                   <svg className="mx-auto mb-3 h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -470,13 +558,19 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                     className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
                     {bookingState === 'loading'
-                      ? 'Reserving…'
+                      ? (depositCents > 0 ? 'Reserving…' : 'Requesting…')
                       : !agreementSatisfied
                         ? 'Sign the agreement to continue'
-                        : `Continue — ${money(depositCents)} deposit`}
+                        : depositCents > 0
+                          ? `Continue — ${money(depositCents)} deposit`
+                          : 'Request Booking'}
                   </button>
                   <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Constitutional commerce — balance due on completion · 5% to the Justice Fund
+                    {depositCents > 0
+                      ? 'Constitutional commerce — balance due on completion · 5% to the Justice Fund'
+                      : totalCents > 0
+                        ? 'No deposit required — payment is collected on completion (cash, check, or Zelle).'
+                        : 'No payment required to request this booking.'}
                   </p>
                 </div>
               )}
