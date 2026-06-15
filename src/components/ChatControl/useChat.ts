@@ -937,13 +937,17 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     [spaceId, activeChannel, sendViaStream, sendViaBatch, resetPollInterval],
   )
 
-  // Create a new channel in the current space
+  // Create a new channel in the CURRENT COMMUNITY space. Must use channelSpaceId,
+  // NOT spaceId: spaceId flips to the DM space when a direct message is open, and a
+  // channel created against it would land in "Direct Messages" instead of the space
+  // whose channel list the user is looking at (the bug that put a 'general' channel
+  // in the DM space).
   const createChannel = useCallback(
     async (name: string, type: string = 'general', description?: string) => {
-      if (!spaceId) return null
+      if (!channelSpaceId) return null
       try {
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-        const spaceIdNum = Number(spaceId)
+        const spaceIdNum = Number(channelSpaceId)
         const tenantIdNum = opts?.tenantId ? Number(opts.tenantId) : undefined
         const res = await fetch(`${SERVER_URL}/api/channels`, {
           method: 'POST',
@@ -954,7 +958,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             slug,
             type,
             description: description || undefined,
-            space: Number.isNaN(spaceIdNum) ? spaceId : spaceIdNum,
+            space: Number.isNaN(spaceIdNum) ? channelSpaceId : spaceIdNum,
             ...(tenantIdNum && !Number.isNaN(tenantIdNum) ? { tenant: tenantIdNum } : {}),
           }),
         })
@@ -966,7 +970,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             slug,
             description,
             type,
-            spaceId: String(spaceId),
+            spaceId: String(channelSpaceId),
             isDefault: false,
           }
           setChannels((prev) => [...prev, newChannel])
@@ -978,7 +982,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         return null
       }
     },
-    [spaceId],
+    [channelSpaceId, opts?.tenantId],
   )
 
   // Delete a channel
