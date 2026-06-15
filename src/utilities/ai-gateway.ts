@@ -15,6 +15,7 @@
  */
 
 import { createGateway } from '@ai-sdk/gateway'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { tool as aiTool, jsonSchema } from 'ai'
 import type { LanguageModel, ToolSet } from 'ai'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -482,14 +483,25 @@ async function resolveGroqModel(
 // which reproduces the prior hardcoded behavior exactly.
 // ---------------------------------------------------------------------------
 
-type ProviderKind = 'ollama' | 'groq' | 'gateway'
+type ProviderKind = 'ollama' | 'groq' | 'gateway' | 'openrouter'
 
-const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'gateway']
+// OpenRouter sits LAST: it only serves when everything before it (incl. the gateway)
+// is unavailable, so it never changes behavior on a healthy node — it's the
+// "LEO must not go dark" safety net, using OPENROUTER_API_KEY (already in env).
+const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'gateway', 'openrouter']
+
+/** Direct OpenRouter (OpenAI-compatible) model per tier — verified live 2026-06-15. */
+const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
+  low: 'anthropic/claude-3.5-haiku',
+  medium: 'anthropic/claude-sonnet-4',
+  high: 'anthropic/claude-opus-4.1',
+  critical: 'anthropic/claude-opus-4.1',
+}
 
 export function resolveProviderOrder(): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
   if (!raw) return DEFAULT_PROVIDER_ORDER
-  const valid = new Set<ProviderKind>(['ollama', 'groq', 'gateway'])
+  const valid = new Set<ProviderKind>(['ollama', 'groq', 'gateway', 'openrouter'])
   const order = raw
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -539,6 +551,22 @@ async function attemptGroq(ctx: ProviderAttemptCtx): Promise<SmartModelResult | 
   if (!groq) return null
   console.log(`[AI Gateway] ⚡ Groq ${groq.modelId} (${attemptReason(ctx)})`)
   return { model: groq.model, providerOptions: {}, modelId: groq.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
+/**
+ * Direct OpenRouter fallback — the last-resort provider so LEO keeps answering when
+ * the metered gateway is unavailable (no/invalid AI_GATEWAY_API_KEY, expired OIDC,
+ * credits exhausted). Uses OPENROUTER_API_KEY via the OpenAI-compatible API. Serves
+ * ANY tier when reached (it's the safety net). ⚠️ if the gateway is down, ALL traffic
+ * routes here — point OPENROUTER_API_KEY at an unlimited key, not a low weekly cap.
+ */
+function attemptOpenRouter(ctx: ProviderAttemptCtx): SmartModelResult | null {
+  const key = process.env.OPENROUTER_API_KEY
+  if (!key) return null
+  const modelId = OPENROUTER_TIER_MAP[ctx.tier]
+  const provider = createOpenAICompatible({ name: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: key })
+  console.log(`[AI Gateway] 🔀 OpenRouter ${modelId} (${attemptReason(ctx)})`)
+  return { model: provider(modelId), providerOptions: {}, modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
 }
 
 function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
@@ -600,6 +628,7 @@ export async function getSmartModel(
     const result =
       kind === 'ollama' ? await attemptOllama(ctx)
       : kind === 'groq' ? await attemptGroq(ctx)
+      : kind === 'openrouter' ? attemptOpenRouter(ctx)
       : attemptGateway(ctx)
     if (result) return result
   }
