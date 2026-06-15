@@ -103,41 +103,73 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
     return result
   }, [availabilitySlots])
 
-  // Generate start times for the chosen date that fit the selected service duration
-  const timeSlots = useMemo(() => {
-    if (!selectedDate) return []
-    const dateObj = new Date(selectedDate + 'T00:00:00')
-    const dow = dateObj.getDay()
-    const matchingSlots = availabilitySlots.filter(
-      (s) => s.availabilityType === 'weekly' && s.dayOfWeek === dow,
-    )
+  const labelForTime = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number)
+    if (h == null || m == null) return hhmm
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h
+    return `${displayH}:${String(m).padStart(2, '0')} ${ampm}`
+  }
 
+  // Client-side fallback: start times that fit the service within open hours
+  // (does NOT account for existing bookings — the server does that).
+  const openHourSlots = useMemo(() => {
+    if (!selectedDate) return []
+    const dow = new Date(selectedDate + 'T00:00:00').getDay()
+    const matchingSlots = availabilitySlots.filter((s) => s.availabilityType === 'weekly' && s.dayOfWeek === dow)
     const times: Array<{ time: string; label: string }> = []
     for (const slot of matchingSlots) {
       if (!slot.startTime || !slot.endTime) continue
-      const [startH, startM] = slot.startTime.split(':').map(Number)
-      const [endH, endM] = slot.endTime.split(':').map(Number)
-      if (startH == null || startM == null || endH == null || endM == null) continue
-
-      const startMinutes = startH * 60 + startM
-      const endMinutes = endH * 60 + endM
-      // Start-time granularity = the availability rule's slot size (e.g. 60 min);
-      // the booking itself occupies the selected service's duration.
+      const [sH, sM] = slot.startTime.split(':').map(Number)
+      const [eH, eM] = slot.endTime.split(':').map(Number)
+      if (sH == null || sM == null || eH == null || eM == null) continue
+      const startMinutes = sH * 60 + sM
+      const endMinutes = eH * 60 + eM
       const increment = Math.max(15, slot.slotDuration || 60)
-
       for (let t = startMinutes; t + serviceDuration <= endMinutes; t += increment) {
-        const h = Math.floor(t / 60)
-        const m = t % 60
-        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-        const ampm = h >= 12 ? 'PM' : 'AM'
-        const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h
-        times.push({ time: timeStr, label: `${displayH}:${String(m).padStart(2, '0')} ${ampm}` })
+        const timeStr = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+        times.push({ time: timeStr, label: labelForTime(timeStr) })
       }
     }
-    // De-dup (overlapping rules) and sort
     const seen = new Set<string>()
     return times.filter((t) => (seen.has(t.time) ? false : seen.add(t.time))).sort((a, b) => a.time.localeCompare(b.time))
   }, [selectedDate, availabilitySlots, serviceDuration])
+
+  // Server-side smart slots: duration-aware AND conflict-aware (excludes times that
+  // overlap existing bookings, so a 6-hour service only offers 6 contiguous free hours).
+  const [serverSlots, setServerSlots] = useState<Array<{ time: string; label: string }> | null>(null)
+  const [slotsLoading, setSlotsLoading] = useState(false)
+  React.useEffect(() => {
+    if (!selectedDate || !serviceId) {
+      setServerSlots(null)
+      return
+    }
+    let cancelled = false
+    setSlotsLoading(true)
+    fetch('/api/booking-ops/public-slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: selectedDate, duration: serviceDuration, tenantSlug }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return
+        const arr = Array.isArray(d?.slots) ? (d.slots as Array<{ time: string }>) : null
+        setServerSlots(arr ? arr.map((s) => ({ time: s.time, label: labelForTime(s.time) })) : null)
+      })
+      .catch(() => {
+        if (!cancelled) setServerSlots(null)
+      })
+      .finally(() => {
+        if (!cancelled) setSlotsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedDate, serviceId, serviceDuration, tenantSlug])
+
+  // Authoritative: the server's conflict-aware list when we have it, else open-hours.
+  const timeSlots = serverSlots ?? openHourSlots
 
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
 
@@ -379,8 +411,12 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                 </h2>
               </div>
 
-              {timeSlots.length === 0 ? (
-                <p className="text-muted-foreground">No available start times for this date.</p>
+              {slotsLoading && serverSlots === null ? (
+                <p className="text-muted-foreground">Checking open times…</p>
+              ) : timeSlots.length === 0 ? (
+                <p className="text-muted-foreground">
+                  No open times for a {serviceDuration >= 60 ? `${Math.round(serviceDuration / 60)}-hour` : `${serviceDuration}-min`} {selectedService?.label.toLowerCase() ?? 'service'} on this date — every slot is booked or too short. Try another day.
+                </p>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                   {timeSlots.map((t) => (

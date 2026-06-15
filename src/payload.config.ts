@@ -100,6 +100,7 @@ import { orderShipHandler } from '@/endpoints/order-ship'
 import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
+import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
 import { presencePingHandler } from '@/endpoints/presence-ping'
 import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
@@ -688,6 +689,12 @@ export default buildConfig({
       path: '/booking-ops/available-slots',
       method: 'post',
       handler: bookingAvailableSlotsHandler,
+    },
+    // Public, duration-aware, conflict-aware slots for the booking calendar (no auth).
+    {
+      path: '/booking-ops/public-slots',
+      method: 'post',
+      handler: bookingPublicSlotsHandler,
     },
     // One-shot, super_admin-only, idempotent: provisions the WDEG portal tenant.
     // GET so an authenticated super_admin can trigger it from the browser.
