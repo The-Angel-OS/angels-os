@@ -66,30 +66,70 @@ export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-6'
  */
 export type TaskComplexity = 'low' | 'medium' | 'high' | 'critical'
 
-export const TASK_MODEL_MAP: Record<TaskComplexity, {
-  primary: string
-  fallbacks: string[]
-}> = {
-  /** Greetings, FAQ, simple tool calls, status checks */
-  low: {
-    primary: 'google/gemini-2.5-flash',
-    fallbacks: ['google/gemini-3.1-pro'],
-  },
-  /** Product queries, booking workflows, standard chat, tool orchestration */
-  medium: {
-    primary: 'google/gemini-2.5-flash',
-    fallbacks: ['google/gemini-3.1-pro', 'anthropic/claude-sonnet-4-6'],
-  },
-  /** Complex reasoning, multi-step analysis, enterprise reports */
-  high: {
-    primary: 'google/gemini-3.1-pro',
-    fallbacks: ['anthropic/claude-sonnet-4-6'],
-  },
-  /** Board-level strategy, nuanced creative work, critical decisions */
-  critical: {
-    primary: 'anthropic/claude-sonnet-4-6',
-    fallbacks: ['anthropic/claude-opus-4-6', 'google/gemini-3.1-pro'],
-  },
+// ---------------------------------------------------------------------------
+// TWO LANES — the defensible, auditable model posture (2026-06-15)
+// ---------------------------------------------------------------------------
+//
+// Replaces the per-message 4-tier "variable intelligence" routing with two
+// named lanes anyone can read and justify:
+//
+//   - agentic    → user-facing, tool-using LEO. Reliability-first (Claude). The
+//                  AI that acts on a customer's data should be the dependable one.
+//   - mechanical → background/simple work — classification, titles, summaries,
+//                  greetings. Cost-first (Gemini Flash, ~1/10th the price).
+//
+// Tunable by ENV with zero code (audit/retune from the dashboard later):
+//   LEO_AGENTIC_MODEL      (default anthropic/claude-sonnet-4-6)
+//   LEO_AGENTIC_FALLBACKS  (CSV; default opus-4-6, gemini-3.1-pro)
+//   LEO_MECHANICAL_MODEL   (default google/gemini-2.5-flash)
+//   LEO_MECHANICAL_FALLBACKS (CSV; default gemini-3.1-pro)
+//
+// Failover redundancy is layered ON TOP by AI_PROVIDER_ORDER
+//   (default: ollama,groq,gateway,openrouter): same model via a 2nd provider
+//   (gateway → OpenRouter-direct), then cross-vendor (Gemini in the fallbacks)
+//   as graceful degradation. Prompt caching is applied on the Anthropic path
+//   (attemptGateway) so the big static system+tools payload is ~10x cheaper on hits.
+// All default IDs are ones already proven valid in the prior config.
+
+export type Lane = 'agentic' | 'mechanical'
+
+const csvList = (v: string | undefined): string[] | undefined =>
+  v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined
+
+/** Env-tunable model config for a lane. */
+export function getLaneConfig(lane: Lane): { primary: string; fallbacks: string[] } {
+  if (lane === 'mechanical') {
+    return {
+      primary: process.env.LEO_MECHANICAL_MODEL || 'google/gemini-2.5-flash',
+      fallbacks: csvList(process.env.LEO_MECHANICAL_FALLBACKS) || ['google/gemini-3.1-pro'],
+    }
+  }
+  return {
+    primary: process.env.LEO_AGENTIC_MODEL || 'anthropic/claude-sonnet-4-6',
+    fallbacks: csvList(process.env.LEO_AGENTIC_FALLBACKS) || ['anthropic/claude-opus-4-6', 'google/gemini-3.1-pro'],
+  }
+}
+
+/** Legacy 4-tier API → 2 lanes: only 'low' is mechanical; everything user-facing is agentic. */
+export const TIER_TO_LANE: Record<TaskComplexity, Lane> = {
+  low: 'mechanical',
+  medium: 'agentic',
+  high: 'agentic',
+  critical: 'agentic',
+}
+
+/**
+ * Kept as a Record for backward-compat with existing callers, but now DERIVED from
+ * the two lanes (env-tunable). The per-tier deep-think rhythm still runs, but since
+ * medium/high/critical all resolve to the agentic lane, it no longer swaps models
+ * mid-conversation — the "variable intelligence" is effectively retired while the
+ * API stays stable.
+ */
+export const TASK_MODEL_MAP: Record<TaskComplexity, { primary: string; fallbacks: string[] }> = {
+  low: getLaneConfig('mechanical'),
+  medium: getLaneConfig('agentic'),
+  high: getLaneConfig('agentic'),
+  critical: getLaneConfig('agentic'),
 }
 
 // ---------------------------------------------------------------------------
@@ -579,7 +619,19 @@ function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
     gatewayOpts.user = `t${ctx.tracking.tenantId || 0}-u${ctx.tracking.userId || 0}`
   }
   gatewayOpts.tags = [...(ctx.tracking?.tags || []), `tier-${ctx.tier}`]
-  return { model, providerOptions: { gateway: gatewayOpts }, modelId: config.primary, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+
+  const providerOptions: Record<string, unknown> = { gateway: gatewayOpts }
+  // Prompt caching on the Anthropic path: LEO's large static system prompt + ~10k
+  // tokens of tool schemas are the same every turn, so caching them is ~10x cheaper
+  // on hits — the biggest cost lever for a tool-heavy agent. Additive + provider-
+  // scoped (the gateway forwards it to the Anthropic model); a no-op for non-Anthropic
+  // primaries. ⚠️ Verify cache-hit rate with real traffic; if the gateway doesn't
+  // auto-apply to system+tools, the follow-up is per-message cache breakpoints at the
+  // streamText call site.
+  if (config.primary.startsWith('anthropic/')) {
+    providerOptions.anthropic = { cacheControl: { type: 'ephemeral' } }
+  }
+  return { model, providerOptions, modelId: config.primary, complexity: ctx.requested, effectiveComplexity: ctx.tier }
 }
 
 /**
