@@ -24,7 +24,7 @@ import type { Payload, Where } from 'payload'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
-import { getMembershipPlans, upsertMembershipPlan, type MembershipPlan } from './membershipPlans'
+import { getMembershipPlans, upsertMembershipPlan, removeMembershipPlan, type MembershipPlan } from './membershipPlans'
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
 // NOTE: provisionPortal is imported lazily inside its handlers (handleProvisionTenant
@@ -1145,6 +1145,38 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['name', 'amountUsd'],
+    },
+  },
+  {
+    name: 'list_membership_plans',
+    description:
+      'List the current Endeavor\'s recurring membership/dues plans (name, price, interval, whether active/visible). Use when the user asks what plans exist or before editing/removing one.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'delete_membership_plan',
+    description:
+      'Remove a recurring membership/dues plan from the current Endeavor by its plan id (slugified name, e.g. "drop-in"). Existing subscribers keep billing in Stripe; this only removes the plan from the public Join surface. Use list_membership_plans first to get the id.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        planId: { type: 'string', description: 'The plan id to remove (slugified name, e.g. "unlimited").' },
+      },
+      required: ['planId'],
+    },
+  },
+  {
+    name: 'apply_site_template',
+    description:
+      'Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor\'s public site.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        template: { type: 'string', enum: ['fitness', 'church'], description: 'Which template to apply.' },
+        name: { type: 'string', description: 'The organization name shown on the site (defaults to the Endeavor name).' },
+        overwrite: { type: 'boolean', description: 'Replace existing core pages. Default false (idempotent skip).' },
+      },
+      required: ['template'],
     },
   },
   {
@@ -3594,6 +3626,12 @@ async function executeToolSwitch(
         return await createPost(payload, toolInput, ctx)
       case 'create_membership_plan':
         return await createMembershipPlan(payload, toolInput, ctx)
+      case 'list_membership_plans':
+        return await listMembershipPlans(payload, ctx)
+      case 'delete_membership_plan':
+        return await deleteMembershipPlanTool(payload, toolInput, ctx)
+      case 'apply_site_template':
+        return await applySiteTemplate(payload, toolInput, ctx)
       case 'create_work_from_url':
         return await createWorkFromContent(payload, toolInput, ctx)
       case 'create_quest':
@@ -7432,6 +7470,82 @@ async function createMembershipPlan(
     'Add a "Membership / Join" block to a page to let members sign up. Dues require Stripe Connect onboarding for this Endeavor.',
   )
   return lines.join('\n') + navDirective('/dashboard/business-ops', 'View Business Ops')
+}
+
+/** list_membership_plans — show the current Endeavor's recurring plans. */
+async function listMembershipPlans(payload: Payload, ctx: ToolExecutorContext): Promise<string> {
+  const tenant = await resolveWriteTenant(payload, ctx)
+  if (!tenant) return "Error: I couldn't determine which Endeavor's plans to list. Open a specific Endeavor's workspace and ask again."
+  const plans = await getMembershipPlans(payload, tenant)
+  if (!plans.length) return 'No membership plans are set up for this Endeavor yet. Say "create a membership plan" to add one.'
+  const lines = ['Membership plans:']
+  for (const p of plans) {
+    const price = `$${(p.amountCents / 100).toFixed(p.amountCents % 100 === 0 ? 0 : 2)}/${p.interval === 'month' ? 'mo' : 'yr'}`
+    lines.push(`- **${p.name}** — ${price} · id \`${p.id}\`${p.active === false ? ' · hidden' : ''}${p.description ? ` — ${p.description}` : ''}`)
+  }
+  return lines.join('\n')
+}
+
+/** delete_membership_plan — remove a plan from the public Join surface. */
+async function deleteMembershipPlanTool(payload: Payload, input: Record<string, unknown>, ctx: ToolExecutorContext): Promise<string> {
+  const planId = (input.planId as string)?.trim()
+  if (!planId) return 'Error: planId is required (the slugified plan name, e.g. "drop-in"). Use list_membership_plans to find it.'
+  const tenant = await resolveWriteTenant(payload, ctx)
+  if (!tenant) return "Error: I couldn't determine which Endeavor to remove the plan from."
+  const before = await getMembershipPlans(payload, tenant)
+  if (!before.some((p) => p.id === planId)) {
+    return `Error: No plan with id "${planId}". Use list_membership_plans to see the current plans.`
+  }
+  await removeMembershipPlan(payload, tenant, planId)
+  return `Removed membership plan \`${planId}\` from the Join surface. Existing subscribers keep billing in Stripe until they cancel.`
+}
+
+/** apply_site_template — stand up a full site (pages + plans + policy pages). */
+async function applySiteTemplate(payload: Payload, input: Record<string, unknown>, ctx: ToolExecutorContext): Promise<string> {
+  const template = input.template as string
+  if (template !== 'fitness' && template !== 'church') {
+    return 'Error: template must be "fitness" or "church".'
+  }
+  const tenant = await resolveWriteTenant(payload, ctx)
+  if (!tenant) return "Error: I couldn't determine which Endeavor to build the site for. Open a specific Endeavor's workspace and ask again."
+
+  // Resolve the org name (explicit, else the tenant's name).
+  let orgName = (input.name as string)?.trim() || ''
+  if (!orgName) {
+    const t = await payload.findByID({ collection: 'tenants', id: tenant, depth: 0, overrideAccess: true }).catch(() => null)
+    orgName = ((t as { name?: string } | null)?.name) || 'Our Organization'
+  }
+  const overwrite = input.overwrite === true
+
+  try {
+    if (template === 'fitness') {
+      const { provisionFitnessSite } = await import('./provisionFitnessSite')
+      const r = await provisionFitnessSite(payload, tenant, { gymName: orgName }, { overwrite })
+      return [
+        `Fitness/gym site applied for **${orgName}**.`,
+        `- Pages created: ${r.created.join(', ') || '(none new)'}`,
+        r.updated.length ? `- Pages updated: ${r.updated.join(', ')}` : '',
+        r.skipped.length ? `- Skipped (already existed): ${r.skipped.join(', ')}` : '',
+        '- Default membership plans + policy pages (Privacy/Terms/Cookie/Refund) seeded.',
+        '',
+        'Connect a bank (ask me to "connect Stripe") so memberships can be collected.',
+      ].filter(Boolean).join('\n') + navDirective('/pricing', 'View the Pricing page')
+    }
+    const { provisionChurchSite } = await import('./provisionChurchSite')
+    const r = await provisionChurchSite(payload, tenant, { churchName: orgName }, { overwrite })
+    return [
+      `Church site applied for **${orgName}**.`,
+      `- Pages created: ${r.created.join(', ') || '(none new)'}`,
+      r.updated.length ? `- Pages updated: ${r.updated.join(', ')}` : '',
+      r.skipped.length ? `- Skipped (already existed): ${r.skipped.join(', ')}` : '',
+      '- Policy pages (Privacy/Terms/Cookie/Refund) seeded.',
+      '',
+      'Connect a bank (ask me to "connect Stripe") so giving can be collected.',
+    ].filter(Boolean).join('\n') + navDirective('/giving', 'View the Giving page')
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return `Error applying the ${template} template: ${msg}`
+  }
 }
 
 /**
