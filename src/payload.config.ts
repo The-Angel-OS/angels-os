@@ -131,6 +131,7 @@ import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signatu
 import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
+import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
 import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
@@ -861,6 +862,13 @@ export default buildConfig({
       path: '/provision-ops/policy-pages',
       method: 'post',
       handler: policyPagesHandler,
+    },
+    // Generic site provisioner — create pages from a JSON spec (site migration /
+    // replicate_site building block). POST; super_admin or ?key=.
+    {
+      path: '/provision-ops/pages-from-spec',
+      method: 'post',
+      handler: pagesFromSpecHandler,
     },
     // Recurring memberships/dues (the universal unlock): plans (settings bag),
     // subscription checkout (Connect destination charge + platform fee), and the
