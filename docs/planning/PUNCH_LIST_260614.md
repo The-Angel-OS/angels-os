@@ -69,6 +69,12 @@ Detail lives in the linked memories / planning docs — this is the index.
 - ✅ **ensurePolicyPages SHIPPED (a3d78f3)** — Privacy/Terms/Cookie/Refund as tenant Pages (showInNav:false) from existing content blocks (zero schema risk), idempotent; appends footer nav links (idempotent by URL, 6-row cap, creates footer doc if missing); generic boilerplate parameterised by org name+contact. `POST /provision-ops/policy-pages` for existing tenants; wired into BOTH church + fitness templates so every provisioned site ships policy pages footer-linked. ⬜ live rendered proof when provisioning the gym pilot.
 - ⬜ Mount `<AgreementForm>` on ToS acceptance + human-constitution acceptance + waivers.
 
+## 7b. ⚠️ Dashboard authorization (SECURITY — found 2026-06-14)  ([[project_auth_context_refactor]])
+- ✅ **CRITICAL fix shipped (79a47d9)** — `/dashboard/admin/*` + `/dashboard/orders` were PUBLICLY accessible (auth-optional layout + no middleware gate + overrideAccess queries); unauth could read a tenant's financials/PII by direct URL. Verified. Fixed via an admin SEGMENT layout calling requirePortalAccess('manageConnectors') + explicit gate on /orders.
+- ⬜ **Full 51-page self-gate audit** — only 2/51 dashboard pages call the canonical guard. Wire requirePortalAccess across all sensitive pages (the AUTH_CONTEXT_REFACTOR Phase 1/2). Content pages (posts/products/pages/media) query overrideAccess ungated (lower sev; pages-list may surface drafts).
+- ⬜ **Stricter platform-only gate** — provision/tenants/federation/network admin pages should add `adminPortal` on top of the segment's manageConnectors bar.
+- ⬜ **Add a regression test** — assert requirePortalAccess redirects a customer/anon off /dashboard/admin (lock the fix).
+
 ## 8. Test/ops hardening (handoff D–E)
 - ⬜ **Safe test DB** before Playwright admin e2e (current e2e global-setup writes to PROD) + a create-page admin test (catches the missing-`_pages_v`-column class of bug).
 - ⬜ **pg_dump snapshot capability** (`_local` script + provision endpoint) + rule "snapshot before any schema-touching change" (Kenneth's ask).
