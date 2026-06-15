@@ -32,6 +32,31 @@ export default async function middleware(request: NextRequest) {
 
   const tenantId = detectTenantFromHostname(hostname)
 
+  // ── Edge auth gate for sensitive dashboard subtrees ──────────────────────────
+  // /dashboard/admin/* and /dashboard/orders expose a portal's financials/orders/PII
+  // and query with overrideAccess. The dashboard layout is auth-optional and a
+  // segment-layout redirect did NOT gate reliably under Next 16, so an anonymous
+  // visitor could read them by direct URL. This is the reliable belt: block requests
+  // with no auth cookie at the edge (role enforcement still happens per-page via
+  // requirePortalManager — defense in depth; a stale/forged cookie passes here but
+  // fails Payload auth on the page). Redirect to /dashboard (public), locale-aware.
+  {
+    const { pathname } = request.nextUrl
+    const m = pathname.match(/^\/([a-z]{2})(?=\/|$)/)
+    const localePrefix =
+      m && routing.locales.includes(m[1] as never) && m[1] !== routing.defaultLocale ? `/${m[1]}` : ''
+    const pathNoLocale = localePrefix ? pathname.slice(localePrefix.length) : pathname
+    if (
+      (pathNoLocale.startsWith('/dashboard/admin') || pathNoLocale.startsWith('/dashboard/orders')) &&
+      !request.cookies.has('payload-token')
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = `${localePrefix}/dashboard`
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+  }
+
   const requestHeaders = new Headers(request.headers)
   // Only set header if we resolved a tenant (null means platform/admin context)
   if (tenantId) {
