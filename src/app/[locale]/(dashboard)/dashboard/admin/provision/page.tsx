@@ -1,6 +1,9 @@
 import { setRequestLocale } from 'next-intl/server'
 import { ProvisionWizard } from './ProvisionWizard'
 import { VerifyOnboardingButton } from './VerifyOnboardingButton'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ProvisionPage({
   params,
@@ -9,6 +12,7 @@ export default async function ProvisionPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   return (
     <div>

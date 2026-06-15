@@ -3,6 +3,9 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { PayoutsAdmin } from './PayoutsAdmin'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPayoutsPage({
   params,
@@ -11,6 +14,7 @@ export default async function DashboardPayoutsPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
 

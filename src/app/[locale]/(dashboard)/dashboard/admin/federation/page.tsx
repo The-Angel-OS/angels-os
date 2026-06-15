@@ -1,5 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
 import FederationDashboard from './FederationDashboard'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * Federation Admin Dashboard — /dashboard/admin/federation
@@ -16,6 +19,7 @@ export default async function FederationPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   return <FederationDashboard />
 }

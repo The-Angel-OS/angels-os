@@ -5,6 +5,9 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { PaymentsAdmin } from './PaymentsAdmin'
 import { getJusticeFundGrowth, getRevenueTimeSeries } from '@/utilities/chartData'
 import { SplitDonutChart, JusticeFundChart, RevenueChart } from '@/components/charts/DashboardCharts'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPaymentsPage({
   params,
@@ -13,6 +16,7 @@ export default async function DashboardPaymentsPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
   // Resolve tenant (cached, React.cache deduped)

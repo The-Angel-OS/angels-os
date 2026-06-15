@@ -1,5 +1,9 @@
 import SuitcaseManager from './SuitcaseManager'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
 
-export default function SuitcasePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function SuitcasePage() {
+  await requirePortalManager()
   return <SuitcaseManager />
 }

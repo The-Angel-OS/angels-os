@@ -3,6 +3,9 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { InvitationsAdmin } from './InvitationsAdmin'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardInvitationsPage({
   params,
@@ -11,6 +14,7 @@ export default async function DashboardInvitationsPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()

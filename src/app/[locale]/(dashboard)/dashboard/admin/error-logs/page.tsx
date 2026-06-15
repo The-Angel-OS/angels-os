@@ -1,5 +1,9 @@
 import { ErrorLogViewer } from './ErrorLogViewer'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
 
-export default function ErrorLogsPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function ErrorLogsPage() {
+  await requirePortalManager()
   return <ErrorLogViewer />
 }
