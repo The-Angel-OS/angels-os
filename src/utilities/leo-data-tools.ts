@@ -1166,6 +1166,62 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'configure_availability',
+    description:
+      'Configure business hours and booking availability for the current Endeavor. Sets which days are open, the daily open/close times, minimum advance booking notice, and a buffer between appointments. Use when setting up or updating when customers can book. Example: Monday-Friday 7am-5pm, 2-hour minimum notice, 30-min buffer.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: {
+          type: 'array',
+          items: { type: 'string', enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
+          description: 'Days the business is open for bookings',
+        },
+        openTime: { type: 'string', description: 'Daily open time in HH:MM 24h format, e.g. "07:00"' },
+        closeTime: { type: 'string', description: 'Daily close time in HH:MM 24h format, e.g. "17:00"' },
+        bufferMinutes: { type: 'number', description: 'Buffer time between appointments in minutes (e.g. 30 for travel time)' },
+        advanceNoticeHours: { type: 'number', description: 'Minimum hours of advance notice required for a booking (e.g. 24)' },
+      },
+      required: ['days', 'openTime', 'closeTime'],
+    },
+  },
+  {
+    name: 'list_availability',
+    description:
+      'Show the current booking availability settings for this Endeavor — which days are open, hours, and booking rules.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'configure_service',
+    description:
+      'Create or update a bookable service offering for the current Endeavor. Sets the name, description, price, duration, and whether customers can book it online. Use when adding or editing a service in the booking catalog.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Service name, e.g. "Panel Upgrade" or "EV Charger Installation" (required)' },
+        description: { type: 'string', description: 'What the service includes' },
+        priceUsd: { type: 'number', description: 'Price in US dollars' },
+        durationMinutes: { type: 'number', description: 'How long the service takes in minutes' },
+        bookable: { type: 'boolean', description: 'Whether customers can book this online. Default true.' },
+        category: { type: 'string', description: 'Optional category, e.g. "residential", "commercial", "specialty"' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'query_booking_revenue',
+    description:
+      'Report booking revenue and job counts for the current Endeavor. Answers questions like "how much did I make this month?" or "how many jobs did I do in November?" Optionally filter by year, month (1-12), or service name.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        year: { type: 'number', description: 'Filter by year, e.g. 2026' },
+        month: { type: 'number', description: 'Filter by month number (1-12)' },
+        serviceName: { type: 'string', description: 'Filter by service name (partial match)' },
+      },
+    },
+  },
+  {
     name: 'apply_site_template',
     description:
       'Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor\'s public site.',
@@ -3630,6 +3686,14 @@ async function executeToolSwitch(
         return await listMembershipPlans(payload, ctx)
       case 'delete_membership_plan':
         return await deleteMembershipPlanTool(payload, toolInput, ctx)
+      case 'configure_availability':
+        return await configureAvailability(payload, toolInput, ctx)
+      case 'list_availability':
+        return await listAvailability(payload, ctx)
+      case 'configure_service':
+        return await configureService(payload, toolInput, ctx)
+      case 'query_booking_revenue':
+        return await queryBookingRevenue(payload, toolInput, ctx)
       case 'apply_site_template':
         return await applySiteTemplate(payload, toolInput, ctx)
       case 'create_work_from_url':
@@ -15342,4 +15406,358 @@ async function handleRunSubsafeCheck(
   )
 
   return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Booking / Availability Tools
+// ---------------------------------------------------------------------------
+
+const DAY_LABEL: Record<string, string> = {
+  '0': 'Sunday',
+  '1': 'Monday',
+  '2': 'Tuesday',
+  '3': 'Wednesday',
+  '4': 'Thursday',
+  '5': 'Friday',
+  '6': 'Saturday',
+}
+
+const DAY_NAME_TO_NUM: Record<string, string> = {
+  sunday: '0',
+  monday: '1',
+  tuesday: '2',
+  wednesday: '3',
+  thursday: '4',
+  friday: '5',
+  saturday: '6',
+}
+
+/**
+ * configure_availability — set business hours and booking rules for the
+ * current Endeavor. Creates one Availability record per open day (weekly
+ * type). Days omitted from the input are left untouched (not deleted).
+ */
+async function configureAvailability(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace and try again."
+  }
+
+  const days = input.days as string[] | undefined
+  if (!Array.isArray(days) || days.length === 0) {
+    return 'Error: days is required — provide at least one day, e.g. ["monday","tuesday","wednesday","thursday","friday"].'
+  }
+
+  const openTime = (input.openTime as string)?.trim()
+  const closeTime = (input.closeTime as string)?.trim()
+  if (!openTime || !closeTime) {
+    return 'Error: openTime and closeTime are required in HH:MM 24h format (e.g. "07:00", "17:00").'
+  }
+
+  const bufferTime = typeof input.bufferMinutes === 'number' ? Math.round(input.bufferMinutes) : 0
+  const minAdvanceBooking = typeof input.advanceNoticeHours === 'number' ? Math.round(input.advanceNoticeHours) : 1
+
+  const configured: string[] = []
+  const errors: string[] = []
+
+  for (const dayName of days) {
+    const dayNum = DAY_NAME_TO_NUM[dayName.toLowerCase()]
+    if (dayNum === undefined) {
+      errors.push(`Unknown day: "${dayName}"`)
+      continue
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = await (payload.find as any)({
+      collection: 'availability',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { 'weeklySchedule.dayOfWeek': { equals: dayNum } },
+          { availabilityType: { equals: 'weekly' } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: Record<string, any> = {
+      tenant: tenantId,
+      availabilityType: 'weekly',
+      weeklySchedule: {
+        dayOfWeek: dayNum,
+        startTime: openTime,
+        endTime: closeTime,
+      },
+      bufferTime,
+      minAdvanceBooking,
+      isActive: true,
+      title: `${DAY_LABEL[dayNum] ?? dayName} ${openTime}–${closeTime}`,
+    }
+
+    if (existing.docs && existing.docs.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.update as any)({
+        collection: 'availability',
+        id: existing.docs[0].id,
+        data,
+        overrideAccess: true,
+      })
+      configured.push(`Updated ${DAY_LABEL[dayNum] ?? dayName}`)
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.create as any)({
+        collection: 'availability',
+        data,
+        overrideAccess: true,
+      })
+      configured.push(`Created ${DAY_LABEL[dayNum] ?? dayName}`)
+    }
+  }
+
+  const lines = ['Availability configured!', '']
+  lines.push(`**Hours**: ${openTime} – ${closeTime}`)
+  lines.push(`**Open days**: ${days.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}`)
+  if (bufferTime > 0) lines.push(`**Buffer between appointments**: ${bufferTime} min`)
+  lines.push(`**Minimum advance notice**: ${minAdvanceBooking} hr${minAdvanceBooking !== 1 ? 's' : ''}`)
+  if (errors.length > 0) lines.push('', `Warnings: ${errors.join('; ')}`)
+  lines.push('', configured.join('; '))
+
+  return lines.join('\n') + navDirective('/dashboard/availability', 'View Availability')
+}
+
+/** list_availability — show current booking availability settings for this Endeavor. */
+async function listAvailability(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to look up. Open a specific Endeavor's workspace."
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.find as any)({
+    collection: 'availability',
+    where: { tenant: { equals: tenantId } },
+    limit: 20,
+    depth: 0,
+    sort: 'weeklySchedule.dayOfWeek',
+    overrideAccess: true,
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const docs: any[] = result.docs ?? []
+  if (docs.length === 0) {
+    return (
+      'No availability configured yet for this Endeavor. Say "configure availability" to set business hours.\n' +
+      navDirective('/dashboard/availability', 'Configure Availability')
+    )
+  }
+
+  const lines = ['**Current availability settings:**', '']
+  for (const doc of docs) {
+    if (doc.availabilityType === 'weekly' && doc.weeklySchedule) {
+      const dayLabel = DAY_LABEL[doc.weeklySchedule.dayOfWeek] ?? `Day ${doc.weeklySchedule.dayOfWeek}`
+      const start = doc.weeklySchedule.startTime ?? '?'
+      const end = doc.weeklySchedule.endTime ?? '?'
+      const active = doc.isActive !== false ? '' : ' *(inactive)*'
+      lines.push(`- **${dayLabel}**: ${start} – ${end}${active}`)
+    } else if (doc.availabilityType === 'date-range' && doc.dateRange) {
+      lines.push(`- Date range: ${doc.dateRange.startDate} to ${doc.dateRange.endDate} (${doc.dateRange.startTime}–${doc.dateRange.endTime})`)
+    } else if (doc.title) {
+      lines.push(`- ${doc.title}`)
+    }
+  }
+
+  // Show first doc's booking rules as representative
+  const first = docs[0]
+  if (first.bufferTime) lines.push('', `Buffer between appointments: ${first.bufferTime} min`)
+  if (first.minAdvanceBooking) lines.push(`Minimum advance notice: ${first.minAdvanceBooking} hr`)
+  if (first.maxAdvanceBooking) lines.push(`Maximum advance booking: ${first.maxAdvanceBooking} days`)
+
+  return lines.join('\n') + navDirective('/dashboard/availability', 'Manage Availability')
+}
+
+/**
+ * configure_service — create or update a bookable service offering for the
+ * current Endeavor. Idempotent by label (case-insensitive exact match).
+ */
+async function configureService(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace."
+  }
+
+  const name = (input.name as string)?.trim()
+  if (!name) return 'Error: name is required (e.g. "Panel Upgrade").'
+
+  // Derive a stable serviceId slug from the name
+  const serviceId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = await (payload.find as any)({
+    collection: 'services',
+    where: {
+      and: [
+        { tenant: { equals: tenantId } },
+        { label: { equals: name } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  const bookable = input.bookable !== false
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {
+    tenant: tenantId,
+    serviceId,
+    label: name,
+    enabled: bookable,
+  }
+  if (typeof input.description === 'string' && input.description.trim()) data.description = input.description.trim()
+  if (typeof input.priceUsd === 'number' && input.priceUsd >= 0) {
+    data.priceUsd = input.priceUsd
+    data.pricingModel = 'fixed'
+  }
+  if (typeof input.durationMinutes === 'number' && input.durationMinutes > 0) {
+    data.durationMinutes = Math.round(input.durationMinutes)
+  }
+  if (typeof input.category === 'string' && input.category.trim()) {
+    data.metadata = { ...(data.metadata ?? {}), category: input.category.trim() }
+  }
+
+  let isUpdate = false
+  if (existing.docs && existing.docs.length > 0) {
+    isUpdate = true
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'services',
+      id: existing.docs[0].id,
+      data,
+      overrideAccess: true,
+    })
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.create as any)({
+      collection: 'services',
+      data,
+      overrideAccess: true,
+    })
+  }
+
+  const priceLabel =
+    typeof input.priceUsd === 'number'
+      ? `$${(input.priceUsd as number).toFixed(2)}`
+      : 'price not set'
+  const durationLabel =
+    typeof input.durationMinutes === 'number'
+      ? `${input.durationMinutes} min`
+      : 'duration not set'
+
+  const lines = [
+    isUpdate ? 'Service updated.' : 'Service created.',
+    `- **${name}** — ${priceLabel}, ${durationLabel}`,
+    `- Service ID: \`${serviceId}\``,
+    `- ${bookable ? 'Visible and bookable online.' : 'Hidden from public booking.'}`,
+  ]
+  if (input.category) lines.push(`- Category: ${input.category}`)
+
+  return lines.join('\n') + navDirective('/dashboard/services', 'View Services')
+}
+
+/**
+ * query_booking_revenue — aggregate completed bookings into a revenue report.
+ * Optionally filter by year, month, or service name.
+ */
+async function queryBookingRevenue(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to report on."
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditions: any[] = [{ tenant: { equals: tenantId } }]
+
+  let periodLabel = 'All time'
+  if (typeof input.year === 'number') {
+    if (typeof input.month === 'number' && input.month >= 1 && input.month <= 12) {
+      const monthIndex = input.month - 1
+      const startOfMonth = new Date(input.year, monthIndex, 1).toISOString()
+      const endOfMonth = new Date(input.year, monthIndex + 1, 1).toISOString()
+      conditions.push({ createdAt: { greater_than_equal: startOfMonth } })
+      conditions.push({ createdAt: { less_than: endOfMonth } })
+      periodLabel = new Date(input.year, monthIndex, 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+    } else {
+      const startOfYear = new Date(input.year, 0, 1).toISOString()
+      const endOfYear = new Date(input.year + 1, 0, 1).toISOString()
+      conditions.push({ createdAt: { greater_than_equal: startOfYear } })
+      conditions.push({ createdAt: { less_than: endOfYear } })
+      periodLabel = String(input.year)
+    }
+  }
+
+  if (typeof input.serviceName === 'string' && input.serviceName.trim()) {
+    conditions.push({ title: { contains: input.serviceName.trim() } })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (payload.find as any)({
+    collection: 'bookings',
+    where: { and: conditions },
+    limit: 500,
+    depth: 0,
+    sort: '-createdAt',
+    overrideAccess: true,
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const docs: any[] = result.docs ?? []
+  if (docs.length === 0) {
+    return `No bookings found for ${periodLabel}. Once customers book and pay, revenue will appear here.`
+  }
+
+  let totalRevenue = 0
+  const byTitle: Record<string, { count: number; revenue: number }> = {}
+
+  for (const doc of docs) {
+    const amount = typeof doc.pricingAmount === 'number' ? doc.pricingAmount : 0
+    totalRevenue += amount
+    const key = (doc.title as string) || 'Unknown'
+    if (!byTitle[key]) byTitle[key] = { count: 0, revenue: 0 }
+    byTitle[key].count += 1
+    byTitle[key].revenue += amount
+  }
+
+  const lines = [
+    `**Revenue report — ${periodLabel}**`,
+    '',
+    `Jobs completed: **${docs.length}**`,
+    `Total revenue: **$${totalRevenue.toFixed(2)}**`,
+    '',
+    '**By service:**',
+  ]
+
+  const sorted = Object.entries(byTitle).sort((a, b) => b[1].revenue - a[1].revenue)
+  for (const [title, { count, revenue }] of sorted) {
+    lines.push(`- ${title}: ${count} job${count !== 1 ? 's' : ''} ($${revenue.toFixed(2)})`)
+  }
+
+  return lines.join('\n') + navDirective('/dashboard/bookings', 'View Bookings')
 }
