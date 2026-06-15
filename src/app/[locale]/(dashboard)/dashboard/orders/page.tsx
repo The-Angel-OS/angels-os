@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { resolvePortalContext, requirePortalAccess } from '@/utilities/portalContext'
 import { VendorOrders } from './VendorOrders'
 
 /**
@@ -19,6 +20,10 @@ export default async function DashboardOrdersPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+
+  // Vendor orders contain customer PII + financials; this page lives outside the
+  // /dashboard/admin segment, so gate it explicitly (manages-the-portal bar).
+  await requirePortalAccess(await resolvePortalContext(), 'manageConnectors')
 
   const payload = await getPayload({ config: configPromise })
   const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
