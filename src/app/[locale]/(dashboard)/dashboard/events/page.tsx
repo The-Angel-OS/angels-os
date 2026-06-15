@@ -3,6 +3,9 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardEventsPage({
   params,
@@ -11,6 +14,7 @@ export default async function DashboardEventsPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()

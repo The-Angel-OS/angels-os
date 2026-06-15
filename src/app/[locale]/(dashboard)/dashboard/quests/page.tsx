@@ -3,6 +3,9 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { OfferingConfigurator, type FieldDef } from '@/components/OfferingConfigurator'
+import { requirePortalManager } from '@/utilities/requirePortalManager'
+
+export const dynamic = 'force-dynamic'
 
 const QUEST_FIELDS: FieldDef[] = [
   { name: 'title', label: 'Title', type: 'text', required: true },
@@ -23,6 +26,7 @@ const QUEST_FIELDS: FieldDef[] = [
 export default async function DashboardQuestsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   setRequestLocale(locale)
+  await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
   const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
