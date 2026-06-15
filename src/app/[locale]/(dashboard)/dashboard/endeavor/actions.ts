@@ -23,6 +23,10 @@ export interface EndeavorData {
   endeavorType: string
   holonTypes: string[]
   missionStatement: string
+  /** Discovery card banner (Endeavors.coverImage). */
+  coverImage?: { id: number | string; url: string } | null
+  /** Discovery card logo badge (Endeavors.logo). */
+  logo?: { id: number | string; url: string } | null
   capabilities: { skill: string; description: string }[]
   region: { city: string; state: string; country: string }
   federation: {
@@ -87,7 +91,7 @@ export async function getEndeavor(): Promise<EndeavorResult> {
     collection: 'endeavors',
     where: { tenant: { equals: tenantId } },
     limit: 1,
-    depth: 0,
+    depth: 1, // hydrate logo/coverImage media so the UI can show a preview
     overrideAccess: true,
   })
 
@@ -95,6 +99,9 @@ export async function getEndeavor(): Promise<EndeavorResult> {
   if (!doc) {
     return { success: true, endeavor: null }
   }
+
+  const mediaRef = (m: any) =>
+    m && typeof m === 'object' && m.id ? { id: m.id, url: m.url || '' } : null
 
   return {
     success: true,
@@ -106,6 +113,8 @@ export async function getEndeavor(): Promise<EndeavorResult> {
       endeavorType: doc.endeavorType || 'custom',
       holonTypes: doc.holonTypes || [],
       missionStatement: doc.missionStatement || '',
+      coverImage: mediaRef(doc.coverImage),
+      logo: mediaRef(doc.logo),
       capabilities: (doc.capabilities || []).map((c: any) => ({
         skill: c.skill || '',
         description: c.description || '',
@@ -160,6 +169,9 @@ export async function updateEndeavor(
   if (data.endeavorType !== undefined) updateData.endeavorType = data.endeavorType
   if (data.holonTypes !== undefined) updateData.holonTypes = data.holonTypes
   if (data.missionStatement !== undefined) updateData.missionStatement = data.missionStatement
+  // Discovery card images — store the media id (null clears the field).
+  if (data.coverImage !== undefined) updateData.coverImage = data.coverImage?.id ?? null
+  if (data.logo !== undefined) updateData.logo = data.logo?.id ?? null
   if (data.capabilities !== undefined) updateData.capabilities = data.capabilities
   if (data.region !== undefined) updateData.region = data.region
   if (data.operator !== undefined) updateData.operator = data.operator

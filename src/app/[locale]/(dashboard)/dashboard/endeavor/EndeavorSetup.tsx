@@ -46,6 +46,8 @@ export default function EndeavorSetup() {
         endeavorType: 'custom',
         holonTypes: [],
         missionStatement: '',
+        coverImage: null,
+        logo: null,
         capabilities: [],
         region: { city: '', state: '', country: 'US' },
         federation: {
@@ -261,6 +263,28 @@ export default function EndeavorSetup() {
         </FormField>
       </Section>
 
+      {/* Discovery Card Section */}
+      <Section title="Discovery Card">
+        <p className="mb-4 text-sm text-muted-foreground">
+          The images shown on your card in the federation network catalog. The banner is
+          your cover image; the badge is your logo.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <ImageField
+            label="Cover Image (banner)"
+            value={endeavor.coverImage ?? null}
+            onChange={(v) => updateField('coverImage', v)}
+            aspect="banner"
+          />
+          <ImageField
+            label="Logo (badge)"
+            value={endeavor.logo ?? null}
+            onChange={(v) => updateField('logo', v)}
+            aspect="square"
+          />
+        </div>
+      </Section>
+
       {/* Operator Section */}
       <Section title="Operator">
         <div className="grid gap-4 md:grid-cols-3">
@@ -457,6 +481,101 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div className="rounded-lg border bg-card p-5">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       {children}
+    </div>
+  )
+}
+
+type MediaValue = { id: number | string; url: string } | null
+
+/**
+ * Image picker for a Discovery-card field: shows the current image, uploads a new
+ * one to /api/media (tenant-scoped by the x-tenant-id middleware), and clears it.
+ * The selected media id is saved when the user clicks Save Changes.
+ */
+function ImageField({
+  label,
+  value,
+  onChange,
+  aspect,
+}: {
+  label: string
+  value: MediaValue
+  onChange: (v: MediaValue) => void
+  aspect: 'banner' | 'square'
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleFile(file: File) {
+    setUploading(true)
+    setError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/media', { method: 'POST', body: fd, credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.errors?.[0]?.message || 'Upload failed')
+      const doc = data.doc || data
+      if (!doc?.id) throw new Error('Upload returned no media')
+      onChange({ id: doc.id, url: doc.url || '' })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium">{label}</label>
+      <div
+        className={`relative overflow-hidden rounded-md border border-border bg-muted/30 ${
+          aspect === 'banner' ? 'aspect-[16/9]' : 'aspect-square max-w-[160px]'
+        }`}
+      >
+        {value?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={value.url} alt={label} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+            No image
+          </div>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void handleFile(f)
+          e.target.value = ''
+        }}
+      />
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="rounded-md border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+        >
+          {uploading ? 'Uploading…' : value ? 'Replace' : 'Upload'}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            disabled={uploading}
+            className="rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-red-600 disabled:opacity-50"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      <p className="mt-1 text-[11px] text-muted-foreground">Changes apply when you click Save.</p>
     </div>
   )
 }
