@@ -24,11 +24,45 @@
 import type { PayloadHandler } from 'payload'
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 import { getAllSouls, getSoul } from '@/souls'
 import { isWorkAvailable, homeForWork } from '@/souls/subscriptions'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 
 type SoulManifest = ReturnType<typeof getAllSouls>[number]
+
+/** Work JSON interchange version (see docs/planning/WORKS_AS_JSON.md). */
+const WORK_JSON_VERSION = 'work.v1'
+
+/** Serving origin from request headers, e.g. https://platform.spacesangels.com. */
+function originFromReq(req: Parameters<PayloadHandler>[0]): string {
+  const h = req.headers
+  const host = h?.get('x-forwarded-host') || h?.get('host') || ''
+  const proto = h?.get('x-forwarded-proto') || 'https'
+  return host ? `${proto}://${host}` : ''
+}
+
+/**
+ * Absolutize a (possibly relative) media URL against the serving origin. The
+ * portable Work JSON must carry ABSOLUTE urls — a relative path is meaningless
+ * once the JSON leaves its origin node (media-by-reference; storage is a per-node
+ * adapter). Already-absolute urls pass through.
+ */
+function absMedia(url: string | null | undefined, origin: string): string | null {
+  if (!url) return null
+  if (/^https?:\/\//i.test(url)) return url
+  if (!origin) return url
+  return `${origin}${url.startsWith('/') ? url : `/${url}`}`
+}
+
+/**
+ * Content address for a Work — sha256 over a normalized payload that EXCLUDES
+ * absolute urls, so the same authored Work hashes identically regardless of which
+ * node serves it or where its media lives. This is the handle catalog gossip rides.
+ */
+function checksumOf(normalized: unknown): string {
+  return 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(normalized)).digest('hex')
+}
 
 /**
  * Resolve the tenant SLUG this request is acting as, for Work scoping.
@@ -70,7 +104,7 @@ function coverFor(soul: SoulManifest): string | null {
   return doc?.image ?? null
 }
 
-function summarize(soul: SoulManifest) {
+function summarize(soul: SoulManifest, origin = '') {
   const isBook = Boolean(soul.bookSlug)
   let pageCount = 0
   if (isBook) {
@@ -86,7 +120,7 @@ function summarize(soul: SoulManifest) {
     statusColor: soul.statusColor,
     tags: soul.tags ?? [],
     type: isBook ? 'book' : 'document',
-    cover: coverFor(soul),
+    cover: absMedia(coverFor(soul), origin),
     unitCount: isBook ? pageCount : soul.docs?.length ?? 0,
     canonicalOrigin: soul.canonical?.origin ?? null,
     home: homeForWork(soul.id),
@@ -98,10 +132,11 @@ export const worksListHandler: PayloadHandler = async (req) => {
   const { payload } = req
   try {
     const tenantSlug = await resolveTenantSlug(req)
+    const origin = originFromReq(req)
     const works = getAllSouls()
       .filter((s) => isWorkAvailable(s.id, tenantSlug))
-      .map(summarize)
-    return Response.json({ ok: true, total: works.length, tenant: tenantSlug, scoped: Boolean(tenantSlug), works })
+      .map((s) => summarize(s, origin))
+    return Response.json({ ok: true, version: WORK_JSON_VERSION, total: works.length, tenant: tenantSlug, scoped: Boolean(tenantSlug), works })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-list] ${msg}`)
@@ -124,6 +159,7 @@ export const worksGetHandler: PayloadHandler = async (req) => {
   if (!isWorkAvailable(soulId, tenantSlug)) {
     return Response.json({ error: 'work not available on this endeavor' }, { status: 404 })
   }
+  const origin = originFromReq(req)
 
   try {
     // ── Book works → manifest + base-language text + inferred chapter slugs ──
@@ -132,14 +168,22 @@ export const worksGetHandler: PayloadHandler = async (req) => {
       if (!loaded) return Response.json({ error: 'book manifest missing' }, { status: 404 })
       const pages = loaded.manifest.pages.map((p, i) => ({
         order: p.order,
-        image: p.image ?? null,
+        image: absMedia(p.image, origin),
         title: loaded.pageTitles[i] || p.title || null,
         slug: loaded.pageSlugs[i],
         text: loaded.baseText[String(p.order)] ?? p.markdown ?? '',
       }))
+      // Content address excludes urls → stable across nodes/storage.
+      const checksum = checksumOf({
+        slug: soul.id,
+        type: 'book',
+        chapters: pages.map((p) => ({ order: p.order, slug: p.slug, title: p.title, text: p.text })),
+      })
       return Response.json({
         ok: true,
-        ...summarize(soul),
+        version: WORK_JSON_VERSION,
+        checksum,
+        ...summarize(soul, origin),
         baseLanguage: loaded.baseLanguage,
         languages: loaded.manifest.languages ?? [],
         pages,
@@ -163,14 +207,23 @@ export const worksGetHandler: PayloadHandler = async (req) => {
         tier: d.tier,
         badge: d.badge ?? null,
         badgeColor: d.badgeColor ?? null,
-        image: d.image ?? null,
+        image: absMedia(d.image, origin),
         body,
       }
     })
 
+    // Content address excludes urls → stable across nodes/storage.
+    const checksum = checksumOf({
+      slug: soul.id,
+      type: 'document',
+      chapters: docs.map((d, i) => ({ order: i, slug: d.id, title: d.title, tier: d.tier, body: d.body })),
+    })
+
     return Response.json({
       ok: true,
-      ...summarize(soul),
+      version: WORK_JSON_VERSION,
+      checksum,
+      ...summarize(soul, origin),
       defaultDoc: soul.defaultDoc,
       links: soul.links ?? [],
       docs,
