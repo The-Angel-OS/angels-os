@@ -62,11 +62,25 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
   // Build state: preserve caller's redirect + the origin domain for
   // cross-domain relay (custom domain tenants).
   // mode=link: linking Google to an existing logged-in user (vs sign-in)
-  const statePayload: { redirect?: string; origin?: string; mode?: string; userId?: string | number } = {}
+  const statePayload: {
+    redirect?: string
+    origin?: string
+    mode?: string
+    userId?: string | number
+    native?: boolean
+  } = {}
 
   const redirectParam = url.searchParams.get('redirect')
   if (redirectParam) {
     statePayload.redirect = redirectParam
+  }
+
+  // native=1: a native app (e.g. Nimue) initiated OAuth in a system browser/Custom
+  // Tab. Instead of setting a web cookie, the callback returns the JWT to the app
+  // via a registered custom scheme deep link. No Google console change — Google
+  // still only ever redirects to this backend's https callback.
+  if (url.searchParams.get('native') === '1') {
+    statePayload.native = true
   }
 
   // Link mode: attach Google to an existing user account
@@ -320,6 +334,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     let stateOrigin: string | undefined
     let stateMode: string | undefined
     let stateLinkUserId: string | number | undefined
+    let stateNative: boolean | undefined
 
     if (stateRaw) {
       try {
@@ -328,11 +343,13 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           origin?: string
           mode?: string
           userId?: string | number
+          native?: boolean
         }
         stateRedirect = stateObj.redirect
         stateOrigin = stateObj.origin
         stateMode = stateObj.mode
         stateLinkUserId = stateObj.userId
+        stateNative = stateObj.native
       } catch {
         // state was not valid JSON — ignore
       }
@@ -381,6 +398,20 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           headers: { Location: canonicalRedirect },
         })
       }
+    }
+
+    // ----- Native app sign-in: hand the JWT back via a custom-scheme deep link -----
+    // Native clients (Nimue) can't use cookies cross-origin, so we return the
+    // Payload JWT to the app's registered scheme. Gated to a fixed scheme to
+    // prevent open redirects. The app stores it as a bearer token.
+    if (stateNative) {
+      const appScheme = process.env.NATIVE_APP_SCHEME || 'nimue'
+      const nativeUrl = `${appScheme}://auth/callback?token=${encodeURIComponent(payloadToken)}`
+      console.log('[Google OAuth] Native deep-link return:', { userId: user.id, scheme: appScheme })
+      return new Response(null, {
+        status: 302,
+        headers: { Location: nativeUrl },
+      })
     }
 
     // Determine final in-app redirect path
