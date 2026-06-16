@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { getAllSouls } from '@/souls'
+import { getAllSouls, type SoulManifest } from '@/souls'
 
 /**
  * WorksGrid — the list of Library works (books, case files, manifestos), rendered
@@ -20,8 +20,15 @@ const STATUS_COLORS: Record<string, string> = {
   amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
 }
 
-export function WorksGrid({ className = '' }: { className?: string }) {
-  const works = getAllSouls()
+export function WorksGrid({
+  className = '',
+  souls,
+}: {
+  className?: string
+  /** Tenant-scoped list to render. Defaults to ALL souls (unscoped). */
+  souls?: SoulManifest[]
+}) {
+  const works = souls ?? getAllSouls()
 
   return (
     <div className={`grid gap-4 sm:grid-cols-2 ${className}`}>

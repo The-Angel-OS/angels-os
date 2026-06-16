@@ -1,5 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
 import LearnExperience from '@/components/Learn/LearnExperience'
+import { getAllSouls } from '@/souls'
+import { isWorkAvailable } from '@/souls/subscriptions'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 export const metadata = {
   title: 'Learn — Angel OS',
@@ -16,5 +19,7 @@ export default async function LearnPage({
 }) {
   const { locale } = await params
   setRequestLocale(locale)
-  return <LearnExperience />
+  const { tenant } = await resolveTenantFromHeaders()
+  const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug))
+  return <LearnExperience souls={souls} />
 }

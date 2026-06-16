@@ -1,6 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { getAllSouls } from '@/souls'
+import { isWorkAvailable } from '@/souls/subscriptions'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { WorksGrid } from '@/components/Library/WorksGrid'
 
 export const metadata = {
@@ -19,7 +21,8 @@ export default async function LearnPage({
   const { locale } = await params
   setRequestLocale(locale)
 
-  const souls = getAllSouls()
+  const { tenant } = await resolveTenantFromHeaders()
+  const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug))
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +52,7 @@ export default async function LearnPage({
             No works in the Library yet.
           </div>
         ) : (
-          <WorksGrid />
+          <WorksGrid souls={souls} />
         )}
 
         {/* Prime Directive footer */}

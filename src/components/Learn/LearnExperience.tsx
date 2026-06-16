@@ -31,6 +31,7 @@ import {
   Flame,
 } from 'lucide-react'
 import { WorksGrid } from '@/components/Library/WorksGrid'
+import type { SoulManifest } from '@/souls'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
 
@@ -582,7 +583,7 @@ function LearningStep({
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
 
-export default function LearnPage() {
+export default function LearnPage({ souls }: { souls?: SoulManifest[] } = {}) {
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ container: scrollRef })
@@ -694,7 +695,7 @@ export default function LearnPage() {
               icon={<Scroll className="w-5 h-5" />}
             />
 
-            <WorksGrid />
+            <WorksGrid souls={souls} />
 
             <div className="mt-4 text-right">
               <Link

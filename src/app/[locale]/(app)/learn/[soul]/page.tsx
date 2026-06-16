@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import path from 'path'
 import fs from 'fs'
 import { getSoul, getAllSouls } from '@/souls'
+import { isWorkAvailable } from '@/souls/subscriptions'
 import { SoulViewer } from './SoulViewer'
 import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
@@ -93,6 +94,10 @@ export default async function SoulPage({
 
   const soul = getSoul(soulId)
   if (!soul) notFound()
+
+  // Lockdown: this Work must be subscribed to the current endeavor.
+  const { tenant } = await resolveTenantFromHeaders()
+  if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
 
   // Book works render the illustrated-primer reader. We load the manifest
   // server-side so the reader opens instantly AND so deep-link URL sync has the

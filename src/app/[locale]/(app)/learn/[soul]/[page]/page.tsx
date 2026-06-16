@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import path from 'path'
 import fs from 'fs'
 import { getSoul } from '@/souls'
+import { isWorkAvailable } from '@/souls/subscriptions'
 import { BookReader } from '@/components/Library/BookReader'
 import { SoulViewer } from '../SoulViewer'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
@@ -126,6 +127,10 @@ export default async function DeepLinkPage({
 
   const soul = getSoul(soulId)
   if (!soul) notFound()
+
+  // Lockdown: this Work must be subscribed to the current endeavor.
+  const { tenant } = await resolveTenantFromHeaders()
+  if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
 
   // ── Book works → the illustrated paged reader ───────────────────────────────
   if (soul.bookSlug) {

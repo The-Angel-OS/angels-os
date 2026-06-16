@@ -25,9 +25,39 @@ import type { PayloadHandler } from 'payload'
 import fs from 'fs'
 import path from 'path'
 import { getAllSouls, getSoul } from '@/souls'
+import { isWorkAvailable, homeForWork } from '@/souls/subscriptions'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 
 type SoulManifest = ReturnType<typeof getAllSouls>[number]
+
+/**
+ * Resolve the tenant SLUG this request is acting as, for Work scoping.
+ *
+ * Nimue hits the NODE host (platform.spacesangels.com) for every platform-node
+ * endeavor, so hostname can't tell the endeavors apart — the client must pass
+ * `?tenant=<slug|id>`. Numeric ⇒ resolve to slug. Falls back to the x-tenant-id
+ * header / hostname (works for the web, where the subdomain IS the tenant).
+ * Returns null when nothing resolves (unscoped: super_admin / dev) ⇒ no filter.
+ */
+async function resolveTenantSlug(req: Parameters<PayloadHandler>[0]): Promise<string | null> {
+  const url = new URL(req.url || '', 'http://localhost')
+  const param = url.searchParams.get('tenant')
+  if (param) {
+    if (/^\d+$/.test(param)) {
+      try {
+        const t = await req.payload.findByID({ collection: 'tenants', id: Number(param), depth: 0, overrideAccess: true })
+        return (t as { slug?: string })?.slug ?? null
+      } catch {
+        return null
+      }
+    }
+    return param
+  }
+  // Header / hostname fallback (web).
+  const header = req.headers?.get('x-tenant-id')
+  if (header) return header
+  return null
+}
 
 /** Best-effort cover image for a Work — first illustrated page/doc, if any. */
 function coverFor(soul: SoulManifest): string | null {
@@ -59,6 +89,7 @@ function summarize(soul: SoulManifest) {
     cover: coverFor(soul),
     unitCount: isBook ? pageCount : soul.docs?.length ?? 0,
     canonicalOrigin: soul.canonical?.origin ?? null,
+    home: homeForWork(soul.id),
   }
 }
 
@@ -66,8 +97,11 @@ function summarize(soul: SoulManifest) {
 export const worksListHandler: PayloadHandler = async (req) => {
   const { payload } = req
   try {
-    const works = getAllSouls().map(summarize)
-    return Response.json({ ok: true, total: works.length, works })
+    const tenantSlug = await resolveTenantSlug(req)
+    const works = getAllSouls()
+      .filter((s) => isWorkAvailable(s.id, tenantSlug))
+      .map(summarize)
+    return Response.json({ ok: true, total: works.length, tenant: tenantSlug, scoped: Boolean(tenantSlug), works })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-list] ${msg}`)
@@ -83,6 +117,13 @@ export const worksGetHandler: PayloadHandler = async (req) => {
 
   const soul = getSoul(soulId)
   if (!soul) return Response.json({ error: 'work not found' }, { status: 404 })
+
+  // Lockdown: a Work not subscribed to this tenant is not readable here (deep
+  // links 404 too, not just hidden from the list).
+  const tenantSlug = await resolveTenantSlug(req)
+  if (!isWorkAvailable(soulId, tenantSlug)) {
+    return Response.json({ error: 'work not available on this endeavor' }, { status: 404 })
+  }
 
   try {
     // ── Book works → manifest + base-language text + inferred chapter slugs ──
