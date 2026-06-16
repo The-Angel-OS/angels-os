@@ -19,9 +19,12 @@ export default async function DashboardInvitationsPage({
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()
 
-  // Fetch space memberships with pending status (invitations)
+  // Fetch tenant memberships that are invitations (Quick Invite writes these).
+  // NOTE: must match the collection sendQuickInvite() creates into — previously
+  // this read 'space-memberships' while invites are created as 'tenant-memberships',
+  // so the list was always empty even though invites existed.
   const invitations = await payload.find({
-    collection: 'space-memberships',
+    collection: 'tenant-memberships',
     where: {
       and: [
         tenantFilter,
@@ -41,7 +44,7 @@ export default async function DashboardInvitationsPage({
     email: doc.invitationDetails?.invitationEmail || 'Unknown',
     status: doc.status,
     role: doc.role,
-    spaceName: typeof doc.space === 'object' ? doc.space?.name || 'Unknown' : 'Unknown',
+    spaceName: typeof doc.tenant === 'object' ? doc.tenant?.name || 'Enterprise' : 'Enterprise',
     inviterName:
       typeof doc.invitedBy === 'object'
         ? doc.invitedBy?.name || doc.invitedBy?.email || 'Unknown'
