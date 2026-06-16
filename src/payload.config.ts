@@ -90,6 +90,7 @@ import { spaceCreateHandler } from '@/endpoints/space-create'
 import { spaceProvisionChannelsHandler } from '@/endpoints/space-provision-channels'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
+import { worksListHandler, worksGetHandler } from '@/endpoints/works'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
 import { tenantInviteAcceptHandler } from '@/endpoints/tenant-invite-accept'
 import { spaceMembersRemoveHandler, spaceMemberCandidatesHandler, spaceMemberAddHandler } from '@/endpoints/space-members'
@@ -471,6 +472,9 @@ export default buildConfig({
         }
       : {}),
   endpoints: [
+    // Works (the Library) — public, read-only, file-based souls for thin clients.
+    { path: '/works-ops/list', method: 'get', handler: worksListHandler },
+    { path: '/works-ops/get', method: 'get', handler: worksGetHandler },
     {
       path: '/leo',
       method: 'get',
