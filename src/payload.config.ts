@@ -224,6 +224,14 @@ export default buildConfig({
     'https://*.kendev.co',
     'http://localhost:3000',
     'http://localhost:3001',
+    // Native clients (Nimue / Capacitor WebView). Auth is bearer-token (no
+    // cookies), so allowing these origins is safe — it lets the native app use
+    // standard fetch (multipart uploads + real SSE streaming) instead of the
+    // CapacitorHttp CORS-bypass that mangles binary bodies.
+    'https://localhost',
+    'http://localhost',
+    'capacitor://localhost',
+    'ionic://localhost',
   ],
   admin: {
     meta: {
