@@ -19,6 +19,8 @@
  */
 
 import type { Payload } from 'payload'
+import { isDown, markDown, recordSuccess, isFatalProviderError } from './providerHealth'
+import { analyzeImageWithGemini } from './geminiVision'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,19 +123,17 @@ export async function analyzeImage(
 ): Promise<AnalysisResult> {
   const startTime = Date.now()
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const geminiKey = process.env.GOOGLE_AI_API_KEY
+  if (!anthropicKey && !geminiKey) {
     return {
       success: false,
-      error: 'ANTHROPIC_API_KEY not configured — vision analysis unavailable.',
+      error: 'No vision provider configured (ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY).',
     }
   }
 
   try {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default
-    const client = new Anthropic({ apiKey })
-
-    // Build the analysis prompt
+    // Build the analysis prompt (shared across providers)
     const inventorySection = options.inventoryMode
       ? `\n- "inventoryItems": array of { "item": string, "quantity": number|null, "location": string|null } — list every distinct product/item you can see with approximate counts`
       : ''
@@ -156,52 +156,66 @@ export async function analyzeImage(
 
 Return ONLY the JSON object, no markdown, no commentary.${customSection}`
 
-    // Build image content
-    const imageContent: any[] = []
+    const userText = 'Analyze this image according to the system instructions.'
+    let rawText = ''
+    let usedModel: string = VISION_MODEL
 
-    if (imageUrl.startsWith('data:')) {
-      // Base64 data URL
-      const [header, base64Data] = imageUrl.split(',')
-      const mediaType = header?.match(/data:([^;]+)/)?.[1] || 'image/png'
-      imageContent.push({
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: mediaType,
-          data: base64Data,
-        },
-      })
-    } else {
-      // Remote URL
-      imageContent.push({
-        type: 'image',
-        source: {
-          type: 'url',
-          url: imageUrl,
-        },
-      })
+    // ── Provider 1: Anthropic vision (skipped while circuit-broken) ──────────
+    if (anthropicKey && !isDown('anthropic')) {
+      try {
+        const Anthropic = (await import('@anthropic-ai/sdk')).default
+        const client = new Anthropic({ apiKey: anthropicKey })
+
+        const imageContent: any[] = []
+        if (imageUrl.startsWith('data:')) {
+          const [header, base64Data] = imageUrl.split(',')
+          const mediaType = header?.match(/data:([^;]+)/)?.[1] || 'image/png'
+          imageContent.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } })
+        } else {
+          imageContent.push({ type: 'image', source: { type: 'url', url: imageUrl } })
+        }
+        imageContent.push({ type: 'text', text: userText })
+
+        const response = await client.messages.create({
+          model: VISION_MODEL,
+          max_tokens: 2048,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: imageContent }],
+        })
+        const textBlock = response.content.find((b) => b.type === 'text')
+        rawText = textBlock?.type === 'text' ? textBlock.text : ''
+        recordSuccess('anthropic')
+      } catch (anthropicErr) {
+        console.error('[mediaAnalysis] Anthropic vision failed:', anthropicErr)
+        // Fatal (credits/auth/quota) → open the breaker so we stop hammering it,
+        // and flag the first transition for escalation (logged; CIC reads outages).
+        if (isFatalProviderError(anthropicErr)) {
+          const firstDown = markDown('anthropic', anthropicErr instanceof Error ? anthropicErr.message : 'vision error')
+          if (firstDown) {
+            console.error('[mediaAnalysis] ⚠ ESCALATE: Anthropic vision DOWN → falling back to Gemini')
+          }
+        }
+      }
     }
 
-    imageContent.push({
-      type: 'text',
-      text: 'Analyze this image according to the system instructions.',
-    })
-
-    const response = await client.messages.create({
-      model: VISION_MODEL,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: imageContent,
-        },
-      ],
-    })
-
-    // Extract JSON from response
-    const textBlock = response.content.find((b) => b.type === 'text')
-    const rawText = textBlock?.type === 'text' ? textBlock.text : ''
+    // ── Provider 2: Gemini fallback ─────────────────────────────────────────
+    if (!rawText) {
+      if (!geminiKey) {
+        return { success: false, error: 'Vision unavailable — Anthropic failed and GOOGLE_AI_API_KEY not set.' }
+      }
+      try {
+        rawText = await analyzeImageWithGemini(imageUrl, systemPrompt, userText, { apiKey: geminiKey, expectJson: true })
+        usedModel = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash'
+        recordSuccess('google')
+      } catch (geminiErr) {
+        console.error('[mediaAnalysis] Gemini vision failed:', geminiErr)
+        if (isFatalProviderError(geminiErr)) markDown('google', geminiErr instanceof Error ? geminiErr.message : 'gemini error')
+        return {
+          success: false,
+          error: `Vision analysis failed (all providers): ${geminiErr instanceof Error ? geminiErr.message : 'unknown'}`,
+        }
+      }
+    }
 
     // Parse the JSON response
     let parsed: Record<string, unknown>
@@ -262,7 +276,7 @@ Return ONLY the JSON object, no markdown, no commentary.${customSection}`
           }
         : undefined,
       summary: parsed.summary ? String(parsed.summary).slice(0, 200) : undefined,
-      modelUsed: VISION_MODEL,
+      modelUsed: usedModel,
       durationMs,
     }
   } catch (err) {
