@@ -26,7 +26,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { getAllSouls, getSoul } from '@/souls'
-import { isWorkAvailable, homeForWork } from '@/souls/subscriptions'
+import { isWorkAvailable, homeForWork, WORK_SUBSCRIPTIONS } from '@/souls/subscriptions'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 
 type SoulManifest = ReturnType<typeof getAllSouls>[number]
@@ -127,6 +127,60 @@ function summarize(soul: SoulManifest, origin = '') {
   }
 }
 
+/**
+ * Assemble a DOCUMENT Work's JSON from message-backed chapters (Phase 2).
+ * Same response shape as the file path, so the reader is source-agnostic.
+ */
+async function assembleDocFromMessages(
+  req: Parameters<PayloadHandler>[0],
+  soul: SoulManifest,
+  storage: { space: number; channel: string },
+  origin: string,
+): Promise<Response> {
+  const { payload } = req
+  const res = await payload.find({
+    collection: 'messages',
+    where: { and: [{ space: { equals: storage.space } }, { channel: { equals: storage.channel } }] },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chapters = (res.docs as any[])
+    .filter((m) => m.metadata?.kind === 'work_chapter')
+    .sort((a, b) => (a.metadata?.order ?? 0) - (b.metadata?.order ?? 0))
+  const docs = chapters.map((m) => {
+    const md = m.metadata || {}
+    const body = typeof m.content === 'string' ? m.content : (m.content?.text ?? '')
+    return {
+      id: String(md.chapterSlug ?? m.id),
+      title: md.title ?? '',
+      date: md.date ?? '',
+      description: md.description ?? '',
+      tier: md.tier ?? 'chapter',
+      badge: md.badge ?? null,
+      badgeColor: md.badgeColor ?? null,
+      image: absMedia(md.image ?? null, origin),
+      body,
+    }
+  })
+  const checksum = checksumOf({
+    slug: soul.id,
+    type: 'document',
+    chapters: docs.map((d, i) => ({ order: i, slug: d.id, title: d.title, tier: d.tier, body: d.body })),
+  })
+  return Response.json({
+    ok: true,
+    version: WORK_JSON_VERSION,
+    checksum,
+    source: 'messages',
+    ...summarize(soul, origin),
+    defaultDoc: soul.defaultDoc,
+    links: soul.links ?? [],
+    docs,
+  })
+}
+
 /** GET /api/works-ops/list */
 export const worksListHandler: PayloadHandler = async (req) => {
   const { payload } = req
@@ -162,6 +216,21 @@ export const worksGetHandler: PayloadHandler = async (req) => {
   const origin = originFromReq(req)
 
   try {
+    // DB-first: if a works catalog record points at message-backed storage,
+    // assemble from messages. Any miss/error falls through to the file source.
+    if (!soul.bookSlug) {
+      try {
+        const wr = await payload.find({ collection: 'works', where: { slug: { equals: soulId } }, limit: 1, depth: 0, overrideAccess: true })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sr = (wr.docs as any[])[0]?.storageRef
+        if (sr?.kind === 'messages' && sr.space && sr.channel) {
+          return await assembleDocFromMessages(req, soul, { space: Number(sr.space), channel: String(sr.channel) }, origin)
+        }
+      } catch {
+        /* works table absent / DB hiccup → file fallback below */
+      }
+    }
+
     // ── Book works → manifest + base-language text + inferred chapter slugs ──
     if (soul.bookSlug) {
       const loaded = loadBookFromPublic(soul.bookSlug)
@@ -183,6 +252,7 @@ export const worksGetHandler: PayloadHandler = async (req) => {
         ok: true,
         version: WORK_JSON_VERSION,
         checksum,
+        source: 'file',
         ...summarize(soul, origin),
         baseLanguage: loaded.baseLanguage,
         languages: loaded.manifest.languages ?? [],
@@ -223,6 +293,7 @@ export const worksGetHandler: PayloadHandler = async (req) => {
       ok: true,
       version: WORK_JSON_VERSION,
       checksum,
+      source: 'file',
       ...summarize(soul, origin),
       defaultDoc: soul.defaultDoc,
       links: soul.links ?? [],
@@ -231,6 +302,104 @@ export const worksGetHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-get] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * GET /api/works-ops/import?soul=<id> — materialize a DOCUMENT Work's chapters
+ * as messages (Phase 2). Idempotent: clears this Work's channel then recreates
+ * one message per doc (messageType 'system', metadata.kind 'work_chapter',
+ * metadata.order), and upserts the `works` catalog record with
+ * storageRef → messages. Chapter messages carry NO attachments, so the Messages
+ * workflow/media hooks no-op (no LEO, no analysis). Books not handled (they stay
+ * on the manifest reader). Auth: super_admin OR ?key=CRON_SECRET.
+ */
+export const worksImportHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  const url = new URL(req.url || '', 'http://localhost')
+  const secret = process.env.CRON_SECRET
+  const key = url.searchParams.get('key')
+  const authHeader = req.headers?.get('authorization') || ''
+  const isSuperAdmin = Boolean(user && ((user as { roles?: string[] }).roles || []).includes('super_admin'))
+  const keyOk = Boolean(secret && (key === secret || authHeader === `Bearer ${secret}`))
+  if (!isSuperAdmin && !keyOk) return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
+
+  const soulId = url.searchParams.get('soul') || ''
+  const soul = getSoul(soulId)
+  if (!soul) return Response.json({ error: 'work not found' }, { status: 404 })
+  if (soul.bookSlug) return Response.json({ error: 'Phase 2 import is document-works only (books stay on the manifest reader)' }, { status: 400 })
+
+  try {
+    const ownerSlug = homeForWork(soulId)
+    const tRes = await payload.find({ collection: 'tenants', where: { slug: { equals: ownerSlug } }, limit: 1, depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = (tRes.docs as any[])[0]
+    if (!tenant) return Response.json({ error: `owner tenant '${ownerSlug}' not on this node` }, { status: 404 })
+
+    const sRes = await payload.find({ collection: 'spaces', where: { tenant: { equals: tenant.id } }, limit: 1, sort: 'createdAt', depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const space = (sRes.docs as any[])[0]
+    if (!space) return Response.json({ error: `no space on '${ownerSlug}' to host the work channel` }, { status: 409 })
+    const channel = `work-${soulId}`
+
+    // Read doc bodies once (also used for the checksum).
+    const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
+    const soulDocs = soul.docs ?? []
+    const bodies = soulDocs.map((d) => {
+      try { return fs.readFileSync(path.join(docsBase, d.filename), 'utf-8') } catch { return `# ${d.title}\n\n*Document not found.*` }
+    })
+
+    // Idempotent: clear this Work's channel, then recreate.
+    await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
+
+    for (let i = 0; i < soulDocs.length; i++) {
+      const d = soulDocs[i]
+      await payload.create({
+        collection: 'messages',
+        overrideAccess: true,
+        data: {
+          space: space.id,
+          channel,
+          messageType: 'system',
+          visibility: 'tenant',
+          content: { type: 'text', text: bodies[i] },
+          metadata: {
+            kind: 'work_chapter', workSlug: soulId, order: i,
+            chapterSlug: d.id, title: d.title, date: d.date, description: d.description,
+            tier: d.tier, badge: d.badge ?? null, badgeColor: d.badgeColor ?? null, image: d.image ?? null,
+          },
+        },
+      })
+    }
+
+    const sub = WORK_SUBSCRIPTIONS[soulId]
+    const checksum = checksumOf({
+      slug: soul.id,
+      type: 'document',
+      chapters: soulDocs.map((d, i) => ({ order: i, slug: d.id, title: d.title, tier: d.tier, body: bodies[i] })),
+    })
+    const recData = {
+      slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
+      type: 'document' as const, status: soul.status, statusColor: soul.statusColor,
+      tags: soul.tags ?? [], canonical: soul.canonical ?? null,
+      owner: ownerSlug, subscribers: sub?.subscribers ?? [],
+      storageRef: { kind: 'messages', space: space.id, channel },
+      checksum, jsonVersion: WORK_JSON_VERSION,
+    }
+    const existing = await payload.find({ collection: 'works', where: { slug: { equals: soul.id } }, limit: 1, depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ex = (existing.docs as any[])[0]
+    // json fields (tags/canonical/subscribers/storageRef) are loosely typed → cast.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = recData as any
+    if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
+    else await payload.create({ collection: 'works', data, overrideAccess: true })
+
+    return Response.json({ ok: true, soul: soulId, owner: ownerSlug, space: space.id, channel, chapters: soulDocs.length, checksum })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[works-import] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }

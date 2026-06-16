@@ -119,6 +119,7 @@ export interface Config {
     signatures: Signature;
     memberships: Membership;
     services: Service;
+    works: Work;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
     transports: Transport;
@@ -202,6 +203,7 @@ export interface Config {
     signatures: SignaturesSelect<false> | SignaturesSelect<true>;
     memberships: MembershipsSelect<false> | MembershipsSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
+    works: WorksSelect<false> | WorksSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
     transports: TransportsSelect<false> | TransportsSelect<true>;
@@ -5439,6 +5441,88 @@ export interface Service {
   createdAt: string;
 }
 /**
+ * The Library catalog — one record per Work (the manifest handle).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works".
+ */
+export interface Work {
+  id: number;
+  /**
+   * Stable Work id, e.g. "answer53" — matches the file-based soul id during migration.
+   */
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  type?: ('document' | 'book') | null;
+  status?: string | null;
+  statusColor?: string | null;
+  /**
+   * string[] of tags.
+   */
+  tags?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Publish-once-canonical: { origin, creditedTo?, contributors?[] }.
+   */
+  canonical?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Owning/editable endeavor — tenant SLUG (federation-stable, not an id).
+   */
+  owner?: string | null;
+  /**
+   * string[] of subscriber tenant slugs (additional endeavors that carry a copy).
+   */
+  subscribers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  cover?: (number | null) | Media;
+  /**
+   * Storage-of-record pointer: { kind: 'file'|'messages', channel?, space? }.
+   */
+  storageRef?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Content address (sha256, url-independent) — the catalog-gossip handle.
+   */
+  checksum?: string | null;
+  /**
+   * Work JSON interchange version.
+   */
+  jsonVersion?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Federation governance board members
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6341,6 +6425,26 @@ export interface PayloadMcpApiKey {
      */
     deleteMembershipPlan?: boolean | null;
     /**
+     * Configure business hours and booking availability for the current Endeavor. Sets which days are open, the daily open/close times, minimum advance booking notice, and a buffer between appointments. Use when setting up or updating when customers can book. Example: Monday-Friday 7am-5pm, 2-hour minimum notice, 30-min buffer.
+     */
+    configureAvailability?: boolean | null;
+    /**
+     * Show the current booking availability settings for this Endeavor — which days are open, hours, and booking rules.
+     */
+    listAvailability?: boolean | null;
+    /**
+     * Create or update a bookable service offering for the current Endeavor. Sets the name, description, price, duration, and whether customers can book it online. Use when adding or editing a service in the booking catalog.
+     */
+    configureService?: boolean | null;
+    /**
+     * Set how this Endeavor collects payment for bookings. "deposit" charges a deposit online up front (requires Stripe Connect). "cod" takes the booking as a request and the owner collects on completion (cash, check, Zelle) — the right choice for trades like an electrician or for any pay-on-site business. Note: a $0 or no-deposit service never requires online payment regardless of this setting.
+     */
+    configurePaymentMethod?: boolean | null;
+    /**
+     * Report booking revenue and job counts for the current Endeavor. Answers questions like "how much did I make this month?" or "how many jobs did I do in November?" Optionally filter by year, month (1-12), or service name.
+     */
+    queryBookingRevenue?: boolean | null;
+    /**
      * Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor's public site.
      */
     applySiteTemplate?: boolean | null;
@@ -6903,6 +7007,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'services';
         value: number | Service;
+      } | null)
+    | ({
+        relationTo: 'works';
+        value: number | Work;
       } | null)
     | ({
         relationTo: 'board-members';
@@ -8906,6 +9014,29 @@ export interface ServicesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works_select".
+ */
+export interface WorksSelect<T extends boolean = true> {
+  slug?: T;
+  title?: T;
+  subtitle?: T;
+  description?: T;
+  type?: T;
+  status?: T;
+  statusColor?: T;
+  tags?: T;
+  canonical?: T;
+  owner?: T;
+  subscribers?: T;
+  cover?: T;
+  storageRef?: T;
+  checksum?: T;
+  jsonVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "board-members_select".
  */
 export interface BoardMembersSelect<T extends boolean = true> {
@@ -9709,6 +9840,11 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         createMembershipPlan?: T;
         listMembershipPlans?: T;
         deleteMembershipPlan?: T;
+        configureAvailability?: T;
+        listAvailability?: T;
+        configureService?: T;
+        configurePaymentMethod?: T;
+        queryBookingRevenue?: T;
         applySiteTemplate?: T;
         createWorkFromUrl?: T;
         createQuest?: T;
