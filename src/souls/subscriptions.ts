@@ -28,18 +28,14 @@ export interface WorkSubscription {
 /** Default home for an unmapped Work — Angel OS platform, NOT "everywhere". */
 export const DEFAULT_WORK_HOME = 'platform'
 
-/**
- * Catch-all endeavors that display EVERY Work (current and future), regardless of
- * per-work subscription. Clearwater Cruisin is the library catch-all.
- */
-export const CATCH_ALL_TENANTS = new Set<string>(['clearwater-cruisin'])
-
+// Clearwater Cruisin currently carries the whole existing catalog (explicit
+// config, per-work — NOT an auto catch-all; future works opt in deliberately).
 export const WORK_SUBSCRIPTIONS: Record<string, WorkSubscription> = {
-  // WDEG — its own endeavor.
-  wdeg: { home: 'wheredideveryonego' },
-  // Answer 53 & The Rainmaker — Angel OS.
-  answer53: { home: 'platform' },
-  rainmaker: { home: 'platform' },
+  // WDEG — its own endeavor (+ Clearwater).
+  wdeg: { home: 'wheredideveryonego', subscribers: ['clearwater-cruisin'] },
+  // Answer 53 & The Rainmaker — Angel OS (+ Clearwater).
+  answer53: { home: 'platform', subscribers: ['clearwater-cruisin'] },
+  rainmaker: { home: 'platform', subscribers: ['clearwater-cruisin'] },
   // Ready Player Everyone — Angel OS + Clearwater Cruisin + the federation node.
   'ready-player-everyone': { home: 'platform', subscribers: ['clearwater-cruisin', 'kendev'] },
   // GPT Psychosis (The Poster Child) — Clearwater Cruisin + Angel OS.
@@ -65,6 +61,5 @@ export function homeForWork(workId: string): string {
  */
 export function isWorkAvailable(workId: string, tenantSlug?: string | null): boolean {
   if (!tenantSlug) return true
-  if (CATCH_ALL_TENANTS.has(tenantSlug)) return true
   return tenantsForWork(workId).includes(tenantSlug)
 }
