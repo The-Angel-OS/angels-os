@@ -437,7 +437,10 @@ export const worksImportHandler: PayloadHandler = async (req) => {
             if (r.ok) buf = Buffer.from(await r.arrayBuffer())
           }
           if (!buf) { imageErrors.push(`${basename}: no bytes`); continue }
-          const media = await payload.create({ collection: 'media', overrideAccess: true, data: { alt: `${soul.title}` }, file: { data: buf, mimetype: 'image/webp', name: basename, size: buf.length } })
+          // Media is tenant-scoped ("Assigned Tenant") — set the owner tenant
+          // explicitly (media has no setTenantFromSpace hook like messages do).
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const media = await payload.create({ collection: 'media', overrideAccess: true, data: { alt: `${soul.title}`, tenant: tenant.id } as any, file: { data: buf, mimetype: 'image/webp', name: basename, size: buf.length } })
           const u = String((media as { url?: string }).url || '')
           urlByImage[p.image] = u
           if (!u) imageErrors.push(`${basename}: media.url empty`)
