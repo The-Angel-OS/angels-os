@@ -64,14 +64,14 @@ export const toolMetricsHandler: PayloadHandler = async (req) => {
     for (const m of res.docs as Array<Record<string, unknown>>) {
       const md = m.metadata as Record<string, unknown> | undefined
 
-      // Per-model latency + cost (telemetry is spread into metadata).
-      const provider = md?.provider as string | undefined
+      // Per-model latency + cost. Only count COMPLETED responses (latencyMs
+      // present) — streaming-placeholder messages carry a model but no telemetry.
       const model = md?.model as string | undefined
-      if (provider || model) {
-        const key = `${provider ?? '?'} / ${model ?? '?'}`
+      if (typeof md?.latencyMs === 'number' && model) {
+        const key = `${(md?.provider as string) ?? '?'} / ${model}`
         const e = byModel.get(key) ?? { ms: [], cost: 0, tokens: 0, n: 0 }
         e.n++
-        if (typeof md?.latencyMs === 'number') e.ms.push(md.latencyMs)
+        e.ms.push(md.latencyMs)
         if (typeof md?.costCents === 'number') e.cost += md.costCents
         if (typeof md?.totalTokens === 'number') e.tokens += md.totalTokens
         byModel.set(key, e)
