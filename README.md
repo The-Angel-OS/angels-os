@@ -15,8 +15,8 @@ An open-source, constitutional AI-native platform where every Enterprise (busine
 [![Engines](https://img.shields.io/badge/Engines-15-ff8c00)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![Payload](https://img.shields.io/badge/Payload_CMS-3.77.0-blue)]()
-[![Leo Tools](https://img.shields.io/badge/Leo_Tools-121-emerald)]()
-[![Endpoints](https://img.shields.io/badge/API_Endpoints-75+-purple)]()
+[![Leo Tools](https://img.shields.io/badge/Leo_Tools-137-emerald)]()
+[![Endpoints](https://img.shields.io/badge/API_Endpoints-145+-purple)]()
 [![Collections](https://img.shields.io/badge/Collections-42-orange)]()
 [![Sprints](https://img.shields.io/badge/Sprints-44-ff69b4)]()
 [![E2E](https://img.shields.io/badge/E2E-14%20suites-9cf)]()
@@ -57,6 +57,15 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **5%** | Justice Fund (Guardian Angel provisioning) |
 
 ---
+
+## Latest (June 2026) — Works Distribution, Market Vendors, Comms Substrate 📚🎙️
+
+The publishing layer, the at-the-market go-to-market, and the voice/realtime substrate all advanced — and the **Nimue** Android client became a real showpiece.
+
+- **Works as a distributable, offline-ready library** — Works are now **DB + Vercel Blob** (Work JSON v1, content **checksum**, absolute Blob URLs), **publish-once-canonical + syndicate** (a Work is canonical at its home endeavor; subscribers carry copies that emit `rel=canonical`). **`/works`** is now a first-order route that appears in nav only when the tenant has works (like Events). Offline-sync primitive shipped: **`GET /api/works-ops/checksums`** lets a client diff its whole cached library in one call and re-pull only what changed. The vision: every doc eventually readable in `/learn` — or as a Work itself.
+- **Market-Vendor vertical** — a generic small-retail **site template** (`provisionMarketVendorSite`, sibling to the church/fitness templates) with **Hays Cactus Farm** as the reference profile (5 pages w/ heroes, fleshed-out guides, dish-garden catalog, a "Find Us" recurring-market calendar). The factory move: `replicate_site` clones it to local market vendors on the spot. See [`docs/strategy/MARKET_VENDOR_VERTICAL.md`](docs/strategy/MARKET_VENDOR_VERTICAL.md).
+- **Comms substrate = LiveKit (VAPI retired)** — one vendor for rooms + SIP telephony + AI agents. Peer-to-peer voice/video in channels is **live** (token endpoint + full room UI). Roadmap = an **IP-PBX ladder** (rooms → SIP inbound → LEO voice agent → PBX features). See [`docs/strategy/COMMS_AND_WORKS_ROADMAP.md`](docs/strategy/COMMS_AND_WORKS_ROADMAP.md).
+- **Nimue as Jarvis — the visual echo** — every LEO content mutation now emits the **public surface it changed** as an `affectedUrl` SSE event, so the Nimue client can show a before/after snapshot of the change. Field-tested in the wild (multi-photo capture → post to a Space).
 
 ## Latest (June 2026) — The Angel Token Economy 🪙
 
