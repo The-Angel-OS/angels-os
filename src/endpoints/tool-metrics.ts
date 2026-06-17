@@ -56,13 +56,29 @@ export const toolMetricsHandler: PayloadHandler = async (req) => {
       select: { metadata: true, createdAt: true },
     })
 
-    // Group step ms by tool name.
+    // Group step ms by tool name, and response telemetry by provider/model.
     const byTool = new Map<string, { ms: number[]; errors: number }>()
+    const byModel = new Map<string, { ms: number[]; cost: number; tokens: number; n: number }>()
     let tracesWithSteps = 0
     let stepsTotal = 0
     for (const m of res.docs as Array<Record<string, unknown>>) {
-      const tc = (m.metadata as { toolChain?: { steps?: Step[] } } | undefined)?.toolChain
-      const steps = tc?.steps
+      const md = m.metadata as Record<string, unknown> | undefined
+
+      // Per-model latency + cost (telemetry is spread into metadata).
+      const provider = md?.provider as string | undefined
+      const model = md?.model as string | undefined
+      if (provider || model) {
+        const key = `${provider ?? '?'} / ${model ?? '?'}`
+        const e = byModel.get(key) ?? { ms: [], cost: 0, tokens: 0, n: 0 }
+        e.n++
+        if (typeof md?.latencyMs === 'number') e.ms.push(md.latencyMs)
+        if (typeof md?.costCents === 'number') e.cost += md.costCents
+        if (typeof md?.totalTokens === 'number') e.tokens += md.totalTokens
+        byModel.set(key, e)
+      }
+
+      // Per-tool step latency.
+      const steps = (md as { toolChain?: { steps?: Step[] } } | undefined)?.toolChain?.steps
       if (!Array.isArray(steps) || !steps.length) continue
       tracesWithSteps++
       for (const s of steps) {
@@ -92,6 +108,21 @@ export const toolMetricsHandler: PayloadHandler = async (req) => {
       })
       .sort((a, b) => b.p95 - a.p95) // slowest first — the optimization queue
 
+    const models = [...byModel.entries()]
+      .map(([name, e]) => {
+        const sorted = [...e.ms].sort((a, b) => a - b)
+        return {
+          name,
+          responses: e.n,
+          p50: pct(sorted, 50),
+          p95: pct(sorted, 95),
+          p99: pct(sorted, 99),
+          totalCostCents: +e.cost.toFixed(2),
+          avgTokens: e.n ? Math.round(e.tokens / e.n) : 0,
+        }
+      })
+      .sort((a, b) => b.responses - a.responses)
+
     return Response.json({
       ok: true,
       tenant: tenant || null,
@@ -99,6 +130,7 @@ export const toolMetricsHandler: PayloadHandler = async (req) => {
       tracesWithSteps,
       stepsTotal,
       tools,
+      models,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
