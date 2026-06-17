@@ -65,3 +65,7 @@ scripts/_local/.scratch/
 test-results/
 **/__pycache__/
 *.pyc
+
+# Local-only scripts + personal transcripts (never commit to the public repo)
+scripts/_local/
+docs/transcripts/
