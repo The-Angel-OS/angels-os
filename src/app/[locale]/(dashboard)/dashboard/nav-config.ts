@@ -376,6 +376,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         isActive: active('/dashboard/admin/comments'),
         visible: always,
       },
+      {
+        key: 'works',
+        label: 'Works Studio',
+        icon: 'book-open',
+        href: (p) => `${p}/dashboard/works`,
+        isActive: active('/dashboard/works'),
+        visible: always,
+      },
     ],
   },
 
@@ -403,14 +411,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'anchor',
         href: (p) => `${p}/dashboard/admin/crew`,
         isActive: active('/dashboard/admin/crew'),
-        visible: always,
-      },
-      {
-        key: 'works',
-        label: 'Works Studio',
-        icon: 'book-open',
-        href: (p) => `${p}/dashboard/works`,
-        isActive: active('/dashboard/works'),
         visible: always,
       },
       {
