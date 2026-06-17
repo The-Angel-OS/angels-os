@@ -8,7 +8,7 @@
 
 ## The 30-second pitch (say it your way)
 
-> "Hey — I'm local, with Clearwater Cruisin'. I build a thing called Angel OS. If you don't have a website, I can stand one up for you in about three minutes — your own site, your products, a 'book me' button — and it's free to try for a month. Want to see yours?"
+> "Hey — I'm local, with Clearwater Cruisin'. I build a thing called Angel OS. If you don't have a website, I can stand one up for you in about three minutes — your own site, your products, a 'book me' button. It's **free** — there's no platform fee while we're getting started, you'd just pay the normal card-processing fee when you make a sale. Want to see yours?"
 
 Then **open the laptop and show them a real one.** The demo does the selling.
 
@@ -16,9 +16,9 @@ Then **open the laptop and show them a real one.** The demo does the selling.
 - *"It's YOUR site — not a listing buried in someone else's app. You own it."*
 - *"Everyone here who joins gets linked together — you promote each other."*
 - *"Start a YouTube channel? We'll help set it up and cross-promote it."*
-- *"Free for 30 days. If it's not doing anything for you, walk away — no lock-in."*
+- *"You're a **founding vendor** — no platform fee, locked-in terms, and you can walk anytime. No lock-in."*
 
-**Don't oversell.** You're not closing a deal; you're handing a neighbor something useful. The 30 free days *is* the pitch.
+**Be straight with them — this is beta.** "It's new software, you'd be one of the first. That's exactly why there's no charge — you're doing me the favor by trying it. If it's not earning its keep, drop it." Honesty about the risk *builds* trust; it doesn't cost the sale.
 
 ---
 
@@ -53,9 +53,9 @@ They need exactly what Angel OS ships:
 
 ## One-page handout (print or screenshot this part)
 
-### 🪽 Get your own website — free for 30 days
+### 🪽 Get your own website — free, on the spot
 
-**Built for you, on the spot, by Clearwater Cruisin' + Angel OS.**
+**Built for you by Clearwater Cruisin' + Angel OS. No platform fee — you're a founding vendor.**
 
 You're a maker, a grower, a small business. You deserve more than a post that scrolls away. Here's what we set up for you — in minutes, for free:
 
@@ -67,7 +67,7 @@ You're a maker, a grower, a small business. You deserve more than a post that sc
 - 🤝 **Linked with the other Dunedin vendors** — we promote each other
 - 📺 **YouTube help** — start a channel, we'll cross-promote it
 
-**It's *your* site. You own it. No lock-in. Free for 30 days.**
+**It's *your* site. You own it. No platform fee while we're in beta — just card processing on sales. No lock-in, ever.**
 
 Talk to **Ken** at the market — or scan / visit:
 **clearwater-cruisin.spacesangels.com**
