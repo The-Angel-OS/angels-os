@@ -399,6 +399,8 @@ export const worksImportHandler: PayloadHandler = async (req) => {
 
     let chapters = 0
     let checksum = ''
+    let imagesUploaded = 0
+    const imageErrors: string[] = []
     let storageRef: Record<string, unknown> = { kind: 'messages', space: space.id, channel }
     const type: 'document' | 'book' = soul.bookSlug ? 'book' : 'document'
 
@@ -422,18 +424,26 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       langText[baseLang] = langText[baseLang] ?? loaded.baseText
 
       // Upload each unique page image to media (→ Blob), keyed by image path.
+      // fs-first (bundled via outputFileTracingIncludes); self-fetch fallback.
       const urlByImage: Record<string, string> = {}
       for (const p of loaded.manifest.pages) {
         if (!p.image || urlByImage[p.image]) continue
+        const basename = p.image.split('/').pop() || 'page.webp'
         try {
-          const r = await fetch(`${origin}${p.image}`)
-          if (!r.ok) continue
-          const buf = Buffer.from(await r.arrayBuffer())
-          const name = p.image.split('/').pop() || 'page.webp'
-          const media = await payload.create({ collection: 'media', overrideAccess: true, data: { alt: soul.title }, file: { data: buf, mimetype: 'image/webp', name, size: buf.length } })
-          urlByImage[p.image] = String((media as { url?: string }).url || '')
-        } catch { /* skip image */ }
+          let buf: Buffer | null = null
+          try { buf = fs.readFileSync(path.join(process.cwd(), 'public', 'library', 'cas', basename)) } catch { buf = null }
+          if (!buf) {
+            const r = await fetch(`${origin}${p.image}`)
+            if (r.ok) buf = Buffer.from(await r.arrayBuffer())
+          }
+          if (!buf) { imageErrors.push(`${basename}: no bytes`); continue }
+          const media = await payload.create({ collection: 'media', overrideAccess: true, data: { alt: `${soul.title}` }, file: { data: buf, mimetype: 'image/webp', name: basename, size: buf.length } })
+          const u = String((media as { url?: string }).url || '')
+          urlByImage[p.image] = u
+          if (!u) imageErrors.push(`${basename}: media.url empty`)
+        } catch (e) { imageErrors.push(`${basename}: ${e instanceof Error ? e.message : String(e)}`) }
       }
+      imagesUploaded = Object.values(urlByImage).filter(Boolean).length
 
       // One message per page. Image is referenced by metadata url (NOT an
       // attachment) so the media-analysis/workflow hooks stay no-op.
@@ -510,7 +520,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
     else await payload.create({ collection: 'works', data, overrideAccess: true })
 
-    return Response.json({ ok: true, soul: soulId, type, owner: ownerSlug, space: space.id, channel, chapters, checksum })
+    return Response.json({ ok: true, soul: soulId, type, owner: ownerSlug, space: space.id, channel, chapters, checksum, imagesUploaded, imageErrors: imageErrors.slice(0, 5) })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-import] ${msg}`)
