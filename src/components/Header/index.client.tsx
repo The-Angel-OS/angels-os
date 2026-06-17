@@ -37,6 +37,8 @@ type Props = {
   hasEvents?: boolean
   /** Posts is first-class only when there are published posts; else it collapses to More. */
   hasPosts?: boolean
+  /** Works/Library is first-class only when the tenant has works; else it collapses to More. */
+  hasWorks?: boolean
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -66,6 +68,16 @@ const EVENTS_NAV_ITEM = {
     type: 'custom' as const,
     label: 'Events',
     url: '/events',
+    newTab: false,
+  },
+}
+
+const WORKS_NAV_ITEM = {
+  id: 'works',
+  link: {
+    type: 'custom' as const,
+    label: 'Works',
+    url: '/works',
     newTab: false,
   },
 }
@@ -141,7 +153,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -204,6 +216,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
     // Donate is always visible — every endeavor can receive donations
     if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
+    if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
     if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
     // Dashboard & Spaces are always visible — the dashboard layout handles auth redirect
     if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
@@ -221,6 +234,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (!hasProducts) demoteUrls.push('/shop')
   if (!hasEvents) demoteUrls.push('/events')
   if (!hasPosts) demoteUrls.push('/posts')
+  if (!hasWorks) demoteUrls.push('/works')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
     forcePrimaryUrls: ['/federation/discover'], // Discovery is always top-level
