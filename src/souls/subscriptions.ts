@@ -28,6 +28,12 @@ export interface WorkSubscription {
 /** Default home for an unmapped Work — Angel OS platform, NOT "everywhere". */
 export const DEFAULT_WORK_HOME = 'platform'
 
+/**
+ * Catch-all endeavors that display EVERY Work (current and future), regardless of
+ * per-work subscription. Clearwater Cruisin is the library catch-all.
+ */
+export const CATCH_ALL_TENANTS = new Set<string>(['clearwater-cruisin'])
+
 export const WORK_SUBSCRIPTIONS: Record<string, WorkSubscription> = {
   // WDEG — its own endeavor.
   wdeg: { home: 'wheredideveryonego' },
@@ -59,5 +65,6 @@ export function homeForWork(workId: string): string {
  */
 export function isWorkAvailable(workId: string, tenantSlug?: string | null): boolean {
   if (!tenantSlug) return true
+  if (CATCH_ALL_TENANTS.has(tenantSlug)) return true
   return tenantsForWork(workId).includes(tenantSlug)
 }
