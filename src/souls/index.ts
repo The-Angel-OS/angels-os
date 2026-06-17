@@ -7,6 +7,7 @@ import { gptPsychosisManifest } from './gpt-psychosis/manifest'
 import { wdegManifest } from './wdeg/manifest'
 import { answer53Manifest } from './answer53/manifest'
 import { readyPlayerEveryoneManifest } from './ready-player-everyone/manifest'
+import { angelOsHandbookManifest } from './angel-os-handbook/manifest'
 import type { SoulManifest } from './rainmaker/manifest'
 
 export type { SoulManifest, SoulDoc } from './rainmaker/manifest'
@@ -19,6 +20,7 @@ export const SOULS: Record<string, SoulManifest> = {
   wdeg: wdegManifest,
   answer53: answer53Manifest,
   'ready-player-everyone': readyPlayerEveryoneManifest,
+  'angel-os-handbook': angelOsHandbookManifest,
 }
 
 export function getSoul(id: string): SoulManifest | null {

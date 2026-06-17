@@ -23,6 +23,11 @@ export interface WorkSubscription {
   home: string
   /** Additional endeavors that carry a copy (tenant slugs). */
   subscribers?: string[]
+  /**
+   * Available on EVERY endeavor (platform-wide), not just home+subscribers.
+   * For platform documentation like the Handbook — read everywhere by design.
+   */
+  global?: boolean
 }
 
 /** Default home for an unmapped Work — Angel OS platform, NOT "everywhere". */
@@ -40,6 +45,8 @@ export const WORK_SUBSCRIPTIONS: Record<string, WorkSubscription> = {
   'ready-player-everyone': { home: 'platform', subscribers: ['clearwater-cruisin', 'kendev'] },
   // GPT Psychosis (The Poster Child) — Clearwater Cruisin + Angel OS.
   'gpt-psychosis': { home: 'clearwater-cruisin', subscribers: ['platform'] },
+  // The Angel OS Handbook — platform documentation, available on EVERY endeavor.
+  'angel-os-handbook': { home: 'platform', global: true },
 }
 
 /** The endeavors (tenant slugs) a Work is available on. Unmapped ⇒ default home. */
@@ -61,5 +68,6 @@ export function homeForWork(workId: string): string {
  */
 export function isWorkAvailable(workId: string, tenantSlug?: string | null): boolean {
   if (!tenantSlug) return true
+  if (WORK_SUBSCRIPTIONS[workId]?.global) return true // platform-wide works (e.g. the Handbook)
   return tenantsForWork(workId).includes(tenantSlug)
 }
