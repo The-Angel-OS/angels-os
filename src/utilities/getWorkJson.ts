@@ -115,6 +115,7 @@ export async function getWorkJson(opts: {
     return {
       ok: true, version: WORK_JSON_VERSION, checksum, source: 'messages',
       ...summarize(soul, origin, coverFromChapters),
+      unitCount: pages.length,
       baseLanguage: sr.baseLanguage ?? 'en',
       languages: sr.languages ?? [],
       pages,
@@ -137,6 +138,7 @@ export async function getWorkJson(opts: {
   return {
     ok: true, version: WORK_JSON_VERSION, checksum, source: 'messages',
     ...summarize(soul, origin, coverFromChapters),
+    unitCount: docs.length,
     defaultDoc: soul.defaultDoc,
     links: soul.links ?? [],
     docs,
