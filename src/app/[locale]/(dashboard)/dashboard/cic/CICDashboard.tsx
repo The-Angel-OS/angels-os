@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import ToolMetricsPanel from './ToolMetricsPanel'
 
 // ---------------------------------------------------------------------------
 // Types (mirrors CICStatusResponse from cic-status.ts)
@@ -468,6 +469,9 @@ export default function CICDashboard() {
           </div>
         )}
       </div>
+
+      {/* Tool + model performance (read-model over toolChain traces) */}
+      <ToolMetricsPanel />
     </div>
   )
 }
