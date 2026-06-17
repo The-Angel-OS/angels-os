@@ -40,10 +40,6 @@ const nextConfig = {
   // SoulViewer's fs.readFileSync calls work at runtime on Vercel
   outputFileTracingIncludes: {
     '/[locale]/(app)/learn/[soul]': ['./docs/vision/**/*'],
-    // Bundle the file-based Library into the Payload API fn so the works-ops
-    // import can read book images + per-language text at runtime (transitional —
-    // removed when docs/vision + public/library are retired post-migration).
-    '/api/[...slug]': ['./public/library/**/*', './docs/vision/**/*'],
   },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
