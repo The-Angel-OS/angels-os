@@ -583,7 +583,13 @@ function LearningStep({
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
 
-export default function LearnPage({ souls }: { souls?: SoulManifest[] } = {}) {
+export default function LearnPage({
+  souls,
+  canManageWorks = false,
+}: { souls?: SoulManifest[]; canManageWorks?: boolean } = {}) {
+  // Hide the Library section when there's nothing to show, unless the viewer can
+  // manage Works (admins curate via the dashboard control panel).
+  const showLibrary = (souls?.length ?? 0) > 0 || canManageWorks
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ container: scrollRef })
@@ -680,7 +686,8 @@ export default function LearnPage({ souls }: { souls?: SoulManifest[] } = {}) {
             </motion.div>
           </motion.section>
 
-          {/* ── The Library ─────────────────────────────────────── */}
+          {/* ── The Library (hidden when empty for non-managers) ──── */}
+          {showLibrary && (
           <motion.section
             id="library"
             className="mb-16 scroll-mt-20"
@@ -708,6 +715,7 @@ export default function LearnPage({ souls }: { souls?: SoulManifest[] } = {}) {
               </Link>
             </div>
           </motion.section>
+          )}
 
           {/* ── Fleet Visualization ─────────────────────────────── */}
           <motion.section
