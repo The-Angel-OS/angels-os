@@ -135,6 +135,7 @@ import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-tabl
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
+import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -885,6 +886,14 @@ export default buildConfig({
       path: '/provision-ops/fitness-template',
       method: 'post',
       handler: fitnessTemplateHandler,
+    },
+    // Market-vendor / small-retail template (Hays Cactus Farm reference): stamps
+    // Home/Find Us/Guides/About/Contact + fleshed-out posts + product catalog. The
+    // seed replicate_site clones to local market vendors. POST; super_admin or ?key=.
+    {
+      path: '/provision-ops/market-vendor-template',
+      method: 'post',
+      handler: marketVendorTemplateHandler,
     },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
