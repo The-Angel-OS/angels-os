@@ -49,6 +49,7 @@ export function BookReader({
   initialIndex = 0,
   basePath,
   pageSlugs,
+  inlineTexts,
 }: {
   manifest?: BookManifest
   /** Static URL to a manifest.json (CDN-served, Vercel-safe). */
@@ -61,6 +62,11 @@ export function BookReader({
   basePath?: string
   /** Per-page URL slugs ("<n>-<name>"), index-aligned with pages. */
   pageSlugs?: string[]
+  /**
+   * DB-backed per-language text: { lang: { "<pageIndex>": text } }. When given,
+   * text comes from here (no file fetch) — the portable, filesystem-free path.
+   */
+  inlineTexts?: Record<string, Record<string, string>>
 }) {
   const [manifest, setManifest] = useState<BookManifest | null>(initialManifest ?? null)
   const [loading, setLoading] = useState(!initialManifest && !!manifestUrl)
@@ -130,9 +136,15 @@ export function BookReader({
     setLang(initial)
   }, [manifest])
 
-  // Load the text JSON for the current language.
+  // Load the text for the current language. Prefer DB-backed inlineTexts (no
+  // filesystem); fall back to fetching the per-language JSON if not provided.
   useEffect(() => {
-    if (!manifest?.textBase || !lang) return
+    if (!lang) return
+    if (inlineTexts) {
+      setTexts(inlineTexts[lang] ?? {})
+      return
+    }
+    if (!manifest?.textBase) return
     let cancelled = false
     fetch(`${manifest.textBase}/${lang}.json`)
       .then((r) => (r.ok ? r.json() : {}))
@@ -145,7 +157,7 @@ export function BookReader({
     return () => {
       cancelled = true
     }
-  }, [manifest, lang])
+  }, [manifest, lang, inlineTexts])
 
   const go = useCallback(
     (delta: number) => {

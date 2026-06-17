@@ -4,8 +4,11 @@ import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import path from 'path'
 import fs from 'fs'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { getSoul, getAllSouls } from '@/souls'
 import { isWorkAvailable } from '@/souls/subscriptions'
+import { getWorkJson } from '@/utilities/getWorkJson'
 import { SoulViewer } from './SoulViewer'
 import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
@@ -99,42 +102,72 @@ export default async function SoulPage({
   const { tenant } = await resolveTenantFromHeaders()
   if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
 
-  // Book works render the illustrated-primer reader. We load the manifest
-  // server-side so the reader opens instantly AND so deep-link URL sync has the
-  // inferred per-page slugs. Falls back to the client-fetch path if unreadable.
+  // DB-first: assemble the Work from message-backed storage (Blob media + inline
+  // translations). File-fallback retained during the transition.
+  const payload = await getPayload({ config: configPromise })
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || ''
+  const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''
+  const work = await getWorkJson({ payload, soulId, tenantSlug: tenant?.slug, origin })
+
+  // ── Book works → the illustrated-primer reader ──
   if (soul.bookSlug) {
+    if (work?.pages?.length) {
+      const langs: Array<{ code: string }> = work.languages ?? []
+      const inlineTexts: Record<string, Record<string, string>> = {}
+      for (const l of langs) {
+        inlineTexts[l.code] = {}
+        work.pages.forEach((p: { translations?: Record<string, string> }, i: number) => {
+          inlineTexts[l.code][String(i)] = p.translations?.[l.code] ?? ''
+        })
+      }
+      const manifest = {
+        slug: soulId,
+        title: soul.title,
+        subtitle: soul.subtitle ?? null,
+        pageCount: work.pages.length,
+        pages: work.pages.map((p: { image: string | null }, i: number) => ({ order: i, image: p.image ?? undefined })),
+        languages: work.languages ?? [],
+        defaultLanguage: work.baseLanguage ?? 'en',
+      }
+      const pageSlugs = work.pages.map((p: { slug: string }) => p.slug)
+      return (
+        <BookReader
+          manifest={manifest}
+          inlineTexts={inlineTexts}
+          initialIndex={0}
+          basePath={`/learn/${soulId}`}
+          pageSlugs={pageSlugs}
+          title={soul.title}
+        />
+      )
+    }
+    // file fallback
     const loaded = loadBookFromPublic(soul.bookSlug)
     if (loaded) {
       return (
-        <BookReader
-          manifest={loaded.manifest}
-          initialIndex={0}
-          basePath={`/learn/${soulId}`}
-          pageSlugs={loaded.pageSlugs}
-          title={soul.title}
-        />
+        <BookReader manifest={loaded.manifest} initialIndex={0} basePath={`/learn/${soulId}`} pageSlugs={loaded.pageSlugs} title={soul.title} />
       )
     }
     return <BookReader manifestUrl={`/library/${soul.bookSlug}/manifest.json`} title={soul.title} />
   }
 
-  // Resolve active document
-  const targetId = activeDocId || soul.defaultDoc
-  const activeDoc = soul.docs.find((d) => d.id === targetId) ?? soul.docs[0]
-
-  // Read markdown from docs/vision/{soul.id}/
-  const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
-
-  // Preload all doc contents for client-side switching (small files, fast)
+  // ── Document works → SoulViewer ──
   const allContents: Record<string, string> = {}
-  for (const doc of soul.docs) {
-    try {
-      const filePath = path.join(docsBase, doc.filename)
-      allContents[doc.id] = fs.readFileSync(filePath, 'utf-8')
-    } catch {
-      allContents[doc.id] = `# ${doc.title}\n\n*Document not found.*`
+  if (work?.docs?.length) {
+    for (const d of work.docs as Array<{ id: string; body: string }>) allContents[d.id] = d.body
+  } else {
+    const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
+    for (const doc of soul.docs) {
+      try {
+        allContents[doc.id] = fs.readFileSync(path.join(docsBase, doc.filename), 'utf-8')
+      } catch {
+        allContents[doc.id] = `# ${doc.title}\n\n*Document not found.*`
+      }
     }
   }
+  const targetId = activeDocId || soul.defaultDoc
+  const activeDoc = soul.docs.find((d) => d.id === targetId) ?? soul.docs[0]
 
   return (
     <SoulViewer

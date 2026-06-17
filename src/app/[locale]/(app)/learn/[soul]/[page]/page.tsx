@@ -4,8 +4,11 @@ import { notFound, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import path from 'path'
 import fs from 'fs'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { getSoul } from '@/souls'
 import { isWorkAvailable } from '@/souls/subscriptions'
+import { getWorkJson } from '@/utilities/getWorkJson'
 import { BookReader } from '@/components/Library/BookReader'
 import { SoulViewer } from '../SoulViewer'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
@@ -132,8 +135,40 @@ export default async function DeepLinkPage({
   const { tenant } = await resolveTenantFromHeaders()
   if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
 
+  // DB-first assembly (Blob media + inline translations); file-fallback retained.
+  const payload = await getPayload({ config: configPromise })
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || ''
+  const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''
+  const work = await getWorkJson({ payload, soulId, tenantSlug: tenant?.slug, origin })
+
   // ── Book works → the illustrated paged reader ───────────────────────────────
   if (soul.bookSlug) {
+    if (work?.pages?.length) {
+      const n = parseInt(page, 10)
+      const idx = Number.isFinite(n) && n >= 1 && n <= work.pages.length ? n - 1 : 0
+      const langs: Array<{ code: string }> = work.languages ?? []
+      const inlineTexts: Record<string, Record<string, string>> = {}
+      for (const l of langs) {
+        inlineTexts[l.code] = {}
+        work.pages.forEach((p: { translations?: Record<string, string> }, i: number) => {
+          inlineTexts[l.code][String(i)] = p.translations?.[l.code] ?? ''
+        })
+      }
+      const manifest = {
+        slug: soulId,
+        title: soul.title,
+        subtitle: soul.subtitle ?? null,
+        pageCount: work.pages.length,
+        pages: work.pages.map((p: { image: string | null }, i: number) => ({ order: i, image: p.image ?? undefined })),
+        languages: work.languages ?? [],
+        defaultLanguage: work.baseLanguage ?? 'en',
+      }
+      const pageSlugs = work.pages.map((p: { slug: string }) => p.slug)
+      return (
+        <BookReader manifest={manifest} inlineTexts={inlineTexts} initialIndex={idx} basePath={`/learn/${soulId}`} pageSlugs={pageSlugs} title={soul.title} />
+      )
+    }
     const loaded = loadBookFromPublic(soul.bookSlug)
     if (!loaded) notFound()
     const idx = resolvePageIndex(loaded, page)
@@ -152,13 +187,17 @@ export default async function DeepLinkPage({
   const doc = soul.docs.find((d) => d.id === page)
   if (!doc) redirect(`/learn/${soulId}`)
 
-  const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
   const allContents: Record<string, string> = {}
-  for (const d of soul.docs) {
-    try {
-      allContents[d.id] = fs.readFileSync(path.join(docsBase, d.filename), 'utf-8')
-    } catch {
-      allContents[d.id] = `# ${d.title}\n\n*Document not found.*`
+  if (work?.docs?.length) {
+    for (const d of work.docs as Array<{ id: string; body: string }>) allContents[d.id] = d.body
+  } else {
+    const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
+    for (const d of soul.docs) {
+      try {
+        allContents[d.id] = fs.readFileSync(path.join(docsBase, d.filename), 'utf-8')
+      } catch {
+        allContents[d.id] = `# ${d.title}\n\n*Document not found.*`
+      }
     }
   }
 

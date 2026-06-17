@@ -382,10 +382,14 @@ export const worksImportHandler: PayloadHandler = async (req) => {
 
   try {
     const ownerSlug = homeForWork(soulId)
-    const tRes = await payload.find({ collection: 'tenants', where: { slug: { equals: ownerSlug } }, limit: 1, depth: 0, overrideAccess: true })
+    // Host tenant = where the content messages live. Defaults to the canonical
+    // owner; a subscriber node passes ?tenant=<localSlug> to host a local copy
+    // (the owner of record stays `ownerSlug`).
+    const hostSlug = url.searchParams.get('tenant') || ownerSlug
+    const tRes = await payload.find({ collection: 'tenants', where: { slug: { equals: hostSlug } }, limit: 1, depth: 0, overrideAccess: true })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tenant = (tRes.docs as any[])[0]
-    if (!tenant) return Response.json({ error: `owner tenant '${ownerSlug}' not on this node` }, { status: 404 })
+    if (!tenant) return Response.json({ error: `host tenant '${hostSlug}' not on this node` }, { status: 404 })
 
     const sRes = await payload.find({ collection: 'spaces', where: { tenant: { equals: tenant.id } }, limit: 1, sort: 'createdAt', depth: 0, overrideAccess: true })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
