@@ -118,6 +118,7 @@ import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-c
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
+import { toolMetricsHandler } from '@/endpoints/tool-metrics'
 import { fundFloatHandler } from '@/endpoints/fund-float'
 import { walletBalanceHandler } from '@/endpoints/wallet-balance'
 import { clockHandler, addCostHandler, finalizeHandler } from '@/endpoints/booking-work-session'
@@ -479,6 +480,7 @@ export default buildConfig({
     { path: '/works-ops/list', method: 'get', handler: worksListHandler },
     { path: '/works-ops/get', method: 'get', handler: worksGetHandler },
     { path: '/works-ops/import', method: 'get', handler: worksImportHandler },
+    { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },
     {
       path: '/leo',
       method: 'get',
