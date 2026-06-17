@@ -56,6 +56,7 @@ import {
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
 import { logCaughtError } from './logError'
 import { revalidateAfterMutation } from './revalidateContent'
+import { affectedPublicUrl, affectedUrlDirective } from './affectedUrl'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
 import { findOrCreateDM } from './dmChannels'
 import { ensureDMSpace } from './ensureSystemSpace'
@@ -91,6 +92,8 @@ import { buildConstitutionalPrompt, validateConstitutionalResponse } from './con
 function navDirective(path: string, label?: string): string {
   return `\n<!--nav:${JSON.stringify({ path, ...(label ? { label } : {}) })}-->`
 }
+
+// Visual-echo marker (producer side) — see src/utilities/affectedUrl.ts.
 
 /**
  * Query strongest pheromone trails for a context.
@@ -3561,13 +3564,19 @@ export async function executeToolCall(
 
     // ── Sprint 44: Cache invalidation after content mutations ────────
     const mutationMeta = CONTENT_MUTATION_TOOLS[toolName]
+    let enriched = result
     if (mutationMeta && tenantId) {
       const { collection, slug } = mutationMeta(toolInput)
       revalidateAfterMutation({ collection, slug, tenantId: Number(tenantId) })
+      // Visual echo: tell the client which public surface changed (skip error results).
+      const url = affectedPublicUrl(collection, slug)
+      if (url && typeof result === 'string' && !result.startsWith('Error') && !result.startsWith('Input validation')) {
+        enriched = result + affectedUrlDirective(url)
+      }
     }
 
-    if (step) ctx.trace?.end(step, 'ok', { meta: { bytes: result?.length ?? 0 } })
-    return result
+    if (step) ctx.trace?.end(step, 'ok', { meta: { bytes: enriched?.length ?? 0 } })
+    return enriched
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error'
     if (step) ctx.trace?.end(step, 'fail', { error: errMsg })

@@ -28,6 +28,7 @@ import { buildMinimalConstitutionalPrompt, buildCOOPromptSuffix, buildHealthDige
 import type { EnterpriseStage, NodeRole } from '@/utilities/constitutional-prompt'
 import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
+import { extractAffectedUrls } from '@/utilities/affectedUrl'
 import { truncateHistoryMessage } from '@/utilities/truncateHistoryMessage'
 import { assembleHistoryTurns } from '@/utilities/assembleHistoryTurns'
 import {
@@ -284,7 +285,25 @@ function extractNavDirective(text: string): { path: string; label?: string } | n
 }
 
 function stripNavDirective(text: string): string {
-  return text.replace(/<!--nav:.*?-->/g, '').trim()
+  return text.replace(/<!--nav:.*?-->/g, '').replace(/<!--affectedUrl:.*?-->/g, '').trim()
+}
+
+// Visual echo: collect the public surfaces content mutations touched (appended as
+// <!--affectedUrl:...--> to tool results by executeToolCall), so the client can snapshot
+// them before/after. extractAffectedUrls lives in src/utilities/affectedUrl.ts (shared
+// source of truth with the producer); collectToolResultTexts pulls the strings here.
+function collectToolResultTexts(messages: Anthropic.MessageParam[]): string[] {
+  const out: string[] = []
+  for (const msg of messages) {
+    if (msg.role === 'user' && Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (typeof block === 'object' && 'type' in block && block.type === 'tool_result') {
+          out.push(typeof block.content === 'string' ? block.content : '')
+        }
+      }
+    }
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------
@@ -1711,6 +1730,12 @@ async function streamViaGateway(opts: {
     )
   }
 
+  // Visual echo — surfaces a content mutation changed, for the client to snapshot.
+  const affectedUrls = extractAffectedUrls(allToolResults)
+  if (affectedUrls.length > 0) {
+    controller.enqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
+  }
+
   // ── Telemetry (fail-soft) — tokens, finish reason, latency, cost ──────────
   let telemetry: AiResponseTelemetry | undefined
   try {
@@ -1989,6 +2014,12 @@ async function streamViaAnthropic(opts: {
     controller.enqueue(
       encoder.encode(sseEvent('images', { images: validImageUrls })),
     )
+  }
+
+  // Visual echo — surfaces a content mutation changed, for the client to snapshot.
+  const affectedUrls = extractAffectedUrls(collectToolResultTexts(messages))
+  if (affectedUrls.length > 0) {
+    controller.enqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
   }
 
   await emitToolChainTrace(toolTrace, tenantId)
