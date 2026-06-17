@@ -93,6 +93,7 @@ The data model is done (checksummed Blob-backed Work JSON). What's missing is th
 - A downloaded Work reads fully offline; the library shows downloaded vs streamable state.
 - Acceptance: download a Work in Nimue → airplane mode → still readable; author edits + republishes → checksum changes → client offers update.
 - (Nimue client work = the Nimue repo / other thread. The backend pieces — Work JSON, checksum, Blob URLs, a "give me this Work" endpoint — live here.)
+- **✅ BACKEND SHIPPED 2026-06-17:** `GET /api/works-ops/checksums?tenant=<slug>` (`src/endpoints/works.ts` `worksChecksumsHandler`) — the offline-sync primitive. One call returns the current content checksum of every available Work; the client diffs its cached `{soul→checksum}` map in a single request, then re-pulls only changed works via the existing `/works-ops/get?soul=<id>`. Verified: manifest checksum is byte-identical to `/get` (same `getWorkJson` source of truth), so the diff is never wrong. **Nimue client TODO:** persist the map, poll `/checksums` on a slow cadence, download+cache changed works, serve offline.
 
 **B3 — Audio Works (later).**
 Same loop, audio asset on the Blob. Ties to the daily-rollup / Suno soundtrack pipeline for generated narration.

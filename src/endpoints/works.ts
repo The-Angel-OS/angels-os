@@ -167,6 +167,55 @@ export const worksGetHandler: PayloadHandler = async (req) => {
 }
 
 /**
+ * GET /api/works-ops/checksums — the OFFLINE-SYNC primitive.
+ *
+ * One cheap call returns the CURRENT content checksum of every Work available to the
+ * tenant. A client (Nimue) diffs this against its cached `{ soul → checksum }` map in a
+ * single request, then re-pulls only the works whose checksum changed via
+ * /works-ops/get?soul=<id>. Works rarely change, so the client can poll this on a slow
+ * cadence. Checksums match /get exactly (same getWorkJson source of truth) so the diff
+ * is never wrong.
+ *
+ * Auth: none (read-freely, like list/get). Scope: ?tenant=<slug|id>.
+ *
+ * ⚠️ SCALE: this assembles each Work to hash it (parity with /get). At many works,
+ * read the denormalized `works.checksum` column instead (written at import/seal time).
+ */
+export const worksChecksumsHandler: PayloadHandler = async (req) => {
+  const { payload } = req
+  try {
+    const tenantSlug = await resolveTenantSlug(req)
+    const origin = originFromReq(req)
+    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug))
+
+    const works: Array<{ id: string; checksum: string; version: string; type: string; unitCount: number; title: string }> = []
+    for (const s of souls) {
+      try {
+        const work = await getWorkJson({ payload, soulId: s.id, tenantSlug, origin })
+        if (work?.checksum) {
+          works.push({
+            id: s.id,
+            checksum: work.checksum,
+            version: work.version,
+            type: work.type,
+            unitCount: work.unitCount ?? 0,
+            title: work.title,
+          })
+        }
+      } catch {
+        /* a work that fails to assemble is simply omitted — the client keeps its cache */
+      }
+    }
+
+    return Response.json({ ok: true, version: WORK_JSON_VERSION, tenant: tenantSlug, total: works.length, works })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[works-checksums] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
  * GET /api/works-ops/import?soul=<id> — materialize a DOCUMENT Work's chapters
  * as messages (Phase 2). Idempotent: clears this Work's channel then recreates
  * one message per doc (messageType 'system', metadata.kind 'work_chapter',
