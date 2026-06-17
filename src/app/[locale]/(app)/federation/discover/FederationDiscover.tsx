@@ -18,9 +18,11 @@ interface FederationDiscoverProps {
   total: number
   /** Number of Enterprises (federated nodes / Dioceses) on the network. */
   enterprises?: number
+  /** When set, this is a single market's front door — its merchants only. */
+  marketName?: string
 }
 
-export function FederationDiscover({ initialHolons, total, enterprises = 1 }: FederationDiscoverProps) {
+export function FederationDiscover({ initialHolons, total, enterprises = 1, marketName }: FederationDiscoverProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
@@ -66,14 +68,29 @@ export function FederationDiscover({ initialHolons, total, enterprises = 1 }: Fe
     <div className="container py-12">
       {/* Hero */}
       <div className="mb-10 text-center">
-        <h1 className="mb-3 text-3xl font-bold md:text-4xl">Discovery — Explore the Federation</h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Browse Endeavors across the Angel OS federation. Find partners, discover services, and grow
-          together through constitutional commerce.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {total} Endeavor{total !== 1 ? 's' : ''} · {enterprises} Enterprise{enterprises !== 1 ? 's' : ''} on the Network
-        </p>
+        {marketName ? (
+          <>
+            <h1 className="mb-3 text-3xl font-bold md:text-4xl">{marketName}</h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              The merchants of {marketName} — local makers, growers, and sellers, together. Visit each,
+              and find them at the market.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {total} merchant{total !== 1 ? 's' : ''} at this market
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="mb-3 text-3xl font-bold md:text-4xl">Discovery — Explore the Federation</h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Browse Endeavors across the Angel OS federation. Find partners, discover services, and grow
+              together through constitutional commerce.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {total} Endeavor{total !== 1 ? 's' : ''} · {enterprises} Enterprise{enterprises !== 1 ? 's' : ''} on the Network
+            </p>
+          </>
+        )}
       </div>
 
       {/* Filters */}

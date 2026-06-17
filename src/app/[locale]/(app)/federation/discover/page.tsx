@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { FederationDiscover } from './FederationDiscover'
 import { aggregatePeerHolons } from '@/utilities/federationDiscovery'
+import { getMarketChildren } from '@/utilities/marketMembership'
 
 export const metadata = {
   title: 'Discover the Federation',
@@ -14,11 +15,14 @@ export const revalidate = 0
 
 export default async function FederationDiscoverPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>
+  searchParams?: Promise<{ market?: string }>
 }) {
   const { locale } = await params
   setRequestLocale(locale)
+  const marketSlug = (await searchParams)?.market?.trim() || ''
 
   const payload = await getPayload({ config: configPromise })
 
@@ -166,9 +170,20 @@ export default async function FederationDiscoverPage({
   // Dioceses and merge them in, tagged with their origin Enterprise. Resilient —
   // offline/slow peers are skipped, so this never blocks the local listing.
   const peerHolons = await aggregatePeerHolons(payload)
-  const allHolons = [...holons, ...peerHolons]
+  let allHolons = [...holons, ...peerHolons]
+
+  // Market front door: ?market=<parentSlug> narrows to that market's merchants and
+  // retitles the page. The parent grouping lives in the settings bag (no schema change).
+  let marketName: string | undefined
+  if (marketSlug) {
+    const childSlugs = new Set(await getMarketChildren(payload, marketSlug))
+    allHolons = allHolons.filter((h) => h.tenant?.slug && childSlugs.has(h.tenant.slug))
+    // Prefer the parent endeavor's display name for the heading; fall back to the slug.
+    const parent = holons.find((h) => h.tenant?.slug === marketSlug)
+    marketName = parent?.name || marketSlug
+  }
 
   return (
-    <FederationDiscover initialHolons={allHolons} total={allHolons.length} enterprises={enterprises} />
+    <FederationDiscover initialHolons={allHolons} total={allHolons.length} enterprises={enterprises} marketName={marketName} />
   )
 }

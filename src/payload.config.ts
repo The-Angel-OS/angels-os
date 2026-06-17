@@ -136,6 +136,7 @@ import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signatu
 import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
+import { linkMarketHandler } from '@/endpoints/link-market'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -897,6 +898,10 @@ export default buildConfig({
       method: 'post',
       handler: marketVendorTemplateHandler,
     },
+    // Market parent-grouping: link/unlink merchant endeavors under a market parent
+    // (settings-bag backed, no schema change). super_admin or ?key=. GET reads children.
+    { path: '/provision-ops/link-market', method: 'post', handler: linkMarketHandler },
+    { path: '/provision-ops/link-market', method: 'get', handler: linkMarketHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {
