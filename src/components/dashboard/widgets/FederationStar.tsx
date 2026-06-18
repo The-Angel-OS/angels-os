@@ -73,7 +73,7 @@ export function FederationStar() {
       icon={<Radio className="h-4 w-4 text-amber-500" />}
       headerRight={
         nodes ? (
-          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{online} online</span>
+          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{online} nodes</span>
         ) : null
       }
     >
