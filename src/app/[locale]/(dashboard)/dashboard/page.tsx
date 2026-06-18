@@ -9,6 +9,7 @@ import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
 import OnboardingGuide from '@/components/OnboardingGuide'
 import { FederationPulse } from '@/components/dashboard/widgets/FederationPulse'
 import { PresenceRoster } from '@/components/dashboard/widgets/PresenceRoster'
+import { FederationStar } from '@/components/dashboard/widgets/FederationStar'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import {
   getRevenueTimeSeries,
@@ -287,6 +288,9 @@ export default async function DashboardPage({
 
       {/* Crew online — live presence roster (the dashboard-as-MMORPG hub) */}
       <PresenceRoster />
+
+      {/* The Federation — the permanent five-pointed star, glanceable */}
+      <FederationStar />
 
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
