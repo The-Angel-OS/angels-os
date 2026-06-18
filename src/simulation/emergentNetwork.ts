@@ -100,11 +100,24 @@ export class LiveTransport implements NodeTransport {
 
 // ── Node configuration ───────────────────────────────────────────────────────
 
+/**
+ * The architecture's tiers (the "proper naming conventions"):
+ *   substrate — The Angel OS index itself; the still center, never a peer.
+ *   diocese   — a sovereign Enterprise; the trust/peering unit → a STAR POINT.
+ *   endeavor  — a ministry/project; inherits its Diocese's trust → a satellite.
+ *   holon     — a capability provider (compute/media); offers work, not governance.
+ */
+export type NodeTier = 'substrate' | 'diocese' | 'endeavor' | 'holon'
+
 export interface SimNodeConfig {
   id: string
   name: string
   domain: string
   operator: string
+  /** Where this node sits in the federation architecture (default: 'endeavor'). */
+  tier?: NodeTier
+  /** The Diocese (Enterprise) this node belongs under; null for substrate/diocese. */
+  parentEnterpriseId?: string
   region?: string
   location?: { lat: number; lng: number }
   /** A node's voice/role in the network (Primer/Jarvis/Central character). */
@@ -378,6 +391,8 @@ export class EmergentNetwork {
         rank: m?.federationRank ?? 0,
         transport: n.config.liveBaseUrl ? 'live' : 'mock',
         availableSlots: availableSlots(this.workerOf(n)),
+        tier: n.config.tier ?? 'endeavor',
+        parentEnterpriseId: n.config.parentEnterpriseId ?? '',
       },
     }
   }

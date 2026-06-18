@@ -36,12 +36,15 @@ const C = {
 }
 
 type Role = 'flagship' | 'sentinel' | 'member' | 'applicant'
+type Tier = 'substrate' | 'diocese' | 'endeavor' | 'holon'
 type Source = 'simulated' | 'live'
 
 interface StarNode {
   id: string
   name: string
   role: Role
+  tier: Tier
+  parentId?: string
   transport: 'mock' | 'live'
   healthy: boolean
   coordinator: boolean
@@ -107,6 +110,8 @@ function fromSimulated(data: SimResponse): { nodes: StarNode[]; edges: StarEdge[
       id: n.id,
       name: n.name,
       role,
+      tier: (n.metadata?.tier as Tier) ?? 'endeavor',
+      parentId: (n.metadata?.parentEnterpriseId as string) || undefined,
       transport: (n.metadata?.transport as 'mock' | 'live') ?? 'mock',
       healthy: n.status === 'active',
       coordinator: n.id === data.coordinator,
@@ -153,18 +158,28 @@ function fromLive(g: LiveGovernance): { nodes: StarNode[]; edges: StarEdge[]; na
     return 'member'
   }
 
+  const tierOf = (r: Role): Tier =>
+    r === 'flagship' ? 'substrate' : r === 'sentinel' ? 'diocese' : 'endeavor'
+
   const FIVE_MIN = 5 * 60 * 1000
-  const nodes: StarNode[] = ministries.map((m) => ({
-    id: m.id,
-    name: m.name,
-    role: roleOf(m),
-    transport: 'live',
-    healthy: m.lastHeartbeat ? Date.now() - new Date(m.lastHeartbeat).getTime() < FIVE_MIN : m.status === 'active',
-    coordinator: m.id === g.coordinatorId,
-    domain: m.domain,
-    operator: m.operator,
-    capabilities: m.capabilities,
-  }))
+  const nodes: StarNode[] = ministries.map((m) => {
+    const role = roleOf(m)
+    const tier = tierOf(role)
+    return {
+      id: m.id,
+      name: m.name,
+      role,
+      tier,
+      // Live mesh is flat today; endeavors orbit the flagship/substrate when expanded.
+      parentId: tier === 'endeavor' && flagshipId ? flagshipId : undefined,
+      transport: 'live' as const,
+      healthy: m.lastHeartbeat ? Date.now() - new Date(m.lastHeartbeat).getTime() < FIVE_MIN : m.status === 'active',
+      coordinator: m.id === g.coordinatorId,
+      domain: m.domain,
+      operator: m.operator,
+      capabilities: m.capabilities,
+    }
+  })
   const edges: StarEdge[] = (g.vouchGraph ?? [])
     .filter((v) => v.isValid !== false)
     .map((v) => ({ sourceId: v.voucherId, targetId: v.targetId, weight: 1 }))
@@ -185,36 +200,71 @@ function fromLive(g: LiveGovernance): { nodes: StarNode[]; edges: StarEdge[]; na
 // flat ring is a unit that can only reach the mesh by proxying through another —
 // the relay case — which sits just outside, spoked to its proxy (future slice).
 
-function layout(nodes: StarNode[]): Map<string, { x: number; y: number }> {
+// Tier-aware layout. The Dioceses (sovereign Enterprises) are the STAR POINTS on
+// the ring; the substrate sits at the still center; endeavors/holons orbit their
+// parent Diocese as satellites and only appear when that Diocese is expanded.
+function layout(nodes: StarNode[], expanded: Set<string>): Map<string, { x: number; y: number }> {
   const cx = 50
   const cy = 50
   const pos = new Map<string, { x: number; y: number }>()
   if (nodes.length === 0) return pos
 
-  // Lead the ring with the coordinator/flagship (top) purely for a stable,
-  // legible arrangement — it's still a peer on the same ring as everyone else.
-  const rank = (n: StarNode) =>
-    n.coordinator ? 0 : n.role === 'flagship' ? 1 : n.role === 'sentinel' ? 2 : n.role === 'member' ? 3 : 4
-  const ordered = [...nodes].sort((a, b) => rank(a) - rank(b))
+  const substrate = nodes.filter((n) => n.tier === 'substrate')
+  const dioceses = nodes.filter((n) => n.tier === 'diocese')
+  const satellites = nodes.filter((n) => n.tier === 'endeavor' || n.tier === 'holon')
 
-  const n = ordered.length
-  if (n === 1) {
-    pos.set(ordered[0].id, { x: cx, y: cy })
+  // Center: the substrate (or, if none, a lone node).
+  if (substrate.length) {
+    pos.set(substrate[0].id, { x: cx, y: cy })
+  } else if (dioceses.length === 0 && nodes.length === 1) {
+    pos.set(nodes[0].id, { x: cx, y: cy })
     return pos
   }
-  const R = n === 2 ? 24 : 38
-  ordered.forEach((node, i) => {
-    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n
+
+  // Star points: the Dioceses, evenly spaced, coordinator leading the top.
+  const points = [...dioceses].sort((a, b) => (a.coordinator ? -1 : 0) - (b.coordinator ? -1 : 0))
+  const R = 36
+  const count = points.length || 1
+  points.forEach((node, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / count
     pos.set(node.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) })
   })
+
+  // Satellites: orbit their parent (Diocese or substrate) when that parent is
+  // expanded. Collapsed parents keep the star clean.
+  const byParent = new Map<string, StarNode[]>()
+  for (const s of satellites) {
+    const key = s.parentId && pos.has(s.parentId) ? s.parentId : substrate[0]?.id ?? ''
+    if (!key) continue
+    if (!expanded.has(key)) continue
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(s)
+  }
+  for (const [parentId, kids] of byParent) {
+    const p = pos.get(parentId)!
+    // Fan outward from center so satellites don't overlap the ring.
+    const outAngle = Math.atan2(p.y - cy, p.x - cx)
+    const r = 10
+    kids.forEach((kid, i) => {
+      const spread = (i - (kids.length - 1) / 2) * 0.5
+      const a = outAngle + spread
+      pos.set(kid.id, { x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a) })
+    })
+  }
   return pos
 }
 
-// Background pentagon — the recurring 5, drawn faint behind everything.
-const PENTAGON = Array.from({ length: 5 }, (_, i) => {
+// The permanent five-pointed star — the {5/2} pentagram, drawn without lifting the
+// pen: distinct sovereign points, one unbroken connection, no center that rules.
+// It is the ideal the live mesh always approximates, so it is ALWAYS present.
+const STAR_PTS = Array.from({ length: 5 }, (_, i) => {
   const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5
-  return `${(50 + 46 * Math.cos(a)).toFixed(2)},${(50 + 46 * Math.sin(a)).toFixed(2)}`
-}).join(' ')
+  return { x: 50 + 46 * Math.cos(a), y: 50 + 46 * Math.sin(a) }
+})
+const PENTAGRAM = [0, 2, 4, 1, 3]
+  .map((i) => `${STAR_PTS[i].x.toFixed(2)},${STAR_PTS[i].y.toFixed(2)}`)
+  .join(' ')
+const PENTAGON = STAR_PTS.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ')
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -227,6 +277,7 @@ export default function FederationSimulator() {
   const [meta, setMeta] = useState<Pick<SimResponse, 'online' | 'mock' | 'live' | 'dispatches' | 'completed' | 'heldUnderBackpressure' | 'liveDispatchCapped'> | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const abortRef = useRef<AbortController | null>(null)
 
   const refetch = useCallback(async () => {
@@ -269,12 +320,29 @@ export default function FederationSimulator() {
     return () => clearTimeout(t)
   }, [refetch])
 
-  const positions = useMemo(() => layout(data?.nodes ?? []), [data])
+  const positions = useMemo(() => layout(data?.nodes ?? [], expanded), [data, expanded])
   const nodeById = useMemo(() => new Map((data?.nodes ?? []).map((n) => [n.id, n])), [data])
   const selectedNode = selected ? nodeById.get(selected) : null
+  const hasChildren = useMemo(() => {
+    const s = new Set<string>()
+    for (const n of data?.nodes ?? []) if (n.parentId) s.add(n.parentId)
+    return s
+  }, [data])
 
   const toggleLive = (id: string) =>
     setLiveIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+
+  // Click a Diocese/substrate that has satellites → fan its endeavors in/out.
+  const onNodeClick = (id: string) => {
+    setSelected(id)
+    if (hasChildren.has(id)) {
+      setExpanded((prev) => {
+        const next = new Set(prev)
+        next.has(id) ? next.delete(id) : next.add(id)
+        return next
+      })
+    }
+  }
 
   return (
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden" style={{ background: C.darkBg, color: '#fff' }}>
@@ -391,8 +459,10 @@ export default function FederationSimulator() {
       {/* ── Star Renderer ──────────────────────────────────────────────── */}
       <div className="relative flex min-h-[60vh] flex-1 items-center justify-center p-3 md:min-h-0">
         <svg viewBox="0 0 100 100" className="h-full max-h-[78vh] w-full" style={{ maxWidth: 'min(100%, 80vh)' }}>
-          {/* Background pentagon motif — the recurring 5 */}
-          <polygon points={PENTAGON} fill="none" stroke={`${C.amber}14`} strokeWidth={0.3} />
+          {/* The permanent five-pointed star — pentagram + pentagon, always present,
+              the ideal the live mesh approximates (one unbroken line, no center that rules). */}
+          <polygon points={PENTAGON} fill="none" stroke={`${C.amber}10`} strokeWidth={0.25} />
+          <polygon points={PENTAGRAM} fill="none" stroke={`${C.amber}1e`} strokeWidth={0.35} strokeLinejoin="round" />
           <circle cx={50} cy={50} r={46} fill="none" stroke={`${C.lavender}10`} strokeWidth={0.3} strokeDasharray="1 1.5" />
 
           {/* Edges */}
@@ -411,7 +481,11 @@ export default function FederationSimulator() {
             const color = ROLE_COLOR[n.role]
             const isSel = n.id === selected
             return (
-              <g key={n.id} onClick={() => setSelected(n.id)} style={{ cursor: 'pointer' }}>
+              <g key={n.id} onClick={() => onNodeClick(n.id)} style={{ cursor: 'pointer' }}>
+                {/* expand ring — a Diocese with satellites tucked behind it */}
+                {hasChildren.has(n.id) && !expanded.has(n.id) && (
+                  <circle cx={p.x} cy={p.y} r={r + 1} fill="none" stroke={color} strokeWidth={0.25} strokeDasharray="0.5 0.7" opacity={0.6} />
+                )}
                 {/* live glow / coordinator pulse */}
                 {n.transport === 'live' && n.healthy && <circle cx={p.x} cy={p.y} r={r + 1.6} fill="none" stroke={C.green} strokeWidth={0.4} opacity={0.7} />}
                 {n.coordinator && <circle cx={p.x} cy={p.y} r={r + 2.8} fill="none" stroke={color} strokeWidth={0.3} opacity={0.5}><animate attributeName="r" values={`${r + 2.2};${r + 3.6};${r + 2.2}`} dur="2.4s" repeatCount="indefinite" /></circle>}
