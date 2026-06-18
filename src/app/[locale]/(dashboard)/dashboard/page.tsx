@@ -8,6 +8,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
 import OnboardingGuide from '@/components/OnboardingGuide'
 import { FederationPulse } from '@/components/dashboard/widgets/FederationPulse'
+import { PresenceRoster } from '@/components/dashboard/widgets/PresenceRoster'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import {
   getRevenueTimeSeries,
@@ -283,6 +284,9 @@ export default async function DashboardPage({
 
       {/* The Network — community pulse: you're part of a living federation */}
       <FederationPulse />
+
+      {/* Crew online — live presence roster (the dashboard-as-MMORPG hub) */}
+      <PresenceRoster />
 
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
