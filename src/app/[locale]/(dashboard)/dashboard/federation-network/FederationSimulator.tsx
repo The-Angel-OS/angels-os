@@ -334,6 +334,11 @@ export default function FederationSimulator() {
   const positions = useMemo(() => layout(data?.nodes ?? [], expanded), [data, expanded])
   const nodeById = useMemo(() => new Map((data?.nodes ?? []).map((n) => [n.id, n])), [data])
   const selectedNode = selected ? nodeById.get(selected) : null
+  const tierTally = useMemo(() => {
+    const t: Record<Tier, number> = { substrate: 0, diocese: 0, endeavor: 0, holon: 0 }
+    for (const n of data?.nodes ?? []) t[n.tier]++
+    return t
+  }, [data])
   const hasChildren = useMemo(() => {
     const s = new Set<string>()
     for (const n of data?.nodes ?? []) if (n.parentId) s.add(n.parentId)
@@ -380,6 +385,24 @@ export default function FederationSimulator() {
         <div className="rounded p-2 font-mono text-[11px] leading-relaxed" style={{ background: C.cardBg, color: C.blue, borderLeft: `3px solid ${C.lavender}` }}>
           {loading ? <span style={{ color: C.textMuted }}>Reading the network…</span> : (data?.narration || '—').split('\n').map((line, i) => <p key={i} className={i ? 'mt-1.5' : ''}>{line}</p>)}
         </div>
+
+        {/* Tier tally — the architecture read at a glance */}
+        {!loading && (data?.nodes.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 font-mono text-[10px]">
+            {([
+              ['diocese', 'Dioceses'],
+              ['endeavor', 'endeavors'],
+              ['holon', 'holons'],
+            ] as [Tier, string][])
+              .filter(([k]) => tierTally[k] > 0)
+              .map(([k, label]) => (
+                <span key={k} className="flex items-center gap-1" style={{ color: C.textMuted }}>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: TIER_COLOR[k] }} />
+                  {tierTally[k]} {label}
+                </span>
+              ))}
+          </div>
+        )}
 
         {/* Simulator controls */}
         {source === 'simulated' && (
