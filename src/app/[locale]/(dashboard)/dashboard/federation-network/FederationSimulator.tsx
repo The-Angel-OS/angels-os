@@ -205,7 +205,7 @@ function fromLive(g: LiveGovernance): { nodes: StarNode[]; edges: StarEdge[]; na
 // Tier-aware layout. The Dioceses (sovereign Enterprises) are the STAR POINTS on
 // the ring; the substrate sits at the still center; endeavors/holons orbit their
 // parent Diocese as satellites and only appear when that Diocese is expanded.
-function layout(nodes: StarNode[], expanded: Set<string>): Map<string, { x: number; y: number }> {
+function layout(nodes: StarNode[], collapsed: Set<string>): Map<string, { x: number; y: number }> {
   const cx = 50
   const cy = 50
   const pos = new Map<string, { x: number; y: number }>()
@@ -232,13 +232,13 @@ function layout(nodes: StarNode[], expanded: Set<string>): Map<string, { x: numb
     pos.set(node.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) })
   })
 
-  // Satellites: orbit their parent (Diocese or substrate) when that parent is
-  // expanded. Collapsed parents keep the star clean.
+  // Satellites: orbit their parent (Diocese or substrate). Shown by default —
+  // the full star is the payoff; clicking a parent COLLAPSES its satellites away.
   const byParent = new Map<string, StarNode[]>()
   for (const s of satellites) {
     const key = s.parentId && pos.has(s.parentId) ? s.parentId : substrate[0]?.id ?? ''
     if (!key) continue
-    if (!expanded.has(key)) continue
+    if (collapsed.has(key)) continue
     if (!byParent.has(key)) byParent.set(key, [])
     byParent.get(key)!.push(s)
   }
@@ -288,7 +288,7 @@ export default function FederationSimulator() {
   const [meta, setMeta] = useState<Pick<SimResponse, 'online' | 'mock' | 'live' | 'dispatches' | 'completed' | 'heldUnderBackpressure' | 'liveDispatchCapped'> | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const abortRef = useRef<AbortController | null>(null)
 
   const refetch = useCallback(async () => {
@@ -331,7 +331,7 @@ export default function FederationSimulator() {
     return () => clearTimeout(t)
   }, [refetch])
 
-  const positions = useMemo(() => layout(data?.nodes ?? [], expanded), [data, expanded])
+  const positions = useMemo(() => layout(data?.nodes ?? [], collapsed), [data, collapsed])
   const nodeById = useMemo(() => new Map((data?.nodes ?? []).map((n) => [n.id, n])), [data])
   const selectedNode = selected ? nodeById.get(selected) : null
   const tierTally = useMemo(() => {
@@ -348,11 +348,12 @@ export default function FederationSimulator() {
   const toggleLive = (id: string) =>
     setLiveIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
 
-  // Click a Diocese/substrate that has satellites → fan its endeavors in/out.
+  // Click a Diocese/substrate that has satellites → fan its endeavors in/out
+  // (shown by default; clicking collapses them away).
   const onNodeClick = (id: string) => {
     setSelected(id)
     if (hasChildren.has(id)) {
-      setExpanded((prev) => {
+      setCollapsed((prev) => {
         const next = new Set(prev)
         next.has(id) ? next.delete(id) : next.add(id)
         return next
@@ -390,15 +391,15 @@ export default function FederationSimulator() {
         {!loading && (data?.nodes.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 font-mono text-[10px]">
             {([
-              ['diocese', 'Dioceses'],
-              ['endeavor', 'endeavors'],
-              ['holon', 'holons'],
-            ] as [Tier, string][])
+              ['diocese', 'Diocese', 'Dioceses'],
+              ['endeavor', 'endeavor', 'endeavors'],
+              ['holon', 'holon', 'holons'],
+            ] as [Tier, string, string][])
               .filter(([k]) => tierTally[k] > 0)
-              .map(([k, label]) => (
+              .map(([k, one, many]) => (
                 <span key={k} className="flex items-center gap-1" style={{ color: C.textMuted }}>
                   <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: TIER_COLOR[k] }} />
-                  {tierTally[k]} {label}
+                  {tierTally[k]} {tierTally[k] === 1 ? one : many}
                 </span>
               ))}
           </div>
@@ -516,8 +517,8 @@ export default function FederationSimulator() {
             const isSel = n.id === selected
             return (
               <g key={n.id} onClick={() => onNodeClick(n.id)} style={{ cursor: 'pointer' }}>
-                {/* expand ring — a Diocese with satellites tucked behind it */}
-                {hasChildren.has(n.id) && !expanded.has(n.id) && (
+                {/* collapsed ring — a Diocese with its satellites tucked behind it */}
+                {hasChildren.has(n.id) && collapsed.has(n.id) && (
                   <circle cx={p.x} cy={p.y} r={r + 1} fill="none" stroke={color} strokeWidth={0.25} strokeDasharray="0.5 0.7" opacity={0.6} />
                 )}
                 {/* live glow / coordinator pulse */}
