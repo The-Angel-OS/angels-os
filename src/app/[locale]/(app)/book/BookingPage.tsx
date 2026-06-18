@@ -347,11 +347,12 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-semibold">{s.label}</span>
-                        <span className="shrink-0 font-bold">${s.priceUSD}</span>
+                        {/* Quote-based services (price 0) read as "free" if shown as $0. */}
+                        <span className="shrink-0 font-bold">{s.priceUSD > 0 ? `$${s.priceUSD}` : 'Quote'}</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {s.durationMinutes} min · ${dep} deposit to reserve
+                        {s.durationMinutes} min · {dep > 0 ? `$${dep} deposit to reserve` : 'no deposit — request a visit'}
                       </p>
                     </button>
                   )
