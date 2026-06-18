@@ -81,13 +81,15 @@ interface SimResponse {
   liveDispatchCapped?: boolean
 }
 
-const ROLE_COLOR: Record<Role, string> = {
-  flagship: C.amber,
-  sentinel: C.lavender,
-  member: C.blue,
-  applicant: C.peach,
+// The viz vocabulary IS the architecture's tiers (substrate/diocese/endeavor/holon),
+// so nodes are colored + sized by tier, not by the older mesh role.
+const TIER_COLOR: Record<Tier, string> = {
+  substrate: C.amber,
+  diocese: C.lavender,
+  endeavor: C.blue,
+  holon: C.green,
 }
-const ROLE_RADIUS: Record<Role, number> = { flagship: 4.4, sentinel: 3.5, member: 2.9, applicant: 2.5 }
+const TIER_RADIUS: Record<Tier, number> = { substrate: 4.4, diocese: 3.6, endeavor: 2.6, holon: 2.4 }
 
 // The preset node ids that can be grafted live (mirrors FIRST_FEDERATION).
 // angel-os (spacesangels.com) and kendev (federation.kendev.co) are the two
@@ -451,9 +453,9 @@ export default function FederationSimulator() {
 
         {/* Selected node detail */}
         {selectedNode && (
-          <div className="rounded p-2 font-mono text-[10px]" style={{ background: C.cardBg, borderLeft: `3px solid ${ROLE_COLOR[selectedNode.role]}` }}>
-            <div className="text-sm font-bold" style={{ color: ROLE_COLOR[selectedNode.role] }}>{selectedNode.name}</div>
-            <div style={{ color: C.textMuted }}>{selectedNode.personaTitle || selectedNode.role.toUpperCase()}</div>
+          <div className="rounded p-2 font-mono text-[10px]" style={{ background: C.cardBg, borderLeft: `3px solid ${TIER_COLOR[selectedNode.tier]}` }}>
+            <div className="text-sm font-bold" style={{ color: TIER_COLOR[selectedNode.tier] }}>{selectedNode.name}</div>
+            <div style={{ color: C.textMuted }}>{selectedNode.personaTitle || selectedNode.tier.toUpperCase()}</div>
             <div className="mt-1.5 flex flex-col gap-0.5" style={{ color: C.textMuted }}>
               {selectedNode.domain && <span>⌁ {selectedNode.domain}</span>}
               {selectedNode.operator && <span>☉ {selectedNode.operator}</span>}
@@ -486,8 +488,8 @@ export default function FederationSimulator() {
           {(data?.nodes ?? []).map((n) => {
             const p = positions.get(n.id)
             if (!p) return null
-            const r = ROLE_RADIUS[n.role]
-            const color = ROLE_COLOR[n.role]
+            const r = TIER_RADIUS[n.tier]
+            const color = TIER_COLOR[n.tier]
             const isSel = n.id === selected
             return (
               <g key={n.id} onClick={() => onNodeClick(n.id)} style={{ cursor: 'pointer' }}>
@@ -520,10 +522,10 @@ export default function FederationSimulator() {
 
         {/* Legend */}
         <div className="absolute bottom-2 left-2 flex flex-wrap gap-2 font-mono text-[9px]">
-          <Legend color={C.amber} label="FLAGSHIP" />
-          <Legend color={C.lavender} label="SENTINEL" />
-          <Legend color={C.blue} label="MEMBER" />
-          <Legend color={C.green} label="LIVE" />
+          <Legend color={C.amber} label="SUBSTRATE" />
+          <Legend color={C.lavender} label="DIOCESE" />
+          <Legend color={C.blue} label="ENDEAVOR" />
+          <Legend color={C.green} label="HOLON" />
         </div>
       </div>
     </div>
