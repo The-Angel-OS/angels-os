@@ -27,7 +27,6 @@
 import type { PayloadHandler } from 'payload'
 import { randomUUID } from 'crypto'
 import { verifySignature } from '@/federation/protocol'
-import { isHeartbeatHealthy } from '@/utilities/federationEngine'
 import { getActiveConstitution } from '@/federation/constitution'
 import { mergeStreetSignsForPeer, type StreetSignsPayload } from '@/utilities/streetSigns'
 
@@ -210,54 +209,49 @@ export const federationHeartbeatHandler: PayloadHandler = async (req) => {
   // ── Build our health response ─────────────────────────────────
   const constitution = getActiveConstitution()
 
-  // Get our own federation identity
-  const tenants = await req.payload.find({
-    collection: 'tenants',
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-    sort: 'createdAt',
-  })
-
-  const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
-  const setup = (tenant?.setup as Record<string, unknown>) || {}
-  // Lazily mint our federation identity so a peer is never recorded as "unknown"
-  // when it makes first contact before we've federated ourselves.
-  let ourFederationId = setup.federationId as string | undefined
-  if (!ourFederationId && tenant) {
-    ourFederationId = randomUUID()
-    try {
-      await req.payload.update({
-        collection: 'tenants',
-        id: tenant.id as number,
-        data: { setup: { ...setup, federationId: ourFederationId } } as never,
-        overrideAccess: true,
-      })
-    } catch {
-      /* non-fatal — fall back to the generated id for this response */
+  // Get our own federation identity. Guarded: a peer must still get an ACK even if
+  // our local identity read/mint fails — this whole block is introspection, never
+  // a reason to 500 a valid, signed heartbeat. (Prior 500s came from an unhandled
+  // throw here, incl. a now-removed legacy endeavors.federation query.)
+  let ourFederationId = 'unknown'
+  let ourName = 'Angel OS Instance'
+  try {
+    const tenants = await req.payload.find({
+      collection: 'tenants',
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      sort: 'createdAt',
+    })
+    const tenant = tenants.docs[0] as unknown as Record<string, unknown> | undefined
+    const setup = (tenant?.setup as Record<string, unknown>) || {}
+    ourName = (tenant?.name as string) || ourName
+    // Lazily mint our federation identity so a peer is never recorded as "unknown"
+    // when it makes first contact before we've federated ourselves.
+    ourFederationId = (setup.federationId as string | undefined) || 'unknown'
+    if (ourFederationId === 'unknown' && tenant) {
+      ourFederationId = randomUUID()
+      try {
+        await req.payload.update({
+          collection: 'tenants',
+          id: tenant.id as number,
+          data: { setup: { ...setup, federationId: ourFederationId } } as never,
+          overrideAccess: true,
+        })
+      } catch {
+        /* non-fatal — fall back to the generated id for this response */
+      }
     }
+  } catch (err) {
+    console.warn('[Federation Heartbeat] identity read failed (non-fatal):', err)
   }
-  ourFederationId = ourFederationId || 'unknown'
 
-  // Check our own health
-  const ourEndeavors = await req.payload.find({
-    collection: 'endeavors',
-    where: { 'federation.networkVisible': { equals: true } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  const ourEndeavor = ourEndeavors.docs[0] as unknown as Record<string, unknown> | undefined
-  const ourFederation = ourEndeavor?.federation as unknown as Record<string, unknown> | undefined
-  const ourLastPing = ourFederation?.lastPingAt as string | undefined
-  const ourHealthy = isHeartbeatHealthy(ourLastPing) || true // We're alive if we're responding
-
+  // We're healthy if we're responding — that's the whole signal a heartbeat carries.
   return Response.json({
     acknowledged: true,
-    theirStatus: ourHealthy ? 'healthy' : 'degraded',
+    theirStatus: 'healthy',
     theirFederationId: ourFederationId,
-    theirName: (tenant?.name as string) || 'Angel OS Instance',
+    theirName: ourName,
     constitutionVersion: constitution.version,
     message: `Heartbeat received from ${senderName || senderFedId}. Welcome, sibling.`,
   })
