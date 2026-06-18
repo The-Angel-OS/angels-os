@@ -23,10 +23,15 @@ export async function ensureTenantContactForm(
   tenantId: number | string,
   req?: PayloadRequest,
 ): Promise<EnsureContactFormResult> {
-  // 1. Find-or-create the tenant's Contact Form.
+  // 1. Find-or-create the Contact Form. Forms are NOT tenant-scoped in the plugin
+  // (the collection has no `tenant` field), so we cannot query/set it — doing so
+  // throws "path cannot be queried: tenant" and broke this helper for every tenant.
+  // The per-tenant binding is the /contact page's formBlock (step 2), which IS
+  // tenant-scoped; submissions route to the right tenant by request host at submit
+  // time (routeFormToAIBus), so a single shared Contact Form is correct.
   const existing = await payload.find({
     collection: 'forms',
-    where: { and: [{ tenant: { equals: tenantId } }, { title: { equals: 'Contact Form' } }] },
+    where: { title: { equals: 'Contact Form' } },
     limit: 1,
     depth: 0,
     overrideAccess: true,
@@ -40,7 +45,7 @@ export async function ensureTenantContactForm(
     const created = await payload.create({
       collection: 'forms',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: { ...data, tenant: tenantId } as any,
+      data: { ...data } as any,
       overrideAccess: true,
       req,
     })
