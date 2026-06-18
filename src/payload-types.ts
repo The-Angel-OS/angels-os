@@ -1366,6 +1366,10 @@ export interface Page {
         }[]
       | null;
     media?: (number | null) | Media;
+    /**
+     * How the hero image fills its frame. Fill is best for pre-cropped banners.
+     */
+    mediaFit?: ('cover' | 'contain' | 'fill') | null;
   };
   layout: (
     | CallToActionBlock
@@ -3687,6 +3691,10 @@ export interface Post {
         }[]
       | null;
     media?: (number | null) | Media;
+    /**
+     * How the hero image fills its frame. Fill is best for pre-cropped banners.
+     */
+    mediaFit?: ('cover' | 'contain' | 'fill') | null;
   };
   layout: (
     | CallToActionBlock
@@ -7883,6 +7891,7 @@ export interface PagesSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        mediaFit?: T;
       };
   layout?:
     | T
@@ -8127,6 +8136,7 @@ export interface PostsSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        mediaFit?: T;
       };
   layout?:
     | T

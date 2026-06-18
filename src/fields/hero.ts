@@ -67,6 +67,23 @@ export const hero: Field = {
       relationTo: 'media',
       required: true,
     },
+    {
+      name: 'mediaFit',
+      type: 'select',
+      // Defaults to current behavior (cover) so existing heroes are unchanged.
+      defaultValue: 'cover',
+      label: 'Image Fit',
+      options: [
+        { label: 'Cover — fill the box, crop overflow (default)', value: 'cover' },
+        { label: 'Contain — show the whole image, letterboxed', value: 'contain' },
+        { label: 'Fill — stretch to the box edges', value: 'fill' },
+      ],
+      admin: {
+        // Only High Impact has a fixed-height box where object-fit changes anything.
+        condition: (_, { type } = {}) => type === 'highImpact',
+        description: 'How the hero image fills its frame. Fill is best for pre-cropped banners.',
+      },
+    },
   ],
   label: false,
 }

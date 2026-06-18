@@ -8,8 +8,17 @@ import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
 import { RichText } from '@/components/RichText'
 
-export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
+// Static class map so Tailwind keeps these in the build (no dynamic `object-${x}`).
+const FIT_CLASS: Record<string, string> = {
+  cover: 'object-cover',
+  contain: 'object-contain',
+  fill: 'object-fill',
+}
+
+export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText, mediaFit }) => {
   const { setHeaderTheme } = useHeaderTheme()
+  // Default to 'cover' so a null/absent value renders exactly as before.
+  const fitClass = FIT_CLASS[mediaFit ?? 'cover'] ?? 'object-cover'
 
   useEffect(() => {
     setHeaderTheme('dark')
@@ -23,7 +32,7 @@ export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText 
       >
         {/* Background image (fills the hero) */}
         {media && typeof media === 'object' && (
-          <Media fill imgClassName="object-cover" priority resource={media} size="100vw" />
+          <Media fill imgClassName={fitClass} priority resource={media} size="100vw" />
         )}
         {/* Legibility overlay — keeps the headline readable over any image */}
         <div
