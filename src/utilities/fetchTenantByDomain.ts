@@ -66,6 +66,22 @@ export async function fetchTenantByDomain(host: string): Promise<Tenant | null> 
       return tenants.docs[0]
     }
 
+    // 1b: alias domains — a tenant can bind N custom/apex domains via domains[].domain
+    // (e.g. www.arctic-cool-clearwater.com → the arctic-cool tenant). This is how
+    // bring-your-own domains resolve, since the middleware returns null for non-
+    // *.kendev.co hosts. Exact match → safe to cache.
+    const byAlias = await payload.find({
+      collection: 'tenants',
+      where: { 'domains.domain': { equals: domain } },
+      limit: 1,
+      depth: 2,
+      overrideAccess: true,
+    })
+    if (byAlias.docs?.[0]) {
+      tenantByDomainCache.set(domain, byAlias.docs[0])
+      return byAlias.docs[0]
+    }
+
     // Second: subdomain-slug lookup.
     // Handles the common env-mismatch case where the tenant's domain field was
     // seeded as hays-cactus.angelos.local but we are now serving hays-cactus.spacesangels.com.
