@@ -86,7 +86,7 @@ Detail lives in the linked memories / planning docs — this is the index.
 - Guardrails: account-prune = audit-only; inmate-trust-fund = plan-only/compliance-gated.
 
 ## 10. Accessibility (beyond the button fix)  ([[project_spaces_bigask_260613]] axe)
-- ⬜ `/contact` `color-contrast` (serious, 4 nodes) — design fix · ⬜ expand axe to dashboard/admin/mobile surfaces · ⬜ consider `AXE_STRICT` gate in CI once green · ⬜ (later, scoped) GitHub `accessibility-scanner` Action with a dedicated label so it doesn't flood the tracker.
+- ✅ `/contact` `color-contrast` (serious, 4 nodes) — FIXED+VERIFIED (5fa7efa): shared shadcn `Label` used `text-primary/50` (#8b8b8b = 3.4:1); bumped to `/70` (~7:1). Root fix → every Label benefits. Local axe re-run = 0 color-contrast violations on /contact. · ⬜ expand axe to dashboard/admin/mobile surfaces · ⬜ consider `AXE_STRICT` gate in CI once green · ⬜ (later, scoped) GitHub `accessibility-scanner` Action with a dedicated label so it doesn't flood the tracker.
 
 ## 11. Federation / infra debt
 - ⬜ **Street Signs cross-holon sync protocol** (split out of #109; the audit-log itself shipped).
