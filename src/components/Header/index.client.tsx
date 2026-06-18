@@ -202,6 +202,13 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   // The ?? [] was creating a new array ref every render when header was null,
   // which could cause useMemo to recompute unexpectedly.
   const navItems = header?.navItems
+  // A commercial storefront (HVAC, mover, retail, etc.) should NOT surface the
+  // platform/mission chrome — Donate, the Works library, Learn, and federation
+  // Discovery belong to community/ministry endeavors, not a customer-facing shop.
+  // Suppressing them here stops that cross-barrier leak. (Dashboard stays — the
+  // owner needs to log in — but it always lives in the "More" overflow anyway.)
+  const businessType = (tenant as { businessType?: string } | null | undefined)?.businessType
+  const isStorefront = ['service', 'retail', 'professional_services', 'artisan_maker', 'gift_shop'].includes(businessType || '')
   const menu = useMemo(() => {
     const items = [...(navItems ?? [])]
     const urls = new Set(items.map((i) => i.link?.url))
@@ -209,20 +216,22 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // include it, so when the header doc fails to load (or omits Home) the nav
     // would otherwise have no Home link at all (only the logo). Guarantee it.
     if (!urls.has('/')) items.unshift(HOME_NAV_ITEM)
-    // Ensure Posts, Events, Docs always present (even if CMS omits them)
+    // Ensure Posts, Events always present (even if CMS omits them)
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
-    if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
-    // Donate is always visible — every endeavor can receive donations
-    if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
-    if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
-    if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
-    // Dashboard & Spaces are always visible — the dashboard layout handles auth redirect
-    if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
+    // Mission/platform chrome — community endeavors only, never a commercial storefront.
+    if (!isStorefront) {
+      if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
+      if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
+      if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
+      if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
+      if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
+    }
+    // Dashboard is always visible — the dashboard layout handles auth redirect.
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     return items
-  }, [navItems])
+  }, [navItems, isStorefront])
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
