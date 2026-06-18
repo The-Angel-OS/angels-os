@@ -64,6 +64,9 @@ export function narrateCentral(snap: NetworkSnapshot): string {
  * face; plus a couple of holon service nodes. Swap any node's `liveBaseUrl`
  * (or call network.bringOnline) to fill it in with a live piece.
  */
+// ponytail: hand-kept to mirror the live directory (spacesangels.com endeavors).
+// Static keeps /simulate pure + deterministic. If it drifts often, generate this
+// from the federation directory at build time, not a request-time fetch.
 export const FIRST_FEDERATION: SimNodeConfig[] = [
   {
     id: 'angel-os',
@@ -139,6 +142,60 @@ export const FIRST_FEDERATION: SimNodeConfig[] = [
     healthy: true,
     reliability: 0.93,
     avgExecutionTimeMs: 1000,
+  },
+  {
+    id: 'hayes-cactus-farm',
+    name: 'Hayes Cactus Farm',
+    domain: 'hayescactusfarm.spacesangels.com',
+    operator: 'Hayes',
+    tier: 'endeavor',
+    parentEnterpriseId: 'angel-os',
+    region: 'us-east',
+    persona: { title: 'The Grower', voice: 'rooted, patient, sells what it raises' },
+    computeClass: 'standard',
+    supportedWorkTypes: ['generation', 'aggregation'],
+    maxConcurrent: 4,
+    capabilities: ['commerce', 'media'],
+    vouches: 1,
+    healthy: true,
+    reliability: 0.92,
+    avgExecutionTimeMs: 1000,
+  },
+  {
+    id: 'helpdna',
+    name: 'HelpDNA',
+    domain: 'helpdna.spacesangels.com',
+    operator: 'Ernesto Behrens',
+    tier: 'endeavor',
+    parentEnterpriseId: 'angel-os',
+    region: 'us-east',
+    persona: { title: 'The Advocate', voice: 'documentary, the record made undeniable' },
+    computeClass: 'standard',
+    supportedWorkTypes: ['analysis', 'transformation'],
+    maxConcurrent: 4,
+    capabilities: ['publishing', 'advocacy'],
+    vouches: 1,
+    healthy: true,
+    reliability: 0.92,
+    avgExecutionTimeMs: 1000,
+  },
+  {
+    id: 'tom-stalcup-for-congress',
+    name: 'Tom Stalcup for Congress',
+    domain: 'tomstalcupforcongress.spacesangels.com',
+    operator: 'Tom Stalcup',
+    tier: 'endeavor',
+    parentEnterpriseId: 'angel-os',
+    region: 'us-east',
+    persona: { title: 'The Candidate', voice: 'on the stump, mobilizing' },
+    computeClass: 'standard',
+    supportedWorkTypes: ['generation', 'aggregation'],
+    maxConcurrent: 4,
+    capabilities: ['outreach', 'media'],
+    vouches: 1,
+    healthy: true,
+    reliability: 0.9,
+    avgExecutionTimeMs: 1100,
   },
   {
     id: 'holon-compute',

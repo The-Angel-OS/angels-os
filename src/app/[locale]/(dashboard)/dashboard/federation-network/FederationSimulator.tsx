@@ -242,14 +242,23 @@ function layout(nodes: StarNode[], expanded: Set<string>): Map<string, { x: numb
   }
   for (const [parentId, kids] of byParent) {
     const p = pos.get(parentId)!
-    // Fan outward from center so satellites don't overlap the ring.
-    const outAngle = Math.atan2(p.y - cy, p.x - cx)
-    const r = 10
-    kids.forEach((kid, i) => {
-      const spread = (i - (kids.length - 1) / 2) * 0.5
-      const a = outAngle + spread
-      pos.set(kid.id, { x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a) })
-    })
+    const r = parentId === substrate[0]?.id ? 16 : 10
+    const atCenter = Math.hypot(p.x - cx, p.y - cy) < 1
+    if (atCenter) {
+      // Parent is the still center → ring its satellites a full 360°.
+      kids.forEach((kid, i) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / kids.length
+        pos.set(kid.id, { x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a) })
+      })
+    } else {
+      // Fan outward from center so satellites don't overlap the ring.
+      const outAngle = Math.atan2(p.y - cy, p.x - cx)
+      kids.forEach((kid, i) => {
+        const spread = (i - (kids.length - 1) / 2) * 0.5
+        const a = outAngle + spread
+        pos.set(kid.id, { x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a) })
+      })
+    }
   }
   return pos
 }
