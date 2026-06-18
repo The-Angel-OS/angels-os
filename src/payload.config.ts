@@ -137,6 +137,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
+import { nodeRegisterHandler, nodeListHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -902,6 +903,10 @@ export default buildConfig({
     // (settings-bag backed, no schema change). super_admin or ?key=. GET reads children.
     { path: '/provision-ops/link-market', method: 'post', handler: linkMarketHandler },
     { path: '/provision-ops/link-market', method: 'get', handler: linkMarketHandler },
+    // Merlin nodes register their catalog UP to their endeavor; Core lists them.
+    // Phase 1 of distributed-nodes adoption. super_admin or ?key=.
+    { path: '/node-ops/register', method: 'post', handler: nodeRegisterHandler },
+    { path: '/node-ops/list', method: 'get', handler: nodeListHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {
