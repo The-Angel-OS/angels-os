@@ -39,6 +39,8 @@ type Props = {
   hasPosts?: boolean
   /** Works/Library is first-class only when the tenant has works; else it collapses to More. */
   hasWorks?: boolean
+  /** Book is first-class only when the tenant has an enabled bookable service. */
+  hasBook?: boolean
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -153,7 +155,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -209,6 +211,16 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   // owner needs to log in — but it always lives in the "More" overflow anyway.)
   const businessType = (tenant as { businessType?: string } | null | undefined)?.businessType
   const isStorefront = ['service', 'retail', 'professional_services', 'artisan_maker', 'gift_shop'].includes(businessType || '')
+  // A giving org (church/ministry/nonprofit) gets Giving promoted to top-level; for
+  // any other community site the link still exists but stays in More until configured.
+  // Label flips to "Giving" for a church/ministry, "Donate" otherwise.
+  const isGivingOrg = ['ministry', 'nonprofit'].includes(businessType || '')
+  const donateItem = useMemo(
+    () => (businessType === 'ministry'
+      ? { ...DONATE_NAV_ITEM, link: { ...DONATE_NAV_ITEM.link, label: 'Giving' } }
+      : DONATE_NAV_ITEM),
+    [businessType],
+  )
   const menu = useMemo(() => {
     const items = [...(navItems ?? [])]
     const urls = new Set(items.map((i) => i.link?.url))
@@ -223,7 +235,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // Mission/platform chrome — community endeavors only, never a commercial storefront.
     if (!isStorefront) {
       if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
-      if (!urls.has('/donate')) items.push(DONATE_NAV_ITEM)
+      if (!urls.has('/donate')) items.push(donateItem)
       if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
       if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
       if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
@@ -231,7 +243,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // Dashboard is always visible — the dashboard layout handles auth redirect.
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     return items
-  }, [navItems, isStorefront])
+  }, [navItems, isStorefront, donateItem])
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
@@ -244,6 +256,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (!hasEvents) demoteUrls.push('/events')
   if (!hasPosts) demoteUrls.push('/posts')
   if (!hasWorks) demoteUrls.push('/works')
+  if (!hasBook) demoteUrls.push('/book')
+  // Giving promotes to top-level only for a church/ministry/nonprofit; otherwise it
+  // lives in More (the link still exists for any community site, just not up front).
+  if (!isGivingOrg) demoteUrls.push('/donate')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
     forcePrimaryUrls: ['/federation/discover'], // Discovery is always top-level

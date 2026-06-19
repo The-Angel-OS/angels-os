@@ -125,24 +125,31 @@ export async function Header({ tenant }: Props) {
     }
   }
 
-  // Shop/Posts/Events are first-class only when populated — else they collapse into More.
+  // Shop/Posts/Events/Book are first-class only when populated — else they collapse into More.
   let hasProducts = false
   let hasEvents = false
   let hasPosts = false
+  let hasBook = false
   if (tenantId) {
     try {
       const payload = await getPayload({ config })
-      const [products, events, posts] = await Promise.all([
+      const [products, events, posts, services] = await Promise.all([
         // Published only — a draft-only catalog shouldn't make Shop first-class.
         payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
         payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
         payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
+        // Book promotes when the tenant has at least one enabled bookable service.
+        // ponytail: counts the DB `services` collection only — a tenant relying purely on
+        // the static bookableServices fallback would read 0 here; acceptable since provisioned
+        // verticals create real rows. Widen to availability if a static-only site needs it.
+        payload.count({ collection: 'services', where: { and: [{ tenant: { equals: tenantId } }, { enabled: { equals: true } }] }, overrideAccess: true }),
       ])
       hasProducts = products.totalDocs > 0
       hasEvents = events.totalDocs > 0
       hasPosts = posts.totalDocs > 0
+      hasBook = services.totalDocs > 0
     } catch (err) {
-      console.error('[Header] Failed to count products/events/posts:', err)
+      console.error('[Header] Failed to count products/events/posts/services:', err)
     }
   }
 
@@ -150,5 +157,5 @@ export async function Header({ tenant }: Props) {
   // when this tenant actually has works available; else collapse into More.
   const hasWorks = getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug))
 
-  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasWorks={hasWorks} />
+  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} />
 }
