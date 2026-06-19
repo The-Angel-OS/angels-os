@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useTransition } from 'react'
 import { getEndeavor, updateEndeavor, type EndeavorData } from './actions'
+import { MediaPicker } from './MediaPicker'
 
 const ENDEAVOR_TYPES = [
   { label: 'Service Provider', value: 'service-provider' },
@@ -506,6 +507,7 @@ function ImageField({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
 
   async function handleFile(file: File) {
     setUploading(true)
@@ -513,6 +515,10 @@ function ImageField({
     try {
       const fd = new FormData()
       fd.append('file', file)
+      // Media.alt is required — derive it from the filename so the upload
+      // validates (Payload reads non-file fields from the _payload part).
+      const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || label
+      fd.append('_payload', JSON.stringify({ alt }))
       const res = await fetch('/api/media', { method: 'POST', body: fd, credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.errors?.[0]?.message || 'Upload failed')
@@ -563,6 +569,14 @@ function ImageField({
         >
           {uploading ? 'Uploading…' : value ? 'Replace' : 'Upload'}
         </button>
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          disabled={uploading}
+          className="rounded-md border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+        >
+          Choose existing
+        </button>
         {value && (
           <button
             type="button"
@@ -576,6 +590,12 @@ function ImageField({
       </div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
       <p className="mt-1 text-[11px] text-muted-foreground">Changes apply when you click Save.</p>
+      {picking && (
+        <MediaPicker
+          onSelect={(m) => { onChange({ id: m.id, url: m.url }); setPicking(false) }}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </div>
   )
 }
