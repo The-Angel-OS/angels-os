@@ -1384,6 +1384,8 @@ export interface Page {
     | DonationBlock
     | MembershipBlock
     | FeaturedEndeavorsBlock
+    | GalleryBlock
+    | MerlinControlBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2366,6 +2368,50 @@ export interface TenantMembership {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GalleryBlock".
+ */
+export interface GalleryBlock {
+  /**
+   * Optional heading above the grid.
+   */
+  heading?: string | null;
+  /**
+   * Columns on desktop (always 1–2 on mobile).
+   */
+  columns?: ('2' | '3' | '4') | null;
+  images?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'gallery';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MerlinControlBlock".
+ */
+export interface MerlinControlBlock {
+  /**
+   * Endeavor slug whose Merlin nodes this control lists (from node-ops/register).
+   */
+  endeavor: string;
+  /**
+   * Show the node selector rail. Turn off to pin the control to the first/only node.
+   */
+  showNav?: boolean | null;
+  /**
+   * Optional heading above the control.
+   */
+  heading?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'merlinControl';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6471,6 +6517,10 @@ export interface PayloadMcpApiKey {
      */
     classifyEndeavor?: boolean | null;
     /**
+     * Add a photo gallery to a page. Resolves images (existing media ids and/or image URLs to upload) into a gallery block and PREPENDS it to the page (newest gallery on top). Creates the page — shown in nav — if it does not exist (defaults to a "galleries" page). Use for "add these photos to a new gallery on my galleries page".
+     */
+    addGalleryToPage?: boolean | null;
+    /**
      * Permanently delete a tenant and ALL its artifacts (pages, posts, products, spaces, channels, endeavor, header/footer, etc.) on this node. super_admin only. Defaults to a DRY-RUN that reports the blast radius — pass confirm:true to actually delete. Routing stops once the 120s tenant cache expires. Use to retire a duplicate/abandoned site.
      */
     decommissionTenant?: boolean | null;
@@ -7942,6 +7992,8 @@ export interface PagesSelect<T extends boolean = true> {
         donation?: T | DonationBlockSelect<T>;
         membership?: T | MembershipBlockSelect<T>;
         featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
+        gallery?: T | GalleryBlockSelect<T>;
+        merlinControl?: T | MerlinControlBlockSelect<T>;
       };
   meta?:
     | T
@@ -8138,6 +8190,33 @@ export interface FeaturedEndeavorsBlockSelect<T extends boolean = true> {
   layout?: T;
   showDescription?: T;
   showRegion?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GalleryBlock_select".
+ */
+export interface GalleryBlockSelect<T extends boolean = true> {
+  heading?: T;
+  columns?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MerlinControlBlock_select".
+ */
+export interface MerlinControlBlockSelect<T extends boolean = true> {
+  endeavor?: T;
+  showNav?: T;
+  heading?: T;
   id?: T;
   blockName?: T;
 }
@@ -9888,6 +9967,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         listAvailability?: T;
         configureService?: T;
         classifyEndeavor?: T;
+        addGalleryToPage?: T;
         decommissionTenant?: T;
         setHolonProfile?: T;
         configurePaymentMethod?: T;

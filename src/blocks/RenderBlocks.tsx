@@ -11,6 +11,8 @@ import { CalendarBlock } from '@/blocks/Calendar/Component'
 import { DonationBlock } from '@/blocks/Donation/Component'
 import { MembershipBlock } from '@/blocks/Membership/Component'
 import { FeaturedEndeavorsBlock } from '@/blocks/FeaturedEndeavors/Component'
+import { GalleryBlock } from '@/blocks/Gallery/Component'
+import { MerlinControlBlock } from '@/blocks/MerlinControl/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -32,6 +34,8 @@ const blockComponents = {
   donation: DonationBlock,
   membership: MembershipBlock,
   featuredEndeavors: FeaturedEndeavorsBlock,
+  gallery: GalleryBlock,
+  merlinControl: MerlinControlBlock,
 }
 
 export const RenderBlocks: React.FC<{

@@ -1224,6 +1224,21 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'add_gallery_to_page',
+    description:
+      'Add a photo gallery to a page. Resolves images (existing media ids and/or image URLs to upload) into a gallery block and PREPENDS it to the page (newest gallery on top). Creates the page — shown in nav — if it does not exist (defaults to a "galleries" page). Use for "add these photos to a new gallery on my galleries page".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageSlug: { type: 'string', description: 'Target page slug. Default "galleries". Created in nav if missing.' },
+        heading: { type: 'string', description: 'Optional heading shown above this gallery.' },
+        columns: { type: 'string', enum: ['2', '3', '4'], description: 'Desktop columns. Default 3.' },
+        imageUrls: { type: 'array', items: { type: 'string' }, description: 'Image URLs to upload into the Media library and include.' },
+        imageIds: { type: 'array', items: { type: 'number' }, description: 'Existing Media doc ids to include.' },
+      },
+    },
+  },
+  {
     name: 'decommission_tenant',
     description:
       'Permanently delete a tenant and ALL its artifacts (pages, posts, products, spaces, channels, endeavor, header/footer, etc.) on this node. super_admin only. Defaults to a DRY-RUN that reports the blast radius — pass confirm:true to actually delete. Routing stops once the 120s tenant cache expires. Use to retire a duplicate/abandoned site.',
@@ -3766,6 +3781,8 @@ async function executeToolSwitch(
         return await classifyEndeavor(payload, toolInput, ctx)
       case 'decommission_tenant':
         return await decommissionTenantTool(payload, toolInput, ctx)
+      case 'add_gallery_to_page':
+        return await addGalleryToPage(payload, toolInput, ctx)
       case 'configure_payment_method':
         return await configurePaymentMethod(payload, toolInput, ctx)
       case 'query_booking_revenue':
@@ -15923,6 +15940,87 @@ async function classifyEndeavor(
     '',
     'Next: call set_holon_profile with { holonTypes, capabilities, missionStatement, endeavorType }.',
   ].join('\n')
+}
+
+/**
+ * add_gallery_to_page — resolve a set of images (existing media ids OR urls to
+ * upload) into a gallery block and PREPEND it to a page's layout (newest gallery
+ * on top). Creates the page (in-nav) if it doesn't exist. This is the factory
+ * behind "add these to a new gallery on my galleries page".
+ */
+async function addGalleryToPage(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) return "Error: I couldn't determine which site to add the gallery to."
+
+  const pageSlug = ((input.pageSlug as string) || 'galleries').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  const heading = (input.heading as string)?.trim()
+  const columns = ['2', '3', '4'].includes(String(input.columns)) ? String(input.columns) : '3'
+  const imageUrls = Array.isArray(input.imageUrls) ? (input.imageUrls as string[]) : []
+  const imageIds = Array.isArray(input.imageIds) ? (input.imageIds as number[]) : []
+  if (imageUrls.length === 0 && imageIds.length === 0) return 'Error: provide imageUrls (to upload) and/or imageIds (existing media).'
+
+  const { resolveMediaSource } = await import('@/utilities/setMediaField')
+  const resolved: number[] = []
+  const failures: string[] = []
+  for (const id of imageIds) resolved.push(Number(id))
+  for (const url of imageUrls) {
+    const r = await resolveMediaSource(payload, { imageUrl: url }, { tenantId: tenantId as number, alt: heading || 'Gallery image' })
+    if ('error' in r) failures.push(`${url}: ${r.error}`)
+    else resolved.push(r.mediaId)
+  }
+  if (resolved.length === 0) return `Error: no images could be resolved.\n${failures.join('\n')}`
+
+  const galleryBlock = {
+    blockType: 'gallery',
+    heading: heading || undefined,
+    columns,
+    images: resolved.map((mediaId) => ({ image: mediaId })),
+  }
+
+  const existing = await payload.find({
+    collection: 'pages',
+    where: { and: [{ tenant: { equals: tenantId } }, { slug: { equals: pageSlug } }] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  let action: string
+  if (existing.docs[0]) {
+    const page = existing.docs[0] as any
+    const layout = Array.isArray(page.layout) ? page.layout : []
+    await payload.update({
+      collection: 'pages',
+      id: page.id,
+      // Prepend → newest gallery on top.
+      data: { layout: [galleryBlock, ...layout] } as any,
+      overrideAccess: true,
+      overrideLock: true,
+    })
+    action = `Added a gallery (${resolved.length} images) to the top of /${pageSlug}.`
+  } else {
+    await payload.create({
+      collection: 'pages',
+      data: {
+        title: heading || 'Galleries',
+        slug: pageSlug,
+        tenant: tenantId,
+        showInNav: true,
+        _status: 'published',
+        layout: [galleryBlock],
+      } as any,
+      overrideAccess: true,
+    })
+    action = `Created /${pageSlug} (in nav) with a gallery of ${resolved.length} images.`
+  }
+
+  return [action, failures.length ? `⚠️ Skipped: ${failures.join('; ')}` : '']
+    .filter(Boolean)
+    .join('\n') + navDirective(`/${pageSlug}`, 'View page')
 }
 
 /**

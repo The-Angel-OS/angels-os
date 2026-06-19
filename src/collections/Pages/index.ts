@@ -14,6 +14,8 @@ import { Calendar } from '@/blocks/Calendar/config'
 import { Donation } from '@/blocks/Donation/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
+import { Gallery } from '@/blocks/Gallery/config'
+import { MerlinControl } from '@/blocks/MerlinControl/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
@@ -136,6 +138,8 @@ export const Pages: CollectionConfig = {
                 Donation,
                 Membership,
                 FeaturedEndeavors,
+                Gallery,
+                MerlinControl,
               ],
               required: true,
             },
