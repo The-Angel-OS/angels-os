@@ -55,6 +55,7 @@ export type EscalationEventType =
   | 'itsm_incident'
   | 'maintenance_note'
   | 'content_flagged'
+  | 'content_reported'
 
 export interface EscalationEvent {
   tenantId: number | string

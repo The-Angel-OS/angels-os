@@ -119,6 +119,7 @@ import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-c
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { ensurePresenceTableHandler } from '@/endpoints/ensure-presence-table'
+import { reportMessageHandler } from '@/endpoints/report-message'
 import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
 import { toolMetricsHandler } from '@/endpoints/tool-metrics'
 import { fundFloatHandler } from '@/endpoints/fund-float'
@@ -741,6 +742,12 @@ export default buildConfig({
       path: '/provision-ops/portal',
       method: 'post',
       handler: provisionPortalHandler,
+    },
+    // User-facing moderation: report a message/author for review.
+    {
+      path: '/moderation/report',
+      method: 'post',
+      handler: reportMessageHandler,
     },
     // Idempotent self-heal: ensure a tenant's baseline Spaces/Channels exist.
     // GET so a super_admin can trigger it from the browser (?tenant=<slug> | ?all=1).
