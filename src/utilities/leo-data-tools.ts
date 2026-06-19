@@ -1224,6 +1224,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'decommission_tenant',
+    description:
+      'Permanently delete a tenant and ALL its artifacts (pages, posts, products, spaces, channels, endeavor, header/footer, etc.) on this node. super_admin only. Defaults to a DRY-RUN that reports the blast radius — pass confirm:true to actually delete. Routing stops once the 120s tenant cache expires. Use to retire a duplicate/abandoned site.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        slug: { type: 'string', description: 'Tenant slug to decommission, e.g. "hays-cactus".' },
+        confirm: { type: 'boolean', description: 'false (default) = dry-run blast radius only. true = irreversibly delete.' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
     name: 'set_holon_profile',
     description:
       'Write the federation classification of the current Endeavor. holonTypes = ROLE in the value chain (service-provider, fulfillment, marketing, retailer, manufacturer, creator, community, guardian-angel) — NOT the industry. Industry/trade (e.g. "HVAC repair", "long-distance moving") goes in capabilities. Idempotent; overwrites the fields you pass. Typically called after classify_endeavor.',
@@ -3751,6 +3764,8 @@ async function executeToolSwitch(
         return await setHolonProfile(payload, toolInput, ctx)
       case 'classify_endeavor':
         return await classifyEndeavor(payload, toolInput, ctx)
+      case 'decommission_tenant':
+        return await decommissionTenantTool(payload, toolInput, ctx)
       case 'configure_payment_method':
         return await configurePaymentMethod(payload, toolInput, ctx)
       case 'query_booking_revenue':
@@ -15907,6 +15922,50 @@ async function classifyEndeavor(
     'Put the trade here, NOT in holonTypes.',
     '',
     'Next: call set_holon_profile with { holonTypes, capabilities, missionStatement, endeavorType }.',
+  ].join('\n')
+}
+
+/**
+ * decommission_tenant — hard-delete a tenant and all its artifacts on this node.
+ * super_admin ONLY. Dry-run (blast radius) unless confirm:true. The teardown
+ * logic is shared with the CLI script via decommissionTenant().
+ */
+async function decommissionTenantTool(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.roles?.includes('super_admin')) {
+    return 'Error: decommission_tenant is restricted to super_admin — this permanently deletes a tenant and all its data.'
+  }
+  const slug = (input.slug as string)?.trim()
+  if (!slug) return 'Error: slug is required (e.g. "hays-cactus").'
+  const confirm = input.confirm === true
+
+  const { decommissionTenant } = await import('@/utilities/decommissionTenant')
+  const r = await decommissionTenant(payload, { slug, execute: confirm })
+
+  if (!r.found) return `No tenant found with slug "${slug}". Nothing to do.`
+
+  const rows = r.steps
+    .filter((s) => s.count > 0 || s.status === 'error')
+    .map((s) => s.status === 'error' ? `- ⚠️ ${s.collection}: ${s.error}` : `- ${s.collection}: ${s.count}`)
+    .join('\n')
+
+  if (!confirm) {
+    return [
+      `🔍 **Dry-run — decommission "${r.name || slug}" (${r.domain || slug})**`,
+      `Would delete **${r.totalRows} rows** across:`,
+      rows || '- (nothing found)',
+      '',
+      `⚠️ Irreversible. To proceed, call again with \`confirm: true\`.`,
+    ].join('\n')
+  }
+  return [
+    `🔥 **Decommissioned "${r.name || slug}"** — deleted ${r.totalRows} rows.`,
+    rows,
+    '',
+    'Routing stops once the tenant cache TTL (120s) expires.',
   ].join('\n')
 }
 

@@ -2016,9 +2016,20 @@ export interface Endeavor {
    */
   endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
   /**
-   * Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.
+   * Federation holon type(s) = ROLE in the value chain, not industry. Determines marketplace behavior, revenue flow, and routing (marketing holons resell fulfillment holons). Industry/trade goes in Capabilities. Set during Leo Wizard step 5.
    */
-  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
+  holonTypes?:
+    | (
+        | 'manufacturer'
+        | 'retailer'
+        | 'creator'
+        | 'community'
+        | 'guardian-angel'
+        | 'service-provider'
+        | 'marketing'
+        | 'fulfillment'
+      )[]
+    | null;
   /**
    * What does this Enterprise serve? Set during Leo Wizard step 5.
    */
@@ -4975,7 +4986,18 @@ export interface StreetSign {
   /**
    * Which holon types should see this street sign
    */
-  holonTypes?: ('manufacturer' | 'retailer' | 'creator' | 'community' | 'guardian-angel')[] | null;
+  holonTypes?:
+    | (
+        | 'manufacturer'
+        | 'retailer'
+        | 'creator'
+        | 'community'
+        | 'guardian-angel'
+        | 'service-provider'
+        | 'marketing'
+        | 'fulfillment'
+      )[]
+    | null;
   /**
    * Geographic region tag (e.g., "us-east", "gulf-coast")
    */
@@ -6444,6 +6466,18 @@ export interface PayloadMcpApiKey {
      * Create or update a bookable service offering for the current Endeavor. Sets the name, description, price, duration, and whether customers can book it online. Use when adding or editing a service in the booking catalog.
      */
     configureService?: boolean | null;
+    /**
+     * Read a Craigslist ad, flyer, or existing website and extract its content so you can classify the business. Returns the source text plus the controlled holon-role vocabulary and operational-model options. Provide `url` (LEO fetches it) or `adText` (pasted). After this returns, decide the holon roles + industry capabilities and call set_holon_profile. Use as the first step of onboarding a new service-provider vertical.
+     */
+    classifyEndeavor?: boolean | null;
+    /**
+     * Permanently delete a tenant and ALL its artifacts (pages, posts, products, spaces, channels, endeavor, header/footer, etc.) on this node. super_admin only. Defaults to a DRY-RUN that reports the blast radius — pass confirm:true to actually delete. Routing stops once the 120s tenant cache expires. Use to retire a duplicate/abandoned site.
+     */
+    decommissionTenant?: boolean | null;
+    /**
+     * Write the federation classification of the current Endeavor. holonTypes = ROLE in the value chain (service-provider, fulfillment, marketing, retailer, manufacturer, creator, community, guardian-angel) — NOT the industry. Industry/trade (e.g. "HVAC repair", "long-distance moving") goes in capabilities. Idempotent; overwrites the fields you pass. Typically called after classify_endeavor.
+     */
+    setHolonProfile?: boolean | null;
     /**
      * Set how this Endeavor collects payment for bookings. "deposit" charges a deposit online up front (requires Stripe Connect). "cod" takes the booking as a request and the owner collects on completion (cash, check, Zelle) — the right choice for trades like an electrician or for any pay-on-site business. Note: a $0 or no-deposit service never requires online payment regardless of this setting.
      */
@@ -9853,6 +9887,9 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         configureAvailability?: T;
         listAvailability?: T;
         configureService?: T;
+        classifyEndeavor?: T;
+        decommissionTenant?: T;
+        setHolonProfile?: T;
         configurePaymentMethod?: T;
         queryBookingRevenue?: T;
         applySiteTemplate?: T;
