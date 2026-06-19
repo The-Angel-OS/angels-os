@@ -42,6 +42,8 @@ export interface EndeavorData {
 export interface EndeavorResult {
   success: boolean
   endeavor: EndeavorData | null
+  /** Active tenant id — used to scope the media picker to this portal only. */
+  tenantId?: string | number | null
   error?: string
 }
 
@@ -97,7 +99,7 @@ export async function getEndeavor(): Promise<EndeavorResult> {
 
   const doc = result.docs[0] as any
   if (!doc) {
-    return { success: true, endeavor: null }
+    return { success: true, endeavor: null, tenantId }
   }
 
   const mediaRef = (m: any) =>
@@ -105,6 +107,7 @@ export async function getEndeavor(): Promise<EndeavorResult> {
 
   return {
     success: true,
+    tenantId,
     endeavor: {
       id: doc.id,
       name: doc.name || '',

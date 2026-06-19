@@ -24,9 +24,13 @@ const thumb = (m: MediaDoc) => m.sizes?.thumbnail?.url || m.thumbnailURL || m.ur
 export function MediaPicker({
   onSelect,
   onClose,
+  tenantId,
 }: {
   onSelect: (m: { id: number | string; url: string }) => void
   onClose: () => void
+  /** Scope the library to a single tenant. super_admins are members of every
+   * tenant, so /api/media returns ALL portals' images without this filter. */
+  tenantId?: string | number | null
 }) {
   const [items, setItems] = useState<MediaDoc[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +44,11 @@ export function MediaPicker({
       setError(null)
       try {
         const params = new URLSearchParams({ limit: '120', sort: '-createdAt', depth: '0' })
-        params.set('where[mimeType][like]', 'image')
+        params.set('where[and][0][mimeType][like]', 'image')
+        // Scope to this portal — without it a super_admin sees every tenant's media.
+        if (tenantId != null && tenantId !== '') {
+          params.set('where[and][1][tenant][equals]', String(tenantId))
+        }
         const res = await fetch(`/api/media?${params.toString()}`, { credentials: 'include' })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.errors?.[0]?.message || 'Failed to load media')
@@ -53,7 +61,7 @@ export function MediaPicker({
       }
     })()
     return () => { active = false }
-  }, [])
+  }, [tenantId])
 
   const filtered = q.trim()
     ? items.filter((m) => `${m.filename || ''} ${m.alt || ''}`.toLowerCase().includes(q.toLowerCase()))

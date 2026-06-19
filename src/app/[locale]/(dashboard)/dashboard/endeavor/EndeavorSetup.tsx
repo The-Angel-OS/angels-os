@@ -22,6 +22,7 @@ const HOLON_OPTIONS = [
 
 export default function EndeavorSetup() {
   const [endeavor, setEndeavor] = useState<EndeavorData | null>(null)
+  const [tenantId, setTenantId] = useState<string | number | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -36,6 +37,7 @@ export default function EndeavorSetup() {
   async function loadEndeavor() {
     setLoading(true)
     const result = await getEndeavor()
+    if (result.tenantId != null) setTenantId(result.tenantId)
     if (result.success && result.endeavor) {
       setEndeavor(result.endeavor)
     } else if (result.success && !result.endeavor) {
@@ -276,12 +278,14 @@ export default function EndeavorSetup() {
             value={endeavor.coverImage ?? null}
             onChange={(v) => updateField('coverImage', v)}
             aspect="banner"
+            tenantId={tenantId}
           />
           <ImageField
             label="Logo (badge)"
             value={endeavor.logo ?? null}
             onChange={(v) => updateField('logo', v)}
             aspect="square"
+            tenantId={tenantId}
           />
         </div>
       </Section>
@@ -498,11 +502,13 @@ function ImageField({
   value,
   onChange,
   aspect,
+  tenantId,
 }: {
   label: string
   value: MediaValue
   onChange: (v: MediaValue) => void
   aspect: 'banner' | 'square'
+  tenantId?: string | number | null
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -594,6 +600,7 @@ function ImageField({
         <MediaPicker
           onSelect={(m) => { onChange({ id: m.id, url: m.url }); setPicking(false) }}
           onClose={() => setPicking(false)}
+          tenantId={tenantId}
         />
       )}
     </div>
