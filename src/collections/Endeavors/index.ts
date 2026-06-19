@@ -106,10 +106,17 @@ export const Endeavors: CollectionConfig = {
         { label: 'Creator', value: 'creator' },
         { label: 'Community', value: 'community' },
         { label: 'Guardian Angel', value: 'guardian-angel' },
+        // Economic roles (Sprint 26) — the lead-broker ↔ doer split the
+        // order/vendor routing engine needs. INDUSTRY (HVAC, moving, …) is NOT
+        // a holon type — that lives in `capabilities[]`. These describe the
+        // role in the value chain, not the trade.
+        { label: 'Service Provider', value: 'service-provider' },
+        { label: 'Marketing (lead capture / reseller)', value: 'marketing' },
+        { label: 'Fulfillment (does the work)', value: 'fulfillment' },
       ],
       admin: {
         description:
-          'Federation holon type(s). Determines marketplace behavior, revenue flow, and federation visibility. Set during Leo Wizard step 5.',
+          'Federation holon type(s) = ROLE in the value chain, not industry. Determines marketplace behavior, revenue flow, and routing (marketing holons resell fulfillment holons). Industry/trade goes in Capabilities. Set during Leo Wizard step 5.',
       },
     },
     {

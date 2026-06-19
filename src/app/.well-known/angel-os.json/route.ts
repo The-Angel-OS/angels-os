@@ -75,6 +75,10 @@ export async function GET() {
     if (endeavorType === 'creator-content') holonTypes.push('creator')
     if (endeavorType === 'retail-commerce') holonTypes.push('retailer')
     if (endeavorType === 'booking-based') holonTypes.push('service-provider')
+    // Explicitly-set holon roles (e.g. marketing/fulfillment) are authoritative —
+    // the derivation above only covers the coarse defaults, so union the real ones.
+    const explicit = endeavor?.holonTypes
+    if (Array.isArray(explicit)) holonTypes.push(...(explicit as string[]))
     // Deduplicate
     const uniqueHolonTypes = [...new Set(holonTypes)]
     if (uniqueHolonTypes.length === 0) uniqueHolonTypes.push('general')

@@ -1212,6 +1212,40 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'classify_endeavor',
+    description:
+      'Read a Craigslist ad, flyer, or existing website and extract its content so you can classify the business. Returns the source text plus the controlled holon-role vocabulary and operational-model options. Provide `url` (LEO fetches it) or `adText` (pasted). After this returns, decide the holon roles + industry capabilities and call set_holon_profile. Use as the first step of onboarding a new service-provider vertical.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'URL of the ad or website to read.' },
+        adText: { type: 'string', description: 'Pasted ad/flyer text (use instead of url when you already have the copy).' },
+      },
+    },
+  },
+  {
+    name: 'set_holon_profile',
+    description:
+      'Write the federation classification of the current Endeavor. holonTypes = ROLE in the value chain (service-provider, fulfillment, marketing, retailer, manufacturer, creator, community, guardian-angel) — NOT the industry. Industry/trade (e.g. "HVAC repair", "long-distance moving") goes in capabilities. Idempotent; overwrites the fields you pass. Typically called after classify_endeavor.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        holonTypes: {
+          type: 'array',
+          items: { type: 'string', enum: ['manufacturer', 'retailer', 'creator', 'community', 'guardian-angel', 'service-provider', 'marketing', 'fulfillment'] },
+          description: 'Federation economic role(s) in the value chain. NOT industry.',
+        },
+        capabilities: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Industry/trade skills, e.g. ["HVAC repair", "duct cleaning"]. This is where the trade goes.',
+        },
+        missionStatement: { type: 'string', description: 'One-line mission of the enterprise.' },
+        endeavorType: { type: 'string', enum: ['service-provider', 'retail-commerce', 'creator-content', 'booking-based', 'custom'], description: 'Primary operational model (optional).' },
+      },
+    },
+  },
+  {
     name: 'configure_payment_method',
     description:
       'Set how this Endeavor collects payment for bookings. "deposit" charges a deposit online up front (requires Stripe Connect). "cod" takes the booking as a request and the owner collects on completion (cash, check, Zelle) — the right choice for trades like an electrician or for any pay-on-site business. Note: a $0 or no-deposit service never requires online payment regardless of this setting.',
@@ -3713,6 +3747,10 @@ async function executeToolSwitch(
         return await listAvailability(payload, ctx)
       case 'configure_service':
         return await configureService(payload, toolInput, ctx)
+      case 'set_holon_profile':
+        return await setHolonProfile(payload, toolInput, ctx)
+      case 'classify_endeavor':
+        return await classifyEndeavor(payload, toolInput, ctx)
       case 'configure_payment_method':
         return await configurePaymentMethod(payload, toolInput, ctx)
       case 'query_booking_revenue':
@@ -15699,6 +15737,177 @@ async function configureService(
   if (input.category) lines.push(`- Category: ${input.category}`)
 
   return lines.join('\n') + navDirective('/dashboard/services', 'View Services')
+}
+
+// ─── Sprint 26: Holon profile (federation economic role) ─────────────────────
+
+/** Canonical holon-role vocabulary. Mirrors Endeavors.holonTypes options. */
+const HOLON_TYPE_VALUES = [
+  'manufacturer',
+  'retailer',
+  'creator',
+  'community',
+  'guardian-angel',
+  'service-provider',
+  'marketing',
+  'fulfillment',
+] as const
+
+const ENDEAVOR_TYPE_VALUES = [
+  'service-provider',
+  'retail-commerce',
+  'creator-content',
+  'booking-based',
+  'custom',
+] as const
+
+/**
+ * set_holon_profile — write the federation classification of the current
+ * Endeavor: its holon role(s), industry/trade capabilities, mission, and
+ * (optionally) operational model. Holon types = ROLE in the value chain
+ * (marketing resells fulfillment); industry/trade is expressed in capabilities,
+ * never in holonTypes. Idempotent — overwrites the listed fields.
+ */
+async function setHolonProfile(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const tenantId = await resolveWriteTenant(payload, ctx)
+  if (!tenantId) {
+    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace."
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {}
+
+  if (Array.isArray(input.holonTypes)) {
+    const invalid = (input.holonTypes as unknown[]).filter(
+      (t) => !HOLON_TYPE_VALUES.includes(t as never),
+    )
+    if (invalid.length) {
+      return `Error: invalid holon type(s): ${invalid.join(', ')}. Valid roles: ${HOLON_TYPE_VALUES.join(', ')}. (Industry/trade like "HVAC" goes in capabilities, not holonTypes.)`
+    }
+    data.holonTypes = [...new Set(input.holonTypes as string[])]
+  }
+
+  if (Array.isArray(input.capabilities)) {
+    data.capabilities = (input.capabilities as unknown[])
+      .map((c) => {
+        if (typeof c === 'string') return { skill: c.trim(), description: '' }
+        const obj = c as { skill?: string; description?: string }
+        return { skill: (obj.skill || '').trim(), description: (obj.description || '').trim() }
+      })
+      .filter((c) => c.skill)
+  }
+
+  if (typeof input.missionStatement === 'string' && input.missionStatement.trim()) {
+    data.missionStatement = input.missionStatement.trim()
+  }
+
+  if (typeof input.endeavorType === 'string') {
+    if (!ENDEAVOR_TYPE_VALUES.includes(input.endeavorType as never)) {
+      return `Error: invalid endeavorType. Valid: ${ENDEAVOR_TYPE_VALUES.join(', ')}.`
+    }
+    data.endeavorType = input.endeavorType
+  }
+
+  if (Object.keys(data).length === 0) {
+    return 'Error: nothing to set. Provide holonTypes, capabilities, missionStatement, and/or endeavorType.'
+  }
+
+  const existing = await payload.find({
+    collection: 'endeavors',
+    where: { tenant: { equals: tenantId } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if (existing.docs[0]) {
+    await payload.update({
+      collection: 'endeavors',
+      id: existing.docs[0].id,
+      data,
+      overrideAccess: true,
+    })
+  } else {
+    await payload.create({
+      collection: 'endeavors',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { ...data, tenant: tenantId, name: 'My Enterprise', endeavorType: data.endeavorType || 'custom', status: 'forming' } as any,
+      overrideAccess: true,
+    })
+  }
+
+  const lines = ['Holon profile saved.']
+  if (data.holonTypes) lines.push(`- Roles: ${data.holonTypes.join(', ')}`)
+  if (data.capabilities) lines.push(`- Capabilities: ${data.capabilities.map((c: { skill: string }) => c.skill).join(', ')}`)
+  if (data.endeavorType) lines.push(`- Model: ${data.endeavorType}`)
+  if (data.missionStatement) lines.push(`- Mission: ${data.missionStatement}`)
+  return lines.join('\n') + navDirective('/dashboard/endeavor', 'View Endeavor')
+}
+
+/** Strip HTML to readable-ish text. Cheap and dependency-free — enough to read an ad. */
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * classify_endeavor — read an ad or website and return the source material plus
+ * the controlled holon vocabulary so LEO can PROPOSE a classification, then call
+ * set_holon_profile to write it. This tool does NOT itself call an LLM — the
+ * orchestrating model (LEO) does the reasoning from the content it returns.
+ */
+async function classifyEndeavor(
+  _payload: Payload,
+  input: Record<string, unknown>,
+  _ctx: ToolExecutorContext,
+): Promise<string> {
+  let content = typeof input.adText === 'string' ? input.adText.trim() : ''
+  const url = typeof input.url === 'string' ? input.url.trim() : ''
+
+  if (!content && url) {
+    try {
+      const res = await fetch(url, { headers: { 'user-agent': 'AngelOS-Classifier/1.0' } })
+      if (!res.ok) return `Error: couldn't fetch ${url} (HTTP ${res.status}). Paste the ad text directly via adText instead.`
+      content = stripHtmlToText(await res.text())
+    } catch (err) {
+      return `Error: failed to fetch ${url} (${(err as Error).message}). Paste the ad text directly via adText instead.`
+    }
+  }
+
+  if (!content) return 'Error: provide either `url` or `adText` to classify.'
+  if (content.length > 6000) content = content.slice(0, 6000) + ' …(truncated)'
+
+  return [
+    'Source content extracted. Classify it, then call set_holon_profile.',
+    '',
+    '## Content',
+    content,
+    '',
+    '## Holon role vocabulary (pick 1+ ROLES — not industries)',
+    '- service-provider — does hands-on service work directly for customers',
+    '- fulfillment — performs the actual work/delivery (the doer in a routed job)',
+    '- marketing — captures leads / resells another holon\'s fulfillment',
+    '- retailer — sells goods; manufacturer — makes goods; creator — content/media',
+    '- community — nonprofit/ministry; guardian-angel — coordinating helper endeavor',
+    '',
+    '## endeavorType (pick ONE operational model)',
+    `- ${ENDEAVOR_TYPE_VALUES.join(', ')}`,
+    '',
+    '## capabilities = INDUSTRY / TRADE (free text, e.g. "HVAC repair", "long-distance moving")',
+    'Put the trade here, NOT in holonTypes.',
+    '',
+    'Next: call set_holon_profile with { holonTypes, capabilities, missionStatement, endeavorType }.',
+  ].join('\n')
 }
 
 /**

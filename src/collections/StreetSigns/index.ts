@@ -161,6 +161,10 @@ export const StreetSigns: CollectionConfig = {
         { label: 'Creator', value: 'creator' },
         { label: 'Community', value: 'community' },
         { label: 'Guardian Angel', value: 'guardian-angel' },
+        // Mirror of Endeavors.holonTypes economic roles (Sprint 26).
+        { label: 'Service Provider', value: 'service-provider' },
+        { label: 'Marketing (lead capture / reseller)', value: 'marketing' },
+        { label: 'Fulfillment (does the work)', value: 'fulfillment' },
       ],
       admin: {
         description: 'Which holon types should see this street sign',

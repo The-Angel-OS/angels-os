@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 loadEnv(projectRoot)
 
+import { afterErrorHook } from '@/utilities/payloadAfterError'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
 import { postgresAdapter } from '@payloadcms/db-postgres'
@@ -215,6 +216,14 @@ import { isSuperAdmin } from '@/access/isSuperAdmin'
 import { detectTenantFromHostname } from '@/middleware/detectTenant'
 
 export default buildConfig({
+  // ─── Unified error escalation ───────────────────────────────────────────────
+  // Root afterError hook = the single chokepoint where Payload surfaces every
+  // admin/API/save error. Routes them all into logError → application-logs +
+  // AI Bus `errors` channel + Gotify, so admin save failures stop vanishing
+  // into a generic toast. See src/utilities/payloadAfterError.ts.
+  hooks: {
+    afterError: [afterErrorHook],
+  },
   // ─── CORS ─────────────────────────────────────────────────────────────────
   // Allow all origins under *.spacesangels.com and *.kendev.co so tenant
   // subdomains can make credentialed Payload API calls (e.g. /api/users/me).
