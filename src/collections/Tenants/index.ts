@@ -71,13 +71,22 @@ export const Tenants: CollectionConfig = {
       type: 'array',
       label: 'Additional Domains',
       admin: {
-        description: 'Alias domains that resolve to this tenant',
+        description:
+          'Bound domains that resolve to this tenant (e.g. a client\'s custom domain). All route inbound; mark ONE primary to make it the canonical outbound URL (storefront links, OG, SEO). If none is primary, the canonical URL falls back to the primary `domain` field or the synthesized slug.<node> default.',
       },
       fields: [
         {
           name: 'domain',
           type: 'text',
           required: true,
+        },
+        {
+          name: 'isPrimary',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: 'Use this domain as the tenant\'s canonical public URL.',
+          },
         },
       ],
     },

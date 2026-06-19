@@ -4,7 +4,7 @@ import configPromise from '@payload-config'
 import { FederationDiscover } from './FederationDiscover'
 import { aggregatePeerHolons } from '@/utilities/federationDiscovery'
 import { getMarketChildren } from '@/utilities/marketMembership'
-import { registrableApex, synthesizeStorefront } from '@/utilities/registrableApex'
+import { registrableApex, tenantStorefrontUrl } from '@/utilities/registrableApex'
 
 export const metadata = {
   title: 'Discover the Federation',
@@ -93,19 +93,9 @@ export default async function FederationDiscoverPage({
     // Sprint 43: Use stored federation domain from heartbeat persistence
     const federationDomain = (doc.federation?.domain as string) || null
 
-    // Build canonical storefront URL for this Endeavor's tenant
-    // Strip www. from domain components to avoid URLs like slug.www.example.com
-    const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
-    // Public storefront: explicit tenant/federation domain wins; otherwise
-    // synthesize slug.<nodeApex> (root-guarded so kendev never doubles).
-    let storefrontUrl: string | null = null
-    if (tenantDomain && !tenantDomain.endsWith('.local') && !tenantDomain.includes('localhost')) {
-      storefrontUrl = `https://${stripWww(tenantDomain)}`
-    } else if (federationDomain && !federationDomain.includes('localhost') && !federationDomain.endsWith('.local')) {
-      storefrontUrl = `https://${stripWww(federationDomain)}`
-    } else {
-      storefrontUrl = synthesizeStorefront(tenantSlug, nodeApex)
-    }
+    // Canonical storefront URL: primary bound client domain → real `domain` →
+    // federation domain → synthesized slug.<nodeApex>. Single source of truth.
+    const storefrontUrl = tenantStorefrontUrl(tenant, nodeApex, federationDomain)
 
     return {
       id: doc.id,

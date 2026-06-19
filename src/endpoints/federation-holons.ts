@@ -21,29 +21,7 @@
 import type { Payload, PayloadHandler, Where } from 'payload'
 import { logFederationAction } from '@/federation/auditLog'
 import { buildCatalogIndexForTenant, type CatalogIndexEntry } from '@/utilities/catalogIndex'
-import { registrableApex, synthesizeStorefront } from '@/utilities/registrableApex'
-
-/** Strip a leading/embedded www. so we never emit slug.www.example.com. */
-const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
-
-/**
- * Canonical public storefront URL for an Endeavor, resolved from its tenant on
- * THIS node (the producer knows its own domains). Lets remote Discovery cards
- * deep-link to the specific Endeavor instead of just the peer's root. When the
- * tenant has no explicit domain, synthesize `slug.<nodeApex>` (root-guarded so
- * the apex tenant never becomes `kendev.kendev.co`).
- */
-function computeStorefrontUrl(
-  tenant: { domain?: string | null; slug?: string | null } | null,
-  federationDomain: string | null,
-  nodeApex: string,
-): string | null {
-  const isReal = (d?: string | null) =>
-    !!d && !d.endsWith('.local') && !d.includes('localhost')
-  if (isReal(tenant?.domain)) return `https://${stripWww(tenant!.domain as string)}`
-  if (isReal(federationDomain)) return `https://${stripWww(federationDomain as string)}`
-  return synthesizeStorefront(tenant?.slug, nodeApex)
-}
+import { registrableApex, tenantStorefrontUrl } from '@/utilities/registrableApex'
 
 /** Shape one endeavor doc (resolved at depth:1) into a public-safe holon. */
 function shapeHolon(doc: any, nodeApex: string) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -70,7 +48,7 @@ function shapeHolon(doc: any, nodeApex: string) { // eslint-disable-line @typesc
     },
     logo: doc.logo?.url || doc.logo?.filename || null,
     coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
-    storefrontUrl: computeStorefrontUrl(tenant, federationDomain, nodeApex),
+    storefrontUrl: tenantStorefrontUrl(tenant, nodeApex, federationDomain),
     tenant: tenant?.slug
       ? { slug: tenant.slug, siteName: tenant.branding?.siteName || null, domain: tenant.domain || null }
       : null,
