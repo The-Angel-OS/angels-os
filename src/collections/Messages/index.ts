@@ -7,6 +7,7 @@ import { versionOnEdit } from './hooks/versionOnEdit'
 import { setTenantFromSpace } from './hooks/setTenantFromSpace'
 import { broadcastToSubscribers } from '@/endpoints/ai-bus-stream'
 import { autoAnalyzeMedia } from './hooks/autoAnalyzeMedia'
+import { moderateMessage } from './hooks/moderateMessage'
 
 /**
  * Messages Collection — Universal Message Structure (UMS)
@@ -275,6 +276,9 @@ export const Messages: CollectionConfig = {
       },
       // Auto-analyze media attachments (images, PDFs → MediaMeta records)
       autoAnalyzeMedia,
+      // Screen every human message (reflex classifier) → annotate metadata.moderation
+      // + escalate flagged content to a human moderator. Fail-soft.
+      moderateMessage,
     ],
   },
   timestamps: true,
