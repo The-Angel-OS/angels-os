@@ -118,6 +118,7 @@ import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
 import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-columns'
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
+import { ensurePresenceTableHandler } from '@/endpoints/ensure-presence-table'
 import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
 import { toolMetricsHandler } from '@/endpoints/tool-metrics'
 import { fundFloatHandler } from '@/endpoints/fund-float'
@@ -801,6 +802,11 @@ export default buildConfig({
       path: '/provision-ops/ensure-services-table',
       method: 'get',
       handler: ensureServicesTableHandler,
+    },
+    {
+      path: '/provision-ops/ensure-presence-table',
+      method: 'get',
+      handler: ensurePresenceTableHandler,
     },
     {
       path: '/provision-ops/ensure-works-table',
