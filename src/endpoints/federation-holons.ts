@@ -21,6 +21,7 @@
 import type { Payload, PayloadHandler, Where } from 'payload'
 import { logFederationAction } from '@/federation/auditLog'
 import { buildCatalogIndexForTenant, type CatalogIndexEntry } from '@/utilities/catalogIndex'
+import { registrableApex, synthesizeStorefront } from '@/utilities/registrableApex'
 
 /** Strip a leading/embedded www. so we never emit slug.www.example.com. */
 const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
@@ -28,21 +29,24 @@ const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
 /**
  * Canonical public storefront URL for an Endeavor, resolved from its tenant on
  * THIS node (the producer knows its own domains). Lets remote Discovery cards
- * deep-link to the specific Endeavor instead of just the peer's root.
+ * deep-link to the specific Endeavor instead of just the peer's root. When the
+ * tenant has no explicit domain, synthesize `slug.<nodeApex>` (root-guarded so
+ * the apex tenant never becomes `kendev.kendev.co`).
  */
 function computeStorefrontUrl(
   tenant: { domain?: string | null; slug?: string | null } | null,
   federationDomain: string | null,
+  nodeApex: string,
 ): string | null {
   const isReal = (d?: string | null) =>
     !!d && !d.endsWith('.local') && !d.includes('localhost')
   if (isReal(tenant?.domain)) return `https://${stripWww(tenant!.domain as string)}`
   if (isReal(federationDomain)) return `https://${stripWww(federationDomain as string)}`
-  return null
+  return synthesizeStorefront(tenant?.slug, nodeApex)
 }
 
 /** Shape one endeavor doc (resolved at depth:1) into a public-safe holon. */
-function shapeHolon(doc: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+function shapeHolon(doc: any, nodeApex: string) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const tenant = typeof doc.tenant === 'object' && doc.tenant ? doc.tenant : null
   const federationDomain = (doc.federation?.domain as string) || null
   return {
@@ -66,7 +70,7 @@ function shapeHolon(doc: any) { // eslint-disable-line @typescript-eslint/no-exp
     },
     logo: doc.logo?.url || doc.logo?.filename || null,
     coverImage: doc.coverImage?.url || doc.coverImage?.filename || null,
-    storefrontUrl: computeStorefrontUrl(tenant, federationDomain),
+    storefrontUrl: computeStorefrontUrl(tenant, federationDomain, nodeApex),
     tenant: tenant?.slug
       ? { slug: tenant.slug, siteName: tenant.branding?.siteName || null, domain: tenant.domain || null }
       : null,
@@ -86,6 +90,7 @@ export async function buildLocalHolons(
   conditions: Where[] = [{ 'federation.networkVisible': { equals: true } }],
   limit = 100,
   opts: { attachCatalog?: boolean } = {},
+  nodeApex: string = registrableApex(process.env.NEXT_PUBLIC_ROOT_DOMAIN),
 ): Promise<{ holons: LocalHolon[]; total: number }> {
   const endeavors = await payload.find({
     collection: 'endeavors',
@@ -98,7 +103,7 @@ export async function buildLocalHolons(
 
   // Default path (directory browse): no per-endeavor product queries — keep it cheap.
   if (!opts.attachCatalog) {
-    return { holons: endeavors.docs.map(shapeHolon), total: endeavors.totalDocs }
+    return { holons: endeavors.docs.map((d) => shapeHolon(d, nodeApex)), total: endeavors.totalDocs }
   }
 
   // Gossip path (outbound heartbeat): attach each endeavor's compact catalog index
@@ -106,7 +111,7 @@ export async function buildLocalHolons(
   // so Discovery gets cross-node catalog with zero new schema and zero render-time fetch.
   const holons = await Promise.all(
     endeavors.docs.map(async (doc) => {
-      const base = shapeHolon(doc)
+      const base = shapeHolon(doc, nodeApex)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawTenant = (doc as any).tenant
       const tenantId = rawTenant && typeof rawTenant === 'object' ? rawTenant.id : rawTenant
@@ -173,7 +178,10 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
       conditions.push({ 'federation.ministryStatus': { equals: ministryStatus } })
     }
 
-    const { holons, total } = await buildLocalHolons(req.payload, conditions, limit)
+    // Synthesize storefronts against the host this directory is served on, so a
+    // kendev node emits *.kendev.co and the platform emits *.spacesangels.com.
+    const nodeApex = registrableApex(req.headers.get('host'))
+    const { holons, total } = await buildLocalHolons(req.payload, conditions, limit, {}, nodeApex)
 
     // Audit log (fire-and-forget)
     const callerFedId = req.headers.get('x-federation-id')

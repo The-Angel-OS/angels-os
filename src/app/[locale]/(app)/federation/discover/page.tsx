@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { FederationDiscover } from './FederationDiscover'
 import { aggregatePeerHolons } from '@/utilities/federationDiscovery'
 import { getMarketChildren } from '@/utilities/marketMembership'
+import { registrableApex, synthesizeStorefront } from '@/utilities/registrableApex'
 
 export const metadata = {
   title: 'Discover the Federation',
@@ -50,6 +51,9 @@ export default async function FederationDiscoverPage({
     || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
     || 'http://localhost:3000'
   const serverHost = new URL(serverUrl).host.replace(/^www\./, '') // e.g. spacesangels.com or localhost:3000
+  // Apex this node serves on — drives synthesized storefronts (spacesangels.com,
+  // kendev.co, …). Localhost in dev falls back to the public apex, never slug.localhost.
+  const nodeApex = registrableApex(serverHost.includes('localhost') ? null : serverHost)
 
   // Default Discovery banner = each Endeavor's tenant HOME PAGE unfurl image
   // (Pages.meta.image). One batched query → tenantId → image URL. The viewer on
@@ -92,16 +96,15 @@ export default async function FederationDiscoverPage({
     // Build canonical storefront URL for this Endeavor's tenant
     // Strip www. from domain components to avoid URLs like slug.www.example.com
     const stripWww = (d: string) => d.replace(/^www\./, '').replace(/\.www\./g, '.')
-    // Discover links always resolve to public spacesangels.com URLs,
-    // never to angelos.local or localhost — even in dev.
-    const PUBLIC_DOMAIN = 'spacesangels.com'
+    // Public storefront: explicit tenant/federation domain wins; otherwise
+    // synthesize slug.<nodeApex> (root-guarded so kendev never doubles).
     let storefrontUrl: string | null = null
     if (tenantDomain && !tenantDomain.endsWith('.local') && !tenantDomain.includes('localhost')) {
       storefrontUrl = `https://${stripWww(tenantDomain)}`
     } else if (federationDomain && !federationDomain.includes('localhost') && !federationDomain.endsWith('.local')) {
       storefrontUrl = `https://${stripWww(federationDomain)}`
-    } else if (tenantSlug && tenantSlug !== 'default' && tenantSlug !== 'platform') {
-      storefrontUrl = `https://${tenantSlug}.${PUBLIC_DOMAIN}`
+    } else {
+      storefrontUrl = synthesizeStorefront(tenantSlug, nodeApex)
     }
 
     return {
