@@ -169,12 +169,17 @@ function MessageActions({
       {/* Share */}
       <button
         onClick={() => {
-          navigator.clipboard.writeText(
-            `${window.location.origin}/shared/response/${message.id}`,
-          )
+          // Deep-link to this exact message in its channel. The path already reflects
+          // /dashboard/spaces/{spaceId}/{channelId} (synced on navigation), so appending
+          // ?msg=<id> lands a viewer on the highlighted message. ponytail: in-app link
+          // (members only); a public /shared/response/<id> view is the per-space-opt-in follow-up.
+          const base = window.location.pathname.startsWith('/dashboard/spaces')
+            ? window.location.pathname
+            : '/dashboard/spaces'
+          navigator.clipboard.writeText(`${window.location.origin}${base}?msg=${message.id}`)
         }}
         className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
-        title="Share response"
+        title="Copy link to this message"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
           <path d="M12.5 2.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-6 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm6 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM5.968 6.257l4.564-2.47M5.968 8.743l4.564 2.47" />

@@ -219,6 +219,67 @@ export function MultiChannelChat({
     [router],
   )
 
+  // ── Tab title — reflect the chosen space (+ channel) in the browser tab. ──
+  useEffect(() => {
+    if (!activeSpace?.name) return
+    const ch = activeChannelData?.name
+    document.title = ch ? `#${ch} · ${activeSpace.name}` : activeSpace.name
+  }, [activeSpace?.name, activeChannelData?.name])
+
+  // ── URL ⇄ surface: keep the address bar at /dashboard/spaces/{spaceId}/{channelId}. ──
+  // Ids (not slugs) because channel slugs aren't path-safe (e.g. "page:/about") and
+  // aren't globally unique. replaceState on the first sync (no junk history entry),
+  // pushState on later switches so browser Back/Forward steps through channels.
+  const urlSynced = useRef(false)
+  useEffect(() => {
+    if (!activeSpaceId || !activeChannelData?.id) return
+    const path = `/dashboard/spaces/${activeSpaceId}/${activeChannelData.id}`
+    if (window.location.pathname === path) {
+      urlSynced.current = true
+      return
+    }
+    try {
+      if (urlSynced.current) window.history.pushState(null, '', path)
+      else window.history.replaceState(null, '', path)
+    } catch {
+      /* history unavailable — non-fatal */
+    }
+    urlSynced.current = true
+  }, [activeSpaceId, activeChannelData?.id])
+
+  // Back/Forward: re-read the URL and apply it to state (the sync effect above then
+  // sees pathname === path and won't re-push, so no loop).
+  useEffect(() => {
+    const onPop = () => {
+      const m = window.location.pathname.match(/\/dashboard\/spaces\/(\d+)\/(\d+)/)
+      if (!m) return
+      const [, sId, cId] = m
+      if (sId !== String(activeSpaceId)) handleSpaceChange(sId)
+      const ch = [...channels, ...dmChannels].find((c) => String(c.id) === cId)
+      if (ch && ch.slug !== activeChannel) switchChannel(ch.slug)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSpaceId, activeChannel, channels, dmChannels])
+
+  // Deep-link entry by channel id: when landing on /…/{spaceId}/{channelId}, resolve
+  // the channel id → slug once channels are loaded and switch to it.
+  const channelIdApplied = useRef(false)
+  useEffect(() => {
+    if (channelIdApplied.current) return
+    if (isLoadingChannels || channels.length === 0) return
+    const m = window.location.pathname.match(/\/dashboard\/spaces\/\d+\/(\d+)/)
+    if (!m) {
+      channelIdApplied.current = true
+      return
+    }
+    channelIdApplied.current = true
+    const ch = [...channels, ...dmChannels].find((c) => String(c.id) === m[1])
+    if (ch && ch.slug !== activeChannel) switchChannel(ch.slug)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingChannels, channels])
+
   const handleCreateChannel = async () => {
     if (!newChannelName.trim() || isCreating) return
     setIsCreating(true)

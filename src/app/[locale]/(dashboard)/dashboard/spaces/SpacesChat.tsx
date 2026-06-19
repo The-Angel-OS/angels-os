@@ -27,11 +27,12 @@ export function SpacesChat({
 }) {
   const { spaces, activeSpaceId, setActiveSpaceId } = useDashboard()
 
-  // Deep-link entry: open the space named in the URL. setActiveSpaceId also makes
-  // it the sticky space, so the link "lands" and stays.
+  // Deep-link entry: open the space named in the URL. The segment is the numeric
+  // space id (the canonical /dashboard/spaces/{spaceId}/{channelId} form) but we
+  // still accept a slug for older links. setActiveSpaceId also makes it sticky.
   useEffect(() => {
     if (!initialSpaceSlug) return
-    const match = spaces.find((s) => s.slug === initialSpaceSlug)
+    const match = spaces.find((s) => String(s.id) === initialSpaceSlug || s.slug === initialSpaceSlug)
     if (match && match.id !== activeSpaceId) setActiveSpaceId(match.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- act once on the incoming deep link
   }, [initialSpaceSlug])
