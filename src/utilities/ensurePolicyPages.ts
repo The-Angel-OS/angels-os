@@ -123,6 +123,41 @@ function buildPolicies(p: Required<PolicyProfile>): PolicySpec[] {
     },
   ]
 
+  // Account & data deletion — required by Google Play's Data Safety section for any
+  // app with accounts. Federation-aware: a user's data may live on this node or on
+  // an independently-operated Angel OS node they connected to, so the page routes
+  // the request to the operator of whichever node holds the account, with a central
+  // fallback contact.
+  specs.push({
+    slug: 'delete-account',
+    title: 'Delete Your Account & Data',
+    layout: [
+      content([
+        createHeadingNode('Delete Your Account & Data', 'h1'),
+        createParagraphNode(`This page explains how to request deletion of your ${orgName} account and the data associated with it, including from the Nimue mobile app.`),
+        createHeadingNode('How to Request Deletion', 'h2'),
+        createUnorderedListNode([
+          contactEmail
+            ? `Email ${contactEmail} from the address on your account with the subject "Delete my account". We verify the request and complete deletion within 30 days.`
+            : 'Send a deletion request through our Contact page from the address on your account. We verify the request and complete deletion within 30 days.',
+          'Tell us which node/community you connected to (for example, the website address you signed in through), so we route the request to the right operator.',
+        ]),
+        createHeadingNode('A Note on Federation', 'h2'),
+        createParagraphNode(`${orgName} is a federated network: the Nimue app can connect to independently-operated Angel OS nodes. Your account and data live on the node you joined. If that node is operated by someone else, we will forward your request to that operator, who is the controller of your data there; for accounts on ${orgName} itself, we delete directly.`),
+        createHeadingNode('What Is Deleted', 'h2'),
+        createUnorderedListNode([
+          'Your account and profile (name, email, login credentials).',
+          'Messages you authored and media (photos/files) you uploaded.',
+          'Your memberships, presence records, and activity history.',
+        ]),
+        createHeadingNode('What May Be Retained', 'h2'),
+        createParagraphNode('We may retain limited records required by law or for legitimate business needs — for example, transaction/receipt records for tax and accounting, and minimal logs needed for security and fraud prevention — for the period required, after which they are deleted. Messages in shared community spaces may be retained in others\' conversation history but are disassociated from your deleted account.'),
+        createParagraphNode(contactLine),
+      ]),
+    ],
+    meta: { title: `Delete Your Account & Data — ${orgName}`, description: `How to request deletion of your ${orgName} account and associated data.` },
+  })
+
   if (p.takesPayments) {
     specs.push({
       slug: 'refund-policy',
