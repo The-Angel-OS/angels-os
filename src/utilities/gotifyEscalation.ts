@@ -56,6 +56,7 @@ export type EscalationEventType =
   | 'maintenance_note'
   | 'content_flagged'
   | 'content_reported'
+  | 'account_deletion_requested'
 
 export interface EscalationEvent {
   tenantId: number | string

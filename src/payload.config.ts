@@ -120,6 +120,7 @@ import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { ensurePresenceTableHandler } from '@/endpoints/ensure-presence-table'
 import { reportMessageHandler } from '@/endpoints/report-message'
+import { accountDeletionRequestHandler } from '@/endpoints/account-deletion-request'
 import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
 import { toolMetricsHandler } from '@/endpoints/tool-metrics'
 import { fundFloatHandler } from '@/endpoints/fund-float'
@@ -748,6 +749,12 @@ export default buildConfig({
       path: '/moderation/report',
       method: 'post',
       handler: reportMessageHandler,
+    },
+    // Account deletion request — routes through the tenant's escalation chain.
+    {
+      path: '/account/deletion-request',
+      method: 'post',
+      handler: accountDeletionRequestHandler,
     },
     // Idempotent self-heal: ensure a tenant's baseline Spaces/Channels exist.
     // GET so a super_admin can trigger it from the browser (?tenant=<slug> | ?all=1).

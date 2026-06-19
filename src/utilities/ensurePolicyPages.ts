@@ -137,10 +137,11 @@ function buildPolicies(p: Required<PolicyProfile>): PolicySpec[] {
         createParagraphNode(`This page explains how to request deletion of your ${orgName} account and the data associated with it, including from the Nimue mobile app.`),
         createHeadingNode('How to Request Deletion', 'h2'),
         createUnorderedListNode([
+          'Sign in to the app or this site and submit an account-deletion request. Your request is routed automatically to the administrators of your community.',
           contactEmail
-            ? `Email ${contactEmail} from the address on your account with the subject "Delete my account". We verify the request and complete deletion within 30 days.`
-            : 'Send a deletion request through our Contact page from the address on your account. We verify the request and complete deletion within 30 days.',
-          'Tell us which node/community you connected to (for example, the website address you signed in through), so we route the request to the right operator.',
+            ? `If you cannot sign in, you may also reach the administrators at ${contactEmail} from the address on your account.`
+            : 'If you cannot sign in, contact the administrators of your community through their Contact page from the address on your account.',
+          'Either way, we verify the request and complete deletion within 30 days.',
         ]),
         createHeadingNode('A Note on Federation', 'h2'),
         createParagraphNode(`${orgName} is a federated network: the Nimue app can connect to independently-operated Angel OS nodes. Your account and data live on the node you joined. If that node is operated by someone else, we will forward your request to that operator, who is the controller of your data there; for accounts on ${orgName} itself, we delete directly.`),
