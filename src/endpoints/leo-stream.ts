@@ -1324,6 +1324,34 @@ After this turn, you'll return to the faster model for responsive day-to-day int
           }).catch(() => {})
         }
       } else if (preCreatedMsgId && !fullText.trim()) {
+        // Empty completion. The hadError path already logged at the model layer;
+        // but a BLANK response with NO error flag (the model returned 200 with zero
+        // text — a common vision failure: it couldn't read the image, hit a content
+        // filter, or stopped without emitting) used to vanish silently, so LEO's own
+        // log scan came back clean. Log it so it's analyzable — the image count is
+        // the key clue for triaging vision/multimodal issues.
+        if (!hadError) {
+          const finishReason = (streamTelemetry as { finishReason?: string } | undefined)?.finishReason
+          logError({
+            level: 'warning',
+            source: 'leo-stream.empty',
+            message: `LEO returned an empty response${userImages.length ? ` with ${userImages.length} image(s) attached` : ''}`,
+            details: JSON.stringify(
+              {
+                model: resolveModelId(),
+                imageCount: userImages.length,
+                imageMediaIds: userImages.map((i) => i.mediaId).filter(Boolean),
+                finishReason: finishReason ?? null,
+                telemetry: streamTelemetry ?? null,
+                channel: resolvedChannel,
+              },
+              null,
+              2,
+            ),
+            tenantId: tenantId ? String(tenantId) : undefined,
+            userId: req.user?.id as number | undefined,
+          }).catch(() => {})
+        }
         // Pre-created but no response generated — clean up the placeholder
         // or mark it as an error so it's visible
         try {
@@ -1332,7 +1360,9 @@ After this turn, you'll return to the faster model for responsive day-to-day int
           const detail = streamErrorDetail ? `\n\n> ${streamErrorDetail.slice(0, 500)}` : ''
           const errContent = hadError
             ? `⚠️ LEO couldn't complete this request.${detail}\n\n_Try a shorter message — this often means the request was too large or a provider hit a rate limit. It will route to a larger model on the next try._`
-            : 'LEO was unable to generate a response.'
+            : userImages.length
+              ? `⚠️ I couldn't read that image — my current model may not support vision, or the image was too large. Try a smaller image, or tell me what's in it.`
+              : 'LEO was unable to generate a response.'
           await req.payload.update({
             collection: 'messages',
             id: preCreatedMsgId,
