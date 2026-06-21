@@ -20,6 +20,7 @@ import type { PayloadHandler } from 'payload'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { ensurePageChannel } from '@/utilities/ensurePageChannel'
+import { logError } from '@/utilities/logError'
 
 export const chatSendHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
@@ -139,7 +140,7 @@ export const chatSendHandler: PayloadHandler = async (req) => {
   // Create the message via local API — overrideAccess bypasses
   // the multi-tenant plugin's filterOptions validation on relationships
   try {
-    // Build message data — include attachments if provided
+    // Build message data — attachments are linked in a SEPARATE phase (below).
     const messageData: Record<string, unknown> = {
       content,
       space: spaceId,
@@ -149,48 +150,62 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       tenant: tenantId,
     }
 
-    // Pass through validated attachments array (media IDs + optional captions)
-    if (Array.isArray(attachments) && attachments.length > 0) {
-      messageData.attachments = attachments.filter(
-        (a: unknown) => a && typeof a === 'object' && 'media' in (a as Record<string, unknown>),
-      )
-    }
+    // Validated attachments array (media IDs + optional captions) — NOT included
+    // in the initial create. See the two-phase note below.
+    const attachmentList =
+      Array.isArray(attachments) && attachments.length > 0
+        ? attachments.filter(
+            (a: unknown) => a && typeof a === 'object' && 'media' in (a as Record<string, unknown>),
+          )
+        : []
 
-    // Step markers (Vercel runtime logs, no DB dependency) so a HANG is visible:
-    // if "creating message" appears without "created message", the block is inside
-    // payload.create — i.e. a Messages afterChange hook (runWorkflows / autoAnalyzeMedia
-    // / moderateMessage / broadcast) is awaiting something with no timeout.
+    // ─── Two-phase write ─────────────────────────────────────────────────────
+    // Phase 1: create the message WITHOUT attachments. This is identical to a
+    // text message, so it ALWAYS persists. Critically, the attachment-gated
+    // afterChange hooks (runWorkflows, autoAnalyzeMedia) only fire on a create
+    // that already has attachments — by creating attachment-free, that heavier
+    // hook chain never runs inside this create, which is what was rolling the
+    // whole save back (image messages vanished while text persisted).
     const tCreate = Date.now()
-    const mdAttCount = Array.isArray((messageData as { attachments?: unknown[] }).attachments)
-      ? (messageData as { attachments: unknown[] }).attachments.length
-      : 0
-    req.payload.logger?.info?.(
-      `[chat-send] creating message space=${spaceId} channel=${channel} ` +
-        `attRecv=${Array.isArray(attachments) ? attachments.length : 0} attData=${mdAttCount} ` +
-        `attRaw=${JSON.stringify(attachments)?.slice(0, 120)}`,
-    )
     const saved = await req.payload.create({
       collection: 'messages',
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
-      // Pass req so the create + its afterChange hooks run on the REQUEST's own
-      // connection instead of acquiring a SECOND pooled connection (which stalls
-      // under pool pressure → silent rollback → vanish). See PASS_REQ_RULE.md.
-      req,
-      // depth: 0 — do NOT populate relationships on the returned doc. A message
-      // WITH attachments would otherwise trigger a media-relationship populate
-      // (`select … from media where id in (N)`) AFTER the insert; if that populate
-      // throws, the whole create rolls back → the message vanishes while the media
-      // (committed on its own request) is left orphaned, with no chat echo. The
-      // client doesn't need the populated doc — it reloads history and keeps its
-      // own uploaded image URLs. Text messages have nothing to populate, which is
-      // why they persisted and attachment messages didn't.
+      req, // shared connection — see PASS_REQ_RULE.md
       depth: 0,
     })
-    const savedAtt = Array.isArray((saved as { attachments?: unknown[] }).attachments)
-      ? (saved as { attachments: unknown[] }).attachments.length
-      : 0
-    req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms savedAtt=${savedAtt}`)
+
+    // Phase 2: link the media in a follow-up update, isolated in its own try/catch
+    // so a media-relationship failure can NEVER roll back the (already-committed)
+    // message. Worst case: the message persists with its caption, the image isn't
+    // linked, and we log it — instead of the whole post vanishing.
+    let attachedCount = 0
+    if (attachmentList.length > 0) {
+      try {
+        const withAtt = await req.payload.update({
+          collection: 'messages',
+          id: saved.id,
+          data: { attachments: attachmentList } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          overrideAccess: true,
+          req,
+          depth: 0,
+        })
+        attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
+          ? (withAtt as { attachments: unknown[] }).attachments.length
+          : 0
+      } catch (attErr) {
+        // Non-fatal — message already persisted. Log so the failure is visible.
+        await logError({
+          source: 'chat-send/attach',
+          message: `Failed to link ${attachmentList.length} attachment(s) to message ${saved.id}`,
+          details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+          tenantId: tenantId != null ? String(tenantId) : undefined,
+        }).catch(() => {})
+      }
+    }
+    req.payload.logger?.info?.(
+      `[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms attRecv=${attachmentList.length} attached=${attachedCount}`,
+    )
 
     // Surface page-comment channels in the Spaces viewer (find-or-create,
     // non-blocking — never delays the send or fails it). The channel always
