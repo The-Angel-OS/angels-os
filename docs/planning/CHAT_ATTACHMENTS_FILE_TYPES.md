@@ -18,6 +18,59 @@
 So **custody (store + card + download) works today for every type.** The gaps are
 **large-file upload**, **viewing**, and **LEO comprehension**.
 
+## Retrieval / RAG — how it works TODAY (verified 2026-06-21)
+
+NOT the Payload search plugin (not installed). It's a **custom MediaMeta RAG layer**:
+
+1. **Ingest/analyze** — `autoAnalyzeMedia` → `buildMediaMeta` (`utilities/mediaAnalysis.ts`)
+   creates a **`MediaMeta`** record per attachment: vision description, **OCR text**,
+   entities (people/places/dates/orgs), summary, tags. PDFs = one record per page,
+   linked by `documentGroup`.
+2. **Index** — `MediaMeta/hooks/ragIndexHook.ts` fires on `status: complete`:
+   concatenates the text, **chunks it ~500 tokens w/ 100 overlap** into `ragChunks`,
+   sets `ragIndexed: true`.
+3. **Retrieve** — LEO tool **`query_knowledge`** (`leo-data-tools.ts`) searches MediaMeta
+   across vision/OCR/entities/tags. (This is what made a scanned **resume** searchable.)
+
+**Key facts:**
+- **Lexical, not semantic — NO embeddings / NO pgvector yet.** Retrieval is keyword/text
+  matching. The scaffolding for vectors exists (`ragChunks`; the hook says
+  `// Future: generate vector embeddings and store in pgvector column`) — just unwired.
+  **Adding embeddings + pgvector is the single biggest RAG-quality upgrade and the
+  groundwork is already laid.**
+- **Tenant-gated by the COLLECTION** (MediaMeta is multi-tenant scoped; `query_knowledge`
+  runs in tenant context) — not by a search plugin. Isolation is correct.
+- **Payload search plugin** (`@payloadcms/plugin-search`) is complementary, for a
+  *different* job: a flat lexical index powering **dashboard search bars** across
+  products/posts/pages (tenant-gated). Worth adding for general search; NOT the RAG path.
+
+## Decisions — RESOLVED 2026-06-21 (Ken)
+
+- **Ship behind per-type feature flags, DISABLED BY DEFAULT** — build the pipeline in but
+  off, enable per type as validated. **EXCEPTION: audio transcription = must-have, ship
+  ENABLED.**
+- **Audio is the priority feature.** Add an **audio-recorder button to BOTH Nimue and Core
+  chat**, and bring **Nimue to full parity with Core** (Core already has per-message
+  read-out-loud / TTS; Nimue needs read-out-loud AND record). Voice in → STT → text +
+  LEO; text out → TTS read-aloud. This is the near-term build, not a someday item.
+- **Comprehension vs custody scope:** STORE = zip, docx, pdf (**under a size cap — no
+  giant PDFs**; primary function is utility, not archival). READ/EXTRACT (typical office +
+  text) = **txt, md, csv, xls/xlsx, docx, pdf**.
+- **PDF/extraction processing location:** the open question is *where extraction runs*
+  (serverless is constrained). **Offload heavy/long processing to Merlin** — Merlin is the
+  catch-all client/worker for Core; it can run demanding jobs (and the big TODO:
+  **YouTube/Rumble account → posts sync**). Serverless does light/inline extraction; Merlin
+  does the heavy lifting. PDF comprehension still prefers Claude **native document blocks**
+  (no temp-storage/extraction needed) where size allows.
+- **Office viewing:** maximize functionality **but YAGNI + apply Answer 53** (elegance) —
+  don't build the heavyweight conversion/embedded-viewer stack until it earns its place;
+  download-only + PDF-preview is the elegant default.
+- **HEIC:** **convert on upload** — this IS the document-processing pipeline being extended
+  (it was planned to cover exactly this case). HEIC→JPEG/WebP at ingest.
+- **Per-attachment caps:** reasonable, **within Vercel limits**. **MUST meter everything**
+  (bytes stored, pages/tokens processed, STT minutes, model spend) to refine billing and
+  keep the platform sustainable — ties to the cost/telemetry rails ([[project_ai_provider_system]]).
+
 ## The three handling tiers
 
 Every type sits in one of three tiers. The roadmap is about moving types up tiers.
@@ -113,18 +166,29 @@ entry. A dropped PDF becoming searchable tenant knowledge is the payoff.
 - **Type detection.** Trust server-sniffed MIME, not the client extension; drives the
   card icon, the viewer choice, and the comprehension branch.
 
-## Recommended phasing
+## Recommended phasing (revised per 2026-06-21 decisions)
 
-- **P0** — direct-to-blob upload (unblocks all large files + fixes icon-sheet).
-- **P1** — type-aware cards (icons + size) · PDF inline preview · **text/csv/md inline + LEO reads them** (cheap comprehension first).
-- **P2** — PDF comprehension via native document blocks · Office extractors → MediaMeta/RAG.
-- **P3** — audio transcription (+ Nimue voice tie-in).
-- **P4** — video (frames + transcript) · promote-attachment-to-Work / life-log ingestion.
+Everything ships behind per-type feature flags **disabled by default**, EXCEPT audio
+(ship enabled). Usage metering is built in from P0 (billing/sustainability).
 
-## Open decisions (for build time)
+- **P0** — direct-to-blob upload (unblocks all large files + fixes icon-sheet) · **usage
+  metering hooks** (bytes/pages/tokens/STT-minutes/model-spend).
+- **P1 — AUDIO (must-have, enabled):** audio-recorder button in **Nimue + Core** chat ·
+  **Nimue↔Core voice parity** (per-message read-out-loud/TTS both sides) · STT transcript
+  → text + LEO · inline `<audio>` player.
+- **P2** — type-aware cards (icons + size) · PDF inline preview · **text/csv/md inline +
+  LEO reads them** (cheapest comprehension).
+- **P3** — PDF comprehension via Claude native document blocks · Office extractors
+  (docx/xlsx/csv → text) → MediaMeta/RAG · **HEIC convert-on-upload** · heavy/long jobs
+  **offloaded to Merlin**.
+- **P4 — RAG upgrade:** wire **embeddings + pgvector** for semantic retrieval (scaffolding
+  already exists in `ragChunks`) · optionally add Payload search plugin for dashboard search.
+- **P5** — video (frames + transcript) · promote-attachment-to-Work / life-log ingestion ·
+  Merlin YouTube/Rumble → posts sync.
 
-1. **Comprehension vs. custody scope** — which types should LEO *read* vs. just store?
-2. **PDF path** — Claude native document blocks (rec) vs. self-extraction.
-3. **Office viewing** — download-only (private/simple) vs. embedded viewer behind a signed-URL proxy.
-4. **HEIC** — convert on upload (client vs. server) or accept download-only.
-5. **Per-attachment caps** — max size / pages / transcript length before summarize-then-store.
+## Open decisions — RESOLVED
+
+See "Decisions — RESOLVED 2026-06-21" above. Summary: ship flag-gated/off (audio on);
+store zip/docx/pdf-under-cap, read txt/md/csv/xls/docx/pdf; offload heavy processing to
+Merlin; PDF via native document blocks; Office = YAGNI/Answer-53 (download + PDF preview);
+HEIC convert-on-upload; meter everything within Vercel limits.
