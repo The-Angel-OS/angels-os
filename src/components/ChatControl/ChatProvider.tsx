@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { ReactNode } from 'react'
 import { useChat } from './useChat'
 import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
+import { parseSpacesDeepLink } from './deepLink'
 import type { ChatMessage, ChatChannel, ChatSpace } from './types'
 
 // Use relative URLs so fetch always targets the current domain/subdomain.
@@ -88,10 +89,18 @@ export function ChatProvider({
   spaces,
   userId,
 }: ChatProviderProps) {
-  // Initial Surface comes from the shared store (survives navigation across the
-  // separate ChatProvider mounts) and falls back to defaultSpaceId on first ever use.
+  // A `/dashboard/spaces/<spaceId>/<channelId>` URL is the AUTHORITATIVE initial
+  // surface — captured once at mount, before any URL-sync can rewrite it. It must
+  // beat the persisted surface (a prior visit) and defaultSpaceId, or a shared
+  // deep link silently bounces to whatever space you last had open.
+  const [initialDeepLink] = useState(() =>
+    parseSpacesDeepLink(typeof window !== 'undefined' ? window.location.pathname : null),
+  )
+
+  // Initial Surface: deep-link URL wins, then the shared store (survives navigation
+  // across the separate ChatProvider mounts), then defaultSpaceId on first ever use.
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
-    () => getSurface().spaceId || defaultSpaceId || null,
+    () => initialDeepLink?.spaceId || getSurface().spaceId || defaultSpaceId || null,
   )
   const [activeView, setActiveView] = useState<'full' | 'sidebar' | 'bubble' | null>(null)
   const [dmChannels, setDmChannels] = useState<ChatChannel[]>([])
@@ -103,6 +112,16 @@ export function ChatProvider({
   const [activeChannelSlugLocal, setActiveChannelSlugLocal] = useState<string>(
     () => getSurface().channelSlug || '',
   )
+
+  // Publish the deep-link space to the shared surface on mount so the sibling
+  // DashboardProvider restores the SAME space — otherwise its restore effect reads
+  // the stale persisted spaceId and pushes it back into us (the two providers
+  // reconcile through surfaceStore). Children mount before parents, so this lands
+  // before DashboardProvider's restore runs.
+  useEffect(() => {
+    if (initialDeepLink?.spaceId) setSurface({ spaceId: initialDeepLink.spaceId })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ─── Effective Space ID ───────────────────────────────────────
   // When the active channel is a DM, route queries to the DM space
@@ -203,8 +222,10 @@ export function ChatProvider({
               if (!deduped.find((c) => c.id === leoCh.id)) {
                 deduped.unshift(leoCh)
               }
-              // Auto-switch to LEO DM if no channel is currently active
-              if (!activeChannelSlugLocal) {
+              // Auto-switch to LEO DM if no channel is currently active — UNLESS a
+              // channel was deep-linked. Jumping to LEO here would make MultiChannelChat
+              // rewrite the URL to the LEO DM and stomp the link before it resolves.
+              if (!activeChannelSlugLocal && !initialDeepLink?.channelToken) {
                 setActiveChannelSlugLocal(leoCh.slug)
                 chat.switchChannel(leoCh.slug)
               }

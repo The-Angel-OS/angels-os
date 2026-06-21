@@ -7,6 +7,7 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat, CATCH_ALL_SLUG } from './useChat'
 import { useChatContext } from './ChatProvider'
+import { parseSpacesDeepLink } from './deepLink'
 import { useSpaces } from './useSpaces'
 import { SpacesMenuHeader } from './SpacesMenuHeader'
 import { LiveKitButton } from './LiveKitButton'
@@ -104,6 +105,17 @@ export function MultiChannelChat({
   const [memberPanelOpen, setMemberPanelOpen] = useState(false)
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false)
   const [activeApplet, setActiveApplet] = useState<string>('chat')
+
+  // ── Deep-link channel entry ──────────────────────────────────────────────
+  // The channel id from a /dashboard/spaces/{spaceId}/{channelId} URL, captured
+  // ONCE at mount before the URL-sync effect below can overwrite it. We resolve it
+  // to a real channel after the channel list loads, then switch. URL-sync is held
+  // off (gated on `deepLinkResolved`) until then so the link can't be stomped.
+  const [deepLinkChannelId] = useState<string | null>(
+    () => parseSpacesDeepLink(typeof window !== 'undefined' ? window.location.pathname : null)?.channelToken ?? null,
+  )
+  const deepLinkResolvedRef = useRef(false)
+  const [deepLinkResolved, setDeepLinkResolved] = useState(false)
 
   // Switch to the chat applet and scroll/highlight a specific message (used by
   // the Files applet's "in context" link). When the message lives in another
@@ -233,6 +245,9 @@ export function MultiChannelChat({
   const urlSynced = useRef(false)
   useEffect(() => {
     if (!activeSpaceId || !activeChannelData?.id) return
+    // Hold off while a deep-linked channel id is still being resolved — otherwise
+    // this writes the default channel's path and stomps the incoming link.
+    if (deepLinkChannelId && !deepLinkResolved) return
     const path = `/dashboard/spaces/${activeSpaceId}/${activeChannelData.id}`
     if (window.location.pathname === path) {
       urlSynced.current = true
@@ -245,7 +260,7 @@ export function MultiChannelChat({
       /* history unavailable — non-fatal */
     }
     urlSynced.current = true
-  }, [activeSpaceId, activeChannelData?.id])
+  }, [activeSpaceId, activeChannelData?.id, deepLinkChannelId, deepLinkResolved])
 
   // Back/Forward: re-read the URL and apply it to state (the sync effect above then
   // sees pathname === path and won't re-push, so no loop).
@@ -264,21 +279,30 @@ export function MultiChannelChat({
   }, [activeSpaceId, activeChannel, channels, dmChannels])
 
   // Deep-link entry by channel id: when landing on /…/{spaceId}/{channelId}, resolve
-  // the channel id → slug once channels are loaded and switch to it.
-  const channelIdApplied = useRef(false)
+  // the captured channel id (id first, slug for legacy links) to a real channel once
+  // the list loads and switch to it. Runs once; releases the URL-sync gate even on a
+  // miss so a stale/foreign link falls back to normal behavior instead of hanging.
   useEffect(() => {
-    if (channelIdApplied.current) return
-    if (isLoadingChannels || channels.length === 0) return
-    const m = window.location.pathname.match(/\/dashboard\/spaces\/\d+\/(\d+)/)
-    if (!m) {
-      channelIdApplied.current = true
+    if (deepLinkResolvedRef.current) return
+    if (!deepLinkChannelId) {
+      deepLinkResolvedRef.current = true
+      setDeepLinkResolved(true)
       return
     }
-    channelIdApplied.current = true
-    const ch = [...channels, ...dmChannels].find((c) => String(c.id) === m[1])
-    if (ch && ch.slug !== activeChannel) switchChannel(ch.slug)
+    if (isLoadingChannels) return
+    const all = [...channels, ...dmChannels]
+    if (all.length === 0) return
+    const ch = all.find((c) => String(c.id) === deepLinkChannelId || c.slug === deepLinkChannelId)
+    deepLinkResolvedRef.current = true
+    setDeepLinkResolved(true)
+    if (ch) {
+      console.debug(`[deeplink] channel ${deepLinkChannelId} → #${ch.slug}`)
+      if (ch.slug !== activeChannel) switchChannel(ch.slug)
+    } else {
+      console.warn(`[deeplink] channel "${deepLinkChannelId}" not found in space ${activeSpaceId} — staying on ${activeChannel}`)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingChannels, channels])
+  }, [isLoadingChannels, channels, dmChannels, deepLinkChannelId])
 
   const handleCreateChannel = async () => {
     if (!newChannelName.trim() || isCreating) return
