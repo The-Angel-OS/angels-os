@@ -26,6 +26,16 @@ export function homeForWork(workId: string): string {
   return getSoul(workId)?.canonical?.endeavor || DEFAULT_WORK_HOME
 }
 
+/**
+ * Has a public version been PUBLISHED? Works are version-controlled working
+ * copies (never "done"); only published Works show on public Library indexes.
+ * Opt-in — unpublished by default. Direct links / owners still reach a working
+ * copy; this only gates the public LISTS.
+ */
+export function isWorkPublished(workId: string): boolean {
+  return getSoul(workId)?.published === true
+}
+
 /** Additional carrying endeavors (manifest-derived). Platform is implicit, never listed. */
 export function subscribersForWork(workId: string): string[] {
   return getSoul(workId)?.subscribers ?? []

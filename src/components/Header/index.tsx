@@ -8,7 +8,7 @@ import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 import { getAllSouls } from '@/souls'
-import { isWorkAvailable } from '@/souls/subscriptions'
+import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 
 import './index.css'
 import { HeaderClient } from './index.client'
@@ -155,7 +155,7 @@ export async function Header({ tenant }: Props) {
 
   // Works (file-based souls, subscription-scoped by tenant slug) — first-class only
   // when this tenant actually has works available; else collapse into More.
-  const hasWorks = getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug))
+  const hasWorks = getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
 
   return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} />
 }

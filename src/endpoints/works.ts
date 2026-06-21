@@ -25,7 +25,7 @@ import type { PayloadHandler } from 'payload'
 import fs from 'fs'
 import path from 'path'
 import { getAllSouls, getSoul } from '@/souls'
-import { isWorkAvailable, homeForWork, subscribersForWork } from '@/souls/subscriptions'
+import { isWorkAvailable, isWorkPublished, homeForWork, subscribersForWork } from '@/souls/subscriptions'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
@@ -98,7 +98,7 @@ export const worksListHandler: PayloadHandler = async (req) => {
   try {
     const tenantSlug = await resolveTenantSlug(req)
     const origin = originFromReq(req)
-    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug))
+    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug) && isWorkPublished(s.id))
 
     // Cover + unitCount come from the message-backed content (the filesystem is
     // gone). One scan of the `work-*` channels, grouped by work, gives both.
@@ -186,7 +186,7 @@ export const worksChecksumsHandler: PayloadHandler = async (req) => {
   try {
     const tenantSlug = await resolveTenantSlug(req)
     const origin = originFromReq(req)
-    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug))
+    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug) && isWorkPublished(s.id))
 
     const works: Array<{ id: string; checksum: string; version: string; type: string; unitCount: number; title: string }> = []
     for (const s of souls) {

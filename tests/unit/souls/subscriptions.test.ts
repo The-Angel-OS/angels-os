@@ -4,7 +4,7 @@
  * @see src/souls/subscriptions.ts
  */
 import { describe, it, expect } from 'vitest'
-import { homeForWork, subscribersForWork, isWorkAvailable } from '@/souls/subscriptions'
+import { homeForWork, subscribersForWork, isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 
 describe('converged Work ownership (manifest = source of truth)', () => {
   it('owner comes from canonical.endeavor', () => {
@@ -51,5 +51,19 @@ describe('the platform-index rule', () => {
 
   it('unscoped context (no tenant) is unrestricted', () => {
     expect(isWorkAvailable('holy-bible', null)).toBe(true)
+  })
+})
+
+describe('publish state (version-controlled working copies)', () => {
+  it('only explicitly-published Works are public', () => {
+    expect(isWorkPublished('wdeg')).toBe(true)
+    expect(isWorkPublished('holy-bible')).toBe(true)
+    expect(isWorkPublished('angel-os-handbook')).toBe(true)
+  })
+  it('unfinished working copies are NOT published (opt-in default)', () => {
+    expect(isWorkPublished('rainmaker')).toBe(false)
+    expect(isWorkPublished('gpt-psychosis')).toBe(false)
+    expect(isWorkPublished('ready-player-everyone')).toBe(false)
+    expect(isWorkPublished('answer53')).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { getAllSouls } from '@/souls'
-import { isWorkAvailable } from '@/souls/subscriptions'
+import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { WorksGrid } from '@/components/Library/WorksGrid'
 
@@ -22,7 +22,7 @@ export default async function LearnPage({
   setRequestLocale(locale)
 
   const { tenant } = await resolveTenantFromHeaders()
-  const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug))
+  const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
 
   return (
     <div className="min-h-screen bg-background">

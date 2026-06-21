@@ -10,6 +10,7 @@ export const angelOsHandbookManifest: SoulManifest = {
   canonical: { origin: 'https://spacesangels.com', endeavor: 'platform', creditedTo: 'kenneth.courtney@gmail.com' },
   // Platform documentation — available on EVERY endeavor.
   availableGlobally: true,
+  published: true,
   title: 'The Angel OS Handbook',
   subtitle: 'Everyone gets an Angel — start here',
   description:

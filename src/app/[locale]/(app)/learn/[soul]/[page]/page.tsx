@@ -46,7 +46,8 @@ export async function generateMetadata({
     const idx = resolvePageIndex(loaded, page)
     const p = loaded.manifest.pages[idx]
     const inferredTitle = loaded.pageTitles[idx]
-    const excerpt = pageExcerpt(loaded.baseText[String(p?.order)])
+    const rawPageText = loaded.baseText[String(p?.order)]
+    const excerpt = pageExcerpt(typeof rawPageText === 'string' ? rawPageText : '')
     const description = excerpt || loaded.manifest.subtitle || soul.description || ''
     // Canonical points to the Work's PUBLISHER root (publish-once-canonical), not
     // the serving origin — so a subscriber's copy credits the canonical home.

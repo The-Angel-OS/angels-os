@@ -67,6 +67,14 @@ export interface SoulManifest {
   /** Available on EVERY endeavor (e.g. the Handbook). Overrides subscribers. */
   availableGlobally?: boolean
   /**
+   * Has the author PUBLISHED a version to the public? Works are version-controlled
+   * and never "done" — they're perpetual working copies. Only published Works
+   * appear on public Library indexes; unpublished ones stay editable working
+   * copies, reachable by direct link / owner. Opt-in: defaults to unpublished.
+   * (Trajectory: this becomes "has a sealed release" once seal/versioning lands.)
+   */
+  published?: boolean
+  /**
    * If set, this work is a paged book — the reader loads
    * public/library/<bookSlug>/manifest.json and renders <BookReader>
    * (the illustrated-primer reader) instead of the markdown doc viewer.
