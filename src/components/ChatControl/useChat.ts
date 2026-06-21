@@ -219,19 +219,28 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
           }),
         )
         setChannels(mapped)
-        // No explicit channel (deep link) → restore the last channel viewed in
-        // THIS space, so leaving Spaces and coming back keeps your place. Falls
-        // back to the default/first channel.
-        if (!channelSlug && mapped.length > 0) {
-          let restored: string | undefined
-          try {
-            const stored = window.localStorage.getItem(`angelos.activeChannel.${channelSpaceId}`)
-            if (stored && mapped.some((c) => c.slug === stored)) restored = stored
-          } catch {
-            /* unavailable — fall through to default */
+        if (mapped.length > 0) {
+          // Resolve the incoming channel identifier to its SLUG. Deep-link URLs use
+          // the channel ID (/dashboard/spaces/{spaceId}/{channelId}); older links use
+          // the slug. Messages.channel is the SLUG, so passing a raw id straight
+          // through made every message query (channel=<id>) return nothing — the
+          // "message vanishes / LEO stuck" bug. Match by slug first, then by id; if
+          // neither (or no channel given), restore the last-viewed, else default.
+          let target: string | undefined
+          if (channelSlug) {
+            target = mapped.find((c) => c.slug === channelSlug)?.slug
+              || mapped.find((c) => c.id === channelSlug)?.slug
           }
-          const defaultCh = mapped.find((c) => c.isDefault) || mapped[0]
-          setActiveChannel(restored || defaultCh.slug)
+          if (!target) {
+            try {
+              const stored = window.localStorage.getItem(`angelos.activeChannel.${channelSpaceId}`)
+              if (stored && mapped.some((c) => c.slug === stored)) target = stored
+            } catch {
+              /* unavailable — fall through to default */
+            }
+            if (!target) target = (mapped.find((c) => c.isDefault) || mapped[0]).slug
+          }
+          if (target) setActiveChannel(target)
         }
       }
     } catch (err) {
