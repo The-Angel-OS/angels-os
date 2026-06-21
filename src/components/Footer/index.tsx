@@ -6,8 +6,14 @@ import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import Link from 'next/link'
 import React, { Suspense } from 'react'
 import { LogoIcon } from '@/components/icons/logo'
+import pkg from '../../../package.json'
 
 const { COMPANY_NAME, SITE_NAME } = process.env
+
+// Per-release build tag so we always know which version is live. Vercel injects
+// VERCEL_GIT_COMMIT_SHA at build time; falls back to "dev" locally.
+const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7)
+const BUILD_TAG = `v${pkg.version}${COMMIT_SHA ? ` · ${COMMIT_SHA}` : ' · dev'}`
 
 type Props = {
   tenant: Tenant | null
@@ -146,6 +152,13 @@ export async function Footer({ tenant }: Props) {
             <a className="text-black dark:text-white hover:underline" href="https://livekit.io" target="_blank" rel="noopener noreferrer">
               LiveKit
             </a>
+            <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
+            <span
+              className="font-mono text-xs text-neutral-400 dark:text-neutral-500"
+              title={process.env.VERCEL_GIT_COMMIT_SHA || 'local dev build'}
+            >
+              {BUILD_TAG}
+            </span>
           </p>
         </div>
       </div>
