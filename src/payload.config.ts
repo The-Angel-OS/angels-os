@@ -343,8 +343,15 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
       // Drizzle schema introspection fires many concurrent queries at startup.
       // Remote PostgreSQL needs more headroom than a local DB.
-      max: process.env.VERCEL ? 3 : 10, // Serverless: low to avoid exhausting PG max_connections; local: higher for Drizzle introspection
-      idleTimeoutMillis: 10_000,
+      // ⚠️ This repo deploys to MANY Vercel projects (angels-os, the-angel-os, spaces,
+      // wheredideveryonego, answer53, angels-os-kendev), ALL sharing one IONOS PG server
+      // capped at max_connections=100. Each warm lambda instance holds `max` connections;
+      // ~34 warm instances × 3 = 100 → server pegged → new nodes can't connect → "error
+      // initializing Payload" (kendev outage 2026-06-20). Keep the per-instance footprint
+      // small and release idle connections fast so instances don't hoard the shared cap.
+      // Proper long-term fix: a connection pooler (PgBouncer / Cloudflare Hyperdrive).
+      max: process.env.VERCEL ? 2 : 10, // Serverless: minimal footprint on the shared 100-cap; local: higher for Drizzle introspection
+      idleTimeoutMillis: process.env.VERCEL ? 5_000 : 10_000, // release idle conns fast on serverless to free the shared cap
       connectionTimeoutMillis: 30_000, // 30s — remote DB needs more time during schema pull
       allowExitOnIdle: true,
     },
