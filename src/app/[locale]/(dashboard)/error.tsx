@@ -3,7 +3,16 @@
 /**
  * Dashboard error boundary — catches errors in the (dashboard) route group.
  * Shows a warm recovery message. Follows the Anti-Daemon Protocol.
+ *
+ * Logging: best-effort report to the central error log (/api/log-ops/client-error)
+ * so recoverable errors land in application-logs + the AI Bus. NOTE: when the
+ * failure IS Payload failing to initialize (e.g. a node's DB is unreachable), the
+ * DB-backed log can't be written — physics, not a bug — so we ALSO surface the
+ * `digest` to the operator. The digest links to the server-side entry Next logged
+ * (visible in the Vercel runtime logs), which is the diagnostic key.
  */
+import { useEffect } from 'react'
+
 export default function DashboardError({
   error,
   reset,
@@ -11,7 +20,26 @@ export default function DashboardError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  console.error('[Dashboard Error]', error)
+  useEffect(() => {
+    // Local first (always visible).
+    console.error('[Dashboard Error]', error?.message, error?.digest, error)
+    // Best-effort durable log — fail-soft (no-ops if Payload itself is down).
+    try {
+      void fetch('/api/log-ops/client-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          source: 'dashboard/error-boundary',
+          message: `Dashboard render error${error?.digest ? ` [digest ${error.digest}]` : ''}: ${error?.message || 'unknown'}`,
+          details: error?.stack,
+          url: typeof window !== 'undefined' ? window.location.href : undefined,
+        }),
+      }).catch(() => {})
+    } catch {
+      /* never let logging break the boundary */
+    }
+  }, [error])
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -50,6 +78,11 @@ export default function DashboardError({
           </svg>
           Try again
         </button>
+        {error?.digest && (
+          <p className="mt-5 text-[11px] font-mono text-muted-foreground/70">
+            Reference: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   )
