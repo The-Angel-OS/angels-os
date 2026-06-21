@@ -17,8 +17,9 @@ import type { BookManifest } from './BookReader'
 export interface LoadedBook {
   manifest: BookManifest
   baseLanguage: string
-  /** order(string) -> base-language text. */
-  baseText: Record<string, string>
+  /** order(string) -> base-language text (a prose string, or a verse array for
+   *  scripture-style books). */
+  baseText: Record<string, unknown>
   /** Index-aligned with manifest.pages: "<n>-<inferred-name>". */
   pageSlugs: string[]
   /** Index-aligned inferred page titles (first line of the page text). */
@@ -53,7 +54,7 @@ export function loadBookFromPublic(bookSlug: string): LoadedBook | null {
     const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as BookManifest
     const baseLanguage = manifest.defaultLanguage || 'en'
 
-    let baseText: Record<string, string> = {}
+    let baseText: Record<string, unknown> = {}
     try {
       baseText = JSON.parse(fs.readFileSync(path.join(dir, 'text', `${baseLanguage}.json`), 'utf8'))
     } catch {
@@ -61,7 +62,14 @@ export function loadBookFromPublic(bookSlug: string): LoadedBook | null {
     }
 
     const pages = manifest.pages || []
-    const pageTitles = pages.map((p) => firstLine(baseText[String(p.order)]))
+    // Prefer the manifest's explicit page title (scripture: "John 3"); else infer
+    // from the first line of a prose page. Verse-structured (array) pages always
+    // carry a manifest title, so we never call firstLine on a non-string.
+    const pageTitles = pages.map((p) => {
+      if (p.title) return p.title
+      const t = baseText[String(p.order)]
+      return typeof t === 'string' ? firstLine(t) : ''
+    })
     const pageSlugs = pages.map((_, i) => {
       const name = slugifyTitle(pageTitles[i] || '')
       const human = i + 1 // 1-based page position is the URL's source of truth

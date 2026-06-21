@@ -20,14 +20,17 @@
  * Re-runnable: the index is rebuilt from whatever data/*.json exist, in canonical
  * order, so adding books later just adds their files and re-indexes.
  */
-import { mkdir, writeFile, readdir } from 'node:fs/promises'
+import { mkdir, writeFile, readdir, readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+// Source of record: per-book verse JSON with BOTH translations inline.
 const DATA_DIR = resolve(ROOT, 'src/souls/holy-bible/data')
-const MD_DIR = resolve(ROOT, 'docs/vision/holy-bible')
-const INDEX = resolve(ROOT, 'src/souls/holy-bible/index.generated.json')
+// Reader-consumed book (Ronald's WDEG format): manifest + one text file PER edition.
+// A translation is just another language file — text/web.json, text/kjv.json, …
+const BOOK_DIR = resolve(ROOT, 'public/library/holy-bible')
+const TEXT_DIR = resolve(BOOK_DIR, 'text')
 const API = 'https://bible-api.com'
 
 // Canonical 66-book table: OSIS code, display name, API query name, chapter count,
@@ -93,13 +96,6 @@ async function fetchChapter(book, chapter, translation) {
   throw new Error(`fetch failed: ${url}`)
 }
 
-/** Render a chapter to verse-numbered WEB markdown (the reader page). */
-function chapterMarkdown(book, chapter, verses) {
-  const title = book.chapters === 1 ? book.name : `${book.name} ${chapter}`
-  const body = verses.map((vr) => `**${vr.v}** ${vr.web}`).join(' ')
-  return `# ${title}\n\n${body}\n`
-}
-
 async function ingestBook(book) {
   const chapters = []
   for (let ch = 1; ch <= book.chapters; ch++) {
@@ -107,8 +103,6 @@ async function ingestBook(book) {
     const kjvByV = new Map(kjv.map((x) => [x.v, x.text]))
     const verses = web.map((w) => ({ v: w.v, web: w.text, kjv: kjvByV.get(w.v) || '' }))
     chapters.push({ chapter: ch, verses })
-    // Per-chapter markdown page.
-    await writeFile(resolve(MD_DIR, `${book.code.toLowerCase()}-${ch}.md`), chapterMarkdown(book, ch, verses), 'utf-8')
     process.stdout.write(`  ${book.code} ${ch}/${book.chapters} (${verses.length} v)\r`)
     await sleep(120) // be polite to the public API
   }
@@ -117,34 +111,52 @@ async function ingestBook(book) {
   console.log(`\n  ✓ ${book.name} — ${chapters.length} ch`)
 }
 
-/** Rebuild the ordered chapter index (the manifest's docs) from existing data files. */
-async function rebuildIndex() {
+/**
+ * Build the reader book (Ronald's WDEG format) from whatever data/*.json exist,
+ * in canonical order: ONE manifest (chapter pages) + ONE text file per edition,
+ * verse-structured. Adding a book = drop its data file and rebuild.
+ */
+async function buildBook() {
   const files = (await readdir(DATA_DIR)).filter((f) => f.endsWith('.json'))
   const present = new Set(files.map((f) => f.replace('.json', '')))
-  const docs = []
+  const pages = []
+  const web = {} // order -> [{v,t}]
+  const kjv = {}
+  let order = 0
   for (const code of CODE_ORDER) {
     if (!present.has(code)) continue
     const book = BOOKS.find((b) => b.code === code)
-    for (let ch = 1; ch <= book.chapters; ch++) {
-      const title = book.chapters === 1 ? book.name : `${book.name} ${ch}`
-      docs.push({
-        id: `${code.toLowerCase()}-${ch}`,
-        filename: `${code.toLowerCase()}-${ch}.md`,
-        title,
-        tier: 'chapter',
-        book: code,
-        bookName: book.name,
-        chapter: ch,
-      })
+    const data = JSON.parse(await readFile(resolve(DATA_DIR, `${code}.json`), 'utf-8'))
+    for (const ch of data.chapters) {
+      order += 1
+      const title = book.chapters === 1 ? book.name : `${book.name} ${ch.chapter}`
+      pages.push({ order, title, book: code, bookName: book.name, chapter: ch.chapter, ref: `${code}.${ch.chapter}` })
+      web[String(order)] = ch.verses.map((vr) => ({ v: vr.v, t: vr.web }))
+      kjv[String(order)] = ch.verses.map((vr) => ({ v: vr.v, t: vr.kjv }))
     }
   }
-  await writeFile(INDEX, JSON.stringify({ generatedFrom: [...present], docs }, null, 2), 'utf-8')
-  console.log(`  index: ${docs.length} chapters across ${present.size} book(s)`)
+  const manifest = {
+    slug: 'holy-bible',
+    title: 'The Holy Bible',
+    subtitle: 'World English Bible · King James Version',
+    pageCount: pages.length,
+    pages,
+    languages: [
+      { code: 'web', name: 'World English Bible' },
+      { code: 'kjv', name: 'King James Version' },
+    ],
+    defaultLanguage: 'web',
+    textBase: '/library/holy-bible/text',
+  }
+  await writeFile(resolve(BOOK_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8')
+  await writeFile(resolve(TEXT_DIR, 'web.json'), JSON.stringify(web), 'utf-8')
+  await writeFile(resolve(TEXT_DIR, 'kjv.json'), JSON.stringify(kjv), 'utf-8')
+  console.log(`  book: ${pages.length} chapter-pages across ${present.size} book(s) · editions: web, kjv`)
 }
 
 async function main() {
   await mkdir(DATA_DIR, { recursive: true })
-  await mkdir(MD_DIR, { recursive: true })
+  await mkdir(TEXT_DIR, { recursive: true })
   const args = process.argv.slice(2)
   const codes = args.length === 0 ? ['PHM'] : args[0].toUpperCase() === 'ALL' ? CODE_ORDER : args.map((a) => a.toUpperCase())
   console.log(`Ingesting: ${codes.join(', ')}`)
@@ -153,8 +165,8 @@ async function main() {
     if (!book) { console.warn(`  ? unknown book code: ${code}`); continue }
     await ingestBook(book)
   }
-  await rebuildIndex()
-  console.log('done. Register the soul (src/souls/index.ts) if not already, then open the Library.')
+  await buildBook()
+  console.log('done. The Holy Bible book is built — open the Library.')
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

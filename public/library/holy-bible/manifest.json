@@ -1,0 +1,28 @@
+{
+  "slug": "holy-bible",
+  "title": "The Holy Bible",
+  "subtitle": "World English Bible · King James Version",
+  "pageCount": 1,
+  "pages": [
+    {
+      "order": 1,
+      "title": "Philemon",
+      "book": "PHM",
+      "bookName": "Philemon",
+      "chapter": 1,
+      "ref": "PHM.1"
+    }
+  ],
+  "languages": [
+    {
+      "code": "web",
+      "name": "World English Bible"
+    },
+    {
+      "code": "kjv",
+      "name": "King James Version"
+    }
+  ],
+  "defaultLanguage": "web",
+  "textBase": "/library/holy-bible/text"
+}

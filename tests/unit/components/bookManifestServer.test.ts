@@ -36,7 +36,7 @@ describe('bookManifestServer — WDEG', () => {
   })
 
   it('builds a non-empty page description from the body, not the title', () => {
-    const excerpt = pageExcerpt(loaded!.baseText['1'])
+    const excerpt = pageExcerpt(loaded!.baseText['1'] as string)
     expect(excerpt.length).toBeGreaterThan(10)
     expect(excerpt.length).toBeLessThanOrEqual(156)
     expect(excerpt).not.toBe(loaded!.pageTitles[0])

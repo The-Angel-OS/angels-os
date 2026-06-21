@@ -22,6 +22,14 @@ export interface BookPage {
   markdown?: string
 }
 
+/** A verse-structured page value (scripture): the per-page text is an array of
+ *  numbered verses instead of one prose string. The reader renders either. */
+export interface VerseLine {
+  v: number
+  t: string
+}
+type PageText = string | VerseLine[]
+
 export interface BookLanguage {
   code: string
   name: string
@@ -75,7 +83,7 @@ export function BookReader({
   const [index, setIndex] = useState(initialIndex)
   const [dir, setDir] = useState(1)
   const [lang, setLang] = useState<string>('en')
-  const [texts, setTexts] = useState<Record<string, string>>({})
+  const [texts, setTexts] = useState<Record<string, PageText>>({})
   const mainRef = useRef<HTMLDivElement>(null)
 
   const languages = manifest?.languages ?? []
@@ -148,7 +156,7 @@ export function BookReader({
     let cancelled = false
     fetch(`${manifest.textBase}/${lang}.json`)
       .then((r) => (r.ok ? r.json() : {}))
-      .then((t: Record<string, string>) => {
+      .then((t: Record<string, PageText>) => {
         if (!cancelled) setTexts(t)
       })
       .catch(() => {
@@ -215,6 +223,32 @@ export function BookReader({
 
   const renderText = (order: number) => {
     const raw = texts[String(order)]
+    // Scripture: verse-structured page → numbered verses with the manifest title.
+    if (Array.isArray(raw)) {
+      if (raw.length === 0) return null
+      const heading = pages.find((p) => p.order === order)?.title || ''
+      return (
+        <div
+          dir={isRtl ? 'rtl' : 'ltr'}
+          className={`mx-auto mt-6 max-w-[34rem] ${isRtl ? 'text-right' : 'text-left'}`}
+          style={{ fontFamily: 'Georgia, "Iowan Old Style", "Times New Roman", serif' }}
+        >
+          {heading && (
+            <h2 className="mb-5 text-[1.55rem] font-semibold leading-tight tracking-tight text-[#f5f2f0]">
+              {heading}
+            </h2>
+          )}
+          <p className="text-[1.0625rem] leading-[1.95] text-[#f5f2f0d9]">
+            {raw.map((vs) => (
+              <span key={vs.v}>
+                <sup className="mr-0.5 align-super text-[0.68em] font-semibold text-[#C4956A]">{vs.v}</sup>
+                {vs.t}{' '}
+              </span>
+            ))}
+          </p>
+        </div>
+      )
+    }
     if (!raw || !raw.trim()) return null
     const paras = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
     // Our books open each page with a title line, then the body. Style the title
