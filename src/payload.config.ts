@@ -342,6 +342,14 @@ export default buildConfig({
     push: process.env.PAYLOAD_SKIP_PUSH === 'true' ? false : undefined,
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
+      // SSL for the PgBouncer pooler cutover. Gated on DATABASE_SSL so this is a NO-OP
+      // until that env var is set → safe to merge ahead of the cutover. The pooler
+      // terminates TLS with a SELF-SIGNED cert (CN=74.208.87.243, :6432), which
+      // node-postgres rejects by default; rejectUnauthorized:false is correct here —
+      // the cert is self-signed and the only public leg is Vercel→pooler (the
+      // pooler→Postgres hop is loopback on the same box). At cutover IONOS flips
+      // DATABASE_URI→:6432 and DATABASE_SSL=require together.
+      ssl: process.env.DATABASE_SSL === 'require' ? { rejectUnauthorized: false } : undefined,
       // Drizzle schema introspection fires many concurrent queries at startup.
       // Remote PostgreSQL needs more headroom than a local DB.
       // ⚠️ This repo deploys to MANY Vercel projects (angels-os, the-angel-os, spaces,
