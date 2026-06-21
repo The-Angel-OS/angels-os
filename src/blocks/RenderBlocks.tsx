@@ -42,8 +42,11 @@ export const RenderBlocks: React.FC<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   blocks: any[]
   docContext?: DocContext
+  /** The hosting page's endeavor/tenant slug — used as the default endeavor for
+   *  context-aware blocks (e.g. Merlin Control) so editors don't retype it. */
+  tenantSlug?: string
 }> = (props) => {
-  const { blocks, docContext } = props
+  const { blocks, docContext, tenantSlug } = props
 
   const hasBlocks = blocks && Array.isArray(blocks) && blocks.length > 0
 
@@ -63,7 +66,9 @@ export const RenderBlocks: React.FC<{
               const blockProps =
                 blockType === 'comments' && docContext
                   ? { ...block, docContext }
-                  : block
+                  : blockType === 'merlinControl'
+                    ? { ...block, endeavor: block.endeavor || tenantSlug }
+                    : block
               return (
                 <div className="my-16" key={index}>
                   <Block id={toKebabCase(blockName!)} {...blockProps} />

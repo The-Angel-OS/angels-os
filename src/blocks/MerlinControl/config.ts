@@ -8,10 +8,9 @@ export const MerlinControl: Block = {
     {
       name: 'endeavor',
       type: 'text',
-      required: true,
       admin: {
         description:
-          'Endeavor slug whose Merlin nodes this control lists (from node-ops/register).',
+          'OPTIONAL override. Leave blank to use THIS page’s own endeavor (a Merlin can only ever belong to its own endeavor). Set a slug only to surface a different endeavor’s Merlin nodes (from node-ops/register).',
       },
     },
     {

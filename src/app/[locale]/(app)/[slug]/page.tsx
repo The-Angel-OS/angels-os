@@ -71,10 +71,15 @@ export default async function Page({ params }: Args) {
     )
   }
 
+  // The page's endeavor/tenant slug — default for context-aware blocks (Merlin Control)
+  // so a Merlin lists its OWN endeavor's nodes without the editor retyping the slug.
+  const { tenant: pageTenant } = await resolveTenantFromHeaders()
+  const tenantSlug = (pageTenant as { slug?: string } | null)?.slug
+
   return (
     <article className="pt-16 pb-24">
       {homeSplash ?? <RenderHero {...hero} />}
-      <RenderBlocks blocks={layout} />
+      <RenderBlocks blocks={layout} tenantSlug={tenantSlug} />
     </article>
   )
 }
