@@ -26,6 +26,9 @@ import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  // Document locking off (Answer 53) — see Pages/index.ts: avoids the fragile
+  // payload_locked_documents lock query that breaks admin saves on the angels node.
+  lockDocuments: false,
   access: {
     create: adminOnly,
     delete: adminOnly,

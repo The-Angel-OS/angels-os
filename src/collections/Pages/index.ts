@@ -34,6 +34,13 @@ import { revalidatePage, revalidateDelete } from './hooks/revalidatePage'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
+  // Document locking off (Answer 53): the per-collection `payload_locked_documents`
+  // lock query is the SOLE failure on every admin save on the angels node — it's the
+  // first DB op of a save, so the save aborts there (45s→error). The lock table is
+  // empty + the query is fast in isolation, so the fragility is the lock subsystem's
+  // interaction with the serverless/pooler connection, not the schema. Locking only
+  // guards concurrent-editor collisions (not needed here). See ensure-locked-docs-rels.ts.
+  lockDocuments: false,
   access: {
     create: adminOnly,
     delete: adminOnly,

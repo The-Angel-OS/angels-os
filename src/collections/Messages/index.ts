@@ -64,6 +64,10 @@ const readMessages: Access = async ({ req }) => {
 
 export const Messages: CollectionConfig = {
   slug: 'messages',
+  // Document locking off (Answer 53) — see Pages/index.ts: the shared
+  // payload_locked_documents lock query is the failure point on admin saves on the
+  // angels node; locking guards concurrent-editor collisions we don't need here.
+  lockDocuments: false,
   admin: {
     group: 'Spaces',
     useAsTitle: 'id',
