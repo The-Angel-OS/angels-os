@@ -45,11 +45,14 @@ export const moderateMessage: CollectionAfterChangeHook = async ({ doc, operatio
       id: doc.id,
       data: { metadata: { ...prevMeta, moderation: verdict } },
       overrideAccess: true,
-      // ⚠️ overrideLock is ESSENTIAL: this update runs INSIDE the create's afterChange,
-      // and Payload's default doc-locking makes the nested update contend with the
-      // create on payload_locked_documents → the update hangs forever → the whole
-      // chat-send POST hangs (messages never post, "LEO thinking" stuck). Skipping the
-      // lock here is safe (server-side metadata write, not a human editing the doc).
+      // ⚠️ THE FIX for the message-send hang: pass `req` so this nested update joins
+      // the create's SAME transaction. Without it, the update ran in a SEPARATE
+      // transaction and blocked forever on the Postgres ROW LOCK the uncommitted
+      // create holds on this row → the create awaited the update → DEADLOCK → POST
+      // /api/chat/send hung, message never committed. (overrideLock didn't help: that
+      // skips Payload's doc-lock feature, not the row lock.) Reusing the transaction
+      // lets the update see + modify the still-uncommitted row with no conflict.
+      req,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       overrideLock: true as any,
       // Don't re-moderate the metadata write, and don't let it count as an edit.
