@@ -131,6 +131,10 @@ export async function Footer({ tenant }: Props) {
           )}
           <p className="md:ml-auto flex items-center gap-2">
             <span>Powered by</span>
+            <a className="text-black dark:text-white hover:underline" href="https://github.com/The-Angel-OS" target="_blank" rel="noopener noreferrer">
+              The Angel OS
+            </a>
+            <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
             <a className="text-black dark:text-white hover:underline" href="https://payloadcms.com" target="_blank" rel="noopener noreferrer">
               Payload
             </a>
