@@ -161,7 +161,14 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     // payload.create — i.e. a Messages afterChange hook (runWorkflows / autoAnalyzeMedia
     // / moderateMessage / broadcast) is awaiting something with no timeout.
     const tCreate = Date.now()
-    req.payload.logger?.info?.(`[chat-send] creating message space=${spaceId} channel=${channel} attachments=${Array.isArray(attachments) ? attachments.length : 0}`)
+    const mdAttCount = Array.isArray((messageData as { attachments?: unknown[] }).attachments)
+      ? (messageData as { attachments: unknown[] }).attachments.length
+      : 0
+    req.payload.logger?.info?.(
+      `[chat-send] creating message space=${spaceId} channel=${channel} ` +
+        `attRecv=${Array.isArray(attachments) ? attachments.length : 0} attData=${mdAttCount} ` +
+        `attRaw=${JSON.stringify(attachments)?.slice(0, 120)}`,
+    )
     const saved = await req.payload.create({
       collection: 'messages',
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -180,7 +187,10 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       // why they persisted and attachment messages didn't.
       depth: 0,
     })
-    req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms`)
+    const savedAtt = Array.isArray((saved as { attachments?: unknown[] }).attachments)
+      ? (saved as { attachments: unknown[] }).attachments.length
+      : 0
+    req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms savedAtt=${savedAtt}`)
 
     // Surface page-comment channels in the Spaces viewer (find-or-create,
     // non-blocking — never delays the send or fails it). The channel always
