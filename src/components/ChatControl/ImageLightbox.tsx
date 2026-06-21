@@ -40,11 +40,23 @@ export function ImageLightbox({
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(initialIndex)
 
-  // Sync carousel to initialIndex when lightbox opens
+  // Sync carousel to initialIndex when lightbox opens.
+  //
+  // The Radix Dialog zooms/scales in on open (~200ms). Embla measures slide
+  // widths on init — if it measures DURING that scale animation, every full-width
+  // slide is recorded smaller than the container, so the center-aligned snap gets a
+  // nonzero offset that ACCUMULATES per slide index (the "25% off with 2 images,
+  // 50% with 3, further the more images" drift; thumbnails scroll to the wrong
+  // spot and the image flashes past, never centered). Re-measure with reInit() once
+  // the open animation has settled, THEN jump to the initial slide.
   useEffect(() => {
     if (!api || !open) return
-    api.scrollTo(initialIndex, true)
-    setCurrent(initialIndex)
+    const settle = window.setTimeout(() => {
+      api.reInit()
+      api.scrollTo(initialIndex, true)
+      setCurrent(initialIndex)
+    }, 260)
+    return () => window.clearTimeout(settle)
   }, [api, initialIndex, open])
 
   // Track current slide
