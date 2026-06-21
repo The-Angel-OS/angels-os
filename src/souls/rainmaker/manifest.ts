@@ -87,6 +87,8 @@ export const rainmakerManifest: SoulManifest = {
   // Canonical to Clearwater Cruisin (Ken & Ty's endeavor). Adjust origin if a
   // custom domain replaces the spacesangels subdomain.
   canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin', creditedTo: 'kenneth.courtney@gmail.com' },
+  published: true,
+  availableGlobally: true, // readable on every portal (canonical stays clearwater-cruisin)
   title: 'THE RAINMAKER',
   subtitle: 'Hilkert v. Courtney et al. — Pinellas County, FL',
   description:

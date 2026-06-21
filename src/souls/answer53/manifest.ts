@@ -10,6 +10,8 @@ export const answer53Manifest: SoulManifest = {
   id: 'answer53',
   // Canonical to Clearwater Cruisin (Ken & Ty's endeavor).
   canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin', creditedTo: 'kenneth.courtney@gmail.com' },
+  published: true,
+  availableGlobally: true, // readable on every portal (canonical stays clearwater-cruisin)
   title: '53.3 — THE NEW ANSWER',
   subtitle: 'to Life, the Universe, and Everything',
   description:

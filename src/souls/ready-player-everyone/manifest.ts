@@ -8,6 +8,8 @@ export const readyPlayerEveryoneManifest: SoulManifest = {
   // Owned by The Angel OS; carried by Clearwater Cruisin and the kendev node.
   canonical: { origin: 'https://spacesangels.com', endeavor: 'platform', creditedTo: 'kenneth.courtney@gmail.com' },
   subscribers: ['clearwater-cruisin', 'kendev'],
+  published: true,
+  availableGlobally: true, // readable on every portal (canonical stays platform)
   title: 'READY PLAYER EVERYONE',
   subtitle: 'A work — forthcoming',
   description:

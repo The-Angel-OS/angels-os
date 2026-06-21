@@ -12,6 +12,7 @@ export const wdegManifest: SoulManifest = {
   // implicitly — fixes "WDEG has a place on the platform index but isn't shown".)
   subscribers: ['clearwater-cruisin'],
   published: true, // readable now, 17 languages
+  availableGlobally: true, // readable on every portal (canonical stays wheredideveryonego)
   title: 'WHERE DID EVERYONE GO',
   subtitle: 'A book — in production for the Library',
   description:
