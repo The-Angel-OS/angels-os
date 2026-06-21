@@ -83,10 +83,17 @@ export function PortalSwitcher({
       // the base subdomain (slug "kendev" on *.kendev.co → kendev.kendev.co). On
       // localhost keep the slug construction (+ dev port) so dev stays local.
       const isLocalHost = currentHost === 'localhost' || currentHost === '127.0.0.1' || !currentHost.includes('.')
+      // A stored domain seeded in local dev is `<slug>.angelos.local` (see
+      // seed/use-case-tenants.ts DOMAIN_SUFFIX). On a real host that is a dead
+      // link — IGNORE non-public domains and fall back to constructing
+      // `{slug}.{currentBase}`, which yields the right real domain (the chooser
+      // only ever runs on a real public host). Self-heals bad seed data on any DB.
+      const domain = portal.domain?.trim()
+      const isPublicDomain = !!domain && !domain.endsWith('.local') && !domain.includes('localhost')
       let tenantHost: string
       let portSuffix: string
-      if (!isLocalHost && portal.domain?.trim()) {
-        tenantHost = portal.domain.trim()
+      if (!isLocalHost && isPublicDomain) {
+        tenantHost = domain!
         portSuffix = '' // a real external domain uses its own default port
       } else {
         const hostParts = currentHost.split('.')

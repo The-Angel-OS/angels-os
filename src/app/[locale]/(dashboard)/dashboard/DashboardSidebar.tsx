@@ -503,10 +503,16 @@ function TenantChooser({
     // the base subdomain (slug "kendev" on *.kendev.co → kendev.kendev.co). On
     // localhost keep the slug construction (+ dev port) so dev stays local.
     const isLocalHost = currentHost === 'localhost' || currentHost === '127.0.0.1' || !currentHost.includes('.')
+    // A stored domain seeded in local dev is `<slug>.angelos.local` (see
+    // seed/use-case-tenants.ts DOMAIN_SUFFIX). On a real host that is a dead link —
+    // IGNORE non-public domains and fall back to constructing `{slug}.{currentBase}`,
+    // which yields the right real domain. Self-heals bad seed data on any DB.
+    const tenantDomain = tenant.domain?.trim()
+    const isPublicDomain = !!tenantDomain && !tenantDomain.endsWith('.local') && !tenantDomain.includes('localhost')
     let tenantHost: string
     let portSuffix: string
-    if (!isLocalHost && tenant.domain?.trim()) {
-      tenantHost = tenant.domain.trim()
+    if (!isLocalHost && isPublicDomain) {
+      tenantHost = tenantDomain!
       portSuffix = '' // a real external domain uses its own default port
     } else {
       const hostParts = currentHost.split('.')
