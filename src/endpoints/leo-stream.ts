@@ -1323,7 +1323,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             userId: req.user?.id as number | undefined,
           }).catch(() => {})
         }
-      } else if (preCreatedMsgId && !fullText.trim()) {
+      } else if (resolvedSpaceId && !fullText.trim()) {
         // Empty completion. The hadError path already logged at the model layer;
         // but a BLANK response with NO error flag (the model returned 200 with zero
         // text — a common vision failure: it couldn't read the image, hit a content
@@ -1363,16 +1363,33 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             : userImages.length
               ? `⚠️ I couldn't read that image — my current model may not support vision, or the image was too large. Try a smaller image, or tell me what's in it.`
               : 'LEO was unable to generate a response.'
-          await req.payload.update({
-            collection: 'messages',
-            id: preCreatedMsgId,
-            data: {
-              content: wrapTextContent(errContent),
-              metadata: { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail, ...(streamTelemetry ?? {}) },
-            } as any,
-            overrideAccess: true,
-            context: { skipMessageVersioning: true },
-          })
+          const errMeta = { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail, ...(streamTelemetry ?? {}) }
+          if (preCreatedMsgId) {
+            await req.payload.update({
+              collection: 'messages',
+              id: preCreatedMsgId,
+              data: { content: wrapTextContent(errContent), metadata: errMeta } as any,
+              overrideAccess: true,
+              context: { skipMessageVersioning: true },
+            })
+          } else {
+            // No placeholder (pre-create was skipped/failed) — CREATE the visible
+            // error message so the empty response is never silent. Previously this
+            // whole branch was gated on preCreatedMsgId, so an empty reply with no
+            // placeholder vanished entirely ("message posts, LEO never replies").
+            await req.payload.create({
+              collection: 'messages',
+              data: {
+                content: wrapTextContent(errContent),
+                space: resolvedSpaceId,
+                channel: resolvedChannel,
+                messageType: 'ai_agent',
+                ...(leoUserId ? { author: leoUserId } : {}),
+                metadata: errMeta,
+              } as any,
+              overrideAccess: true,
+            })
+          }
         } catch (cleanupErr) {
           console.error('[LEO Stream] Failed to update pre-created message with error state:', cleanupErr instanceof Error ? cleanupErr.message : cleanupErr)
         }
