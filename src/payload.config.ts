@@ -92,7 +92,7 @@ import { spaceCreateHandler } from '@/endpoints/space-create'
 import { spaceProvisionChannelsHandler } from '@/endpoints/space-provision-channels'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
-import { worksListHandler, worksGetHandler, worksImportHandler, worksChecksumsHandler } from '@/endpoints/works'
+import { worksListHandler, worksGetHandler, worksImportHandler, worksChecksumsHandler, worksPullHandler } from '@/endpoints/works'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
 import { tenantInviteAcceptHandler } from '@/endpoints/tenant-invite-accept'
 import { spaceMembersRemoveHandler, spaceMemberCandidatesHandler, spaceMemberAddHandler } from '@/endpoints/space-members'
@@ -514,6 +514,8 @@ export default buildConfig({
     // Offline-sync: batch current-checksum manifest so a client diffs its whole cache in one call.
     { path: '/works-ops/checksums', method: 'get', handler: worksChecksumsHandler },
     { path: '/works-ops/import', method: 'get', handler: worksImportHandler },
+    // Cross-node replication (syndication Phase 5): pull a Work's content from the hosting peer.
+    { path: '/works-ops/pull', method: 'get', handler: worksPullHandler },
     { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },
     {
       path: '/leo',

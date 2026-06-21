@@ -391,3 +391,139 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     return Response.json({ error: msg }, { status: 500 })
   }
 }
+
+/**
+ * GET /api/works-ops/pull?soul=<id>&from=<peer-origin>[&tenant=<localSlug>][&fromTenant=<srcSlug>]
+ *
+ * CROSS-NODE REPLICATION (Works syndication Phase 5). A subscriber node PULLS a
+ * Work's content from the peer that hosts it and materializes a LOCAL subscriber
+ * copy (messages + works catalog record), so the reader keeps reading purely from
+ * the local DB — no render-time cross-node fetch.
+ *
+ * Why a pull (not the file-based `import`): the on-disk soul files were deleted
+ * once Works became message-backed (51d90bc), so `import` can only reconstruct
+ * "Document not found" bodies on a node that never had the files. The content now
+ * lives only as messages on the hosting node; the only way to seed a new node is
+ * to fetch the assembled Work JSON (v1) from that node's `works-ops/get`.
+ *
+ * Media is referenced BY ABSOLUTE URL from the source (reference-by-default — the
+ * subscriber copy points at the origin's media; rel=canonical stays home). A
+ * mirror-the-bytes variant can come later (identical path to Audible offline DL).
+ *
+ * DOCUMENT works only for now; BOOK works (image pages + per-language text) need
+ * the media/translation handling and are deferred to the book-nav workstream.
+ *
+ * Auth: super_admin OR ?key=<CRON_SECRET>. Idempotent (clears + recreates the
+ * Work's channel). Both nodes are Vercel-hosted, so this fetch is Vercel→Vercel
+ * (never the IONOS WAF path that defeats render-time peer fetches).
+ */
+export const worksPullHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  const url = new URL(req.url || '', 'http://localhost')
+  const secret = process.env.CRON_SECRET
+  const key = url.searchParams.get('key')
+  const authHeader = req.headers?.get('authorization') || ''
+  const isSuperAdmin = Boolean(user && ((user as { roles?: string[] }).roles || []).includes('super_admin'))
+  const keyOk = Boolean(secret && (key === secret || authHeader === `Bearer ${secret}`))
+  if (!isSuperAdmin && !keyOk) return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
+
+  const soulId = url.searchParams.get('soul') || ''
+  const from = (url.searchParams.get('from') || '').replace(/\/+$/, '')
+  if (!soulId) return Response.json({ error: 'soul required' }, { status: 400 })
+  if (!from || !/^https?:\/\//.test(from)) return Response.json({ error: 'from (peer origin, https://…) required' }, { status: 400 })
+
+  try {
+    const ownerSlug = homeForWork(soulId)
+    const hostSlug = url.searchParams.get('tenant') || ownerSlug
+    const fromTenant = url.searchParams.get('fromTenant') || ownerSlug
+
+    // ── Fetch the assembled Work JSON from the hosting peer (Vercel→Vercel) ──
+    const srcUrl = `${from}/api/works-ops/get?soul=${encodeURIComponent(soulId)}&tenant=${encodeURIComponent(fromTenant)}`
+    let work: Record<string, unknown>
+    try {
+      const r = await fetch(srcUrl, { headers: { accept: 'application/json' }, cache: 'no-store' })
+      if (!r.ok) return Response.json({ error: `peer fetch ${r.status} from ${srcUrl}` }, { status: 502 })
+      work = (await r.json()) as Record<string, unknown>
+    } catch (e) {
+      return Response.json({ error: `peer fetch threw: ${e instanceof Error ? e.message : String(e)}` }, { status: 502 })
+    }
+    if ((work as { type?: string }).type === 'book') {
+      return Response.json({ error: 'book works not yet supported by pull (deferred to book-nav work)' }, { status: 422 })
+    }
+    const docs = (work.docs as Array<Record<string, unknown>>) || []
+    if (!docs.length) return Response.json({ error: 'peer returned no docs' }, { status: 502 })
+
+    // ── Resolve the local host tenant + space + channel ──
+    const tRes = await payload.find({ collection: 'tenants', where: { slug: { equals: hostSlug } }, limit: 1, depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenant = (tRes.docs as any[])[0]
+    if (!tenant) return Response.json({ error: `host tenant '${hostSlug}' not on this node` }, { status: 404 })
+    const sRes = await payload.find({ collection: 'spaces', where: { tenant: { equals: tenant.id } }, limit: 1, sort: 'createdAt', depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const space = (sRes.docs as any[])[0]
+    if (!space) return Response.json({ error: `no space on '${hostSlug}' to host the work channel` }, { status: 409 })
+    const channel = `work-${soulId}`
+
+    // ── Idempotent: clear this Work's channel, then recreate from fetched docs ──
+    await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
+
+    let chapters = 0
+    for (let i = 0; i < docs.length; i++) {
+      const d = docs[i]
+      const order = typeof d.order === 'number' ? (d.order as number) : i
+      await payload.create({
+        collection: 'messages',
+        overrideAccess: true,
+        data: {
+          space: space.id, channel, messageType: 'system', visibility: 'tenant',
+          content: { type: 'text', text: String(d.body ?? '') },
+          metadata: {
+            kind: 'work_chapter', workSlug: soulId, order,
+            chapterSlug: d.id ?? null, title: d.title ?? null, date: d.date ?? null,
+            description: d.description ?? null, tier: d.tier ?? null,
+            badge: d.badge ?? null, badgeColor: d.badgeColor ?? null,
+            // Reference media by ABSOLUTE url from the source (subscriber copy).
+            image: d.image ?? null,
+          },
+        },
+      })
+      chapters++
+    }
+
+    // ── Upsert the local works catalog record (preserve source checksum) ──
+    const recData = {
+      slug: soulId,
+      title: work.title ?? soulId,
+      subtitle: work.subtitle ?? null,
+      description: work.description ?? null,
+      type: 'document' as const,
+      status: work.status ?? null,
+      statusColor: work.statusColor ?? null,
+      tags: (work.tags as unknown[]) ?? [],
+      // canonical home stays the source (SEO authority percolates UP, not to us).
+      canonical: (work.canonicalOrigin ? { origin: work.canonicalOrigin } : null) as unknown,
+      owner: ownerSlug,
+      subscribers: subscribersForWork(soulId),
+      storageRef: { kind: 'messages', space: space.id, channel },
+      checksum: work.checksum ?? '',
+      jsonVersion: WORK_JSON_VERSION,
+    }
+    const existing = await payload.find({ collection: 'works', where: { slug: { equals: soulId } }, limit: 1, depth: 0, overrideAccess: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ex = (existing.docs as any[])[0]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = recData as any
+    if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
+    else await payload.create({ collection: 'works', data, overrideAccess: true })
+
+    return Response.json({
+      ok: true, soul: soulId, from, fromTenant, host: hostSlug,
+      space: space.id, channel, chapters,
+      checksum: work.checksum ?? '', sourceChecksumPreserved: true,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[works-pull] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
