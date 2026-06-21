@@ -147,6 +147,7 @@ import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
 import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
+import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
@@ -972,6 +973,13 @@ export default buildConfig({
       path: '/provision-ops/ensure-membership-block-tables',
       method: 'get',
       handler: ensureMembershipBlockTablesHandler,
+    },
+    // Net-new Merlin Control block ⇒ new tables; create on BOTH DBs BEFORE registering
+    // the block in Pages config (see ensure-merlin-block-tables.ts header).
+    {
+      path: '/provision-ops/ensure-merlin-block-tables',
+      method: 'get',
+      handler: ensureMerlinBlockTablesHandler,
     },
     // ⚠️ The settings table (SettingService bag: feature flags, election persistence,
     // membership plans) was missing on prod — every settings read/write 500'd.
