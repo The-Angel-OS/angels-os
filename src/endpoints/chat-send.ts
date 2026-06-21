@@ -166,14 +166,19 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       collection: 'messages',
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
-      // Pass req so the create — and its relationship populate (attachments.media)
-      // + afterChange hooks — run on the REQUEST's own connection instead of
-      // acquiring a SECOND pooled connection. Without this, a message WITH
-      // attachments forces a media-populate query that fails under connection
-      // pressure → the save rolls back → the message vanishes while the media
-      // (already committed separately) survives. Text messages are light enough
-      // to survive the second connection; attachment messages are not.
+      // Pass req so the create + its afterChange hooks run on the REQUEST's own
+      // connection instead of acquiring a SECOND pooled connection (which stalls
+      // under pool pressure → silent rollback → vanish). See PASS_REQ_RULE.md.
       req,
+      // depth: 0 — do NOT populate relationships on the returned doc. A message
+      // WITH attachments would otherwise trigger a media-relationship populate
+      // (`select … from media where id in (N)`) AFTER the insert; if that populate
+      // throws, the whole create rolls back → the message vanishes while the media
+      // (committed on its own request) is left orphaned, with no chat echo. The
+      // client doesn't need the populated doc — it reloads history and keeps its
+      // own uploaded image URLs. Text messages have nothing to populate, which is
+      // why they persisted and attachment messages didn't.
+      depth: 0,
     })
     req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms`)
 
