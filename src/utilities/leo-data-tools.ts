@@ -3532,6 +3532,26 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'lookup_scripture',
+    description:
+      "Look up a Bible passage from the canonical Holy Bible Work and return the verse text. Use when a user asks what a verse says, to quote scripture, or to read a passage. Accepts natural references like 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', or 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        reference: {
+          type: 'string',
+          description: "A Bible reference, e.g. 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', 'Psalm 23'.",
+        },
+        translation: {
+          type: 'string',
+          enum: ['web', 'kjv'],
+          description: 'Translation: web (World English Bible, default) or kjv (King James Version).',
+        },
+      },
+      required: ['reference'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -3981,6 +4001,8 @@ async function executeToolSwitch(
         return await handleConnectorHealthSummary(payload, toolInput, ctx)
       case 'run_subsafe_check':
         return await handleRunSubsafeCheck(payload, toolInput, ctx)
+      case 'lookup_scripture':
+        return await handleLookupScripture(toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -12651,6 +12673,26 @@ async function handleDocumentIncident(
 // ---------------------------------------------------------------------------
 // Maintenance Notes — Low-friction issue logging for Scotty (Claude Code)
 // ---------------------------------------------------------------------------
+
+/**
+ * lookup_scripture — resolve a Bible reference from the canonical Holy Bible Work
+ * and return the verse text for LEO to quote. The conversational door to the same
+ * verse-addressed source the reader uses. @see src/utilities/scripture.ts
+ */
+async function handleLookupScripture(input: Record<string, unknown>): Promise<string> {
+  const reference = typeof input.reference === 'string' ? input.reference : ''
+  const translation = input.translation === 'kjv' ? 'kjv' : 'web'
+  if (!reference.trim()) return 'Please provide a Bible reference, e.g. "John 3:16".'
+
+  const { lookupScripture } = await import('@/utilities/scripture')
+  const res = await lookupScripture(reference, translation)
+  if (!res.ok) return res.error || 'Could not find that passage.'
+
+  const edition = translation === 'kjv' ? 'King James Version' : 'World English Bible'
+  const body = (res.verses || []).map((v) => `**${v.v}** ${v.t}`).join(' ')
+  const note = res.truncated ? `\n\n_(Showing the first ${res.verses?.length} verses — ask for a specific range for more.)_` : ''
+  return `**${res.reference}** (${edition})\n\n${body}${note}`
+}
 
 async function handleLogMaintenanceNote(
   payload: Payload,
