@@ -51,8 +51,21 @@ export interface SoulManifest {
   defaultDoc: string
   docs: SoulDoc[]
   links?: { label: string; url: string }[]
-  /** Canonical publishing root — see SoulCanonical. Unset ⇒ self-canonical. */
+  /**
+   * Canonical publishing root — see SoulCanonical. `canonical.endeavor` is the
+   * Work's OWNER (the single source of truth for ownership/home). Unset ⇒
+   * self-canonical, owner defaults to the platform flagship.
+   */
   canonical?: SoulCanonical
+  /**
+   * Endeavors (tenant slugs) that carry this Work beyond its owner. The platform
+   * flagship is ALWAYS an implicit subscriber (it indexes every Work — "echo up
+   * to the index"), so never list 'platform' here. This is the ONLY syndication
+   * source of truth — there is no separate subscriptions registry.
+   */
+  subscribers?: string[]
+  /** Available on EVERY endeavor (e.g. the Handbook). Overrides subscribers. */
+  availableGlobally?: boolean
   /**
    * If set, this work is a paged book — the reader loads
    * public/library/<bookSlug>/manifest.json and renders <BookReader>

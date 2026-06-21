@@ -25,7 +25,7 @@ import type { PayloadHandler } from 'payload'
 import fs from 'fs'
 import path from 'path'
 import { getAllSouls, getSoul } from '@/souls'
-import { isWorkAvailable, homeForWork, WORK_SUBSCRIPTIONS } from '@/souls/subscriptions'
+import { isWorkAvailable, homeForWork, subscribersForWork } from '@/souls/subscriptions'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
@@ -368,12 +368,11 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       })
     }
 
-    const sub = WORK_SUBSCRIPTIONS[soulId]
     const recData = {
       slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
       type, status: soul.status, statusColor: soul.statusColor,
       tags: soul.tags ?? [], canonical: soul.canonical ?? null,
-      owner: ownerSlug, subscribers: sub?.subscribers ?? [],
+      owner: ownerSlug, subscribers: subscribersForWork(soulId),
       storageRef, checksum, jsonVersion: WORK_JSON_VERSION,
     }
     const existing = await payload.find({ collection: 'works', where: { slug: { equals: soul.id } }, limit: 1, depth: 0, overrideAccess: true })

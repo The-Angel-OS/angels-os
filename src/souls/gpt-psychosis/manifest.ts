@@ -5,6 +5,8 @@ import type { SoulManifest } from '../rainmaker/manifest'
 
 export const gptPsychosisManifest: SoulManifest = {
   id: 'gpt-psychosis',
+  // Owned by Clearwater Cruisin (platform indexes it implicitly).
+  canonical: { origin: 'https://clearwater-cruisin.spacesangels.com', endeavor: 'clearwater-cruisin', creditedTo: 'kenneth.courtney@gmail.com' },
   title: 'THE POSTER CHILD',
   subtitle: 'A case file on "GPT Psychosis"',
   description:

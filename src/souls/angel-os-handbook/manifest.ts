@@ -8,6 +8,8 @@ import type { SoulManifest } from '../rainmaker/manifest'
 export const angelOsHandbookManifest: SoulManifest = {
   id: 'angel-os-handbook',
   canonical: { origin: 'https://spacesangels.com', endeavor: 'platform', creditedTo: 'kenneth.courtney@gmail.com' },
+  // Platform documentation — available on EVERY endeavor.
+  availableGlobally: true,
   title: 'The Angel OS Handbook',
   subtitle: 'Everyone gets an Angel — start here',
   description:

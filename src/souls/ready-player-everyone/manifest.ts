@@ -5,6 +5,9 @@ import type { SoulManifest } from '../rainmaker/manifest'
 
 export const readyPlayerEveryoneManifest: SoulManifest = {
   id: 'ready-player-everyone',
+  // Owned by The Angel OS; carried by Clearwater Cruisin and the kendev node.
+  canonical: { origin: 'https://spacesangels.com', endeavor: 'platform', creditedTo: 'kenneth.courtney@gmail.com' },
+  subscribers: ['clearwater-cruisin', 'kendev'],
   title: 'READY PLAYER EVERYONE',
   subtitle: 'A work — forthcoming',
   description:

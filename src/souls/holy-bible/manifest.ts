@@ -24,6 +24,8 @@ export const holyBibleManifest: SoulManifest = {
     endeavor: 'platform',
     creditedTo: 'kenneth.courtney@gmail.com',
   },
+  // Owned by The Angel OS, carried by Clearwater Cruisin (Ron's daily reader).
+  subscribers: ['clearwater-cruisin'],
   title: 'THE HOLY BIBLE',
   subtitle: 'World English Bible · King James Version — public domain',
   description:

@@ -8,6 +8,9 @@ export const wdegManifest: SoulManifest = {
   // Canonical to the Where Did Everyone Go endeavor — Kenneth's brother is the
   // author of record (publish-once-canonical; endeavor slug matches the tenant).
   canonical: { origin: 'https://wheredideveryonego.spacesangels.com', endeavor: 'wheredideveryonego', creditedTo: 'billthecat1022@gmail.com' },
+  // Owner = wheredideveryonego; also carried by Clearwater. (Platform indexes it
+  // implicitly — fixes "WDEG has a place on the platform index but isn't shown".)
+  subscribers: ['clearwater-cruisin'],
   title: 'WHERE DID EVERYONE GO',
   subtitle: 'A book — in production for the Library',
   description:
