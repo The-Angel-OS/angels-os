@@ -495,14 +495,26 @@ function TenantChooser({
   const handleSwitch = (tenant: TenantInfo) => {
     setOpen(false)
     const protocol = window.location.protocol
-    const port = window.location.port ? `:${window.location.port}` : ''
     const currentHost = window.location.hostname
-    const hostParts = currentHost.split('.')
-    const baseDomain = hostParts.length >= 3 ? hostParts.slice(1).join('.') : currentHost
-    const tenantHost = `${tenant.slug}.${baseDomain}`
     const localeMatch = window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/)
     const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
-    window.location.href = `${protocol}//${tenantHost}${port}${localePrefix}/dashboard`
+    // On a real host, navigate to the tenant's explicit canonical domain — the
+    // {slug}.{base} construction doubled the host for a tenant whose slug equals
+    // the base subdomain (slug "kendev" on *.kendev.co → kendev.kendev.co). On
+    // localhost keep the slug construction (+ dev port) so dev stays local.
+    const isLocalHost = currentHost === 'localhost' || currentHost === '127.0.0.1' || !currentHost.includes('.')
+    let tenantHost: string
+    let portSuffix: string
+    if (!isLocalHost && tenant.domain?.trim()) {
+      tenantHost = tenant.domain.trim()
+      portSuffix = '' // a real external domain uses its own default port
+    } else {
+      const hostParts = currentHost.split('.')
+      const baseDomain = hostParts.length >= 3 ? hostParts.slice(1).join('.') : currentHost
+      tenantHost = `${tenant.slug}.${baseDomain}`
+      portSuffix = window.location.port ? `:${window.location.port}` : ''
+    }
+    window.location.href = `${protocol}//${tenantHost}${portSuffix}${localePrefix}/dashboard`
   }
 
   return (
