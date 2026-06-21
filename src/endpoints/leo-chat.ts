@@ -140,6 +140,10 @@ export const leoChatHandler: PayloadHandler = async (req) => {
             space: resolvedSpaceId,
             channel: resolvedChannel,
             messageType: 'ai_agent',
+            // Pass tenant explicitly — same parity fix as leo-stream (2a04e36).
+            // Relying solely on the setTenantFromSpace hook means the create throws
+            // (reply vanishes) whenever that hook's space lookup fails on a flaky node.
+            ...(tenantId ? { tenant: tenantId } : {}),
             ...(leoUserId ? { author: leoUserId } : {}),
           } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
           overrideAccess: true,

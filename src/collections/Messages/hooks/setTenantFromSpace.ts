@@ -31,6 +31,12 @@ export const setTenantFromSpace: CollectionBeforeValidateHook = async ({
       id: typeof spaceId === 'object' ? spaceId.id : spaceId,
       depth: 0,
       overrideAccess: true,
+      // Pass req so the lookup JOINS the request's transaction/connection instead
+      // of acquiring a separate pooled connection. Without this, under connection
+      // pressure (shared IONOS cap / flaky node) the lookup blocks → hook fails →
+      // tenant stays unset → the create throws → the message vanishes. Same class
+      // as the moderateMessage nested-write deadlock.
+      req,
     })
 
     if (space?.tenant) {
