@@ -8,6 +8,7 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
+import { setTenantFromHeader } from './hooks/setTenantFromHeader'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -23,6 +24,12 @@ export const Media: CollectionConfig = {
     // Tenant-scoped: authenticated users filtered by multiTenantPlugin,
     // unauthenticated users scoped to current tenant via x-tenant-id header.
     read: publicWithTenantScope,
+  },
+  hooks: {
+    // Fill `tenant` from the subdomain (x-tenant-id) when the client omits it —
+    // fixes "failed to upload" on chat attachments for super_admins viewing a
+    // tenant subdomain (no payload-tenant cookie). See hook for details.
+    beforeValidate: [setTenantFromHeader],
   },
   fields: [
     {
