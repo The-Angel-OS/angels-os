@@ -47,6 +47,9 @@ export const WORK_SUBSCRIPTIONS: Record<string, WorkSubscription> = {
   'gpt-psychosis': { home: 'clearwater-cruisin', subscribers: ['platform'] },
   // The Angel OS Handbook — platform documentation, available on EVERY endeavor.
   'angel-os-handbook': { home: 'platform', global: true },
+  // The Holy Bible — canonical at The Angel OS, syndicated to Clearwater Cruisin
+  // (Ron's daily-reader feature, proving the publish-once / subscribe-many model).
+  'holy-bible': { home: 'platform', subscribers: ['clearwater-cruisin'] },
 }
 
 /** The endeavors (tenant slugs) a Work is available on. Unmapped ⇒ default home. */
