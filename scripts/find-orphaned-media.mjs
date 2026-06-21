@@ -64,21 +64,9 @@ const dbName = (() => {
   }
 })()
 
-// SSL heuristic: the :6432 pooler + prod require SSL; the direct :5432 port does
-// NOT speak SSL (forcing it → "server does not support SSL connections"). Detect by
-// port/sslmode; override with --ssl / --no-ssl.
-const wantSsl = args.includes('--ssl')
-  ? true
-  : args.includes('--no-ssl')
-    ? false
-    : // direct :5432 port doesn't speak SSL — that wins over a stray DATABASE_SSL=require
-      /:5432\b/.test(conn)
-      ? false
-      : /:6432\b/.test(conn) || /sslmode=require/.test(conn) || process.env.DATABASE_SSL === 'require'
-const pool = new pg.Pool({
-  connectionString: conn,
-  ...(wantSsl ? { ssl: { rejectUnauthorized: false } } : {}),
-})
+// SSL is ALWAYS ON. Every DB connection goes through the :6432 pooler with SSL —
+// prod and local alike. There is no non-SSL path.
+const pool = new pg.Pool({ connectionString: conn, ssl: { rejectUnauthorized: false } })
 const client = await pool.connect()
 
 try {
