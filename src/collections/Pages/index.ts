@@ -14,10 +14,12 @@ import { Calendar } from '@/blocks/Calendar/config'
 import { Donation } from '@/blocks/Donation/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
-// Gallery + MerlinControl temporarily un-registered: their pages_blocks_* tables
-// were never pushed to the prod DBs, so registering them made queryPageBySlug
-// JOIN a missing relation and throw (home pages fell back to default). Re-register
-// AFTER the schema push (pnpm dev against each prod DB) creates the tables.
+import { MerlinControl } from '@/blocks/MerlinControl/config'
+// MerlinControl re-registered 2026-06-20 AFTER creating pages_blocks_merlin_control
+// (+ versioned) on both prod DBs via /provision-ops/ensure-merlin-block-tables.
+// Gallery stays un-registered: its pages_blocks_gallery tables aren't on prod yet,
+// so registering it would make queryPageBySlug JOIN a missing relation and throw
+// (home pages fall back to default). Re-register AFTER its ensure-table runs.
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
@@ -140,6 +142,7 @@ export const Pages: CollectionConfig = {
                 Donation,
                 Membership,
                 FeaturedEndeavors,
+                MerlinControl,
               ],
               required: true,
             },
