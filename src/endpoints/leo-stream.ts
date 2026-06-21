@@ -1071,6 +1071,11 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           space: resolvedSpaceId,
           channel: resolvedChannel,
           messageType: 'ai_agent',
+          // Pass tenant explicitly (already resolved above) so the persist never
+          // depends on the setTenantFromSpace hook's space lookup — when that lookup
+          // fails, the required-tenant validator throws and the reply is silently
+          // lost ("LEO reply vanishes on refresh"). Hook stays as the fallback.
+          ...(tenantId ? { tenant: tenantId } : {}),
           ...(leoUserId ? { author: leoUserId } : {}),
           metadata: { streaming: true, model: resolveModelId() },
         } as any,
@@ -1305,6 +1310,8 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 space: resolvedSpaceId,
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
+                // Pass tenant explicitly — see the placeholder-create note above.
+                ...(tenantId ? { tenant: tenantId } : {}),
                 metadata: { streaming: false, ...(streamTelemetry ?? {}) },
                 ...(leoUserId ? { author: leoUserId } : {}),
               } as any,
@@ -1384,6 +1391,8 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 space: resolvedSpaceId,
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
+                // Pass tenant explicitly — see the placeholder-create note above.
+                ...(tenantId ? { tenant: tenantId } : {}),
                 ...(leoUserId ? { author: leoUserId } : {}),
                 metadata: errMeta,
               } as any,
