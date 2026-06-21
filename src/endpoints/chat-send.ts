@@ -166,6 +166,14 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       collection: 'messages',
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
+      // Pass req so the create — and its relationship populate (attachments.media)
+      // + afterChange hooks — run on the REQUEST's own connection instead of
+      // acquiring a SECOND pooled connection. Without this, a message WITH
+      // attachments forces a media-populate query that fails under connection
+      // pressure → the save rolls back → the message vanishes while the media
+      // (already committed separately) survives. Text messages are light enough
+      // to survive the second connection; attachment messages are not.
+      req,
     })
     req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms`)
 
