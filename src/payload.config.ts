@@ -148,6 +148,7 @@ import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
 import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
 import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
+import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
@@ -987,6 +988,13 @@ export default buildConfig({
       path: '/provision-ops/ensure-merlin-block-tables',
       method: 'get',
       handler: ensureMerlinBlockTablesHandler,
+    },
+    // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
+    // break every admin save). Re-runnable after any new collection ships.
+    {
+      path: '/provision-ops/ensure-locked-docs-rels',
+      method: 'get',
+      handler: ensureLockedDocsRelsHandler,
     },
     // ⚠️ The settings table (SettingService bag: feature flags, election persistence,
     // membership plans) was missing on prod — every settings read/write 500'd.
