@@ -1,0 +1,1177 @@
+{
+  "code": "ECC",
+  "name": "Ecclesiastes",
+  "testament": "OT",
+  "chapters": [
+    {
+      "chapter": 1,
+      "verses": [
+        {
+          "v": 1,
+          "web": "The words of the Preacher, the son of David, king in Jerusalem:",
+          "kjv": "The words of the Preacher, the son of David, king in Jerusalem."
+        },
+        {
+          "v": 2,
+          "web": "“Vanity of vanities,” says the Preacher; “Vanity of vanities, all is vanity.”",
+          "kjv": "Vanity of vanities, saith the Preacher, vanity of vanities; all is vanity."
+        },
+        {
+          "v": 3,
+          "web": "What does man gain from all his labor in which he labors under the sun?",
+          "kjv": "What profit hath a man of all his labour which he taketh under the sun?"
+        },
+        {
+          "v": 4,
+          "web": "One generation goes, and another generation comes; but the earth remains forever.",
+          "kjv": "One generation passeth away, and another generation cometh: but the earth abideth for ever."
+        },
+        {
+          "v": 5,
+          "web": "The sun also rises, and the sun goes down, and hurries to its place where it rises.",
+          "kjv": "The sun also ariseth, and the sun goeth down, and hasteth to his place where he arose."
+        },
+        {
+          "v": 6,
+          "web": "The wind goes toward the south, and turns around to the north. It turns around continually as it goes, and the wind returns again to its courses.",
+          "kjv": "The wind goeth toward the south, and turneth about unto the north; it whirleth about continually, and the wind returneth again according to his circuits."
+        },
+        {
+          "v": 7,
+          "web": "All the rivers run into the sea, yet the sea is not full. To the place where the rivers flow, there they flow again.",
+          "kjv": "All the rivers run into the sea; yet the sea is not full; unto the place from whence the rivers come, thither they return again."
+        },
+        {
+          "v": 8,
+          "web": "All things are full of weariness beyond uttering. The eye is not satisfied with seeing, nor the ear filled with hearing.",
+          "kjv": "All things are full of labour; man cannot utter it: the eye is not satisfied with seeing, nor the ear filled with hearing."
+        },
+        {
+          "v": 9,
+          "web": "That which has been is that which shall be; and that which has been done is that which shall be done: and there is no new thing under the sun.",
+          "kjv": "The thing that hath been, it is that which shall be; and that which is done is that which shall be done: and there is no new thing under the sun."
+        },
+        {
+          "v": 10,
+          "web": "Is there a thing of which it may be said, “Behold, this is new?” It has been long ago, in the ages which were before us.",
+          "kjv": "Is there any thing whereof it may be said, See, this is new? it hath been already of old time, which was before us."
+        },
+        {
+          "v": 11,
+          "web": "There is no memory of the former; neither shall there be any memory of the latter that are to come, among those that shall come after.",
+          "kjv": "There is no remembrance of former things; neither shall there be any remembrance of things that are to come with those that shall come after."
+        },
+        {
+          "v": 12,
+          "web": "I, the Preacher, was king over Israel in Jerusalem.",
+          "kjv": "I the Preacher was king over Israel in Jerusalem."
+        },
+        {
+          "v": 13,
+          "web": "I applied my heart to seek and to search out by wisdom concerning all that is done under the sky. It is a heavy burden that God has given to the sons of men to be afflicted with.",
+          "kjv": "And I gave my heart to seek and search out by wisdom concerning all things that are done under heaven: this sore travail hath God given to the sons of man to be exercised therewith."
+        },
+        {
+          "v": 14,
+          "web": "I have seen all the works that are done under the sun; and behold, all is vanity and a chasing after wind.",
+          "kjv": "I have seen all the works that are done under the sun; and, behold, all is vanity and vexation of spirit."
+        },
+        {
+          "v": 15,
+          "web": "That which is crooked can’t be made straight; and that which is lacking can’t be counted.",
+          "kjv": "That which is crooked cannot be made straight: and that which is wanting cannot be numbered."
+        },
+        {
+          "v": 16,
+          "web": "I said to myself, “Behold, I have obtained for myself great wisdom above all who were before me in Jerusalem. Yes, my heart has had great experience of wisdom and knowledge.”",
+          "kjv": "I communed with mine own heart, saying, Lo, I am come to great estate, and have gotten more wisdom than all they that have been before me in Jerusalem: yea, my heart had great experience of wisdom and knowledge."
+        },
+        {
+          "v": 17,
+          "web": "I applied my heart to know wisdom, and to know madness and folly. I perceived that this also was a chasing after wind.",
+          "kjv": "And I gave my heart to know wisdom, and to know madness and folly: I perceived that this also is vexation of spirit."
+        },
+        {
+          "v": 18,
+          "web": "For in much wisdom is much grief; and he who increases knowledge increases sorrow.",
+          "kjv": "For in much wisdom is much grief: and he that increaseth knowledge increaseth sorrow."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "verses": [
+        {
+          "v": 1,
+          "web": "I said in my heart, “Come now, I will test you with mirth: therefore enjoy pleasure”; and behold, this also was vanity.",
+          "kjv": "I said in mine heart, Go to now, I will prove thee with mirth, therefore enjoy pleasure: and, behold, this also is vanity."
+        },
+        {
+          "v": 2,
+          "web": "I said of laughter, “It is foolishness”; and of mirth, “What does it accomplish?”",
+          "kjv": "I said of laughter, It is mad: and of mirth, What doeth it?"
+        },
+        {
+          "v": 3,
+          "web": "I searched in my heart how to cheer my flesh with wine, my heart yet guiding me with wisdom, and how to lay hold of folly, until I might see what it was good for the sons of men that they should do under heaven all the days of their lives.",
+          "kjv": "I sought in mine heart to give myself unto wine, yet acquainting mine heart with wisdom; and to lay hold on folly, till I might see what was that good for the sons of men, which they should do under the heaven all the days of their life."
+        },
+        {
+          "v": 4,
+          "web": "I made myself great works. I built myself houses. I planted myself vineyards.",
+          "kjv": "I made me great works; I builded me houses; I planted me vineyards:"
+        },
+        {
+          "v": 5,
+          "web": "I made myself gardens and parks, and I planted trees in them of all kinds of fruit.",
+          "kjv": "I made me gardens and orchards, and I planted trees in them of all kind of fruits:"
+        },
+        {
+          "v": 6,
+          "web": "I made myself pools of water, to water from it the forest where trees were reared.",
+          "kjv": "I made me pools of water, to water therewith the wood that bringeth forth trees:"
+        },
+        {
+          "v": 7,
+          "web": "I bought male servants and female servants, and had servants born in my house. I also had great possessions of herds and flocks, above all who were before me in Jerusalem;",
+          "kjv": "I got me servants and maidens, and had servants born in my house; also I had great possessions of great and small cattle above all that were in Jerusalem before me:"
+        },
+        {
+          "v": 8,
+          "web": "I also gathered silver and gold for myself, and the treasure of kings and of the provinces. I got myself male and female singers, and the delights of the sons of men—musical instruments, and that of all sorts.",
+          "kjv": "I gathered me also silver and gold, and the peculiar treasure of kings and of the provinces: I gat me men singers and women singers, and the delights of the sons of men, as musical instruments, and that of all sorts."
+        },
+        {
+          "v": 9,
+          "web": "So I was great, and increased more than all who were before me in Jerusalem. My wisdom also remained with me.",
+          "kjv": "So I was great, and increased more than all that were before me in Jerusalem: also my wisdom remained with me."
+        },
+        {
+          "v": 10,
+          "web": "Whatever my eyes desired, I didn’t keep from them. I didn’t withhold my heart from any joy, for my heart rejoiced because of all my labor, and this was my portion from all my labor.",
+          "kjv": "And whatsoever mine eyes desired I kept not from them, I withheld not my heart from any joy; for my heart rejoiced in all my labour: and this was my portion of all my labour."
+        },
+        {
+          "v": 11,
+          "web": "Then I looked at all the works that my hands had worked, and at the labor that I had labored to do; and behold, all was vanity and a chasing after wind, and there was no profit under the sun.",
+          "kjv": "Then I looked on all the works that my hands had wrought, and on the labour that I had laboured to do: and, behold, all was vanity and vexation of spirit, and there was no profit under the sun."
+        },
+        {
+          "v": 12,
+          "web": "I turned myself to consider wisdom, madness, and folly: for what can the king’s successor do? Just that which has been done long ago.",
+          "kjv": "And I turned myself to behold wisdom, and madness, and folly: for what can the man do that cometh after the king? even that which hath been already done."
+        },
+        {
+          "v": 13,
+          "web": "Then I saw that wisdom excels folly, as far as light excels darkness.",
+          "kjv": "Then I saw that wisdom excelleth folly, as far as light excelleth darkness."
+        },
+        {
+          "v": 14,
+          "web": "The wise man’s eyes are in his head, and the fool walks in darkness—and yet I perceived that one event happens to them all.",
+          "kjv": "The wise man’s eyes are in his head; but the fool walketh in darkness: and I myself perceived also that one event happeneth to them all."
+        },
+        {
+          "v": 15,
+          "web": "Then I said in my heart, “As it happens to the fool, so will it happen even to me; and why was I then more wise?” Then I said in my heart that this also is vanity.",
+          "kjv": "Then said I in my heart, As it happeneth to the fool, so it happeneth even to me; and why was I then more wise? Then I said in my heart, that this also is vanity."
+        },
+        {
+          "v": 16,
+          "web": "For of the wise man, even as of the fool, there is no memory for ever, since in the days to come all will have been long forgotten. Indeed, the wise man must die just like the fool!",
+          "kjv": "For there is no remembrance of the wise more than of the fool for ever; seeing that which now is in the days to come shall all be forgotten. And how dieth the wise man? as the fool."
+        },
+        {
+          "v": 17,
+          "web": "So I hated life, because the work that is worked under the sun was grievous to me; for all is vanity and a chasing after wind.",
+          "kjv": "Therefore I hated life; because the work that is wrought under the sun is grievous unto me: for all is vanity and vexation of spirit."
+        },
+        {
+          "v": 18,
+          "web": "I hated all my labor in which I labored under the sun, because I must leave it to the man who comes after me.",
+          "kjv": "Yea, I hated all my labour which I had taken under the sun: because I should leave it unto the man that shall be after me."
+        },
+        {
+          "v": 19,
+          "web": "Who knows whether he will be a wise man or a fool? Yet he will have rule over all of my labor in which I have labored, and in which I have shown myself wise under the sun. This also is vanity.",
+          "kjv": "And who knoweth whether he shall be a wise man or a fool? yet shall he have rule over all my labour wherein I have laboured, and wherein I have shewed myself wise under the sun. This is also vanity."
+        },
+        {
+          "v": 20,
+          "web": "Therefore I began to cause my heart to despair concerning all the labor in which I had labored under the sun.",
+          "kjv": "Therefore I went about to cause my heart to despair of all the labour which I took under the sun."
+        },
+        {
+          "v": 21,
+          "web": "For there is a man whose labor is with wisdom, with knowledge, and with skillfulness; yet he shall leave it for his portion to a man who has not labored for it. This also is vanity and a great evil.",
+          "kjv": "For there is a man whose labour is in wisdom, and in knowledge, and in equity; yet to a man that hath not laboured therein shall he leave it for his portion. This also is vanity and a great evil."
+        },
+        {
+          "v": 22,
+          "web": "For what has a man of all his labor, and of the striving of his heart, in which he labors under the sun?",
+          "kjv": "For what hath man of all his labour, and of the vexation of his heart, wherein he hath laboured under the sun?"
+        },
+        {
+          "v": 23,
+          "web": "For all his days are sorrows, and his travail is grief; yes, even in the night his heart takes no rest. This also is vanity.",
+          "kjv": "For all his days are sorrows, and his travail grief; yea, his heart taketh not rest in the night. This is also vanity."
+        },
+        {
+          "v": 24,
+          "web": "There is nothing better for a man than that he should eat and drink, and make his soul enjoy good in his labor. This also I saw, that it is from the hand of God.",
+          "kjv": "There is nothing better for a man, than that he should eat and drink, and that he should make his soul enjoy good in his labour. This also I saw, that it was from the hand of God."
+        },
+        {
+          "v": 25,
+          "web": "For who can eat, or who can have enjoyment, more than I?",
+          "kjv": "For who can eat, or who else can hasten hereunto, more than I?"
+        },
+        {
+          "v": 26,
+          "web": "For to the man who pleases him, God gives wisdom, knowledge, and joy; but to the sinner he gives travail, to gather and to heap up, that he may give to him who pleases God. This also is vanity and a chasing after wind.",
+          "kjv": "For God giveth to a man that is good in his sight wisdom, and knowledge, and joy: but to the sinner he giveth travail, to gather and to heap up, that he may give to him that is good before God. This also is vanity and vexation of spirit."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For everything there is a season, and a time for every purpose under heaven:",
+          "kjv": "To every thing there is a season, and a time to every purpose under the heaven:"
+        },
+        {
+          "v": 2,
+          "web": "a time to be born, and a time to die; a time to plant, and a time to pluck up that which is planted;",
+          "kjv": "A time to be born, and a time to die; a time to plant, and a time to pluck up that which is planted;"
+        },
+        {
+          "v": 3,
+          "web": "a time to kill, and a time to heal; a time to break down, and a time to build up;",
+          "kjv": "A time to kill, and a time to heal; a time to break down, and a time to build up;"
+        },
+        {
+          "v": 4,
+          "web": "a time to weep, and a time to laugh; a time to mourn, and a time to dance;",
+          "kjv": "A time to weep, and a time to laugh; a time to mourn, and a time to dance;"
+        },
+        {
+          "v": 5,
+          "web": "a time to cast away stones, and a time to gather stones together; a time to embrace, and a time to refrain from embracing;",
+          "kjv": "A time to cast away stones, and a time to gather stones together; a time to embrace, and a time to refrain from embracing;"
+        },
+        {
+          "v": 6,
+          "web": "a time to seek, and a time to lose; a time to keep, and a time to cast away;",
+          "kjv": "A time to get, and a time to lose; a time to keep, and a time to cast away;"
+        },
+        {
+          "v": 7,
+          "web": "a time to tear, and a time to sew; a time to keep silence, and a time to speak;",
+          "kjv": "A time to rend, and a time to sew; a time to keep silence, and a time to speak;"
+        },
+        {
+          "v": 8,
+          "web": "a time to love, and a time to hate; a time for war, and a time for peace.",
+          "kjv": "A time to love, and a time to hate; a time of war, and a time of peace."
+        },
+        {
+          "v": 9,
+          "web": "What profit has he who works in that in which he labors?",
+          "kjv": "What profit hath he that worketh in that wherein he laboureth?"
+        },
+        {
+          "v": 10,
+          "web": "I have seen the burden which God has given to the sons of men to be afflicted with.",
+          "kjv": "I have seen the travail, which God hath given to the sons of men to be exercised in it."
+        },
+        {
+          "v": 11,
+          "web": "He has made everything beautiful in its time. He has also set eternity in their hearts, yet so that man can’t find out the work that God has done from the beginning even to the end.",
+          "kjv": "He hath made every thing beautiful in his time: also he hath set the world in their heart, so that no man can find out the work that God maketh from the beginning to the end."
+        },
+        {
+          "v": 12,
+          "web": "I know that there is nothing better for them than to rejoice, and to do good as long as they live.",
+          "kjv": "I know that there is no good in them, but for a man to rejoice, and to do good in his life."
+        },
+        {
+          "v": 13,
+          "web": "Also that every man should eat and drink, and enjoy good in all his labor, is the gift of God.",
+          "kjv": "And also that every man should eat and drink, and enjoy the good of all his labour, it is the gift of God."
+        },
+        {
+          "v": 14,
+          "web": "I know that whatever God does, it shall be forever. Nothing can be added to it, nor anything taken from it; and God has done it, that men should fear before him.",
+          "kjv": "I know that, whatsoever God doeth, it shall be for ever: nothing can be put to it, nor any thing taken from it: and God doeth it, that men should fear before him."
+        },
+        {
+          "v": 15,
+          "web": "That which is has been long ago, and that which is to be has been long ago: and God seeks again that which is passed away.",
+          "kjv": "That which hath been is now; and that which is to be hath already been; and God requireth that which is past."
+        },
+        {
+          "v": 16,
+          "web": "Moreover I saw under the sun, in the place of justice, that wickedness was there; and in the place of righteousness, that wickedness was there.",
+          "kjv": "And moreover I saw under the sun the place of judgment, that wickedness was there; and the place of righteousness, that iniquity was there."
+        },
+        {
+          "v": 17,
+          "web": "I said in my heart, “God will judge the righteous and the wicked; for there is a time there for every purpose and for every work.”",
+          "kjv": "I said in mine heart, God shall judge the righteous and the wicked: for there is a time there for every purpose and for every work."
+        },
+        {
+          "v": 18,
+          "web": "I said in my heart, “As for the sons of men, God tests them, so that they may see that they themselves are like animals.",
+          "kjv": "I said in mine heart concerning the estate of the sons of men, that God might manifest them, and that they might see that they themselves are beasts."
+        },
+        {
+          "v": 19,
+          "web": "For that which happens to the sons of men happens to animals. Even one thing happens to them. As the one dies, so the other dies. Yes, they have all one breath; and man has no advantage over the animals: for all is vanity.",
+          "kjv": "For that which befalleth the sons of men befalleth beasts; even one thing befalleth them: as the one dieth, so dieth the other; yea, they have all one breath; so that a man hath no preeminence above a beast: for all is vanity."
+        },
+        {
+          "v": 20,
+          "web": "All go to one place. All are from the dust, and all turn to dust again.",
+          "kjv": "All go unto one place; all are of the dust, and all turn to dust again."
+        },
+        {
+          "v": 21,
+          "web": "Who knows the spirit of man, whether it goes upward, and the spirit of the animal, whether it goes downward to the earth?”",
+          "kjv": "Who knoweth the spirit of man that goeth upward, and the spirit of the beast that goeth downward to the earth?"
+        },
+        {
+          "v": 22,
+          "web": "Therefore I saw that there is nothing better, than that a man should rejoice in his works; for that is his portion: for who can bring him to see what will be after him?",
+          "kjv": "Wherefore I perceive that there is nothing better, than that a man should rejoice in his own works; for that is his portion: for who shall bring him to see what shall be after him?"
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Then I returned and saw all the oppressions that are done under the sun: and behold, the tears of those who were oppressed, and they had no comforter; and on the side of their oppressors there was power; but they had no comforter.",
+          "kjv": "So I returned, and considered all the oppressions that are done under the sun: and behold the tears of such as were oppressed, and they had no comforter; and on the side of their oppressors there was power; but they had no comforter."
+        },
+        {
+          "v": 2,
+          "web": "Therefore I praised the dead who have been long dead more than the living who are yet alive.",
+          "kjv": "Wherefore I praised the dead which are already dead more than the living which are yet alive."
+        },
+        {
+          "v": 3,
+          "web": "Yes, better than them both is him who has not yet been, who has not seen the evil work that is done under the sun.",
+          "kjv": "Yea, better is he than both they, which hath not yet been, who hath not seen the evil work that is done under the sun."
+        },
+        {
+          "v": 4,
+          "web": "Then I saw all the labor and achievement that is the envy of a man’s neighbor. This also is vanity and a striving after wind.",
+          "kjv": "Again, I considered all travail, and every right work, that for this a man is envied of his neighbour. This is also vanity and vexation of spirit."
+        },
+        {
+          "v": 5,
+          "web": "The fool folds his hands together and ruins himself.",
+          "kjv": "The fool foldeth his hands together, and eateth his own flesh."
+        },
+        {
+          "v": 6,
+          "web": "Better is a handful, with quietness, than two handfuls with labor and chasing after wind.",
+          "kjv": "Better is an handful with quietness, than both the hands full with travail and vexation of spirit."
+        },
+        {
+          "v": 7,
+          "web": "Then I returned and saw vanity under the sun.",
+          "kjv": "Then I returned, and I saw vanity under the sun."
+        },
+        {
+          "v": 8,
+          "web": "There is one who is alone, and he has neither son nor brother. There is no end to all of his labor, neither are his eyes satisfied with wealth. “For whom then, do I labor, and deprive my soul of enjoyment?” This also is vanity. Yes, it is a miserable business.",
+          "kjv": "There is one alone, and there is not a second; yea, he hath neither child nor brother: yet is there no end of all his labour; neither is his eye satisfied with riches; neither saith he, For whom do I labour, and bereave my soul of good? This is also vanity, yea, it is a sore travail."
+        },
+        {
+          "v": 9,
+          "web": "Two are better than one, because they have a good reward for their labor.",
+          "kjv": "Two are better than one; because they have a good reward for their labour."
+        },
+        {
+          "v": 10,
+          "web": "For if they fall, the one will lift up his fellow; but woe to him who is alone when he falls, and doesn’t have another to lift him up.",
+          "kjv": "For if they fall, the one will lift up his fellow: but woe to him that is alone when he falleth; for he hath not another to help him up."
+        },
+        {
+          "v": 11,
+          "web": "Again, if two lie together, then they have warmth; but how can one keep warm alone?",
+          "kjv": "Again, if two lie together, then they have heat: but how can one be warm alone?"
+        },
+        {
+          "v": 12,
+          "web": "If a man prevails against one who is alone, two shall withstand him; and a threefold cord is not quickly broken.",
+          "kjv": "And if one prevail against him, two shall withstand him; and a threefold cord is not quickly broken."
+        },
+        {
+          "v": 13,
+          "web": "Better is a poor and wise youth than an old and foolish king who doesn’t know how to receive admonition any more.",
+          "kjv": "Better is a poor and a wise child than an old and foolish king, who will no more be admonished."
+        },
+        {
+          "v": 14,
+          "web": "For out of prison he came out to be king; yes, even in his kingdom he was born poor.",
+          "kjv": "For out of prison he cometh to reign; whereas also he that is born in his kingdom becometh poor."
+        },
+        {
+          "v": 15,
+          "web": "I saw all the living who walk under the sun, that they were with the youth, the other, who succeeded him.",
+          "kjv": "I considered all the living which walk under the sun, with the second child that shall stand up in his stead."
+        },
+        {
+          "v": 16,
+          "web": "There was no end of all the people, even of all them over whom he was—yet those who come after shall not rejoice in him. Surely this also is vanity and a chasing after wind.",
+          "kjv": "There is no end of all the people, even of all that have been before them: they also that come after shall not rejoice in him. Surely this also is vanity and vexation of spirit."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Guard your steps when you go to God’s house; for to draw near to listen is better than to give the sacrifice of fools, for they don’t know that they do evil.",
+          "kjv": "Keep thy foot when thou goest to the house of God, and be more ready to hear, than to give the sacrifice of fools: for they consider not that they do evil."
+        },
+        {
+          "v": 2,
+          "web": "Don’t be rash with your mouth, and don’t let your heart be hasty to utter anything before God; for God is in heaven, and you on earth. Therefore let your words be few.",
+          "kjv": "Be not rash with thy mouth, and let not thine heart be hasty to utter any thing before God: for God is in heaven, and thou upon earth: therefore let thy words be few."
+        },
+        {
+          "v": 3,
+          "web": "For as a dream comes with a multitude of cares, so a fool’s speech with a multitude of words.",
+          "kjv": "For a dream cometh through the multitude of business; and a fool’s voice is known by multitude of words."
+        },
+        {
+          "v": 4,
+          "web": "When you vow a vow to God, don’t defer to pay it; for he has no pleasure in fools. Pay that which you vow.",
+          "kjv": "When thou vowest a vow unto God, defer not to pay it; for he hath no pleasure in fools: pay that which thou hast vowed."
+        },
+        {
+          "v": 5,
+          "web": "It is better that you should not vow, than that you should vow and not pay.",
+          "kjv": "Better is it that thou shouldest not vow, than that thou shouldest vow and not pay."
+        },
+        {
+          "v": 6,
+          "web": "Don’t allow your mouth to lead you into sin. Don’t protest before the messenger that this was a mistake. Why should God be angry at your voice, and destroy the work of your hands?",
+          "kjv": "Suffer not thy mouth to cause thy flesh to sin; neither say thou before the angel, that it was an error: wherefore should God be angry at thy voice, and destroy the work of thine hands?"
+        },
+        {
+          "v": 7,
+          "web": "For in the multitude of dreams there are vanities, as well as in many words: but you must fear God.",
+          "kjv": "For in the multitude of dreams and many words there are also divers vanities: but fear thou God."
+        },
+        {
+          "v": 8,
+          "web": "If you see the oppression of the poor, and the violent taking away of justice and righteousness in a district, don’t marvel at the matter: for one official is eyed by a higher one; and there are officials over them.",
+          "kjv": "If thou seest the oppression of the poor, and violent perverting of judgment and justice in a province, marvel not at the matter: for he that is higher than the highest regardeth; and there be higher than they."
+        },
+        {
+          "v": 9,
+          "web": "Moreover the profit of the earth is for all. The king profits from the field.",
+          "kjv": "Moreover the profit of the earth is for all: the king himself is served by the field."
+        },
+        {
+          "v": 10,
+          "web": "He who loves silver shall not be satisfied with silver; nor he who loves abundance, with increase: this also is vanity.",
+          "kjv": "He that loveth silver shall not be satisfied with silver; nor he that loveth abundance with increase: this is also vanity."
+        },
+        {
+          "v": 11,
+          "web": "When goods increase, those who eat them are increased; and what advantage is there to its owner, except to feast on them with his eyes?",
+          "kjv": "When goods increase, they are increased that eat them: and what good is there to the owners thereof, saving the beholding of them with their eyes?"
+        },
+        {
+          "v": 12,
+          "web": "The sleep of a laboring man is sweet, whether he eats little or much; but the abundance of the rich will not allow him to sleep.",
+          "kjv": "The sleep of a labouring man is sweet, whether he eat little or much: but the abundance of the rich will not suffer him to sleep."
+        },
+        {
+          "v": 13,
+          "web": "There is a grievous evil which I have seen under the sun: wealth kept by its owner to his harm.",
+          "kjv": "There is a sore evil which I have seen under the sun, namely, riches kept for the owners thereof to their hurt."
+        },
+        {
+          "v": 14,
+          "web": "Those riches perish by misfortune, and if he has fathered a son, there is nothing in his hand.",
+          "kjv": "But those riches perish by evil travail: and he begetteth a son, and there is nothing in his hand."
+        },
+        {
+          "v": 15,
+          "web": "As he came out of his mother’s womb, naked shall he go again as he came, and shall take nothing for his labor, which he may carry away in his hand.",
+          "kjv": "As he came forth of his mother’s womb, naked shall he return to go as he came, and shall take nothing of his labour, which he may carry away in his hand."
+        },
+        {
+          "v": 16,
+          "web": "This also is a grievous evil, that in all points as he came, so shall he go. And what profit does he have who labors for the wind?",
+          "kjv": "And this also is a sore evil, that in all points as he came, so shall he go: and what profit hath he that hath laboured for the wind?"
+        },
+        {
+          "v": 17,
+          "web": "All his days he also eats in darkness, he is frustrated, and has sickness and wrath.",
+          "kjv": "All his days also he eateth in darkness, and he hath much sorrow and wrath with his sickness."
+        },
+        {
+          "v": 18,
+          "web": "Behold, that which I have seen to be good and proper is for one to eat and to drink, and to enjoy good in all his labor, in which he labors under the sun, all the days of his life which God has given him; for this is his portion.",
+          "kjv": "Behold that which I have seen: it is good and comely for one to eat and to drink, and to enjoy the good of all his labour that he taketh under the sun all the days of his life, which God giveth him: for it is his portion."
+        },
+        {
+          "v": 19,
+          "web": "Every man also to whom God has given riches and wealth, and has given him power to eat of it, and to take his portion, and to rejoice in his labor—this is the gift of God.",
+          "kjv": "Every man also to whom God hath given riches and wealth, and hath given him power to eat thereof, and to take his portion, and to rejoice in his labour; this is the gift of God."
+        },
+        {
+          "v": 20,
+          "web": "For he shall not often reflect on the days of his life; because God occupies him with the joy of his heart.",
+          "kjv": "For he shall not much remember the days of his life; because God answereth him in the joy of his heart."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "verses": [
+        {
+          "v": 1,
+          "web": "There is an evil which I have seen under the sun, and it is heavy on men:",
+          "kjv": "There is an evil which I have seen under the sun, and it is common among men:"
+        },
+        {
+          "v": 2,
+          "web": "a man to whom God gives riches, wealth, and honor, so that he lacks nothing for his soul of all that he desires, yet God gives him no power to eat of it, but an alien eats it. This is vanity, and it is an evil disease.",
+          "kjv": "A man to whom God hath given riches, wealth, and honour, so that he wanteth nothing for his soul of all that he desireth, yet God giveth him not power to eat thereof, but a stranger eateth it: this is vanity, and it is an evil disease."
+        },
+        {
+          "v": 3,
+          "web": "If a man fathers a hundred children, and lives many years, so that the days of his years are many, but his soul is not filled with good, and moreover he has no burial; I say, that a stillborn child is better than he:",
+          "kjv": "If a man beget an hundred children, and live many years, so that the days of his years be many, and his soul be not filled with good, and also that he have no burial; I say, that an untimely birth is better than he."
+        },
+        {
+          "v": 4,
+          "web": "for it comes in vanity, and departs in darkness, and its name is covered with darkness.",
+          "kjv": "For he cometh in with vanity, and departeth in darkness, and his name shall be covered with darkness."
+        },
+        {
+          "v": 5,
+          "web": "Moreover it has not seen the sun nor known it. This has rest rather than the other.",
+          "kjv": "Moreover he hath not seen the sun, nor known any thing: this hath more rest than the other."
+        },
+        {
+          "v": 6,
+          "web": "Yes, though he live a thousand years twice told, and yet fails to enjoy good, don’t all go to one place?",
+          "kjv": "Yea, though he live a thousand years twice told, yet hath he seen no good: do not all go to one place?"
+        },
+        {
+          "v": 7,
+          "web": "All the labor of man is for his mouth, and yet the appetite is not filled.",
+          "kjv": "All the labour of man is for his mouth, and yet the appetite is not filled."
+        },
+        {
+          "v": 8,
+          "web": "For what advantage has the wise more than the fool? What has the poor man, that knows how to walk before the living?",
+          "kjv": "For what hath the wise more than the fool? what hath the poor, that knoweth to walk before the living?"
+        },
+        {
+          "v": 9,
+          "web": "Better is the sight of the eyes than the wandering of the desire. This also is vanity and a chasing after wind.",
+          "kjv": "Better is the sight of the eyes than the wandering of the desire: this is also vanity and vexation of spirit."
+        },
+        {
+          "v": 10,
+          "web": "Whatever has been, its name was given long ago; and it is known what man is; neither can he contend with him who is mightier than he.",
+          "kjv": "That which hath been is named already, and it is known that it is man: neither may he contend with him that is mightier than he."
+        },
+        {
+          "v": 11,
+          "web": "For there are many words that create vanity. What does that profit man?",
+          "kjv": "Seeing there be many things that increase vanity, what is man the better?"
+        },
+        {
+          "v": 12,
+          "web": "For who knows what is good for man in life, all the days of his vain life which he spends like a shadow? For who can tell a man what will be after him under the sun?",
+          "kjv": "For who knoweth what is good for man in this life, all the days of his vain life which he spendeth as a shadow? for who can tell a man what shall be after him under the sun?"
+        }
+      ]
+    },
+    {
+      "chapter": 7,
+      "verses": [
+        {
+          "v": 1,
+          "web": "A good name is better than fine perfume; and the day of death better than the day of one’s birth.",
+          "kjv": "A good name is better than precious ointment; and the day of death than the day of one’s birth."
+        },
+        {
+          "v": 2,
+          "web": "It is better to go to the house of mourning than to go to the house of feasting: for that is the end of all men, and the living should take this to heart.",
+          "kjv": "It is better to go to the house of mourning, than to go to the house of feasting: for that is the end of all men; and the living will lay it to his heart."
+        },
+        {
+          "v": 3,
+          "web": "Sorrow is better than laughter; for by the sadness of the face the heart is made good.",
+          "kjv": "Sorrow is better than laughter: for by the sadness of the countenance the heart is made better."
+        },
+        {
+          "v": 4,
+          "web": "The heart of the wise is in the house of mourning; but the heart of fools is in the house of mirth.",
+          "kjv": "The heart of the wise is in the house of mourning; but the heart of fools is in the house of mirth."
+        },
+        {
+          "v": 5,
+          "web": "It is better to hear the rebuke of the wise, than for a man to hear the song of fools.",
+          "kjv": "It is better to hear the rebuke of the wise, than for a man to hear the song of fools."
+        },
+        {
+          "v": 6,
+          "web": "For as the crackling of thorns under a pot, so is the laughter of the fool. This also is vanity.",
+          "kjv": "For as the crackling of thorns under a pot, so is the laughter of the fool: this also is vanity."
+        },
+        {
+          "v": 7,
+          "web": "Surely extortion makes the wise man foolish; and a bribe destroys the understanding.",
+          "kjv": "Surely oppression maketh a wise man mad; and a gift destroyeth the heart."
+        },
+        {
+          "v": 8,
+          "web": "Better is the end of a thing than its beginning. The patient in spirit is better than the proud in spirit.",
+          "kjv": "Better is the end of a thing than the beginning thereof: and the patient in spirit is better than the proud in spirit."
+        },
+        {
+          "v": 9,
+          "web": "Don’t be hasty in your spirit to be angry, for anger rests in the bosom of fools.",
+          "kjv": "Be not hasty in thy spirit to be angry: for anger resteth in the bosom of fools."
+        },
+        {
+          "v": 10,
+          "web": "Don’t say, “Why were the former days better than these?” For you do not ask wisely about this.",
+          "kjv": "Say not thou, What is the cause that the former days were better than these? for thou dost not enquire wisely concerning this."
+        },
+        {
+          "v": 11,
+          "web": "Wisdom is as good as an inheritance. Yes, it is more excellent for those who see the sun.",
+          "kjv": "Wisdom is good with an inheritance: and by it there is profit to them that see the sun."
+        },
+        {
+          "v": 12,
+          "web": "For wisdom is a defense, even as money is a defense; but the excellency of knowledge is that wisdom preserves the life of him who has it.",
+          "kjv": "For wisdom is a defence, and money is a defence: but the excellency of knowledge is, that wisdom giveth life to them that have it."
+        },
+        {
+          "v": 13,
+          "web": "Consider the work of God, for who can make that straight, which he has made crooked?",
+          "kjv": "Consider the work of God: for who can make that straight, which he hath made crooked?"
+        },
+        {
+          "v": 14,
+          "web": "In the day of prosperity be joyful, and in the day of adversity consider; yes, God has made the one side by side with the other, to the end that man should not find out anything after him.",
+          "kjv": "In the day of prosperity be joyful, but in the day of adversity consider: God also hath set the one over against the other, to the end that man should find nothing after him."
+        },
+        {
+          "v": 15,
+          "web": "All this have I seen in my days of vanity: there is a righteous man who perishes in his righteousness, and there is a wicked man who lives long in his evildoing.",
+          "kjv": "All things have I seen in the days of my vanity: there is a just man that perisheth in his righteousness, and there is a wicked man that prolongeth his life in his wickedness."
+        },
+        {
+          "v": 16,
+          "web": "Don’t be overly righteous, neither make yourself overly wise. Why should you destroy yourself?",
+          "kjv": "Be not righteous over much; neither make thyself over wise: why shouldest thou destroy thyself?"
+        },
+        {
+          "v": 17,
+          "web": "Don’t be too wicked, neither be foolish. Why should you die before your time?",
+          "kjv": "Be not over much wicked, neither be thou foolish: why shouldest thou die before thy time?"
+        },
+        {
+          "v": 18,
+          "web": "It is good that you should take hold of this. Yes, also from that don’t withdraw your hand; for he who fears God will come out of them all.",
+          "kjv": "It is good that thou shouldest take hold of this; yea, also from this withdraw not thine hand: for he that feareth God shall come forth of them all."
+        },
+        {
+          "v": 19,
+          "web": "Wisdom is a strength to the wise man more than ten rulers who are in a city.",
+          "kjv": "Wisdom strengtheneth the wise more than ten mighty men which are in the city."
+        },
+        {
+          "v": 20,
+          "web": "Surely there is not a righteous man on earth, who does good and doesn’t sin.",
+          "kjv": "For there is not a just man upon earth, that doeth good, and sinneth not."
+        },
+        {
+          "v": 21,
+          "web": "Also don’t take heed to all words that are spoken, lest you hear your servant curse you;",
+          "kjv": "Also take no heed unto all words that are spoken; lest thou hear thy servant curse thee:"
+        },
+        {
+          "v": 22,
+          "web": "for often your own heart knows that you yourself have likewise cursed others.",
+          "kjv": "For oftentimes also thine own heart knoweth that thou thyself likewise hast cursed others."
+        },
+        {
+          "v": 23,
+          "web": "All this have I proved in wisdom. I said, “I will be wise”; but it was far from me.",
+          "kjv": "All this have I proved by wisdom: I said, I will be wise; but it was far from me."
+        },
+        {
+          "v": 24,
+          "web": "That which is, is far off and exceedingly deep. Who can find it out?",
+          "kjv": "That which is far off, and exceeding deep, who can find it out?"
+        },
+        {
+          "v": 25,
+          "web": "I turned around, and my heart sought to know and to search out, and to seek wisdom and the scheme of things, and to know that wickedness is stupidity, and that foolishness is madness.",
+          "kjv": "I applied mine heart to know, and to search, and to seek out wisdom, and the reason of things, and to know the wickedness of folly, even of foolishness and madness:"
+        },
+        {
+          "v": 26,
+          "web": "I find more bitter than death the woman whose heart is snares and traps, whose hands are chains. Whoever pleases God shall escape from her; but the sinner will be ensnared by her.",
+          "kjv": "And I find more bitter than death the woman, whose heart is snares and nets, and her hands as bands: whoso pleaseth God shall escape from her; but the sinner shall be taken by her."
+        },
+        {
+          "v": 27,
+          "web": "“Behold, I have found this,” says the Preacher, “one to another, to find out the scheme;",
+          "kjv": "Behold, this have I found, saith the preacher, counting one by one, to find out the account:"
+        },
+        {
+          "v": 28,
+          "web": "which my soul still seeks; but I have not found. One man among a thousand have I found; but I have not found a woman among all those.",
+          "kjv": "Which yet my soul seeketh, but I find not: one man among a thousand have I found; but a woman among all those have I not found."
+        },
+        {
+          "v": 29,
+          "web": "Behold, this only have I found: that God made man upright; but they search for many schemes.”",
+          "kjv": "Lo, this only have I found, that God hath made man upright; but they have sought out many inventions."
+        }
+      ]
+    },
+    {
+      "chapter": 8,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Who is like the wise man? And who knows the interpretation of a thing? A man’s wisdom makes his face shine, and the hardness of his face is changed.",
+          "kjv": "Who is as the wise man? and who knoweth the interpretation of a thing? a man’s wisdom maketh his face to shine, and the boldness of his face shall be changed."
+        },
+        {
+          "v": 2,
+          "web": "I say, “Keep the king’s command!” because of the oath to God.",
+          "kjv": "I counsel thee to keep the king’s commandment, and that in regard of the oath of God."
+        },
+        {
+          "v": 3,
+          "web": "Don’t be hasty to go out of his presence. Don’t persist in an evil thing, for he does whatever pleases him,",
+          "kjv": "Be not hasty to go out of his sight: stand not in an evil thing; for he doeth whatsoever pleaseth him."
+        },
+        {
+          "v": 4,
+          "web": "for the king’s word is supreme. Who can say to him, “What are you doing?”",
+          "kjv": "Where the word of a king is, there is power: and who may say unto him, What doest thou?"
+        },
+        {
+          "v": 5,
+          "web": "Whoever keeps the commandment shall not come to harm, and his wise heart will know the time and procedure.",
+          "kjv": "Whoso keepeth the commandment shall feel no evil thing: and a wise man’s heart discerneth both time and judgment."
+        },
+        {
+          "v": 6,
+          "web": "For there is a time and procedure for every purpose, although the misery of man is heavy on him.",
+          "kjv": "Because to every purpose there is time and judgment, therefore the misery of man is great upon him."
+        },
+        {
+          "v": 7,
+          "web": "For he doesn’t know that which will be; for who can tell him how it will be?",
+          "kjv": "For he knoweth not that which shall be: for who can tell him when it shall be?"
+        },
+        {
+          "v": 8,
+          "web": "There is no man who has power over the spirit to contain the spirit; neither does he have power over the day of death. There is no discharge in war; neither shall wickedness deliver those who practice it.",
+          "kjv": "There is no man that hath power over the spirit to retain the spirit; neither hath he power in the day of death: and there is no discharge in that war; neither shall wickedness deliver those that are given to it."
+        },
+        {
+          "v": 9,
+          "web": "All this have I seen, and applied my mind to every work that is done under the sun. There is a time in which one man has power over another to his hurt.",
+          "kjv": "All this have I seen, and applied my heart unto every work that is done under the sun: there is a time wherein one man ruleth over another to his own hurt."
+        },
+        {
+          "v": 10,
+          "web": "So I saw the wicked buried. Indeed they came also from holiness. They went and were forgotten in the city where they did this. This also is vanity.",
+          "kjv": "And so I saw the wicked buried, who had come and gone from the place of the holy, and they were forgotten in the city where they had so done: this is also vanity."
+        },
+        {
+          "v": 11,
+          "web": "Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil.",
+          "kjv": "Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil."
+        },
+        {
+          "v": 12,
+          "web": "Though a sinner commits crimes a hundred times, and lives long, yet surely I know that it will be better with those who fear God, who are reverent before him.",
+          "kjv": "Though a sinner do evil an hundred times, and his days be prolonged, yet surely I know that it shall be well with them that fear God, which fear before him:"
+        },
+        {
+          "v": 13,
+          "web": "But it shall not be well with the wicked, neither shall he lengthen days like a shadow; because he doesn’t fear God.",
+          "kjv": "But it shall not be well with the wicked, neither shall he prolong his days, which are as a shadow; because he feareth not before God."
+        },
+        {
+          "v": 14,
+          "web": "There is a vanity which is done on the earth, that there are righteous men to whom it happens according to the work of the wicked. Again, there are wicked men to whom it happens according to the work of the righteous. I said that this also is vanity.",
+          "kjv": "There is a vanity which is done upon the earth; that there be just men, unto whom it happeneth according to the work of the wicked; again, there be wicked men, to whom it happeneth according to the work of the righteous: I said that this also is vanity."
+        },
+        {
+          "v": 15,
+          "web": "Then I commended mirth, because a man has no better thing under the sun, than to eat, and to drink, and to be joyful: for that will accompany him in his labor all the days of his life which God has given him under the sun.",
+          "kjv": "Then I commended mirth, because a man hath no better thing under the sun, than to eat, and to drink, and to be merry: for that shall abide with him of his labour the days of his life, which God giveth him under the sun."
+        },
+        {
+          "v": 16,
+          "web": "When I applied my heart to know wisdom, and to see the business that is done on the earth (for also there is that neither day nor night sees sleep with his eyes),",
+          "kjv": "When I applied mine heart to know wisdom, and to see the business that is done upon the earth: (for also there is that neither day nor night seeth sleep with his eyes:)"
+        },
+        {
+          "v": 17,
+          "web": "then I saw all the work of God, that man can’t find out the work that is done under the sun, because however much a man labors to seek it out, yet he won’t find it. Yes even though a wise man thinks he can comprehend it, he won’t be able to find it.",
+          "kjv": "Then I beheld all the work of God, that a man cannot find out the work that is done under the sun: because though a man labour to seek it out, yet he shall not find it; yea further; though a wise man think to know it, yet shall he not be able to find it."
+        }
+      ]
+    },
+    {
+      "chapter": 9,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For all this I laid to my heart, even to explore all this: that the righteous, and the wise, and their works, are in the hand of God; whether it is love or hatred, man doesn’t know it; all is before them.",
+          "kjv": "For all this I considered in my heart even to declare all this, that the righteous, and the wise, and their works, are in the hand of God: no man knoweth either love or hatred by all that is before them."
+        },
+        {
+          "v": 2,
+          "web": "All things come alike to all. There is one event to the righteous and to the wicked; to the good, to the clean, to the unclean, to him who sacrifices, and to him who doesn’t sacrifice. As is the good, so is the sinner; he who takes an oath, as he who fears an oath.",
+          "kjv": "All things come alike to all: there is one event to the righteous, and to the wicked; to the good and to the clean, and to the unclean; to him that sacrificeth, and to him that sacrificeth not: as is the good, so is the sinner; and he that sweareth, as he that feareth an oath."
+        },
+        {
+          "v": 3,
+          "web": "This is an evil in all that is done under the sun, that there is one event to all: yes also, the heart of the sons of men is full of evil, and madness is in their heart while they live, and after that they go to the dead.",
+          "kjv": "This is an evil among all things that are done under the sun, that there is one event unto all: yea, also the heart of the sons of men is full of evil, and madness is in their heart while they live, and after that they go to the dead."
+        },
+        {
+          "v": 4,
+          "web": "For to him who is joined with all the living there is hope; for a living dog is better than a dead lion.",
+          "kjv": "For to him that is joined to all the living there is hope: for a living dog is better than a dead lion."
+        },
+        {
+          "v": 5,
+          "web": "For the living know that they will die, but the dead don’t know anything, neither do they have any more a reward; for their memory is forgotten.",
+          "kjv": "For the living know that they shall die: but the dead know not any thing, neither have they any more a reward; for the memory of them is forgotten."
+        },
+        {
+          "v": 6,
+          "web": "Also their love, their hatred, and their envy has perished long ago; neither have they any more a portion forever in anything that is done under the sun.",
+          "kjv": "Also their love, and their hatred, and their envy, is now perished; neither have they any more a portion for ever in any thing that is done under the sun."
+        },
+        {
+          "v": 7,
+          "web": "Go your way—eat your bread with joy, and drink your wine with a merry heart; for God has already accepted your works.",
+          "kjv": "Go thy way, eat thy bread with joy, and drink thy wine with a merry heart; for God now accepteth thy works."
+        },
+        {
+          "v": 8,
+          "web": "Let your garments be always white, and don’t let your head lack oil.",
+          "kjv": "Let thy garments be always white; and let thy head lack no ointment."
+        },
+        {
+          "v": 9,
+          "web": "Live joyfully with the wife whom you love all the days of your life of vanity, which he has given you under the sun, all your days of vanity: for that is your portion in life, and in your labor in which you labor under the sun.",
+          "kjv": "Live joyfully with the wife whom thou lovest all the days of the life of thy vanity, which he hath given thee under the sun, all the days of thy vanity: for that is thy portion in this life, and in thy labour which thou takest under the sun."
+        },
+        {
+          "v": 10,
+          "web": "Whatever your hand finds to do, do it with your might; for there is no work, nor device, nor knowledge, nor wisdom, in Sheol, where you are going.",
+          "kjv": "Whatsoever thy hand findeth to do, do it with thy might; for there is no work, nor device, nor knowledge, nor wisdom, in the grave, whither thou goest."
+        },
+        {
+          "v": 11,
+          "web": "I returned, and saw under the sun, that the race is not to the swift, nor the battle to the strong, neither yet bread to the wise, nor yet riches to men of understanding, nor yet favor to men of skill; but time and chance happen to them all.",
+          "kjv": "I returned, and saw under the sun, that the race is not to the swift, nor the battle to the strong, neither yet bread to the wise, nor yet riches to men of understanding, nor yet favour to men of skill; but time and chance happeneth to them all."
+        },
+        {
+          "v": 12,
+          "web": "For man also doesn’t know his time. As the fish that are taken in an evil net, and as the birds that are caught in the snare, even so are the sons of men snared in an evil time, when it falls suddenly on them.",
+          "kjv": "For man also knoweth not his time: as the fishes that are taken in an evil net, and as the birds that are caught in the snare; so are the sons of men snared in an evil time, when it falleth suddenly upon them."
+        },
+        {
+          "v": 13,
+          "web": "I have also seen wisdom under the sun in this way, and it seemed great to me.",
+          "kjv": "This wisdom have I seen also under the sun, and it seemed great unto me:"
+        },
+        {
+          "v": 14,
+          "web": "There was a little city, and few men within it; and a great king came against it, besieged it, and built great bulwarks against it.",
+          "kjv": "There was a little city, and few men within it; and there came a great king against it, and besieged it, and built great bulwarks against it:"
+        },
+        {
+          "v": 15,
+          "web": "Now a poor wise man was found in it, and he by his wisdom delivered the city; yet no man remembered that same poor man.",
+          "kjv": "Now there was found in it a poor wise man, and he by his wisdom delivered the city; yet no man remembered that same poor man."
+        },
+        {
+          "v": 16,
+          "web": "Then I said, “Wisdom is better than strength.” Nevertheless the poor man’s wisdom is despised, and his words are not heard.",
+          "kjv": "Then said I, Wisdom is better than strength: nevertheless the poor man’s wisdom is despised, and his words are not heard."
+        },
+        {
+          "v": 17,
+          "web": "The words of the wise heard in quiet are better than the cry of him who rules among fools.",
+          "kjv": "The words of wise men are heard in quiet more than the cry of him that ruleth among fools."
+        },
+        {
+          "v": 18,
+          "web": "Wisdom is better than weapons of war; but one sinner destroys much good.",
+          "kjv": "Wisdom is better than weapons of war: but one sinner destroyeth much good."
+        }
+      ]
+    },
+    {
+      "chapter": 10,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Dead flies cause the oil of the perfumer to produce an evil odor; so does a little folly outweigh wisdom and honor.",
+          "kjv": "Dead flies cause the ointment of the apothecary to send forth a stinking savour: so doth a little folly him that is in reputation for wisdom and honour."
+        },
+        {
+          "v": 2,
+          "web": "A wise man’s heart is at his right hand, but a fool’s heart at his left.",
+          "kjv": "A wise man’s heart is at his right hand; but a fool’s heart at his left."
+        },
+        {
+          "v": 3,
+          "web": "Yes also, when the fool walks by the way, his understanding fails him, and he says to everyone that he is a fool.",
+          "kjv": "Yea also, when he that is a fool walketh by the way, his wisdom faileth him, and he saith to every one that he is a fool."
+        },
+        {
+          "v": 4,
+          "web": "If the spirit of the ruler rises up against you, don’t leave your place; for gentleness lays great offenses to rest.",
+          "kjv": "If the spirit of the ruler rise up against thee, leave not thy place; for yielding pacifieth great offences."
+        },
+        {
+          "v": 5,
+          "web": "There is an evil which I have seen under the sun, the sort of error which proceeds from the ruler.",
+          "kjv": "There is an evil which I have seen under the sun, as an error which proceedeth from the ruler:"
+        },
+        {
+          "v": 6,
+          "web": "Folly is set in great dignity, and the rich sit in a low place.",
+          "kjv": "Folly is set in great dignity, and the rich sit in low place."
+        },
+        {
+          "v": 7,
+          "web": "I have seen servants on horses, and princes walking like servants on the earth.",
+          "kjv": "I have seen servants upon horses, and princes walking as servants upon the earth."
+        },
+        {
+          "v": 8,
+          "web": "He who digs a pit may fall into it; and whoever breaks through a wall may be bitten by a snake.",
+          "kjv": "He that diggeth a pit shall fall into it; and whoso breaketh an hedge, a serpent shall bite him."
+        },
+        {
+          "v": 9,
+          "web": "Whoever carves out stones may be injured by them. Whoever splits wood may be endangered thereby.",
+          "kjv": "Whoso removeth stones shall be hurt therewith; and he that cleaveth wood shall be endangered thereby."
+        },
+        {
+          "v": 10,
+          "web": "If the ax is blunt, and one doesn’t sharpen the edge, then he must use more strength; but skill brings success.",
+          "kjv": "If the iron be blunt, and he do not whet the edge, then must he put to more strength: but wisdom is profitable to direct."
+        },
+        {
+          "v": 11,
+          "web": "If the snake bites before it is charmed, then is there no profit for the charmer’s tongue.",
+          "kjv": "Surely the serpent will bite without enchantment; and a babbler is no better."
+        },
+        {
+          "v": 12,
+          "web": "The words of a wise man’s mouth are gracious; but a fool is swallowed by his own lips.",
+          "kjv": "The words of a wise man’s mouth are gracious; but the lips of a fool will swallow up himself."
+        },
+        {
+          "v": 13,
+          "web": "The beginning of the words of his mouth is foolishness; and the end of his talk is mischievous madness.",
+          "kjv": "The beginning of the words of his mouth is foolishness: and the end of his talk is mischievous madness."
+        },
+        {
+          "v": 14,
+          "web": "A fool also multiplies words. Man doesn’t know what will be; and that which will be after him, who can tell him?",
+          "kjv": "A fool also is full of words: a man cannot tell what shall be; and what shall be after him, who can tell him?"
+        },
+        {
+          "v": 15,
+          "web": "The labor of fools wearies every one of them; for he doesn’t know how to go to the city.",
+          "kjv": "The labour of the foolish wearieth every one of them, because he knoweth not how to go to the city."
+        },
+        {
+          "v": 16,
+          "web": "Woe to you, land, when your king is a child, and your princes eat in the morning!",
+          "kjv": "Woe to thee, O land, when thy king is a child, and thy princes eat in the morning!"
+        },
+        {
+          "v": 17,
+          "web": "Happy are you, land, when your king is the son of nobles, and your princes eat in due season, for strength, and not for drunkenness!",
+          "kjv": "Blessed art thou, O land, when thy king is the son of nobles, and thy princes eat in due season, for strength, and not for drunkenness!"
+        },
+        {
+          "v": 18,
+          "web": "By slothfulness the roof sinks in; and through idleness of the hands the house leaks.",
+          "kjv": "By much slothfulness the building decayeth; and through idleness of the hands the house droppeth through."
+        },
+        {
+          "v": 19,
+          "web": "A feast is made for laughter, and wine makes the life glad; and money is the answer for all things.",
+          "kjv": "A feast is made for laughter, and wine maketh merry: but money answereth all things."
+        },
+        {
+          "v": 20,
+          "web": "Don’t curse the king, no, not in your thoughts; and don’t curse the rich in your bedroom: for a bird of the sky may carry your voice, and that which has wings may tell the matter.",
+          "kjv": "Curse not the king, no not in thy thought; and curse not the rich in thy bedchamber: for a bird of the air shall carry the voice, and that which hath wings shall tell the matter."
+        }
+      ]
+    },
+    {
+      "chapter": 11,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Cast your bread on the waters; for you shall find it after many days.",
+          "kjv": "Cast thy bread upon the waters: for thou shalt find it after many days."
+        },
+        {
+          "v": 2,
+          "web": "Give a portion to seven, yes, even to eight; for you don’t know what evil will be on the earth.",
+          "kjv": "Give a portion to seven, and also to eight; for thou knowest not what evil shall be upon the earth."
+        },
+        {
+          "v": 3,
+          "web": "If the clouds are full of rain, they empty themselves on the earth; and if a tree falls toward the south, or toward the north, in the place where the tree falls, there shall it be.",
+          "kjv": "If the clouds be full of rain, they empty themselves upon the earth: and if the tree fall toward the south, or toward the north, in the place where the tree falleth, there it shall be."
+        },
+        {
+          "v": 4,
+          "web": "He who observes the wind won’t sow; and he who regards the clouds won’t reap.",
+          "kjv": "He that observeth the wind shall not sow; and he that regardeth the clouds shall not reap."
+        },
+        {
+          "v": 5,
+          "web": "As you don’t know what is the way of the wind, nor how the bones grow in the womb of her who is with child; even so you don’t know the work of God who does all.",
+          "kjv": "As thou knowest not what is the way of the spirit, nor how the bones do grow in the womb of her that is with child: even so thou knowest not the works of God who maketh all."
+        },
+        {
+          "v": 6,
+          "web": "In the morning sow your seed, and in the evening don’t withhold your hand; for you don’t know which will prosper, whether this or that, or whether they both will be equally good.",
+          "kjv": "In the morning sow thy seed, and in the evening withhold not thine hand: for thou knowest not whether shall prosper, either this or that, or whether they both shall be alike good."
+        },
+        {
+          "v": 7,
+          "web": "Truly the light is sweet, and a pleasant thing it is for the eyes to see the sun.",
+          "kjv": "Truly the light is sweet, and a pleasant thing it is for the eyes to behold the sun:"
+        },
+        {
+          "v": 8,
+          "web": "Yes, if a man lives many years, let him rejoice in them all; but let him remember the days of darkness, for they shall be many. All that comes is vanity.",
+          "kjv": "But if a man live many years, and rejoice in them all; yet let him remember the days of darkness; for they shall be many. All that cometh is vanity."
+        },
+        {
+          "v": 9,
+          "web": "Rejoice, young man, in your youth, and let your heart cheer you in the days of your youth, and walk in the ways of your heart, and in the sight of your eyes; but know that for all these things God will bring you into judgment.",
+          "kjv": "Rejoice, O young man, in thy youth; and let thy heart cheer thee in the days of thy youth, and walk in the ways of thine heart, and in the sight of thine eyes: but know thou, that for all these things God will bring thee into judgment."
+        },
+        {
+          "v": 10,
+          "web": "Therefore remove sorrow from your heart, and put away evil from your flesh; for youth and the dawn of life are vanity.",
+          "kjv": "Therefore remove sorrow from thy heart, and put away evil from thy flesh: for childhood and youth are vanity."
+        }
+      ]
+    },
+    {
+      "chapter": 12,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Remember also your Creator in the days of your youth, before the evil days come, and the years draw near, when you will say, “I have no pleasure in them”;",
+          "kjv": "Remember now thy Creator in the days of thy youth, while the evil days come not, nor the years draw nigh, when thou shalt say, I have no pleasure in them;"
+        },
+        {
+          "v": 2,
+          "web": "Before the sun, the light, the moon, and the stars are darkened, and the clouds return after the rain;",
+          "kjv": "While the sun, or the light, or the moon, or the stars, be not darkened, nor the clouds return after the rain:"
+        },
+        {
+          "v": 3,
+          "web": "in the day when the keepers of the house shall tremble, and the strong men shall bow themselves, and the grinders cease because they are few, and those who look out of the windows are darkened,",
+          "kjv": "In the day when the keepers of the house shall tremble, and the strong men shall bow themselves, and the grinders cease because they are few, and those that look out of the windows be darkened,"
+        },
+        {
+          "v": 4,
+          "web": "and the doors shall be shut in the street; when the sound of the grinding is low, and one shall rise up at the voice of a bird, and all the daughters of music shall be brought low;",
+          "kjv": "And the doors shall be shut in the streets, when the sound of the grinding is low, and he shall rise up at the voice of the bird, and all the daughters of musick shall be brought low;"
+        },
+        {
+          "v": 5,
+          "web": "yes, they shall be afraid of heights, and terrors will be on the way; and the almond tree shall blossom, and the grasshopper shall be a burden, and desire shall fail; because man goes to his everlasting home, and the mourners go about the streets:",
+          "kjv": "Also when they shall be afraid of that which is high, and fears shall be in the way, and the almond tree shall flourish, and the grasshopper shall be a burden, and desire shall fail: because man goeth to his long home, and the mourners go about the streets:"
+        },
+        {
+          "v": 6,
+          "web": "before the silver cord is severed, or the golden bowl is broken, or the pitcher is broken at the spring, or the wheel broken at the cistern,",
+          "kjv": "Or ever the silver cord be loosed, or the golden bowl be broken, or the pitcher be broken at the fountain, or the wheel broken at the cistern."
+        },
+        {
+          "v": 7,
+          "web": "and the dust returns to the earth as it was, and the spirit returns to God who gave it.",
+          "kjv": "Then shall the dust return to the earth as it was: and the spirit shall return unto God who gave it."
+        },
+        {
+          "v": 8,
+          "web": "“Vanity of vanities,” says the Preacher. “All is vanity!”",
+          "kjv": "Vanity of vanities, saith the preacher; all is vanity."
+        },
+        {
+          "v": 9,
+          "web": "Further, because the Preacher was wise, he still taught the people knowledge. Yes, he pondered, sought out, and set in order many proverbs.",
+          "kjv": "And moreover, because the preacher was wise, he still taught the people knowledge; yea, he gave good heed, and sought out, and set in order many proverbs."
+        },
+        {
+          "v": 10,
+          "web": "The Preacher sought to find out acceptable words, and that which was written blamelessly, words of truth.",
+          "kjv": "The preacher sought to find out acceptable words: and that which was written was upright, even words of truth."
+        },
+        {
+          "v": 11,
+          "web": "The words of the wise are like goads; and like nails well fastened are words from the masters of assemblies, which are given from one shepherd.",
+          "kjv": "The words of the wise are as goads, and as nails fastened by the masters of assemblies, which are given from one shepherd."
+        },
+        {
+          "v": 12,
+          "web": "Furthermore, my son, be admonished: of making many books there is no end; and much study is a weariness of the flesh.",
+          "kjv": "And further, by these, my son, be admonished: of making many books there is no end; and much study is a weariness of the flesh."
+        },
+        {
+          "v": 13,
+          "web": "This is the end of the matter. All has been heard. Fear God, and keep his commandments; for this is the whole duty of man.",
+          "kjv": "Let us hear the conclusion of the whole matter: Fear God, and keep his commandments: for this is the whole duty of man."
+        },
+        {
+          "v": 14,
+          "web": "For God will bring every work into judgment, with every hidden thing, whether it is good, or whether it is evil.",
+          "kjv": "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil."
+        }
+      ]
+    }
+  ]
+}

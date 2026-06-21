@@ -1,0 +1,477 @@
+{
+  "code": "1TH",
+  "name": "1 Thessalonians",
+  "testament": "NT",
+  "chapters": [
+    {
+      "chapter": 1,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Paul, Silvanus, and Timothy, to the assembly of the Thessalonians in God the Father and the Lord Jesus Christ: Grace to you and peace from God our Father and the Lord Jesus Christ.",
+          "kjv": "Paul, and Silvanus, and Timotheus, unto the church of the Thessalonians which is in God the Father and in the Lord Jesus Christ: Grace be unto you, and peace, from God our Father, and the Lord Jesus Christ."
+        },
+        {
+          "v": 2,
+          "web": "We always give thanks to God for all of you, mentioning you in our prayers,",
+          "kjv": "We give thanks to God always for you all, making mention of you in our prayers;"
+        },
+        {
+          "v": 3,
+          "web": "remembering without ceasing your work of faith and labor of love and patience of hope in our Lord Jesus Christ, before our God and Father.",
+          "kjv": "Remembering without ceasing your work of faith, and labour of love, and patience of hope in our Lord Jesus Christ, in the sight of God and our Father;"
+        },
+        {
+          "v": 4,
+          "web": "We know, brothers loved by God, that you are chosen,",
+          "kjv": "Knowing, brethren beloved, your election of God."
+        },
+        {
+          "v": 5,
+          "web": "and that our Good News came to you not in word only, but also in power, and in the Holy Spirit, and with much assurance. You know what kind of men we showed ourselves to be among you for your sake.",
+          "kjv": "For our gospel came not unto you in word only, but also in power, and in the Holy Ghost, and in much assurance; as ye know what manner of men we were among you for your sake."
+        },
+        {
+          "v": 6,
+          "web": "You became imitators of us, and of the Lord, having received the word in much affliction, with joy of the Holy Spirit,",
+          "kjv": "And ye became followers of us, and of the Lord, having received the word in much affliction, with joy of the Holy Ghost:"
+        },
+        {
+          "v": 7,
+          "web": "so that you became an example to all who believe in Macedonia and in Achaia.",
+          "kjv": "So that ye were ensamples to all that believe in Macedonia and Achaia."
+        },
+        {
+          "v": 8,
+          "web": "For from you the word of the Lord has been declared, not only in Macedonia and Achaia, but also in every place your faith toward God has gone out; so that we need not to say anything.",
+          "kjv": "For from you sounded out the word of the Lord not only in Macedonia and Achaia, but also in every place your faith to God-ward is spread abroad; so that we need not to speak any thing."
+        },
+        {
+          "v": 9,
+          "web": "For they themselves report concerning us what kind of a reception we had from you; and how you turned to God from idols, to serve a living and true God,",
+          "kjv": "For they themselves shew of us what manner of entering in we had unto you, and how ye turned to God from idols to serve the living and true God;"
+        },
+        {
+          "v": 10,
+          "web": "and to wait for his Son from heaven, whom he raised from the dead—Jesus, who delivers us from the wrath to come.",
+          "kjv": "And to wait for his Son from heaven, whom he raised from the dead, even Jesus, which delivered us from the wrath to come."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For you yourselves know, brothers, our visit to you wasn’t in vain,",
+          "kjv": "For yourselves, brethren, know our entrance in unto you, that it was not in vain:"
+        },
+        {
+          "v": 2,
+          "web": "but having suffered before and been shamefully treated, as you know, at Philippi, we grew bold in our God to tell you the Good News of God in much conflict.",
+          "kjv": "But even after that we had suffered before, and were shamefully entreated, as ye know, at Philippi, we were bold in our God to speak unto you the gospel of God with much contention."
+        },
+        {
+          "v": 3,
+          "web": "For our exhortation is not of error, nor of uncleanness, nor in deception.",
+          "kjv": "For our exhortation was not of deceit, nor of uncleanness, nor in guile:"
+        },
+        {
+          "v": 4,
+          "web": "But even as we have been approved by God to be entrusted with the Good News, so we speak; not as pleasing men, but God, who tests our hearts.",
+          "kjv": "But as we were allowed of God to be put in trust with the gospel, even so we speak; not as pleasing men, but God, which trieth our hearts."
+        },
+        {
+          "v": 5,
+          "web": "For neither were we at any time found using words of flattery, as you know, nor a cloak of covetousness (God is witness),",
+          "kjv": "For neither at any time used we flattering words, as ye know, nor a cloke of covetousness; God is witness:"
+        },
+        {
+          "v": 6,
+          "web": "nor seeking glory from men (neither from you nor from others), when we might have claimed authority as apostles of Christ.",
+          "kjv": "Nor of men sought we glory, neither of you, nor yet of others, when we might have been burdensome, as the apostles of Christ."
+        },
+        {
+          "v": 7,
+          "web": "But we were gentle among you, like a nursing mother cherishes her own children.",
+          "kjv": "But we were gentle among you, even as a nurse cherisheth her children:"
+        },
+        {
+          "v": 8,
+          "web": "Even so, affectionately longing for you, we were well pleased to impart to you, not the Good News of God only, but also our own souls, because you had become very dear to us.",
+          "kjv": "So being affectionately desirous of you, we were willing to have imparted unto you, not the gospel of God only, but also our own souls, because ye were dear unto us."
+        },
+        {
+          "v": 9,
+          "web": "For you remember, brothers, our labor and travail; for working night and day, that we might not burden any of you, we preached to you the Good News of God.",
+          "kjv": "For ye remember, brethren, our labour and travail: for labouring night and day, because we would not be chargeable unto any of you, we preached unto you the gospel of God."
+        },
+        {
+          "v": 10,
+          "web": "You are witnesses with God, how holy, righteously, and blamelessly we behaved ourselves toward you who believe.",
+          "kjv": "Ye are witnesses, and God also, how holily and justly and unblameably we behaved ourselves among you that believe:"
+        },
+        {
+          "v": 11,
+          "web": "As you know, we exhorted, comforted, and implored every one of you, as a father does his own children,",
+          "kjv": "As ye know how we exhorted and comforted and charged every one of you, as a father doth his children,"
+        },
+        {
+          "v": 12,
+          "web": "to the end that you should walk worthily of God, who calls you into his own Kingdom and glory.",
+          "kjv": "That ye would walk worthy of God, who hath called you unto his kingdom and glory."
+        },
+        {
+          "v": 13,
+          "web": "For this cause we also thank God without ceasing, that, when you received from us the word of the message of God, you accepted it not as the word of men, but, as it is in truth, the word of God, which also works in you who believe.",
+          "kjv": "For this cause also thank we God without ceasing, because, when ye received the word of God which ye heard of us, ye received it not as the word of men, but as it is in truth, the word of God, which effectually worketh also in you that believe."
+        },
+        {
+          "v": 14,
+          "web": "For you, brothers, became imitators of the assemblies of God which are in Judea in Christ Jesus; for you also suffered the same things from your own countrymen, even as they did from the Jews;",
+          "kjv": "For ye, brethren, became followers of the churches of God which in Judea are in Christ Jesus: for ye also have suffered like things of your own countrymen, even as they have of the Jews:"
+        },
+        {
+          "v": 15,
+          "web": "who killed both the Lord Jesus and their own prophets, and drove us out, and didn’t please God, and are contrary to all men;",
+          "kjv": "Who both killed the Lord Jesus, and their own prophets, and have persecuted us; and they please not God, and are contrary to all men:"
+        },
+        {
+          "v": 16,
+          "web": "forbidding us to speak to the Gentiles that they may be saved; to fill up their sins always. But wrath has come on them to the uttermost.",
+          "kjv": "Forbidding us to speak to the Gentiles that they might be saved, to fill up their sins alway: for the wrath is come upon them to the uttermost."
+        },
+        {
+          "v": 17,
+          "web": "But we, brothers, being bereaved of you for a short season, in presence, not in heart, tried even harder to see your face with great desire,",
+          "kjv": "But we, brethren, being taken from you for a short time in presence, not in heart, endeavoured the more abundantly to see your face with great desire."
+        },
+        {
+          "v": 18,
+          "web": "because we wanted to come to you—indeed, I, Paul, once and again—but Satan hindered us.",
+          "kjv": "Wherefore we would have come unto you, even I Paul, once and again; but Satan hindered us."
+        },
+        {
+          "v": 19,
+          "web": "For what is our hope, or joy, or crown of rejoicing? Isn’t it even you, before our Lord Jesus at his coming?",
+          "kjv": "For what is our hope, or joy, or crown of rejoicing? Are not even ye in the presence of our Lord Jesus Christ at his coming?"
+        },
+        {
+          "v": 20,
+          "web": "For you are our glory and our joy.",
+          "kjv": "For ye are our glory and joy."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Therefore when we couldn’t stand it any longer, we thought it good to be left behind at Athens alone,",
+          "kjv": "Wherefore when we could no longer forbear, we thought it good to be left at Athens alone;"
+        },
+        {
+          "v": 2,
+          "web": "and sent Timothy, our brother and God’s servant in the Good News of Christ, to establish you, and to comfort you concerning your faith;",
+          "kjv": "And sent Timotheus, our brother, and minister of God, and our fellowlabourer in the gospel of Christ, to establish you, and to comfort you concerning your faith:"
+        },
+        {
+          "v": 3,
+          "web": "that no one be moved by these afflictions. For you know that we are appointed to this task.",
+          "kjv": "That no man should be moved by these afflictions: for yourselves know that we are appointed thereunto."
+        },
+        {
+          "v": 4,
+          "web": "For most certainly, when we were with you, we told you beforehand that we are to suffer affliction, even as it happened, and you know.",
+          "kjv": "For verily, when we were with you, we told you before that we should suffer tribulation; even as it came to pass, and ye know."
+        },
+        {
+          "v": 5,
+          "web": "For this cause I also, when I couldn’t stand it any longer, sent that I might know your faith, for fear that by any means the tempter had tempted you, and our labor would have been in vain.",
+          "kjv": "For this cause, when I could no longer forbear, I sent to know your faith, lest by some means the tempter have tempted you, and our labour be in vain."
+        },
+        {
+          "v": 6,
+          "web": "But when Timothy came just now to us from you, and brought us glad news of your faith and love, and that you have good memories of us always, longing to see us, even as we also long to see you;",
+          "kjv": "But now when Timotheus came from you unto us, and brought us good tidings of your faith and charity, and that ye have good remembrance of us always, desiring greatly to see us, as we also to see you:"
+        },
+        {
+          "v": 7,
+          "web": "for this cause, brothers, we were comforted over you in all our distress and affliction through your faith.",
+          "kjv": "Therefore, brethren, we were comforted over you in all our affliction and distress by your faith:"
+        },
+        {
+          "v": 8,
+          "web": "For now we live, if you stand fast in the Lord.",
+          "kjv": "For now we live, if ye stand fast in the Lord."
+        },
+        {
+          "v": 9,
+          "web": "For what thanksgiving can we render again to God for you, for all the joy with which we rejoice for your sakes before our God;",
+          "kjv": "For what thanks can we render to God again for you, for all the joy wherewith we joy for your sakes before our God;"
+        },
+        {
+          "v": 10,
+          "web": "night and day praying exceedingly that we may see your face, and may perfect that which is lacking in your faith?",
+          "kjv": "Night and day praying exceedingly that we might see your face, and might perfect that which is lacking in your faith?"
+        },
+        {
+          "v": 11,
+          "web": "Now may our God and Father himself, and our Lord Jesus Christ, direct our way to you;",
+          "kjv": "Now God himself and our Father, and our Lord Jesus Christ, direct our way unto you."
+        },
+        {
+          "v": 12,
+          "web": "and the Lord make you to increase and abound in love one toward another, and toward all men, even as we also do toward you,",
+          "kjv": "And the Lord make you to increase and abound in love one toward another, and toward all men, even as we do toward you:"
+        },
+        {
+          "v": 13,
+          "web": "to the end he may establish your hearts blameless in holiness before our God and Father, at the coming of our Lord Jesus with all his saints.",
+          "kjv": "To the end he may stablish your hearts unblameable in holiness before God, even our Father, at the coming of our Lord Jesus Christ with all his saints."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Finally then, brothers, we beg and exhort you in the Lord Jesus, that as you received from us how you ought to walk and to please God, that you abound more and more.",
+          "kjv": "Furthermore then we beseech you, brethren, and exhort you by the Lord Jesus, that as ye have received of us how ye ought to walk and to please God, so ye would abound more and more."
+        },
+        {
+          "v": 2,
+          "web": "For you know what instructions we gave you through the Lord Jesus.",
+          "kjv": "For ye know what commandments we gave you by the Lord Jesus."
+        },
+        {
+          "v": 3,
+          "web": "For this is the will of God: your sanctification, that you abstain from sexual immorality,",
+          "kjv": "For this is the will of God, even your sanctification, that ye should abstain from fornication:"
+        },
+        {
+          "v": 4,
+          "web": "that each one of you know how to possess himself of his own vessel in sanctification and honor,",
+          "kjv": "That every one of you should know how to possess his vessel in sanctification and honour;"
+        },
+        {
+          "v": 5,
+          "web": "not in the passion of lust, even as the Gentiles who don’t know God;",
+          "kjv": "Not in the lust of concupiscence, even as the Gentiles which know not God:"
+        },
+        {
+          "v": 6,
+          "web": "that no one should take advantage of and wrong a brother or sister in this matter; because the Lord is an avenger in all these things, as also we forewarned you and testified.",
+          "kjv": "That no man go beyond and defraud his brother in any matter: because that the Lord is the avenger of all such, as we also have forewarned you and testified."
+        },
+        {
+          "v": 7,
+          "web": "For God called us not for uncleanness, but in sanctification.",
+          "kjv": "For God hath not called us unto uncleanness, but unto holiness."
+        },
+        {
+          "v": 8,
+          "web": "Therefore he who rejects this doesn’t reject man, but God, who has also given his Holy Spirit to you.",
+          "kjv": "He therefore that despiseth, despiseth not man, but God, who hath also given unto us his holy Spirit."
+        },
+        {
+          "v": 9,
+          "web": "But concerning brotherly love, you have no need that one write to you. For you yourselves are taught by God to love one another,",
+          "kjv": "But as touching brotherly love ye need not that I write unto you: for ye yourselves are taught of God to love one another."
+        },
+        {
+          "v": 10,
+          "web": "for indeed you do it toward all the brothers who are in all Macedonia. But we exhort you, brothers, that you abound more and more;",
+          "kjv": "And indeed ye do it toward all the brethren which are in all Macedonia: but we beseech you, brethren, that ye increase more and more;"
+        },
+        {
+          "v": 11,
+          "web": "and that you make it your ambition to lead a quiet life, and to do your own business, and to work with your own hands, even as we instructed you;",
+          "kjv": "And that ye study to be quiet, and to do your own business, and to work with your own hands, as we commanded you;"
+        },
+        {
+          "v": 12,
+          "web": "that you may walk properly toward those who are outside, and may have need of nothing.",
+          "kjv": "That ye may walk honestly toward them that are without, and that ye may have lack of nothing."
+        },
+        {
+          "v": 13,
+          "web": "But we don’t want you to be ignorant, brothers, concerning those who have fallen asleep, so that you don’t grieve like the rest, who have no hope.",
+          "kjv": "But I would not have you to be ignorant, brethren, concerning them which are asleep, that ye sorrow not, even as others which have no hope."
+        },
+        {
+          "v": 14,
+          "web": "For if we believe that Jesus died and rose again, even so God will bring with him those who have fallen asleep in Jesus.",
+          "kjv": "For if we believe that Jesus died and rose again, even so them also which sleep in Jesus will God bring with him."
+        },
+        {
+          "v": 15,
+          "web": "For this we tell you by the word of the Lord, that we who are alive, who are left to the coming of the Lord, will in no way precede those who have fallen asleep.",
+          "kjv": "For this we say unto you by the word of the Lord, that we which are alive and remain unto the coming of the Lord shall not prevent them which are asleep."
+        },
+        {
+          "v": 16,
+          "web": "For the Lord himself will descend from heaven with a shout, with the voice of the archangel, and with God’s trumpet. The dead in Christ will rise first,",
+          "kjv": "For the Lord himself shall descend from heaven with a shout, with the voice of the archangel, and with the trump of God: and the dead in Christ shall rise first:"
+        },
+        {
+          "v": 17,
+          "web": "then we who are alive, who are left, will be caught up together with them in the clouds, to meet the Lord in the air. So we will be with the Lord forever.",
+          "kjv": "Then we which are alive and remain shall be caught up together with them in the clouds, to meet the Lord in the air: and so shall we ever be with the Lord."
+        },
+        {
+          "v": 18,
+          "web": "Therefore comfort one another with these words.",
+          "kjv": "Wherefore comfort one another with these words."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "verses": [
+        {
+          "v": 1,
+          "web": "But concerning the times and the seasons, brothers, you have no need that anything be written to you.",
+          "kjv": "But of the times and the seasons, brethren, ye have no need that I write unto you."
+        },
+        {
+          "v": 2,
+          "web": "For you yourselves know well that the day of the Lord comes like a thief in the night.",
+          "kjv": "For yourselves know perfectly that the day of the Lord so cometh as a thief in the night."
+        },
+        {
+          "v": 3,
+          "web": "For when they are saying, “Peace and safety,” then sudden destruction will come on them, like birth pains on a pregnant woman; and they will in no way escape.",
+          "kjv": "For when they shall say, Peace and safety; then sudden destruction cometh upon them, as travail upon a woman with child; and they shall not escape."
+        },
+        {
+          "v": 4,
+          "web": "But you, brothers, aren’t in darkness, that the day should overtake you like a thief.",
+          "kjv": "But ye, brethren, are not in darkness, that that day should overtake you as a thief."
+        },
+        {
+          "v": 5,
+          "web": "You are all children of light, and children of the day. We don’t belong to the night, nor to darkness,",
+          "kjv": "Ye are all the children of light, and the children of the day: we are not of the night, nor of darkness."
+        },
+        {
+          "v": 6,
+          "web": "so then let’s not sleep, as the rest do, but let’s watch and be sober.",
+          "kjv": "Therefore let us not sleep, as do others; but let us watch and be sober."
+        },
+        {
+          "v": 7,
+          "web": "For those who sleep, sleep in the night, and those who are drunk are drunk in the night.",
+          "kjv": "For they that sleep sleep in the night; and they that be drunken are drunken in the night."
+        },
+        {
+          "v": 8,
+          "web": "But let us, since we belong to the day, be sober, putting on the breastplate of faith and love, and, for a helmet, the hope of salvation.",
+          "kjv": "But let us, who are of the day, be sober, putting on the breastplate of faith and love; and for an helmet, the hope of salvation."
+        },
+        {
+          "v": 9,
+          "web": "For God didn’t appoint us to wrath, but to the obtaining of salvation through our Lord Jesus Christ,",
+          "kjv": "For God hath not appointed us to wrath, but to obtain salvation by our Lord Jesus Christ,"
+        },
+        {
+          "v": 10,
+          "web": "who died for us, that, whether we wake or sleep, we should live together with him.",
+          "kjv": "Who died for us, that, whether we wake or sleep, we should live together with him."
+        },
+        {
+          "v": 11,
+          "web": "Therefore exhort one another, and build each other up, even as you also do.",
+          "kjv": "Wherefore comfort yourselves together, and edify one another, even as also ye do."
+        },
+        {
+          "v": 12,
+          "web": "But we beg you, brothers, to know those who labor among you, and are over you in the Lord, and admonish you,",
+          "kjv": "And we beseech you, brethren, to know them which labour among you, and are over you in the Lord, and admonish you;"
+        },
+        {
+          "v": 13,
+          "web": "and to respect and honor them in love for their work’s sake. Be at peace among yourselves.",
+          "kjv": "And to esteem them very highly in love for their work’s sake. And be at peace among yourselves."
+        },
+        {
+          "v": 14,
+          "web": "We exhort you, brothers, admonish the disorderly, encourage the faint-hearted, support the weak, be patient toward all.",
+          "kjv": "Now we exhort you, brethren, warn them that are unruly, comfort the feebleminded, support the weak, be patient toward all men."
+        },
+        {
+          "v": 15,
+          "web": "See that no one returns evil for evil to anyone, but always follow after that which is good, for one another, and for all.",
+          "kjv": "See that none render evil for evil unto any man; but ever follow that which is good, both among yourselves, and to all men."
+        },
+        {
+          "v": 16,
+          "web": "Rejoice always.",
+          "kjv": "Rejoice evermore."
+        },
+        {
+          "v": 17,
+          "web": "Pray without ceasing.",
+          "kjv": "Pray without ceasing."
+        },
+        {
+          "v": 18,
+          "web": "In everything give thanks, for this is the will of God in Christ Jesus toward you.",
+          "kjv": "In every thing give thanks: for this is the will of God in Christ Jesus concerning you."
+        },
+        {
+          "v": 19,
+          "web": "Don’t quench the Spirit.",
+          "kjv": "Quench not the Spirit."
+        },
+        {
+          "v": 20,
+          "web": "Don’t despise prophesies.",
+          "kjv": "Despise not prophesyings."
+        },
+        {
+          "v": 21,
+          "web": "Test all things, and hold firmly that which is good.",
+          "kjv": "Prove all things; hold fast that which is good."
+        },
+        {
+          "v": 22,
+          "web": "Abstain from every form of evil.",
+          "kjv": "Abstain from all appearance of evil."
+        },
+        {
+          "v": 23,
+          "web": "May the God of peace himself sanctify you completely. May your whole spirit, soul, and body be preserved blameless at the coming of our Lord Jesus Christ.",
+          "kjv": "And the very God of peace sanctify you wholly; and I pray God your whole spirit and soul and body be preserved blameless unto the coming of our Lord Jesus Christ."
+        },
+        {
+          "v": 24,
+          "web": "He who calls you is faithful, who will also do it.",
+          "kjv": "Faithful is he that calleth you, who also will do it."
+        },
+        {
+          "v": 25,
+          "web": "Brothers, pray for us.",
+          "kjv": "Brethren, pray for us."
+        },
+        {
+          "v": 26,
+          "web": "Greet all the brothers with a holy kiss.",
+          "kjv": "Greet all the brethren with an holy kiss."
+        },
+        {
+          "v": 27,
+          "web": "I solemnly command you by the Lord that this letter be read to all the holy brothers.",
+          "kjv": "I charge you by the Lord that this epistle be read unto all the holy brethren."
+        },
+        {
+          "v": 28,
+          "web": "The grace of our Lord Jesus Christ be with you. Amen.",
+          "kjv": "The grace of our Lord Jesus Christ be with you. Amen. The first epistle unto the Thessalonians was written from Athens."
+        }
+      ]
+    }
+  ]
+}

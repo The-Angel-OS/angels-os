@@ -69,3 +69,4 @@ test-results/
 # Local-only scripts + personal transcripts (never commit to the public repo)
 scripts/_local/
 docs/transcripts/
+.bible-tmp/

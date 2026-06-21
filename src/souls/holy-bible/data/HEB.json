@@ -1,0 +1,1587 @@
+{
+  "code": "HEB",
+  "name": "Hebrews",
+  "testament": "NT",
+  "chapters": [
+    {
+      "chapter": 1,
+      "verses": [
+        {
+          "v": 1,
+          "web": "God, having in the past spoken to the fathers through the prophets at many times and in various ways,",
+          "kjv": "God, who at sundry times and in divers manners spake in time past unto the fathers by the prophets,"
+        },
+        {
+          "v": 2,
+          "web": "has at the end of these days spoken to us by his Son, whom he appointed heir of all things, through whom also he made the worlds.",
+          "kjv": "Hath in these last days spoken unto us by his Son, whom he hath appointed heir of all things, by whom also he made the worlds;"
+        },
+        {
+          "v": 3,
+          "web": "His Son is the radiance of his glory, the very image of his substance, and upholding all things by the word of his power, when he had by himself purified us of our sins, sat down on the right hand of the Majesty on high;",
+          "kjv": "Who being the brightness of his glory, and the express image of his person, and upholding all things by the word of his power, when he had by himself purged our sins, sat down on the right hand of the Majesty on high;"
+        },
+        {
+          "v": 4,
+          "web": "having become so much better than the angels, as he has inherited a more excellent name than they have.",
+          "kjv": "Being made so much better than the angels, as he hath by inheritance obtained a more excellent name than they."
+        },
+        {
+          "v": 5,
+          "web": "For to which of the angels did he say at any time, “You are my Son. Today have I become your father?” and again, “I will be to him a Father, and he will be to me a Son?”",
+          "kjv": "For unto which of the angels said he at any time, Thou art my Son, this day have I begotten thee? And again, I will be to him a Father, and he shall be to me a Son?"
+        },
+        {
+          "v": 6,
+          "web": "When he again brings in the firstborn into the world he says, “Let all the angels of God worship him.”",
+          "kjv": "And again, when he bringeth in the firstbegotten into the world, he saith, And let all the angels of God worship him."
+        },
+        {
+          "v": 7,
+          "web": "Of the angels he says, “Who makes his angels winds, and his servants a flame of fire.”",
+          "kjv": "And of the angels he saith, Who maketh his angels spirits, and his ministers a flame of fire."
+        },
+        {
+          "v": 8,
+          "web": "But of the Son he says, “Your throne, O God, is forever and ever. The scepter of uprightness is the scepter of your Kingdom.",
+          "kjv": "But unto the Son he saith, Thy throne, O God, is for ever and ever: a sceptre of righteousness is the sceptre of thy kingdom."
+        },
+        {
+          "v": 9,
+          "web": "You have loved righteousness, and hated iniquity; therefore God, your God, has anointed you with the oil of gladness above your fellows.”",
+          "kjv": "Thou hast loved righteousness, and hated iniquity; therefore God, even thy God, hath anointed thee with the oil of gladness above thy fellows."
+        },
+        {
+          "v": 10,
+          "web": "And, “You, Lord, in the beginning, laid the foundation of the earth. The heavens are the works of your hands.",
+          "kjv": "And, Thou, Lord, in the beginning hast laid the foundation of the earth; and the heavens are the works of thine hands:"
+        },
+        {
+          "v": 11,
+          "web": "They will perish, but you continue. They all will grow old like a garment does.",
+          "kjv": "They shall perish; but thou remainest; and they all shall wax old as doth a garment;"
+        },
+        {
+          "v": 12,
+          "web": "You will roll them up like a mantle, and they will be changed; but you are the same. Your years will not fail.”",
+          "kjv": "And as a vesture shalt thou fold them up, and they shall be changed: but thou art the same, and thy years shall not fail."
+        },
+        {
+          "v": 13,
+          "web": "But which of the angels has he told at any time, “Sit at my right hand, until I make your enemies the footstool of your feet?”",
+          "kjv": "But to which of the angels said he at any time, Sit on my right hand, until I make thine enemies thy footstool?"
+        },
+        {
+          "v": 14,
+          "web": "Aren’t they all serving spirits, sent out to do service for the sake of those who will inherit salvation?",
+          "kjv": "Are they not all ministering spirits, sent forth to minister for them who shall be heirs of salvation?"
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Therefore we ought to pay greater attention to the things that were heard, lest perhaps we drift away.",
+          "kjv": "Therefore we ought to give the more earnest heed to the things which we have heard, lest at any time we should let them slip."
+        },
+        {
+          "v": 2,
+          "web": "For if the word spoken through angels proved steadfast, and every transgression and disobedience received a just recompense;",
+          "kjv": "For if the word spoken by angels was stedfast, and every transgression and disobedience received a just recompence of reward;"
+        },
+        {
+          "v": 3,
+          "web": "how will we escape if we neglect so great a salvation—which at the first having been spoken through the Lord, was confirmed to us by those who heard;",
+          "kjv": "How shall we escape, if we neglect so great salvation; which at the first began to be spoken by the Lord, and was confirmed unto us by them that heard him;"
+        },
+        {
+          "v": 4,
+          "web": "God also testifying with them, both by signs and wonders, by various works of power, and by gifts of the Holy Spirit, according to his own will?",
+          "kjv": "God also bearing them witness, both with signs and wonders, and with divers miracles, and gifts of the Holy Ghost, according to his own will?"
+        },
+        {
+          "v": 5,
+          "web": "For he didn’t subject the world to come, of which we speak, to angels.",
+          "kjv": "For unto the angels hath he not put in subjection the world to come, whereof we speak."
+        },
+        {
+          "v": 6,
+          "web": "But one has somewhere testified, saying, “What is man, that you think of him? Or the son of man, that you care for him?",
+          "kjv": "But one in a certain place testified, saying, What is man, that thou art mindful of him? or the son of man, that thou visitest him?"
+        },
+        {
+          "v": 7,
+          "web": "You made him a little lower than the angels. You crowned him with glory and honor.",
+          "kjv": "Thou madest him a little lower than the angels; thou crownedst him with glory and honour, and didst set him over the works of thy hands:"
+        },
+        {
+          "v": 8,
+          "web": "You have put all things in subjection under his feet.” For in that he subjected all things to him, he left nothing that is not subject to him. But now we don’t see all things subjected to him, yet.",
+          "kjv": "Thou hast put all things in subjection under his feet. For in that he put all in subjection under him, he left nothing that is not put under him. But now we see not yet all things put under him."
+        },
+        {
+          "v": 9,
+          "web": "But we see him who has been made a little lower than the angels, Jesus, because of the suffering of death crowned with glory and honor, that by the grace of God he should taste of death for everyone.",
+          "kjv": "But we see Jesus, who was made a little lower than the angels for the suffering of death, crowned with glory and honour; that he by the grace of God should taste death for every man."
+        },
+        {
+          "v": 10,
+          "web": "For it became him, for whom are all things, and through whom are all things, in bringing many children to glory, to make the author of their salvation perfect through sufferings.",
+          "kjv": "For it became him, for whom are all things, and by whom are all things, in bringing many sons unto glory, to make the captain of their salvation perfect through sufferings."
+        },
+        {
+          "v": 11,
+          "web": "For both he who sanctifies and those who are sanctified are all from one, for which cause he is not ashamed to call them brothers,",
+          "kjv": "For both he that sanctifieth and they who are sanctified are all of one: for which cause he is not ashamed to call them brethren,"
+        },
+        {
+          "v": 12,
+          "web": "saying, “I will declare your name to my brothers. In the midst of the congregation I will sing your praise.”",
+          "kjv": "Saying, I will declare thy name unto my brethren, in the midst of the church will I sing praise unto thee."
+        },
+        {
+          "v": 13,
+          "web": "Again, “I will put my trust in him.” Again, “Behold, here I am with the children whom God has given me.”",
+          "kjv": "And again, I will put my trust in him. And again, Behold I and the children which God hath given me."
+        },
+        {
+          "v": 14,
+          "web": "Since then the children have shared in flesh and blood, he also himself in the same way partook of the same, that through death he might bring to nothing him who had the power of death, that is, the devil,",
+          "kjv": "Forasmuch then as the children are partakers of flesh and blood, he also himself likewise took part of the same; that through death he might destroy him that had the power of death, that is, the devil;"
+        },
+        {
+          "v": 15,
+          "web": "and might deliver all of them who through fear of death were all their lifetime subject to bondage.",
+          "kjv": "And deliver them who through fear of death were all their lifetime subject to bondage."
+        },
+        {
+          "v": 16,
+          "web": "For most certainly, he doesn’t give help to angels, but he gives help to the seed of Abraham.",
+          "kjv": "For verily he took not on him the nature of angels; but he took on him the seed of Abraham."
+        },
+        {
+          "v": 17,
+          "web": "Therefore he was obligated in all things to be made like his brothers, that he might become a merciful and faithful high priest in things pertaining to God, to make atonement for the sins of the people.",
+          "kjv": "Wherefore in all things it behoved him to be made like unto his brethren, that he might be a merciful and faithful high priest in things pertaining to God, to make reconciliation for the sins of the people."
+        },
+        {
+          "v": 18,
+          "web": "For in that he himself has suffered being tempted, he is able to help those who are tempted.",
+          "kjv": "For in that he himself hath suffered being tempted, he is able to succour them that are tempted."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Therefore, holy brothers, partakers of a heavenly calling, consider the Apostle and High Priest of our confession, Jesus;",
+          "kjv": "Wherefore, holy brethren, partakers of the heavenly calling, consider the Apostle and High Priest of our profession, Christ Jesus;"
+        },
+        {
+          "v": 2,
+          "web": "who was faithful to him who appointed him, as also was Moses in all his house.",
+          "kjv": "Who was faithful to him that appointed him, as also Moses was faithful in all his house."
+        },
+        {
+          "v": 3,
+          "web": "For he has been counted worthy of more glory than Moses, because he who built the house has more honor than the house.",
+          "kjv": "For this man was counted worthy of more glory than Moses, inasmuch as he who hath builded the house hath more honour than the house."
+        },
+        {
+          "v": 4,
+          "web": "For every house is built by someone; but he who built all things is God.",
+          "kjv": "For every house is builded by some man; but he that built all things is God."
+        },
+        {
+          "v": 5,
+          "web": "Moses indeed was faithful in all his house as a servant, for a testimony of those things which were afterward to be spoken,",
+          "kjv": "And Moses verily was faithful in all his house, as a servant, for a testimony of those things which were to be spoken after;"
+        },
+        {
+          "v": 6,
+          "web": "but Christ is faithful as a Son over his house; whose house we are, if we hold fast our confidence and the glorying of our hope firm to the end.",
+          "kjv": "But Christ as a son over his own house; whose house are we, if we hold fast the confidence and the rejoicing of the hope firm unto the end."
+        },
+        {
+          "v": 7,
+          "web": "Therefore, even as the Holy Spirit says, “Today if you will hear his voice,",
+          "kjv": "Wherefore (as the Holy Ghost saith, To day if ye will hear his voice,"
+        },
+        {
+          "v": 8,
+          "web": "don’t harden your hearts, as in the rebellion, like as in the day of the trial in the wilderness,",
+          "kjv": "Harden not your hearts, as in the provocation, in the day of temptation in the wilderness:"
+        },
+        {
+          "v": 9,
+          "web": "where your fathers tested me by proving me, and saw my works for forty years.",
+          "kjv": "When your fathers tempted me, proved me, and saw my works forty years."
+        },
+        {
+          "v": 10,
+          "web": "Therefore I was displeased with that generation, and said, ‘They always err in their heart, but they didn’t know my ways;’",
+          "kjv": "Wherefore I was grieved with that generation, and said, They do alway err in their heart; and they have not known my ways."
+        },
+        {
+          "v": 11,
+          "web": "as I swore in my wrath, ‘They will not enter into my rest.’”",
+          "kjv": "So I sware in my wrath, They shall not enter into my rest.)"
+        },
+        {
+          "v": 12,
+          "web": "Beware, brothers, lest perhaps there be in any one of you an evil heart of unbelief, in falling away from the living God;",
+          "kjv": "Take heed, brethren, lest there be in any of you an evil heart of unbelief, in departing from the living God."
+        },
+        {
+          "v": 13,
+          "web": "but exhort one another day by day, so long as it is called “today”; lest any one of you be hardened by the deceitfulness of sin.",
+          "kjv": "But exhort one another daily, while it is called To day; lest any of you be hardened through the deceitfulness of sin."
+        },
+        {
+          "v": 14,
+          "web": "For we have become partakers of Christ, if we hold fast the beginning of our confidence firm to the end:",
+          "kjv": "For we are made partakers of Christ, if we hold the beginning of our confidence stedfast unto the end;"
+        },
+        {
+          "v": 15,
+          "web": "while it is said, “Today if you will hear his voice, don’t harden your hearts, as in the rebellion.”",
+          "kjv": "While it is said, To day if ye will hear his voice, harden not your hearts, as in the provocation."
+        },
+        {
+          "v": 16,
+          "web": "For who, when they heard, rebelled? No, didn’t all those who came out of Egypt by Moses?",
+          "kjv": "For some, when they had heard, did provoke: howbeit not all that came out of Egypt by Moses."
+        },
+        {
+          "v": 17,
+          "web": "With whom was he displeased forty years? Wasn’t it with those who sinned, whose bodies fell in the wilderness?",
+          "kjv": "But with whom was he grieved forty years? was it not with them that had sinned, whose carcases fell in the wilderness?"
+        },
+        {
+          "v": 18,
+          "web": "To whom did he swear that they wouldn’t enter into his rest, but to those who were disobedient?",
+          "kjv": "And to whom sware he that they should not enter into his rest, but to them that believed not?"
+        },
+        {
+          "v": 19,
+          "web": "We see that they were not able to enter in because of unbelief.",
+          "kjv": "So we see that they could not enter in because of unbelief."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Let us fear therefore, lest perhaps anyone of you should seem to have come short of a promise of entering into his rest.",
+          "kjv": "Let us therefore fear, lest, a promise being left us of entering into his rest, any of you should seem to come short of it."
+        },
+        {
+          "v": 2,
+          "web": "For indeed we have had good news preached to us, even as they also did, but the word they heard didn’t profit them, because it wasn’t mixed with faith by those who heard.",
+          "kjv": "For unto us was the gospel preached, as well as unto them: but the word preached did not profit them, not being mixed with faith in them that heard it."
+        },
+        {
+          "v": 3,
+          "web": "For we who have believed do enter into that rest, even as he has said, “As I swore in my wrath, they will not enter into my rest”; although the works were finished from the foundation of the world.",
+          "kjv": "For we which have believed do enter into rest, as he said, As I have sworn in my wrath, if they shall enter into my rest: although the works were finished from the foundation of the world."
+        },
+        {
+          "v": 4,
+          "web": "For he has said this somewhere about the seventh day, “God rested on the seventh day from all his works”;",
+          "kjv": "For he spake in a certain place of the seventh day on this wise, And God did rest the seventh day from all his works."
+        },
+        {
+          "v": 5,
+          "web": "and in this place again, “They will not enter into my rest.”",
+          "kjv": "And in this place again, If they shall enter into my rest."
+        },
+        {
+          "v": 6,
+          "web": "Seeing therefore it remains that some should enter therein, and they to whom the good news was before preached failed to enter in because of disobedience,",
+          "kjv": "Seeing therefore it remaineth that some must enter therein, and they to whom it was first preached entered not in because of unbelief:"
+        },
+        {
+          "v": 7,
+          "web": "he again defines a certain day, today, saying through David so long a time afterward (just as has been said), “Today if you will hear his voice, don’t harden your hearts.”",
+          "kjv": "Again, he limiteth a certain day, saying in David, To day, after so long a time; as it is said, To day if ye will hear his voice, harden not your hearts."
+        },
+        {
+          "v": 8,
+          "web": "For if Joshua had given them rest, he would not have spoken afterward of another day.",
+          "kjv": "For if Jesus had given them rest, then would he not afterward have spoken of another day."
+        },
+        {
+          "v": 9,
+          "web": "There remains therefore a Sabbath rest for the people of God.",
+          "kjv": "There remaineth therefore a rest to the people of God."
+        },
+        {
+          "v": 10,
+          "web": "For he who has entered into his rest has himself also rested from his works, as God did from his.",
+          "kjv": "For he that is entered into his rest, he also hath ceased from his own works, as God did from his."
+        },
+        {
+          "v": 11,
+          "web": "Let us therefore give diligence to enter into that rest, lest anyone fall after the same example of disobedience.",
+          "kjv": "Let us labour therefore to enter into that rest, lest any man fall after the same example of unbelief."
+        },
+        {
+          "v": 12,
+          "web": "For the word of God is living, and active, and sharper than any two-edged sword, and piercing even to the dividing of soul and spirit, of both joints and marrow, and is able to discern the thoughts and intentions of the heart.",
+          "kjv": "For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart."
+        },
+        {
+          "v": 13,
+          "web": "There is no creature that is hidden from his sight, but all things are naked and laid open before the eyes of him to whom we must give an account.",
+          "kjv": "Neither is there any creature that is not manifest in his sight: but all things are naked and opened unto the eyes of him with whom we have to do."
+        },
+        {
+          "v": 14,
+          "web": "Having then a great high priest, who has passed through the heavens, Jesus, the Son of God, let us hold tightly to our confession.",
+          "kjv": "Seeing then that we have a great high priest, that is passed into the heavens, Jesus the Son of God, let us hold fast our profession."
+        },
+        {
+          "v": 15,
+          "web": "For we don’t have a high priest who can’t be touched with the feeling of our infirmities, but one who has been in all points tempted like we are, yet without sin.",
+          "kjv": "For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin."
+        },
+        {
+          "v": 16,
+          "web": "Let us therefore draw near with boldness to the throne of grace, that we may receive mercy, and may find grace for help in time of need.",
+          "kjv": "Let us therefore come boldly unto the throne of grace, that we may obtain mercy, and find grace to help in time of need."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For every high priest, being taken from among men, is appointed for men in things pertaining to God, that he may offer both gifts and sacrifices for sins.",
+          "kjv": "For every high priest taken from among men is ordained for men in things pertaining to God, that he may offer both gifts and sacrifices for sins:"
+        },
+        {
+          "v": 2,
+          "web": "The high priest can deal gently with those who are ignorant and going astray, because he himself is also surrounded with weakness.",
+          "kjv": "Who can have compassion on the ignorant, and on them that are out of the way; for that he himself also is compassed with infirmity."
+        },
+        {
+          "v": 3,
+          "web": "Because of this, he must offer sacrifices for sins for the people, as well as for himself.",
+          "kjv": "And by reason hereof he ought, as for the people, so also for himself, to offer for sins."
+        },
+        {
+          "v": 4,
+          "web": "Nobody takes this honor on himself, but he is called by God, just like Aaron was.",
+          "kjv": "And no man taketh this honour unto himself, but he that is called of God, as was Aaron."
+        },
+        {
+          "v": 5,
+          "web": "So also Christ didn’t glorify himself to be made a high priest, but it was he who said to him, “You are my Son. Today I have become your father.”",
+          "kjv": "So also Christ glorified not himself to be made an high priest; but he that said unto him, Thou art my Son, to day have I begotten thee."
+        },
+        {
+          "v": 6,
+          "web": "As he says also in another place, “You are a priest forever, after the order of Melchizedek.”",
+          "kjv": "As he saith also in another place, Thou art a priest for ever after the order of Melchisedec."
+        },
+        {
+          "v": 7,
+          "web": "He, in the days of his flesh, having offered up prayers and petitions with strong crying and tears to him who was able to save him from death, and having been heard for his godly fear,",
+          "kjv": "Who in the days of his flesh, when he had offered up prayers and supplications with strong crying and tears unto him that was able to save him from death, and was heard in that he feared;"
+        },
+        {
+          "v": 8,
+          "web": "though he was a Son, yet learned obedience by the things which he suffered.",
+          "kjv": "Though he were a Son, yet learned he obedience by the things which he suffered;"
+        },
+        {
+          "v": 9,
+          "web": "Having been made perfect, he became to all of those who obey him the author of eternal salvation,",
+          "kjv": "And being made perfect, he became the author of eternal salvation unto all them that obey him;"
+        },
+        {
+          "v": 10,
+          "web": "named by God a high priest after the order of Melchizedek.",
+          "kjv": "Called of God an high priest after the order of Melchisedec."
+        },
+        {
+          "v": 11,
+          "web": "About him we have many words to say, and hard to interpret, seeing you have become dull of hearing.",
+          "kjv": "Of whom we have many things to say, and hard to be uttered, seeing ye are dull of hearing."
+        },
+        {
+          "v": 12,
+          "web": "For although by this time you should be teachers, you again need to have someone teach you the rudiments of the first principles of the oracles of God. You have come to need milk, and not solid food.",
+          "kjv": "For when for the time ye ought to be teachers, ye have need that one teach you again which be the first principles of the oracles of God; and are become such as have need of milk, and not of strong meat."
+        },
+        {
+          "v": 13,
+          "web": "For everyone who lives on milk is not experienced in the word of righteousness, for he is a baby.",
+          "kjv": "For every one that useth milk is unskilful in the word of righteousness: for he is a babe."
+        },
+        {
+          "v": 14,
+          "web": "But solid food is for those who are full grown, who by reason of use have their senses exercised to discern good and evil.",
+          "kjv": "But strong meat belongeth to them that are of full age, even those who by reason of use have their senses exercised to discern both good and evil."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Therefore leaving the teaching of the first principles of Christ, let us press on to perfection—not laying again a foundation of repentance from dead works, of faith toward God,",
+          "kjv": "Therefore leaving the principles of the doctrine of Christ, let us go on unto perfection; not laying again the foundation of repentance from dead works, and of faith toward God,"
+        },
+        {
+          "v": 2,
+          "web": "of the teaching of baptisms, of laying on of hands, of resurrection of the dead, and of eternal judgment.",
+          "kjv": "Of the doctrine of baptisms, and of laying on of hands, and of resurrection of the dead, and of eternal judgment."
+        },
+        {
+          "v": 3,
+          "web": "This will we do, if God permits.",
+          "kjv": "And this will we do, if God permit."
+        },
+        {
+          "v": 4,
+          "web": "For concerning those who were once enlightened and tasted of the heavenly gift, and were made partakers of the Holy Spirit,",
+          "kjv": "For it is impossible for those who were once enlightened, and have tasted of the heavenly gift, and were made partakers of the Holy Ghost,"
+        },
+        {
+          "v": 5,
+          "web": "and tasted the good word of God, and the powers of the age to come,",
+          "kjv": "And have tasted the good word of God, and the powers of the world to come,"
+        },
+        {
+          "v": 6,
+          "web": "and then fell away, it is impossible to renew them again to repentance; seeing they crucify the Son of God for themselves again, and put him to open shame.",
+          "kjv": "If they shall fall away, to renew them again unto repentance; seeing they crucify to themselves the Son of God afresh, and put him to an open shame."
+        },
+        {
+          "v": 7,
+          "web": "For the land which has drunk the rain that comes often on it, and produces a crop suitable for them for whose sake it is also tilled, receives blessing from God;",
+          "kjv": "For the earth which drinketh in the rain that cometh oft upon it, and bringeth forth herbs meet for them by whom it is dressed, receiveth blessing from God:"
+        },
+        {
+          "v": 8,
+          "web": "but if it bears thorns and thistles, it is rejected and near being cursed, whose end is to be burned.",
+          "kjv": "But that which beareth thorns and briers is rejected, and is nigh unto cursing; whose end is to be burned."
+        },
+        {
+          "v": 9,
+          "web": "But, beloved, we are persuaded of better things for you, and things that accompany salvation, even though we speak like this.",
+          "kjv": "But, beloved, we are persuaded better things of you, and things that accompany salvation, though we thus speak."
+        },
+        {
+          "v": 10,
+          "web": "For God is not unrighteous, so as to forget your work and the labor of love which you showed toward his name, in that you served the saints, and still do serve them.",
+          "kjv": "For God is not unrighteous to forget your work and labour of love, which ye have shewed toward his name, in that ye have ministered to the saints, and do minister."
+        },
+        {
+          "v": 11,
+          "web": "We desire that each one of you may show the same diligence to the fullness of hope even to the end,",
+          "kjv": "And we desire that every one of you do shew the same diligence to the full assurance of hope unto the end:"
+        },
+        {
+          "v": 12,
+          "web": "that you won’t be sluggish, but imitators of those who through faith and patience inherited the promises.",
+          "kjv": "That ye be not slothful, but followers of them who through faith and patience inherit the promises."
+        },
+        {
+          "v": 13,
+          "web": "For when God made a promise to Abraham, since he could swear by no one greater, he swore by himself,",
+          "kjv": "For when God made promise to Abraham, because he could swear by no greater, he sware by himself,"
+        },
+        {
+          "v": 14,
+          "web": "saying, “Surely blessing I will bless you, and multiplying I will multiply you.”",
+          "kjv": "Saying, Surely blessing I will bless thee, and multiplying I will multiply thee."
+        },
+        {
+          "v": 15,
+          "web": "Thus, having patiently endured, he obtained the promise.",
+          "kjv": "And so, after he had patiently endured, he obtained the promise."
+        },
+        {
+          "v": 16,
+          "web": "For men indeed swear by a greater one, and in every dispute of theirs the oath is final for confirmation.",
+          "kjv": "For men verily swear by the greater: and an oath for confirmation is to them an end of all strife."
+        },
+        {
+          "v": 17,
+          "web": "In this way God, being determined to show more abundantly to the heirs of the promise the immutability of his counsel, interposed with an oath;",
+          "kjv": "Wherein God, willing more abundantly to shew unto the heirs of promise the immutability of his counsel, confirmed it by an oath:"
+        },
+        {
+          "v": 18,
+          "web": "that by two immutable things, in which it is impossible for God to lie, we may have a strong encouragement, who have fled for refuge to take hold of the hope set before us.",
+          "kjv": "That by two immutable things, in which it was impossible for God to lie, we might have a strong consolation, who have fled for refuge to lay hold upon the hope set before us:"
+        },
+        {
+          "v": 19,
+          "web": "This hope we have as an anchor of the soul, a hope both sure and steadfast and entering into that which is within the veil;",
+          "kjv": "Which hope we have as an anchor of the soul, both sure and stedfast, and which entereth into that within the veil;"
+        },
+        {
+          "v": 20,
+          "web": "where as a forerunner Jesus entered for us, having become a high priest forever after the order of Melchizedek.",
+          "kjv": "Whither the forerunner is for us entered, even Jesus, made an high priest for ever after the order of Melchisedec."
+        }
+      ]
+    },
+    {
+      "chapter": 7,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For this Melchizedek, king of Salem, priest of God Most High, who met Abraham returning from the slaughter of the kings and blessed him,",
+          "kjv": "For this Melchisedec, king of Salem, priest of the most high God, who met Abraham returning from the slaughter of the kings, and blessed him;"
+        },
+        {
+          "v": 2,
+          "web": "to whom also Abraham divided a tenth part of all (being first, by interpretation, king of righteousness, and then also king of Salem, which is king of peace;",
+          "kjv": "To whom also Abraham gave a tenth part of all; first being by interpretation King of righteousness, and after that also King of Salem, which is, King of peace;"
+        },
+        {
+          "v": 3,
+          "web": "without father, without mother, without genealogy, having neither beginning of days nor end of life, but made like the Son of God), remains a priest continually.",
+          "kjv": "Without father, without mother, without descent, having neither beginning of days, nor end of life; but made like unto the Son of God; abideth a priest continually."
+        },
+        {
+          "v": 4,
+          "web": "Now consider how great this man was, to whom even Abraham, the patriarch, gave a tenth out of the best plunder.",
+          "kjv": "Now consider how great this man was, unto whom even the patriarch Abraham gave the tenth of the spoils."
+        },
+        {
+          "v": 5,
+          "web": "They indeed of the sons of Levi who receive the priest’s office have a commandment to take tithes of the people according to the law, that is, of their brothers, though these have come out of the body of Abraham,",
+          "kjv": "And verily they that are of the sons of Levi, who receive the office of the priesthood, have a commandment to take tithes of the people according to the law, that is, of their brethren, though they come out of the loins of Abraham:"
+        },
+        {
+          "v": 6,
+          "web": "but he whose genealogy is not counted from them has accepted tithes from Abraham, and has blessed him who has the promises.",
+          "kjv": "But he whose descent is not counted from them received tithes of Abraham, and blessed him that had the promises."
+        },
+        {
+          "v": 7,
+          "web": "But without any dispute the lesser is blessed by the greater.",
+          "kjv": "And without all contradiction the less is blessed of the better."
+        },
+        {
+          "v": 8,
+          "web": "Here people who die receive tithes, but there one receives tithes of whom it is testified that he lives.",
+          "kjv": "And here men that die receive tithes; but there he receiveth them, of whom it is witnessed that he liveth."
+        },
+        {
+          "v": 9,
+          "web": "We can say that through Abraham even Levi, who receives tithes, has paid tithes,",
+          "kjv": "And as I may so say, Levi also, who receiveth tithes, payed tithes in Abraham."
+        },
+        {
+          "v": 10,
+          "web": "for he was yet in the body of his father when Melchizedek met him.",
+          "kjv": "For he was yet in the loins of his father, when Melchisedec met him."
+        },
+        {
+          "v": 11,
+          "web": "Now if there were perfection through the Levitical priesthood (for under it the people have received the law), what further need was there for another priest to arise after the order of Melchizedek, and not be called after the order of Aaron?",
+          "kjv": "If therefore perfection were by the Levitical priesthood, (for under it the people received the law,) what further need was there that another priest should rise after the order of Melchisedec, and not be called after the order of Aaron?"
+        },
+        {
+          "v": 12,
+          "web": "For the priesthood being changed, there is of necessity a change made also in the law.",
+          "kjv": "For the priesthood being changed, there is made of necessity a change also of the law."
+        },
+        {
+          "v": 13,
+          "web": "For he of whom these things are said belongs to another tribe, from which no one has officiated at the altar.",
+          "kjv": "For he of whom these things are spoken pertaineth to another tribe, of which no man gave attendance at the altar."
+        },
+        {
+          "v": 14,
+          "web": "For it is evident that our Lord has sprung out of Judah, about which tribe Moses spoke nothing concerning priesthood.",
+          "kjv": "For it is evident that our Lord sprang out of Juda; of which tribe Moses spake nothing concerning priesthood."
+        },
+        {
+          "v": 15,
+          "web": "This is yet more abundantly evident, if after the likeness of Melchizedek there arises another priest,",
+          "kjv": "And it is yet far more evident: for that after the similitude of Melchisedec there ariseth another priest,"
+        },
+        {
+          "v": 16,
+          "web": "who has been made, not after the law of a fleshly commandment, but after the power of an endless life:",
+          "kjv": "Who is made, not after the law of a carnal commandment, but after the power of an endless life."
+        },
+        {
+          "v": 17,
+          "web": "for it is testified, “You are a priest forever, according to the order of Melchizedek.”",
+          "kjv": "For he testifieth, Thou art a priest for ever after the order of Melchisedec."
+        },
+        {
+          "v": 18,
+          "web": "For there is an annulling of a foregoing commandment because of its weakness and uselessness",
+          "kjv": "For there is verily a disannulling of the commandment going before for the weakness and unprofitableness thereof."
+        },
+        {
+          "v": 19,
+          "web": "(for the law made nothing perfect), and a bringing in of a better hope, through which we draw near to God.",
+          "kjv": "For the law made nothing perfect, but the bringing in of a better hope did; by the which we draw nigh unto God."
+        },
+        {
+          "v": 20,
+          "web": "Inasmuch as he was not made priest without the taking of an oath",
+          "kjv": "And inasmuch as not without an oath he was made priest:"
+        },
+        {
+          "v": 21,
+          "web": "(for they indeed have been made priests without an oath), but he with an oath by him that says of him, “The Lord swore and will not change his mind, ‘You are a priest forever, according to the order of Melchizedek.’”",
+          "kjv": "(For those priests were made without an oath; but this with an oath by him that said unto him, The Lord sware and will not repent, Thou art a priest for ever after the order of Melchisedec:)"
+        },
+        {
+          "v": 22,
+          "web": "By so much, Jesus has become the collateral of a better covenant.",
+          "kjv": "By so much was Jesus made a surety of a better testament."
+        },
+        {
+          "v": 23,
+          "web": "Many, indeed, have been made priests, because they are hindered from continuing by death.",
+          "kjv": "And they truly were many priests, because they were not suffered to continue by reason of death:"
+        },
+        {
+          "v": 24,
+          "web": "But he, because he lives forever, has his priesthood unchangeable.",
+          "kjv": "But this man, because he continueth ever, hath an unchangeable priesthood."
+        },
+        {
+          "v": 25,
+          "web": "Therefore he is also able to save to the uttermost those who draw near to God through him, seeing that he lives forever to make intercession for them.",
+          "kjv": "Wherefore he is able also to save them to the uttermost that come unto God by him, seeing he ever liveth to make intercession for them."
+        },
+        {
+          "v": 26,
+          "web": "For such a high priest was fitting for us: holy, guiltless, undefiled, separated from sinners, and made higher than the heavens;",
+          "kjv": "For such an high priest became us, who is holy, harmless, undefiled, separate from sinners, and made higher than the heavens;"
+        },
+        {
+          "v": 27,
+          "web": "who doesn’t need, like those high priests, to offer up sacrifices daily, first for his own sins, and then for the sins of the people. For he did this once for all, when he offered up himself.",
+          "kjv": "Who needeth not daily, as those high priests, to offer up sacrifice, first for his own sins, and then for the people’s: for this he did once, when he offered up himself."
+        },
+        {
+          "v": 28,
+          "web": "For the law appoints men as high priests who have weakness, but the word of the oath which came after the law appoints a Son forever who has been perfected.",
+          "kjv": "For the law maketh men high priests which have infirmity; but the word of the oath, which was since the law, maketh the Son, who is consecrated for evermore."
+        }
+      ]
+    },
+    {
+      "chapter": 8,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Now in the things which we are saying, the main point is this. We have such a high priest, who sat down on the right hand of the throne of the Majesty in the heavens,",
+          "kjv": "Now of the things which we have spoken this is the sum: We have such an high priest, who is set on the right hand of the throne of the Majesty in the heavens;"
+        },
+        {
+          "v": 2,
+          "web": "a servant of the sanctuary, and of the true tabernacle, which the Lord pitched, not man.",
+          "kjv": "A minister of the sanctuary, and of the true tabernacle, which the Lord pitched, and not man."
+        },
+        {
+          "v": 3,
+          "web": "For every high priest is appointed to offer both gifts and sacrifices. Therefore it is necessary that this high priest also have something to offer.",
+          "kjv": "For every high priest is ordained to offer gifts and sacrifices: wherefore it is of necessity that this man have somewhat also to offer."
+        },
+        {
+          "v": 4,
+          "web": "For if he were on earth, he would not be a priest at all, seeing there are priests who offer the gifts according to the law;",
+          "kjv": "For if he were on earth, he should not be a priest, seeing that there are priests that offer gifts according to the law:"
+        },
+        {
+          "v": 5,
+          "web": "who serve a copy and shadow of the heavenly things, even as Moses was warned by God when he was about to make the tabernacle, for he said, “See, you shall make everything according to the pattern that was shown to you on the mountain.”",
+          "kjv": "Who serve unto the example and shadow of heavenly things, as Moses was admonished of God when he was about to make the tabernacle: for, See, saith he, that thou make all things according to the pattern shewed to thee in the mount."
+        },
+        {
+          "v": 6,
+          "web": "But now he has obtained a more excellent ministry, by so much as he is also the mediator of a better covenant, which on better promises has been given as law.",
+          "kjv": "But now hath he obtained a more excellent ministry, by how much also he is the mediator of a better covenant, which was established upon better promises."
+        },
+        {
+          "v": 7,
+          "web": "For if that first covenant had been faultless, then no place would have been sought for a second.",
+          "kjv": "For if that first covenant had been faultless, then should no place have been sought for the second."
+        },
+        {
+          "v": 8,
+          "web": "For finding fault with them, he said, “Behold, the days come”, says the Lord, “that I will make a new covenant with the house of Israel and with the house of Judah;",
+          "kjv": "For finding fault with them, he saith, Behold, the days come, saith the Lord, when I will make a new covenant with the house of Israel and with the house of Judah:"
+        },
+        {
+          "v": 9,
+          "web": "not according to the covenant that I made with their fathers, in the day that I took them by the hand to lead them out of the land of Egypt; for they didn’t continue in my covenant, and I disregarded them,” says the Lord.",
+          "kjv": "Not according to the covenant that I made with their fathers in the day when I took them by the hand to lead them out of the land of Egypt; because they continued not in my covenant, and I regarded them not, saith the Lord."
+        },
+        {
+          "v": 10,
+          "web": "“For this is the covenant that I will make with the house of Israel. After those days,” says the Lord; “I will put my laws into their mind, I will also write them on their heart. I will be their God, and they will be my people.",
+          "kjv": "For this is the covenant that I will make with the house of Israel after those days, saith the Lord; I will put my laws into their mind, and write them in their hearts: and I will be to them a God, and they shall be to me a people:"
+        },
+        {
+          "v": 11,
+          "web": "They will not teach every man his fellow citizen, and every man his brother, saying, ‘Know the Lord,’ for all will know me, from their least to their greatest.",
+          "kjv": "And they shall not teach every man his neighbour, and every man his brother, saying, Know the Lord: for all shall know me, from the least to the greatest."
+        },
+        {
+          "v": 12,
+          "web": "For I will be merciful to their unrighteousness. I will remember their sins and lawless deeds no more.”",
+          "kjv": "For I will be merciful to their unrighteousness, and their sins and their iniquities will I remember no more."
+        },
+        {
+          "v": 13,
+          "web": "In that he says, “A new covenant”, he has made the first old. But that which is becoming old and grows aged is near to vanishing away.",
+          "kjv": "In that he saith, A new covenant, he hath made the first old. Now that which decayeth and waxeth old is ready to vanish away."
+        }
+      ]
+    },
+    {
+      "chapter": 9,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Now indeed even the first covenant had ordinances of divine service, and an earthly sanctuary.",
+          "kjv": "Then verily the first covenant had also ordinances of divine service, and a worldly sanctuary."
+        },
+        {
+          "v": 2,
+          "web": "For a tabernacle was prepared. In the first part were the lamp stand, the table, and the show bread; which is called the Holy Place.",
+          "kjv": "For there was a tabernacle made; the first, wherein was the candlestick, and the table, and the shewbread; which is called the sanctuary."
+        },
+        {
+          "v": 3,
+          "web": "After the second veil was the tabernacle which is called the Holy of Holies,",
+          "kjv": "And after the second veil, the tabernacle which is called the Holiest of all;"
+        },
+        {
+          "v": 4,
+          "web": "having a golden altar of incense, and the ark of the covenant overlaid on all sides with gold, in which was a golden pot holding the manna, Aaron’s rod that budded, and the tablets of the covenant;",
+          "kjv": "Which had the golden censer, and the ark of the covenant overlaid round about with gold, wherein was the golden pot that had manna, and Aaron’s rod that budded, and the tables of the covenant;"
+        },
+        {
+          "v": 5,
+          "web": "and above it cherubim of glory overshadowing the mercy seat, of which things we can’t speak now in detail.",
+          "kjv": "And over it the cherubims of glory shadowing the mercyseat; of which we cannot now speak particularly."
+        },
+        {
+          "v": 6,
+          "web": "Now these things having been thus prepared, the priests go in continually into the first tabernacle, accomplishing the services,",
+          "kjv": "Now when these things were thus ordained, the priests went always into the first tabernacle, accomplishing the service of God."
+        },
+        {
+          "v": 7,
+          "web": "but into the second the high priest alone, once in the year, not without blood, which he offers for himself, and for the errors of the people.",
+          "kjv": "But into the second went the high priest alone once every year, not without blood, which he offered for himself, and for the errors of the people:"
+        },
+        {
+          "v": 8,
+          "web": "The Holy Spirit is indicating this, that the way into the Holy Place wasn’t yet revealed while the first tabernacle was still standing;",
+          "kjv": "The Holy Ghost this signifying, that the way into the holiest of all was not yet made manifest, while as the first tabernacle was yet standing:"
+        },
+        {
+          "v": 9,
+          "web": "which is a symbol of the present age, where gifts and sacrifices are offered that are incapable, concerning the conscience, of making the worshiper perfect;",
+          "kjv": "Which was a figure for the time then present, in which were offered both gifts and sacrifices, that could not make him that did the service perfect, as pertaining to the conscience;"
+        },
+        {
+          "v": 10,
+          "web": "being only (with meats and drinks and various washings) fleshly ordinances, imposed until a time of reformation.",
+          "kjv": "Which stood only in meats and drinks, and divers washings, and carnal ordinances, imposed on them until the time of reformation."
+        },
+        {
+          "v": 11,
+          "web": "But Christ having come as a high priest of the coming good things, through the greater and more perfect tabernacle, not made with hands, that is to say, not of this creation,",
+          "kjv": "But Christ being come an high priest of good things to come, by a greater and more perfect tabernacle, not made with hands, that is to say, not of this building;"
+        },
+        {
+          "v": 12,
+          "web": "nor yet through the blood of goats and calves, but through his own blood, entered in once for all into the Holy Place, having obtained eternal redemption.",
+          "kjv": "Neither by the blood of goats and calves, but by his own blood he entered in once into the holy place, having obtained eternal redemption for us."
+        },
+        {
+          "v": 13,
+          "web": "For if the blood of goats and bulls, and the ashes of a heifer sprinkling those who have been defiled, sanctify to the cleanness of the flesh:",
+          "kjv": "For if the blood of bulls and of goats, and the ashes of an heifer sprinkling the unclean, sanctifieth to the purifying of the flesh:"
+        },
+        {
+          "v": 14,
+          "web": "how much more will the blood of Christ, who through the eternal Spirit offered himself without defect to God, cleanse your conscience from dead works to serve the living God?",
+          "kjv": "How much more shall the blood of Christ, who through the eternal Spirit offered himself without spot to God, purge your conscience from dead works to serve the living God?"
+        },
+        {
+          "v": 15,
+          "web": "For this reason he is the mediator of a new covenant, since a death has occurred for the redemption of the transgressions that were under the first covenant, that those who have been called may receive the promise of the eternal inheritance.",
+          "kjv": "And for this cause he is the mediator of the new testament, that by means of death, for the redemption of the transgressions that were under the first testament, they which are called might receive the promise of eternal inheritance."
+        },
+        {
+          "v": 16,
+          "web": "For where a last will and testament is, there must of necessity be the death of him who made it.",
+          "kjv": "For where a testament is, there must also of necessity be the death of the testator."
+        },
+        {
+          "v": 17,
+          "web": "For a will is in force where there has been death, for it is never in force while he who made it lives.",
+          "kjv": "For a testament is of force after men are dead: otherwise it is of no strength at all while the testator liveth."
+        },
+        {
+          "v": 18,
+          "web": "Therefore even the first covenant has not been dedicated without blood.",
+          "kjv": "Whereupon neither the first testament was dedicated without blood."
+        },
+        {
+          "v": 19,
+          "web": "For when every commandment had been spoken by Moses to all the people according to the law, he took the blood of the calves and the goats, with water and scarlet wool and hyssop, and sprinkled both the book itself and all the people,",
+          "kjv": "For when Moses had spoken every precept to all the people according to the law, he took the blood of calves and of goats, with water, and scarlet wool, and hyssop, and sprinkled both the book, and all the people,"
+        },
+        {
+          "v": 20,
+          "web": "saying, “This is the blood of the covenant which God has commanded you.”",
+          "kjv": "Saying, This is the blood of the testament which God hath enjoined unto you."
+        },
+        {
+          "v": 21,
+          "web": "Moreover he sprinkled the tabernacle and all the vessels of the ministry in the same way with the blood.",
+          "kjv": "Moreover he sprinkled with blood both the tabernacle, and all the vessels of the ministry."
+        },
+        {
+          "v": 22,
+          "web": "According to the law, nearly everything is cleansed with blood, and apart from shedding of blood there is no remission.",
+          "kjv": "And almost all things are by the law purged with blood; and without shedding of blood is no remission."
+        },
+        {
+          "v": 23,
+          "web": "It was necessary therefore that the copies of the things in the heavens should be cleansed with these; but the heavenly things themselves with better sacrifices than these.",
+          "kjv": "It was therefore necessary that the patterns of things in the heavens should be purified with these; but the heavenly things themselves with better sacrifices than these."
+        },
+        {
+          "v": 24,
+          "web": "For Christ hasn’t entered into holy places made with hands, which are representations of the true, but into heaven itself, now to appear in the presence of God for us;",
+          "kjv": "For Christ is not entered into the holy places made with hands, which are the figures of the true; but into heaven itself, now to appear in the presence of God for us:"
+        },
+        {
+          "v": 25,
+          "web": "nor yet that he should offer himself often, as the high priest enters into the holy place year by year with blood not his own,",
+          "kjv": "Nor yet that he should offer himself often, as the high priest entereth into the holy place every year with blood of others;"
+        },
+        {
+          "v": 26,
+          "web": "or else he must have suffered often since the foundation of the world. But now once at the end of the ages, he has been revealed to put away sin by the sacrifice of himself.",
+          "kjv": "For then must he often have suffered since the foundation of the world: but now once in the end of the world hath he appeared to put away sin by the sacrifice of himself."
+        },
+        {
+          "v": 27,
+          "web": "Inasmuch as it is appointed for men to die once, and after this, judgment,",
+          "kjv": "And as it is appointed unto men once to die, but after this the judgment:"
+        },
+        {
+          "v": 28,
+          "web": "so Christ also, having been offered once to bear the sins of many, will appear a second time, without sin, to those who are eagerly waiting for him for salvation.",
+          "kjv": "So Christ was once offered to bear the sins of many; and unto them that look for him shall he appear the second time without sin unto salvation."
+        }
+      ]
+    },
+    {
+      "chapter": 10,
+      "verses": [
+        {
+          "v": 1,
+          "web": "For the law, having a shadow of the good to come, not the very image of the things, can never with the same sacrifices year by year, which they offer continually, make perfect those who draw near.",
+          "kjv": "For the law having a shadow of good things to come, and not the very image of the things, can never with those sacrifices which they offered year by year continually make the comers thereunto perfect."
+        },
+        {
+          "v": 2,
+          "web": "Or else wouldn’t they have ceased to be offered, because the worshipers, having been once cleansed, would have had no more consciousness of sins?",
+          "kjv": "For then would they not have ceased to be offered? because that the worshippers once purged should have had no more conscience of sins."
+        },
+        {
+          "v": 3,
+          "web": "But in those sacrifices there is a yearly reminder of sins.",
+          "kjv": "But in those sacrifices there is a remembrance again made of sins every year."
+        },
+        {
+          "v": 4,
+          "web": "For it is impossible that the blood of bulls and goats should take away sins.",
+          "kjv": "For it is not possible that the blood of bulls and of goats should take away sins."
+        },
+        {
+          "v": 5,
+          "web": "Therefore when he comes into the world, he says, “Sacrifice and offering you didn’t desire, but you prepared a body for me;",
+          "kjv": "Wherefore when he cometh into the world, he saith, Sacrifice and offering thou wouldest not, but a body hast thou prepared me:"
+        },
+        {
+          "v": 6,
+          "web": "You had no pleasure in whole burnt offerings and sacrifices for sin.",
+          "kjv": "In burnt offerings and sacrifices for sin thou hast had no pleasure."
+        },
+        {
+          "v": 7,
+          "web": "Then I said, ‘Behold, I have come (in the scroll of the book it is written of me) to do your will, O God.’”",
+          "kjv": "Then said I, Lo, I come (in the volume of the book it is written of me,) to do thy will, O God."
+        },
+        {
+          "v": 8,
+          "web": "Previously saying, “Sacrifices and offerings and whole burnt offerings and sacrifices for sin you didn’t desire, neither had pleasure in them” (those which are offered according to the law),",
+          "kjv": "Above when he said, Sacrifice and offering and burnt offerings and offering for sin thou wouldest not, neither hadst pleasure therein; which are offered by the law;"
+        },
+        {
+          "v": 9,
+          "web": "then he has said, “Behold, I have come to do your will.” He takes away the first, that he may establish the second,",
+          "kjv": "Then said he, Lo, I come to do thy will, O God. He taketh away the first, that he may establish the second."
+        },
+        {
+          "v": 10,
+          "web": "by which will we have been sanctified through the offering of the body of Jesus Christ once for all.",
+          "kjv": "By the which will we are sanctified through the offering of the body of Jesus Christ once for all."
+        },
+        {
+          "v": 11,
+          "web": "Every priest indeed stands day by day serving and often offering the same sacrifices, which can never take away sins,",
+          "kjv": "And every priest standeth daily ministering and offering oftentimes the same sacrifices, which can never take away sins:"
+        },
+        {
+          "v": 12,
+          "web": "but he, when he had offered one sacrifice for sins forever, sat down on the right hand of God;",
+          "kjv": "But this man, after he had offered one sacrifice for sins for ever, sat down on the right hand of God;"
+        },
+        {
+          "v": 13,
+          "web": "from that time waiting until his enemies are made the footstool of his feet.",
+          "kjv": "From henceforth expecting till his enemies be made his footstool."
+        },
+        {
+          "v": 14,
+          "web": "For by one offering he has perfected forever those who are being sanctified.",
+          "kjv": "For by one offering he hath perfected for ever them that are sanctified."
+        },
+        {
+          "v": 15,
+          "web": "The Holy Spirit also testifies to us, for after saying,",
+          "kjv": "Whereof the Holy Ghost also is a witness to us: for after that he had said before,"
+        },
+        {
+          "v": 16,
+          "web": "“This is the covenant that I will make with them: ‘After those days,’ says the Lord, ‘I will put my laws on their heart, I will also write them on their mind;’” then he says,",
+          "kjv": "This is the covenant that I will make with them after those days, saith the Lord, I will put my laws into their hearts, and in their minds will I write them;"
+        },
+        {
+          "v": 17,
+          "web": "“I will remember their sins and their iniquities no more.”",
+          "kjv": "And their sins and iniquities will I remember no more."
+        },
+        {
+          "v": 18,
+          "web": "Now where remission of these is, there is no more offering for sin.",
+          "kjv": "Now where remission of these is, there is no more offering for sin."
+        },
+        {
+          "v": 19,
+          "web": "Having therefore, brothers, boldness to enter into the holy place by the blood of Jesus,",
+          "kjv": "Having therefore, brethren, boldness to enter into the holiest by the blood of Jesus,"
+        },
+        {
+          "v": 20,
+          "web": "by the way which he dedicated for us, a new and living way, through the veil, that is to say, his flesh;",
+          "kjv": "By a new and living way, which he hath consecrated for us, through the veil, that is to say, his flesh;"
+        },
+        {
+          "v": 21,
+          "web": "and having a great priest over God’s house,",
+          "kjv": "And having an high priest over the house of God;"
+        },
+        {
+          "v": 22,
+          "web": "let’s draw near with a true heart in fullness of faith, having our hearts sprinkled from an evil conscience, and having our body washed with pure water,",
+          "kjv": "Let us draw near with a true heart in full assurance of faith, having our hearts sprinkled from an evil conscience, and our bodies washed with pure water."
+        },
+        {
+          "v": 23,
+          "web": "let us hold fast the confession of our hope without wavering; for he who promised is faithful.",
+          "kjv": "Let us hold fast the profession of our faith without wavering; (for he is faithful that promised;)"
+        },
+        {
+          "v": 24,
+          "web": "Let us consider how to provoke one another to love and good works,",
+          "kjv": "And let us consider one another to provoke unto love and to good works:"
+        },
+        {
+          "v": 25,
+          "web": "not forsaking our own assembling together, as the custom of some is, but exhorting one another; and so much the more, as you see the Day approaching.",
+          "kjv": "Not forsaking the assembling of ourselves together, as the manner of some is; but exhorting one another: and so much the more, as ye see the day approaching."
+        },
+        {
+          "v": 26,
+          "web": "For if we sin willfully after we have received the knowledge of the truth, there remains no more a sacrifice for sins,",
+          "kjv": "For if we sin wilfully after that we have received the knowledge of the truth, there remaineth no more sacrifice for sins,"
+        },
+        {
+          "v": 27,
+          "web": "but a certain fearful expectation of judgment, and a fierceness of fire which will devour the adversaries.",
+          "kjv": "But a certain fearful looking for of judgment and fiery indignation, which shall devour the adversaries."
+        },
+        {
+          "v": 28,
+          "web": "A man who disregards Moses’ law dies without compassion on the word of two or three witnesses.",
+          "kjv": "He that despised Moses’ law died without mercy under two or three witnesses:"
+        },
+        {
+          "v": 29,
+          "web": "How much worse punishment, do you think, will he be judged worthy of, who has trodden under foot the Son of God, and has counted the blood of the covenant with which he was sanctified an unholy thing, and has insulted the Spirit of grace?",
+          "kjv": "Of how much sorer punishment, suppose ye, shall he be thought worthy, who hath trodden under foot the Son of God, and hath counted the blood of the covenant, wherewith he was sanctified, an unholy thing, and hath done despite unto the Spirit of grace?"
+        },
+        {
+          "v": 30,
+          "web": "For we know him who said, “Vengeance belongs to me,” says the Lord, “I will repay.” Again, “The Lord will judge his people.”",
+          "kjv": "For we know him that hath said, Vengeance belongeth unto me, I will recompense, saith the Lord. And again, The Lord shall judge his people."
+        },
+        {
+          "v": 31,
+          "web": "It is a fearful thing to fall into the hands of the living God.",
+          "kjv": "It is a fearful thing to fall into the hands of the living God."
+        },
+        {
+          "v": 32,
+          "web": "But remember the former days, in which, after you were enlightened, you endured a great struggle with sufferings;",
+          "kjv": "But call to remembrance the former days, in which, after ye were illuminated, ye endured a great fight of afflictions;"
+        },
+        {
+          "v": 33,
+          "web": "partly, being exposed to both reproaches and oppressions; and partly, becoming partakers with those who were treated so.",
+          "kjv": "Partly, whilst ye were made a gazingstock both by reproaches and afflictions; and partly, whilst ye became companions of them that were so used."
+        },
+        {
+          "v": 34,
+          "web": "For you both had compassion on me in my chains, and joyfully accepted the plundering of your possessions, knowing that you have for yourselves a better possession and an enduring one in the heavens.",
+          "kjv": "For ye had compassion of me in my bonds, and took joyfully the spoiling of your goods, knowing in yourselves that ye have in heaven a better and an enduring substance."
+        },
+        {
+          "v": 35,
+          "web": "Therefore don’t throw away your boldness, which has a great reward.",
+          "kjv": "Cast not away therefore your confidence, which hath great recompence of reward."
+        },
+        {
+          "v": 36,
+          "web": "For you need endurance so that, having done the will of God, you may receive the promise.",
+          "kjv": "For ye have need of patience, that, after ye have done the will of God, ye might receive the promise."
+        },
+        {
+          "v": 37,
+          "web": "“In a very little while, he who comes will come, and will not wait.",
+          "kjv": "For yet a little while, and he that shall come will come, and will not tarry."
+        },
+        {
+          "v": 38,
+          "web": "But the righteous will live by faith. If he shrinks back, my soul has no pleasure in him.”",
+          "kjv": "Now the just shall live by faith: but if any man draw back, my soul shall have no pleasure in him."
+        },
+        {
+          "v": 39,
+          "web": "But we are not of those who shrink back to destruction, but of those who have faith to the saving of the soul.",
+          "kjv": "But we are not of them who draw back unto perdition; but of them that believe to the saving of the soul."
+        }
+      ]
+    },
+    {
+      "chapter": 11,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Now faith is assurance of things hoped for, proof of things not seen.",
+          "kjv": "Now faith is the substance of things hoped for, the evidence of things not seen."
+        },
+        {
+          "v": 2,
+          "web": "For by this, the elders obtained testimony.",
+          "kjv": "For by it the elders obtained a good report."
+        },
+        {
+          "v": 3,
+          "web": "By faith, we understand that the universe has been framed by the word of God, so that what is seen has not been made out of things which are visible.",
+          "kjv": "Through faith we understand that the worlds were framed by the word of God, so that things which are seen were not made of things which do appear."
+        },
+        {
+          "v": 4,
+          "web": "By faith, Abel offered to God a more excellent sacrifice than Cain, through which he had testimony given to him that he was righteous, God testifying with respect to his gifts; and through it he, being dead, still speaks.",
+          "kjv": "By faith Abel offered unto God a more excellent sacrifice than Cain, by which he obtained witness that he was righteous, God testifying of his gifts: and by it he being dead yet speaketh."
+        },
+        {
+          "v": 5,
+          "web": "By faith, Enoch was taken away, so that he wouldn’t see death, and he was not found, because God translated him. For he has had testimony given to him that before his translation he had been well pleasing to God.",
+          "kjv": "By faith Enoch was translated that he should not see death; and was not found, because God had translated him: for before his translation he had this testimony, that he pleased God."
+        },
+        {
+          "v": 6,
+          "web": "Without faith it is impossible to be well pleasing to him, for he who comes to God must believe that he exists, and that he is a rewarder of those who seek him.",
+          "kjv": "But without faith it is impossible to please him: for he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him."
+        },
+        {
+          "v": 7,
+          "web": "By faith, Noah, being warned about things not yet seen, moved with godly fear, prepared a ship for the saving of his house, through which he condemned the world, and became heir of the righteousness which is according to faith.",
+          "kjv": "By faith Noah, being warned of God of things not seen as yet, moved with fear, prepared an ark to the saving of his house; by the which he condemned the world, and became heir of the righteousness which is by faith."
+        },
+        {
+          "v": 8,
+          "web": "By faith, Abraham, when he was called, obeyed to go out to the place which he was to receive for an inheritance. He went out, not knowing where he went.",
+          "kjv": "By faith Abraham, when he was called to go out into a place which he should after receive for an inheritance, obeyed; and he went out, not knowing whither he went."
+        },
+        {
+          "v": 9,
+          "web": "By faith, he lived as an alien in the land of promise, as in a land not his own, dwelling in tents, with Isaac and Jacob, the heirs with him of the same promise.",
+          "kjv": "By faith he sojourned in the land of promise, as in a strange country, dwelling in tabernacles with Isaac and Jacob, the heirs with him of the same promise:"
+        },
+        {
+          "v": 10,
+          "web": "For he looked for the city which has the foundations, whose builder and maker is God.",
+          "kjv": "For he looked for a city which hath foundations, whose builder and maker is God."
+        },
+        {
+          "v": 11,
+          "web": "By faith, even Sarah herself received power to conceive, and she bore a child when she was past age, since she counted him faithful who had promised.",
+          "kjv": "Through faith also Sara herself received strength to conceive seed, and was delivered of a child when she was past age, because she judged him faithful who had promised."
+        },
+        {
+          "v": 12,
+          "web": "Therefore as many as the stars of the sky in multitude, and as innumerable as the sand which is by the sea shore, were fathered by one man, and him as good as dead.",
+          "kjv": "Therefore sprang there even of one, and him as good as dead, so many as the stars of the sky in multitude, and as the sand which is by the sea shore innumerable."
+        },
+        {
+          "v": 13,
+          "web": "These all died in faith, not having received the promises, but having seen them and embraced them from afar, and having confessed that they were strangers and pilgrims on the earth.",
+          "kjv": "These all died in faith, not having received the promises, but having seen them afar off, and were persuaded of them, and embraced them, and confessed that they were strangers and pilgrims on the earth."
+        },
+        {
+          "v": 14,
+          "web": "For those who say such things make it clear that they are seeking a country of their own.",
+          "kjv": "For they that say such things declare plainly that they seek a country."
+        },
+        {
+          "v": 15,
+          "web": "If indeed they had been thinking of that country from which they went out, they would have had enough time to return.",
+          "kjv": "And truly, if they had been mindful of that country from whence they came out, they might have had opportunity to have returned."
+        },
+        {
+          "v": 16,
+          "web": "But now they desire a better country, that is, a heavenly one. Therefore God is not ashamed of them, to be called their God, for he has prepared a city for them.",
+          "kjv": "But now they desire a better country, that is, an heavenly: wherefore God is not ashamed to be called their God: for he hath prepared for them a city."
+        },
+        {
+          "v": 17,
+          "web": "By faith, Abraham, being tested, offered up Isaac. Yes, he who had gladly received the promises was offering up his one and only son;",
+          "kjv": "By faith Abraham, when he was tried, offered up Isaac: and he that had received the promises offered up his only begotten son,"
+        },
+        {
+          "v": 18,
+          "web": "even he to whom it was said, “In Isaac will your seed be called”;",
+          "kjv": "Of whom it was said, That in Isaac shall thy seed be called:"
+        },
+        {
+          "v": 19,
+          "web": "concluding that God is able to raise up even from the dead. Figuratively speaking, he also did receive him back from the dead.",
+          "kjv": "Accounting that God was able to raise him up, even from the dead; from whence also he received him in a figure."
+        },
+        {
+          "v": 20,
+          "web": "By faith, Isaac blessed Jacob and Esau, even concerning things to come.",
+          "kjv": "By faith Isaac blessed Jacob and Esau concerning things to come."
+        },
+        {
+          "v": 21,
+          "web": "By faith, Jacob, when he was dying, blessed each of the sons of Joseph, and worshiped, leaning on the top of his staff.",
+          "kjv": "By faith Jacob, when he was a dying, blessed both the sons of Joseph; and worshipped, leaning upon the top of his staff."
+        },
+        {
+          "v": 22,
+          "web": "By faith, Joseph, when his end was near, made mention of the departure of the children of Israel; and gave instructions concerning his bones.",
+          "kjv": "By faith Joseph, when he died, made mention of the departing of the children of Israel; and gave commandment concerning his bones."
+        },
+        {
+          "v": 23,
+          "web": "By faith, Moses, when he was born, was hidden for three months by his parents, because they saw that he was a beautiful child, and they were not afraid of the king’s commandment.",
+          "kjv": "By faith Moses, when he was born, was hid three months of his parents, because they saw he was a proper child; and they were not afraid of the king’s commandment."
+        },
+        {
+          "v": 24,
+          "web": "By faith, Moses, when he had grown up, refused to be called the son of Pharaoh’s daughter,",
+          "kjv": "By faith Moses, when he was come to years, refused to be called the son of Pharaoh’s daughter;"
+        },
+        {
+          "v": 25,
+          "web": "choosing rather to share ill treatment with God’s people, than to enjoy the pleasures of sin for a time;",
+          "kjv": "Choosing rather to suffer affliction with the people of God, than to enjoy the pleasures of sin for a season;"
+        },
+        {
+          "v": 26,
+          "web": "accounting the reproach of Christ greater riches than the treasures of Egypt; for he looked to the reward.",
+          "kjv": "Esteeming the reproach of Christ greater riches than the treasures in Egypt: for he had respect unto the recompence of the reward."
+        },
+        {
+          "v": 27,
+          "web": "By faith, he left Egypt, not fearing the wrath of the king; for he endured, as seeing him who is invisible.",
+          "kjv": "By faith he forsook Egypt, not fearing the wrath of the king: for he endured, as seeing him who is invisible."
+        },
+        {
+          "v": 28,
+          "web": "By faith, he kept the Passover, and the sprinkling of the blood, that the destroyer of the firstborn should not touch them.",
+          "kjv": "Through faith he kept the passover, and the sprinkling of blood, lest he that destroyed the firstborn should touch them."
+        },
+        {
+          "v": 29,
+          "web": "By faith, they passed through the Red Sea as on dry land. When the Egyptians tried to do so, they were swallowed up.",
+          "kjv": "By faith they passed through the Red sea as by dry land: which the Egyptians assaying to do were drowned."
+        },
+        {
+          "v": 30,
+          "web": "By faith, the walls of Jericho fell down, after they had been encircled for seven days.",
+          "kjv": "By faith the walls of Jericho fell down, after they were compassed about seven days."
+        },
+        {
+          "v": 31,
+          "web": "By faith, Rahab the prostitute, didn’t perish with those who were disobedient, having received the spies in peace.",
+          "kjv": "By faith the harlot Rahab perished not with them that believed not, when she had received the spies with peace."
+        },
+        {
+          "v": 32,
+          "web": "What more shall I say? For the time would fail me if I told of Gideon, Barak, Samson, Jephthah, David, Samuel, and the prophets;",
+          "kjv": "And what shall I more say? for the time would fail me to tell of Gedeon, and of Barak, and of Samson, and of Jephthae; of David also, and Samuel, and of the prophets:"
+        },
+        {
+          "v": 33,
+          "web": "who, through faith subdued kingdoms, worked out righteousness, obtained promises, stopped the mouths of lions,",
+          "kjv": "Who through faith subdued kingdoms, wrought righteousness, obtained promises, stopped the mouths of lions,"
+        },
+        {
+          "v": 34,
+          "web": "quenched the power of fire, escaped the edge of the sword, from weakness were made strong, grew mighty in war, and caused foreign armies to flee.",
+          "kjv": "Quenched the violence of fire, escaped the edge of the sword, out of weakness were made strong, waxed valiant in fight, turned to flight the armies of the aliens."
+        },
+        {
+          "v": 35,
+          "web": "Women received their dead by resurrection. Others were tortured, not accepting their deliverance, that they might obtain a better resurrection.",
+          "kjv": "Women received their dead raised to life again: and others were tortured, not accepting deliverance; that they might obtain a better resurrection:"
+        },
+        {
+          "v": 36,
+          "web": "Others were tried by mocking and scourging, yes, moreover by bonds and imprisonment.",
+          "kjv": "And others had trial of cruel mockings and scourgings, yea, moreover of bonds and imprisonment:"
+        },
+        {
+          "v": 37,
+          "web": "They were stoned. They were sawn apart. They were tempted. They were slain with the sword. They went around in sheep skins and in goat skins; being destitute, afflicted, ill-treated",
+          "kjv": "They were stoned, they were sawn asunder, were tempted, were slain with the sword: they wandered about in sheepskins and goatskins; being destitute, afflicted, tormented;"
+        },
+        {
+          "v": 38,
+          "web": "(of whom the world was not worthy), wandering in deserts, mountains, caves, and the holes of the earth.",
+          "kjv": "(Of whom the world was not worthy:) they wandered in deserts, and in mountains, and in dens and caves of the earth."
+        },
+        {
+          "v": 39,
+          "web": "These all, having had testimony given to them through their faith, didn’t receive the promise,",
+          "kjv": "And these all, having obtained a good report through faith, received not the promise:"
+        },
+        {
+          "v": 40,
+          "web": "God having provided some better thing concerning us, so that apart from us they should not be made perfect.",
+          "kjv": "God having provided some better thing for us, that they without us should not be made perfect."
+        }
+      ]
+    },
+    {
+      "chapter": 12,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Therefore let us also, seeing we are surrounded by so great a cloud of witnesses, lay aside every weight and the sin which so easily entangles us, and let us run with patience the race that is set before us,",
+          "kjv": "Wherefore seeing we also are compassed about with so great a cloud of witnesses, let us lay aside every weight, and the sin which doth so easily beset us, and let us run with patience the race that is set before us,"
+        },
+        {
+          "v": 2,
+          "web": "looking to Jesus, the author and perfecter of faith, who for the joy that was set before him endured the cross, despising its shame, and has sat down at the right hand of the throne of God.",
+          "kjv": "Looking unto Jesus the author and finisher of our faith; who for the joy that was set before him endured the cross, despising the shame, and is set down at the right hand of the throne of God."
+        },
+        {
+          "v": 3,
+          "web": "For consider him who has endured such contradiction of sinners against himself, that you don’t grow weary, fainting in your souls.",
+          "kjv": "For consider him that endured such contradiction of sinners against himself, lest ye be wearied and faint in your minds."
+        },
+        {
+          "v": 4,
+          "web": "You have not yet resisted to blood, striving against sin;",
+          "kjv": "Ye have not yet resisted unto blood, striving against sin."
+        },
+        {
+          "v": 5,
+          "web": "and you have forgotten the exhortation which reasons with you as with children, “My son, don’t take lightly the chastening of the Lord, nor faint when you are reproved by him;",
+          "kjv": "And ye have forgotten the exhortation which speaketh unto you as unto children, My son, despise not thou the chastening of the Lord, nor faint when thou art rebuked of him:"
+        },
+        {
+          "v": 6,
+          "web": "For whom the Lord loves, he chastens, and scourges every son whom he receives.”",
+          "kjv": "For whom the Lord loveth he chasteneth, and scourgeth every son whom he receiveth."
+        },
+        {
+          "v": 7,
+          "web": "It is for discipline that you endure. God deals with you as with children, for what son is there whom his father doesn’t discipline?",
+          "kjv": "If ye endure chastening, God dealeth with you as with sons; for what son is he whom the father chasteneth not?"
+        },
+        {
+          "v": 8,
+          "web": "But if you are without discipline, of which all have been made partakers, then are you illegitimate, and not children.",
+          "kjv": "But if ye be without chastisement, whereof all are partakers, then are ye bastards, and not sons."
+        },
+        {
+          "v": 9,
+          "web": "Furthermore, we had the fathers of our flesh to chasten us, and we paid them respect. Shall we not much rather be in subjection to the Father of spirits, and live?",
+          "kjv": "Furthermore we have had fathers of our flesh which corrected us, and we gave them reverence: shall we not much rather be in subjection unto the Father of spirits, and live?"
+        },
+        {
+          "v": 10,
+          "web": "For they indeed, for a few days, punished us as seemed good to them; but he for our profit, that we may be partakers of his holiness.",
+          "kjv": "For they verily for a few days chastened us after their own pleasure; but he for our profit, that we might be partakers of his holiness."
+        },
+        {
+          "v": 11,
+          "web": "All chastening seems for the present to be not joyous but grievous; yet afterward it yields the peaceful fruit of righteousness to those who have been exercised thereby.",
+          "kjv": "Now no chastening for the present seemeth to be joyous, but grievous: nevertheless afterward it yieldeth the peaceable fruit of righteousness unto them which are exercised thereby."
+        },
+        {
+          "v": 12,
+          "web": "Therefore lift up the hands that hang down and the feeble knees,",
+          "kjv": "Wherefore lift up the hands which hang down, and the feeble knees;"
+        },
+        {
+          "v": 13,
+          "web": "and make straight paths for your feet, so that which is lame may not be dislocated, but rather be healed.",
+          "kjv": "And make straight paths for your feet, lest that which is lame be turned out of the way; but let it rather be healed."
+        },
+        {
+          "v": 14,
+          "web": "Follow after peace with all men, and the sanctification without which no man will see the Lord,",
+          "kjv": "Follow peace with all men, and holiness, without which no man shall see the Lord:"
+        },
+        {
+          "v": 15,
+          "web": "looking carefully lest there be any man who falls short of the grace of God; lest any root of bitterness springing up trouble you, and many be defiled by it;",
+          "kjv": "Looking diligently lest any man fail of the grace of God; lest any root of bitterness springing up trouble you, and thereby many be defiled;"
+        },
+        {
+          "v": 16,
+          "web": "lest there be any sexually immoral person, or profane person, like Esau, who sold his birthright for one meal.",
+          "kjv": "Lest there be any fornicator, or profane person, as Esau, who for one morsel of meat sold his birthright."
+        },
+        {
+          "v": 17,
+          "web": "For you know that even when he afterward desired to inherit the blessing, he was rejected, for he found no place for a change of mind though he sought it diligently with tears.",
+          "kjv": "For ye know how that afterward, when he would have inherited the blessing, he was rejected: for he found no place of repentance, though he sought it carefully with tears."
+        },
+        {
+          "v": 18,
+          "web": "For you have not come to a mountain that might be touched, and that burned with fire, and to blackness, darkness, storm,",
+          "kjv": "For ye are not come unto the mount that might be touched, and that burned with fire, nor unto blackness, and darkness, and tempest,"
+        },
+        {
+          "v": 19,
+          "web": "the sound of a trumpet, and the voice of words; which those who heard it begged that not one more word should be spoken to them,",
+          "kjv": "And the sound of a trumpet, and the voice of words; which voice they that heard intreated that the word should not be spoken to them any more:"
+        },
+        {
+          "v": 20,
+          "web": "for they could not stand that which was commanded, “If even an animal touches the mountain, it shall be stoned”;",
+          "kjv": "(For they could not endure that which was commanded, And if so much as a beast touch the mountain, it shall be stoned, or thrust through with a dart:"
+        },
+        {
+          "v": 21,
+          "web": "and so fearful was the appearance that Moses said, “I am terrified and trembling.”",
+          "kjv": "And so terrible was the sight, that Moses said, I exceedingly fear and quake:)"
+        },
+        {
+          "v": 22,
+          "web": "But you have come to Mount Zion, and to the city of the living God, the heavenly Jerusalem, and to innumerable multitudes of angels,",
+          "kjv": "But ye are come unto mount Sion, and unto the city of the living God, the heavenly Jerusalem, and to an innumerable company of angels,"
+        },
+        {
+          "v": 23,
+          "web": "to the general assembly and assembly of the firstborn who are enrolled in heaven, to God the Judge of all, to the spirits of just men made perfect,",
+          "kjv": "To the general assembly and church of the firstborn, which are written in heaven, and to God the Judge of all, and to the spirits of just men made perfect,"
+        },
+        {
+          "v": 24,
+          "web": "to Jesus, the mediator of a new covenant, and to the blood of sprinkling that speaks better than that of Abel.",
+          "kjv": "And to Jesus the mediator of the new covenant, and to the blood of sprinkling, that speaketh better things than that of Abel."
+        },
+        {
+          "v": 25,
+          "web": "See that you don’t refuse him who speaks. For if they didn’t escape when they refused him who warned on the earth, how much more will we not escape who turn away from him who warns from heaven,",
+          "kjv": "See that ye refuse not him that speaketh. For if they escaped not who refused him that spake on earth, much more shall not we escape, if we turn away from him that speaketh from heaven:"
+        },
+        {
+          "v": 26,
+          "web": "whose voice shook the earth then, but now he has promised, saying, “Yet once more I will shake not only the earth, but also the heavens.”",
+          "kjv": "Whose voice then shook the earth: but now he hath promised, saying, Yet once more I shake not the earth only, but also heaven."
+        },
+        {
+          "v": 27,
+          "web": "This phrase, “Yet once more”, signifies the removing of those things that are shaken, as of things that have been made, that those things which are not shaken may remain.",
+          "kjv": "And this word, Yet once more, signifieth the removing of those things that are shaken, as of things that are made, that those things which cannot be shaken may remain."
+        },
+        {
+          "v": 28,
+          "web": "Therefore, receiving a Kingdom that can’t be shaken, let us have grace, through which we serve God acceptably, with reverence and awe,",
+          "kjv": "Wherefore we receiving a kingdom which cannot be moved, let us have grace, whereby we may serve God acceptably with reverence and godly fear:"
+        },
+        {
+          "v": 29,
+          "web": "for our God is a consuming fire.",
+          "kjv": "For our God is a consuming fire."
+        }
+      ]
+    },
+    {
+      "chapter": 13,
+      "verses": [
+        {
+          "v": 1,
+          "web": "Let brotherly love continue.",
+          "kjv": "Let brotherly love continue."
+        },
+        {
+          "v": 2,
+          "web": "Don’t forget to show hospitality to strangers, for in doing so, some have entertained angels without knowing it.",
+          "kjv": "Be not forgetful to entertain strangers: for thereby some have entertained angels unawares."
+        },
+        {
+          "v": 3,
+          "web": "Remember those who are in bonds, as bound with them; and those who are ill-treated, since you are also in the body.",
+          "kjv": "Remember them that are in bonds, as bound with them; and them which suffer adversity, as being yourselves also in the body."
+        },
+        {
+          "v": 4,
+          "web": "Let marriage be held in honor among all, and let the bed be undefiled: but God will judge the sexually immoral and adulterers.",
+          "kjv": "Marriage is honourable in all, and the bed undefiled: but whoremongers and adulterers God will judge."
+        },
+        {
+          "v": 5,
+          "web": "Be free from the love of money, content with such things as you have, for he has said, “I will in no way leave you, neither will I in any way forsake you.”",
+          "kjv": "Let your conversation be without covetousness; and be content with such things as ye have: for he hath said, I will never leave thee, nor forsake thee."
+        },
+        {
+          "v": 6,
+          "web": "So that with good courage we say, “The Lord is my helper. I will not fear. What can man do to me?”",
+          "kjv": "So that we may boldly say, The Lord is my helper, and I will not fear what man shall do unto me."
+        },
+        {
+          "v": 7,
+          "web": "Remember your leaders, men who spoke to you the word of God, and considering the results of their conduct, imitate their faith.",
+          "kjv": "Remember them which have the rule over you, who have spoken unto you the word of God: whose faith follow, considering the end of their conversation."
+        },
+        {
+          "v": 8,
+          "web": "Jesus Christ is the same yesterday, today, and forever.",
+          "kjv": "Jesus Christ the same yesterday, and to day, and for ever."
+        },
+        {
+          "v": 9,
+          "web": "Don’t be carried away by various and strange teachings, for it is good that the heart be established by grace, not by food, through which those who were so occupied were not benefited.",
+          "kjv": "Be not carried about with divers and strange doctrines. For it is a good thing that the heart be established with grace; not with meats, which have not profited them that have been occupied therein."
+        },
+        {
+          "v": 10,
+          "web": "We have an altar from which those who serve the holy tabernacle have no right to eat.",
+          "kjv": "We have an altar, whereof they have no right to eat which serve the tabernacle."
+        },
+        {
+          "v": 11,
+          "web": "For the bodies of those animals, whose blood is brought into the holy place by the high priest as an offering for sin, are burned outside of the camp.",
+          "kjv": "For the bodies of those beasts, whose blood is brought into the sanctuary by the high priest for sin, are burned without the camp."
+        },
+        {
+          "v": 12,
+          "web": "Therefore Jesus also, that he might sanctify the people through his own blood, suffered outside of the gate.",
+          "kjv": "Wherefore Jesus also, that he might sanctify the people with his own blood, suffered without the gate."
+        },
+        {
+          "v": 13,
+          "web": "Let us therefore go out to him outside of the camp, bearing his reproach.",
+          "kjv": "Let us go forth therefore unto him without the camp, bearing his reproach."
+        },
+        {
+          "v": 14,
+          "web": "For we don’t have here an enduring city, but we seek that which is to come.",
+          "kjv": "For here have we no continuing city, but we seek one to come."
+        },
+        {
+          "v": 15,
+          "web": "Through him, then, let us offer up a sacrifice of praise to God continually, that is, the fruit of lips which proclaim allegiance to his name.",
+          "kjv": "By him therefore let us offer the sacrifice of praise to God continually, that is, the fruit of our lips giving thanks to his name."
+        },
+        {
+          "v": 16,
+          "web": "But don’t forget to be doing good and sharing, for with such sacrifices God is well pleased.",
+          "kjv": "But to do good and to communicate forget not: for with such sacrifices God is well pleased."
+        },
+        {
+          "v": 17,
+          "web": "Obey your leaders and submit to them, for they watch on behalf of your souls, as those who will give account, that they may do this with joy, and not with groaning, for that would be unprofitable for you.",
+          "kjv": "Obey them that have the rule over you, and submit yourselves: for they watch for your souls, as they that must give account, that they may do it with joy, and not with grief: for that is unprofitable for you."
+        },
+        {
+          "v": 18,
+          "web": "Pray for us, for we are persuaded that we have a good conscience, desiring to live honorably in all things.",
+          "kjv": "Pray for us: for we trust we have a good conscience, in all things willing to live honestly."
+        },
+        {
+          "v": 19,
+          "web": "I strongly urge you to do this, that I may be restored to you sooner.",
+          "kjv": "But I beseech you the rather to do this, that I may be restored to you the sooner."
+        },
+        {
+          "v": 20,
+          "web": "Now may the God of peace, who brought again from the dead the great shepherd of the sheep with the blood of an eternal covenant, our Lord Jesus,",
+          "kjv": "Now the God of peace, that brought again from the dead our Lord Jesus, that great shepherd of the sheep, through the blood of the everlasting covenant,"
+        },
+        {
+          "v": 21,
+          "web": "make you complete in every good work to do his will, working in you that which is well pleasing in his sight, through Jesus Christ, to whom be the glory forever and ever. Amen.",
+          "kjv": "Make you perfect in every good work to do his will, working in you that which is wellpleasing in his sight, through Jesus Christ; to whom be glory for ever and ever. Amen."
+        },
+        {
+          "v": 22,
+          "web": "But I exhort you, brothers, endure the word of exhortation, for I have written to you in few words.",
+          "kjv": "And I beseech you, brethren, suffer the word of exhortation: for I have written a letter unto you in few words."
+        },
+        {
+          "v": 23,
+          "web": "Know that our brother Timothy has been freed, with whom, if he comes shortly, I will see you.",
+          "kjv": "Know ye that our brother Timothy is set at liberty; with whom, if he come shortly, I will see you."
+        },
+        {
+          "v": 24,
+          "web": "Greet all of your leaders and all the saints. The Italians greet you.",
+          "kjv": "Salute all them that have the rule over you, and all the saints. They of Italy salute you."
+        },
+        {
+          "v": 25,
+          "web": "Grace be with you all. Amen.",
+          "kjv": "Grace be with you all. Amen. Written to the Hebrews from Italy by Timothy."
+        }
+      ]
+    }
+  ]
+}

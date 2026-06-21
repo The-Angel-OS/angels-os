@@ -73,42 +73,42 @@ const BOOKS = [
 ].map(([code, name, query, chapters, testament, soleVerses]) => ({ code, name, query, chapters, testament, soleVerses }))
 
 const CODE_ORDER = BOOKS.map((b) => b.code)
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const TMP = resolve(ROOT, '.bible-tmp')
+const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim()
 
-/** Fetch one chapter's verses for a translation. Single-chapter books omit the number. */
-async function fetchChapter(book, chapter, translation) {
-  // Single-chapter books: bible-api treats "<book> 1" as VERSE 1, so we must use
-  // an explicit range "<book> 1:1-<soleVerses>". Multi-chapter: "<book> <ch>".
-  const q = book.chapters === 1 ? `${book.query} 1:1-${book.soleVerses}` : `${book.query} ${chapter}`
-  const url = `${API}/${encodeURIComponent(q)}?translation=${translation}`
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try {
-      const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
-        return (data.verses || []).map((v) => ({ v: v.verse, text: v.text.trim().replace(/\s+/g, ' ') }))
-      }
-    } catch {
-      /* retry */
-    }
-    await sleep(500 * (attempt + 1))
+// Bulk public-domain source: the WHOLE translation in ONE request (no per-chapter
+// rate-limiting). getBible v2 — 66 books in canonical order, {chapter,verse,text}.
+async function loadBulk(translation) {
+  const file = resolve(TMP, `${translation}.json`)
+  let raw
+  try {
+    raw = await readFile(file, 'utf-8')
+  } catch {
+    const url = `https://api.getbible.net/v2/${translation}.json`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`bulk fetch failed (${res.status}): ${url}`)
+    raw = await res.text()
+    await mkdir(TMP, { recursive: true })
+    await writeFile(file, raw, 'utf-8')
   }
-  throw new Error(`fetch failed: ${url}`)
+  return JSON.parse(raw).books // [{ nr, name, chapters:[{chapter, verses:[{verse,text}]}] }]
 }
 
-async function ingestBook(book) {
-  const chapters = []
-  for (let ch = 1; ch <= book.chapters; ch++) {
-    const [web, kjv] = await Promise.all([fetchChapter(book, ch, 'web'), fetchChapter(book, ch, 'kjv')])
-    const kjvByV = new Map(kjv.map((x) => [x.v, x.text]))
-    const verses = web.map((w) => ({ v: w.v, web: w.text, kjv: kjvByV.get(w.v) || '' }))
-    chapters.push({ chapter: ch, verses })
-    process.stdout.write(`  ${book.code} ${ch}/${book.chapters} (${verses.length} v)\r`)
-    await sleep(120) // be polite to the public API
-  }
-  const data = { code: book.code, name: book.name, testament: book.testament, chapters }
-  await writeFile(resolve(DATA_DIR, `${book.code}.json`), JSON.stringify(data, null, 2), 'utf-8')
-  console.log(`\n  ✓ ${book.name} — ${chapters.length} ch`)
+/** Build a book's verse JSON (both translations) by slicing the bulk arrays. */
+function extractBook(book, webBooks, kjvBooks) {
+  const idx = CODE_ORDER.indexOf(book.code) // bulk is canonical order → same index
+  const wb = webBooks[idx]
+  const kb = kjvBooks[idx]
+  const chapters = (wb?.chapters || []).map((wc) => {
+    const kjvByV = new Map(
+      (kb?.chapters?.find((c) => c.chapter === wc.chapter)?.verses || []).map((v) => [v.verse, clean(v.text)]),
+    )
+    return {
+      chapter: wc.chapter,
+      verses: wc.verses.map((v) => ({ v: v.verse, web: clean(v.text), kjv: kjvByV.get(v.verse) || '' })),
+    }
+  })
+  return { code: book.code, name: book.name, testament: book.testament, chapters }
 }
 
 /**
@@ -159,11 +159,15 @@ async function main() {
   await mkdir(TEXT_DIR, { recursive: true })
   const args = process.argv.slice(2)
   const codes = args.length === 0 ? ['PHM'] : args[0].toUpperCase() === 'ALL' ? CODE_ORDER : args.map((a) => a.toUpperCase())
-  console.log(`Ingesting: ${codes.join(', ')}`)
+  console.log(`Ingesting: ${codes.length} book(s) from bulk source`)
+  console.log('Loading WEB + KJV (one request each)…')
+  const [webBooks, kjvBooks] = await Promise.all([loadBulk('web'), loadBulk('kjv')])
   for (const code of codes) {
     const book = BOOKS.find((b) => b.code === code)
     if (!book) { console.warn(`  ? unknown book code: ${code}`); continue }
-    await ingestBook(book)
+    const data = extractBook(book, webBooks, kjvBooks)
+    await writeFile(resolve(DATA_DIR, `${book.code}.json`), JSON.stringify(data, null, 2), 'utf-8')
+    console.log(`  ✓ ${book.name} — ${data.chapters.length} ch`)
   }
   await buildBook()
   console.log('done. The Holy Bible book is built — open the Library.')
