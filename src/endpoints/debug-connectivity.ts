@@ -26,14 +26,24 @@ export const debugConnectivityHandler: PayloadHandler = async (req) => {
   const uri = process.env.DATABASE_URI || ''
   const database = (uri.match(/\/([^/?]+)(\?|$)/) || [])[1] || 'unknown'
   const dbHost = (uri.match(/@([^/:]+)/) || [])[1] || 'unknown'
+  // Port + SSL make the pooler cutover VERIFIABLE from this endpoint: 6432 =
+  // through PgBouncer, 5432 = direct. ssl reflects the DATABASE_SSL gate. Neither
+  // is a secret, so both are always shown.
+  const dbPort = (uri.match(/:(\d{2,5})\//) || [])[1] || '5432'
+  const sslMode = process.env.DATABASE_SSL === 'require' ? 'require' : 'off'
+  const pooled = dbPort === '6432'
 
   // Connectivity probe — a count proves we can actually reach + read the DB, and
-  // reveals which dataset this is (empty kendev vs populated angels).
+  // reveals which dataset this is (empty kendev vs populated angels). Timed so the
+  // response shows how slow the DB round-trip is (a hang/slow path is visible).
   let connected = false
   let userTotal: number | null = null
   let tenantTotal: number | null = null
+  let pingMs: number | null = null
+  const t0 = Date.now()
   try {
     const u = await payload.count({ collection: 'users', overrideAccess: true })
+    pingMs = Date.now() - t0
     userTotal = u.totalDocs
     connected = true
     if (authorized) {
@@ -54,6 +64,10 @@ export const debugConnectivityHandler: PayloadHandler = async (req) => {
         commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null,
       },
       database,
+      port: dbPort,
+      ssl: sslMode,
+      pooled, // true = via PgBouncer (:6432); false = direct (:5432)
+      pingMs, // DB round-trip ms (null if the probe failed) — a slow/hung path shows here
       connected,
       // Always-safe signal: does this DB have data, without revealing counts.
       data: userTotal == null ? 'unknown' : userTotal > 0 ? 'present' : 'empty',

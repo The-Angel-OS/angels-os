@@ -156,11 +156,18 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       )
     }
 
+    // Step markers (Vercel runtime logs, no DB dependency) so a HANG is visible:
+    // if "creating message" appears without "created message", the block is inside
+    // payload.create — i.e. a Messages afterChange hook (runWorkflows / autoAnalyzeMedia
+    // / moderateMessage / broadcast) is awaiting something with no timeout.
+    const tCreate = Date.now()
+    req.payload.logger?.info?.(`[chat-send] creating message space=${spaceId} channel=${channel} attachments=${Array.isArray(attachments) ? attachments.length : 0}`)
     const saved = await req.payload.create({
       collection: 'messages',
       data: messageData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       overrideAccess: true,
     })
+    req.payload.logger?.info?.(`[chat-send] created message ${saved.id} in ${Date.now() - tCreate}ms`)
 
     // Surface page-comment channels in the Spaces viewer (find-or-create,
     // non-blocking — never delays the send or fails it). The channel always
