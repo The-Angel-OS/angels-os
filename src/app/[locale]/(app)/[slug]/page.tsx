@@ -7,7 +7,9 @@ import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
+import { draftMode, headers } from 'next/headers'
+import { canViewPage } from '@/utilities/pageAccess'
+import { MembersOnlyGate } from '@/components/MembersOnlyGate'
 import { homeStaticData } from '@/endpoints/seed/home-static'
 import { tenantHomeData } from '@/utilities/tenantHomeData'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
@@ -75,6 +77,18 @@ export default async function Page({ params }: Args) {
   // so a Merlin lists its OWN endeavor's nodes without the editor retyping the slug.
   const { tenant: pageTenant } = await resolveTenantFromHeaders()
   const tenantSlug = (pageTenant as { slug?: string } | null)?.slug
+  const tenantId = (pageTenant as { id?: string | number } | null)?.id
+
+  // Membership gate: if the page declares a non-public `access` level, show a join
+  // prompt instead of the content for ineligible viewers (admins always pass).
+  const access = (page as { access?: string }).access
+  if (access && access !== 'public') {
+    const payload = await getPayload({ config: configPromise })
+    const { user } = await payload.auth({ headers: await headers() })
+    if (!(await canViewPage(payload, access, user, tenantId))) {
+      return <MembersOnlyGate access={access} isAuthenticated={Boolean(user)} path={url} />
+    }
+  }
 
   return (
     <article className="pt-16 pb-24">

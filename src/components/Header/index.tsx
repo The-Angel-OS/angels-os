@@ -2,8 +2,10 @@ import type { Tenant } from '@/payload-types'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+import { headers } from 'next/headers'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, type PageLite } from '@/utilities/pagesNav'
+import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
@@ -45,15 +47,26 @@ export async function Header({ tenant }: Props) {
         sort: 'title',
         overrideAccess: true,
       })
+      // Resolve the viewer's membership standing ONCE so gated pages can be filtered
+      // out of the nav for ineligible visitors (the same gate the page render uses).
+      let viewer = { isAdmin: false, isAuthenticated: false, isMember: false, inGoodStanding: false }
+      try {
+        const { user } = await payload.auth({ headers: await headers() })
+        viewer = await resolveViewerStanding(payload, user, tenantId)
+      } catch {
+        /* anonymous viewer — only public pages show */
+      }
       const pageList: PageLite[] = (
-        pages.docs as Array<{ slug?: string | null; title?: string | null; navLabel?: string | null; navOrder?: number | null; showInNav?: boolean | null }>
-      ).map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        navLabel: p.navLabel,
-        navOrder: p.navOrder,
-        showInNav: p.showInNav,
-      }))
+        pages.docs as Array<{ slug?: string | null; title?: string | null; navLabel?: string | null; navOrder?: number | null; showInNav?: boolean | null; access?: string | null }>
+      )
+        .filter((p) => isPageViewable(p.access, viewer))
+        .map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          navLabel: p.navLabel,
+          navOrder: p.navOrder,
+          showInNav: p.showInNav,
+        }))
 
       // Latest posts → Posts dropdown, each with its meta image as a thumbnail.
       const posts = await payload.find({

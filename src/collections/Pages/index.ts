@@ -99,6 +99,24 @@ export const Pages: CollectionConfig = {
         description: 'Show this page in the site navigation (Home menu). Turn off for campaign/landing pages.',
       },
     },
+    // Who may VIEW this page. Gated pages also hide from nav for ineligible viewers.
+    // Values MUST match PageAccessLevel in src/utilities/pageAccess.ts.
+    {
+      name: 'access',
+      type: 'select',
+      defaultValue: 'public',
+      options: [
+        { label: 'Public — anyone', value: 'public' },
+        { label: 'Authenticated — any signed-in user', value: 'authenticated' },
+        { label: 'Members — current or lapsing member', value: 'members' },
+        { label: 'Members in good standing', value: 'good_standing' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description:
+          'Who can view this page. Non-public pages are hidden from nav for ineligible visitors and show a join prompt instead. Admins always have access.',
+      },
+    },
     {
       name: 'navLabel',
       type: 'text',
