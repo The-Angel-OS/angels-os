@@ -14,6 +14,7 @@
  */
 import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
+import { provisionNodeIdentity } from '@/utilities/nodeBus'
 
 const ENTITY = 'merlin-nodes'
 const SETTING = 'nodes'
@@ -56,12 +57,33 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
   if (!nodeId) return Response.json({ error: 'node.id or node.hostname required' }, { status: 400 })
 
   try {
+    // Provision the node's bus identity (system-user + per-node channel + membership)
+    // and mint a fresh token. Idempotent — re-register refreshes the token + lastSeen.
+    const identity = await provisionNodeIdentity(payload, req, { endeavor, nodeId })
+
     const tenantId = await platformTenantId(payload)
     const scope = { entityName: ENTITY, entityId: endeavor, tenantId }
     const current = (await getJsonSetting<Record<string, NodeRecord>>(payload, scope, SETTING)) || {}
-    current[nodeId] = { ...node, id: nodeId, lastSeen: new Date().toISOString() }
+    // Persist the bus address on the node record (channel + user); never store the token.
+    current[nodeId] = {
+      ...node,
+      id: nodeId,
+      lastSeen: new Date().toISOString(),
+      channel: identity.channel,
+      spaceId: identity.spaceId,
+      nodeUserId: identity.nodeUserId,
+    }
     await setJsonSetting(payload, scope, SETTING, current)
-    return Response.json({ ok: true, endeavor, nodeId, total: Object.keys(current).length })
+    return Response.json({
+      ok: true,
+      endeavor,
+      nodeId,
+      total: Object.keys(current).length,
+      channel: identity.channel,
+      spaceId: identity.spaceId,
+      nodeToken: identity.nodeToken,
+      nodeTokenExpiresAt: identity.nodeTokenExpiresAt,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-register] ${msg}`)

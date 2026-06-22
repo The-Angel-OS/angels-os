@@ -2686,6 +2686,21 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Node bus: reach a Merlin node over the message bus ─────────────────
+  {
+    name: 'list_node_files',
+    description:
+      "Ask a registered Merlin node (a home/contributor node bound to this endeavor) to list the shared media/files it can see, optionally filtered by a query. This DISPATCHES the request onto the node's bus channel and returns immediately — the node replies asynchronously with the file list as a follow-up message in that channel (it may take a few seconds; the node only answers while online). Use when the user asks what files/movies/media a node has. Only files under the node owner's explicitly-shared roots are ever returned.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Optional case-insensitive filename filter (e.g. "answer", ".mp4").' },
+        nodeId: { type: 'string', description: 'Optional node id to target. Omit to use the single online node (errors if ambiguous).' },
+      },
+      required: [],
+    },
+  },
+
   // ── Federation Messaging (Sprint 36) ──────────────────────────────────
   {
     name: 'send_federation_message',
@@ -3924,6 +3939,8 @@ async function executeToolSwitch(
         return await handleSendGotify(payload, toolInput, ctx)
       case 'dispatch_to_channel':
         return await handleDispatchToChannel(payload, toolInput, ctx)
+      case 'list_node_files':
+        return await handleListNodeFiles(payload, toolInput, ctx)
       // Federation
       case 'send_federation_message':
         return await handleSendFederationMessage(payload, toolInput, ctx)
@@ -11703,6 +11720,64 @@ async function handleSendGotify(
  * today; other types report what's needed). This is how LEO in one channel
  * reaches a connector that lives on another.
  */
+async function handleListNodeFiles(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const { tenantSlugById, listEndeavorNodes, isNodeOnline, NODE_COMMAND_KIND } = await import('./nodeBus')
+  const endeavor = await tenantSlugById(payload, tenantId)
+  if (!endeavor) return 'Error: could not resolve this endeavor.'
+
+  const nodes = await listEndeavorNodes(payload, endeavor)
+  if (!nodes.length) return `No Merlin nodes are registered for ${endeavor} yet.`
+
+  // Pick the target node: explicit nodeId, else the single online node.
+  const wantId = (input.nodeId as string)?.trim()
+  let node: (typeof nodes)[number] | undefined
+  if (wantId) {
+    node = nodes.find((n) => n.id === wantId)
+    if (!node) return `No registered node "${wantId}" for ${endeavor}. Registered: ${nodes.map((n) => n.id).join(', ')}.`
+  } else {
+    const online = nodes.filter(isNodeOnline)
+    if (online.length === 1) node = online[0]
+    else if (online.length === 0)
+      return `No Merlin nodes are online for ${endeavor} right now (last seen ${nodes[0]?.lastSeen || 'never'}). The node must be running to answer.`
+    else return `Multiple nodes online (${online.map((n) => n.id).join(', ')}) — specify which with nodeId.`
+  }
+
+  if (!node.channel || !node.spaceId)
+    return `Node ${node.id} has no bus channel yet — it needs to re-register against the latest Core build.`
+
+  const query = (input.query as string)?.trim() || undefined
+  const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+  try {
+    await payload.create({
+      collection: 'messages',
+      data: {
+        content: query ? `list files matching "${query}"` : 'list shared files',
+        space: Number(node.spaceId),
+        channel: node.channel,
+        messageType: 'system',
+        author: (await findLeoUser(payload, tenantId)) || (ctx.userId as number) || 1,
+        tenant: tenantId,
+        visibility: 'tenant',
+        metadata: { kind: NODE_COMMAND_KIND, requestId, tool: 'list_media', args: query ? { query } : {} },
+      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      overrideAccess: true,
+    })
+  } catch (err) {
+    logCaughtError('leo-tools', err).catch(() => {})
+    return `Could not dispatch the file-list request to node ${node.id}.`
+  }
+
+  return `Dispatched a file-list request to node **${node.id}**${query ? ` (filter: "${query}")` : ''} — it will reply in its channel shortly (request ${requestId}).`
+}
+
 async function handleDispatchToChannel(
   payload: Payload,
   input: Record<string, unknown>,
