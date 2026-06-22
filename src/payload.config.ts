@@ -352,14 +352,24 @@ export default buildConfig({
       ssl: process.env.DATABASE_SSL === 'require' ? { rejectUnauthorized: false } : undefined,
       // Drizzle schema introspection fires many concurrent queries at startup.
       // Remote PostgreSQL needs more headroom than a local DB.
-      // ⚠️ This repo deploys to MANY Vercel projects (angels-os, the-angel-os, spaces,
-      // wheredideveryonego, answer53, angels-os-kendev), ALL sharing one IONOS PG server
-      // capped at max_connections=100. Each warm lambda instance holds `max` connections;
-      // ~34 warm instances × 3 = 100 → server pegged → new nodes can't connect → "error
-      // initializing Payload" (kendev outage 2026-06-20). Keep the per-instance footprint
-      // small and release idle connections fast so instances don't hoard the shared cap.
-      // Proper long-term fix: a connection pooler (PgBouncer / Cloudflare Hyperdrive).
-      max: process.env.VERCEL ? 2 : 10, // Serverless: minimal footprint on the shared 100-cap; local: higher for Drizzle introspection
+      //
+      // HISTORY: max was clamped to 2 on Vercel as a PRE-POOLER mitigation — when the
+      // apps connected DIRECT to Postgres (:5432), each warm lambda held `max` real
+      // backend connections and ~34 instances × 3 pegged the 100-cap (kendev outage
+      // 2026-06-20). That math no longer applies: prod now connects through the
+      // pgBouncer pooler (transaction mode, verified 260621 — all backend conns are
+      // 127.0.0.1, cl_waiting=0). pgBouncer multiplexes many client connections onto
+      // ≤ max_db_connections=35 backends, so the app `max` is now a CLIENT-side count
+      // against max_client_conn=2000, not a backend count against the 100-cap.
+      //
+      // ⚠️ max:2 became the ACTIVE BUG: a Payload admin save holds a transaction on one
+      // pool connection; any save-path hook/access-check that runs a query WITHOUT
+      // passing `req` (see docs/architecture/PASS_REQ_RULE.md) grabs a SEPARATE pool
+      // connection, and the doc-lock check needs another — with max:2 the third query
+      // waits the full connectionTimeoutMillis (30s) for a slot that never frees →
+      // "Failed query" / 34s autosave hang. Raising max gives each lambda enough
+      // connections to stop self-deadlocking; the pooler still protects the backend.
+      max: process.env.VERCEL ? 10 : 10, // pooler multiplexes → safe; was 2 (self-starved admin saves)
       idleTimeoutMillis: process.env.VERCEL ? 5_000 : 10_000, // release idle conns fast on serverless to free the shared cap
       connectionTimeoutMillis: 30_000, // 30s — remote DB needs more time during schema pull
       allowExitOnIdle: true,
