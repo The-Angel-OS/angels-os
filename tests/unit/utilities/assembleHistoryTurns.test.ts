@@ -4,7 +4,7 @@
  * turns must be labeled by speaker and never merged across different authors.
  */
 import { describe, it, expect } from 'vitest'
-import { assembleHistoryTurns, type RawHistoryTurn } from '@/utilities/assembleHistoryTurns'
+import { assembleHistoryTurns, turnEchoesUserMessage, type RawHistoryTurn } from '@/utilities/assembleHistoryTurns'
 
 const human = (authorName: string, content: string): RawHistoryTurn => ({ isSystem: false, authorName, content })
 const agent = (content: string): RawHistoryTurn => ({ isSystem: true, authorName: '', content })
@@ -60,5 +60,27 @@ describe('assembleHistoryTurns', () => {
     ])
     // Tyler's turn is its own labeled message — LEO can now address Tyler, not Kenneth.
     expect(out[out.length - 1].content).toBe('Tyler: hi leo')
+  })
+})
+
+describe('turnEchoesUserMessage (leo-stream split-brain echo guard)', () => {
+  it('matches an attributed history turn against the raw user message (the PlasmaPlasma bug)', () => {
+    expect(turnEchoesUserMessage('Kenneth Courtney: Plasma', 'Plasma')).toBe(true)
+  })
+  it('matches an unattributed/exact turn (DM-style)', () => {
+    expect(turnEchoesUserMessage('Plasma', 'Plasma')).toBe(true)
+  })
+  it('matches a same-author merged turn (last line)', () => {
+    expect(turnEchoesUserMessage('Kenneth: earlier line\nPlasma', 'Plasma')).toBe(true)
+  })
+  it('does NOT match a different message', () => {
+    expect(turnEchoesUserMessage('Kenneth: Photon', 'Plasma')).toBe(false)
+  })
+  it('handles surrounding whitespace + ignores empty user messages', () => {
+    expect(turnEchoesUserMessage('Kenneth: Plasma ', '  Plasma  ')).toBe(true)
+    expect(turnEchoesUserMessage('Kenneth: ', '')).toBe(false)
+  })
+  it('is safe on non-string content', () => {
+    expect(turnEchoesUserMessage(undefined, 'Plasma')).toBe(false)
   })
 })

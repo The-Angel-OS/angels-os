@@ -30,7 +30,7 @@ import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { LEO_TOOLS, executeToolCall } from '@/utilities/leo-data-tools'
 import { extractAffectedUrls } from '@/utilities/affectedUrl'
 import { truncateHistoryMessage } from '@/utilities/truncateHistoryMessage'
-import { assembleHistoryTurns } from '@/utilities/assembleHistoryTurns'
+import { assembleHistoryTurns, turnEchoesUserMessage } from '@/utilities/assembleHistoryTurns'
 import {
   hashContext as hashPheromoneContext,
   calculateStrength as calcPheromoneStrength,
@@ -1565,10 +1565,11 @@ async function streamViaGateway(opts: {
   // includes it. Only append the current message if it ISN'T already the
   // last entry in history (handles both race-condition and no-history cases).
   const lastHistoryMsg = messages[messages.length - 1]
+  // Robust to assembleHistoryTurns' "Name: " attribution prefix — a raw === check
+  // missed it in multi-user channels and doubled the turn (PlasmaPlasma).
   const alreadyInHistory =
     lastHistoryMsg?.role === 'user' &&
-    typeof lastHistoryMsg.content === 'string' &&
-    lastHistoryMsg.content.trim() === userMessage.trim()
+    turnEchoesUserMessage(lastHistoryMsg.content, userMessage)
 
   if (!alreadyInHistory) {
     // Build user message (with images if present)
@@ -1896,10 +1897,10 @@ async function streamViaAnthropic(opts: {
   // includes it. Only append the current message if it ISN'T already the
   // last entry in history.
   const lastMsg = historyMessages[historyMessages.length - 1]
+  // Robust to assembleHistoryTurns' "Name: " attribution prefix (see other guard).
   const msgAlreadyInHistory =
     lastMsg?.role === 'user' &&
-    typeof lastMsg.content === 'string' &&
-    lastMsg.content.trim() === userMessage.trim()
+    turnEchoesUserMessage(lastMsg.content, userMessage)
 
   let messages: Anthropic.MessageParam[]
   if (msgAlreadyInHistory && userImages.length > 0) {
