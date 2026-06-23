@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import { nodeTabs, type CapabilityId } from './capabilities'
 import { MerlinConsole } from './MerlinConsole'
+import { TabbedPanel, type PanelTab } from '@/components/ui/TabbedPanel'
 
 export type MerlinNode = {
   id: string
@@ -37,11 +38,19 @@ export function MerlinControlView({
 }) {
   const [selectedId, setSelectedId] = useState(nodes[0]?.id ?? '')
   const node = useMemo(() => nodes.find((n) => n.id === selectedId) ?? nodes[0], [nodes, selectedId])
-  const tabs = useMemo(() => nodeTabs(node?.capabilities), [node])
-  const [view, setView] = useState<CapabilityId>(tabs[0]?.id ?? 'media')
+  const capTabs = useMemo(() => nodeTabs(node?.capabilities), [node])
 
-  // keep the active view valid when the node changes
-  const activeView = tabs.some((t) => t.id === view) ? view : (tabs[0]?.id ?? 'media')
+  // Map the node's advertised capabilities onto the universal <TabbedPanel>.
+  const panelTabs = useMemo<PanelTab[]>(
+    () =>
+      capTabs.map((t) => ({
+        id: t.id,
+        label: t.label,
+        icon: <span>{t.icon}</span>,
+        content: () => (node ? <ViewBody view={t.id} node={node} endeavor={endeavor} /> : null),
+      })),
+    [capTabs, node, endeavor],
+  )
 
   if (!nodes.length) {
     return (
@@ -75,23 +84,9 @@ export function MerlinControlView({
       )}
 
       <div className="min-w-0 flex-1 p-4">
-        {/* tab bar — only the capabilities this node advertises */}
-        <div className="mb-4 flex flex-wrap gap-1 border-b border-border pb-2">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setView(t.id)}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                t.id === activeView ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted/50'
-              }`}
-            >
-              <span className="mr-1">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {node && <ViewBody view={activeView} node={node} endeavor={endeavor} />}
+        {/* Universal control: tab bar shows only the capabilities this node
+            advertises; ?tab= makes each capability a deep-linkable surface. */}
+        <TabbedPanel bare tabs={panelTabs} urlParam="tab" />
       </div>
     </div>
   )
