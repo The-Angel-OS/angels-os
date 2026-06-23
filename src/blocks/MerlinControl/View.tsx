@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { nodeTabs, type CapabilityId } from './capabilities'
+import { MerlinConsole } from './MerlinConsole'
 
 export type MerlinNode = {
   id: string
@@ -90,14 +91,18 @@ export function MerlinControlView({
           ))}
         </div>
 
-        {node && <ViewBody view={activeView} node={node} />}
+        {node && <ViewBody view={activeView} node={node} endeavor={endeavor} />}
       </div>
     </div>
   )
 }
 
-function ViewBody({ view, node }: { view: CapabilityId; node: MerlinNode }) {
+function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNode; endeavor: string }) {
   const url = nodeUrl(node)
+
+  if (view === 'leo') {
+    return <MerlinConsole endeavor={endeavor} nodeId={node.id} online={isOnline(node)} />
+  }
 
   if (view === 'media') {
     return url ? (

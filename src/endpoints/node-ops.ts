@@ -14,7 +14,21 @@
  */
 import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
-import { provisionNodeIdentity } from '@/utilities/nodeBus'
+import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes } from '@/utilities/nodeBus'
+
+/** Is this user entitled to operate a node bound to `tenantId`? super_admin or a member. */
+function userCanAccessEndeavor(user: unknown, tenantId: number | string): boolean {
+  const u = user as { roles?: string[]; servesTenant?: unknown; tenants?: Array<{ tenant?: unknown }> } | null
+  if (!u) return false
+  if ((u.roles || []).includes('super_admin')) return true
+  const serves = typeof u.servesTenant === 'object' && u.servesTenant !== null ? (u.servesTenant as { id?: unknown }).id : u.servesTenant
+  if (serves != null && String(serves) === String(tenantId)) return true
+  return (Array.isArray(u.tenants) ? u.tenants : []).some((t) => {
+    const tt = t?.tenant
+    const id = tt && typeof tt === 'object' ? (tt as { id?: unknown }).id : tt
+    return id != null && String(id) === String(tenantId)
+  })
+}
 
 const ENTITY = 'merlin-nodes'
 const SETTING = 'nodes'
@@ -119,6 +133,101 @@ export const nodeListHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-list] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * Merlin Console — talk to a node's LOCAL brain over the bus, as the logged-in user.
+ *
+ *   POST /api/node-ops/chat  { endeavor, nodeId, message, conversationId? }
+ *        → posts a node-command(tool:'chat') on the node's channel; Merlin's poll
+ *          loop runs runAgent (local brain + tools) and posts the reply back.
+ *   GET  /api/node-ops/chat?endeavor=&nodeId=&since=
+ *        → the console transcript (user prompts + the node's replies) since a cursor.
+ */
+export const nodeChatPostHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  let body: Record<string, unknown> = {}
+  try { body = (await (req as unknown as Request).json()) as Record<string, unknown> } catch { /* empty */ }
+  const endeavor = typeof body.endeavor === 'string' ? body.endeavor.trim() : ''
+  const nodeId = typeof body.nodeId === 'string' ? body.nodeId.trim() : ''
+  const message = typeof body.message === 'string' ? body.message.trim() : ''
+  const conversationId = typeof body.conversationId === 'string' ? body.conversationId : 'node-console'
+  if (!endeavor || !nodeId || !message) return Response.json({ error: 'endeavor, nodeId and message are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+    if (!node?.channel || !node?.spaceId) return Response.json({ error: 'node has no bus channel — it needs to re-register' }, { status: 404 })
+
+    const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await payload.create({
+      collection: 'messages',
+      data: {
+        content: message,
+        space: Number(node.spaceId),
+        channel: node.channel,
+        messageType: 'system',
+        author: (user as { id: number }).id,
+        tenant: tenant.id,
+        visibility: 'tenant',
+        metadata: { kind: 'node-command', requestId, tool: 'chat', args: { message, conversationId } },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic node-command message
+      } as any,
+      overrideAccess: true,
+    })
+    return Response.json({ ok: true, requestId, channel: node.channel, online: node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000 })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-chat] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+export const nodeChatGetHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const nodeId = url.searchParams.get('nodeId') || ''
+  const since = url.searchParams.get('since') || ''
+  if (!endeavor || !nodeId) return Response.json({ error: 'endeavor and nodeId are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+    if (!node?.channel) return Response.json({ ok: true, messages: [], cursor: since })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Where clause
+    const and: any[] = [{ channel: { equals: node.channel } }]
+    if (since) and.push({ createdAt: { greater_than: since } })
+    const res = await payload.find({ collection: 'messages', where: { and }, sort: 'createdAt', limit: 100, depth: 0, overrideAccess: true })
+
+    const messages = (res.docs as unknown as Array<Record<string, unknown>>)
+      .map((m) => {
+        const meta = (m.metadata || {}) as { kind?: string; tool?: string; args?: { message?: string } }
+        const content = m.content as { text?: string } | string | undefined
+        const text = typeof content === 'string' ? content : content?.text || ''
+        const at = m.createdAt as string
+        if (meta.kind === 'node-command' && meta.tool === 'chat') return { role: 'user', text: meta.args?.message || text, at }
+        if (!meta.kind) return { role: 'assistant', text, at } // node-result (chat-send drops metadata)
+        return null // other commands (list_media etc.) — not console turns
+      })
+      .filter((x): x is { role: string; text: string; at: string } => Boolean(x && x.text))
+
+    const docs = res.docs as unknown as Array<{ createdAt?: string }>
+    return Response.json({ ok: true, messages, cursor: docs.length ? docs[docs.length - 1].createdAt : since })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-chat] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }

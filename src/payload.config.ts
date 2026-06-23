@@ -141,7 +141,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { nodeRegisterHandler, nodeListHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -965,6 +965,9 @@ export default buildConfig({
     // Phase 1 of distributed-nodes adoption. super_admin or ?key=.
     { path: '/node-ops/register', method: 'post', handler: nodeRegisterHandler },
     { path: '/node-ops/list', method: 'get', handler: nodeListHandler },
+    // Merlin Console — talk to a node's local brain over the bus (authed endeavor member).
+    { path: '/node-ops/chat', method: 'post', handler: nodeChatPostHandler },
+    { path: '/node-ops/chat', method: 'get', handler: nodeChatGetHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {
