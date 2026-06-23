@@ -15,11 +15,14 @@ import { Donation } from '@/blocks/Donation/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
+import { Gallery } from '@/blocks/Gallery/config'
 // MerlinControl re-registered 2026-06-20 AFTER creating pages_blocks_merlin_control
 // (+ versioned) on both prod DBs via /provision-ops/ensure-merlin-block-tables.
-// Gallery stays un-registered: its pages_blocks_gallery tables aren't on prod yet,
-// so registering it would make queryPageBySlug JOIN a missing relation and throw
-// (home pages fall back to default). Re-register AFTER its ensure-table runs.
+// Gallery registered 2026-06-23 AFTER its tables are provisioned on prod via
+// /provision-ops/ensure-gallery-block-tables (pages_blocks_gallery + its nested
+// images array + the versioned _pages_v counterparts + the columns enum). The
+// ensure-table MUST run on each prod DB BEFORE this deploys, or queryPageBySlug
+// JOINs a missing relation and throws (home pages fall back to default).
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
@@ -168,6 +171,7 @@ export const Pages: CollectionConfig = {
                 Membership,
                 FeaturedEndeavors,
                 MerlinControl,
+                Gallery,
               ],
               required: true,
             },

@@ -148,6 +148,7 @@ import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
 import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membership-self'
 import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
 import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
+import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
@@ -1015,6 +1016,13 @@ export default buildConfig({
       path: '/provision-ops/ensure-merlin-block-tables',
       method: 'get',
       handler: ensureMerlinBlockTablesHandler,
+    },
+    // Net-new Gallery block (+ nested images array) ⇒ new tables; create on BOTH DBs
+    // BEFORE the registered block deploys (see ensure-gallery-block-tables.ts header).
+    {
+      path: '/provision-ops/ensure-gallery-block-tables',
+      method: 'get',
+      handler: ensureGalleryBlockTablesHandler,
     },
     // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
     // break every admin save). Re-runnable after any new collection ships.

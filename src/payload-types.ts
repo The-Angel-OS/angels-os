@@ -312,11 +312,15 @@ export interface Tenant {
    */
   domain: string;
   /**
-   * Alias domains that resolve to this tenant
+   * Bound domains that resolve to this tenant (e.g. a client's custom domain). All route inbound; mark ONE primary to make it the canonical outbound URL (storefront links, OG, SEO). If none is primary, the canonical URL falls back to the primary `domain` field or the synthesized slug.<node> default.
    */
   domains?:
     | {
         domain: string;
+        /**
+         * Use this domain as the tenant's canonical public URL.
+         */
+        isPrimary?: boolean | null;
         id?: string | null;
       }[]
     | null;
@@ -1322,6 +1326,10 @@ export interface Page {
    */
   showInNav?: boolean | null;
   /**
+   * Who can view this page. Non-public pages are hidden from nav for ineligible visitors and show a join prompt instead. Admins always have access.
+   */
+  access?: ('public' | 'authenticated' | 'members' | 'good_standing') | null;
+  /**
    * Optional menu label (defaults to the page title).
    */
   navLabel?: string | null;
@@ -1384,8 +1392,8 @@ export interface Page {
     | DonationBlock
     | MembershipBlock
     | FeaturedEndeavorsBlock
-    | GalleryBlock
     | MerlinControlBlock
+    | GalleryBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2371,6 +2379,27 @@ export interface TenantMembership {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MerlinControlBlock".
+ */
+export interface MerlinControlBlock {
+  /**
+   * OPTIONAL override. Leave blank to use THIS page’s own endeavor (a Merlin can only ever belong to its own endeavor). Set a slug only to surface a different endeavor’s Merlin nodes (from node-ops/register).
+   */
+  endeavor?: string | null;
+  /**
+   * Show the node selector rail. Turn off to pin the control to the first/only node.
+   */
+  showNav?: boolean | null;
+  /**
+   * Optional heading above the control.
+   */
+  heading?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'merlinControl';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "GalleryBlock".
  */
 export interface GalleryBlock {
@@ -2391,27 +2420,6 @@ export interface GalleryBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'gallery';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MerlinControlBlock".
- */
-export interface MerlinControlBlock {
-  /**
-   * Endeavor slug whose Merlin nodes this control lists (from node-ops/register).
-   */
-  endeavor: string;
-  /**
-   * Show the node selector rail. Turn off to pin the control to the first/only node.
-   */
-  showNav?: boolean | null;
-  /**
-   * Optional heading above the control.
-   */
-  heading?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'merlinControl';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6749,6 +6757,14 @@ export interface PayloadMcpApiKey {
      */
     dispatchToChannel?: boolean | null;
     /**
+     * Ask a registered Merlin node (a home/contributor node bound to this endeavor) to list the shared media/files it can see, optionally filtered by a query. This DISPATCHES the request onto the node's bus channel and returns immediately — the node replies asynchronously with the file list as a follow-up message in that channel (it may take a few seconds; the node only answers while online). Use when the user asks what files/movies/media a node has. Only files under the node owner's explicitly-shared roots are ever returned.
+     */
+    listNodeFiles?: boolean | null;
+    /**
+     * Report live machine telemetry for a registered Merlin node bound to this endeavor — CPU %, memory, cores, uptime, platform. The node beams these every heartbeat, so this is instant (no round-trip). Use when the user asks how a node/machine is doing, its load, memory, or uptime. This is the conversational face of the node's monitoring panel.
+     */
+    getNodeStats?: boolean | null;
+    /**
      * Send a message to a federation peer (another Angel OS enterprise). Messages are signed with Ed25519 JWTs for authenticity. The peer must be a vouched or active federation member. Always confirm with the user before sending — show them the target domain and message.
      */
     sendFederationMessage?: boolean | null;
@@ -6884,6 +6900,10 @@ export interface PayloadMcpApiKey {
      * Run a comprehensive SUBSAFE diagnostic on this ship. Checks application errors, connector health, enterprise health (orders, inventory, content, payments), federation pulse, database integrity, and constitutional compliance. Returns a structured pass/fail report for each subsystem with recommended actions. Named after the US Navy SUBSAFE program — every system verified, every weld inspected.
      */
     runSubsafeCheck?: boolean | null;
+    /**
+     * Look up a Bible passage from the canonical Holy Bible Work and return the verse text. Use when a user asks what a verse says, to quote scripture, or to read a passage. Accepts natural references like 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', or 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).
+     */
+    lookupScripture?: boolean | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -6941,10 +6961,6 @@ export interface PayloadLockedDocument {
         value: number | Channel;
       } | null)
     | ({
-        relationTo: 'messages';
-        value: number | Message;
-      } | null)
-    | ({
         relationTo: 'workflows';
         value: number | Workflow;
       } | null)
@@ -6975,14 +6991,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'site-settings';
         value: number | SiteSetting;
-      } | null)
-    | ({
-        relationTo: 'pages';
-        value: number | Page;
-      } | null)
-    | ({
-        relationTo: 'posts';
-        value: number | Post;
       } | null)
     | ({
         relationTo: 'projects';
@@ -7241,6 +7249,7 @@ export interface TenantsSelect<T extends boolean = true> {
     | T
     | {
         domain?: T;
+        isPrimary?: T;
         id?: T;
       };
   status?: T;
@@ -7952,6 +7961,7 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   publishedOn?: T;
   showInNav?: T;
+  access?: T;
   navLabel?: T;
   navOrder?: T;
   hero?:
@@ -7992,8 +8002,8 @@ export interface PagesSelect<T extends boolean = true> {
         donation?: T | DonationBlockSelect<T>;
         membership?: T | MembershipBlockSelect<T>;
         featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
-        gallery?: T | GalleryBlockSelect<T>;
         merlinControl?: T | MerlinControlBlockSelect<T>;
+        gallery?: T | GalleryBlockSelect<T>;
       };
   meta?:
     | T
@@ -8195,6 +8205,17 @@ export interface FeaturedEndeavorsBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MerlinControlBlock_select".
+ */
+export interface MerlinControlBlockSelect<T extends boolean = true> {
+  endeavor?: T;
+  showNav?: T;
+  heading?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "GalleryBlock_select".
  */
 export interface GalleryBlockSelect<T extends boolean = true> {
@@ -8206,17 +8227,6 @@ export interface GalleryBlockSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
-  id?: T;
-  blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MerlinControlBlock_select".
- */
-export interface MerlinControlBlockSelect<T extends boolean = true> {
-  endeavor?: T;
-  showNav?: T;
-  heading?: T;
   id?: T;
   blockName?: T;
 }
@@ -10025,6 +10035,8 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         sendSlack?: T;
         sendGotify?: T;
         dispatchToChannel?: T;
+        listNodeFiles?: T;
+        getNodeStats?: T;
         sendFederationMessage?: T;
         broadcastFederationMessage?: T;
         requestEndeavorMigration?: T;
@@ -10059,6 +10071,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         queryApplicationLogs?: T;
         connectorHealthSummary?: T;
         runSubsafeCheck?: T;
+        lookupScripture?: T;
       };
   updatedAt?: T;
   createdAt?: T;
