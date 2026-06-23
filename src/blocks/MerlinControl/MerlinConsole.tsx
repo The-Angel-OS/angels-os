@@ -9,24 +9,22 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
  * runAgent (local brain + tool belt); the reply comes back as a message we poll for.
  * Async by nature — the node answers in a few seconds, only while it's online.
  */
-type Turn = { role: string; text: string; at: string }
+type Turn = { id: string | number; role: string; text: string; at: string }
 
 export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; nodeId: string; online: boolean }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const cursorRef = useRef<string>('')
+  const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   const poll = useCallback(async () => {
     try {
-      const qs = new URLSearchParams({ endeavor, nodeId })
-      if (cursorRef.current) qs.set('since', cursorRef.current)
-      const r = await fetch(`/api/node-ops/chat?${qs.toString()}`, { credentials: 'include' })
+      const r = await fetch(`/api/node-ops/chat?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}`, { credentials: 'include' })
       if (!r.ok) return
       const d = await r.json()
-      if (Array.isArray(d.messages) && d.messages.length) setTurns((prev) => [...prev, ...d.messages])
-      if (d.cursor) cursorRef.current = d.cursor
+      // Fetch the full transcript and REPLACE — dedup by construction (no append → no echoes).
+      if (Array.isArray(d.messages)) setTurns(d.messages)
     } catch {
       /* transient */
     }
@@ -47,6 +45,7 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
     if (!message || sending) return
     setSending(true)
     setInput('')
+    setError(null)
     try {
       const r = await fetch('/api/node-ops/chat', {
         method: 'POST',
@@ -56,9 +55,10 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
       })
       if (!r.ok) {
         const e = await r.json().catch(() => ({}))
-        setTurns((prev) => [...prev, { role: 'assistant', text: `⚠ ${e.error || `error ${r.status}`}`, at: new Date().toISOString() }])
+        setError(e.error || `error ${r.status}`)
+      } else {
+        await poll() // surface the user turn quickly; the reply lands on a later poll
       }
-      await poll() // surface the user turn quickly; the reply lands on a later poll
     } finally {
       setSending(false)
     }
@@ -81,8 +81,8 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
             request through its own brain and tools on the box.
           </p>
         ) : (
-          turns.map((t, i) => (
-            <div key={i} className={`flex ${t.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          turns.map((t) => (
+            <div key={t.id} className={`flex ${t.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
                 className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
                   t.role === 'user' ? 'bg-primary/10 text-foreground' : 'bg-muted text-foreground/90'
@@ -95,6 +95,10 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
         )}
         <div ref={endRef} />
       </div>
+
+      {error ? (
+        <div className="border-t border-border px-3 py-2 text-xs text-red-500 dark:text-red-400">⚠ {error}</div>
+      ) : null}
 
       <div className="flex gap-2 border-t border-border p-2">
         <input

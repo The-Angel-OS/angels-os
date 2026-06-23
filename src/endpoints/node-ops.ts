@@ -217,11 +217,12 @@ export const nodeChatGetHandler: PayloadHandler = async (req) => {
         const content = m.content as { text?: string } | string | undefined
         const text = typeof content === 'string' ? content : content?.text || ''
         const at = m.createdAt as string
-        if (meta.kind === 'node-command' && meta.tool === 'chat') return { role: 'user', text: meta.args?.message || text, at }
-        if (!meta.kind) return { role: 'assistant', text, at } // node-result (chat-send drops metadata)
+        const id = m.id as number | string
+        if (meta.kind === 'node-command' && meta.tool === 'chat') return { id, role: 'user', text: meta.args?.message || text, at }
+        if (!meta.kind) return { id, role: 'assistant', text, at } // node-result (chat-send drops metadata)
         return null // other commands (list_media etc.) — not console turns
       })
-      .filter((x): x is { role: string; text: string; at: string } => Boolean(x && x.text))
+      .filter((x): x is { id: number | string; role: string; text: string; at: string } => Boolean(x && x.text))
 
     const docs = res.docs as unknown as Array<{ createdAt?: string }>
     return Response.json({ ok: true, messages, cursor: docs.length ? docs[docs.length - 1].createdAt : since })
