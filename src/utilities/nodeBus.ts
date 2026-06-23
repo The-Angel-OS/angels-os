@@ -173,7 +173,9 @@ export async function provisionNodeIdentity(
     tenantSlug: tenant.slug,
     agentType: 'integration',
     displayName: `Node ${nodeId}`,
-    email: `node-${nodeId}-${endeavor}@system.spacesangels.com`,
+    // Payload lowercases stored emails; keep ours lowercase so the find-by-email matches
+    // on re-register (an uppercase nodeId like "Iam0" otherwise misses → dup-create → 500).
+    email: `node-${nodeId}-${endeavor}@system.spacesangels.com`.toLowerCase(),
     routingRules: { channels: [{ channelSlug: channel }], isDefault: false },
   })
 
