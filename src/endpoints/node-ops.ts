@@ -233,3 +233,49 @@ export const nodeChatGetHandler: PayloadHandler = async (req) => {
     return Response.json({ error: msg }, { status: 500 })
   }
 }
+
+/**
+ * POST /api/node-ops/media — the FILE BRIDGE: a node submits a file (e.g. a camera
+ * snapshot) UP into the endeavor's Media library. Authenticated as the node
+ * system-user (payload-token cookie). Body is JSON with the bytes base64-encoded
+ * (fine for snapshots; large files get signed-blob later). Creates a tenant-scoped
+ * Media doc → routes to Vercel Blob in prod → returns its URL so LEO can see it.
+ */
+export const nodeMediaHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  let body: Record<string, unknown> = {}
+  try { body = (await (req as unknown as Request).json()) as Record<string, unknown> } catch { /* empty */ }
+  const endeavor = typeof body.endeavor === 'string' ? body.endeavor.trim() : ''
+  const dataBase64 = typeof body.dataBase64 === 'string' ? body.dataBase64 : ''
+  const filename =
+    typeof body.filename === 'string' && body.filename.trim() ? body.filename.trim() : `node-${Date.now()}.jpg`
+  const mimetype = typeof body.mimetype === 'string' && body.mimetype ? body.mimetype : 'image/jpeg'
+  const alt = typeof body.alt === 'string' && body.alt.trim() ? body.alt.trim() : filename
+  if (!endeavor) return Response.json({ error: 'endeavor is required' }, { status: 400 })
+  if (!dataBase64) return Response.json({ error: 'dataBase64 is required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const buf = Buffer.from(dataBase64, 'base64')
+    if (!buf.length) return Response.json({ error: 'empty media payload' }, { status: 400 })
+
+    const media = await payload.create({
+      collection: 'media',
+      overrideAccess: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant set server-side
+      data: { alt, tenant: tenant.id } as any,
+      file: { data: buf, mimetype, name: filename, size: buf.length },
+    })
+    const url = String((media as { url?: string }).url || '')
+    payload.logger?.info?.(`[node-media] ${endeavor} ← ${filename} (${buf.length}b) → media ${(media as { id: unknown }).id}`)
+    return Response.json({ ok: true, id: (media as { id: unknown }).id, url, filename, bytes: buf.length })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-media] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
