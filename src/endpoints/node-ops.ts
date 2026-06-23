@@ -62,10 +62,12 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
     // FAIL-SOFT: a provisioning hiccup must NOT break basic registration (the node would
     // vanish from MerlinControl). Bus identity is best-effort; the catalog always stores.
     let identity: Awaited<ReturnType<typeof provisionNodeIdentity>> | null = null
+    let provisionError: string | undefined
     try {
       identity = await provisionNodeIdentity(payload, req, { endeavor, nodeId })
     } catch (pe) {
-      payload.logger?.error?.(`[node-register] bus-identity provisioning failed (non-fatal): ${pe instanceof Error ? pe.message : String(pe)}`)
+      provisionError = pe instanceof Error ? `${pe.message}${pe.stack ? ` :: ${pe.stack.split('\n').slice(0, 3).join(' | ')}` : ''}` : String(pe)
+      payload.logger?.error?.(`[node-register] bus-identity provisioning failed (non-fatal): ${provisionError}`)
     }
 
     const tenantId = await platformTenantId(payload)
@@ -91,7 +93,7 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
             nodeToken: identity.nodeToken,
             nodeTokenExpiresAt: identity.nodeTokenExpiresAt,
           }
-        : { busIdentity: false }),
+        : { busIdentity: false, busIdentityError: provisionError }),
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
