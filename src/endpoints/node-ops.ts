@@ -59,19 +59,24 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
   try {
     // Provision the node's bus identity (system-user + per-node channel + membership)
     // and mint a fresh token. Idempotent — re-register refreshes the token + lastSeen.
-    const identity = await provisionNodeIdentity(payload, req, { endeavor, nodeId })
+    // FAIL-SOFT: a provisioning hiccup must NOT break basic registration (the node would
+    // vanish from MerlinControl). Bus identity is best-effort; the catalog always stores.
+    let identity: Awaited<ReturnType<typeof provisionNodeIdentity>> | null = null
+    try {
+      identity = await provisionNodeIdentity(payload, req, { endeavor, nodeId })
+    } catch (pe) {
+      payload.logger?.error?.(`[node-register] bus-identity provisioning failed (non-fatal): ${pe instanceof Error ? pe.message : String(pe)}`)
+    }
 
     const tenantId = await platformTenantId(payload)
     const scope = { entityName: ENTITY, entityId: endeavor, tenantId }
     const current = (await getJsonSetting<Record<string, NodeRecord>>(payload, scope, SETTING)) || {}
-    // Persist the bus address on the node record (channel + user); never store the token.
+    // Persist the catalog + (when available) the bus address (channel + user); never the token.
     current[nodeId] = {
       ...node,
       id: nodeId,
       lastSeen: new Date().toISOString(),
-      channel: identity.channel,
-      spaceId: identity.spaceId,
-      nodeUserId: identity.nodeUserId,
+      ...(identity ? { channel: identity.channel, spaceId: identity.spaceId, nodeUserId: identity.nodeUserId } : {}),
     }
     await setJsonSetting(payload, scope, SETTING, current)
     return Response.json({
@@ -79,10 +84,14 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
       endeavor,
       nodeId,
       total: Object.keys(current).length,
-      channel: identity.channel,
-      spaceId: identity.spaceId,
-      nodeToken: identity.nodeToken,
-      nodeTokenExpiresAt: identity.nodeTokenExpiresAt,
+      ...(identity
+        ? {
+            channel: identity.channel,
+            spaceId: identity.spaceId,
+            nodeToken: identity.nodeToken,
+            nodeTokenExpiresAt: identity.nodeTokenExpiresAt,
+          }
+        : { busIdentity: false }),
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
