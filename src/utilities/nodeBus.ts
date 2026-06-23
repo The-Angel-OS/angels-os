@@ -161,6 +161,9 @@ export async function provisionNodeIdentity(
 
   const spaceId = await resolveAiBusSpaceId(payload, tenant.id)
   if (!spaceId) throw new Error(`could not resolve AI Bus space for endeavor ${endeavor}`)
+  // resolveAiBusSpaceId returns a STRING id; relationship fields need the numeric id or
+  // Postgres's integer-FK validation rejects it ("field is invalid: Space").
+  const spaceNum = Number(spaceId)
 
   const channel = nodeChannelSlug(endeavor, nodeId)
 
@@ -177,7 +180,7 @@ export async function provisionNodeIdentity(
   // 2. Per-node channel in the AI Bus space.
   const existingCh = await payload.find({
     collection: 'channels',
-    where: { and: [{ space: { equals: spaceId } }, { slug: { equals: channel } }] },
+    where: { and: [{ space: { equals: spaceNum } }, { slug: { equals: channel } }] },
     limit: 1,
     depth: 0,
     overrideAccess: true,
@@ -190,7 +193,7 @@ export async function provisionNodeIdentity(
         slug: channel,
         description: `Command/result bus for Merlin node ${nodeId} (${endeavor}).`,
         type: 'general',
-        space: spaceId as unknown as number,
+        space: spaceNum,
         isDefault: false,
         tenant: tenant.id as number,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic channel seed
@@ -202,7 +205,7 @@ export async function provisionNodeIdentity(
   // 3. Membership — grants the node user read + post on the space.
   await findOrCreateSpaceMembership(payload, req, {
     userId: agent.id,
-    spaceId,
+    spaceId: spaceNum,
     role: 'member',
     tenantId: tenant.id,
   })

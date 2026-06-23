@@ -66,7 +66,7 @@ export const nodeRegisterHandler: PayloadHandler = async (req) => {
     try {
       identity = await provisionNodeIdentity(payload, req, { endeavor, nodeId })
     } catch (pe) {
-      provisionError = pe instanceof Error ? `${pe.message}${pe.stack ? ` :: ${pe.stack.split('\n').slice(0, 3).join(' | ')}` : ''}` : String(pe)
+      provisionError = pe instanceof Error ? pe.message : String(pe)
       payload.logger?.error?.(`[node-register] bus-identity provisioning failed (non-fatal): ${provisionError}`)
     }
 
