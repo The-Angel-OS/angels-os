@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2 } from 'lucide-react'
 import { nodeTabs, type CapabilityId } from './capabilities'
 import { MerlinConsole } from './MerlinConsole'
 import { TabbedPanel, type PanelTab } from '@/components/ui/TabbedPanel'
@@ -37,6 +38,8 @@ export function MerlinControlView({
   endeavor: string
 }) {
   const [selectedId, setSelectedId] = useState(nodes[0]?.id ?? '')
+  const [navOpen, setNavOpen] = useState(true)
+  const [focusMode, setFocusMode] = useState(false) // hide tabs → just the active surface (chat)
   const node = useMemo(() => nodes.find((n) => n.id === selectedId) ?? nodes[0], [nodes, selectedId])
   const capTabs = useMemo(() => nodeTabs(node?.capabilities), [node])
 
@@ -61,9 +64,12 @@ export function MerlinControlView({
     )
   }
 
+  const toggleBtnClass =
+    'rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+
   return (
     <div className="flex h-full min-h-0 gap-4 rounded-xl border border-border bg-card">
-      {showNav && (
+      {showNav && navOpen && (
         <nav className="w-56 shrink-0 overflow-y-auto border-r border-border p-2">
           <div className="px-2 py-1 text-xs font-semibold uppercase text-muted-foreground">Nodes</div>
           {nodes.map((n) => (
@@ -86,8 +92,39 @@ export function MerlinControlView({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
         {/* Universal control: tab bar shows only the capabilities this node
             advertises; ?tab= makes each capability a deep-linkable surface.
-            fill = the control fits its container; panes scroll internally. */}
-        <TabbedPanel bare fill tabs={panelTabs} urlParam="tab" />
+            fill = fits its container; focus mode hides the tabs (just the surface);
+            the node selector collapses — together → "just the chat screen". */}
+        <TabbedPanel
+          bare
+          fill
+          tabs={panelTabs}
+          urlParam="tab"
+          hideTabBar={focusMode}
+          tabBarRight={
+            <>
+              {showNav && (
+                <button
+                  type="button"
+                  onClick={() => setNavOpen((v) => !v)}
+                  className={toggleBtnClass}
+                  title={navOpen ? 'Hide node selector' : 'Show node selector'}
+                  aria-label={navOpen ? 'Hide node selector' : 'Show node selector'}
+                >
+                  {navOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFocusMode((v) => !v)}
+                className={toggleBtnClass}
+                title={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
+                aria-label={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
+              >
+                {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+            </>
+          }
+        />
       </div>
     </div>
   )

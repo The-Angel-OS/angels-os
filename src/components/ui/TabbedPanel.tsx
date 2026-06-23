@@ -42,6 +42,12 @@ export interface TabbedPanelProps
   urlParam?: string
   /** Extra classes for the tab-bar row. */
   tabBarClassName?: string
+  /** Right-aligned controls in the tab-bar row (e.g. focus/collapse toggles).
+   *  Persists even when the tabs themselves are hidden, so there's always a restore. */
+  tabBarRight?: React.ReactNode
+  /** Hide the tab buttons → just the active content ("focus mode"). The slim bar
+   *  stays if tabBarRight is provided so the user can restore. */
+  hideTabBar?: boolean
 }
 
 export function TabbedPanel({
@@ -54,6 +60,8 @@ export function TabbedPanel({
   spaceId,
   bodyClassName,
   fill,
+  tabBarRight,
+  hideTabBar,
   ...panelProps
 }: TabbedPanelProps) {
   const router = useRouter()
@@ -94,38 +102,45 @@ export function TabbedPanel({
       // only the tab content scrolls.
       bodyClassName={cn('p-0 sm:p-0', fill && 'flex flex-col overflow-hidden', bodyClassName)}
     >
-      <div
-        role="tablist"
-        className={cn('flex flex-wrap items-center gap-1 border-b border-border bg-muted/20 px-3', fill && 'shrink-0', tabBarClassName)}
-      >
-        {tabs.map((tab) => {
-          const selected = tab.id === current
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              disabled={tab.disabled}
-              onClick={() => selectTab(tab.id)}
-              className={cn(
-                'relative flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors',
-                tab.disabled
-                  ? 'cursor-not-allowed text-muted-foreground/40'
-                  : selected
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {tab.icon}
-              {tab.label}
-              {selected && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-primary" />
-              )}
-            </button>
-          )
-        })}
-      </div>
+      {(!hideTabBar || tabBarRight) && (
+        <div
+          role="tablist"
+          className={cn('flex items-center gap-1 border-b border-border bg-muted/20 px-3', fill && 'shrink-0', tabBarClassName)}
+        >
+          {!hideTabBar && (
+            <div className="flex flex-wrap items-center gap-1">
+              {tabs.map((tab) => {
+                const selected = tab.id === current
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    disabled={tab.disabled}
+                    onClick={() => selectTab(tab.id)}
+                    className={cn(
+                      'relative flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors',
+                      tab.disabled
+                        ? 'cursor-not-allowed text-muted-foreground/40'
+                        : selected
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                    {selected && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-primary" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {tabBarRight && <div className="ml-auto flex items-center gap-1 py-1">{tabBarRight}</div>}
+        </div>
+      )}
 
       <div role="tabpanel" className={cn('p-3 sm:p-4', fill && 'min-h-0 flex-1 overflow-auto')}>
         <PanelErrorBoundary source={`TabbedPanel/${current}`} spaceId={spaceId}>
