@@ -21,6 +21,7 @@ import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { ensurePageChannel } from '@/utilities/ensurePageChannel'
 import { logError } from '@/utilities/logError'
+import { buildBusMessageData } from '@/lib/busEnvelope'
 
 export const chatSendHandler: PayloadHandler = async (req) => {
   // Require authenticated user (session cookie)
@@ -140,15 +141,25 @@ export const chatSendHandler: PayloadHandler = async (req) => {
   // Create the message via local API — overrideAccess bypasses
   // the multi-tenant plugin's filterOptions validation on relationships
   try {
-    // Build message data — attachments are linked in a SEPARATE phase (below).
-    const messageData: Record<string, unknown> = {
-      content,
-      space: spaceId,
+    // Build message data via the typed bus envelope — normalizes content to {text}
+    // (robust to a bare string, which Payload's JSON field rejects → 500) and coerces
+    // the space id. Attachments are linked in a SEPARATE phase (below), so allowEmpty
+    // covers the image-only case (already validated above).
+    const text =
+      typeof content === 'string'
+        ? content
+        : content && typeof content === 'object'
+          ? String((content as Record<string, unknown>).text ?? '')
+          : ''
+    const messageData = buildBusMessageData({
+      space: spaceId as number | string, // validated at runtime by normalizeSpaceId
       channel,
-      messageType: typeof messageType === 'string' ? messageType : 'user',
+      text,
       author: (req.user as { id: number }).id,
-      tenant: tenantId,
-    }
+      tenant: tenantId as number | string,
+      messageType: typeof messageType === 'string' ? messageType : 'user',
+      allowEmpty: true,
+    })
 
     // Validated attachments array (media IDs + optional captions) — NOT included
     // in the initial create. See the two-phase note below.
