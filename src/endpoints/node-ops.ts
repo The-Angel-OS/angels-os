@@ -271,11 +271,61 @@ export const nodeMediaHandler: PayloadHandler = async (req) => {
       file: { data: buf, mimetype, name: filename, size: buf.length },
     })
     const url = String((media as { url?: string }).url || '')
-    payload.logger?.info?.(`[node-media] ${endeavor} ← ${filename} (${buf.length}b) → media ${(media as { id: unknown }).id}`)
-    return Response.json({ ok: true, id: (media as { id: unknown }).id, url, filename, bytes: buf.length })
+    const mediaId = (media as { id: unknown }).id
+
+    // Record the submittal in the per-node bag (schema-drift-proof) so MerlinControl's
+    // Screenshots tab can list it. Derive the node from the authed system-user.
+    try {
+      const nodes = await listEndeavorNodes(payload, endeavor)
+      const node = nodes.find((n) => n.nodeUserId != null && String(n.nodeUserId) === String((user as { id: unknown }).id))
+      if (node) {
+        const key = { entityName: 'merlin-node-submittals', entityId: endeavor, tenantId: tenant.id }
+        const prev = (await getJsonSetting<Record<string, unknown[]>>(payload, key, 'byNode')) || {}
+        const list = Array.isArray(prev[node.id]) ? (prev[node.id] as unknown[]) : []
+        list.unshift({ id: mediaId, url, filename, alt, at: new Date().toISOString() })
+        prev[node.id] = list.slice(0, 200) // cap retention
+        await setJsonSetting(payload, key, 'byNode', prev)
+      }
+    } catch (recErr) {
+      payload.logger?.warn?.(`[node-media] submittal record failed: ${recErr instanceof Error ? recErr.message : recErr}`)
+    }
+
+    payload.logger?.info?.(`[node-media] ${endeavor} ← ${filename} (${buf.length}b) → media ${mediaId}`)
+    return Response.json({ ok: true, id: mediaId, url, filename, bytes: buf.length })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-media] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * GET /api/node-ops/media?endeavor=&nodeId= — a node's recent submittals (snapshots).
+ * Reads the per-node bag written by the file bridge. Powers MerlinControl's Screenshots tab.
+ */
+export const nodeMediaListHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const nodeId = url.searchParams.get('nodeId') || ''
+  if (!endeavor || !nodeId) return Response.json({ error: 'endeavor and nodeId are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+    const byNode =
+      (await getJsonSetting<Record<string, unknown[]>>(
+        payload,
+        { entityName: 'merlin-node-submittals', entityId: endeavor, tenantId: tenant.id },
+        'byNode',
+      )) || {}
+    const items = Array.isArray(byNode[nodeId]) ? byNode[nodeId] : []
+    return Response.json({ ok: true, items })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-media-list] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }

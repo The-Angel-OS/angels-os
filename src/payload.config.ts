@@ -141,7 +141,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -970,6 +970,8 @@ export default buildConfig({
     { path: '/node-ops/chat', method: 'get', handler: nodeChatGetHandler },
     // File bridge — a node submits a file (e.g. camera snapshot) into the endeavor's Media.
     { path: '/node-ops/media', method: 'post', handler: nodeMediaHandler },
+    // Screenshots tab — a node's recent submittals.
+    { path: '/node-ops/media', method: 'get', handler: nodeMediaListHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {

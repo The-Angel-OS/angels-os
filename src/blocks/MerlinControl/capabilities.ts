@@ -9,6 +9,7 @@
 export const CAPABILITIES = [
   { id: 'media', label: 'Media', icon: '🎞️' },
   { id: 'leo', label: 'LEO', icon: '✨' }, // catch-all: anything not a dedicated tab
+  { id: 'screenshots', label: 'Screenshots', icon: '📸' }, // node's submitted snaps (Core Media)
   { id: 'stats', label: 'Stats', icon: '📊' },
   { id: 'camera', label: 'Camera', icon: '📷' },
   { id: 'screen', label: 'Screen', icon: '🖥️' },
@@ -21,5 +22,6 @@ export type CapabilityId = (typeof CAPABILITIES)[number]['id']
 /** Tabs for a node, in canonical order. Falls back to media-only. */
 export function nodeTabs(caps?: string[] | null) {
   const set = new Set(caps && caps.length ? caps : ['media'])
+  set.add('screenshots') // always available — it's a Core-side view of the node's Media
   return CAPABILITIES.filter((c) => set.has(c.id))
 }

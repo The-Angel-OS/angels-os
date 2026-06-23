@@ -130,6 +130,66 @@ export function MerlinControlView({
   )
 }
 
+type Submittal = { id: string | number; url: string; filename: string; alt?: string; at: string }
+
+/** Screenshots — the node's submitted snapshots (camera/window/sentinel), newest first. */
+function Screenshots({ endeavor, nodeId }: { endeavor: string; nodeId: string }) {
+  const [items, setItems] = React.useState<Submittal[]>([])
+  const [loaded, setLoaded] = React.useState(false)
+
+  const poll = React.useCallback(async () => {
+    try {
+      const r = await fetch(
+        `/api/node-ops/media?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}`,
+        { credentials: 'include' },
+      )
+      if (!r.ok) return
+      const d = await r.json()
+      if (Array.isArray(d.items)) setItems(d.items)
+    } catch {
+      /* transient */
+    } finally {
+      setLoaded(true)
+    }
+  }, [endeavor, nodeId])
+
+  React.useEffect(() => {
+    void poll()
+    const id = setInterval(() => void poll(), 10000)
+    return () => clearInterval(id)
+  }, [poll])
+
+  if (loaded && !items.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No submittals yet. This node’s camera/window snapshots (and sentinel captures) appear here once it
+        submits them.
+      </p>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+      {items.map((s) => (
+        <a
+          key={String(s.id)}
+          href={s.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group block overflow-hidden rounded-lg border border-border bg-muted/20"
+          title={`${s.alt || s.filename} · ${new Date(s.at).toLocaleString()}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- node-submitted media, arbitrary host */}
+          <img src={s.url} alt={s.alt || s.filename} className="aspect-video w-full object-cover transition group-hover:opacity-90" loading="lazy" />
+          <div className="truncate px-2 py-1 text-[11px] text-muted-foreground">
+            {new Date(s.at).toLocaleString()}
+          </div>
+        </a>
+      ))}
+    </div>
+  )
+}
+
 /** CPU sparkline — fixed 0–100% scale, last point marked. */
 function Sparkline({ values }: { values: number[] }) {
   const w = 600
@@ -157,6 +217,10 @@ function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNo
 
   if (view === 'leo') {
     return <MerlinConsole endeavor={endeavor} nodeId={node.id} online={isOnline(node)} />
+  }
+
+  if (view === 'screenshots') {
+    return <Screenshots endeavor={endeavor} nodeId={node.id} />
   }
 
   if (view === 'media') {
