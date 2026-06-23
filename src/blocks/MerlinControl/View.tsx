@@ -97,6 +97,28 @@ export function MerlinControlView({
   )
 }
 
+/** CPU sparkline — fixed 0–100% scale, last point marked. */
+function Sparkline({ values }: { values: number[] }) {
+  const w = 600
+  const h = 64
+  const n = values.length
+  const pts = values
+    .map((v, i) => {
+      const x = (i / (n - 1)) * w
+      const y = h - (Math.max(0, Math.min(100, v)) / 100) * h
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+  const lastY = h - (Math.max(0, Math.min(100, values[n - 1])) / 100) * h
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-16 w-full text-green-500" preserveAspectRatio="none">
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill="currentColor" fillOpacity="0.12" stroke="none" />
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <circle cx={w} cy={lastY} r="3" fill="currentColor" />
+    </svg>
+  )
+}
+
 function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNode; endeavor: string }) {
   const url = nodeUrl(node)
 
@@ -131,13 +153,27 @@ function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNo
     const audio = Number(stats.audio_seconds)
     const wall = Number(stats.wall_seconds)
     const rt = audio && wall ? (audio / wall).toFixed(1) : null
-    const entries = Object.entries(stats)
+    const rawSeries = (stats as Record<string, unknown>).cpu_series
+    const series = Array.isArray(rawSeries) ? rawSeries.map(Number).filter((n) => !Number.isNaN(n)) : []
+    const cpuPct = Number((stats as Record<string, unknown>).cpu_pct)
+    const entries = Object.entries(stats).filter(([k]) => k !== 'cpu_series')
     return (
       <div className="space-y-3">
         {rt && (
           <div className="rounded-lg bg-muted p-4">
             <div className="text-3xl font-bold">{rt}× realtime</div>
             <div className="text-xs text-muted-foreground">audio processed ÷ compute time</div>
+          </div>
+        )}
+        {series.length > 1 && (
+          <div className="rounded-lg bg-muted p-4">
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                CPU · last {series.length} samples (2s)
+              </span>
+              {!Number.isNaN(cpuPct) && <span className="text-2xl font-bold tabular-nums">{cpuPct}%</span>}
+            </div>
+            <Sparkline values={series} />
           </div>
         )}
         {entries.length ? (
