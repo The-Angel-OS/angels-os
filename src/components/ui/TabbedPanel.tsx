@@ -53,6 +53,7 @@ export function TabbedPanel({
   tabBarClassName,
   spaceId,
   bodyClassName,
+  fill,
   ...panelProps
 }: TabbedPanelProps) {
   const router = useRouter()
@@ -85,10 +86,17 @@ export function TabbedPanel({
   const body = active ? (typeof active.content === 'function' ? active.content() : active.content) : null
 
   return (
-    <Panel {...panelProps} spaceId={spaceId} bodyClassName={cn('p-0 sm:p-0', bodyClassName)}>
+    <Panel
+      {...panelProps}
+      fill={fill}
+      spaceId={spaceId}
+      // In fill mode the body is a flex column (no scroll) so the tab bar pins and
+      // only the tab content scrolls.
+      bodyClassName={cn('p-0 sm:p-0', fill && 'flex flex-col overflow-hidden', bodyClassName)}
+    >
       <div
         role="tablist"
-        className={cn('flex flex-wrap items-center gap-1 border-b border-border bg-muted/20 px-3', tabBarClassName)}
+        className={cn('flex flex-wrap items-center gap-1 border-b border-border bg-muted/20 px-3', fill && 'shrink-0', tabBarClassName)}
       >
         {tabs.map((tab) => {
           const selected = tab.id === current
@@ -119,7 +127,7 @@ export function TabbedPanel({
         })}
       </div>
 
-      <div role="tabpanel" className="p-3 sm:p-4">
+      <div role="tabpanel" className={cn('p-3 sm:p-4', fill && 'min-h-0 flex-1 overflow-auto')}>
         <PanelErrorBoundary source={`TabbedPanel/${current}`} spaceId={spaceId}>
           {body}
         </PanelErrorBoundary>

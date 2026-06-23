@@ -54,6 +54,9 @@ export interface PanelProps {
   spaceId?: string | number | null
   /** Drop the outer border/bg (when nesting inside another Panel). */
   bare?: boolean
+  /** Fill the parent's height: the panel becomes a flex column and the body
+   *  scrolls internally instead of growing the page. Parent must be height-bounded. */
+  fill?: boolean
   className?: string
   bodyClassName?: string
   children?: React.ReactNode
@@ -73,6 +76,7 @@ export function Panel({
   onRetry,
   spaceId,
   bare = false,
+  fill = false,
   className,
   bodyClassName,
   children,
@@ -112,13 +116,14 @@ export function Panel({
       className={cn(
         'overflow-hidden',
         !bare && 'rounded-xl border border-border bg-card',
+        fill && 'flex h-full min-h-0 flex-col',
         className,
       )}
     >
       {hasHeader && (
         <header
           data-slot="panel-header"
-          className="flex items-center gap-2 px-3 py-2.5 sm:px-4"
+          className={cn('flex items-center gap-2 px-3 py-2.5 sm:px-4', fill && 'shrink-0')}
         >
           {collapsible ? (
             <button
@@ -150,6 +155,7 @@ export function Panel({
             'relative',
             hasHeader && !bare && 'border-t border-border',
             !bare && 'p-3 sm:p-4',
+            fill && 'min-h-0 flex-1 overflow-auto',
             bodyClassName,
           )}
         >

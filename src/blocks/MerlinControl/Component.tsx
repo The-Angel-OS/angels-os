@@ -53,7 +53,11 @@ export const MerlinControlBlock: React.FC<
   return (
     <section className="container py-8">
       {heading && <h2 className="mb-4 text-2xl font-bold">{heading}</h2>}
-      <MerlinControlView nodes={nodes} showNav={showNav !== false} endeavor={endeavor} />
+      {/* Bound to ~one screenful so the control fits the inner window (header/footer
+          stay put) and its panes scroll internally instead of sprawling the page. */}
+      <div className="h-[calc(100dvh-14rem)] min-h-[30rem]">
+        <MerlinControlView nodes={nodes} showNav={showNav !== false} endeavor={endeavor} />
+      </div>
     </section>
   )
 }

@@ -69,7 +69,7 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
   }
 
   return (
-    <div className="flex h-[55vh] flex-col rounded-lg border border-border">
+    <div className="flex h-full min-h-0 flex-col rounded-lg border border-border">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="text-sm font-medium">Merlin Console · {nodeId}</div>
         <span className={`flex items-center gap-1.5 text-xs ${liveOnline ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>

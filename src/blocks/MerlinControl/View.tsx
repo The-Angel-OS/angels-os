@@ -62,9 +62,9 @@ export function MerlinControlView({
   }
 
   return (
-    <div className="flex gap-4 rounded-xl border border-border bg-card">
+    <div className="flex h-full min-h-0 gap-4 rounded-xl border border-border bg-card">
       {showNav && (
-        <nav className="w-56 shrink-0 border-r border-border p-2">
+        <nav className="w-56 shrink-0 overflow-y-auto border-r border-border p-2">
           <div className="px-2 py-1 text-xs font-semibold uppercase text-muted-foreground">Nodes</div>
           {nodes.map((n) => (
             <button
@@ -83,10 +83,11 @@ export function MerlinControlView({
         </nav>
       )}
 
-      <div className="min-w-0 flex-1 p-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
         {/* Universal control: tab bar shows only the capabilities this node
-            advertises; ?tab= makes each capability a deep-linkable surface. */}
-        <TabbedPanel bare tabs={panelTabs} urlParam="tab" />
+            advertises; ?tab= makes each capability a deep-linkable surface.
+            fill = the control fits its container; panes scroll internally. */}
+        <TabbedPanel bare fill tabs={panelTabs} urlParam="tab" />
       </div>
     </div>
   )
@@ -123,18 +124,18 @@ function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNo
 
   if (view === 'media') {
     return url ? (
-      <div>
+      <div className="flex h-full min-h-0 flex-col">
         <a
           href={`${url}/media`}
           target="_blank"
           rel="noreferrer"
-          className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+          className="shrink-0 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
           Open media library on {node.name || node.hostname} ↗
         </a>
         <iframe
           src={`${url}/media`}
-          className="mt-3 h-[60vh] w-full rounded-lg border border-border"
+          className="mt-3 min-h-0 w-full flex-1 rounded-lg border border-border"
           title="Merlin media library"
         />
       </div>
