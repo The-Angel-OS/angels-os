@@ -11808,7 +11808,7 @@ async function handleListNodeFiles(
     await payload.create({
       collection: 'messages',
       data: {
-        content: query ? `list files matching "${query}"` : 'list shared files',
+        content: { text: query ? `list files matching "${query}"` : 'list shared files' },
         space: Number(node.spaceId),
         channel: node.channel,
         messageType: 'system',

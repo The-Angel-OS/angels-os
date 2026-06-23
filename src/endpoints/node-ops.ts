@@ -169,7 +169,7 @@ export const nodeChatPostHandler: PayloadHandler = async (req) => {
     await payload.create({
       collection: 'messages',
       data: {
-        content: message,
+        content: { text: message },
         space: Number(node.spaceId),
         channel: node.channel,
         messageType: 'system',
