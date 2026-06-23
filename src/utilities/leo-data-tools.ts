@@ -2701,6 +2701,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  {
+    name: 'get_node_stats',
+    description:
+      "Report live machine telemetry for a registered Merlin node bound to this endeavor — CPU %, memory, cores, uptime, platform. The node beams these every heartbeat, so this is instant (no round-trip). Use when the user asks how a node/machine is doing, its load, memory, or uptime. This is the conversational face of the node's monitoring panel.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        nodeId: { type: 'string', description: 'Optional node id. Omit to use the online node (or the most recent).' },
+      },
+      required: [],
+    },
+  },
+
   // ── Federation Messaging (Sprint 36) ──────────────────────────────────
   {
     name: 'send_federation_message',
@@ -3941,6 +3954,8 @@ async function executeToolSwitch(
         return await handleDispatchToChannel(payload, toolInput, ctx)
       case 'list_node_files':
         return await handleListNodeFiles(payload, toolInput, ctx)
+      case 'get_node_stats':
+        return await handleGetNodeStats(payload, toolInput, ctx)
       // Federation
       case 'send_federation_message':
         return await handleSendFederationMessage(payload, toolInput, ctx)
@@ -11720,6 +11735,40 @@ async function handleSendGotify(
  * today; other types report what's needed). This is how LEO in one channel
  * reaches a connector that lives on another.
  */
+async function handleGetNodeStats(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const { tenantSlugById, listEndeavorNodes, isNodeOnline } = await import('./nodeBus')
+  const endeavor = await tenantSlugById(payload, tenantId)
+  if (!endeavor) return 'Error: could not resolve this endeavor.'
+
+  const nodes = await listEndeavorNodes(payload, endeavor)
+  if (!nodes.length) return `No Merlin nodes are registered for ${endeavor} yet.`
+
+  const wantId = (input.nodeId as string)?.trim()
+  let node: (typeof nodes)[number] | undefined
+  if (wantId) {
+    node = nodes.find((n) => n.id === wantId)
+    if (!node) return `No registered node "${wantId}" for ${endeavor}. Registered: ${nodes.map((n) => n.id).join(', ')}.`
+  } else {
+    node = nodes.find(isNodeOnline) || nodes[0]
+  }
+
+  const online = isNodeOnline(node)
+  const stats = (node.stats as Record<string, unknown> | undefined) || {}
+  const entries = Object.entries(stats)
+  if (!entries.length)
+    return `Node **${node.id}** (${online ? 'online' : 'offline'}) hasn't reported telemetry yet — it beams stats on its next heartbeat.`
+
+  const lines = entries.map(([k, v]) => `- ${k}: ${String(v)}`)
+  return `**${node.id}** ${online ? '🟢 online' : '⚪ offline'} (last seen ${node.lastSeen || 'never'}):\n${lines.join('\n')}`
+}
+
 async function handleListNodeFiles(
   payload: Payload,
   input: Record<string, unknown>,
