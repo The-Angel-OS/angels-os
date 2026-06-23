@@ -15,6 +15,7 @@
 import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
 import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes } from '@/utilities/nodeBus'
+import { postBusMessage } from '@/lib/busEnvelope'
 
 /** Is this user entitled to operate a node bound to `tenantId`? super_admin or a member. */
 function userCanAccessEndeavor(user: unknown, tenantId: number | string): boolean {
@@ -166,20 +167,15 @@ export const nodeChatPostHandler: PayloadHandler = async (req) => {
     if (!node?.channel || !node?.spaceId) return Response.json({ error: 'node has no bus channel — it needs to re-register' }, { status: 404 })
 
     const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    await payload.create({
-      collection: 'messages',
-      data: {
-        content: { text: message },
-        space: Number(node.spaceId),
-        channel: node.channel,
-        messageType: 'system',
-        author: (user as { id: number }).id,
-        tenant: tenant.id,
-        visibility: 'tenant',
-        metadata: { kind: 'node-command', requestId, tool: 'chat', args: { message, conversationId } },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic node-command message
-      } as any,
-      overrideAccess: true,
+    await postBusMessage(payload, {
+      space: node.spaceId,
+      channel: node.channel,
+      text: message,
+      author: (user as { id: number }).id,
+      tenant: tenant.id,
+      messageType: 'system',
+      kind: 'node-command',
+      metadata: { requestId, tool: 'chat', args: { message, conversationId } },
     })
     return Response.json({ ok: true, requestId, channel: node.channel, online: node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000 })
   } catch (e) {
