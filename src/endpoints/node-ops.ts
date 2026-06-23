@@ -225,7 +225,8 @@ export const nodeChatGetHandler: PayloadHandler = async (req) => {
       .filter((x): x is { id: number | string; role: string; text: string; at: string } => Boolean(x && x.text))
 
     const docs = res.docs as unknown as Array<{ createdAt?: string }>
-    return Response.json({ ok: true, messages, cursor: docs.length ? docs[docs.length - 1].createdAt : since })
+    const online = Boolean(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000)
+    return Response.json({ ok: true, online, messages, cursor: docs.length ? docs[docs.length - 1].createdAt : since })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-chat] ${msg}`)

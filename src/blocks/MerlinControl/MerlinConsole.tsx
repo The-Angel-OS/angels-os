@@ -16,6 +16,9 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Live online from our own 3s poll — the render-time `online` prop goes stale the
+  // moment the node heartbeats (or stops). The poll is the source of truth.
+  const [liveOnline, setLiveOnline] = useState(online)
   const endRef = useRef<HTMLDivElement>(null)
 
   const poll = useCallback(async () => {
@@ -23,6 +26,7 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
       const r = await fetch(`/api/node-ops/chat?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}`, { credentials: 'include' })
       if (!r.ok) return
       const d = await r.json()
+      if (typeof d.online === 'boolean') setLiveOnline(d.online)
       // Fetch the full transcript and REPLACE — dedup by construction (no append → no echoes).
       if (Array.isArray(d.messages)) setTurns(d.messages)
     } catch {
@@ -68,9 +72,9 @@ export function MerlinConsole({ endeavor, nodeId, online }: { endeavor: string; 
     <div className="flex h-[55vh] flex-col rounded-lg border border-border">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="text-sm font-medium">Merlin Console · {nodeId}</div>
-        <span className={`flex items-center gap-1.5 text-xs ${online ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
-          {online ? 'online · local brain' : 'offline — answers when the node is up'}
+        <span className={`flex items-center gap-1.5 text-xs ${liveOnline ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${liveOnline ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
+          {liveOnline ? 'online · local brain' : 'offline — answers when the node is up'}
         </span>
       </div>
 
