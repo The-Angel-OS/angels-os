@@ -141,7 +141,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler, nodeUsageHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -980,6 +980,9 @@ export default buildConfig({
     { path: '/node-ops/file', method: 'get', handler: nodeFileProxyHandler },
     // Intelligence broker (Thread 7) — "who can serve model X?" → provider gateways.
     { path: '/ai-broker/resolve', method: 'get', handler: aiBrokerResolveHandler },
+    // Node usage ingestion — a node reports a locally-served inference turn into the
+    // Operating-Costs ledger (compute-commons metering; Thread 7 economy addendum).
+    { path: '/node-ops/usage', method: 'post', handler: nodeUsageHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {

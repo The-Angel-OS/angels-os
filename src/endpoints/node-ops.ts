@@ -16,6 +16,7 @@ import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
 import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes, resolveProviderNodes } from '@/utilities/nodeBus'
 import { postBusMessage } from '@/lib/busEnvelope'
+import { recordCostEvent } from '@/utilities/recordCostEvent'
 
 /** Is this user entitled to operate a node bound to `tenantId`? super_admin or a member. */
 function userCanAccessEndeavor(user: unknown, tenantId: number | string): boolean {
@@ -562,6 +563,86 @@ export const nodeFileProxyHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-file-proxy] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * Node usage ingestion — POST /api/node-ops/usage
+ *
+ * A Merlin/Nimue node reports a unit of intelligence it served LOCALLY (its own
+ * Ollama/gateway turn, which never touched Core's brain) so the AI Costs ledger
+ * accounts for ALL inference across the federation — not just Core-served turns.
+ * This is the metering point for the compute-commons economy (Thread 7 addendum):
+ * every local turn becomes a CostEvent the broker/Core can later mint against.
+ *
+ * Body: { endeavor, nodeId?, usage: { provider, model, inputTokens?, outputTokens?,
+ *         totalTokens?, latencyMs?, ttftMs?, finishReason?, toolCallCount?,
+ *         costCents?, backend?, tokensPerSec?, conversationId?, occurredAt? } }
+ *
+ * Auth: node key (CRON_SECRET) or super_admin — same gate as register. The node
+ * proves it belongs to the endeavor; tenant is resolved server-side (never trusted
+ * from the body). Writes are FAIL-SOFT (recordCostEvent never throws), so a node
+ * reporting usage can never break, and the table's absence degrades to a no-op.
+ */
+export const nodeUsageHandler: PayloadHandler = async (req) => {
+  const { payload } = req
+  if (!authed(req)) return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
+
+  let body: Record<string, unknown> = {}
+  try { body = (await (req as unknown as Request).json()) as Record<string, unknown> } catch { /* empty */ }
+  const endeavor = typeof body.endeavor === 'string' ? body.endeavor.trim() : ''
+  const nodeId = typeof body.nodeId === 'string' ? body.nodeId.trim() : ''
+  const usage = (body.usage && typeof body.usage === 'object' ? body.usage : null) as Record<string, unknown> | null
+  if (!endeavor || !usage) return Response.json({ error: 'endeavor and usage are required' }, { status: 400 })
+
+  const num = (k: string): number | undefined => (typeof usage[k] === 'number' ? (usage[k] as number) : undefined)
+  const str = (k: string): string | undefined => (typeof usage[k] === 'string' ? (usage[k] as string) : undefined)
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+
+    const inputTokens = num('inputTokens')
+    const outputTokens = num('outputTokens')
+    const totalTokens = num('totalTokens') ?? (inputTokens != null && outputTokens != null ? inputTokens + outputTokens : undefined)
+    // Node-local inference (Ollama/gateway) has no per-token platform bill — it's the
+    // node owner's own compute/quota. Cost defaults to 0 unless the node supplies one
+    // (e.g. a proxied :cloud turn it wants to attribute). Honest by construction.
+    const costCents = num('costCents') ?? 0
+
+    await recordCostEvent(payload, {
+      tenantId: tenant.id,
+      category: 'intelligence',
+      source: 'merlin-node',
+      provider: str('provider') || str('backend') || 'ollama',
+      model: str('model'),
+      costCents,
+      costEstimated: costCents > 0 || undefined,
+      // Local node turns are served on the node owner's OWN compute/quota — never
+      // billed to the platform's keys.
+      billedToTenantKey: true,
+      quantity: totalTokens,
+      unit: 'tokens',
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      latencyMs: num('latencyMs'),
+      ttftMs: num('ttftMs'),
+      finishReason: str('finishReason'),
+      toolCallCount: num('toolCallCount'),
+      conversationId: str('conversationId'),
+      occurredAt: str('occurredAt'),
+      metadata: {
+        nodeId: nodeId || undefined,
+        backend: str('backend'),
+        tokensPerSec: num('tokensPerSec'),
+      },
+    })
+
+    return Response.json({ ok: true })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-usage] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }
