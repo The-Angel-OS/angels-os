@@ -59,6 +59,69 @@ export function isNodeOnline(node: RegisteredNode): boolean {
   return Date.now() - new Date(node.lastSeen).getTime() < ONLINE_MS
 }
 
+// ─── Intelligence broker (Thread 7) ───────────────────────────────────────────
+// Core as the compute DIRECTORY: a node asks "who can serve model X?" and Core
+// returns the best available provider gateway from the registry. Every connected
+// Merlin advertises its compute (catalog.compute = { available, models[] }) UP on
+// register, so this resolves purely from data we already persist. "Local is just
+// the cheapest edge" — the asking node finds itself in the list and short-circuits.
+
+export type BrokerProvider = {
+  nodeId: string
+  /** The node's /api/ai gateway base (tunnel — publicly reachable). */
+  providerUrl?: string
+  /** The node's LAN base, for same-network short-circuit (private; not Core-reachable). */
+  lanUrl?: string
+  models: string[]
+  online: boolean
+  /** Heuristic rank score (higher = preferred). */
+  score: number
+}
+
+/** A node's advertised compute, tolerant of the schema-drift-proof bag shape. */
+function nodeCompute(node: RegisteredNode): { available: boolean; models: string[] } {
+  const c = (node as { compute?: { available?: unknown; models?: unknown } }).compute
+  const models = Array.isArray(c?.models) ? (c!.models as unknown[]).map(String) : []
+  return { available: Boolean(c?.available), models }
+}
+
+/**
+ * Resolve the best provider node for an endeavor (optionally for a specific model).
+ * Ranks: online + compute available, model match (when requested), tunnel-reachable
+ * (so Core/peers can actually reach it), then recency. Returns an ordered list so a
+ * caller can fail over. Pure read over the existing registry.
+ */
+export async function resolveProviderNodes(
+  payload: Payload,
+  endeavor: string,
+  model?: string,
+): Promise<BrokerProvider[]> {
+  const nodes = await listEndeavorNodes(payload, endeavor)
+  const out: BrokerProvider[] = []
+  for (const node of nodes) {
+    const compute = nodeCompute(node)
+    if (!compute.available) continue
+    if (model && !compute.models.includes(model)) continue
+    const online = isNodeOnline(node)
+    const tunnel = typeof (node as { tunnelUrl?: string }).tunnelUrl === 'string' ? (node as { tunnelUrl?: string }).tunnelUrl : undefined
+    const lan = typeof (node as { localIp?: string }).localIp === 'string' ? `http://${(node as { localIp?: string }).localIp}:3000` : undefined
+    let score = 0
+    if (online) score += 100
+    if (tunnel) score += 50 // publicly reachable → usable by Core + remote peers
+    if (model && compute.models.includes(model)) score += 10
+    score += Math.max(0, 20 - out.length) // mild recency bias (registry is lastSeen-sorted)
+    out.push({
+      nodeId: node.id,
+      providerUrl: tunnel ? `${tunnel.replace(/\/$/, '')}/api/ai` : undefined,
+      lanUrl: lan ? `${lan}/api/ai` : undefined,
+      models: compute.models,
+      online,
+      score,
+    })
+  }
+  return out.sort((a, b) => b.score - a.score)
+}
+
 /** Canonical per-node channel slug. Stable for a given (endeavor, nodeId). */
 export function nodeChannelSlug(endeavor: string, nodeId: string): string {
   return `node:${endeavor}:${nodeId}`

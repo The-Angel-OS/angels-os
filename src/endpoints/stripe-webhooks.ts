@@ -319,7 +319,7 @@ async function handlePaymentIntentSucceeded(
           ? (typeof order.customer === 'object' ? order.customer.id : order.customer)
           : undefined)
       if (orderTenantId && orderUserId) {
-        await ensureTenantMembership(payload, orderUserId, orderTenantId, 'purchase')
+        await ensureTenantMembership(orderUserId, orderTenantId)
       }
     } catch {
       // Non-fatal: propagation failure must never break payment handling

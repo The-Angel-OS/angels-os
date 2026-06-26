@@ -12,6 +12,14 @@ import type { CollectionAfterChangeHook } from 'payload'
  * Fires on both create and update so both new memberships and
  * status transitions are handled. Idempotent and non-fatal.
  */
+/**
+ * The AI Bus is a system space (slug `ai-bus`) seeded `private`. Ordinary members
+ * must NOT get a space-membership row to it — it surfaces in the sidebar via a
+ * dedicated special-case in fetchUserSpaces, and its channel/message read access
+ * stays governed by the canonical resolver. Auto-join everything BUT the AI Bus.
+ */
+const AI_BUS_SLUG = 'ai-bus'
+
 export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   // Only proceed when membership is active
   if (doc.status !== 'active') return doc
@@ -24,10 +32,10 @@ export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation
   try {
     const { payload } = req
 
-    // Find all spaces in this tenant
+    // Find all spaces in this tenant EXCEPT the AI Bus system space.
     const spaces = await payload.find({
       collection: 'spaces',
-      where: { tenant: { equals: tenantId } },
+      where: { and: [{ tenant: { equals: tenantId } }, { slug: { not_equals: AI_BUS_SLUG } }] },
       sort: 'createdAt',
       limit: 100,
       depth: 0,

@@ -235,7 +235,7 @@ export const EventRegistrations: CollectionConfig = {
             : (event as any)?.tenant
           if (attendeeId && eventTenantId) {
             const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
-            await ensureTenantMembership(req.payload, attendeeId, eventTenantId, 'event_registration')
+            await ensureTenantMembership(attendeeId, eventTenantId)
           }
         } catch {
           // Non-critical: registration is already saved

@@ -188,7 +188,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     // ── User Propagation: client → provider's tenant (Sprint 42) ──
     try {
       const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
-      await ensureTenantMembership(payload, user.id, tenant.id, 'booking')
+      await ensureTenantMembership(user.id, tenant.id)
     } catch {
       // Non-fatal: booking proceeds regardless of propagation
     }

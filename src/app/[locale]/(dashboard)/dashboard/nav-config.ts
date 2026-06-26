@@ -242,6 +242,16 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         isActive: active('/dashboard/admin/invitations'),
         visible: always,
       },
+      {
+        // Moved out of ADMIN — crew (the Endeavor's "muster roll") is a People
+        // concern. Route unchanged (/dashboard/admin/crew) so existing links hold.
+        key: 'crew',
+        label: 'Crew',
+        icon: 'anchor',
+        href: (p) => `${p}/dashboard/admin/crew`,
+        isActive: active('/dashboard/admin/crew'),
+        visible: always,
+      },
     ],
   },
 
@@ -404,14 +414,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
           !pn.includes('/dashboard/admin/') /* exact /admin only */,
         visible: always,
         className: 'text-emerald-600 dark:text-emerald-400',
-      },
-      {
-        key: 'crew',
-        label: 'Crew',
-        icon: 'anchor',
-        href: (p) => `${p}/dashboard/admin/crew`,
-        isActive: active('/dashboard/admin/crew'),
-        visible: always,
       },
       {
         key: 'endeavor',

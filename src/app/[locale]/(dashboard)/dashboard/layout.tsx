@@ -22,6 +22,7 @@ import { LeoNavigationBridge } from './LeoNavigationBridge'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { DashboardWidgetProvider, DismissedWidgetsTray } from '@/components/dashboard/widgets'
 import { autoActivatePendingMembership } from '@/utilities/autoActivatePendingMembership'
+import { ensureTenantMembership } from '@/utilities/ensureTenantMembership'
 
 /**
  * Dashboard layout — Rev 6 (anonymous access + tenant branding + space context).
@@ -248,6 +249,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         }) as any
         if (pendingMembership) {
           void autoActivatePendingMembership(pendingMembership.id, userId, tenant.id)
+        } else {
+          // Open-join: no membership row of ANY status for this tenant.
+          // Reaching the portal enrolls the user as an active tenant_member so
+          // they can see the tenant's non-private spaces. Fire-and-forget;
+          // idempotent (re-checks before creating). The membershipsData query
+          // above only loads active|pending, so a re-check inside the utility
+          // guards against left/banned rows we didn't fetch here.
+          void ensureTenantMembership(userId, tenant.id)
         }
       }
     }

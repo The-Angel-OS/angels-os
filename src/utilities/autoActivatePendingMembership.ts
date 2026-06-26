@@ -67,11 +67,13 @@ export async function autoActivatePendingMembership(
       }
     }
 
-    // Auto-join tenant spaces (sequential)
+    // Auto-join tenant spaces (sequential) — EXCEPT the AI Bus system space,
+    // which ordinary members never get a membership row to (it surfaces in the
+    // sidebar via fetchUserSpaces' special-case; read access stays resolver-gated).
     try {
       const spaces = await payload.find({
         collection: 'spaces',
-        where: { tenant: { equals: tenantId } },
+        where: { and: [{ tenant: { equals: tenantId } }, { slug: { not_equals: 'ai-bus' } }] },
         sort: 'createdAt',
         limit: 100,
         depth: 0,

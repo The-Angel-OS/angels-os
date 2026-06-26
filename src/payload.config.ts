@@ -141,7 +141,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -973,6 +973,13 @@ export default buildConfig({
     { path: '/node-ops/media', method: 'post', handler: nodeMediaHandler },
     // Screenshots tab — a node's recent submittals.
     { path: '/node-ops/media', method: 'get', handler: nodeMediaListHandler },
+    // Directory browser — list a node's SHARED files (dispatch + poll), and the
+    // Core-proxy fallback that streams a file when the node has no public tunnel.
+    { path: '/node-ops/files', method: 'post', handler: nodeFilesPostHandler },
+    { path: '/node-ops/files', method: 'get', handler: nodeFilesGetHandler },
+    { path: '/node-ops/file', method: 'get', handler: nodeFileProxyHandler },
+    // Intelligence broker (Thread 7) — "who can serve model X?" → provider gateways.
+    { path: '/ai-broker/resolve', method: 'get', handler: aiBrokerResolveHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {

@@ -24,10 +24,6 @@ function isOnline(node: MerlinNode) {
   return Date.now() - new Date(node.lastSeen).getTime() < ONLINE_MS
 }
 
-function nodeUrl(node: MerlinNode) {
-  return node.url || (node.hostname ? `http://${node.hostname}:3000` : null)
-}
-
 export function MerlinControlView({
   nodes,
   showNav,
@@ -190,6 +186,183 @@ function Screenshots({ endeavor, nodeId }: { endeavor: string; nodeId: string })
   )
 }
 
+type BrowsableFile = {
+  ref: string
+  path: string
+  name: string
+  sizeMB: number
+  mtime: string
+  root: string
+  tunnelUrl?: string
+}
+
+/**
+ * FileBrowser — the directory browser (Thread 4 killer-app). Asks the node to list
+ * its SHARED files over the bus (dispatch + poll), renders a filterable table, and
+ * links each file tunnel-first (direct off the node, zero Core bandwidth) with a
+ * Core-proxy fallback when the node has no public tunnel.
+ */
+function FileBrowser({ endeavor, nodeId, nodeName }: { endeavor: string; nodeId: string; nodeName: string }) {
+  const [query, setQuery] = React.useState('')
+  const [files, setFiles] = React.useState<BrowsableFile[]>([])
+  const [roots, setRoots] = React.useState<string[]>([])
+  const [tunnelUrl, setTunnelUrl] = React.useState<string | undefined>()
+  const [lanUrl, setLanUrl] = React.useState<string | undefined>()
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [error, setError] = React.useState<string | null>(null)
+
+  const load = React.useCallback(
+    async (q: string) => {
+      setStatus('loading')
+      setError(null)
+      try {
+        const post = await fetch('/api/node-ops/files', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ endeavor, nodeId, query: q }),
+        })
+        const pd = await post.json()
+        if (!post.ok || !pd.requestId) {
+          setStatus('error')
+          setError(pd.error || 'Could not reach node')
+          return
+        }
+        const requestId = pd.requestId as string
+        // Poll up to ~30s for the node's structured reply.
+        const started = Date.now()
+        while (Date.now() - started < 30000) {
+          await new Promise((r) => setTimeout(r, 1500))
+          const g = await fetch(
+            `/api/node-ops/files?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&requestId=${encodeURIComponent(requestId)}`,
+            { credentials: 'include' },
+          )
+          const gd = await g.json()
+          if (gd.ready) {
+            if (gd.error) {
+              setStatus('error')
+              setError(gd.error)
+              return
+            }
+            setFiles(Array.isArray(gd.files) ? gd.files : [])
+            setRoots(Array.isArray(gd.roots) ? gd.roots : [])
+            setTunnelUrl(typeof gd.tunnelUrl === 'string' ? gd.tunnelUrl : undefined)
+            setLanUrl(typeof gd.lanUrl === 'string' ? gd.lanUrl : undefined)
+            setStatus('ready')
+            return
+          }
+        }
+        setStatus('error')
+        setError('Node did not respond in time (it may be offline)')
+      } catch {
+        setStatus('error')
+        setError('Network error')
+      }
+    },
+    [endeavor, nodeId],
+  )
+
+  React.useEffect(() => {
+    void load('')
+  }, [load])
+
+  // Tiered link resolution (matches the home-user, no-install vision):
+  //   1. tunnel  → direct off the node, zero Core bandwidth (best)
+  //   2. LAN     → if the viewer is on the node's network, stream DIRECT from its
+  //                localIp:3000 — no tunnel, no service install
+  //   3. proxy   → Core relays (only works if the node has a public origin; the
+  //                endpoint returns a friendly 409 otherwise)
+  const hrefFor = (f: BrowsableFile) => {
+    if (f.tunnelUrl) return f.tunnelUrl
+    if (lanUrl) return `${lanUrl.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(f.ref)}`
+    return `/api/node-ops/file?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&ref=${encodeURIComponent(f.ref)}`
+  }
+
+  const reachability = tunnelUrl
+    ? { label: 'Tunnel — streams direct off the node', tone: 'text-green-600 dark:text-green-400' }
+    : lanUrl
+      ? { label: `LAN direct (${lanUrl.replace(/^https?:\/\//, '')}) — open from this network`, tone: 'text-muted-foreground' }
+      : { label: 'No tunnel — files open only from the node\u2019s own network', tone: 'text-amber-600 dark:text-amber-400' }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <form
+        className="flex shrink-0 items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void load(query.trim())
+        }}
+      >
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Filter ${nodeName}'s shared files…`}
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={status === 'loading'}
+          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {status === 'loading' ? 'Searching…' : 'Search'}
+        </button>
+      </form>
+
+      {status === 'ready' && (
+        <p className="mt-2 shrink-0 text-xs">
+          {roots.length > 0 && (
+            <span className="text-muted-foreground">
+              Shared roots: <span className="font-mono">{roots.join(', ')}</span> ·{' '}
+            </span>
+          )}
+          <span className={reachability.tone}>{reachability.label}</span>
+        </p>
+      )}
+
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-lg border border-border">
+        {status === 'loading' && (
+          <p className="p-4 text-sm text-muted-foreground">Asking {nodeName} for its shared files…</p>
+        )}
+        {status === 'error' && (
+          <div className="p-4 text-sm">
+            <p className="text-red-500">{error}</p>
+            <button onClick={() => void load(query.trim())} className="mt-2 text-xs font-medium text-primary hover:underline">
+              Retry
+            </button>
+          </div>
+        )}
+        {status === 'ready' && files.length === 0 && (
+          <p className="p-4 text-sm text-muted-foreground">No shared files match.</p>
+        )}
+        {status === 'ready' && files.length > 0 && (
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-border">
+              {files.map((f) => (
+                <tr key={f.ref} className="hover:bg-muted/30">
+                  <td className="px-3 py-2">
+                    <a href={hrefFor(f)} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                      {f.name}
+                    </a>
+                    <p className="truncate text-xs text-muted-foreground" title={f.path}>
+                      {f.root} · {f.path}
+                    </p>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">
+                    {f.sizeMB} MB
+                  </td>
+                  <td className="hidden whitespace-nowrap px-3 py-2 text-right text-xs text-muted-foreground sm:table-cell">
+                    {new Date(f.mtime).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /** CPU sparkline — fixed 0–100% scale, last point marked. */
 function Sparkline({ values }: { values: number[] }) {
   const w = 600
@@ -213,8 +386,6 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNode; endeavor: string }) {
-  const url = nodeUrl(node)
-
   if (view === 'leo') {
     return <MerlinConsole endeavor={endeavor} nodeId={node.id} online={isOnline(node)} />
   }
@@ -224,25 +395,7 @@ function ViewBody({ view, node, endeavor }: { view: CapabilityId; node: MerlinNo
   }
 
   if (view === 'media') {
-    return url ? (
-      <div className="flex h-full min-h-0 flex-col">
-        <a
-          href={`${url}/media`}
-          target="_blank"
-          rel="noreferrer"
-          className="shrink-0 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
-          Open media library on {node.name || node.hostname} ↗
-        </a>
-        <iframe
-          src={`${url}/media`}
-          className="mt-3 min-h-0 w-full flex-1 rounded-lg border border-border"
-          title="Merlin media library"
-        />
-      </div>
-    ) : (
-      <p className="text-sm text-muted-foreground">No URL reported for this node.</p>
-    )
+    return <FileBrowser endeavor={endeavor} nodeId={node.id} nodeName={node.name || node.hostname || node.id} />
   }
 
   if (view === 'stats') {

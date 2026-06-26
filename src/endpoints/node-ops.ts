@@ -14,7 +14,7 @@
  */
 import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
-import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes } from '@/utilities/nodeBus'
+import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes, resolveProviderNodes } from '@/utilities/nodeBus'
 import { postBusMessage } from '@/lib/busEnvelope'
 
 /** Is this user entitled to operate a node bound to `tenantId`? super_admin or a member. */
@@ -33,6 +33,25 @@ function userCanAccessEndeavor(user: unknown, tenantId: number | string): boolea
 
 const ENTITY = 'merlin-nodes'
 const SETTING = 'nodes'
+
+/**
+ * Sentinel a node uses to embed a structured skill payload in a result message's
+ * text (Core's chat-send drops metadata). MUST stay in sync with Merlin's
+ * RESULT_SENTINEL in src/lib/node-bus.ts. Format: `<SENTINEL>:<requestId>:<json>`.
+ */
+const RESULT_SENTINEL = '@@ANGELS_RESULT@@'
+
+/** Parse an embedded structured payload out of a result message's text, if present. */
+function parseResultPayload(text: string, requestId: string): unknown | undefined {
+  const idx = text.indexOf(`${RESULT_SENTINEL}:${requestId}:`)
+  if (idx < 0) return undefined
+  const json = text.slice(idx + RESULT_SENTINEL.length + 1 + requestId.length + 1)
+  try {
+    return JSON.parse(json.trim())
+  } catch {
+    return undefined
+  }
+}
 
 type NodeRecord = { id: string; lastSeen: string; [k: string]: unknown }
 
@@ -322,6 +341,227 @@ export const nodeMediaListHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-media-list] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * The DIRECTORY BROWSER — list a node's SHARED files (the killer-app feature).
+ *
+ *   POST /api/node-ops/files { endeavor, nodeId, query? }
+ *        → dispatches a list_files command on the node's channel; returns a requestId.
+ *   GET  /api/node-ops/files?endeavor=&nodeId=&requestId=&since=
+ *        → polls the node's channel for the structured result (sentinel-embedded
+ *          in the reply text) and returns { ready, files, tunnelUrl }.
+ *
+ * Files are addressed by an opaque `ref` (rootLabel::relpath) — never a system path.
+ * Each file carries a tunnelUrl when the node advertises a tunnel (open direct, zero
+ * Core bandwidth); otherwise the browser falls back to GET /api/node-ops/file (proxy).
+ */
+export const nodeFilesPostHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  let body: Record<string, unknown> = {}
+  try { body = (await (req as unknown as Request).json()) as Record<string, unknown> } catch { /* empty */ }
+  const endeavor = typeof body.endeavor === 'string' ? body.endeavor.trim() : ''
+  const nodeId = typeof body.nodeId === 'string' ? body.nodeId.trim() : ''
+  const query = typeof body.query === 'string' ? body.query.trim() : ''
+  if (!endeavor || !nodeId) return Response.json({ error: 'endeavor and nodeId are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+    if (!node?.channel || !node?.spaceId) return Response.json({ error: 'node has no bus channel — it needs to re-register' }, { status: 404 })
+
+    const requestId = `files-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await postBusMessage(payload, {
+      space: node.spaceId,
+      channel: node.channel,
+      text: `list files${query ? ` matching "${query}"` : ''}`,
+      author: (user as { id: number }).id,
+      tenant: tenant.id,
+      messageType: 'system',
+      kind: 'node-command',
+      metadata: { requestId, tool: 'list_files', args: { query: query || undefined } },
+    })
+    const online = Boolean(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000)
+    return Response.json({ ok: true, requestId, online })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-files] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+export const nodeFilesGetHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const nodeId = url.searchParams.get('nodeId') || ''
+  const requestId = url.searchParams.get('requestId') || ''
+  const since = url.searchParams.get('since') || ''
+  if (!endeavor || !nodeId || !requestId) return Response.json({ error: 'endeavor, nodeId and requestId are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+    if (!node?.channel) return Response.json({ ok: true, ready: false, files: [] })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Where clause
+    const and: any[] = [{ channel: { equals: node.channel } }]
+    if (since) and.push({ createdAt: { greater_than: since } })
+    const res = await payload.find({ collection: 'messages', where: { and }, sort: '-createdAt', limit: 50, depth: 0, overrideAccess: true })
+
+    for (const m of res.docs as unknown as Array<Record<string, unknown>>) {
+      const content = m.content as { text?: string } | string | undefined
+      const text = typeof content === 'string' ? content : content?.text || ''
+      if (!text.includes(`${RESULT_SENTINEL}:${requestId}:`)) continue
+      const payloadData = parseResultPayload(text, requestId) as
+        | { ok?: boolean; error?: string; files?: unknown[]; roots?: string[]; tunnelUrl?: string; lanUrl?: string }
+        | undefined
+      if (!payloadData) continue
+      return Response.json({
+        ok: true,
+        ready: true,
+        files: Array.isArray(payloadData.files) ? payloadData.files : [],
+        roots: payloadData.roots || [],
+        tunnelUrl: payloadData.tunnelUrl,
+        lanUrl: payloadData.lanUrl,
+        error: payloadData.ok === false ? payloadData.error : undefined,
+      })
+    }
+    const online = Boolean(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000)
+    return Response.json({ ok: true, ready: false, online, files: [] })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-files] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * Intelligence broker (Thread 7) — GET /api/ai-broker/resolve?endeavor=&model=
+ *
+ * Core as the compute DIRECTORY: returns the ranked provider gateways that can
+ * serve the requested model, drawn from the node registry (each Merlin advertises
+ * compute.models on register). A node asking for a brain calls this, picks the top
+ * provider, and POSTs its turns to that node's /api/ai. If nothing's available,
+ * `fallback: "cloud"` tells the caller to use its own Ollama :cloud token directly.
+ *
+ * Auth: any endeavor member (same gate as the other node-ops surfaces). Read-only.
+ */
+export const aiBrokerResolveHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const model = url.searchParams.get('model') || undefined
+  if (!endeavor) return Response.json({ error: 'endeavor is required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const providers = await resolveProviderNodes(payload, endeavor, model)
+    // Only providers Core/peers can actually reach (have a tunnel gateway) count as
+    // routable; a LAN-only node is returned too (for same-network short-circuit).
+    const routable = providers.filter((p) => p.providerUrl)
+    return Response.json({
+      ok: true,
+      endeavor,
+      model: model || null,
+      providers,
+      best: routable[0] || providers[0] || null,
+      fallback: routable.length ? null : 'cloud',
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[ai-broker] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * Core-proxy fallback — GET /api/node-ops/file?endeavor=&nodeId=&ref=
+ *
+ * Streams a node's shared file THROUGH Core when the node has no public tunnel.
+ * Tunnel-first is preferred (the browser links straight to node.tunnelUrl, zero
+ * Core bandwidth); this is the no-tunnel path. Requires the node to advertise a
+ * tunnelUrl OR localIp reachable from Core — if neither, returns 502 (open on LAN).
+ */
+export const nodeFileProxyHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const nodeId = url.searchParams.get('nodeId') || ''
+  const ref = url.searchParams.get('ref') || ''
+  if (!endeavor || !nodeId || !ref) return Response.json({ error: 'endeavor, nodeId and ref are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId) as
+      | (Record<string, unknown> & { tunnelUrl?: string; localIp?: string; url?: string })
+      | undefined
+    if (!node) return Response.json({ error: 'node not found' }, { status: 404 })
+
+    // Core (Vercel) can only reach a PUBLIC origin — i.e. the node's cloudflared
+    // tunnel. Private LAN addresses (192.168.x / 10.x / localhost) are unreachable
+    // from Core, so we must NOT pretend to proxy them; the browser handles the
+    // same-LAN case by hitting the node's lanUrl directly (no Core, no install).
+    const isPublic = (u: string) => {
+      try {
+        const h = new URL(u).hostname
+        if (h === 'localhost' || h.startsWith('127.')) return false
+        if (h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('169.254.')) return false
+        // 172.16.0.0–172.31.255.255 private range
+        const m = /^172\.(\d+)\./.exec(h)
+        if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return false
+        return true
+      } catch {
+        return false
+      }
+    }
+    const candidates = [node.tunnelUrl, node.url].filter((u): u is string => typeof u === 'string' && Boolean(u))
+    const origin = candidates.find(isPublic) || ''
+    if (!origin) {
+      return Response.json(
+        {
+          error:
+            'This node has no public tunnel, so Core can\u2019t relay the file. Open it from a device on the node\u2019s network, or enable tunnel sharing on the node.',
+          code: 'no_public_origin',
+        },
+        { status: 409 },
+      )
+    }
+
+    const target = `${origin.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(ref)}`
+    const range = req.headers?.get('range') || undefined
+    const upstream = await fetch(target, { headers: range ? { range } : {} })
+    if (!upstream.ok && upstream.status !== 206) {
+      return Response.json({ error: `node returned ${upstream.status}` }, { status: 502 })
+    }
+    const headers = new Headers()
+    for (const h of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'content-disposition']) {
+      const v = upstream.headers.get(h)
+      if (v) headers.set(h, v)
+    }
+    headers.set('cache-control', 'no-store')
+    return new Response(upstream.body, { status: upstream.status, headers })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-file-proxy] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }
