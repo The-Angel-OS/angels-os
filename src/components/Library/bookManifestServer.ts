@@ -47,6 +47,26 @@ function firstLine(text?: string): string {
   )
 }
 
+/** Build the slug/title-augmented LoadedBook from a manifest + base-language text. */
+function buildLoadedBook(manifest: BookManifest, baseText: Record<string, unknown>): LoadedBook {
+  const baseLanguage = manifest.defaultLanguage || 'en'
+  const pages = manifest.pages || []
+  // Prefer the manifest's explicit page title (scripture: "John 3"); else infer
+  // from the first line of a prose page. Verse-structured (array) pages always
+  // carry a manifest title, so we never call firstLine on a non-string.
+  const pageTitles = pages.map((p) => {
+    if (p.title) return p.title
+    const t = baseText[String(p.order)]
+    return typeof t === 'string' ? firstLine(t) : ''
+  })
+  const pageSlugs = pages.map((_, i) => {
+    const name = slugifyTitle(pageTitles[i] || '')
+    const human = i + 1 // 1-based page position is the URL's source of truth
+    return name ? `${human}-${name}` : `${human}`
+  })
+  return { manifest, baseLanguage, baseText, pageSlugs, pageTitles }
+}
+
 /** Load a file-based book (public/library/<slug>/) with inferred page slugs. */
 export function loadBookFromPublic(bookSlug: string): LoadedBook | null {
   try {
@@ -61,22 +81,37 @@ export function loadBookFromPublic(bookSlug: string): LoadedBook | null {
       baseText = {}
     }
 
-    const pages = manifest.pages || []
-    // Prefer the manifest's explicit page title (scripture: "John 3"); else infer
-    // from the first line of a prose page. Verse-structured (array) pages always
-    // carry a manifest title, so we never call firstLine on a non-string.
-    const pageTitles = pages.map((p) => {
-      if (p.title) return p.title
-      const t = baseText[String(p.order)]
-      return typeof t === 'string' ? firstLine(t) : ''
-    })
-    const pageSlugs = pages.map((_, i) => {
-      const name = slugifyTitle(pageTitles[i] || '')
-      const human = i + 1 // 1-based page position is the URL's source of truth
-      return name ? `${human}-${name}` : `${human}`
-    })
+    return buildLoadedBook(manifest, baseText)
+  } catch {
+    return null
+  }
+}
 
-    return { manifest, baseLanguage, baseText, pageSlugs, pageTitles }
+/**
+ * Origin (CDN) fallback for loadBookFromPublic. `public/` is served as static
+ * assets but is NOT traced into the serverless API function bundle, so the
+ * fs-based loader returns null inside /api routes on Vercel. The book files are
+ * still reachable over HTTP at `<origin>/library/<slug>/…`, so the import path
+ * fetches them instead. Mirrors the per-language-text fetch already in works.ts.
+ */
+export async function loadBookFromOrigin(bookSlug: string, origin: string): Promise<LoadedBook | null> {
+  if (!origin) return null
+  try {
+    const base = `${origin.replace(/\/+$/, '')}/library/${bookSlug}`
+    const mr = await fetch(`${base}/manifest.json`, { headers: { accept: 'application/json' } })
+    if (!mr.ok) return null
+    const manifest = (await mr.json()) as BookManifest
+    const baseLanguage = manifest.defaultLanguage || 'en'
+
+    let baseText: Record<string, unknown> = {}
+    try {
+      const tr = await fetch(`${base}/text/${baseLanguage}.json`, { headers: { accept: 'application/json' } })
+      if (tr.ok) baseText = (await tr.json()) as Record<string, unknown>
+    } catch {
+      baseText = {}
+    }
+
+    return buildLoadedBook(manifest, baseText)
   } catch {
     return null
   }

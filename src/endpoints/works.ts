@@ -26,7 +26,7 @@ import fs from 'fs'
 import path from 'path'
 import { getAllSouls, getSoul } from '@/souls'
 import { isWorkAvailable, isWorkPublished, homeForWork, subscribersForWork } from '@/souls/subscriptions'
-import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
+import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
 import { getWorkJson, absMedia, checksumOf, WORK_JSON_VERSION } from '@/utilities/getWorkJson'
@@ -268,7 +268,12 @@ export const worksImportHandler: PayloadHandler = async (req) => {
 
     if (soul.bookSlug) {
       // ── BOOK → messages + Blob (fully portable, no filesystem at read time) ──
-      const loaded = loadBookFromPublic(soul.bookSlug)
+      // fs-first (works locally); origin/CDN fallback for Vercel, where `public/`
+      // is not traced into the API function bundle so the fs read returns null.
+      // Without the fallback the import 500s ("book manifest unreadable") and the
+      // book is never message-backed → reader 404. (This is why the Bible, a book,
+      // showed unitCount:0 / "work not available" on prod.)
+      const loaded = loadBookFromPublic(soul.bookSlug) ?? (await loadBookFromOrigin(soul.bookSlug, origin))
       if (!loaded) return Response.json({ error: 'book manifest unreadable' }, { status: 500 })
       const languages = loaded.manifest.languages ?? []
       const langs = languages.map((l) => l.code)

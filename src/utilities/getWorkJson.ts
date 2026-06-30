@@ -88,10 +88,13 @@ export async function getWorkJson(opts: {
   const sr = rec?.storageRef as { kind?: string; space?: number; channel?: string; baseLanguage?: string; languages?: unknown } | undefined
   if (!(sr?.kind === 'messages' && sr.space && sr.channel)) return null
 
+  // limit covers large books (e.g. the 1189-chapter Bible) — a too-low limit
+  // would silently truncate trailing chapters. pagination:false fetches all.
   const res = await payload.find({
     collection: 'messages',
     where: { and: [{ space: { equals: Number(sr.space) } }, { channel: { equals: String(sr.channel) } }] },
-    limit: 1000,
+    limit: 0,
+    pagination: false,
     depth: 0,
     overrideAccess: true,
   })
