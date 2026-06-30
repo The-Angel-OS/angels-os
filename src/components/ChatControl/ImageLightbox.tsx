@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { XIcon, DownloadIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Dialog,
@@ -39,24 +39,44 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(initialIndex)
+  const viewportRef = useRef<HTMLDivElement>(null)
 
-  // Sync carousel to initialIndex when lightbox opens.
+  // Keep Embla's slide measurements correct so every slide centers in the window.
   //
-  // The Radix Dialog zooms/scales in on open (~200ms). Embla measures slide
-  // widths on init — if it measures DURING that scale animation, every full-width
-  // slide is recorded smaller than the container, so the center-aligned snap gets a
-  // nonzero offset that ACCUMULATES per slide index (the "25% off with 2 images,
-  // 50% with 3, further the more images" drift; thumbnails scroll to the wrong
-  // spot and the image flashes past, never centered). Re-measure with reInit() once
-  // the open animation has settled, THEN jump to the initial slide.
+  // ROOT CAUSE of the "centers on two with 2 images, three with 3, further the
+  // more images" drift: Embla measures slide widths at init. The shared Radix
+  // DialogContent animates open with a `zoom-in-95` SCALE transform (~200ms). If
+  // Embla measures DURING that scale, every full-width slide is recorded narrower
+  // than the real viewport; with `align: center` the per-slide error ACCUMULATES
+  // by slide index, so images slide past off-center.
+  //
+  // Two-part fix (without touching the shared dialog component):
+  //   1. The DialogContent below neutralizes the zoom (zoom-*-100) so the box is
+  //      never scaled while Embla measures.
+  //   2. A ResizeObserver on the carousel viewport reInits on every real size
+  //      change (open settle, image load, window resize) — robust where a single
+  //      magic-number timeout was racy.
   useEffect(() => {
     if (!api || !open) return
-    const settle = window.setTimeout(() => {
+    const viewport = viewportRef.current
+    const sync = () => {
       api.reInit()
       api.scrollTo(initialIndex, true)
       setCurrent(initialIndex)
-    }, 260)
-    return () => window.clearTimeout(settle)
+    }
+    // Initial sync after layout settles (double rAF = post-paint).
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(sync)
+    })
+    // Re-measure on any subsequent size change of the carousel viewport.
+    const ro = viewport ? new ResizeObserver(() => api.reInit()) : null
+    if (viewport && ro) ro.observe(viewport)
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      ro?.disconnect()
+    }
   }, [api, initialIndex, open])
 
   // Track current slide
@@ -99,7 +119,9 @@ export function ImageLightbox({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden"
+        // zoom-*-100 cancels the shared DialogContent's zoom-in-95 SCALE so Embla
+        // never measures a mid-animation (scaled) box → slides stay centered.
+        className="max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100"
         onKeyDown={handleKeyDown}
       >
         {/* Accessible title (visually hidden) */}
@@ -131,7 +153,7 @@ export function ImageLightbox({
         </div>
 
         {/* Image carousel */}
-        <div className="flex h-full w-full items-center justify-center">
+        <div ref={viewportRef} className="flex h-full w-full items-center justify-center">
           <Carousel
             setApi={setApi}
             opts={{
@@ -145,7 +167,7 @@ export function ImageLightbox({
               {images.map((img, i) => (
                 <CarouselItem
                   key={`${img.url}-${i}`}
-                  className="flex items-center justify-center h-[95vh] pl-0"
+                  className="flex w-full items-center justify-center h-[95vh] pl-0"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
