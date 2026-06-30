@@ -812,27 +812,48 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             if (match) uploadTenantId = match[1]
           }
 
-          // Upload files in parallel
-          const uploadResults = await Promise.allSettled(
-            files.map(async (file) => {
-              const formData = new FormData()
-              formData.append('file', file)
-              // Payload 3.x requires non-file fields as a single JSON `_payload` field
-              const payloadFields: Record<string, unknown> = { alt: file.name }
-              if (uploadTenantId) payloadFields.tenant = uploadTenantId
-              formData.append('_payload', JSON.stringify(payloadFields))
-              const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
-                method: 'POST',
-                credentials: 'include',
-                body: formData,
-              })
-              if (!uploadRes.ok) {
-                const errText = await uploadRes.text().catch(() => uploadRes.statusText)
-                throw new Error(`Upload "${file.name}" failed (${uploadRes.status}): ${errText}`)
-              }
-              return { file, data: await uploadRes.json() }
-            }),
-          )
+          // Upload files SEQUENTIALLY (one /api/media request at a time).
+          // Fanning out N parallel uploads spins up N concurrent Payload
+          // requests, each doing image-size generation + a tenant/space lookup.
+          // Under the shared DB connection cap (flaky kendev node) that
+          // saturates the pool and individual creates fail mid-flight — which
+          // surfaces as "invalid tenant id" (the validator throws when the
+          // beforeValidate space lookup couldn't complete). A single upload
+          // works; five at once don't. Serializing keeps us within the cap.
+          const uploadOne = async (file: File) => {
+            const formData = new FormData()
+            formData.append('file', file)
+            // Payload 3.x requires non-file fields as a single JSON `_payload` field
+            const payloadFields: Record<string, unknown> = { alt: file.name }
+            // Server-authoritative tenant resolution: send the active space id
+            // so the Media beforeValidate hook resolves the tenant from the
+            // space (works on the platform/Core domain where there's no
+            // x-tenant-id header and no payload-tenant cookie). The hook strips
+            // this transient field — it is not part of the Media schema.
+            if (spaceId) payloadFields._tenantSpace = Number(spaceId) || spaceId
+            if (uploadTenantId) payloadFields.tenant = Number(uploadTenantId) || uploadTenantId
+            formData.append('_payload', JSON.stringify(payloadFields))
+            const uploadRes = await fetch(`${SERVER_URL}/api/media`, {
+              method: 'POST',
+              credentials: 'include',
+              body: formData,
+            })
+            if (!uploadRes.ok) {
+              const errText = await uploadRes.text().catch(() => uploadRes.statusText)
+              throw new Error(`Upload "${file.name}" failed (${uploadRes.status}): ${errText}`)
+            }
+            return { file, data: await uploadRes.json() }
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const uploadResults: Array<PromiseSettledResult<{ file: File; data: any }>> = []
+          for (const file of files) {
+            try {
+              uploadResults.push({ status: 'fulfilled', value: await uploadOne(file) })
+            } catch (reason) {
+              uploadResults.push({ status: 'rejected', reason })
+            }
+          }
           for (const result of uploadResults) {
             if (result.status === 'fulfilled') {
               const mediaDoc = result.value.data

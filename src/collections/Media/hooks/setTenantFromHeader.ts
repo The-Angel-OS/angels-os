@@ -1,32 +1,73 @@
 import type { CollectionBeforeValidateHook } from 'payload'
 
 /**
- * Auto-resolve the media tenant from the request's subdomain context.
+ * Auto-resolve the media tenant for browser uploads (chat attachments).
  *
  * Media is tenant-scoped (multi-tenant plugin adds a required `tenant` field).
  * The plugin's defaultValue only resolves from the `payload-tenant` cookie,
  * which isn't reliably set in the custom dashboard — especially for a
- * super_admin viewing a tenant subdomain. When the browser uploads straight
- * to /api/media (chat attachments), the client only attaches `tenant` if it
- * can resolve one; on a super-admin view it often can't → the create fails
- * the required-tenant validator with a 400 ("failed to upload").
+ * super_admin viewing the platform/Core context. When the browser uploads
+ * straight to /api/media, the client only attaches `tenant` if it can resolve
+ * one; on Core (federation.kendev.co etc.) the middleware sets NO x-tenant-id
+ * header (platform domains map to null) AND there's usually no payload-tenant
+ * cookie → the create fails the required-tenant validator ("invalid tenant id").
  *
- * This beforeValidate hook fills `tenant` from the `x-tenant-id` header (the
- * subdomain slug the user is viewing) before validation runs, so uploads no
- * longer depend on the client knowing the tenant. Server callers that pass
- * `tenant` explicitly are untouched (guarded on `data?.tenant`).
+ * Resolution order (first hit wins), mirroring Messages/setTenantFromSpace so
+ * uploads are server-authoritative and work on Core where there's no subdomain:
+ *   0. `data.tenant` already set by a server caller → untouched.
+ *   1. `data._tenantSpace` hint (the active chat space id the client sends) →
+ *      look up the space's tenant. This is the authoritative source for chat
+ *      attachments and works on the platform/Core domain.
+ *   2. `x-tenant-id` header (subdomain slug) → look up the tenant by slug.
  *
- * Mirrors Messages/hooks/setTenantFromSpace. Passes `req` to the lookup so it
- * joins the request's own connection (no separate pooled connection that can
- * stall under connection pressure).
+ * The `_tenantSpace` hint is a transient field — it is NOT part of the Media
+ * schema, so we strip it from `data` before validation regardless of outcome.
+ *
+ * All lookups pass `req` so they JOIN the request's own connection rather than
+ * acquiring a separate pooled one that can stall under connection pressure
+ * (the kendev node-health class of failure).
  */
 export const setTenantFromHeader: CollectionBeforeValidateHook = async ({
   data,
   req,
   operation,
 }) => {
-  if (operation !== 'create' || data?.tenant) return data
+  if (operation !== 'create') return data
 
+  // Pull and strip the transient space hint (never persisted to Media).
+  const spaceHint = (data as Record<string, unknown> | undefined)?._tenantSpace
+  if (data && '_tenantSpace' in data) {
+    delete (data as Record<string, unknown>)._tenantSpace
+  }
+
+  // A server caller already resolved the tenant — leave it alone.
+  if (data?.tenant) return data
+
+  // 1. Resolve from the active chat space (authoritative; works on Core).
+  if (spaceHint != null && spaceHint !== '') {
+    const spaceId = typeof spaceHint === 'object'
+      ? (spaceHint as { id?: string | number }).id
+      : spaceHint
+    if (spaceId != null) {
+      try {
+        const space = await req.payload.findByID({
+          collection: 'spaces',
+          id: spaceId as string | number,
+          depth: 0,
+          overrideAccess: true,
+          req,
+        })
+        if (space?.tenant) {
+          const tenantId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+          return { ...data, tenant: tenantId }
+        }
+      } catch (err) {
+        console.error('[setTenantFromHeader] Failed to resolve tenant from space:', err)
+      }
+    }
+  }
+
+  // 2. Fall back to the subdomain slug header.
   const tenantSlug = req.headers?.get?.('x-tenant-id')
   if (!tenantSlug) return data
 
