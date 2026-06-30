@@ -369,6 +369,28 @@ function isSameDay(a: Date, b: Date): boolean {
   )
 }
 
+/**
+ * Per-message timestamp: date + time. Today/Yesterday stay relative for the
+ * recent thread; older messages show a short absolute date. The year is only
+ * appended when the message is from a previous calendar year (keeps it concise).
+ */
+function formatMessageTimestamp(date: Date): string {
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.floor((today.getTime() - msgDate.getTime()) / 86400000)
+
+  if (diffDays === 0) return `Today, ${time}`
+  if (diffDays === 1) return `Yesterday, ${time}`
+  const day = date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  })
+  return `${day}, ${time}`
+}
+
 // ---------------------------------------------------------------------------
 // Tool call status pill
 // ---------------------------------------------------------------------------
@@ -805,7 +827,7 @@ function CompactMessageRow({
           )}
 
           <div className="mt-1 flex items-center gap-1.5 text-[10px] opacity-50">
-            <span>{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{formatMessageTimestamp(msg.timestamp)}</span>
             {(msg.edited || (msg.revisions && msg.revisions.length > 0)) && (
               <button
                 onClick={() => setShowHistory((v) => !v)}
@@ -1275,10 +1297,7 @@ function FullPageMessageList({
                         <div
                           className={`mt-1 text-[10px] text-muted-foreground/40 ${isUser ? 'text-right' : ''}`}
                         >
-                          {msg.timestamp.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {formatMessageTimestamp(msg.timestamp)}
                         </div>
                       )}
                     </div>
