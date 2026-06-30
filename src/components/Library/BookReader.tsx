@@ -20,6 +20,15 @@ export interface BookPage {
   caption?: string
   title?: string
   markdown?: string
+  /** Hierarchy fields for "collection of books" works (e.g. scripture: the
+   *  Bible is books → chapters). Present when a page belongs to a named book;
+   *  absent for flat single-book works. `book` is the short id (GEN), `ref` the
+   *  canonical address (GEN.1). The reader groups pages by `book` into a Book →
+   *  Chapter navigation when these are present. */
+  book?: string
+  bookName?: string
+  chapter?: number
+  ref?: string
 }
 
 /** A verse-structured page value (scripture): the per-page text is an array of

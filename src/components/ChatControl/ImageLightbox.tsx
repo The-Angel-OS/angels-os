@@ -1,18 +1,12 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { XIcon, DownloadIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from '@/components/ui/carousel'
 
 interface LightboxImage {
   url: string
@@ -28,8 +22,14 @@ interface ImageLightboxProps {
 }
 
 /**
- * Full-screen image lightbox with carousel navigation.
- * Built on existing Dialog (Radix) + Carousel (Embla) components.
+ * Full-screen image lightbox.
+ *
+ * Intentionally NOT built on Embla/Carousel. A carousel translates a flex track
+ * by measured slide widths; with `align: center` any measurement taken while the
+ * Radix dialog is mid-zoom (or before images load) is off by a few px and the
+ * error ACCUMULATES per slide — that's the "centers on two with 2 images, three
+ * with 3" drift. A lightbox only ever shows ONE image, so we just render the
+ * current index. No track, no measurement, no drift — always dead-centered.
  */
 export function ImageLightbox({
   images,
@@ -37,68 +37,36 @@ export function ImageLightbox({
   open,
   onOpenChange,
 }: ImageLightboxProps) {
-  const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(initialIndex)
-  const viewportRef = useRef<HTMLDivElement>(null)
 
-  // Keep Embla's slide measurements correct so every slide centers in the window.
-  //
-  // ROOT CAUSE of the "centers on two with 2 images, three with 3, further the
-  // more images" drift: Embla measures slide widths at init. The shared Radix
-  // DialogContent animates open with a `zoom-in-95` SCALE transform (~200ms). If
-  // Embla measures DURING that scale, every full-width slide is recorded narrower
-  // than the real viewport; with `align: center` the per-slide error ACCUMULATES
-  // by slide index, so images slide past off-center.
-  //
-  // Two-part fix (without touching the shared dialog component):
-  //   1. The DialogContent below neutralizes the zoom (zoom-*-100) so the box is
-  //      never scaled while Embla measures.
-  //   2. A ResizeObserver on the carousel viewport reInits on every real size
-  //      change (open settle, image load, window resize) — robust where a single
-  //      magic-number timeout was racy.
+  // Snap to the clicked image whenever the lightbox (re)opens or the source
+  // index changes.
   useEffect(() => {
-    if (!api || !open) return
-    const viewport = viewportRef.current
-    const sync = () => {
-      api.reInit()
-      api.scrollTo(initialIndex, true)
-      setCurrent(initialIndex)
-    }
-    // Initial sync after layout settles (double rAF = post-paint).
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(sync)
-    })
-    // Re-measure on any subsequent size change of the carousel viewport.
-    const ro = viewport ? new ResizeObserver(() => api.reInit()) : null
-    if (viewport && ro) ro.observe(viewport)
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      ro?.disconnect()
-    }
-  }, [api, initialIndex, open])
+    if (open) setCurrent(initialIndex)
+  }, [open, initialIndex])
 
-  // Track current slide
-  useEffect(() => {
-    if (!api) return
-    const onSelect = () => setCurrent(api.selectedScrollSnap())
-    api.on('select', onSelect)
-    return () => { api.off('select', onSelect) }
-  }, [api])
+  const count = images.length
+  const showNav = count > 1
 
-  // Keyboard navigation
+  const goPrev = useCallback(() => {
+    setCurrent((c) => (c - 1 + count) % count)
+  }, [count])
+
+  const goNext = useCallback(() => {
+    setCurrent((c) => (c + 1) % count)
+  }, [count])
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
-        api?.scrollPrev()
+        goPrev()
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
-        api?.scrollNext()
+        goNext()
       }
     },
-    [api],
+    [goPrev, goNext],
   )
 
   const handleDownload = useCallback(() => {
@@ -111,28 +79,26 @@ export function ImageLightbox({
     a.click()
   }, [images, current])
 
-  if (images.length === 0) return null
+  if (count === 0) return null
 
-  const showNav = images.length > 1
+  const active = images[current]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        // zoom-*-100 cancels the shared DialogContent's zoom-in-95 SCALE so Embla
-        // never measures a mid-animation (scaled) box → slides stay centered.
-        className="max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100"
+        className="max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {/* Accessible title (visually hidden) */}
         <DialogTitle className="sr-only">
-          Image {current + 1} of {images.length}
+          Image {current + 1} of {count}
         </DialogTitle>
 
         {/* Top bar — counter + actions */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent">
           <span className="text-white/80 text-sm font-medium">
-            {showNav ? `${current + 1} / ${images.length}` : ''}
+            {showNav ? `${current + 1} / ${count}` : ''}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -152,63 +118,45 @@ export function ImageLightbox({
           </div>
         </div>
 
-        {/* Image carousel */}
-        <div ref={viewportRef} className="flex h-full w-full items-center justify-center">
-          <Carousel
-            setApi={setApi}
-            opts={{
-              startIndex: initialIndex,
-              loop: showNav,
-              align: 'center',
-            }}
-            className="w-full h-full"
-          >
-            <CarouselContent className="h-full ml-0">
-              {images.map((img, i) => (
-                <CarouselItem
-                  key={`${img.url}-${i}`}
-                  className="flex w-full items-center justify-center h-[95vh] pl-0"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={img.alt || `Image ${i + 1}`}
-                    className="max-w-[90vw] max-h-[85vh] w-auto h-auto object-contain rounded-lg select-none"
-                    draggable={false}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-
-            {/* Navigation arrows (only for multiple images) */}
-            {showNav && (
-              <>
-                <button
-                  onClick={() => api?.scrollPrev()}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 p-3 text-white/80 hover:bg-black/60 hover:text-white transition-colors backdrop-blur-sm"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="size-6" />
-                </button>
-                <button
-                  onClick={() => api?.scrollNext()}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 p-3 text-white/80 hover:bg-black/60 hover:text-white transition-colors backdrop-blur-sm"
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="size-6" />
-                </button>
-              </>
-            )}
-          </Carousel>
+        {/* Single centered image */}
+        <div className="flex h-full w-full items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={active.url}
+            src={active.url}
+            alt={active.alt || `Image ${current + 1}`}
+            className="max-w-[90vw] max-h-[85vh] w-auto h-auto object-contain rounded-lg select-none"
+            draggable={false}
+          />
         </div>
 
+        {/* Navigation arrows (only for multiple images) */}
+        {showNav && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 p-3 text-white/80 hover:bg-black/60 hover:text-white transition-colors backdrop-blur-sm"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/40 p-3 text-white/80 hover:bg-black/60 hover:text-white transition-colors backdrop-blur-sm"
+              aria-label="Next image"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        )}
+
         {/* Thumbnail strip (3+ images) */}
-        {images.length > 2 && (
+        {count > 2 && (
           <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-t from-black/60 to-transparent">
             {images.map((img, i) => (
               <button
                 key={`thumb-${i}`}
-                onClick={() => api?.scrollTo(i)}
+                onClick={() => setCurrent(i)}
                 className={`rounded-md overflow-hidden border-2 transition-all ${
                   i === current
                     ? 'border-white/90 opacity-100 scale-110'

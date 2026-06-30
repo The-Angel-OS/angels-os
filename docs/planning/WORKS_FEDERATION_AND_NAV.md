@@ -85,3 +85,58 @@ file vs message backend, so the sidebar renders uniformly:
   the above; prior partial fix `13eb474`).
 - Confirm Nimue Bible error is payload-size (vs the getWorkJson richText drop noted in
   [[project_nimue_offline_works]]) before assuming hierarchy fixes it.
+
+---
+
+## 260630 — VERIFIED findings + what shipped (Claude, at Ken's request)
+
+Inspected the live DBs via the Payload **Local API** (`scripts/inspect-bible.ts`) — not raw SQL —
+and resolved the Bible-specific crash + the canonical-home confusion.
+
+### Canonical-home / syndication model (confirmed — answers the "where do I edit a Work?" question)
+The owner-of-record is **manifest-derived**, single source of truth (`src/souls/subscriptions.ts`):
+- `canonical.endeavor` = the **owner / editable home** tenant. For the Bible that's `platform`.
+- `subscribers[]` = additional carrying endeavors (Bible → `clearwater-cruisin`).
+- `availableGlobally` ⇒ readable everywhere; `platform` is the implicit universal index.
+- Content messages are **tenant-scoped** and live in whichever DB hosts that tenant. This is why
+  the Works control-panel list looked empty from the wrong tenant/DB, and why WDEG (its own portal)
+  shows under its own tenant, not under SpacesAngels.
+- **Which DB is which** (same Postgres host `74.208.87.243:6432`, db name = last URI segment):
+  - `kendev` → tenants: `kendev, harpazo, dunedin-fresh-market, arctic-cool, docs-moving`.
+  - `angels` (spacesangels.com) → tenants: `platform, clearwater-cruisin, hays-cactus, helpdna,
+    tomstalcup, wheredideveryonego, grace-chapel`.
+  - So `platform`/`clearwater-cruisin` (the Bible's home + subscriber) are in **`angels`**, NOT
+    `kendev`. Importing against the `.env` default (`kendev`) targets the wrong DB.
+- **Moving a canonical home** (Ken's edge case) is still a separate workstream — diagnose-only here.
+
+### Bible "content not found" — actual root cause (supersedes Insight 2's payload-size theory)
+NOT a Nimue payload-size problem. On `angels` the Bible was **never fully imported**:
+- 0 `works` catalog rows, and **1746** `work-holy-bible` messages with order range `0..891`
+  (died ~75% in, at Jonah) and **854 duplicated orders** — interrupted serverless runs *stacked*
+  because the importer cleared-then-recreated and 504'd before finishing each time.
+- The 504 (`FUNCTION_INVOCATION_TIMEOUT`) is purely the ~1189 sequential `payload.create` message
+  writes in ONE invocation (the image-upload loop is a no-op — scripture pages carry no image).
+
+### What shipped
+1. **Chunked/resumable book import** (`worksImportHandler`, `src/endpoints/works.ts`):
+   `?from=N&count=M` materializes a page range; first chunk clears, last chunk writes the `works`
+   row + checksum; returns `nextFrom`. No single invocation exceeds the timeout.
+2. **Local import script** (`scripts/import-bible.ts`) — Local API, no serverless timeout; did the
+   full 1189-page Bible against `angels` in one clean pass (cleared the 1746 dup mess → 1189 distinct,
+   0 dupes, `works` row created). This is the manual first-run of the replication pull (Insight 1).
+3. **Book hierarchy carried end-to-end** — import now writes `book/bookName/chapter/ref` into each
+   chapter's metadata (from `public/library/holy-bible/manifest.json`, which already had them), and
+   `getWorkJson` surfaces them on `pages[]`. Verified: 1189/1189 carry the hierarchy; live
+   `clearwater-cruisin.spacesangels.com/api/works-ops/get?soul=holy-bible` now returns
+   `ok:true, type:book, unitCount:1189`.
+4. **Nimue 3rd-level viewer** (Insight 3, client side) — `BookReader` groups pages into
+   **Book → Chapter** when a hierarchy is present (explicit fields, or parsed from "Genesis 1" titles
+   for pre-deploy robustness); flat single-book works keep the legacy single strip. Replaces the
+   unusable 1189-chip flat strip.
+
+### Still open / next (unchanged from the sequence above)
+- **Replication pull** to mirror the Bible onto `kendev`/`federation.kendev.co` as a subscriber copy
+  (the import script run against `angels` only seeds `angels`).
+- The "3 chapters/day" **quest tracker** (Audible-style per-user progress) — the actual product goal;
+  the readable, hierarchical Bible is the prerequisite that now exists.
+- Web (Core) grouped sidebar — this pass did **Nimue only** per Ken's scope choice.

@@ -238,6 +238,19 @@ export const worksImportHandler: PayloadHandler = async (req) => {
   const soul = getSoul(soulId)
   if (!soul) return Response.json({ error: 'work not found' }, { status: 404 })
 
+  // ── Chunking (BOOK works only) ──────────────────────────────────────────────
+  // A large book (the Bible = 1189 chapters) can't materialize in one serverless
+  // invocation — ~1189 sequential message creates blow past the function timeout
+  // (the observed 504, which left a partial + DUPLICATED channel because each
+  // re-run stacked on the last). So the book branch processes a PAGE RANGE per
+  // call: `?from=N&count=M`. The FIRST chunk (from=0) clears the channel; the
+  // LAST chunk (covers the final page) writes the `works` catalog row + checksum.
+  // A tiny driver (scripts/import-bible.mjs) loops the ranges. Idempotent overall.
+  const fromParam = Number(url.searchParams.get('from'))
+  const countParam = Number(url.searchParams.get('count'))
+  const chunkFrom = Number.isFinite(fromParam) && fromParam > 0 ? Math.floor(fromParam) : 0
+  const chunkCount = Number.isFinite(countParam) && countParam > 0 ? Math.floor(countParam) : 0 // 0 ⇒ all
+
   try {
     const ownerSlug = homeForWork(soulId)
     // Host tenant = where the content messages live. Defaults to the canonical
@@ -256,8 +269,11 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     const channel = `work-${soulId}`
     const origin = originFromReq(req)
 
-    // Idempotent: clear this Work's channel, then recreate.
-    await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
+    // Idempotent: clear this Work's channel on the FIRST chunk only. A resumable
+    // book import (from>0) must NOT clear — that would wipe earlier chunks.
+    if (chunkFrom === 0) {
+      await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
+    }
 
     let chapters = 0
     let checksum = ''
@@ -267,17 +283,22 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     const type: 'document' | 'book' = soul.bookSlug ? 'book' : 'document'
 
     if (soul.bookSlug) {
-      // ── BOOK → messages + Blob (fully portable, no filesystem at read time) ──
+      // ── BOOK → messages (fully portable, no filesystem at read time) ─────────
       // fs-first (works locally); origin/CDN fallback for Vercel, where `public/`
       // is not traced into the API function bundle so the fs read returns null.
-      // Without the fallback the import 500s ("book manifest unreadable") and the
-      // book is never message-backed → reader 404. (This is why the Bible, a book,
-      // showed unitCount:0 / "work not available" on prod.)
       const loaded = loadBookFromPublic(soul.bookSlug) ?? (await loadBookFromOrigin(soul.bookSlug, origin))
       if (!loaded) return Response.json({ error: 'book manifest unreadable' }, { status: 500 })
       const languages = loaded.manifest.languages ?? []
       const langs = languages.map((l) => l.code)
       const baseLang = loaded.baseLanguage
+      const pages = loaded.manifest.pages
+      const totalPages = pages.length
+
+      // The page range THIS chunk materializes. count=0 ⇒ to the end (one-shot,
+      // for small books). The Bible driver passes count to stay under the timeout.
+      const end = chunkCount > 0 ? Math.min(chunkFrom + chunkCount, totalPages) : totalPages
+      const isFirstChunk = chunkFrom === 0
+      const isLastChunk = end >= totalPages
 
       // Per-language text — fetch from the ORIGIN (CDN-served; non-base langs are
       // not traced into the serverless fs).
@@ -288,12 +309,16 @@ export const worksImportHandler: PayloadHandler = async (req) => {
           if (r.ok) langText[code] = await r.json()
         } catch { /* skip lang */ }
       }
-      langText[baseLang] = langText[baseLang] ?? loaded.baseText
+      langText[baseLang] = langText[baseLang] ?? (loaded.baseText as Record<string, unknown>)
 
-      // Upload each unique page image to media (→ Blob), keyed by image path.
-      // fs-first (bundled via outputFileTracingIncludes); self-fetch fallback.
+      // Upload page images to media (→ Blob) ONLY for pages in this chunk's range
+      // that actually carry an image. Scripture-style books (the Bible) have NO
+      // page images, so this loop is a no-op for them — which is most of why the
+      // old one-shot import timed out only on real illustrated books, and why the
+      // Bible's bottleneck is purely the message-create count (hence chunking).
       const urlByImage: Record<string, string> = {}
-      for (const p of loaded.manifest.pages) {
+      for (let i = chunkFrom; i < end; i++) {
+        const p = pages[i]
         if (!p.image || urlByImage[p.image]) continue
         const basename = p.image.split('/').pop() || 'page.webp'
         try {
@@ -304,8 +329,6 @@ export const worksImportHandler: PayloadHandler = async (req) => {
             if (r.ok) buf = Buffer.from(await r.arrayBuffer())
           }
           if (!buf) { imageErrors.push(`${basename}: no bytes`); continue }
-          // Media is tenant-scoped ("Assigned Tenant") — set the owner tenant
-          // explicitly (media has no setTenantFromSpace hook like messages do).
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const media = await payload.create({ collection: 'media', overrideAccess: true, data: { alt: `${soul.title}`, tenant: tenant.id } as any, file: { data: buf, mimetype: 'image/webp', name: basename, size: buf.length } })
           const u = String((media as { url?: string }).url || '')
@@ -315,33 +338,54 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       }
       imagesUploaded = Object.values(urlByImage).filter(Boolean).length
 
-      // One message per page. Image is referenced by metadata url (NOT an
-      // attachment) so the media-analysis/workflow hooks stay no-op.
-      for (let i = 0; i < loaded.manifest.pages.length; i++) {
-        const p = loaded.manifest.pages[i]
+      // One message per page IN THIS CHUNK. Carries the book hierarchy
+      // (book/bookName/chapter/ref) when the manifest page has it, so a
+      // "collection of books" work (the Bible) can drive a Book → Chapter reader.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageWithHierarchy = (p: (typeof pages)[number]) => p as typeof p & { book?: string; bookName?: string; chapter?: number; ref?: string }
+      for (let i = chunkFrom; i < end; i++) {
+        const p = pages[i]
+        const ph = pageWithHierarchy(p)
         const ord = String(p.order)
-        const translations: Record<string, string> = {}
+        const translations: Record<string, unknown> = {}
         for (const code of langs) translations[code] = langText[code]?.[ord] ?? ''
+        const baseVal = translations[baseLang]
         await payload.create({
           collection: 'messages',
           overrideAccess: true,
           data: {
             space: space.id, channel, messageType: 'system', visibility: 'tenant',
-            content: { type: 'text', text: translations[baseLang] ?? '' },
+            content: { type: 'text', text: typeof baseVal === 'string' ? baseVal : '' },
             metadata: {
               kind: 'work_chapter', workSlug: soul.id, order: i,
-              slug: loaded.pageSlugs[i], title: loaded.pageTitles[i] || null,
+              slug: loaded.pageSlugs[i], title: loaded.pageTitles[i] || ph.title || null,
               image: p.image ? (urlByImage[p.image] ?? null) : null,
+              book: ph.book ?? null, bookName: ph.bookName ?? null,
+              chapter: typeof ph.chapter === 'number' ? ph.chapter : null,
+              ref: ph.ref ?? null,
               translations,
             },
           },
         })
         chapters++
       }
+
+      // A resumable book import only finalizes (storageRef/checksum/works row) on
+      // the LAST chunk. Earlier chunks just report progress + nextFrom and return.
+      if (!isLastChunk) {
+        return Response.json({
+          ok: true, soul: soulId, type: 'book', owner: ownerSlug, space: space.id, channel,
+          chunk: { from: chunkFrom, to: end, total: totalPages, cleared: isFirstChunk },
+          chapters, nextFrom: end, done: false, imagesUploaded, imageErrors: imageErrors.slice(0, 5),
+        })
+      }
       storageRef = { kind: 'messages', space: space.id, channel, baseLanguage: baseLang, languages }
       checksum = checksumOf({
         slug: soul.id, type: 'book',
-        chapters: loaded.manifest.pages.map((p, i) => ({ order: i, slug: loaded.pageSlugs[i], title: loaded.pageTitles[i], text: langText[baseLang]?.[String(p.order)] ?? '' })),
+        chapters: pages.map((p, i) => {
+          const t = langText[baseLang]?.[String(p.order)]
+          return { order: i, slug: loaded.pageSlugs[i], title: loaded.pageTitles[i], text: typeof t === 'string' ? t : JSON.stringify(t ?? '') }
+        }),
       })
     } else {
       // ── DOCUMENT → one message per markdown doc ──
@@ -389,7 +433,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
     else await payload.create({ collection: 'works', data, overrideAccess: true })
 
-    return Response.json({ ok: true, soul: soulId, type, owner: ownerSlug, space: space.id, channel, chapters, checksum, imagesUploaded, imageErrors: imageErrors.slice(0, 5) })
+    return Response.json({ ok: true, soul: soulId, type, owner: ownerSlug, space: space.id, channel, chapters, checksum, done: true, imagesUploaded, imageErrors: imageErrors.slice(0, 5) })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-import] ${msg}`)

@@ -111,6 +111,12 @@ export async function getWorkJson(opts: {
       image: absMedia((c.md.image as string) ?? null, origin),
       title: (c.md.title as string) ?? null,
       slug: (c.md.slug as string) ?? String(i + 1),
+      // Book hierarchy (collection-of-books works like the Bible). Null on flat
+      // single-book works; the reader only builds Book → Chapter nav when present.
+      book: (c.md.book as string) ?? null,
+      bookName: (c.md.bookName as string) ?? null,
+      chapter: typeof c.md.chapter === 'number' ? (c.md.chapter as number) : null,
+      ref: (c.md.ref as string) ?? null,
       text: typeof c.m.content === 'string' ? c.m.content : ((c.m.content as { text?: string })?.text ?? ''),
       translations: (c.md.translations as Record<string, string>) ?? {},
     }))
