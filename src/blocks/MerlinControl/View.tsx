@@ -64,32 +64,33 @@ export function MerlinControlView({
     'rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 
   return (
-    <div className="flex h-full min-h-0 gap-4 rounded-xl border border-border bg-card">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-border bg-card">
+      {/* Node tab bar — replaces the side nav */}
       {showNav && navOpen && (
-        <nav className="w-56 shrink-0 overflow-y-auto border-r border-border p-2">
-          <div className="px-2 py-1 text-xs font-semibold uppercase text-muted-foreground">Nodes</div>
-          {nodes.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setSelectedId(n.id)}
-              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm ${
-                n.id === node?.id ? 'bg-muted font-medium' : 'hover:bg-muted/50'
-              }`}
-            >
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full ${isOnline(n) ? 'bg-green-500' : 'bg-muted-foreground/40'}`}
-              />
-              <span className="truncate">{n.name || n.hostname || n.id}</span>
-            </button>
-          ))}
-        </nav>
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-3">
+          {nodes.map((n) => {
+            const sel = n.id === node?.id
+            return (
+              <button
+                key={n.id}
+                onClick={() => setSelectedId(n.id)}
+                className={`relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors ${
+                  sel ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${isOnline(n) ? 'bg-green-500' : 'bg-muted-foreground/40'}`}
+                />
+                {n.name || n.hostname || n.id}
+                {sel && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-primary" />}
+              </button>
+            )
+          })}
+        </div>
       )}
 
+      {/* Capability tab panel — shows the selected node's advertised surfaces */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
-        {/* Universal control: tab bar shows only the capabilities this node
-            advertises; ?tab= makes each capability a deep-linkable surface.
-            fill = fits its container; focus mode hides the tabs (just the surface);
-            the node selector collapses — together → "just the chat screen". */}
         <TabbedPanel
           bare
           fill
@@ -103,8 +104,8 @@ export function MerlinControlView({
                   type="button"
                   onClick={() => setNavOpen((v) => !v)}
                   className={toggleBtnClass}
-                  title={navOpen ? 'Hide node selector' : 'Show node selector'}
-                  aria-label={navOpen ? 'Hide node selector' : 'Show node selector'}
+                  title={navOpen ? 'Hide node tabs' : 'Show node tabs'}
+                  aria-label={navOpen ? 'Hide node tabs' : 'Show node tabs'}
                 >
                   {navOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
                 </button>
