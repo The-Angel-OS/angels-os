@@ -3,11 +3,18 @@
 /**
  * TenantAutoSelector — Payload Admin Component
  *
- * Automatically sets the `payload-tenant` cookie to the tenant whose slug
- * matches the current hostname subdomain. This ensures that when a user
- * visits a tenant subdomain admin (e.g., cactus-farm.kendev.co/admin),
- * the multi-tenant plugin's data filter automatically scopes to that tenant
- * without requiring the user to manually select it via the tenant selector.
+ * Keeps the admin HOST and the selected TENANT in agreement, both directions:
+ *
+ * 1. host → tenant: automatically sets the `payload-tenant` cookie to the
+ *    tenant whose slug matches the current hostname subdomain, so visiting
+ *    cactus-farm.kendev.co/admin scopes the multi-tenant filter without a
+ *    manual pick.
+ * 2. tenant → host: when the tenant SELECTOR changes to a portal whose
+ *    `domain` differs from the current host, follow the selection there
+ *    (https://<domain>/admin). Without this, picking another portal in the
+ *    chooser leaves you on the old host, and host-derived scoping (upload
+ *    "choose existing", relation drawers) shows the WRONG portal's media.
+ *    Cross-subdomain SSO carries the session within the same apex.
  *
  * Placed in `beforeNav` so it runs silently on every admin page load.
  * Uses sessionStorage to avoid reload loops.
@@ -59,7 +66,57 @@ function setTenantCookie(value: string): void {
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/`
 }
 
+/** True for hosts where cross-domain hopping makes no sense (local dev). */
+function isLocalHost(hostname: string): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.endsWith('.localhost') ||
+    /^(127\.|0\.0\.0\.0|::1)/.test(hostname)
+  )
+}
+
 export function TenantAutoSelector(): null {
+  // tenant → host: follow the tenant selector to the chosen portal's domain.
+  useEffect(() => {
+    if (isLocalHost(window.location.hostname)) return // dev serves every tenant on one host
+
+    let prev = getCurrentTenantCookie()
+    let busy = false
+
+    const check = async () => {
+      const current = getCurrentTenantCookie()
+      if (busy || current === prev) return
+      prev = current
+      if (!current) return // "All tenants" — nothing to follow
+
+      busy = true
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(current)}?depth=0`)
+        if (!res.ok) return
+        const tenant = (await res.json()) as { domain?: string | null }
+        const domain = (tenant?.domain || '').trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+        if (!domain || isLocalHost(domain)) return
+        if (domain === window.location.hostname) return // already home
+
+        // Keep a collection LIST path (it exists on every portal); a document
+        // path belongs to the old tenant, so land on the dashboard instead.
+        const path = /^\/admin\/collections\/[^/]+\/?$/.test(window.location.pathname)
+          ? window.location.pathname
+          : '/admin'
+        window.location.assign(`https://${domain}${path}`)
+      } catch {
+        // Unreachable/forbidden tenant — stay put.
+      } finally {
+        busy = false
+      }
+    }
+
+    const timer = window.setInterval(() => void check(), 800)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  // host → tenant: scope the admin to the subdomain's tenant on load.
   useEffect(() => {
     const slug = getSubdomainSlug()
     if (!slug) return // main domain — let user choose manually
