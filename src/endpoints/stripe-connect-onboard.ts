@@ -10,6 +10,7 @@
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { createConnectOnboardingLink } from '@/utilities/stripeConnectOnboarding'
+import { logError } from '@/utilities/logError'
 
 export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -80,6 +81,14 @@ export const stripeConnectOnboardHandler: PayloadHandler = async (req) => {
       )
     }
 
+    await logError({
+      source: 'stripe-connect-onboard',
+      message: `Stripe Connect onboarding failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: typeof tenantId === 'number' || typeof tenantId === 'string' ? tenantId : undefined,
+      userId: user.id,
+    })
     return Response.json({ error: message }, { status: 500 })
   }
 }

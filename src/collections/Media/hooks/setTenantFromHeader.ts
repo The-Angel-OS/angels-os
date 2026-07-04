@@ -1,4 +1,5 @@
 import type { CollectionBeforeValidateHook } from 'payload'
+import { logError } from '@/utilities/logError'
 
 /**
  * Auto-resolve the media tenant for browser uploads (chat attachments).
@@ -62,7 +63,14 @@ export const setTenantFromHeader: CollectionBeforeValidateHook = async ({
           return { ...data, tenant: tenantId }
         }
       } catch (err) {
+        // This is the "invalid tenant id" upload failure class — escalate so it's
+        // visible. Log without tenantId (none resolved) to avoid AI-Bus recursion.
         console.error('[setTenantFromHeader] Failed to resolve tenant from space:', err)
+        void logError({
+          source: 'Media/setTenantFromHeader/space',
+          message: `Media tenant resolution from space ${String(spaceId)} failed (upload may be rejected): ${err instanceof Error ? err.message : String(err)}`,
+          details: err instanceof Error ? err.stack : String(err),
+        })
       }
     }
   }
@@ -85,8 +93,14 @@ export const setTenantFromHeader: CollectionBeforeValidateHook = async ({
       return { ...data, tenant: tenantId }
     }
   } catch (err) {
-    // Non-fatal — let Payload's normal validation handle a still-missing tenant.
+    // Non-fatal — let Payload's normal validation handle a still-missing tenant,
+    // but escalate (this also produces "invalid tenant id" on uploads).
     console.error('[setTenantFromHeader] Failed to resolve tenant from header:', err)
+    void logError({
+      source: 'Media/setTenantFromHeader/header',
+      message: `Media tenant resolution from x-tenant-id="${tenantSlug}" failed (upload may be rejected): ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+    })
   }
 
   return data

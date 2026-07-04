@@ -16,6 +16,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { recordCostEvent } from '@/utilities/recordCostEvent'
+import { logError } from '@/utilities/logError'
 
 const BYTES_PER_GB = 1024 * 1024 * 1024
 const PAGE = 500
@@ -124,6 +125,12 @@ export const costStorageProbeHandler: PayloadHandler = async (req) => {
       results,
     })
   } catch (err: any) {
+    await logError({
+      source: 'cost-storage-probe',
+      message: `Storage probe failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+    })
     return Response.json({ error: 'Storage probe failed', detail: err?.message || String(err) }, { status: 500 })
   }
 }

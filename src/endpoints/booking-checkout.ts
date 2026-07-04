@@ -32,6 +32,7 @@ import { resolveServices } from '@/utilities/resolveServices'
 import { getBookingPaymentMode } from '@/utilities/bookingSettings'
 import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
 import { BookingEngine } from '@/utilities/bookingEngine'
+import { logError } from '@/utilities/logError'
 
 export const bookingCheckoutHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -62,6 +63,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'serviceId is required' }, { status: 400 })
   }
 
+  let resolvedTenantId: number | undefined
   try {
     // Resolve tenant
     const tenantSlug =
@@ -75,6 +77,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
     const tenant = tenants.docs?.[0] as any
+    if (tenant?.id != null) resolvedTenantId = Number(tenant.id)
     if (!tenant) {
       return Response.json({ error: 'Tenant not found' }, { status: 404 })
     }
@@ -295,6 +298,13 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('[Booking Checkout] Error:', err)
+    await logError({
+      source: 'booking-checkout',
+      message: `Booking checkout failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+    })
     return Response.json(
       { error: err instanceof Error ? err.message : 'Failed to create booking checkout' },
       { status: 500 },

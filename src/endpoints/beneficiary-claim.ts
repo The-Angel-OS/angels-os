@@ -17,6 +17,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const beneficiaryClaimHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -41,6 +42,7 @@ export const beneficiaryClaimHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'claimToken is required.' }, { status: 400 })
   }
 
+  let resolvedTenantId: number | undefined
   try {
     // Search all Endeavors for a beneficiary with this claim token
     const endeavors = await payload.find({
@@ -61,6 +63,10 @@ export const beneficiaryClaimHandler: PayloadHandler = async (req) => {
     }
 
     const endeavor = endeavors.docs[0] as any
+    {
+      const tid = typeof endeavor.tenant === 'object' && endeavor.tenant ? endeavor.tenant.id : endeavor.tenant
+      if (tid != null && Number.isFinite(Number(tid))) resolvedTenantId = Number(tid)
+    }
     const beneficiaries = (endeavor.beneficiaries || []).slice()
 
     // Find the matching beneficiary entry
@@ -113,6 +119,14 @@ export const beneficiaryClaimHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('[Beneficiary Claim] Error:', err)
+    await logError({
+      source: 'beneficiary-claim',
+      message: `Failed to process beneficiary claim: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+      userId: user.id,
+    })
     return Response.json({ error: 'Failed to process claim.' }, { status: 500 })
   }
 }

@@ -1,4 +1,5 @@
 import type { CollectionBeforeValidateHook } from 'payload'
+import { logError } from '@/utilities/logError'
 
 /**
  * Auto-resolve the message tenant from the linked space.
@@ -47,8 +48,17 @@ export const setTenantFromSpace: CollectionBeforeValidateHook = async ({
       }
     }
   } catch (err) {
-    // If space lookup fails, let Payload's normal validation handle it
+    // If space lookup fails, let Payload's normal validation handle it — but
+    // escalate, because this is the exact failure that makes a message vanish
+    // (tenant stays unset → the create throws). Log WITHOUT tenantId so it only
+    // writes to application-logs and never emits to the AI Bus errors channel
+    // (which would re-enter this same hook → recursion).
     console.error('[setTenantFromSpace] Failed to resolve tenant from space:', err)
+    void logError({
+      source: 'Messages/setTenantFromSpace',
+      message: `Tenant resolution from space ${typeof spaceId === 'object' ? (spaceId as { id?: unknown }).id : spaceId} failed (message may be dropped): ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+    })
   }
 
   return data

@@ -19,6 +19,7 @@
 import type { PayloadHandler } from 'payload'
 import { jwtVerify } from 'jose'
 import { getServerSideURL } from '@/utilities/getURL'
+import { logError } from '@/utilities/logError'
 
 export const authTokenRelayHandler: PayloadHandler = async (req) => {
   try {
@@ -72,6 +73,12 @@ export const authTokenRelayHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Token relay failed'
+    await logError({
+      source: 'auth-token-relay',
+      message: `Token relay failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+    })
     return Response.json({ error: message }, { status: 500 })
   }
 }

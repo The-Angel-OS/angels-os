@@ -23,6 +23,7 @@ import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { getMembershipPlan } from '@/utilities/membershipPlans'
 import { getServerSideURL } from '@/utilities/getURL'
+import { logError } from '@/utilities/logError'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -55,12 +56,14 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
   const slug = headerTenant || bodySlug
   if (!slug) return Response.json({ error: 'Could not resolve the endeavor for this membership.' }, { status: 400 })
 
+  let resolvedTenantId: number | undefined
   try {
     const tenants = await payload.find({
       collection: 'tenants', where: { slug: { equals: slug } }, limit: 1, depth: 0, overrideAccess: true,
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tenant = tenants.docs?.[0] as any
+    if (tenant?.id != null) resolvedTenantId = Number(tenant.id)
     if (!tenant) return Response.json({ error: `No endeavor "${slug}"` }, { status: 404 })
 
     const connect = tenant.stripeConnect as Record<string, unknown> | undefined
@@ -123,6 +126,13 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[membership-checkout] ${msg}`)
+    await logError({
+      source: 'membership-checkout',
+      message: `Membership checkout failed: ${msg}`,
+      details: e instanceof Error ? e.stack : String(e),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+    })
     if (msg.includes('platform-profile') || msg.includes('managing losses')) {
       return Response.json({ error: 'Stripe needs the platform Connect profile accepted before subscriptions can run. Please try again shortly.' }, { status: 503 })
     }

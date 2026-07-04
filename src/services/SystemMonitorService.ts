@@ -1,6 +1,12 @@
 /**
- * System monitor logging for API interceptor.
- * Logs API calls and errors (can be extended to send to backend/dashboard).
+ * System monitor logging for the in-app API interceptor (the live "System
+ * Console" telemetry feed).
+ *
+ * ⚠️ NOT the canonical error pipeline. `logError` here is CONSOLE-ONLY — it does
+ * NOT reach application-logs / the AI Bus / Gotify. The interceptor
+ * (apiInterceptor.ts) separately routes genuine failures to the canonical
+ * `logClientError` so the self-improvement loop sees them. Don't mistake this
+ * for `@/utilities/logError` or `@/utilities/logClientError`.
  */
 export function logApi(
   method: string,

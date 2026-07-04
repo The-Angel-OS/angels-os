@@ -14,6 +14,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
+import { logError } from '@/utilities/logError'
 
 export const provisionPortalHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -84,6 +85,13 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
     return Response.json(result)
   } catch (e) {
     payload.logger.error(`[provision-portal] ${e instanceof Error ? e.message : e}`)
+    await logError({
+      source: 'provision-portal',
+      message: `Portal provisioning failed: ${e instanceof Error ? e.message : String(e)}`,
+      details: e instanceof Error ? e.stack : String(e),
+      statusCode: 500,
+      userId: actingUserId,
+    })
     return Response.json({ error: e instanceof Error ? e.message : 'provision failed' }, { status: 500 })
   }
 }

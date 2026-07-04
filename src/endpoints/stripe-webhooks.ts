@@ -29,6 +29,7 @@ import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { calculateUltimateFairSplit, ULTIMATE_FAIR_SPLIT } from '@/lib/ultimate-fair-split'
 import { sendOrderConfirmationEmail } from '@/utilities/sendOrderConfirmationEmail'
+import { logError } from '@/utilities/logError'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -143,8 +144,20 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
       }
     }
   } catch (err) {
-    // Log error but return 200 to prevent Stripe retries for handler errors
+    // Return 200 to prevent Stripe retry storms for handler errors — but ESCALATE
+    // first. A swallowed payment/membership sync failure was previously invisible;
+    // it must reach the error channel so the self-improvement loop catches it.
     console.error(`[Stripe Webhook] Error handling ${event.type}:`, err)
+    // Best-effort tenant from the event object metadata (varies per event type).
+    const meta = (event.data?.object as { metadata?: Record<string, string> })?.metadata
+    const tenantId = meta?.tenantId ? Number(meta.tenantId) : undefined
+    await logError({
+      source: 'stripe-webhooks',
+      message: `Stripe webhook handler failed for ${event.type}: ${err instanceof Error ? err.message : String(err)}`,
+      details: `event=${event.id} type=${event.type} account=${connectedAccountId || 'platform'}\n${err instanceof Error ? err.stack : String(err)}`,
+      statusCode: 200,
+      tenantId,
+    })
   }
 
   return Response.json({ received: true })
@@ -206,6 +219,13 @@ async function upsertMembershipFromSubscription(
     }
   } catch (err) {
     console.error('[Stripe Webhook] Failed to upsert membership:', err instanceof Error ? err.message : err)
+    void logError({
+      level: 'warning',
+      source: 'stripe-webhooks/upsertMembership',
+      message: `Failed to sync membership from subscription ${sub.id}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      tenantId: meta.tenantId ? Number(meta.tenantId) : undefined,
+    })
   }
 }
 
@@ -247,6 +267,13 @@ async function handlePaymentIntentSucceeded(
       console.log(`[Stripe Webhook] Donation recorded to Justice Fund`)
     } catch (err) {
       console.error('[Stripe Webhook] Failed to record donation:', err)
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/recordDonation',
+        message: `Failed to record donation ($${(amountCents / 100).toFixed(2)}, PI ${paymentIntent.id}) to Justice Fund: ${err instanceof Error ? err.message : String(err)}`,
+        details: err instanceof Error ? err.stack : String(err),
+        tenantId: metadata.tenantId ? Number(metadata.tenantId) : undefined,
+      })
     }
     return // Donations don't have orders — exit early
   }
@@ -279,6 +306,13 @@ async function handlePaymentIntentSucceeded(
     } catch (err) {
       // Justice Fund collection may not exist yet — log but don't fail
       console.error('[Stripe Webhook] Failed to record Justice Fund allocation:', err)
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/justiceFundAllocation',
+        message: `Failed to record Justice Fund allocation ($${(justiceFundAmount / 100).toFixed(2)}) from ${chargeModel} charge ${paymentIntent.id}: ${err instanceof Error ? err.message : String(err)}`,
+        details: err instanceof Error ? err.stack : String(err),
+        tenantId: metadata.tenantId ? Number(metadata.tenantId) : undefined,
+      })
     }
   }
 
@@ -298,6 +332,13 @@ async function handlePaymentIntentSucceeded(
     } catch (e) {
       // Non-fatal: never let inventory bookkeeping break payment handling.
       console.error('[Stripe Webhook] markOrderPaid/inventory failed:', e instanceof Error ? e.message : e)
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/markOrderPaidInventory',
+        message: `markOrderPaid/inventory-decrement failed for order ${orderId} (PI ${paymentIntent.id}): ${e instanceof Error ? e.message : String(e)}`,
+        details: e instanceof Error ? e.stack : String(e),
+        tenantId: metadata.tenantId ? Number(metadata.tenantId) : undefined,
+      })
     }
 
     // ── User Propagation: buyer → seller's tenant (Sprint 42) ──
@@ -398,6 +439,13 @@ async function handlePaymentIntentSucceeded(
     } catch (err) {
       // Email send failure should never break the webhook
       console.error('[Stripe Webhook] Failed to send order confirmation email:', err)
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/orderConfirmationEmail',
+        message: `Failed to send order confirmation email for order ${orderId} (PI ${paymentIntent.id}): ${err instanceof Error ? err.message : String(err)}`,
+        details: err instanceof Error ? err.stack : String(err),
+        tenantId: metadata.tenantId ? Number(metadata.tenantId) : undefined,
+      })
     }
   }
 }
@@ -445,6 +493,13 @@ async function handleAccountUpdated(
     )
   } catch (err) {
     console.error(`[Stripe Webhook] Failed to sync account ${account.id}:`, err)
+    void logError({
+      level: 'warning',
+      source: 'stripe-webhooks/accountUpdated',
+      message: `Failed to sync Stripe Connect account ${account.id} to tenant ${tenant.id}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      tenantId: tenant.id,
+    })
   }
 }
 
@@ -490,6 +545,13 @@ async function handlePaymentIntentFailed(
       }
     } catch (err) {
       console.error(`[Stripe Webhook] Failed to update order ${orderId} after payment failure:`, err)
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/orderCancelOnPaymentFailure',
+        message: `Failed to mark order ${orderId} cancelled after payment failure (PI ${paymentIntent.id}): ${err instanceof Error ? err.message : String(err)}`,
+        details: err instanceof Error ? err.stack : String(err),
+        tenantId: paymentIntent.metadata?.tenantId ? Number(paymentIntent.metadata.tenantId) : undefined,
+      })
     }
   }
 }
@@ -538,9 +600,22 @@ async function handleChargeRefunded(
         console.log(`[Stripe Webhook] Order ${orderId} marked as cancelled after full refund`)
       } catch (err) {
         console.error(`[Stripe Webhook] Failed to update order ${orderId} after refund:`, err)
+        void logError({
+          level: 'warning',
+          source: 'stripe-webhooks/refundOrderUpdate',
+          message: `Failed to mark order ${orderId} cancelled after full refund (charge ${charge.id}): ${err instanceof Error ? err.message : String(err)}`,
+          details: err instanceof Error ? err.stack : String(err),
+          tenantId: pi.metadata?.tenantId ? Number(pi.metadata.tenantId) : undefined,
+        })
       }
     }
   } catch (err) {
     console.error(`[Stripe Webhook] Failed to process refund for charge ${charge.id}:`, err)
+    void logError({
+      level: 'warning',
+      source: 'stripe-webhooks/refund',
+      message: `Failed to process refund for charge ${charge.id} ($${(amountRefunded / 100).toFixed(2)} refunded): ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+    })
   }
 }

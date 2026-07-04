@@ -13,6 +13,7 @@
 import type { PayloadHandler } from 'payload'
 import { matchCapabilities } from '@/utilities/orderRoutingEngine'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const orderClaimHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -39,6 +40,7 @@ export const orderClaimHandler: PayloadHandler = async (req) => {
     }, { status: 400 })
   }
 
+  let holonTenantId: number | undefined
   try {
     // Verify Holon ownership — must belong to a tenant the user is a member of
     const holon = await payload.findByID({
@@ -52,7 +54,7 @@ export const orderClaimHandler: PayloadHandler = async (req) => {
       return Response.json({ error: 'Holon not found.' }, { status: 404 })
     }
 
-    const holonTenantId = typeof holon.tenant === 'object' ? holon.tenant?.id : holon.tenant
+    holonTenantId = typeof holon.tenant === 'object' ? holon.tenant?.id : holon.tenant
     const membership = await payload.find({
       collection: 'tenant-memberships' as any,
       where: {
@@ -161,6 +163,14 @@ export const orderClaimHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('Order claim error:', err)
+    await logError({
+      source: 'order-claim',
+      message: `Failed to claim order #${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: holonTenantId,
+      userId: user.id,
+    })
     return Response.json({ error: 'Failed to claim order.' }, { status: 500 })
   }
 }

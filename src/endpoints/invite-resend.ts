@@ -11,6 +11,7 @@ import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
 import { DEFAULT_EXPIRY_DAYS, calculateExpiration } from '@/utilities/invitationSystem'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { getServerSideURL } from '@/utilities/getURL'
+import { logError } from '@/utilities/logError'
 
 export const inviteResendHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -36,6 +37,7 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'membershipId is required.' }, { status: 400 })
   }
 
+  let resolvedTenantId: number | string | undefined
   try {
     // Fetch the invitation (space-membership with pending status)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,6 +141,7 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
           : await payload.findByID({ collection: 'spaces', id: spaceId, depth: 0 }) as any
       if (space?.tenant) {
         resolveTenantId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+        resolvedTenantId = resolveTenantId
         if (resolveTenantId) {
           const t = await payload.findByID({ collection: 'tenants', id: resolveTenantId, depth: 0 }) as any
           if (t?.name) tenantName = t.name
@@ -170,6 +173,14 @@ export const inviteResendHandler: PayloadHandler = async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     payload.logger.error(err, 'Error resending invitation')
+    await logError({
+      source: 'invite-resend',
+      message: `Error resending invitation: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+      userId: user.id,
+    })
     return Response.json({ error: message }, { status: 500 })
   }
 }

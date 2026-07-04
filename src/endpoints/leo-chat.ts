@@ -21,6 +21,7 @@ import { leoLegacyEmail, leoSystemUserEmail } from '@/utilities/leoEmail'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const leoChatHandler: PayloadHandler = async (req) => {
   const isGuest = !req.user
@@ -150,8 +151,16 @@ export const leoChatHandler: PayloadHandler = async (req) => {
         })
         savedMessageId = saved.id as number
       } catch (saveErr) {
-        // Non-critical — response still returned to client even if DB save fails
+        // Non-critical — response still returned to client even if DB save fails,
+        // but escalate so the self-improvement loop sees vanished LEO replies.
         console.warn('[LEO Chat] Failed to persist response:', saveErr)
+        void logError({
+          source: 'leo-chat/persistResponse',
+          level: 'warning',
+          message: `LEO reply not persisted: ${saveErr instanceof Error ? saveErr.message : String(saveErr)}`,
+          details: saveErr instanceof Error ? saveErr.stack : String(saveErr),
+          tenantId,
+        })
       }
     }
 
@@ -169,6 +178,13 @@ export const leoChatHandler: PayloadHandler = async (req) => {
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error'
     console.error('[LEO Chat] Error processing message:', errMsg)
+    void logError({
+      source: 'leo-chat/process',
+      message: `LEO failed to process message: ${errMsg}`,
+      details: error instanceof Error ? error.stack : String(error),
+      statusCode: 500,
+      tenantId,
+    })
     return Response.json(
       {
         text: "I'm having trouble processing your message right now. Please try again.",

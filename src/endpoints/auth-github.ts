@@ -20,6 +20,7 @@ import type { PayloadHandler } from 'payload'
 import { SignJWT } from 'jose'
 import crypto from 'crypto'
 import { getServerSideURL } from '@/utilities/getURL'
+import { logError } from '@/utilities/logError'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -493,6 +494,14 @@ export const authGithubCallbackHandler: PayloadHandler = async (req) => {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'An unexpected error occurred'
+    // Self-catch here also defeats the global afterError net — escalate explicitly
+    // so a GitHub sign-in outage isn't swallowed silently.
+    void logError({
+      level: 'warning',
+      source: 'oauth/github-callback',
+      message: `GitHub OAuth callback failed: ${message}`,
+      details: err instanceof Error ? err.stack : String(err),
+    })
     return Response.json({ error: message }, { status: 500 })
   }
 }

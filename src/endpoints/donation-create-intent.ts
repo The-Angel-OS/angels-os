@@ -19,6 +19,7 @@
 
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
+import { logError } from '@/utilities/logError'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -90,6 +91,7 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
   const bodySlug = typeof tenantSlug === 'string' && tenantSlug && tenantSlug !== 'default' ? tenantSlug : ''
   const slug = headerTenant || bodySlug
   let connectedAccountId: string | null = null
+  let resolvedTenantId: number | undefined
   let recipientName = 'the Justice Fund'
   let chargeModel: 'destination' | 'platform' = 'platform'
   let applicationFee = 0
@@ -104,6 +106,7 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
         overrideAccess: true,
       })
       const tenant = tenants.docs?.[0] as any
+      if (tenant?.id != null) resolvedTenantId = Number(tenant.id)
       const connect = tenant?.stripeConnect as Record<string, unknown> | undefined
       if (
         tenant &&
@@ -116,8 +119,17 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
         chargeModel = 'destination'
         applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
       }
-    } catch {
-      // Fall back to platform / Justice Fund on any lookup failure
+    } catch (err) {
+      // Fall back to platform / Justice Fund on any lookup failure — but ESCALATE:
+      // a failed tenant/Connect-account lookup silently misroutes a donation meant
+      // for this endeavor to the platform account. That must never be invisible.
+      void logError({
+        level: 'warning',
+        source: 'donation-create-intent/resolveTenantAccount',
+        message: `Failed to resolve Stripe Connect account for tenant '${slug}' — donation of $${(amount / 100).toFixed(2)} may misroute to the platform: ${err instanceof Error ? err.message : String(err)}`,
+        details: err instanceof Error ? err.stack : String(err),
+        tenantId: resolvedTenantId,
+      })
     }
   }
 
@@ -160,6 +172,13 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('[Donation] Failed to create PaymentIntent:', err)
+    await logError({
+      source: 'donation-create-intent',
+      message: `Failed to create donation PaymentIntent: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+    })
     return Response.json(
       { error: 'Failed to create payment. Please try again.' },
       { status: 500 },

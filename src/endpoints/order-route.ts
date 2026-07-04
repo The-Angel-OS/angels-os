@@ -20,6 +20,7 @@ import {
 } from '@/utilities/orderRoutingEngine'
 import { createAngelTokenEntry } from '@/utilities/angelTokens'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const orderRouteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -281,6 +282,12 @@ export const orderRouteHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('Order routing error:', err)
+    await logError({
+      source: 'order-route',
+      message: `Failed to route order #${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+    })
     return Response.json({ error: 'Failed to route order.' }, { status: 500 })
   }
 }

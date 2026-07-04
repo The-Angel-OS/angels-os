@@ -10,6 +10,7 @@ import type { PayloadHandler } from 'payload'
 import { createInvitation, isValidEmail } from '@/utilities/invitationSystem'
 import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const spaceInviteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -61,6 +62,7 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
     )
   }
 
+  let resolvedTenantId: number | string | undefined
   try {
     const result = await createInvitation({
       payload,
@@ -91,6 +93,7 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
       // Try to get tenant name for branding
       if (space?.tenant) {
         spaceTenantId = typeof space.tenant === 'object' ? space.tenant.id : space.tenant
+        resolvedTenantId = spaceTenantId
         if (spaceTenantId) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const t = await payload.findByID({ collection: 'tenants', id: spaceTenantId, depth: 0 }) as any
@@ -124,6 +127,14 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    await logError({
+      source: 'space-invite',
+      message: `Failed to create space invitation: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 400,
+      tenantId: resolvedTenantId,
+      userId: user.id,
+    })
     return Response.json({ error: message }, { status: 400 })
   }
 }

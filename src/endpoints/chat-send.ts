@@ -105,6 +105,12 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     spaceVisibility = (spaceDoc as any).visibility
   } catch (err) {
     console.error('[chat-send] Failed to resolve space:', err)
+    void logError({
+      source: 'chat-send/resolveSpace',
+      message: `Failed to resolve space ${spaceId}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 404,
+    })
     return Response.json({ message: `Space ${spaceId} not found` }, { status: 404 })
   }
 
@@ -135,6 +141,14 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     }
   } catch (err) {
     console.error('[chat-send] Failed to verify space membership:', err)
+    void logError({
+      source: 'chat-send/verifyMembership',
+      message: `Failed to verify space membership (space ${spaceId}): ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId,
+      userId: (req.user as { id: number }).id,
+    })
     return Response.json({ message: 'Failed to verify access' }, { status: 500 })
   }
 
@@ -222,14 +236,29 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     // non-blocking — never delays the send or fails it). The channel always
     // homes on the AI Bus, regardless of which space the comment was posted from.
     if (channel.startsWith('page:') && tenantId != null) {
-      ensurePageChannel(req.payload, { channel, tenantId }).catch((e) =>
-        console.warn('[chat-send] ensurePageChannel failed:', e instanceof Error ? e.message : e),
-      )
+      ensurePageChannel(req.payload, { channel, tenantId }).catch((e) => {
+        console.warn('[chat-send] ensurePageChannel failed:', e instanceof Error ? e.message : e)
+        void logError({
+          source: 'chat-send/ensurePageChannel',
+          level: 'warning',
+          message: `Page-comment channel not created for ${channel}: ${e instanceof Error ? e.message : String(e)}`,
+          details: e instanceof Error ? e.stack : String(e),
+          tenantId,
+        })
+      })
     }
 
     return Response.json({ doc: saved }, { status: 201 })
   } catch (err) {
     console.error('[chat-send] Failed to create message:', err)
+    void logError({
+      source: 'chat-send/createMessage',
+      message: `Failed to create message in #${channel} (space ${spaceId}): ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId,
+      userId: (req.user as { id: number }).id,
+    })
     return Response.json(
       { message: 'Failed to create message', errors: [{ message: String(err) }] },
       { status: 500 },

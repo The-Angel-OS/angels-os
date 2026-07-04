@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ChatMessage, ChatChannel } from './types'
+import { logClientError } from '@/utilities/logClientError'
 
 // Use relative URLs so fetch always targets the current domain/subdomain.
 // Previously used NEXT_PUBLIC_SERVER_URL which was baked at build time to
@@ -924,6 +925,12 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
             // response wasn't JSON
           }
           console.error(`[useChat] POST /api/chat/send ${res.status}`, detail)
+          logClientError({
+            source: 'ChatControl/sendMessage',
+            message: `Send failed (${res.status}) in #${activeChannel}`,
+            details: detail,
+            spaceId,
+          })
           throw new Error(`Failed to send: ${res.status}`)
         }
 
@@ -950,6 +957,17 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
         }
       } catch (err) {
         console.error('Failed to send message:', err)
+        // Escalate to the canonical pipeline — unless it's the send-status error
+        // we already logged above (avoid a duplicate AI Bus entry).
+        const msg = err instanceof Error ? err.message : String(err)
+        if (!/^Failed to send: \d+$/.test(msg)) {
+          logClientError({
+            source: 'ChatControl/sendMessage',
+            message: `Send pipeline failed in #${activeChannel}: ${msg}`,
+            details: err instanceof Error ? err.stack : String(err),
+            spaceId,
+          })
+        }
         setMessages((prev) => prev.filter((m) => m.id !== tempId))
         setMessages((prev) => [
           ...prev,

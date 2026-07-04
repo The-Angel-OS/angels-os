@@ -19,6 +19,7 @@ import type { PayloadHandler } from 'payload'
 import * as crypto from 'node:crypto'
 import { SignJWT } from 'jose'
 import { leoSystemUserEmail, leoLegacyEmail } from '../utilities/leoEmail'
+import { logError } from '@/utilities/logError'
 
 export const authSystemTokenHandler: PayloadHandler = async (req) => {
   // Only POST
@@ -134,6 +135,12 @@ export const authSystemTokenHandler: PayloadHandler = async (req) => {
       expiresAt: expiresAt.toISOString(),
     })
   } catch (err: any) {
+    await logError({
+      source: 'auth-system-token',
+      message: `System token creation failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+    })
     return Response.json(
       { message: `System token creation failed: ${err.message || err}` },
       { status: 500 },

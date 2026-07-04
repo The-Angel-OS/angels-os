@@ -1,6 +1,7 @@
 'use client'
 
 import React, { Component, type ErrorInfo, type ReactNode } from 'react'
+import { logClientError } from '@/utilities/logClientError'
 
 /**
  * AngelErrorBoundary — Anti-Daemon Protocol Error Boundary
@@ -41,8 +42,16 @@ export class AngelErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log to console for debugging (not shown to user)
-    console.error(`[AngelErrorBoundary] Error in ${this.props.section || 'component'}:`, error, errorInfo)
+    const section = this.props.section || 'component'
+    // Console for local debugging…
+    console.error(`[AngelErrorBoundary] Error in ${section}:`, error, errorInfo)
+    // …and escalate to the canonical pipeline so a crashed dashboard section is
+    // visible to the self-improvement loop (mirrors dashboard/error.tsx).
+    logClientError({
+      source: `AngelErrorBoundary/${section}`,
+      message: `React render error in ${section}: ${error.message || error.name}`,
+      details: `${error.stack || error.message}\n\nComponent stack:${errorInfo.componentStack || ''}`,
+    })
   }
 
   render() {

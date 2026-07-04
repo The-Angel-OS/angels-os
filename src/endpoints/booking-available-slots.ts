@@ -22,6 +22,7 @@
 import type { PayloadHandler } from 'payload'
 import { BookingEngine } from '@/utilities/bookingEngine'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const bookingAvailableSlotsHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -33,6 +34,7 @@ export const bookingAvailableSlotsHandler: PayloadHandler = async (req) => {
   const rateLimited = applyRateLimit(req, 'bookings')
   if (rateLimited) return rateLimited
 
+  let resolvedTenantId: number | undefined
   try {
     // Parse body from the request
     let body: Record<string, unknown> = {}
@@ -107,6 +109,7 @@ export const bookingAvailableSlotsHandler: PayloadHandler = async (req) => {
         { status: 400 }
       )
     }
+    if (Number.isFinite(Number(tenantId))) resolvedTenantId = Number(tenantId)
 
     const engine = new BookingEngine(payload)
     const slots = await engine.getAvailableSlots({
@@ -141,6 +144,14 @@ export const bookingAvailableSlotsHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('[Booking API] Error fetching available slots:', err)
+    await logError({
+      source: 'booking-available-slots',
+      message: `Failed to fetch available slots: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+      tenantId: resolvedTenantId,
+      userId: user.id,
+    })
     return Response.json(
       { error: err instanceof Error ? err.message : 'Failed to fetch available slots' },
       { status: 500 }

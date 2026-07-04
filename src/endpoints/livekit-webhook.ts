@@ -22,6 +22,7 @@
 import type { PayloadHandler } from 'payload'
 import { WebhookReceiver } from 'livekit-server-sdk'
 import { recordCostEvent } from '@/utilities/recordCostEvent'
+import { logError } from '@/utilities/logError'
 
 function ratePerParticipantMinuteCents(): number {
   const raw = Number(process.env.LIVEKIT_COST_CENTS_PER_PARTICIPANT_MINUTE)
@@ -75,6 +76,7 @@ export const livekitWebhookHandler: PayloadHandler = async (req) => {
 
   const { payload } = req
 
+  let resolvedTenantId: number | undefined
   try {
     if (event.event === 'room_finished' && event.room) {
       const room = event.room as { name?: string; sid?: string; creationTime?: number | bigint; numParticipants?: number; maxParticipants?: number }
@@ -87,6 +89,7 @@ export const livekitWebhookHandler: PayloadHandler = async (req) => {
       const costCents = Math.round(participantMinutes * rate * 1000) / 1000
 
       const tenantId = await resolveTenantFromRoom(payload, room.name)
+      if (tenantId != null) resolvedTenantId = tenantId
 
       await recordCostEvent(payload, {
         tenantId: tenantId ?? undefined,
@@ -111,6 +114,16 @@ export const livekitWebhookHandler: PayloadHandler = async (req) => {
     return Response.json({ received: true, event: event.event })
   } catch (err: any) {
     // Fail-soft — acknowledge so LiveKit doesn't retry-storm on a cost hiccup.
+    // This swallows a money/telephony cost-recording failure, so escalate it as a
+    // warning (returns 200) to keep the loss visible without failing the sender.
+    await logError({
+      level: 'warning',
+      source: 'livekit-webhook',
+      message: `LiveKit cost recording failed: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 200,
+      tenantId: resolvedTenantId,
+    })
     return Response.json({ received: true, warning: err?.message || 'cost record failed' })
   }
 }

@@ -12,6 +12,7 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { logError } from '@/utilities/logError'
 
 export const orderCancelHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -117,7 +118,13 @@ export const orderCancelHandler: PayloadHandler = async (req) => {
         }
       } catch (stripeErr) {
         console.error('[Order Cancel] Stripe refund failed:', stripeErr)
-        // Token is already marked refunded — manual refund may be needed
+        // Token is already marked refunded — manual refund may be needed. Escalate
+        // so this money-affecting failure isn't silent (needs human follow-up).
+        await logError({
+          source: 'order-cancel/stripeRefund',
+          message: `Stripe refund FAILED for order #${orderId} — manual refund may be required: ${stripeErr instanceof Error ? stripeErr.message : String(stripeErr)}`,
+          details: stripeErr instanceof Error ? stripeErr.stack : String(stripeErr),
+        })
       }
     }
 
@@ -129,6 +136,12 @@ export const orderCancelHandler: PayloadHandler = async (req) => {
     })
   } catch (err) {
     console.error('Order cancel error:', err)
+    await logError({
+      source: 'order-cancel',
+      message: `Failed to cancel order #${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      statusCode: 500,
+    })
     return Response.json({ error: 'Failed to cancel order.' }, { status: 500 })
   }
 }
