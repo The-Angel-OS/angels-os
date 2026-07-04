@@ -43,8 +43,8 @@ index aaed523402aaae12278947dc1fe6fa3c4f84d466..8352a05fe5f0404c5ed52d9a0041ba8e
 -                req.file = files.file;
 +            if (files) {
 +                req.files = files;
-+                if (files.file && !Array.isArray(files.file)) {
-+                    req.file = files.file;
++                if (files.file) {
++                    req.file = Array.isArray(files.file) ? files.file[0] : files.file;
 +                }
              }
              if (fields?._payload && typeof fields._payload === 'string') {
