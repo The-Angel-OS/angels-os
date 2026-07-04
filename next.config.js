@@ -37,9 +37,31 @@ const nextConfig = {
   reactStrictMode: true,
   redirects,
   // Include docs/vision/** in serverless function bundles so
-  // SoulViewer's fs.readFileSync calls work at runtime on Vercel
+  // SoulViewer's fs.readFileSync calls work at runtime on Vercel.
+  // Keyed '**' (all routes): these keys are matched as globs, so a literal
+  // app-router key like '/[locale]/(app)/learn/[soul]' never matches its own
+  // route ([..] is a char class, (..) an extglob). docs/vision is ~300KB —
+  // shipping it everywhere is cheaper than a fragile per-route key.
   outputFileTracingIncludes: {
-    '/[locale]/(app)/learn/[soul]': ['./docs/vision/**/*'],
+    '**': ['./docs/vision/**/*'],
+  },
+  // The /api/docs endpoint (src/endpoints/docs.ts) readdir's `docs/` from the
+  // payload config graph, so nft globs the whole checkout into EVERY getPayload
+  // route — that's what blew the 250MB Vercel function cap (427MB). The docs
+  // endpoint only serves .md/.txt, so strip media from docs plus the dirs
+  // nothing reads at runtime. The includes above are applied after excludes.
+  outputFileTracingExcludes: {
+    '*': [
+      './docs/**/*.{pptx,png,jpg,jpeg,gif,webp,svg,mp4,mov,pdf,zip}',
+      './docs/marketing/**',
+      './docs/images/**',
+      './tests/**',
+      './scripts/**',
+      './playwright-report/**',
+      './test-results/**',
+      './*.tsbuildinfo',
+      './nul',
+    ],
   },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
