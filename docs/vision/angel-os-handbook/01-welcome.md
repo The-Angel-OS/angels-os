@@ -6,15 +6,17 @@ It begins as something small and genuinely useful: a free app called **Nimue** t
 
 If you take one idea from this handbook, take this: Angel OS is not a platform with customers. It is a **federation of Enterprises** — businesses, ministries, communities — each running its own sovereign AI guardian, called **Leo**, on infrastructure they own. You are not renting a slice of someone else's software. When you run Angel OS, your node *is* Angel OS in your territory, and you keep the lion's share of the value you help create.
 
-## Three bodies, one Angel
+## One mind, three bodies
 
-Angel OS lives in three places that share one brain:
+Angel OS makes an unusual promise: the intelligence is **one mind**, and it stays singular even as it shows up in more and more places. Most products fuse the AI to a device. Angel OS fuses it to a *contract* — a neutral way of passing messages and calling tools — so the same mind can wear different **bodies**, each with a different kind of reach. The space metaphor is the taxonomy:
 
-- **Nimue** — the free pocket client (Android today, iPhone soon). Your daily reader, your community, and the front door to everything else. You talk to Nimue; Nimue does the light work and hands the important work to Leo.
-- **Core** — the server (the "brain and body of record"). This is where **Leo** lives, where your data is kept, and where the sensitive work actually happens — provisioning a site, publishing a post, handling payments. Nimue never does that work directly; it *asks Core*, securely.
-- **Merlin** — an optional node you can run on a home PC to lend the network your own compute, storage, and cameras. Purely opt-in; the network runs fine without it.
+- **Core — the satellite.** High-orbit cognition: always up, always connected. This is where **Leo** lives, where your data is kept, and where the sensitive work actually happens — provisioning a site, publishing a post, handling payments. It sees the whole network and holds the long-term memory. Nimue never does that work directly; it *asks Core*, securely.
+- **Merlin — the lander.** An optional node you run on a home PC. It gives the system hands and sensors on the ground: a spare GPU, local cameras, files too big for the cloud. Purely opt-in — the network runs fine without it — but every Merlin extends the system's reach into the physical world.
+- **Nimue — the away team.** The free pocket client (Android today, iPhone soon) that leaves the ship and goes where neither satellite nor lander can — the pew, the job site, the parking lot where you photograph a receipt. Your daily reader, your community, and the front door to everything else.
 
-The loop is simple and it's the whole product: **Nimue → Leo (on Core) → the work gets done.** You speak in plain language; Leo picks from 130+ tools and performs the task; you watch it happen. Because you signed in with **Google**, that whole chain is authenticated and trustworthy end to end — Leo knows it's really you before it changes anything real.
+Orbital, planted, and mobile: three kinds of presence, one recognizable someone. What each body *is* lives entirely in its tools; the mind itself is portable and unchanged — which is why the network can grow new bodies without ever splintering into several minds that merely resemble each other. And contribution, when you add a body, isn't only compute: every Merlin extends the system's hands, every Nimue extends its eyes. The mesh doesn't just gain power as it grows — it gains *knowing*.
+
+The loop is the whole product: **Nimue → Leo (on Core) → the work gets done.** You speak in plain language; Leo picks from 130+ tools and performs the task; you watch it happen. Because you signed in with **Google**, that whole chain is authenticated and trustworthy end to end — Leo knows it's really you before it changes anything real.
 
 ## What you can do with it
 
