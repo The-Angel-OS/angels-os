@@ -6661,6 +6661,10 @@ export interface PayloadMcpApiKey {
      */
     checkNodeHealth?: boolean | null;
     /**
+     * Today's Daily Bread — the deterministic 3-verses-a-day reading plan through the Holy Bible (Genesis 1:1 onward; every node and client gets the same verses for the same date). Read-only, no auth. Use when someone asks for the daily verse(s), today's scripture, the daily bread, or a specific date's reading. Returns the verses with their reference and progress through the canon.
+     */
+    getDailyBread?: boolean | null;
+    /**
      * Send a message to a community channel. Use when the user asks you to post, announce, or say something in a specific channel or space. You must confirm with the user before sending.
      */
     sendMessage?: boolean | null;
@@ -10019,6 +10023,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         trackSoul?: T;
         clonePortal?: T;
         checkNodeHealth?: T;
+        getDailyBread?: T;
         sendMessage?: T;
         sendDirectMessage?: T;
         createAnnouncement?: T;
