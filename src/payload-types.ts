@@ -503,6 +503,14 @@ export interface Tenant {
      */
     cloudflareAiToken?: string | null;
     /**
+     * NVIDIA NIM API key (nvapi-…) from build.nvidia.com — free Nemotron/Llama inference. Leave blank to use the platform key / env.
+     */
+    nvidiaApiKey?: string | null;
+    /**
+     * Optional NVIDIA model id override (e.g. nvidia/llama-3.1-nemotron-70b-instruct). Blank = per-tier default.
+     */
+    nvidiaModel?: string | null;
+    /**
      * Which provider LEO uses for image generation. "Auto" picks the best available.
      */
     preferredImageProvider?: ('auto' | 'openai' | 'google' | 'openrouter' | 'cloudflare') | null;
@@ -7338,6 +7346,8 @@ export interface TenantsSelect<T extends boolean = true> {
         googleAiApiKey?: T;
         cloudflareAccountId?: T;
         cloudflareAiToken?: T;
+        nvidiaApiKey?: T;
+        nvidiaModel?: T;
         preferredImageProvider?: T;
       };
   vapi?:
