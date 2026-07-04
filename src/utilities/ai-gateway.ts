@@ -523,12 +523,14 @@ async function resolveGroqModel(
 // which reproduces the prior hardcoded behavior exactly.
 // ---------------------------------------------------------------------------
 
-type ProviderKind = 'ollama' | 'groq' | 'gateway' | 'openrouter'
+type ProviderKind = 'ollama' | 'groq' | 'nvidia' | 'gateway' | 'openrouter'
 
-// OpenRouter sits LAST: it only serves when everything before it (incl. the gateway)
-// is unavailable, so it never changes behavior on a healthy node — it's the
-// "LEO must not go dark" safety net, using OPENROUTER_API_KEY (already in env).
-const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'gateway', 'openrouter']
+// Free providers come first (ollama → groq → nvidia), then the metered gateway,
+// then OpenRouter LAST as the "LEO must not go dark" safety net. NVIDIA NIM is
+// inert without NVIDIA_API_KEY, so adding it to the default order is a no-op on
+// nodes that haven't opted in — but a node WITH a key gets free intelligence
+// (Nemotron etc.) ahead of paid credits.
+const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'nvidia', 'gateway', 'openrouter']
 
 /** Direct OpenRouter (OpenAI-compatible) model per tier — verified live 2026-06-15. */
 const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
@@ -538,10 +540,19 @@ const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
   critical: 'anthropic/claude-opus-4.1',
 }
 
+/** NVIDIA NIM (build.nvidia.com) — OpenAI-compatible, free tier. Per-complexity
+ *  model; override any with NVIDIA_MODEL. Catalog ids from integrate.api.nvidia.com. */
+const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
+  low: 'meta/llama-3.1-8b-instruct',
+  medium: 'nvidia/llama-3.1-nemotron-70b-instruct',
+  high: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  critical: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+}
+
 export function resolveProviderOrder(): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
   if (!raw) return DEFAULT_PROVIDER_ORDER
-  const valid = new Set<ProviderKind>(['ollama', 'groq', 'gateway', 'openrouter'])
+  const valid = new Set<ProviderKind>(['ollama', 'groq', 'nvidia', 'gateway', 'openrouter'])
   const order = raw
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -607,6 +618,22 @@ function attemptOpenRouter(ctx: ProviderAttemptCtx): SmartModelResult | null {
   const provider = createOpenAICompatible({ name: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: key })
   console.log(`[AI Gateway] 🔀 OpenRouter ${modelId} (${attemptReason(ctx)})`)
   return { model: provider(modelId), providerOptions: {}, modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
+/**
+ * NVIDIA NIM (build.nvidia.com) — free, OpenAI-compatible intelligence. Serves the
+ * tier's Nemotron/Llama model when NVIDIA_API_KEY (an `nvapi-…` key) is set. Placed
+ * among the free providers so it's used ahead of paid gateway credits. This is the
+ * foundation for the intelligence-backbone vision: a Merlin node with this key can
+ * later re-share NVIDIA upstream to the mesh via the ai-broker.
+ */
+function attemptNvidia(ctx: ProviderAttemptCtx): SmartModelResult | null {
+  const key = process.env.NVIDIA_API_KEY
+  if (!key) return null
+  const modelId = process.env.NVIDIA_MODEL || NVIDIA_TIER_MAP[ctx.tier]
+  const provider = createOpenAICompatible({ name: 'nvidia', baseURL: 'https://integrate.api.nvidia.com/v1', apiKey: key })
+  console.log(`[AI Gateway] 🟩 NVIDIA NIM ${modelId} (${attemptReason(ctx)})`)
+  return { model: provider(modelId), providerOptions: {}, modelId: `nvidia/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier }
 }
 
 function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
@@ -680,6 +707,7 @@ export async function getSmartModel(
     const result =
       kind === 'ollama' ? await attemptOllama(ctx)
       : kind === 'groq' ? await attemptGroq(ctx)
+      : kind === 'nvidia' ? attemptNvidia(ctx)
       : kind === 'openrouter' ? attemptOpenRouter(ctx)
       : attemptGateway(ctx)
     if (result) return result
