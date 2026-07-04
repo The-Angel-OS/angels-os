@@ -540,13 +540,18 @@ const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
   critical: 'anthropic/claude-opus-4.1',
 }
 
-/** NVIDIA NIM (build.nvidia.com) — OpenAI-compatible, free tier. Per-complexity
- *  model; override any with NVIDIA_MODEL. Catalog ids from integrate.api.nvidia.com. */
+/** NVIDIA NIM (build.nvidia.com) — OpenAI-compatible, free tier. Nemotron 3 Ultra
+ *  is a hybrid Mamba-Transformer MoE (only ~55B of 550B active → fast) with 1M
+ *  context AND native tool calling — the right free brain for tool-heavy LEO.
+ *  Override per-deployment with NVIDIA_MODEL (e.g. deepseek-ai/deepseek-v4-pro).
+ *  ⚠️ The free tier LOGS inputs/outputs for NVIDIA product improvement — route
+ *  sensitive tenant conversations elsewhere (see the ai-broker sensitivity note). */
+const NVIDIA_DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b'
 const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
-  low: 'meta/llama-3.1-8b-instruct',
-  medium: 'nvidia/llama-3.1-nemotron-70b-instruct',
-  high: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
-  critical: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  low: NVIDIA_DEFAULT_MODEL,
+  medium: NVIDIA_DEFAULT_MODEL,
+  high: NVIDIA_DEFAULT_MODEL,
+  critical: NVIDIA_DEFAULT_MODEL,
 }
 
 export function resolveProviderOrder(): ProviderKind[] {
@@ -917,7 +922,7 @@ export async function buildByokModel(
   // reach for their paid OpenRouter/OpenAI keys.
   const nvKey = typeof cfg.nvidiaApiKey === 'string' ? cfg.nvidiaApiKey.trim() : ''
   if (nvKey) {
-    const modelId = (typeof cfg.nvidiaModel === 'string' && cfg.nvidiaModel.trim()) || process.env.NVIDIA_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct'
+    const modelId = (typeof cfg.nvidiaModel === 'string' && cfg.nvidiaModel.trim()) || process.env.NVIDIA_MODEL || NVIDIA_DEFAULT_MODEL
     const provider = createOpenAICompatible({ name: 'nvidia', baseURL: 'https://integrate.api.nvidia.com/v1', apiKey: nvKey })
     return { model: provider.languageModel(modelId), modelId: `nvidia/${modelId}`, provider: 'nvidia' }
   }
