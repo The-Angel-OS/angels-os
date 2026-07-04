@@ -81,9 +81,12 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
 }
 
 /**
- * Providers with fully-implemented OAuth endpoints.
- * Controls which buttons appear in login/signup forms AND account settings.
+ * Providers offered in the login/signup UI AND account settings.
  *
- * Add provider keys here only when their server-side endpoints are live.
+ * Google-only for now: it's the trusted sign-in behind Nimue's whole
+ * Nimue→LEO→Core provisioning loop. Discord/GitHub endpoints exist (auth-*.ts)
+ * and we hold X/WhatsApp/Discord accounts, but end-user sign-in from those
+ * isn't wired yet, so we don't surface half-working buttons. Add a key back
+ * here only when its sign-in flow is real. Apple lands with the iOS app.
  */
-export const AVAILABLE_PROVIDERS = ['google', 'discord', 'github']
+export const AVAILABLE_PROVIDERS = ['google']

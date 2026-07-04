@@ -23,6 +23,10 @@ Leo's guardianship is also non-coercive. It's built to invite and assist, never 
 
 Every action Leo takes leaves a breadcrumb. A built-in audit trail records each tool call — what ran, whether it succeeded, how long it took — so a complex request leaves a visible record of *how Leo got there*. If something fails, it escalates with the full path. You can always see the work.
 
-## Leo everywhere
+## Nimue brokers, Leo performs
 
-Leo isn't trapped in one window. It answers in your Spaces and channels, and through the **Nimue** mobile client it becomes something closer to a personal assistant in your pocket — capture a moment, ask a question, make a change, and watch it happen. The goal is a guardian that's genuinely *yours*, on hardware *you* control.
+Leo isn't trapped in one window. It answers in your Spaces and channels, and through the **Nimue** mobile client it becomes a personal assistant in your pocket — capture a moment, ask a question, make a change, and watch it happen.
+
+The division of labour matters, and it's a security feature. **Nimue is a broker, not a bank vault.** It handles the light, local things — reading, capturing, chatting — and hands every *sensitive* task (provisioning a portal, publishing a post, touching money or configuration) to **Leo on Core**. The important work never runs loose on your phone; it runs on the server of record, under the constitution, with the full audit trail.
+
+What makes that safe is that you signed in with **Google**. Because your identity is authenticated end to end, Leo knows the request is genuinely *yours* before it acts — so "ask your phone, and the server does the real work" is trustworthy, not reckless. The goal is a guardian that's genuinely *yours*, acting only for you, on infrastructure you control.
