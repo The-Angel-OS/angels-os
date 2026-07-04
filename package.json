@@ -151,6 +151,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "sharp"
-    ]
+    ],
+    "patchedDependencies": {
+      "payload@3.77.0": "patches/payload@3.77.0.patch"
+    }
   }
 }

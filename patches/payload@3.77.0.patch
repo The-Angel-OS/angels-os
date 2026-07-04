@@ -1,0 +1,51 @@
+diff --git a/dist/uploads/fetchAPI-multipart/isEligibleRequest.js b/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
+index f4c12eec3f6df6b37957a8ac0d5a9e32ce1a8fa1..e0580e51e166b1dfa5415389060882fff33010b3 100644
+--- a/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
++++ b/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
+@@ -1,5 +1,5 @@
+ // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-obscure-range
+-const ACCEPTABLE_CONTENT_TYPE = /multipart\/['"()+-_]+(?:; ?['"()+-_]*)+$/i;
++const ACCEPTABLE_CONTENT_TYPE = /multipart\/[-a-zA-Z0-9]+(?:; ?[-a-zA-Z0-9=._]+)+$/i;
+ const UNACCEPTABLE_METHODS = new Set([
+     'CONNECT',
+     'DELETE',
+@@ -11,3 +11,3 @@
+ const hasBody = (req)=>{
+-    return Boolean(req.headers.get('transfer-encoding') || req.headers.get('content-length') && req.headers.get('content-length') !== '0');
++    return Boolean(req.headers.get('transfer-encoding') || req.headers.get('content-length') && req.headers.get('content-length') !== '0' || req.body !== null);
+ };
+diff --git a/dist/utilities/addDataAndFileToRequest.js b/dist/utilities/addDataAndFileToRequest.js
+index aaed523402aaae12278947dc1fe6fa3c4f84d466..8352a05fe5f0404c5ed52d9a0041ba8eacf39585 100644
+--- a/dist/utilities/addDataAndFileToRequest.js
++++ b/dist/utilities/addDataAndFileToRequest.js
+@@ -11,6 +11,7 @@ import { processMultipartFormdata } from '../uploads/fetchAPI-multipart/index.js
+     ].includes(method.toUpperCase()) && body) {
+         const [contentType] = (headers.get('Content-Type') || '').split(';', 1);
+         const bodyByteSize = parseInt(req.headers.get('Content-Length') || '0', 10);
++        const hasBodyStream = req.body !== null;
+         if (contentType === 'application/json') {
+             let data = {};
+             try {
+@@ -23,7 +24,7 @@ import { processMultipartFormdata } from '../uploads/fetchAPI-multipart/index.js
+                 // @ts-expect-error attach json method to request
+                 req.json = ()=>Promise.resolve(data);
+             }
+-        } else if (bodyByteSize && contentType?.includes('multipart/')) {
++        } else if ((bodyByteSize || hasBodyStream) && contentType?.includes('multipart/')) {
+             const { error, fields, files } = await processMultipartFormdata({
+                 options: {
+                     ...payload.config.bodyParser || {},
+@@ -34,8 +35,11 @@ import { processMultipartFormdata } from '../uploads/fetchAPI-multipart/index.js
+             if (error) {
+                 throw new APIError(error.message);
+             }
+-            if (files?.file) {
+-                req.file = files.file;
++            if (files) {
++                req.files = files;
++                if (files.file && !Array.isArray(files.file)) {
++                    req.file = files.file;
++                }
+             }
+             if (fields?._payload && typeof fields._payload === 'string') {
+                 req.data = JSON.parse(fields._payload);
