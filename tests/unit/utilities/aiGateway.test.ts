@@ -4,7 +4,7 @@
  * Tests the credit-aware model tiering, downshifting logic,
  * model resolution, and task-based routing configuration.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Mock the @ai-sdk/gateway and fs modules BEFORE importing the module under test
@@ -63,9 +63,59 @@ import {
   getEscalatedComplexity,
   parseAgentEscalation,
   DEFAULT_ESCALATION,
+  resolveProviderOrder,
   type TaskComplexity,
   type EscalationStrategy,
 } from '@/utilities/ai-gateway'
+
+// ---------------------------------------------------------------------------
+// The Hydra — intent-aware provider order + the sensitive privacy guard
+// ---------------------------------------------------------------------------
+
+describe('resolveProviderOrder — intent pipes', () => {
+  const savedOrder = process.env.AI_PROVIDER_ORDER
+  beforeEach(() => {
+    delete process.env.AI_PROVIDER_ORDER // exercise the default order
+  })
+  afterAll(() => {
+    if (savedOrder === undefined) delete process.env.AI_PROVIDER_ORDER
+    else process.env.AI_PROVIDER_ORDER = savedOrder
+  })
+
+  it('default intent keeps the base order (nvidia present)', () => {
+    const order = resolveProviderOrder()
+    expect(order).toContain('nvidia')
+    expect(order).toContain('gateway')
+  })
+
+  it('SENSITIVE never routes through a data-logging provider (nvidia excluded)', () => {
+    const order = resolveProviderOrder('sensitive')
+    expect(order).not.toContain('nvidia')
+    // ...and prefers the sovereign local provider.
+    expect(order[0]).toBe('ollama')
+  })
+
+  it('chitchat pulls the cheap/free providers to the front', () => {
+    const order = resolveProviderOrder('chitchat')
+    expect(order.indexOf('ollama')).toBeLessThan(order.indexOf('gateway'))
+    expect(order.indexOf('groq')).toBeLessThan(order.indexOf('gateway'))
+  })
+
+  it('max prefers the frontier gateway first', () => {
+    expect(resolveProviderOrder('max')[0]).toBe('gateway')
+  })
+
+  it('tool_use prefers the tool-callers (nvidia/gateway) first', () => {
+    const order = resolveProviderOrder('tool_use')
+    expect(['nvidia', 'gateway']).toContain(order[0])
+  })
+
+  it('respects an explicit AI_PROVIDER_ORDER as the base, still guarding sensitive', () => {
+    process.env.AI_PROVIDER_ORDER = 'nvidia,gateway'
+    expect(resolveProviderOrder('sensitive')).not.toContain('nvidia')
+    expect(resolveProviderOrder('default')).toEqual(['nvidia', 'gateway'])
+  })
+})
 
 // ---------------------------------------------------------------------------
 // MODEL_CATALOG — model registry

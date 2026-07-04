@@ -554,15 +554,47 @@ const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
   critical: NVIDIA_DEFAULT_MODEL,
 }
 
-export function resolveProviderOrder(): ProviderKind[] {
+// ---------------------------------------------------------------------------
+// The Hydra — purpose-named intelligence pipes. The SAME registry of
+// OpenAI-compatible providers, routed differently by the *intent* of the call:
+// tool-heavy agentic work, max frontier quality, cheap chitchat, or SENSITIVE
+// (sovereign-only). Intent reweights the availability order; it never invents a
+// provider that isn't configured. The endgame: these pipes terminate on Merlins.
+// ---------------------------------------------------------------------------
+
+export type ModelIntent = 'default' | 'tool_use' | 'max' | 'chitchat' | 'sensitive'
+
+/** Providers whose data policy LOGS/TRAINS on request content — excluded from the
+ *  `sensitive` pipe so private tenant data never becomes someone's training set.
+ *  NVIDIA's free tier explicitly records inputs+outputs; local (ollama/Merlin) and
+ *  the metered gateway (Anthropic terms) do not. Groq does not train on API data. */
+const PROVIDER_LOGS_DATA = new Set<ProviderKind>(['nvidia'])
+
+/** Per-intent PREFERENCE — which providers to pull to the front. The base order
+ *  (AI_PROVIDER_ORDER / default) stays the availability truth; intent reweights it. */
+const INTENT_PREFERENCE: Record<ModelIntent, ProviderKind[]> = {
+  default: [],
+  tool_use: ['nvidia', 'gateway'], // Nemotron 3 Ultra + gateway are the tool-callers
+  max: ['gateway', 'openrouter'], // frontier quality first
+  chitchat: ['ollama', 'groq', 'nvidia'], // cheap/fast/free first
+  sensitive: ['ollama'], // sovereign first (and logging providers removed below)
+}
+
+export function resolveProviderOrder(intent: ModelIntent = 'default'): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
-  if (!raw) return DEFAULT_PROVIDER_ORDER
   const valid = new Set<ProviderKind>(['ollama', 'groq', 'nvidia', 'gateway', 'openrouter'])
-  const order = raw
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter((k): k is ProviderKind => valid.has(k as ProviderKind))
-  return order.length > 0 ? order : DEFAULT_PROVIDER_ORDER
+  let base = raw
+    ? raw.split(',').map((s) => s.trim().toLowerCase()).filter((k): k is ProviderKind => valid.has(k as ProviderKind))
+    : [...DEFAULT_PROVIDER_ORDER]
+  if (base.length === 0) base = [...DEFAULT_PROVIDER_ORDER]
+
+  // Sensitive pipe: never route through a provider that logs/trains on the data.
+  if (intent === 'sensitive') base = base.filter((k) => !PROVIDER_LOGS_DATA.has(k))
+
+  // Pull the intent's preferred providers to the front (only those actually present).
+  const pref = INTENT_PREFERENCE[intent].filter((k) => base.includes(k))
+  const order = pref.length ? [...pref, ...base.filter((k) => !pref.includes(k))] : base
+  return order.length > 0 ? order : [...DEFAULT_PROVIDER_ORDER]
 }
 
 interface ProviderAttemptCtx {
@@ -686,7 +718,7 @@ function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
  */
 export async function getSmartModel(
   complexity: TaskComplexity = 'medium',
-  tracking?: { tenantId?: number; userId?: number; tags?: string[] },
+  tracking?: { tenantId?: number; userId?: number; tags?: string[]; intent?: ModelIntent },
 ): Promise<SmartModelResult | null> {
   const apiKey = resolveGatewayKey()
 
@@ -706,9 +738,9 @@ export async function getSmartModel(
     tracking,
   }
 
-  // Walk the configured provider order; the first provider available for this
-  // tier wins, failing to the next. Default order: local → groq → gateway.
-  for (const kind of resolveProviderOrder()) {
+  // Walk the intent's provider order; the first provider available for this tier
+  // wins, failing to the next. `sensitive` excludes data-logging providers.
+  for (const kind of resolveProviderOrder(tracking?.intent)) {
     const result =
       kind === 'ollama' ? await attemptOllama(ctx)
       : kind === 'groq' ? await attemptGroq(ctx)
