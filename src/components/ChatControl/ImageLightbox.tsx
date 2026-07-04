@@ -87,7 +87,12 @@ export function ImageLightbox({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden"
+        // The shared DialogContent is a `grid` with `gap-4` + `p-6` and a
+        // top/left-50% + translate centering. Those defaults shrink/offset the
+        // image cell (the "almost centered but consistently off" drift). Force a
+        // plain full-viewport block with no gap/padding so the absolutely-
+        // positioned image layer below fills the box and centers true.
+        className="!grid-cols-1 !grid-rows-1 gap-0 max-w-[95vw] max-h-[95vh] w-full h-full border-0 bg-black/95 p-0 sm:max-w-[95vw] overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {/* Accessible title (visually hidden) */}
@@ -118,8 +123,10 @@ export function ImageLightbox({
           </div>
         </div>
 
-        {/* Single centered image */}
-        <div className="flex h-full w-full items-center justify-center">
+        {/* Single centered image — absolute inset-0 fills the dialog box
+            regardless of the inherited grid flow, so the flex centering is
+            measured against the full viewport (true center). */}
+        <div className="absolute inset-0 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={active.url}

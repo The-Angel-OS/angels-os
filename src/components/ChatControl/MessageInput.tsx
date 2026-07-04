@@ -307,6 +307,8 @@ export function MessageInput({
 
   const hiddenFileInput = (
     <input
+      title="File input"
+      aria-label="File input"
       ref={fileInputRef}
       type="file"
       accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.json,.md"

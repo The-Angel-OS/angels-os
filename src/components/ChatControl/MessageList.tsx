@@ -795,6 +795,8 @@ function CompactMessageRow({
           {editing ? (
             <div className="flex flex-col gap-1.5">
               <textarea
+                title="Edit message"
+                aria-label="Edit message"
                 autoFocus
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
