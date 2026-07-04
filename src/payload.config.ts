@@ -376,6 +376,18 @@ export default buildConfig({
       allowExitOnIdle: true,
     },
   }),
+  onInit: async (payload) => {
+    // An IDLE pooled client whose backend connection the server kills (e.g.
+    // idle-in-transaction timeout 25P03 through PgBouncer) emits 'error' on the
+    // pg Pool. With no listener node treats it as an uncaughtException and the
+    // whole lambda DIES mid-request (observed: /dashboard fatals on kendev,
+    // 260704). Active queries are unaffected — they reject normally. Listen and
+    // log so a reaped connection is a warning, not an outage.
+    const pool = (payload.db as unknown as { pool?: { on?: (ev: 'error', fn: (e: Error) => void) => void } }).pool
+    pool?.on?.('error', (err) => {
+      payload.logger?.warn?.(`[pg-pool] idle client error (connection reaped, not fatal): ${err.message}`)
+    })
+  },
   plugins: [
     ...plugins,
     mcpPluginConfig,

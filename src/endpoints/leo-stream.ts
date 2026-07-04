@@ -774,7 +774,20 @@ async function gatherHealthContext(
     for (const [name, result] of Object.entries(healthQueries)) {
       if (result.status === 'rejected' && !_healthQueryWarned.has(name)) {
         _healthQueryWarned.add(name)
-        console.warn(`[LEO Health] ${name} query failed (using 0):`, (result as PromiseRejectedResult).reason?.message || (result as PromiseRejectedResult).reason)
+        // Drizzle wraps the real pg error: its own message is the (huge) SQL,
+        // while `cause` holds the actionable part ("column X does not exist").
+        // Lead with the cause — the SQL-only version made the kendev orders
+        // schema drift undiagnosable from logs (260704).
+        const reason = (result as PromiseRejectedResult).reason as (Error & { cause?: Error }) | undefined
+        const detail = reason?.cause?.message || reason?.message || String(reason)
+        console.warn(`[LEO Health] ${name} query failed (using 0):`, detail.slice(0, 500))
+        logError({
+          level: 'warning',
+          source: 'leo-health.query',
+          message: `LEO health query ${name} failed (treated as 0)`,
+          details: detail.slice(0, 1500),
+          tenantId: tenantId ? String(tenantId) : undefined,
+        }).catch(() => {})
       }
     }
 
