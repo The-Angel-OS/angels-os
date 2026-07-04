@@ -28,6 +28,10 @@ const POLL_MIN_MS = 2000
 const POLL_MAX_MS = 30000
 const POLL_DECAY_FACTOR = 1.5
 
+/** Initial message window per channel. Kept small — a screenful; older messages
+ *  page in on scroll-up (rarely needed). Trimmed from 50 to cut the first paint. */
+const INITIAL_MESSAGE_LIMIT = 25
+
 /** Pseudo-channel slug for the space-level Catch-All triage view (also a real
  *  AI Bus channel; the view aggregates messages whose channel isn't curated). */
 export const CATCH_ALL_SLUG = 'catch-all'
@@ -383,11 +387,19 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   const loadMessages = useCallback(async () => {
     if (!spaceId || !activeChannel || authFailedRef.current) return
     const isCatchAll = activeChannel === CATCH_ALL_SLUG
+    // Gate on a RESOLVED channel. activeChannel may still be the raw deep-link id
+    // (/dashboard/spaces/{spaceId}/{channelId}) until loadChannels maps it to its
+    // slug: querying channel=<id> returns nothing (channel is stored as a slug), and
+    // querying before the space's channels load lands on the wrong/default channel —
+    // both produce the "loads default then switches" double/triple load. Wait until
+    // the slug exists in the loaded channels. Catch-All is a pseudo-channel (not in
+    // the list) so it bypasses the gate.
+    if (!isCatchAll && !channels.some((c) => c.slug === activeChannel)) return
     try {
       const res = await fetch(
         isCatchAll
           ? `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&sort=-createdAt&limit=100&depth=1`
-          : `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&sort=-createdAt&limit=50&depth=1`,
+          : `${SERVER_URL}/api/messages?where[space][equals]=${spaceId}&where[channel][equals]=${encodeURIComponent(activeChannel)}&sort=-createdAt&limit=${INITIAL_MESSAGE_LIMIT}&depth=1`,
         { credentials: 'include' },
       )
 
@@ -423,7 +435,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     } catch (err) {
       console.error('Failed to load messages:', err)
     }
-  }, [spaceId, activeChannel, mapMessage, catchAllFilter])
+  }, [spaceId, activeChannel, channels, mapMessage, catchAllFilter])
 
   // Load more (older) messages for infinite scroll — cursor-based.
   // Uses oldestTimestampRef instead of messages array to keep this callback

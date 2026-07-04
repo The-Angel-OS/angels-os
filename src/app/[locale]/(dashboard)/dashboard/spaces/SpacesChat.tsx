@@ -27,15 +27,23 @@ export function SpacesChat({
 }) {
   const { spaces, activeSpaceId, setActiveSpaceId } = useDashboard()
 
-  // Deep-link entry: open the space named in the URL. The segment is the numeric
-  // space id (the canonical /dashboard/spaces/{spaceId}/{channelId} form) but we
-  // still accept a slug for older links. setActiveSpaceId also makes it sticky.
+  // The URL is the source of truth on a deep link. The segment is the canonical
+  // numeric space id (/dashboard/spaces/{spaceId}/{channelId}); we still accept a
+  // slug for older links. Resolve it SYNCHRONOUSLY so ChatControl mounts directly on
+  // the URL's space — never on the last/sticky space first (which caused a load of
+  // that space's default channel before switching, the double/triple-load + "returns
+  // to the last space" bug). A numeric id works even before `spaces` has hydrated.
+  const urlSpaceId = initialSpaceSlug
+    ? (spaces.find((s) => String(s.id) === initialSpaceSlug || s.slug === initialSpaceSlug)?.id
+        ?? (/^\d+$/.test(initialSpaceSlug) ? initialSpaceSlug : undefined))
+    : undefined
+  const effectiveSpaceId = urlSpaceId ?? activeSpaceId ?? '1'
+
+  // Keep the sticky/sidebar space in sync with the URL (highlight + return target).
   useEffect(() => {
-    if (!initialSpaceSlug) return
-    const match = spaces.find((s) => String(s.id) === initialSpaceSlug || s.slug === initialSpaceSlug)
-    if (match && match.id !== activeSpaceId) setActiveSpaceId(match.id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- act once on the incoming deep link
-  }, [initialSpaceSlug])
+    if (urlSpaceId != null && urlSpaceId !== activeSpaceId) setActiveSpaceId(urlSpaceId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- act on the incoming deep link
+  }, [urlSpaceId])
 
   // Convert DashboardSpace to ChatSpace format
   const chatSpaces: ChatSpace[] = spaces.map((s) => ({
@@ -50,7 +58,7 @@ export function SpacesChat({
   return (
     <ChatControl
       mode="multi-channel"
-      spaceId={activeSpaceId || '1'}
+      spaceId={String(effectiveSpaceId)}
       spaces={chatSpaces.length > 0 ? chatSpaces : undefined}
       channelSlug={initialChannel}
       liveKitEnabled={liveKitEnabled}
