@@ -48,8 +48,9 @@ export function OneMindThreeBodies() {
       <text x={600} y={50} textAnchor="middle" fill={C.amber} fontSize={28} fontWeight={700} letterSpacing={6}>ONE MIND · THREE BODIES</text>
       <text x={600} y={74} textAnchor="middle" fill="#8fbfff" fontSize={12.5} letterSpacing={6}>the intelligence is singular; the bodies are contextual</text>
 
-      {/* contract nerves (under nodes) */}
+      {/* contract nerves (under nodes) — signal flows outward to the bodies */}
       <g strokeWidth={2.5} fill="none" opacity={0.85} strokeDasharray="2 7" strokeLinecap="round">
+        <animate attributeName="stroke-dashoffset" values="0;-18" dur="1.1s" repeatCount="indefinite" />
         <path d="M600 300 L600 190" stroke={C.blue} />
         <path d="M600 452 L285 600" stroke={C.green} />
         <path d="M600 452 L915 600" stroke={C.lavender} />
@@ -58,10 +59,16 @@ export function OneMindThreeBodies() {
 
       {/* ONE MIND */}
       <g transform="translate(600 400)">
-        <circle r={150} fill="url(#omtb-mind)" opacity={0.55} />
+        <circle r={150} fill="url(#omtb-mind)" opacity={0.55}>
+          <animate attributeName="opacity" values="0.4;0.62;0.4" dur="4s" repeatCount="indefinite" />
+          <animate attributeName="r" values="150;158;150" dur="4s" repeatCount="indefinite" />
+        </circle>
         <circle r={92} fill="none" stroke={C.amber} strokeWidth={1} opacity={0.35} />
-        <circle r={74} fill="none" stroke={C.amberSoft} strokeWidth={1} opacity={0.5} strokeDasharray="3 5" />
+        <circle r={74} fill="none" stroke={C.amberSoft} strokeWidth={1} opacity={0.5} strokeDasharray="3 5">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="24s" repeatCount="indefinite" />
+        </circle>
         <g stroke="#ffe6b0" strokeWidth={1.1} fill="none" opacity={0.55}>
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="40s" repeatCount="indefinite" />
           <circle cx={0} cy={-22} r={34} /><circle cx={19} cy={11} r={34} /><circle cx={-19} cy={11} r={34} />
         </g>
         <circle r={40} fill="#1a1206" stroke={C.amber} strokeWidth={2} filter="url(#omtb-glow)" />
@@ -72,7 +79,10 @@ export function OneMindThreeBodies() {
 
       {/* CORE — satellite */}
       <g transform="translate(600 150)">
-        <g fill={C.blue} opacity={0.7}><circle cx={-70} cy={-6} r={4} /><circle cx={70} cy={-6} r={4} /><circle cx={-48} cy={30} r={3} /><circle cx={52} cy={30} r={3} /></g>
+        <g fill={C.blue} opacity={0.7}>
+          <animate attributeName="opacity" values="0.35;0.85;0.35" dur="3.5s" repeatCount="indefinite" />
+          <circle cx={-70} cy={-6} r={4} /><circle cx={70} cy={-6} r={4} /><circle cx={-48} cy={30} r={3} /><circle cx={52} cy={30} r={3} />
+        </g>
         <g stroke={C.blue} strokeWidth={1} opacity={0.35} fill="none"><path d="M-70 -6 L0 0 L70 -6" /><path d="M-48 30 L0 0 L52 30" /></g>
         <ellipse rx={66} ry={24} fill="none" stroke={C.blue} strokeWidth={1} opacity={0.4} />
         <circle r={40} fill="url(#omtb-core)" filter="url(#omtb-glow)" />
@@ -100,7 +110,9 @@ export function OneMindThreeBodies() {
       </g>
 
       {/* the loop */}
-      <path d="M885 636 Q640 720 320 640" fill="none" stroke={C.amber} strokeWidth={1.6} opacity={0.55} strokeDasharray="1 6" markerEnd="url(#omtb-arrow)" />
+      <path d="M885 636 Q640 720 320 640" fill="none" stroke={C.amber} strokeWidth={1.6} opacity={0.55} strokeDasharray="1 6" markerEnd="url(#omtb-arrow)">
+        <animate attributeName="stroke-dashoffset" values="0;-21" dur="1s" repeatCount="indefinite" />
+      </path>
       <text x={600} y={712} textAnchor="middle" fill="#c9a25a" fontSize={11} letterSpacing={1}>Nimue → Leo (Core) → the work gets done</text>
 
       {/* THE HYDRA — pipes */}
