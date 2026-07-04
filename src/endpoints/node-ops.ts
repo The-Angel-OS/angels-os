@@ -14,9 +14,45 @@
  */
 import type { PayloadHandler, Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
-import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes, resolveProviderNodes } from '@/utilities/nodeBus'
+import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes, resolveProviderNodes, type RegisteredNode } from '@/utilities/nodeBus'
 import { postBusMessage } from '@/lib/busEnvelope'
 import { recordCostEvent } from '@/utilities/recordCostEvent'
+
+/**
+ * Dispatch a skill to a node via its tunnel URL when available.
+ * Returns the direct result on success, or null to trigger bus fallback.
+ */
+async function dispatchToNodeTunnel(
+  node: RegisteredNode,
+  skill: string,
+  args: Record<string, unknown>,
+  timeoutMs = 30_000,
+): Promise<{ ok: boolean; data?: unknown; error?: string } | null> {
+  const tunnelUrl = typeof (node as Record<string, unknown>).tunnelUrl === 'string'
+    ? ((node as Record<string, unknown>).tunnelUrl as string)
+    : undefined
+  if (!tunnelUrl) return null
+
+  const nodeKey = process.env.CRON_SECRET || ''
+  if (!nodeKey) return null
+
+  try {
+    const res = await fetch(`${tunnelUrl.replace(/\/$/, '')}/api/node/skill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skill, args, key: nodeKey }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      return { ok: false, error: `node returned ${res.status}: ${(data as Record<string, unknown>).error || 'unknown'}` }
+    }
+    return { ok: true, data }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { ok: false, error: `tunnel dispatch failed: ${msg}` }
+  }
+}
 
 /** Is this user entitled to operate a node bound to `tenantId`? super_admin or a member. */
 function userCanAccessEndeavor(user: unknown, tenantId: number | string): boolean {
@@ -159,11 +195,11 @@ export const nodeListHandler: PayloadHandler = async (req) => {
 }
 
 /**
- * Merlin Console — talk to a node's LOCAL brain over the bus, as the logged-in user.
+ * Merlin Console — talk to a node's LOCAL brain, as the logged-in user.
  *
  *   POST /api/node-ops/chat  { endeavor, nodeId, message, conversationId? }
- *        → posts a node-command(tool:'chat') on the node's channel; Merlin's poll
- *          loop runs runAgent (local brain + tools) and posts the reply back.
+ *        → tries tunnel dispatch first (direct POST to node's /api/node/skill);
+ *          falls back to posting a node-command on the bus channel (poll loop).
  *   GET  /api/node-ops/chat?endeavor=&nodeId=&since=
  *        → the console transcript (user prompts + the node's replies) since a cursor.
  */
@@ -184,7 +220,26 @@ export const nodeChatPostHandler: PayloadHandler = async (req) => {
     if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
 
     const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
-    if (!node?.channel || !node?.spaceId) return Response.json({ error: 'node has no bus channel — it needs to re-register' }, { status: 404 })
+    if (!node) return Response.json({ error: 'unknown node' }, { status: 404 })
+
+    // Try tunnel dispatch first (real-time, no polling)
+    const tunnelResult = await dispatchToNodeTunnel(node, 'chat', { message, conversationId })
+    if (tunnelResult?.ok && tunnelResult.data) {
+      const d = tunnelResult.data as Record<string, unknown>
+      return Response.json({
+        ok: true,
+        response: d.response || '',
+        provider: d.provider,
+        steps: d.steps,
+        toolsUsed: d.toolsUsed,
+        conversationId: d.conversationId || conversationId,
+        via: 'tunnel',
+        elapsedMs: d.elapsedMs,
+      })
+    }
+
+    // Fall back to bus channel (poll loop)
+    if (!node.channel || !node.spaceId) return Response.json({ error: 'node has no bus channel and no tunnel — it needs to re-register' }, { status: 404 })
 
     const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await postBusMessage(payload, {
@@ -197,7 +252,14 @@ export const nodeChatPostHandler: PayloadHandler = async (req) => {
       kind: 'node-command',
       metadata: { requestId, tool: 'chat', args: { message, conversationId } },
     })
-    return Response.json({ ok: true, requestId, channel: node.channel, online: node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000 })
+    return Response.json({
+      ok: true,
+      requestId,
+      channel: node.channel,
+      online: node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000,
+      via: 'bus',
+      tunnelError: tunnelResult?.error,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-chat] ${msg}`)
@@ -350,10 +412,9 @@ export const nodeMediaListHandler: PayloadHandler = async (req) => {
  * The DIRECTORY BROWSER — list a node's SHARED files (the killer-app feature).
  *
  *   POST /api/node-ops/files { endeavor, nodeId, query? }
- *        → dispatches a list_files command on the node's channel; returns a requestId.
+ *        → tries tunnel dispatch first (real-time); falls back to bus channel (poll).
  *   GET  /api/node-ops/files?endeavor=&nodeId=&requestId=&since=
- *        → polls the node's channel for the structured result (sentinel-embedded
- *          in the reply text) and returns { ready, files, tunnelUrl }.
+ *        → polls the node's channel for the structured result (sentinel-embedded).
  *
  * Files are addressed by an opaque `ref` (rootLabel::relpath) — never a system path.
  * Each file carries a tunnelUrl when the node advertises a tunnel (open direct, zero
@@ -375,7 +436,26 @@ export const nodeFilesPostHandler: PayloadHandler = async (req) => {
     if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
 
     const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
-    if (!node?.channel || !node?.spaceId) return Response.json({ error: 'node has no bus channel — it needs to re-register' }, { status: 404 })
+    if (!node) return Response.json({ error: 'unknown node' }, { status: 404 })
+
+    // Try tunnel dispatch first (real-time, no polling)
+    const tunnelResult = await dispatchToNodeTunnel(node, 'list_files', { query: query || undefined })
+    if (tunnelResult?.ok && tunnelResult.data) {
+      const d = tunnelResult.data as Record<string, unknown>
+      return Response.json({
+        ok: true,
+        ready: true,
+        files: Array.isArray(d.files) ? d.files : [],
+        roots: Array.isArray(d.roots) ? d.roots : [],
+        tunnelUrl: typeof d.tunnelUrl === 'string' ? d.tunnelUrl : undefined,
+        lanUrl: typeof d.lanUrl === 'string' ? d.lanUrl : undefined,
+        count: typeof d.count === 'number' ? d.count : 0,
+        via: 'tunnel',
+      })
+    }
+
+    // Fall back to bus channel (poll loop)
+    if (!node.channel || !node.spaceId) return Response.json({ error: 'node has no bus channel and no tunnel' }, { status: 404 })
 
     const requestId = `files-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await postBusMessage(payload, {
@@ -389,7 +469,7 @@ export const nodeFilesPostHandler: PayloadHandler = async (req) => {
       metadata: { requestId, tool: 'list_files', args: { query: query || undefined } },
     })
     const online = Boolean(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000)
-    return Response.json({ ok: true, requestId, online })
+    return Response.json({ ok: true, requestId, online, via: 'bus', tunnelError: tunnelResult?.error })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-files] ${msg}`)
@@ -643,6 +723,78 @@ export const nodeUsageHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-usage] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * Generic node dispatch — POST /api/node-ops/dispatch
+ *
+ * Routes a skill command to a Merlin node. Tries tunnel dispatch first (direct HTTP
+ * POST to the node's public URL — real-time, no polling). Falls back to the bus
+ * channel (poll loop) when no tunnel is available.
+ *
+ * Body: { endeavor, nodeId, skill, args }
+ *   skill — one of: list_media, list_files, snap_camera, chat
+ *   args  — skill-specific parameters (varies by skill)
+ *
+ * Auth: super_admin or CRON_SECRET
+ */
+export const nodeDispatchHandler: PayloadHandler = async (req) => {
+  const { payload } = req
+  if (!authed(req)) return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
+
+  let body: {
+    endeavor?: string
+    nodeId?: string
+    skill?: string
+    args?: Record<string, unknown>
+  } = {}
+  try { body = (await (req as unknown as Request).json()) as typeof body } catch { /* empty */ }
+
+  const endeavor = (body.endeavor || '').trim()
+  const nodeId = (body.nodeId || '').trim()
+  const skill = (body.skill || '').trim()
+  const args = body.args || {}
+  if (!endeavor || !nodeId || !skill) {
+    return Response.json({ error: 'endeavor, nodeId and skill are required' }, { status: 400 })
+  }
+
+  try {
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+    if (!node) return Response.json({ error: 'unknown node' }, { status: 404 })
+
+    // Try tunnel dispatch first (real-time)
+    const tunnelResult = await dispatchToNodeTunnel(node, skill, args)
+    if (tunnelResult?.ok && tunnelResult.data) {
+      return Response.json({ ok: true, via: 'tunnel', result: tunnelResult.data })
+    }
+    if (tunnelResult && !tunnelResult.ok) {
+      // Tunnel was present but the call failed — return the error so callers know
+      return Response.json({ ok: false, via: 'tunnel', error: tunnelResult.error })
+    }
+
+    // No tunnel — fall back to bus channel if the node has one
+    if (!node.channel || !node.spaceId) {
+      return Response.json({ error: 'node has no tunnel and no bus channel' }, { status: 404 })
+    }
+
+    const requestId = `dispatch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await postBusMessage(payload, {
+      space: node.spaceId,
+      channel: node.channel,
+      text: `${skill}${Object.keys(args).length ? ` ${JSON.stringify(args)}` : ''}`,
+      author: undefined as unknown as number,
+      tenant: undefined as unknown as number,
+      messageType: 'system',
+      kind: 'node-command',
+      metadata: { requestId, tool: skill, args },
+    })
+    const online = Boolean(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000)
+    return Response.json({ ok: true, via: 'bus', requestId, online })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-dispatch] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }

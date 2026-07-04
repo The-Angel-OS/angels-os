@@ -6653,6 +6653,14 @@ export interface PayloadMcpApiKey {
      */
     trackSoul?: boolean | null;
     /**
+     * Clone a LIVE source portal (tenant) into a BRAND-NEW tenant: branding, media (re-uploaded into the new tenant's blob), spaces, channels, pages, products/services, posts, and the endeavor — rebranding text along the way. super_admin only. Defaults to a DRY-RUN that reports the blast radius (counts per collection) — pass confirm:true to actually create. NEVER touches the source (create-only into the new tenant), so it cannot corrupt the original. Does NOT clone messages, orders, bookings, or users. Use to stand up a new site seeded from an existing one.
+     */
+    clonePortal?: boolean | null;
+    /**
+     * Report the health of the Merlin nodes locked onto an endeavor — "are the shipboard systems nominal?". Shows which nodes are online/offline, last-seen, CPU/RAM, Ollama + models, shared capabilities, and the perception "eyes" (witnesses) each node runs. Read-only and scoped to the current endeavor by default. Use when the operator asks how the nodes/machines/cameras are doing, or to confirm a node came online after locking on.
+     */
+    checkNodeHealth?: boolean | null;
+    /**
      * Send a message to a community channel. Use when the user asks you to post, announce, or say something in a specific channel or space. You must confirm with the user before sending.
      */
     sendMessage?: boolean | null;
@@ -10009,6 +10017,8 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         researchAndProvision?: T;
         provisionTenant?: T;
         trackSoul?: T;
+        clonePortal?: T;
+        checkNodeHealth?: T;
         sendMessage?: T;
         sendDirectMessage?: T;
         createAnnouncement?: T;

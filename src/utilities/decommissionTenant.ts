@@ -73,6 +73,31 @@ export async function decommissionTenant(
     }
   }
 
+  // Vercel Blob purge — do this BEFORE deleting the `media` rows (which removes the
+  // URLs we need). payload.delete runs the storage adapter's afterDelete hook, but on
+  // a bulk where-delete that isn't guaranteed across versions, so we explicitly delete
+  // every blob (main + every image size variant) to guarantee a demo portal's hosted
+  // artifacts are DEFINITELY gone. Idempotent + fail-soft: no-ops on local/non-blob
+  // URLs and never throws on an already-deleted blob.
+  if (execute) {
+    try {
+      const { deleteMediaFromVercelBlob } = await import('./deleteMediaFromVercelBlob')
+      let purged = 0
+      const media = await payload.find({
+        collection: 'media', where: { tenant: { equals: tenantId } }, limit: 10_000, depth: 0, overrideAccess: true,
+      })
+      for (const m of media.docs as any[]) {
+        const sizeUrls = m.sizes ? Object.values(m.sizes).map((s: any) => s?.url) : []
+        for (const u of [m.url, ...sizeUrls].filter(Boolean)) {
+          try { await deleteMediaFromVercelBlob(u as string); purged++ } catch { /* best-effort per blob */ }
+        }
+      }
+      if (purged) steps.push({ collection: 'media:blob', count: purged, status: 'deleted' })
+    } catch (err) {
+      steps.push({ collection: 'media:blob', count: 0, status: 'error', error: (err as Error).message })
+    }
+  }
+
   for (const collection of TENANT_SCOPED_COLLECTIONS) {
     await run(collection, { tenant: { equals: tenantId } })
   }

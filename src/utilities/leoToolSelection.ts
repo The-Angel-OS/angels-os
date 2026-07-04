@@ -27,7 +27,7 @@ export const ADMIN_ONLY_TOOLS = new Set<string>([
   'configure_business', 'configure_endeavor', 'set_endeavor_image', 'set_work_attribution', 'update_theme_settings', 'update_navigation',
   'create_membership_plan', 'delete_membership_plan', 'apply_site_template',
   'configure_availability', 'configure_service', 'configure_payment_method',
-  'research_and_provision', 'provision_tenant', 'onboard_vendor', 'manage_categories',
+  'research_and_provision', 'provision_tenant', 'clone_portal', 'onboard_vendor', 'manage_categories',
   // moderation / governance / incident
   'moderate_content', 'send_emergency_alert', 'document_incident', 'run_subsafe_check',
   'sign_constitution', 'request_endeavor_migration',

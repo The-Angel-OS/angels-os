@@ -54,7 +54,7 @@ import {
   generateInviteUrl,
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
-import { logCaughtError } from './logError'
+import { logCaughtError, logError } from './logError'
 import { revalidateAfterMutation } from './revalidateContent'
 import { affectedPublicUrl, affectedUrlDirective } from './affectedUrl'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
@@ -2078,6 +2078,53 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['name', 'situation'],
     },
   },
+  {
+    name: 'clone_portal',
+    description:
+      'Clone a LIVE source portal (tenant) into a BRAND-NEW tenant: branding, media (re-uploaded into the new tenant\'s blob), spaces, channels, pages, products/services, posts, and the endeavor — rebranding text along the way. super_admin only. Defaults to a DRY-RUN that reports the blast radius (counts per collection) — pass confirm:true to actually create. NEVER touches the source (create-only into the new tenant), so it cannot corrupt the original. Does NOT clone messages, orders, bookings, or users. Use to stand up a new site seeded from an existing one.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sourceSlug: { type: 'string', description: 'Slug of the existing tenant to clone FROM, e.g. "arctic-cool".' },
+        targetName: { type: 'string', description: 'Display name of the NEW tenant, e.g. "Polar Breeze HVAC".' },
+        targetDomain: { type: 'string', description: 'Primary routing domain for the new tenant, e.g. "polarbreeze.com".' },
+        targetSlug: { type: 'string', description: 'URL-safe slug for the new tenant. Derived from targetName when omitted.' },
+        include: {
+          type: 'array',
+          items: { type: 'string', enum: ['branding', 'media', 'spaces', 'channels', 'pages', 'products', 'posts', 'endeavor'] },
+          description: 'Which parts to clone. Default: all of them.',
+        },
+        rebrand: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              from: { type: 'string', description: 'Literal text to find (case-insensitive).' },
+              to: { type: 'string', description: 'Replacement text.' },
+            },
+            required: ['from', 'to'],
+          },
+          description: 'Case-insensitive literal string replacements applied to rebranded text fields (names, titles, taglines, slugs, descriptions, alt).',
+        },
+        copyMedia: { type: 'boolean', description: 'Re-upload source media into the new tenant\'s blob. Default true.' },
+        confirm: { type: 'boolean', description: 'false (default) = dry-run counts only. true = actually create the clone.' },
+      },
+      required: ['sourceSlug', 'targetName', 'targetDomain'],
+    },
+  },
+  {
+    name: 'check_node_health',
+    description:
+      'Report the health of the Merlin nodes locked onto an endeavor — "are the shipboard systems nominal?". Shows which nodes are online/offline, last-seen, CPU/RAM, Ollama + models, shared capabilities, and the perception "eyes" (witnesses) each node runs. Read-only and scoped to the current endeavor by default. Use when the operator asks how the nodes/machines/cameras are doing, or to confirm a node came online after locking on.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        endeavor: { type: 'string', description: 'Endeavor slug to check. Defaults to the current endeavor when omitted.' },
+        nodeId: { type: 'string', description: 'Optional — limit the report to a single node id (its hostname).' },
+      },
+      required: [],
+    },
+  },
 
   // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
 
@@ -3891,6 +3938,10 @@ async function executeToolSwitch(
         return await handleResearchAndProvision(payload, toolInput, ctx)
       case 'provision_tenant':
         return await handleProvisionTenant(payload, toolInput, ctx)
+      case 'clone_portal':
+        return await handleClonePortal(payload, toolInput, ctx)
+      case 'check_node_health':
+        return await handleCheckNodeHealth(payload, toolInput, ctx)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -9948,6 +9999,114 @@ async function handleProvisionTenant(
 }
 
 /**
+ * clone_portal — Clone a live source portal (tenant) into a NEW tenant.
+ *
+ * Thin wrapper around the shared clonePortal() utility. super_admin only.
+ * Defaults to a DRY-RUN (confirm !== true → execute:false) that reports the
+ * blast radius per collection. Lazy-imports clonePortal to match this file's
+ * load-cycle convention (see provisionPortal).
+ */
+/**
+ * check_node_health — "are the shipboard systems nominal?" Read-only summary of the
+ * Merlin nodes locked onto the endeavor. Scoped to the current endeavor by default.
+ */
+async function handleCheckNodeHealth(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { checkNodeHealth, formatNodeHealth } = await import('./nodeHealth')
+  let endeavor = typeof input.endeavor === 'string' ? input.endeavor.trim() : ''
+  if (!endeavor && ctx.tenantId != null) {
+    const { tenantSlugById } = await import('./nodeBus')
+    endeavor = (await tenantSlugById(payload, ctx.tenantId as number | string)) || ''
+  }
+  if (!endeavor) {
+    return 'I need to know which endeavor to check — none is set for this conversation. Tell me the endeavor slug (e.g. "clearwater-cruisin").'
+  }
+  const nodeId = typeof input.nodeId === 'string' && input.nodeId.trim() ? input.nodeId.trim() : undefined
+  const report = await checkNodeHealth(payload, { endeavor, nodeId })
+  return formatNodeHealth(report)
+}
+
+async function handleClonePortal(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'Cloning a portal')
+  if (denied) return denied
+
+  const sourceSlug = typeof input.sourceSlug === 'string' ? input.sourceSlug.trim() : ''
+  const targetName = typeof input.targetName === 'string' ? input.targetName.trim() : ''
+  const targetDomain = typeof input.targetDomain === 'string' ? input.targetDomain.trim() : ''
+  if (!sourceSlug) return 'Error: sourceSlug is required.'
+  if (!targetName) return 'Error: targetName is required.'
+  if (!targetDomain) return 'Error: targetDomain is required (e.g. "polarbreeze.com").'
+
+  const allowedInclude = ['branding', 'media', 'spaces', 'channels', 'pages', 'products', 'posts', 'endeavor']
+  const include = Array.isArray(input.include)
+    ? (input.include as unknown[]).filter(
+        (i): i is 'branding' | 'media' | 'spaces' | 'channels' | 'pages' | 'products' | 'posts' | 'endeavor' =>
+          typeof i === 'string' && allowedInclude.includes(i),
+      )
+    : undefined
+
+  const rebrand = Array.isArray(input.rebrand)
+    ? (input.rebrand as unknown[])
+        .map((r) => (r && typeof r === 'object' ? (r as Record<string, unknown>) : null))
+        .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r!.from === 'string')
+        .map((r) => ({ from: String(r.from), to: typeof r.to === 'string' ? r.to : '' }))
+    : undefined
+
+  try {
+    const { clonePortal } = await import('./clonePortal')
+    const result = await clonePortal(payload, {
+      sourceSlug,
+      targetName,
+      targetDomain,
+      targetSlug: typeof input.targetSlug === 'string' ? input.targetSlug : undefined,
+      include: include && include.length ? include : undefined,
+      rebrand: rebrand && rebrand.length ? rebrand : undefined,
+      copyMedia: input.copyMedia !== false,
+      execute: input.confirm === true,
+    })
+
+    if (!result.found) {
+      return `Error: source tenant "${sourceSlug}" not found on this node.`
+    }
+
+    const lines: string[] = []
+    lines.push(
+      result.dryRun
+        ? `## Clone Portal — DRY RUN (nothing written)`
+        : `## Clone Portal — Executed`,
+    )
+    lines.push(`- **Source:** ${result.sourceSlug}`)
+    lines.push(`- **Target:** ${result.targetSlug} → ${targetDomain}`)
+    if (result.targetTenantId != null) lines.push(`- **New tenant:** #${result.targetTenantId}`)
+    lines.push('')
+    lines.push(result.dryRun ? '### Would clone' : '### Cloned')
+    for (const s of result.steps) {
+      const mark = s.status === 'error' ? '⚠️' : s.status === 'skipped' ? '·' : '-'
+      lines.push(`${mark} **${s.collection}:** ${s.count} (${s.status})${s.error ? ` — ${s.error}` : ''}`)
+    }
+    if (result.warnings.length) {
+      lines.push('')
+      lines.push('### Warnings')
+      for (const w of result.warnings) lines.push(`- ${w}`)
+    }
+    if (result.dryRun) {
+      lines.push('')
+      lines.push('Pass `confirm: true` to actually create the clone.')
+    }
+    return lines.join('\n')
+  } catch (e) {
+    return `Error cloning portal: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
+}
+
+/**
  * research_and_provision — Research a person/org and create their Guardian Angel Endeavor.
  *
  * This is the constitutional fulfillment of "Everyone Gets An Angel."
@@ -12648,16 +12807,16 @@ async function handleEscalateIssue(
       })
     }
 
-    // Log to application logs
-    await payload.create({
-      collection: 'application-logs' as any,
-      data: {
-        level: priority === 'urgent' ? 'error' : 'warn',
-        message: `Escalation: ${issue}`,
-        context: issueContext,
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
+    // Log through the canonical pipeline → application-logs (correct schema) + AI Bus
+    // errors channel + Gotify. (Was a hand-written create with invalid level:'warn',
+    // a nonexistent `context` field, wrong `tenant` field, and no required `source` —
+    // so it failed validation silently and LEO's escalation never persisted.)
+    await logError({
+      level: priority === 'urgent' ? 'error' : 'warning',
+      source: 'leo/escalate_issue',
+      message: `Escalation: ${issue}`,
+      details: issueContext || undefined,
+      tenantId,
     })
 
     return `Issue escalated (${priority}):\n- **Issue:** ${issue}${issueContext ? `\n- **Context:** ${issueContext}` : ''}\n- Posted to #support channel and logged to application logs.`
@@ -12716,15 +12875,13 @@ async function handleSendEmergencyAlert(
       }
     }
 
-    // Also log to application logs
-    await payload.create({
-      collection: 'application-logs' as any,
-      data: {
-        level: 'error',
-        message: `EMERGENCY ALERT: ${message}`,
-        tenant: tenantId,
-      } as any,
-      overrideAccess: true,
+    // Canonical pipeline (was missing required `source` + used a nonexistent `tenant`
+    // field → validation-failed silently).
+    await logError({
+      level: 'error',
+      source: 'leo/emergency_alert',
+      message: `EMERGENCY ALERT: ${message}`,
+      tenantId,
     })
 
     return `Emergency alert broadcast to ${sent} space(s):\n"${message}"\n\nPriority: ${priority}. Logged to application logs.`
@@ -12750,16 +12907,14 @@ async function handleDocumentIncident(
   if (!response) return 'Error: response/resolution is required.'
 
   try {
-    // Log to application logs
-    await payload.create({
-      collection: 'application-logs' as any,
-      data: {
-        level: 'warn',
-        message: `INCIDENT: ${title}`,
-        context: JSON.stringify({ details, impact, response }),
-        tenant: ctx.tenantId,
-      } as any,
-      overrideAccess: true,
+    // Canonical pipeline (was invalid level:'warn', nonexistent `context`/`tenant`
+    // fields, no `source` → silently rejected).
+    await logError({
+      level: 'warning',
+      source: 'leo/document_incident',
+      message: `INCIDENT: ${title}`,
+      details: JSON.stringify({ details, impact, response }),
+      tenantId: ctx.tenantId,
     })
 
     // Create draft post for internal documentation

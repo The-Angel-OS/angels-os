@@ -141,7 +141,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler, nodeUsageHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler, nodeUsageHandler, nodeDispatchHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -983,6 +983,9 @@ export default buildConfig({
     // Node usage ingestion — a node reports a locally-served inference turn into the
     // Operating-Costs ledger (compute-commons metering; Thread 7 economy addendum).
     { path: '/node-ops/usage', method: 'post', handler: nodeUsageHandler },
+    // Generic node dispatch — routes a skill to a Merlin node. Tries tunnel first
+    // (real-time direct POST), falls back to bus channel (poll loop).
+    { path: '/node-ops/dispatch', method: 'post', handler: nodeDispatchHandler },
     // Standard legal pages (Privacy/Terms/Cookie/Refund) + footer links. POST;
     // super_admin or ?key=. Idempotent — every paying/consent-collecting endeavor.
     {
