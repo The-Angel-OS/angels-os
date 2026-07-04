@@ -896,7 +896,7 @@ export interface ByokModelResult {
   model: LanguageModel
   /** Prefixed id (e.g. `openrouter/openai/gpt-4o-mini`) so telemetry attributes the provider. */
   modelId: string
-  provider: 'openrouter' | 'openai'
+  provider: 'openrouter' | 'openai' | 'nvidia'
 }
 
 /**
@@ -911,6 +911,16 @@ export async function buildByokModel(
 ): Promise<ByokModelResult | null> {
   if (!cfg) return null
   const { createOpenAICompatible } = await import('@ai-sdk/openai-compatible')
+
+  // NVIDIA NIM first — it's the free option, so a tenant that configured it in
+  // the AI settings tab (aiConfig.nvidiaApiKey) gets $0 intelligence before we
+  // reach for their paid OpenRouter/OpenAI keys.
+  const nvKey = typeof cfg.nvidiaApiKey === 'string' ? cfg.nvidiaApiKey.trim() : ''
+  if (nvKey) {
+    const modelId = (typeof cfg.nvidiaModel === 'string' && cfg.nvidiaModel.trim()) || process.env.NVIDIA_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct'
+    const provider = createOpenAICompatible({ name: 'nvidia', baseURL: 'https://integrate.api.nvidia.com/v1', apiKey: nvKey })
+    return { model: provider.languageModel(modelId), modelId: `nvidia/${modelId}`, provider: 'nvidia' }
+  }
 
   const orKey = typeof cfg.openrouterApiKey === 'string' ? cfg.openrouterApiKey.trim() : ''
   if (orKey) {

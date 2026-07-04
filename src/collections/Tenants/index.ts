@@ -470,6 +470,20 @@ export const Tenants: CollectionConfig = {
           },
         },
         {
+          name: 'nvidiaApiKey',
+          type: 'text',
+          admin: {
+            description: 'NVIDIA NIM API key (nvapi-…) from build.nvidia.com — free Nemotron/Llama inference. Leave blank to use the platform key / env.',
+          },
+        },
+        {
+          name: 'nvidiaModel',
+          type: 'text',
+          admin: {
+            description: 'Optional NVIDIA model id override (e.g. nvidia/llama-3.1-nemotron-70b-instruct). Blank = per-tier default.',
+          },
+        },
+        {
           name: 'preferredImageProvider',
           type: 'select',
           defaultValue: 'auto',
