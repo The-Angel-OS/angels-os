@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, BookOpen, ScrollText, Columns, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, BookOpen, ScrollText, Columns, Loader2, Volume2, Square } from 'lucide-react'
 
 /**
  * BookReader — the Angel OS Library's generic, source-agnostic page reader.
@@ -59,6 +59,28 @@ export interface BookManifest {
 
 type Mode = 'paged' | 'scroll'
 
+/**
+ * Resolve a page's (bookName, chapter) for the Book → Chapter grouping — prefer
+ * the explicit hierarchy fields, else parse the title "Genesis 1" → ("Genesis",
+ * 1). Returns null bookName for flat single-book works, so a normal book stays a
+ * simple pager and only a "collection of books" (scripture) gets the two-level
+ * nav. Kept in sync with Nimue's reader (src/app/works/read/page.tsx). */
+function pageBook(pg: BookPage): { bookName: string | null; chapter: number | null } {
+  if (pg.bookName) return { bookName: pg.bookName, chapter: pg.chapter ?? null }
+  const t = pg.title?.trim()
+  if (t) {
+    const m = t.match(/^(.*?)\s+(\d+)$/)
+    if (m) return { bookName: m[1].trim(), chapter: Number(m[2]) }
+  }
+  return { bookName: null, chapter: null }
+}
+
+interface BookGroup {
+  name: string
+  /** Global page indices belonging to this book, in order. */
+  indices: number[]
+}
+
 export function BookReader({
   manifest: initialManifest,
   manifestUrl,
@@ -93,6 +115,8 @@ export function BookReader({
   const [dir, setDir] = useState(1)
   const [lang, setLang] = useState<string>('en')
   const [texts, setTexts] = useState<Record<string, PageText>>({})
+  const [reading, setReading] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
 
   const languages = manifest?.languages ?? []
@@ -209,6 +233,76 @@ export function BookReader({
 
   const page = pages[index]
   const headerTitle = manifest?.title ?? title ?? 'Reading…'
+
+  // Group pages into books (collection-of-books works like scripture). A flat
+  // book yields a single anonymous group → `isCollection` false → the legacy
+  // pager renders unchanged. Forward-compatible: any book Work that later ships
+  // book/bookName/chapter metadata lights up the two-level nav for free.
+  const books = useMemo<BookGroup[]>(() => {
+    const groups: BookGroup[] = []
+    const byName = new Map<string, BookGroup>()
+    pages.forEach((pg, i) => {
+      const { bookName } = pageBook(pg)
+      const key = bookName || ''
+      let g = byName.get(key)
+      if (!g) {
+        g = { name: bookName || (manifest?.title ?? 'Book'), indices: [] }
+        byName.set(key, g)
+        groups.push(g)
+      }
+      g.indices.push(i)
+    })
+    return groups
+  }, [pages, manifest?.title])
+  const isCollection = books.length > 1
+  const activeBookIdx = isCollection ? books.findIndex((b) => b.indices.includes(index)) : 0
+  const activeBook = books[activeBookIdx] ?? books[0]
+
+  // Read-aloud (device TTS, free/offline) — the Primer read-aloud, matching
+  // SoulViewer's document reader. Reads the current page's text (verse array or
+  // prose), prefixed by its title.
+  const currentPageText = useCallback(() => {
+    if (!page) return ''
+    const raw = texts[String(page.order)]
+    let body = ''
+    if (Array.isArray(raw)) body = raw.map((v) => v.t).join(' ')
+    else if (typeof raw === 'string') body = raw.replace(/#{1,6}\s/g, '').replace(/[*_`>[\]]/g, '')
+    const heading = page.title ? `${page.title}. ` : ''
+    return `${heading}${body}`.trim()
+  }, [page, texts])
+
+  const toggleReadAloud = useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    if (reading) {
+      window.speechSynthesis.cancel()
+      setReading(false)
+      return
+    }
+    const text = currentPageText()
+    if (!text) return
+    const utt = new SpeechSynthesisUtterance(text)
+    utt.rate = 0.95
+    utt.onend = () => setReading(false)
+    utt.onerror = () => setReading(false)
+    utteranceRef.current = utt
+    window.speechSynthesis.speak(utt)
+    setReading(true)
+  }, [reading, currentPageText])
+
+  // Stop any read-aloud when the page changes or the reader unmounts — the audio
+  // must never outlive the page it belongs to.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      setReading(false)
+    }
+  }, [index])
+  useEffect(
+    () => () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+    },
+    [],
+  )
 
   if (loading) {
     return (
@@ -362,8 +456,63 @@ export function BookReader({
           >
             <ScrollText className="h-4 w-4" />
           </button>
+          <button
+            onClick={toggleReadAloud}
+            title={reading ? 'Stop reading' : 'Read aloud'}
+            aria-label={reading ? 'Stop reading' : 'Read aloud'}
+            className="flex h-8 w-8 items-center justify-center rounded"
+            style={{ background: reading ? '#C4956A26' : 'transparent', color: reading ? '#C4956A' : '#f5f2f088' }}
+          >
+            {reading ? <Square className="h-3.5 w-3.5" /> : <Volume2 className="h-4 w-4" />}
+          </button>
         </div>
       </div>
+
+      {/* Book → Chapter nav — only for collection-of-books works (scripture). */}
+      {isCollection && activeBook && (
+        <div
+          className="sticky top-14 z-20 flex flex-col gap-1.5 px-3 py-2 backdrop-blur-sm"
+          style={{ background: '#0a0810cc', borderBottom: '1px solid #C4956A1f' }}
+        >
+          {/* Level 1 — book picker */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {books.map((b, bi) => (
+              <button
+                key={b.name}
+                onClick={() => setIndex(b.indices[0])}
+                className="whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                style={
+                  bi === activeBookIdx
+                    ? { background: '#C4956A', color: '#0a0810' }
+                    : { border: '1px solid #C4956A33', color: '#C4956Acc' }
+                }
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+          {/* Level 2 — chapters within the selected book */}
+          <div className="flex gap-1 overflow-x-auto">
+            {activeBook.indices.map((gi) => {
+              const { chapter } = pageBook(pages[gi])
+              return (
+                <button
+                  key={gi}
+                  onClick={() => setIndex(gi)}
+                  className="min-w-[2rem] whitespace-nowrap rounded px-2 py-0.5 text-xs tabular-nums transition-colors"
+                  style={
+                    gi === index
+                      ? { background: '#C4956A26', color: '#C4956A', border: '1px solid #C4956A66' }
+                      : { color: '#f5f2f077', border: '1px solid transparent' }
+                  }
+                >
+                  {chapter != null ? chapter : gi + 1}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {pages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
