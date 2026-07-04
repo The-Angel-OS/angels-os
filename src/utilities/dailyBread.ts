@@ -37,8 +37,11 @@ export interface DailyBread {
   /** Human display, e.g. "Genesis 1:1–3". */
   ref: string
   verses: DailyBreadVerse[]
-  /** Deep-link target for "read the whole chapter" in any reader client. */
-  page: { order: number; title: string | null } | null
+  /** Deep-link target for "read the whole chapter" in any reader client. `ref`
+   *  (e.g. "GEN.22") is the stable key — `order` differs by source (manifest is
+   *  1-based, the message-backed reader JSON is 0-based), so clients resolve by
+   *  ref and only fall back to order. */
+  page: { order: number; title: string | null; ref: string | null } | null
   progress: { totalVerses: number; percent: number }
 }
 
@@ -147,7 +150,7 @@ export async function getDailyBread(opts: {
     date: new Date(dayMs).toISOString().slice(0, 10), dayNumber, count,
     ref: refDisplay,
     verses: picked,
-    page: firstPage ? { order: firstPage.order, title: firstPage.title ?? null } : null,
+    page: firstPage ? { order: firstPage.order, title: firstPage.title ?? null, ref: first?.ref ?? null } : null,
     progress: { totalVerses, percent: Math.round(((start + picked.length) / totalVerses) * 1000) / 10 },
   }
 }
