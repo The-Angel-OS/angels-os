@@ -94,6 +94,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always, // Public — command center is the viewport
       },
       {
+        key: 'telemetry',
+        label: 'Telemetry',
+        icon: 'activity',
+        href: (p) => `${p}/dashboard/telemetry`,
+        isActive: active('/dashboard/telemetry'),
+        visible: authenticated, // Merlin node CIC — endeavor-member gated at the API
+      },
+      {
         key: 'ai-costs',
         label: 'AI Costs',
         icon: 'banknote',

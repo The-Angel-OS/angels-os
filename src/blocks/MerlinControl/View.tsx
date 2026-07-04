@@ -19,9 +19,52 @@ export type MerlinNode = {
 
 const ONLINE_MS = 5 * 60 * 1000
 
-function isOnline(node: MerlinNode) {
+export function isOnline(node: MerlinNode) {
   if (!node.lastSeen) return false
   return Date.now() - new Date(node.lastSeen).getTime() < ONLINE_MS
+}
+
+/**
+ * NodeSurface — the per-node control surface: the node's advertised capabilities
+ * (Console / Screenshots / Media / Stats) mapped onto the universal <TabbedPanel>.
+ *
+ * The single source of truth for "what you can do with one node", shared by the
+ * MerlinControl block AND the CIC telemetry control panel (/dashboard/telemetry).
+ * When `canControl` is false (a federated, view-only node) the LEO console — the
+ * command uplink — is dropped, leaving only the read surfaces.
+ */
+export function NodeSurface({
+  node,
+  endeavor,
+  canControl = true,
+  hideTabBar,
+  tabBarRight,
+}: {
+  node: MerlinNode
+  endeavor: string
+  canControl?: boolean
+  hideTabBar?: boolean
+  tabBarRight?: React.ReactNode
+}) {
+  const capTabs = useMemo(() => {
+    const tabs = nodeTabs(node?.capabilities)
+    return canControl ? tabs : tabs.filter((t) => t.id !== 'leo')
+  }, [node, canControl])
+
+  const panelTabs = useMemo<PanelTab[]>(
+    () =>
+      capTabs.map((t) => ({
+        id: t.id,
+        label: t.label,
+        icon: <span>{t.icon}</span>,
+        content: () => (node ? <ViewBody view={t.id} node={node} endeavor={endeavor} /> : null),
+      })),
+    [capTabs, node, endeavor],
+  )
+
+  return (
+    <TabbedPanel bare fill tabs={panelTabs} urlParam="tab" hideTabBar={hideTabBar} tabBarRight={tabBarRight} />
+  )
 }
 
 export function MerlinControlView({
@@ -37,19 +80,6 @@ export function MerlinControlView({
   const [navOpen, setNavOpen] = useState(true)
   const [focusMode, setFocusMode] = useState(false) // hide tabs → just the active surface (chat)
   const node = useMemo(() => nodes.find((n) => n.id === selectedId) ?? nodes[0], [nodes, selectedId])
-  const capTabs = useMemo(() => nodeTabs(node?.capabilities), [node])
-
-  // Map the node's advertised capabilities onto the universal <TabbedPanel>.
-  const panelTabs = useMemo<PanelTab[]>(
-    () =>
-      capTabs.map((t) => ({
-        id: t.id,
-        label: t.label,
-        icon: <span>{t.icon}</span>,
-        content: () => (node ? <ViewBody view={t.id} node={node} endeavor={endeavor} /> : null),
-      })),
-    [capTabs, node, endeavor],
-  )
 
   if (!nodes.length) {
     return (
@@ -91,37 +121,37 @@ export function MerlinControlView({
 
       {/* Capability tab panel — shows the selected node's advertised surfaces */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
-        <TabbedPanel
-          bare
-          fill
-          tabs={panelTabs}
-          urlParam="tab"
-          hideTabBar={focusMode}
-          tabBarRight={
-            <>
-              {showNav && (
+        {node && (
+          <NodeSurface
+            node={node}
+            endeavor={endeavor}
+            hideTabBar={focusMode}
+            tabBarRight={
+              <>
+                {showNav && (
+                  <button
+                    type="button"
+                    onClick={() => setNavOpen((v) => !v)}
+                    className={toggleBtnClass}
+                    title={navOpen ? 'Hide node tabs' : 'Show node tabs'}
+                    aria-label={navOpen ? 'Hide node tabs' : 'Show node tabs'}
+                  >
+                    {navOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setNavOpen((v) => !v)}
+                  onClick={() => setFocusMode((v) => !v)}
                   className={toggleBtnClass}
-                  title={navOpen ? 'Hide node tabs' : 'Show node tabs'}
-                  aria-label={navOpen ? 'Hide node tabs' : 'Show node tabs'}
+                  title={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
+                  aria-label={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
                 >
-                  {navOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setFocusMode((v) => !v)}
-                className={toggleBtnClass}
-                title={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
-                aria-label={focusMode ? 'Show tabs' : 'Focus — hide tabs'}
-              >
-                {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
-            </>
-          }
-        />
+              </>
+            }
+          />
+        )}
       </div>
     </div>
   )

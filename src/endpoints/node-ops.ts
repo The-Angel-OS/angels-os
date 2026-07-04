@@ -17,6 +17,7 @@ import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
 import { provisionNodeIdentity, resolveEndeavorTenant, listEndeavorNodes, resolveProviderNodes, type RegisteredNode } from '@/utilities/nodeBus'
 import { postBusMessage } from '@/lib/busEnvelope'
 import { recordCostEvent } from '@/utilities/recordCostEvent'
+import { getAiBusActivity } from '@/utilities/tenantTelemetry'
 
 /**
  * Dispatch a skill to a node via its tunnel URL when available.
@@ -190,6 +191,45 @@ export const nodeListHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[node-list] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * GET /api/node-ops/telemetry?endeavor=<slug>
+ *
+ * Member-gated live feed for the CIC telemetry panel (/dashboard/telemetry). Returns
+ * the endeavor's registered nodes (full catalog — vitals, capabilities, tunnel, bus
+ * channel) plus 24h AI-bus activity, and whether this user may drive them. Pure read,
+ * safe to poll. The nodes ARE the telemetry: each is a channel on the AI Bus, its
+ * liveness derived from lastSeen, its conversation replayed in the detail surface.
+ *
+ * Unlike /node-ops/list (super_admin/CRON_SECRET), this is scoped to endeavor members
+ * so a portal's own crew can watch their own nodes without the platform key.
+ */
+export const nodeTelemetryHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = (url.searchParams.get('endeavor') || url.searchParams.get('tenant') || '').trim()
+  if (!endeavor) return Response.json({ error: 'endeavor is required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const [nodes, aiBus] = await Promise.all([
+      listEndeavorNodes(payload, endeavor),
+      getAiBusActivity(payload, tenant.id).catch(() => null),
+    ])
+    const online = nodes.filter((n) => Boolean(n.lastSeen && Date.now() - new Date(n.lastSeen).getTime() < 5 * 60 * 1000)).length
+    // Own-endeavor members drive their own nodes. The federated view-only tier
+    // (see contributing nodes elsewhere, but can't command them) lands in Phase 2.
+    return Response.json({ ok: true, endeavor, canControl: true, total: nodes.length, online, nodes, aiBus })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-telemetry] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }

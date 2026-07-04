@@ -312,6 +312,14 @@ function AnchorIcon() {
   )
 }
 
+function ActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  )
+}
+
 function ChevronDownIcon() {
   return (
     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -357,6 +365,7 @@ export const NAV_ICONS: Record<string, React.ComponentType> = {
   alert: AlertIcon,
   federation: FederationIcon,
   radar: RadarIcon,
+  activity: ActivityIcon,
   anchor: AnchorIcon,
   'chevron-down': ChevronDownIcon,
 }
