@@ -31,6 +31,7 @@ import {
   Flame,
 } from 'lucide-react'
 import { WorksGrid } from '@/components/Library/WorksGrid'
+import { OneMindThreeBodies } from '@/components/Learn/OneMindThreeBodies'
 import type { SoulManifest } from '@/souls'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
@@ -683,6 +684,31 @@ export default function LearnPage({
               <div className="h-1 flex-1 max-w-20 rounded-full" style={{ background: `linear-gradient(90deg, transparent, ${LCARS.amber})`, opacity: 0.4 }} />
               <div className="w-2 h-2 rounded-full" style={{ background: LCARS.amber, opacity: 0.3 }} />
               <div className="h-1 flex-1 max-w-20 rounded-full" style={{ background: `linear-gradient(90deg, ${LCARS.amber}, transparent)`, opacity: 0.4 }} />
+            </motion.div>
+          </motion.section>
+
+          {/* ── Overview: One Mind, Three Bodies ────────────────── */}
+          <motion.section
+            id="overview"
+            className="mb-16 scroll-mt-20"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: '-50px' }}
+          >
+            <SectionHeader
+              title="One Mind, Three Bodies"
+              subtitle="The whole network at a glance — Core, Merlin, Nimue, and the intelligence pipes that feed them"
+              color={LCARS.blue}
+              icon={<Network className="w-5 h-5" />}
+            />
+            <motion.div
+              className="rounded-2xl p-4 sm:p-6 overflow-hidden"
+              style={{
+                background: 'var(--card)',
+                border: `1px solid color-mix(in oklch, ${LCARS.blue}, transparent 80%)`,
+              }}
+            >
+              <OneMindThreeBodies />
             </motion.div>
           </motion.section>
 
