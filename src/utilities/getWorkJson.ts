@@ -28,6 +28,15 @@ export function checksumOf(normalized: unknown): string {
   return 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(normalized)).digest('hex')
 }
 
+/** Render a verse-structured translation ({v,t}[]) to verse-numbered markdown. */
+function renderVerses(val: unknown): string {
+  if (!Array.isArray(val)) return ''
+  return (val as Array<{ v?: number; t?: string }>)
+    .filter((x) => x && typeof x.t === 'string')
+    .map((x) => `**${x.v ?? ''}** ${x.t}`)
+    .join('\n\n')
+}
+
 interface SoulLike {
   id: string
   title: string
@@ -106,20 +115,28 @@ export async function getWorkJson(opts: {
   const coverFromChapters = (chapters.find((c) => c.md.image)?.md.image as string) ?? null
 
   if (soul.bookSlug) {
-    const pages = chapters.map((c, i) => ({
-      order: (c.md.order as number) ?? i,
-      image: absMedia((c.md.image as string) ?? null, origin),
-      title: (c.md.title as string) ?? null,
-      slug: (c.md.slug as string) ?? String(i + 1),
-      // Book hierarchy (collection-of-books works like the Bible). Null on flat
-      // single-book works; the reader only builds Book → Chapter nav when present.
-      book: (c.md.book as string) ?? null,
-      bookName: (c.md.bookName as string) ?? null,
-      chapter: typeof c.md.chapter === 'number' ? (c.md.chapter as number) : null,
-      ref: (c.md.ref as string) ?? null,
-      text: typeof c.m.content === 'string' ? c.m.content : ((c.m.content as { text?: string })?.text ?? ''),
-      translations: (c.md.translations as Record<string, string>) ?? {},
-    }))
+    const baseLang = String(sr.baseLanguage ?? 'en')
+    const pages = chapters.map((c, i) => {
+      const translations = (c.md.translations as Record<string, unknown>) ?? {}
+      const raw = typeof c.m.content === 'string' ? c.m.content : ((c.m.content as { text?: string })?.text ?? '')
+      return {
+        order: (c.md.order as number) ?? i,
+        image: absMedia((c.md.image as string) ?? null, origin),
+        title: (c.md.title as string) ?? null,
+        slug: (c.md.slug as string) ?? String(i + 1),
+        // Book hierarchy (collection-of-books works like the Bible). Null on flat
+        // single-book works; the reader only builds Book → Chapter nav when present.
+        book: (c.md.book as string) ?? null,
+        bookName: (c.md.bookName as string) ?? null,
+        chapter: typeof c.md.chapter === 'number' ? (c.md.chapter as number) : null,
+        ref: (c.md.ref as string) ?? null,
+        // Verse-structured chapters (scripture) store their text as {v,t}[] in
+        // metadata.translations, leaving content.text empty — render the base
+        // language to markdown so thin clients always get a readable `text`.
+        text: raw || renderVerses(translations[baseLang]),
+        translations,
+      }
+    })
     const checksum = checksumOf({ slug: soul.id, type: 'book', chapters: pages.map((p, i) => ({ order: i, slug: p.slug, title: p.title, text: p.text })) })
     return {
       ok: true, version: WORK_JSON_VERSION, checksum, source: 'messages',

@@ -33,6 +33,7 @@ import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
 // file's LEO_TOOLS — a top-level import here would create a TDZ on LEO_TOOLS.
 import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
+import { getDailyBread, DailyBreadError } from './dailyBread'
 import { verifyEndeavorOnboarding } from './verifyEndeavorOnboarding'
 import {
   findUserSynchronicities,
@@ -2125,6 +2126,20 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'get_daily_bread',
+    description:
+      "Today's Daily Bread — the deterministic 3-verses-a-day reading plan through the Holy Bible (Genesis 1:1 onward; every node and client gets the same verses for the same date). Read-only, no auth. Use when someone asks for the daily verse(s), today's scripture, the daily bread, or a specific date's reading. Returns the verses with their reference and progress through the canon.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        date: { type: 'string', description: "Optional YYYY-MM-DD for a specific day's reading. Defaults to today (UTC)." },
+        translation: { type: 'string', description: "Optional edition code: 'web' (World English Bible, default) or 'kjv' (King James Version)." },
+        count: { type: 'number', description: 'Optional verses per day, 1–12. Default 3.' },
+      },
+      required: [],
+    },
+  },
 
   // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
 
@@ -3942,6 +3957,8 @@ async function executeToolSwitch(
         return await handleClonePortal(payload, toolInput, ctx)
       case 'check_node_health':
         return await handleCheckNodeHealth(payload, toolInput, ctx)
+      case 'get_daily_bread':
+        return await handleGetDailyBread(toolInput)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -16498,4 +16515,31 @@ async function queryBookingRevenue(
   }
 
   return lines.join('\n') + navDirective('/dashboard/bookings', 'View Bookings')
+}
+
+/**
+ * get_daily_bread — today's verses from the deterministic reading plan
+ * (utilities/dailyBread.ts, shared with GET /api/works-ops/daily). Read-only,
+ * public content — no tenant scoping, no auth.
+ */
+async function handleGetDailyBread(toolInput: Record<string, unknown>): Promise<string> {
+  try {
+    const bread = await getDailyBread({
+      lang: typeof toolInput.translation === 'string' ? toolInput.translation : null,
+      date: typeof toolInput.date === 'string' ? toolInput.date : null,
+      count: typeof toolInput.count === 'number' ? toolInput.count : 3,
+      origin: process.env.NEXT_PUBLIC_SERVER_URL || '',
+    })
+    const lines = [
+      `## Daily Bread — ${bread.ref}`,
+      `_${bread.date} · ${bread.translation.toUpperCase()} · day ${bread.dayNumber} of the journey (${bread.progress.percent}% through the canon)_`,
+      '',
+      ...bread.verses.map((v) => `**${v.v}** ${v.t}`),
+    ]
+    if (bread.page) lines.push('', `Read the whole chapter: ${bread.page.title ?? `page ${bread.page.order}`} in the Library.`)
+    return lines.join('\n')
+  } catch (e) {
+    if (e instanceof DailyBreadError) return `Daily Bread unavailable: ${e.message}`
+    return `Error fetching Daily Bread: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
 }

@@ -30,6 +30,7 @@ import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/boo
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
 import { getWorkJson, absMedia, checksumOf, WORK_JSON_VERSION } from '@/utilities/getWorkJson'
+import { getDailyBread, DailyBreadError } from '@/utilities/dailyBread'
 
 type SoulManifest = ReturnType<typeof getAllSouls>[number]
 
@@ -573,6 +574,51 @@ export const worksPullHandler: PayloadHandler = async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[works-pull] ${msg}`)
+    return Response.json({ error: msg }, { status: 500 })
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Daily Bread — GET /api/works-ops/daily
+//
+// A deterministic, sequential reading plan over a verse-structured book Work:
+// N verses per day (default 3), Genesis 1:1 onward, wrapping at the end of the
+// canon. Same date ⇒ same verses on every node and client (see
+// utilities/dailyBread.ts — shared with LEO's get_daily_bread tool).
+//
+//   ?soul=holy-bible   which book work (default holy-bible)
+//   ?lang=web|kjv      translation (default: the book's base language)
+//   ?date=YYYY-MM-DD   any day's bread (default: today UTC)
+//   ?count=1..12       verses per day (default 3)
+//
+// Auth: none — same "read freely" stance as the rest of the Works surface.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const worksDailyHandler: PayloadHandler = async (req) => {
+  const { payload } = req
+  try {
+    const url = new URL(req.url || '', 'http://localhost')
+    const dateParam = url.searchParams.get('date')
+    const bread = await getDailyBread({
+      soulId: url.searchParams.get('soul') || 'holy-bible',
+      lang: url.searchParams.get('lang'),
+      date: dateParam,
+      count: Number(url.searchParams.get('count') || 3),
+      origin: originFromReq(req),
+    })
+
+    // Cache until the next UTC midnight (the bread changes at 00:00 UTC).
+    const now = new Date()
+    const nextMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
+    const maxAge = dateParam ? 86_400 : Math.max(60, Math.floor((nextMidnight - now.getTime()) / 1000))
+
+    return Response.json(bread, {
+      headers: { 'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=3600` },
+    })
+  } catch (e) {
+    if (e instanceof DailyBreadError) return Response.json({ error: e.message }, { status: e.status })
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[works-daily] ${msg}`)
     return Response.json({ error: msg }, { status: 500 })
   }
 }
