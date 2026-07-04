@@ -17,6 +17,14 @@ export const afterErrorHook = async (args: any) => {
     const { error, req, collection } = args ?? {}
     if (!error) return
 
+    // Triage before logging: expected client errors are noise in the error log.
+    // Skip 404s entirely; downgrade the rest of the 4xx band to 'warning' so
+    // genuine 5xx faults remain the signal. (A triageable log is the prerequisite
+    // for anything — LEO or human — actually consuming the errors channel.)
+    const status = typeof error?.status === 'number' ? error.status : 500
+    if (status === 404) return
+    const level: 'error' | 'warning' = status >= 400 && status < 500 ? 'warning' : 'error'
+
     const source = collection?.slug
       ? `payload/${collection.slug}/save`
       : 'payload/api'
@@ -30,13 +38,14 @@ export const afterErrorHook = async (args: any) => {
       undefined
 
     await logError({
+      level,
       source,
       message: error?.message ? String(error.message) : 'Unknown Payload error',
       // Payload validation errors carry a `data`/`errors` array with field-level detail.
       details: [error?.stack, JSON.stringify(error?.data ?? error?.errors ?? null)]
         .filter(Boolean)
         .join('\n'),
-      statusCode: typeof error?.status === 'number' ? error.status : 500,
+      statusCode: status,
       url: req?.url,
       userId,
       tenantId,

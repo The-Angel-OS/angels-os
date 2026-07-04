@@ -58,7 +58,27 @@ const LEVEL_EMOJI: Record<LogLevel, string> = {
  * }
  * ```
  */
+// In-process flood guard: a single flapping error (same level+source+message)
+// firing every request would otherwise insert unbounded application-logs rows +
+// AI Bus messages + Gotify pushes against the shared 100-connection IONOS Postgres.
+// This bounds the dominant case (one hot lambda repeating the same error). It's
+// per-instance (serverless), so a durable fingerprint check is a follow-up.
+const _dedup = new Map<string, number>()
+const DEDUP_WINDOW_MS = 30_000
+function _isDuplicateWithinWindow(key: string): boolean {
+  const now = Date.now()
+  const last = _dedup.get(key)
+  if (last && now - last < DEDUP_WINDOW_MS) return true
+  _dedup.set(key, now)
+  if (_dedup.size > 500) {
+    for (const [k, t] of _dedup) if (now - t > DEDUP_WINDOW_MS) _dedup.delete(k)
+  }
+  return false
+}
+
 export async function logError(options: LogErrorOptions): Promise<void> {
+  // Drop a repeat of the exact same error within the window (flood guard).
+  if (_isDuplicateWithinWindow(`${options.level ?? 'error'}:${options.source}:${options.message}`)) return
   try {
     // Lazy import: avoids pulling @payload-config into every module that imports logError
     const { getPayload } = await import('payload')

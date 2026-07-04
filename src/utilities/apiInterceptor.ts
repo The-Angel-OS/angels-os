@@ -19,6 +19,23 @@ function shouldEscalate(url: string): boolean {
   return !NO_ESCALATE.some((skip) => url.includes(skip))
 }
 
+/**
+ * A same-origin /api/ 5xx is already escalated server-side by the endpoint's own
+ * logError / the afterError hook — re-escalating from the client would double-log
+ * it. Client-worthy escalations are 4xx (which the server often doesn't log) and
+ * network/transport failures. So skip our-own-API server errors here.
+ */
+function isOwnApiServerError(url: string, status: number): boolean {
+  if (status < 500) return false
+  try {
+    const u = new URL(url, typeof window !== 'undefined' ? window.location.origin : undefined)
+    const sameOrigin = typeof window === 'undefined' || u.origin === window.location.origin
+    return sameOrigin && u.pathname.startsWith('/api/')
+  } catch {
+    return url.includes('/api/')
+  }
+}
+
 // Dedupe + rate-limit so a flapping endpoint can't spam the AI Bus. Key by
 // method+url+status; suppress repeats within the window.
 const ESCALATE_WINDOW_MS = 60_000
@@ -46,6 +63,10 @@ function escalateOnce(key: string): boolean {
  */
 export function createApiInterceptor() {
   if (typeof window === 'undefined') return // Only run on client
+  // Idempotent — never patch window.fetch twice (React strict-mode double-effects,
+  // remounts, HMR would otherwise stack interceptors).
+  if ((window as unknown as { __apiInterceptorInstalled?: boolean }).__apiInterceptorInstalled) return
+  ;(window as unknown as { __apiInterceptorInstalled?: boolean }).__apiInterceptorInstalled = true
 
   const originalFetch = window.fetch
 
@@ -72,8 +93,9 @@ export function createApiInterceptor() {
           'API',
           { status: response.status, statusText: response.statusText }
         )
-        // Escalate real failures to the canonical pipeline (deduped, poll-skipped).
-        if (shouldEscalate(url) && escalateOnce(`${method} ${url} ${response.status}`)) {
+        // Escalate real failures to the canonical pipeline (deduped, poll-skipped,
+        // and not our own /api/ 5xx which the server already logs).
+        if (shouldEscalate(url) && !isOwnApiServerError(url, response.status) && escalateOnce(`${method} ${url} ${response.status}`)) {
           logClientError({
             source: 'client/fetch',
             message: `API ${response.status} ${method} ${url}`,

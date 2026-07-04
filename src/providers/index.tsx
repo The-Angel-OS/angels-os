@@ -6,6 +6,7 @@ import React from 'react'
 import { HeaderThemeProvider } from './HeaderTheme'
 import { ThemeProvider } from './Theme'
 import { SonnerProvider } from '@/providers/Sonner'
+import { ClientReliability } from '@/components/ClientReliability'
 
 export const Providers: React.FC<{
   children: React.ReactNode
@@ -32,7 +33,7 @@ export const Providers: React.FC<{
               }),
             ]}
           >
-            {children}
+            <ClientReliability>{children}</ClientReliability>
           </EcommerceProvider>
         </HeaderThemeProvider>
       </AuthProvider>

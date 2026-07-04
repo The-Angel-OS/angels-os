@@ -25,6 +25,7 @@ export type ApiEndpoint =
   | 'bookings'
   | 'registration'
   | 'stripe_disconnect'
+  | 'client-error'
   | 'default'
 
 export interface ApiRateLimitResult {
@@ -54,6 +55,7 @@ const LIMITS: Record<ApiEndpoint, number> = {
   bookings: 20,      // Availability queries — generous for scheduling UX
   registration: 3,   // Account creation spam — tight limit
   stripe_disconnect: 5, // Stripe disconnect abuse prevention
+  'client-error': 30, // Client error reports — generous for real bursts, bounds floods
   default: 60,       // General API protection
 }
 
