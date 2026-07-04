@@ -757,15 +757,22 @@ async function gatherHealthContext(
     const domain = (tenant as any)?.domains?.[0]?.domain || ''
     const isFlagship = domain === 'spacesangels.com' || Boolean((tenant as any)?.setup?.isFlagship) // Sprint 42: `as any` removable after type regen
 
-    // Quick parallel queries for health metrics (non-blocking, best-effort)
+    // Quick parallel queries for health metrics (non-blocking, best-effort).
+    // COUNT, don't fetch: these six read only `.totalDocs`, and Payload's
+    // `limit: 0` means UNLIMITED — the old find() fully hydrated every matching
+    // row (with lateral joins on array fields) just to read a number, on every
+    // LEO turn. `count()` issues a plain SELECT count(*). Bonus: count() on
+    // orders never references the orders_fulfillment columns, so it succeeds
+    // even where that table has schema drift (kendev, 260704) — the full find
+    // did not. (productsRes still needs the docs, for inventory analysis.)
     const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes] = await Promise.allSettled([
-      payload.find({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
-      payload.find({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }, { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any, overrideAccess: true }),
+      payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }, { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } }] } as any, overrideAccess: true }),
       payload.find({ collection: 'products' as any, where: { tenant: { equals: tenantId } } as any, limit: 200, depth: 0, overrideAccess: true, select: { inventory: true, _status: true } as any }),
-      payload.find({ collection: 'comments', where: { and: [{ tenant: { equals: tenantId } }, { isApproved: { equals: false } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
-      payload.find({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'draft' } }] } as any, limit: 0, depth: 0, overrideAccess: true }),
-      payload.find({ collection: 'spaces', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
-      payload.find({ collection: 'space-memberships', where: { tenant: { equals: tenantId } } as any, limit: 0, depth: 0, overrideAccess: true }),
+      payload.count({ collection: 'comments', where: { and: [{ tenant: { equals: tenantId } }, { isApproved: { equals: false } }] } as any, overrideAccess: true }),
+      payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'draft' } }] } as any, overrideAccess: true }),
+      payload.count({ collection: 'spaces', where: { tenant: { equals: tenantId } } as any, overrideAccess: true }),
+      payload.count({ collection: 'space-memberships', where: { tenant: { equals: tenantId } } as any, overrideAccess: true }),
     ])
 
     // Log any failed health queries so they don't silently show false zeros
