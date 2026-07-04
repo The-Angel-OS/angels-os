@@ -221,6 +221,15 @@ export const TOOL_INPUT_SCHEMAS: Record<string, z.ZodType<any>> = {
 }
 
 /**
+ * Top-level keys whose values models often send as a JSON STRING instead of
+ * the object/array the schema expects (LLMs stringify nested params under
+ * tool-call pressure — a stringified `where` bricked a whole LEO turn on
+ * docs-moving, 260704). Coerced IN PLACE so both the validator and the tool
+ * handler see the parsed value.
+ */
+const JSON_COERCIBLE_KEYS = ['where', 'data', 'navItems'] as const
+
+/**
  * Validate tool input against its schema.
  * Returns null if valid or no schema exists, error message string if invalid.
  */
@@ -230,6 +239,17 @@ export function validateToolInput(
 ): string | null {
   const schema = TOOL_INPUT_SCHEMAS[toolName]
   if (!schema) return null // No schema = no validation (read-only tools)
+
+  for (const key of JSON_COERCIBLE_KEYS) {
+    const v = input[key]
+    if (typeof v === 'string' && /^\s*[[{]/.test(v)) {
+      try {
+        input[key] = JSON.parse(v)
+      } catch {
+        /* not valid JSON — leave it; the validator reports it below */
+      }
+    }
+  }
 
   const result = schema.safeParse(input)
   if (result.success) return null

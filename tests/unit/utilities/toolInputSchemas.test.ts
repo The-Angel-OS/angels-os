@@ -325,3 +325,47 @@ describe('validateToolInput', () => {
     }
   })
 })
+
+// ─── JSON-string coercion (validateToolInput) ────────────────
+// Models often stringify nested params — a stringified `where` on payload_find
+// bricked a whole LEO turn (260704). Coercion must fix BOTH validation and the
+// input object the handler receives.
+
+describe('validateToolInput JSON-string coercion', () => {
+  it('coerces a stringified where on payload_find, in place', () => {
+    const input: Record<string, unknown> = {
+      collection: 'media',
+      where: '{"filename":{"like":"docsmoving"}}',
+    }
+    const result = validateToolInput('payload_find', input)
+    expect(result).toBeNull()
+    expect(input.where).toEqual({ filename: { like: 'docsmoving' } })
+  })
+
+  it('coerces a stringified data on payload_update', () => {
+    const input: Record<string, unknown> = {
+      collection: 'pages',
+      id: 5,
+      data: '{"title":"Gallery"}',
+    }
+    expect(validateToolInput('payload_update', input)).toBeNull()
+    expect(input.data).toEqual({ title: 'Gallery' })
+  })
+
+  it('leaves invalid JSON strings for the validator to report', () => {
+    const input: Record<string, unknown> = {
+      collection: 'media',
+      where: '{not json',
+    }
+    const result = validateToolInput('payload_find', input)
+    expect(result).toContain('where')
+    expect(input.where).toBe('{not json')
+  })
+
+  it('does not touch values that are already objects', () => {
+    const where = { slug: { equals: 'gallery' } }
+    const input: Record<string, unknown> = { collection: 'pages', where }
+    expect(validateToolInput('payload_find', input)).toBeNull()
+    expect(input.where).toBe(where)
+  })
+})

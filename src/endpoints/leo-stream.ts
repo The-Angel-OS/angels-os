@@ -1648,9 +1648,21 @@ async function streamViaGateway(opts: {
           const toolName = (tr as any).toolName || 'unknown'
           if (typeof output === 'string') {
             allToolResults.push(output)
-            // Log tool execution errors for observability (they don't throw but return error strings)
+            // Log tool execution errors for observability (they don't throw but
+            // return error strings). Into the real error log, not just stdout —
+            // a turn that dies after repeated tool failures must be diagnosable
+            // from application-logs, not only Vercel runtime logs (260704: a
+            // stringified `where` bricked a gallery request invisibly). The
+            // logError flood-guard dedups a tool failing in a retry loop.
             if (output.startsWith('Error') || output.startsWith('Input validation failed')) {
               console.warn(`[LEO Stream] Tool ${toolName} returned error:`, output.slice(0, 200))
+              logError({
+                level: 'warning',
+                source: 'leo-stream.tool',
+                message: `LEO tool ${toolName} returned an error`,
+                details: output.slice(0, 1000),
+                tenantId: tenantId ? String(tenantId) : undefined,
+              }).catch(() => {})
             }
           }
         }
