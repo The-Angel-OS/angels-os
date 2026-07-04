@@ -46,7 +46,6 @@
     "@payloadcms/plugin-form-builder": "^3.77.0",
     "@payloadcms/plugin-mcp": "^3.77.0",
     "@payloadcms/plugin-multi-tenant": "^3.77.0",
-    "@payloadcms/plugin-nested-docs": "^3.85.1",
     "@payloadcms/plugin-seo": "^3.77.0",
     "@payloadcms/richtext-lexical": "^3.77.0",
     "@payloadcms/storage-vercel-blob": "^3.77.0",

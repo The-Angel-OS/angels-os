@@ -58,9 +58,6 @@ importers:
       '@payloadcms/plugin-multi-tenant':
         specifier: ^3.77.0
         version: 3.77.0(@payloadcms/ui@3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))
-      '@payloadcms/plugin-nested-docs':
-        specifier: ^3.85.1
-        version: 3.85.1(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))
       '@payloadcms/plugin-seo':
         specifier: ^3.77.0
         version: 3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2)
@@ -2567,11 +2564,6 @@ packages:
     peerDependencies:
       '@payloadcms/ui': 3.77.0
       payload: 3.77.0
-
-  '@payloadcms/plugin-nested-docs@3.85.1':
-    resolution: {integrity: sha512-SzZmvIgchOwn0OgV/JhEmIfQwT537fgo8FEk35Lh0ENPX4xoF2dF9gMCc/2yHpqCaIrXTCKCYYFbh0DcN128qA==}
-    peerDependencies:
-      payload: 3.85.1
 
   '@payloadcms/plugin-seo@3.77.0':
     resolution: {integrity: sha512-YYSTdHTccQKRkHrQX4Nq2Ltjqo7UIkMCAOMW3rLsQ+f6/Fp1l23ZaMxaxrtb8tmiY99fg/NGRpTW7dc9/v+s0Q==}
@@ -11296,10 +11288,6 @@ snapshots:
   '@payloadcms/plugin-multi-tenant@3.77.0(@payloadcms/ui@3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))':
     dependencies:
       '@payloadcms/ui': 3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2)
-      payload: 3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2)
-
-  '@payloadcms/plugin-nested-docs@3.85.1(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))':
-    dependencies:
       payload: 3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2)
 
   '@payloadcms/plugin-seo@3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2)':
