@@ -70,3 +70,7 @@ test-results/
 scripts/_local/
 docs/transcripts/
 .bible-tmp/
+
+# Marketing/image assets — do NOT ship in the app repo (302MB); use blob storage.
+docs/marketing/
+docs/images/
