@@ -765,7 +765,9 @@ async function gatherHealthContext(
     // orders never references the orders_fulfillment columns, so it succeeds
     // even where that table has schema drift (kendev, 260704) — the full find
     // did not. (productsRes still needs the docs, for inventory analysis.)
-    const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes] = await Promise.allSettled([
+    // errorsRes = the hippocampus's first sense: this tenant's UNRESOLVED
+    // error-level logs. Makes LEO aware of its own pain in the health digest.
+    const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes, errorsRes] = await Promise.allSettled([
       payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any, overrideAccess: true }),
       payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }, { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } }] } as any, overrideAccess: true }),
       payload.find({ collection: 'products' as any, where: { tenant: { equals: tenantId } } as any, limit: 200, depth: 0, overrideAccess: true, select: { inventory: true, _status: true } as any }),
@@ -773,11 +775,12 @@ async function gatherHealthContext(
       payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'draft' } }] } as any, overrideAccess: true }),
       payload.count({ collection: 'spaces', where: { tenant: { equals: tenantId } } as any, overrideAccess: true }),
       payload.count({ collection: 'space-memberships', where: { tenant: { equals: tenantId } } as any, overrideAccess: true }),
+      payload.count({ collection: 'application-logs' as any, where: { and: [{ tenantId: { equals: String(tenantId) } }, { level: { equals: 'error' } }, { resolved: { not_equals: true } }] } as any, overrideAccess: true }),
     ])
 
     // Log any failed health queries so they don't silently show false zeros
     // Rate-limited: only warn once per query name per deployment to avoid log spam
-    const healthQueries = { pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes }
+    const healthQueries = { pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes, errorsRes }
     for (const [name, result] of Object.entries(healthQueries)) {
       if (result.status === 'rejected' && !_healthQueryWarned.has(name)) {
         _healthQueryWarned.add(name)
@@ -820,6 +823,7 @@ async function gatherHealthContext(
     const draftPosts = draftPostsRes.status === 'fulfilled' ? draftPostsRes.value.totalDocs : 0
     const spaceCount = spacesRes.status === 'fulfilled' ? spacesRes.value.totalDocs : 0
     const memberCount = membershipsRes.status === 'fulfilled' ? membershipsRes.value.totalDocs : 0
+    const unresolvedErrors = errorsRes.status === 'fulfilled' ? errorsRes.value.totalDocs : 0
 
     // Federation status
     const setup = (tenant as any)?.setup || {}
@@ -844,6 +848,7 @@ async function gatherHealthContext(
       stripeConnected,
       spaceCount,
       memberCount,
+      unresolvedErrors,
     })
 
     const cooSuffix = buildCOOPromptSuffix({

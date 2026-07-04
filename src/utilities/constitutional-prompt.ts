@@ -382,6 +382,9 @@ export function buildHealthDigest(opts: {
   stripeConnected: boolean
   spaceCount: number
   memberCount: number
+  /** Unresolved error-level entries in this tenant's application-logs — the
+   *  organism sensing its own pain. LEO was previously blind to this. */
+  unresolvedErrors?: number
 }): string {
   const {
     stage, daysSinceCreation, daysInStage,
@@ -390,12 +393,19 @@ export function buildHealthDigest(opts: {
     pendingComments, draftPosts,
     federationStatus, stripeConnected,
     spaceCount, memberCount,
+    unresolvedErrors = 0,
   } = opts
 
   const lines = [
     `[ENTERPRISE STATUS as of ${new Date().toISOString()}]`,
     `- Stage: ${stage} (Day ${daysSinceCreation}${daysInStage != null ? `, ${daysInStage} days remaining in stage` : ''})`,
   ]
+
+  // Lead with pain: an organism should notice its own unresolved errors before
+  // it reports on orders. If asked "how are things?", LEO can now name them.
+  if (unresolvedErrors > 0) {
+    lines.push(`- ⚠️ ${unresolvedErrors} UNRESOLVED error${unresolvedErrors === 1 ? '' : 's'} in the log — worth triaging; check the error-logs dashboard or ask me to look.`)
+  }
 
   if (pendingOrders > 0 || overdueOrders > 0) {
     lines.push(`- ${pendingOrders} orders pending${overdueOrders > 0 ? ` (${overdueOrders} OVERDUE >48h)` : ''}`)

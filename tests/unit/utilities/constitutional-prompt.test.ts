@@ -14,8 +14,46 @@ import {
   buildConstitutionalPrompt,
   buildMinimalConstitutionalPrompt,
   validateConstitutionalResponse,
+  buildHealthDigest,
   CONSTITUTIONAL_PROMPT_VERSION,
 } from '@/utilities/constitutional-prompt'
+
+// ---------------------------------------------------------------------------
+// buildHealthDigest — the organism sensing itself (incl. unresolved errors)
+// ---------------------------------------------------------------------------
+
+const baseHealth = {
+  stage: 'GROWTH' as const,
+  daysSinceCreation: 120,
+  pendingOrders: 0,
+  overdueOrders: 0,
+  lowStockProducts: 0,
+  outOfStockProducts: 0,
+  pendingComments: 0,
+  draftPosts: 0,
+  federationStatus: 'connected' as const,
+  stripeConnected: true,
+  spaceCount: 3,
+  memberCount: 12,
+}
+
+describe('buildHealthDigest — unresolved errors (hippocampus slice)', () => {
+  it('surfaces unresolved errors prominently when present', () => {
+    const digest = buildHealthDigest({ ...baseHealth, unresolvedErrors: 4 })
+    expect(digest).toMatch(/4 UNRESOLVED errors/)
+    // Leads with pain: the error line comes before Federation/Stripe/Spaces.
+    expect(digest.indexOf('UNRESOLVED')).toBeLessThan(digest.indexOf('Federation'))
+  })
+
+  it('singularizes one error', () => {
+    expect(buildHealthDigest({ ...baseHealth, unresolvedErrors: 1 })).toMatch(/1 UNRESOLVED error\b/)
+  })
+
+  it('says nothing about errors when there are none (or the field is absent)', () => {
+    expect(buildHealthDigest({ ...baseHealth, unresolvedErrors: 0 })).not.toMatch(/UNRESOLVED/)
+    expect(buildHealthDigest(baseHealth)).not.toMatch(/UNRESOLVED/)
+  })
+})
 
 // ---------------------------------------------------------------------------
 // Structural Integrity Tests
