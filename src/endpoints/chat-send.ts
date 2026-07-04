@@ -58,15 +58,21 @@ export const chatSendHandler: PayloadHandler = async (req) => {
   // Allow empty text when attachments are present (image-only messages).
   const hasAttachments = Array.isArray(attachments) && attachments.length > 0
   const MAX_MESSAGE_LENGTH = 50_000 // 50K characters — generous but prevents abuse
+  // Trusted system/node authors (e.g. a Merlin node posting a directory-listing
+  // result whose JSON is embedded behind the bus sentinel) are machine output, not
+  // human prose, and legitimately exceed the chat cap. Gate on the AUTHENTICATED
+  // author being a system user — never the spoofable messageType field.
+  const isSystemAuthor = Boolean((req.user as { isSystemUser?: boolean }).isSystemUser)
+  const maxLen = isSystemAuthor ? 500_000 : MAX_MESSAGE_LENGTH
   if (typeof content === 'object' && content !== null) {
     const textContent = (content as Record<string, unknown>).text
     if (typeof textContent === 'string') {
       if (!textContent.trim() && !hasAttachments) {
         return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
       }
-      if (textContent.length > MAX_MESSAGE_LENGTH) {
+      if (textContent.length > maxLen) {
         return Response.json(
-          { message: `Message too long (${textContent.length} chars). Maximum is ${MAX_MESSAGE_LENGTH}.` },
+          { message: `Message too long (${textContent.length} chars). Maximum is ${maxLen}.` },
           { status: 400 },
         )
       }
@@ -75,9 +81,9 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     if (!content.trim() && !hasAttachments) {
       return Response.json({ message: 'Message content cannot be empty' }, { status: 400 })
     }
-    if (content.length > MAX_MESSAGE_LENGTH) {
+    if (content.length > maxLen) {
       return Response.json(
-        { message: `Message too long (${content.length} chars). Maximum is ${MAX_MESSAGE_LENGTH}.` },
+        { message: `Message too long (${content.length} chars). Maximum is ${maxLen}.` },
         { status: 400 },
       )
     }
