@@ -93,6 +93,7 @@ import { spaceProvisionChannelsHandler } from '@/endpoints/space-provision-chann
 import { spaceInviteHandler } from '@/endpoints/space-invite'
 import { inviteResendHandler } from '@/endpoints/invite-resend'
 import { worksListHandler, worksGetHandler, worksImportHandler, worksChecksumsHandler, worksPullHandler, worksDailyHandler } from '@/endpoints/works'
+import { logConsolidateHandler } from '@/endpoints/log-consolidate'
 import { inviteAcceptHandler } from '@/endpoints/invite-accept'
 import { tenantInviteAcceptHandler } from '@/endpoints/tenant-invite-accept'
 import { spaceMembersRemoveHandler, spaceMemberCandidatesHandler, spaceMemberAddHandler } from '@/endpoints/space-members'
@@ -541,6 +542,9 @@ export default buildConfig({
     { path: '/works-ops/pull', method: 'get', handler: worksPullHandler },
     // Daily Bread — deterministic N-verses-a-day reading plan over a book Work.
     { path: '/works-ops/daily', method: 'get', handler: worksDailyHandler },
+    // Hippocampus — nightly log consolidation (keep unresolved pain, forget the rest).
+    { path: '/log-ops/consolidate', method: 'get', handler: logConsolidateHandler },
+    { path: '/log-ops/consolidate', method: 'post', handler: logConsolidateHandler },
     { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },
     {
       path: '/leo',

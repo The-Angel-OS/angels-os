@@ -28,6 +28,10 @@
     {
       "path": "/api/provision-ops/verify-onboarding?all=1",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/log-ops/consolidate",
+      "schedule": "30 3 * * *"
     }
   ],
   "headers": [
