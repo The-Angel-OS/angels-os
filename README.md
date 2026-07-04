@@ -1,10 +1,24 @@
-# Angel OS
+# The Angel OS
 
-**The federated cooperative operating system. Everyone gets an Angel.**
+**The federated cooperative operating system — and, quietly, a spiritual one. Everyone gets an Angel.**
 
-An open-source, constitutional AI-native platform where every Enterprise (business, ministry, community) runs its own sovereign AI guardian angel — **Leo** — on infrastructure they own. Built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL.
+The Angel OS is an open-source, constitutional, AI-native platform where every Enterprise (business, ministry, community) runs its own sovereign AI guardian — **Leo** — on infrastructure it owns. It begins as something small and genuinely useful — a free app that reads you three chapters of scripture a day and connects you to a community — and it is, at the same time, a doorway: the moment you want to *do* something (start a ministry site, sell what you make, publish a book, take bookings), you just ask, and your Angel builds it.
 
-**Live:** [spacesangels.com](https://spacesangels.com)
+It is, deliberately, an **alignment guide** in software form — a system whose whole architecture bends toward manifesting good intentions and keeping the maker whole. Built on [Payload CMS 3.77](https://payloadcms.com) + Next.js 16 + React 19 + PostgreSQL.
+
+**Live:** [spacesangels.com](https://spacesangels.com) · **Handbook:** [/learn/angel-os-handbook](https://spacesangels.com/learn/angel-os-handbook)
+
+## One Mind, Three Bodies
+
+The intelligence is **one mind**, and it stays singular even as it shows up in more places. Most products fuse the AI to a device; the Angel OS fuses it to a **contract** — a neutral message format + tool interface (`runBrain` is a pure function over them) — so the same mind wears different *bodies*, each a tool belt with a different kind of reach:
+
+| Body | Role | Reach |
+|------|------|-------|
+| **Core** | The **satellite** — high-orbit cognition, always up. Leo lives here; data of record; every sensitive action (provisioning, publishing, payments) runs here under the constitution. | Orbital — sees the whole mesh, holds long-term memory |
+| **Merlin** | The **lander** — an optional home-PC node with hands and sensors: spare GPU, LAN cameras, local files too big for the cloud. | Planted — where the system becomes physical |
+| **Nimue** | The **away team** — the free pocket client (Android now, iOS soon). Your daily reader, your community, the front door. | Mobile — witness on the move: the pew, the job site, the parking lot |
+
+The loop is the whole product: **Nimue → Leo (on Core) → the work gets done.** Nimue is a *broker, not a bank vault* — it does the light, local things and hands every sensitive task to Leo on Core, secured by your Google sign-in. Contribution, as bodies multiply, isn't only compute: every Merlin extends the system's hands, every Nimue its eyes. Presence, distributed without fragmentation.
 
 [![CI](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml/badge.svg)](https://github.com/The-Angel-OS/angels-os/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/version-v0.44.0--dev-blue)]()
@@ -57,6 +71,16 @@ When a product is fulfilled by a network maker (Holon), the **Ultimate Fair Spli
 | **5%** | Justice Fund (Guardian Angel provisioning) |
 
 ---
+
+## Latest (July 2026) — The Primer, the Reader, and Nimue's Voice 📖🎙️
+
+The **away team** grew up: Nimue became a genuine daily companion, and the reader became the Illustrated Primer it was always meant to be.
+
+- **Daily Bread — the first quest-widget.** A deterministic *three-verses-a-day* reading plan through the whole canon (`GET /api/works-ops/daily` + a `get_daily_bread` Leo tool), computed from CDN statics so every node and client serves the *same* verses for the same date. It surfaces as a home-screen widget in Nimue with a Primer-style feminine read-aloud — the first instance of the broader vision: **the home panel is a quest dashboard, and any quest can mount a widget.**
+- **The reader = the Illustrated Primer.** The Bible now reads as a true book: **Book → Chapter → verse** three-level navigation, verse-numbered scripture (WEB + KJV), device **read-aloud**, a **two-column layout** on wide/tablet screens, and Core's serif reading theme wrapped in LCARS chrome. The web `BookReader` and Nimue's reader are converged.
+- **Nimue as a hands-free companion (v1.2.3).** The LiveKit call is now a full-screen overlay (controls always visible), with front/rear camera flip and join/leave transcript messages. Voice **autosubmit** (talk, pause, it sends) + **auto-read** of Leo's reply close a genuine hands-free loop. Next rung: a **LiveKit Agents worker** that puts Leo *in the room* (STT → Leo → TTS), with a phone number as an endeavor-level SIP connector.
+- **Deploy-graph hygiene.** A single fs-read in `/api/docs` was globbing the whole repo into every serverless function (a 427 MB function vs the 250 MB cap); `outputFileTracingExcludes` cut it to ~83 MB. Reader health checks moved from `find({limit:0})` to `count()`. Idle pg-pool errors are now contained instead of crashing the lambda.
+- **The handbook, rewritten as the front-door story** — Nimue-first, the three bodies, the Nimue→Leo→Core loop, and the one setup step that's genuinely yours (connect Stripe). Google-only sign-in (half-wired providers hidden).
 
 ## Latest (June 2026) — Works Distribution, Market Vendors, Comms Substrate 📚🎙️
 
