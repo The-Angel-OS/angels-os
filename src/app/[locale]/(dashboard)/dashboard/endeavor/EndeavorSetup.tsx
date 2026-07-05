@@ -421,7 +421,7 @@ export default function EndeavorSetup() {
       </Section>
 
       {/* Federation Visibility */}
-      <Section title="Federation">
+      <Section title="Discovery & Federation">
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -439,9 +439,10 @@ export default function EndeavorSetup() {
             className="h-4 w-4 rounded border-gray-300"
           />
           <div>
-            <span className="text-sm font-medium">Visible in Federation Network</span>
+            <span className="text-sm font-medium">Show in Discovery</span>
             <p className="text-xs text-muted-foreground">
-              Appear in the Angel OS network catalog so other Enterprises can discover you
+              Adds the <strong>Discovery</strong> link to your site header and lists this
+              Enterprise in the Angel OS network catalog so others can find you.
             </p>
           </div>
         </label>

@@ -41,6 +41,13 @@ type Props = {
   hasWorks?: boolean
   /** Book is first-class only when the tenant has an enabled bookable service. */
   hasBook?: boolean
+  /**
+   * Whether to show the federation "Discovery" link. Driven by the Endeavor's
+   * "Show in Discovery" toggle (endeavor.federation.networkVisible). When
+   * undefined (no Endeavor configured yet) we fall back to the businessType
+   * inference so un-configured community sites don't lose the link.
+   */
+  showDiscovery?: boolean
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -155,7 +162,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -205,12 +212,17 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   // which could cause useMemo to recompute unexpectedly.
   const navItems = header?.navItems
   // A commercial storefront (HVAC, mover, retail, etc.) should NOT surface the
-  // platform/mission chrome — Donate, the Works library, Learn, and federation
-  // Discovery belong to community/ministry endeavors, not a customer-facing shop.
-  // Suppressing them here stops that cross-barrier leak. (Dashboard stays — the
-  // owner needs to log in — but it always lives in the "More" overflow anyway.)
+  // platform/mission chrome — Donate, the Works library, and Learn belong to
+  // community/ministry endeavors, not a customer-facing shop. Suppressing them
+  // here stops that cross-barrier leak. (Dashboard stays — the owner needs to log
+  // in — but it always lives in the "More" overflow anyway.) Discovery is handled
+  // separately below via its own explicit toggle.
   const businessType = (tenant as { businessType?: string } | null | undefined)?.businessType
   const isStorefront = ['service', 'retail', 'professional_services', 'artisan_maker', 'gift_shop'].includes(businessType || '')
+  // The Discovery link is an explicit switch: the Endeavor's "Show in Discovery"
+  // toggle (showDiscovery) wins when set. When it's undefined (no Endeavor yet)
+  // fall back to the old behavior — visible for any non-storefront community site.
+  const discoveryEnabled = showDiscovery ?? !isStorefront
   // A giving org (church/ministry/nonprofit) gets Giving promoted to top-level; for
   // any other community site the link still exists but stays in More until configured.
   // Label flips to "Giving" for a church/ministry, "Donate" otherwise.
@@ -232,9 +244,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
+    // Discovery is its own switch (Endeavor "Show in Discovery" toggle).
+    if (discoveryEnabled && !urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
     // Mission/platform chrome — community endeavors only, never a commercial storefront.
     if (!isStorefront) {
-      if (!urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
       if (!urls.has('/donate')) items.push(donateItem)
       if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
       if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
@@ -243,7 +256,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // Dashboard is always visible — the dashboard layout handles auth redirect.
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     return items
-  }, [navItems, isStorefront, donateItem])
+  }, [navItems, isStorefront, discoveryEnabled, donateItem])
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
@@ -262,7 +275,8 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (!isGivingOrg) demoteUrls.push('/donate')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
-    forcePrimaryUrls: ['/federation/discover'], // Discovery is always top-level
+    // Discovery, when enabled, is always top-level (never demoted to More).
+    forcePrimaryUrls: discoveryEnabled ? ['/federation/discover'] : [],
     forceOverflowUrls: ['/dashboard'],
     demoteUrls,
   })

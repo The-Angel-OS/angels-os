@@ -256,7 +256,7 @@ All require authentication. Dashboard layout includes sidebar navigation and hea
 |-------|--------|-------------|
 | `/dashboard/spaces` | Spaces | Multi-channel chat, AI Bus, LEO |
 | `/dashboard/holon` | Holon | Manufacturing node registration |
-| `/dashboard/endeavor` | Endeavor | Enterprise identity and constitution |
+| `/dashboard/admin/settings?tab=endeavor` | Endeavor | Enterprise identity and constitution (Settings tab) |
 | `/dashboard/federation-network` | Federation | LCARS network visualization |
 
 #### Admin
@@ -264,7 +264,7 @@ All require authentication. Dashboard layout includes sidebar navigation and hea
 | Route | Screen | Description |
 |-------|--------|-------------|
 | `/dashboard/admin` | Admin Panel | Admin dashboard overview |
-| `/dashboard/admin/ai-settings` | AI Settings | LLM configuration, API keys |
+| `/dashboard/admin/settings` | Settings | Site identity, Endeavor, AI keys, developer/MCP (tabbed) |
 | `/dashboard/admin/bookings` | Bookings | Booking management |
 | `/dashboard/admin/comments` | Comments | Content moderation |
 | `/dashboard/admin/connectors` | Connectors | MCP/integration config |

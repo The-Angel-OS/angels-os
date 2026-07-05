@@ -22,7 +22,7 @@ const ADMIN_STEPS = [
     number: 2,
     title: 'Define Your Endeavor',
     description: 'Set your mission, capabilities, and federation identity.',
-    href: '/dashboard/endeavor',
+    href: '/dashboard/admin/settings?tab=endeavor',
     cta: 'Set Up Endeavor',
   },
   {

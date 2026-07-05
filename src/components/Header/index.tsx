@@ -170,5 +170,27 @@ export async function Header({ tenant }: Props) {
   // when this tenant actually has works available; else collapse into More.
   const hasWorks = getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
 
-  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} />
+  // Discovery link visibility — driven by the Endeavor's "Show in Discovery"
+  // toggle (endeavors.federation.networkVisible). Left undefined when there's no
+  // Endeavor doc yet so HeaderClient falls back to its businessType inference.
+  let showDiscovery: boolean | undefined = undefined
+  if (tenantId) {
+    try {
+      const payload = await getPayload({ config })
+      const endeavor = await payload.find({
+        collection: 'endeavors',
+        where: { tenant: { equals: tenantId } },
+        limit: 1,
+        depth: 0,
+        select: { federation: true },
+        overrideAccess: true,
+      })
+      const fed = (endeavor.docs[0] as { federation?: { networkVisible?: boolean } } | undefined)?.federation
+      if (fed) showDiscovery = Boolean(fed.networkVisible)
+    } catch (err) {
+      console.error('[Header] Failed to resolve Discovery visibility:', err)
+    }
+  }
+
+  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} />
 }

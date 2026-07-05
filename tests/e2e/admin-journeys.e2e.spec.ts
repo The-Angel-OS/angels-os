@@ -6,7 +6,7 @@
  * 2. Provision Wizard — /dashboard/admin/provision 5-step UI
  * 3. Tenant Detail & Deprovisioning — /dashboard/admin/tenants/[id]
  * 4. Payments Admin — /dashboard/admin/payments Stripe Connect
- * 5. AI Settings — /dashboard/admin/ai-settings API key mgmt
+ * 5. Settings — /dashboard/admin/settings (General/Endeavor/AI/Developer tabs)
  * 6. Admin Navigation & Access — sidebar links, route accessibility
  *
  * Prerequisites:
@@ -414,33 +414,41 @@ test.describe('Admin Journey: Payments Admin', () => {
   })
 })
 
-// ─── AI Settings ─────────────────────────────────────────────────────────────
+// ─── Settings ────────────────────────────────────────────────────────────────
 
-test.describe('Admin Journey: AI Settings', () => {
-  test('AI settings page renders with heading', async ({ page }) => {
-    await page.goto('/dashboard/admin/ai-settings')
+test.describe('Admin Journey: Settings', () => {
+  test('Settings page renders with heading', async ({ page }) => {
+    await page.goto('/dashboard/admin/settings')
     await page.waitForTimeout(3000)
 
-    const heading = page.locator('h1', { hasText: 'AI Settings' })
+    const heading = page.locator('h1', { hasText: 'Settings' })
     await expect(heading).toBeVisible()
+
+    // Consolidated tabs
+    await expect(page.getByRole('tab', { name: 'General' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Endeavor' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'AI' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Developer' })).toBeVisible()
+  })
+
+  test('AI tab shows API key sections', async ({ page }) => {
+    await page.goto('/dashboard/admin/settings')
+    await page.waitForTimeout(3000)
+    await page.getByRole('tab', { name: 'AI' }).click()
 
     // API key sections
     await expect(page.locator('h2', { hasText: 'Anthropic API Key' })).toBeVisible()
     await expect(page.locator('h2', { hasText: 'OpenRouter API Key' })).toBeVisible()
-  })
-
-  test('Anthropic API key status shown', async ({ page }) => {
-    await page.goto('/dashboard/admin/ai-settings')
-    await page.waitForTimeout(3000)
 
     // Status indicator: "Active" or "Using platform key"
     const status = page.locator('text=/Active|Using platform key/')
     await expect(status.first()).toBeVisible()
   })
 
-  test('Save buttons are present for key entry', async ({ page }) => {
-    await page.goto('/dashboard/admin/ai-settings')
+  test('AI tab has save buttons for key entry', async ({ page }) => {
+    await page.goto('/dashboard/admin/settings')
     await page.waitForTimeout(3000)
+    await page.getByRole('tab', { name: 'AI' }).click()
 
     // Password input fields for API keys
     const passwordInputs = page.locator('input[type="password"]')
@@ -451,6 +459,20 @@ test.describe('Admin Journey: AI Settings', () => {
     const saveButtons = page.getByRole('button', { name: /Save/i })
     const saveCount = await saveButtons.count()
     expect(saveCount).toBeGreaterThanOrEqual(2)
+  })
+
+  test('Endeavor tab is reachable via ?tab= deep link', async ({ page }) => {
+    await page.goto('/dashboard/admin/settings?tab=endeavor')
+    await page.waitForTimeout(3000)
+
+    await expect(page.locator('h1', { hasText: 'Endeavor Setup' })).toBeVisible()
+  })
+
+  test('legacy /dashboard/endeavor redirects into Settings', async ({ page }) => {
+    await page.goto('/dashboard/endeavor')
+    await page.waitForTimeout(3000)
+
+    await expect(page).toHaveURL(/\/dashboard\/admin\/settings\?tab=endeavor/)
   })
 })
 
@@ -482,7 +504,7 @@ test.describe('Admin Journey: Navigation & Access', () => {
       'Payments',
       'Invitations',
       'Contacts',
-      'AI Settings',
+      'Settings',
       'Error Logs',
     ]
 
@@ -498,7 +520,7 @@ test.describe('Admin Journey: Navigation & Access', () => {
       '/dashboard/admin',
       '/dashboard/admin/provision',
       '/dashboard/admin/payments',
-      '/dashboard/admin/ai-settings',
+      '/dashboard/admin/settings',
       '/dashboard/admin/invitations',
       '/dashboard/admin/contacts',
       '/dashboard/admin/error-logs',

@@ -1,14 +1,12 @@
 import { redirect } from 'next/navigation'
-import { setRequestLocale } from 'next-intl/server'
-import { checkIsAdmin } from '../setup/actions'
-import EndeavorSetup from './EndeavorSetup'
 
 /**
- * Endeavor Setup page — /dashboard/endeavor
+ * Legacy Endeavor Setup route — /dashboard/endeavor
  *
- * Admin-only page for viewing and editing the Enterprise's constitutional
- * identity (Endeavor). This is where admins define their mission, capabilities,
- * holon types, region, and federation visibility.
+ * Endeavor Setup now lives as a tab inside the consolidated Settings hub. This
+ * route is kept as a permanent redirect so existing links — notably LEO's
+ * navDirective('/dashboard/endeavor') tool responses and the OnboardingGuide —
+ * continue to land on the right pane.
  */
 export default async function EndeavorPage({
   params,
@@ -16,14 +14,6 @@ export default async function EndeavorPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  setRequestLocale(locale)
-
-  // Role guard — admin only
-  const isAdmin = await checkIsAdmin()
-  if (!isAdmin) {
-    const prefix = locale === 'en' ? '' : `/${locale}`
-    redirect(`${prefix}/dashboard`)
-  }
-
-  return <EndeavorSetup />
+  const prefix = locale === 'en' ? '' : `/${locale}`
+  redirect(`${prefix}/dashboard/admin/settings?tab=endeavor`)
 }

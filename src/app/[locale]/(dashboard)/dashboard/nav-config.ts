@@ -424,14 +424,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         className: 'text-emerald-600 dark:text-emerald-400',
       },
       {
-        key: 'endeavor',
-        label: 'Endeavor Setup',
-        icon: 'wand',
-        href: (p) => `${p}/dashboard/endeavor`,
-        isActive: active('/dashboard/endeavor'),
-        visible: always,
-      },
-      {
         key: 'provision',
         label: 'Provision',
         icon: 'plus',
@@ -475,8 +467,8 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         key: 'settings',
         label: 'Settings',
         icon: 'gear',
-        href: (p) => `${p}/dashboard/admin/ai-settings`,
-        isActive: active('/dashboard/admin/ai-settings'),
+        href: (p) => `${p}/dashboard/admin/settings`,
+        isActive: active('/dashboard/admin/settings'),
         visible: always,
       },
       {

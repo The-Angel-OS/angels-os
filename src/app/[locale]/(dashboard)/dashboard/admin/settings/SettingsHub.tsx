@@ -1,12 +1,14 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import EndeavorSetup from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabId = 'general' | 'ai' | 'developer'
+type TabId = 'general' | 'endeavor' | 'ai' | 'developer'
 
 interface BrandingData {
   siteName?: string
@@ -68,6 +70,7 @@ const CURRENCIES = [
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'general', label: 'General' },
+  { id: 'endeavor', label: 'Endeavor' },
   { id: 'ai', label: 'AI' },
   { id: 'developer', label: 'Developer' },
 ]
@@ -616,7 +619,15 @@ export function SettingsHub({
   branding,
   commerce,
 }: SettingsHubProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('general')
+  // Deep-linkable: /dashboard/admin/settings?tab=endeavor lands on the Endeavor
+  // tab. Legacy /dashboard/endeavor redirects here with that param, so LEO's
+  // navDirective('/dashboard/endeavor') calls still open the right pane.
+  const searchParams = useSearchParams()
+  const initialTab = ((): TabId => {
+    const t = searchParams?.get('tab')
+    return TABS.some((tab) => tab.id === t) ? (t as TabId) : 'general'
+  })()
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab)
 
   return (
     <div className="space-y-6">
@@ -657,6 +668,7 @@ export function SettingsHub({
         {activeTab === 'general' && (
           <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} />
         )}
+        {activeTab === 'endeavor' && <EndeavorSetup />}
         {activeTab === 'ai' && (
           <AITab tenantId={tenantId} hasAnthropicKey={hasAnthropicKey} hasOpenRouterKey={hasOpenRouterKey} />
         )}
