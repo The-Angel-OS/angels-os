@@ -1,6 +1,22 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
+
+/** "Currently employed" window — a provider/model used within this is shown live. */
+const ACTIVE_MS = 10 * 60 * 1000
+
+/** Human "time ago" from an ISO string, relative to a ticking `now`. */
+function timeAgo(iso: string | undefined, now: number): string {
+  if (!iso) return 'never'
+  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000))
+  if (s < 60) return `${s}s ago`
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.round(h / 24)}d ago`
+}
 
 // ---------------------------------------------------------------------------
 // Types (mirror AiCostSummary from src/utilities/aiCostTelemetry.ts)
@@ -16,6 +32,8 @@ interface CostBucket {
   costCents: number
   unpriced: number
   free: number
+  /** ISO timestamp of the most recent response in this bucket (live indicator). */
+  lastAt?: string
 }
 
 interface AiCostSummary {
@@ -158,6 +176,15 @@ export default function AICostsPanel() {
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  // Ticks every 5s so the live "in play" recency updates without a full refetch.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5000)
+    return () => clearInterval(id)
+  }, [])
+  // Deep-link to the AI tab of this portal's Settings (same locale prefix).
+  const pathname = usePathname()
+  const settingsHref = `${pathname.replace(/\/ai-costs\/?$/, '')}/admin/settings?tab=ai`
 
   const fetchData = useCallback(async (window: number) => {
     try {
@@ -181,7 +208,7 @@ export default function AICostsPanel() {
   useEffect(() => {
     setLoading(true)
     fetchData(days)
-    const interval = setInterval(() => fetchData(days), 60_000)
+    const interval = setInterval(() => fetchData(days), 30_000)
     return () => clearInterval(interval)
   }, [fetchData, days])
 
@@ -251,6 +278,13 @@ export default function AICostsPanel() {
           {lastRefresh && (
             <span className="text-xs text-muted-foreground">Updated {lastRefresh.toLocaleTimeString()}</span>
           )}
+          <a
+            href={settingsHref}
+            className="rounded border border-border px-2 py-1 text-xs hover:bg-muted"
+            title="Provider keys, model & AI settings"
+          >
+            AI Settings →
+          </a>
           <button
             onClick={() => fetchData(days)}
             className="rounded border border-border px-2 py-1 text-xs hover:bg-muted"
@@ -292,6 +326,9 @@ export default function AICostsPanel() {
           </div>
         </Card>
       </div>
+
+      {/* ── Providers in play (live status from per-call telemetry) ─ */}
+      <LiveProvidersPanel byProvider={data.byProvider} byModel={data.byModel} now={now} />
 
       {/* ── AI Budget (the economic close) ─────────────────────── */}
       {data.budget && (
@@ -529,6 +566,83 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex items-center justify-between">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium">{children}</dd>
+    </div>
+  )
+}
+
+/**
+ * Live "who's serving right now" — read straight from the per-call telemetry (each
+ * response records its provider/model + timestamp). Providers/models used within
+ * ACTIVE_MS pulse green; the recency ticks every 5s so it reads as real-time even
+ * between the 30s data refetches. Sorted most-recent-first, so the model answering
+ * this instant sits at the top.
+ */
+function LiveProvidersPanel({
+  byProvider,
+  byModel,
+  now,
+}: {
+  byProvider: CostBucket[]
+  byModel: CostBucket[]
+  now: number
+}) {
+  const providers = [...byProvider].sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || ''))
+  const models = [...byModel].sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || '')).slice(0, 8)
+  const isActive = (iso?: string) => Boolean(iso && now - new Date(iso).getTime() < ACTIVE_MS)
+  const activeCount = providers.filter((p) => isActive(p.lastAt)).length
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold uppercase text-muted-foreground">Providers in play</h2>
+        <span className="text-xs text-muted-foreground">
+          {providers.length === 0 ? 'idle' : `${activeCount} active now · live`}
+        </span>
+      </div>
+
+      {providers.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No AI traffic in this window.</p>
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {providers.map((p) => {
+              const active = isActive(p.lastAt)
+              const color = PROVIDER_COLORS[p.key] || 'bg-gray-400'
+              return (
+                <span
+                  key={p.key}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${active ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}
+                  title={`${p.responses} responses · ${fmtUsd(p.costCents)}`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${color} ${active ? 'animate-pulse' : 'opacity-40'}`} />
+                  <span className="font-medium capitalize">{p.key}</span>
+                  <span className="text-muted-foreground">{timeAgo(p.lastAt, now)}</span>
+                </span>
+              )
+            })}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/60">
+              Recent models
+            </div>
+            {models.map((m) => {
+              const active = isActive(m.lastAt)
+              const color = PROVIDER_COLORS[m.provider || 'unknown'] || 'bg-gray-400'
+              return (
+                <div key={m.key} className="flex items-center gap-2 text-sm">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${color} ${active ? 'animate-pulse' : 'opacity-40'}`} />
+                  <span className="min-w-0 truncate font-medium" title={m.key}>{m.key}</span>
+                  {m.provider && <span className="shrink-0 text-xs text-muted-foreground">{m.provider}</span>}
+                  <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {timeAgo(m.lastAt, now)} · {m.responses} · {fmtUsd(m.costCents)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

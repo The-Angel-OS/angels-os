@@ -52,6 +52,9 @@ export interface CostBucket {
   unpriced: number
   /** Responses that served for $0 (local/free providers). */
   free: number
+  /** ISO timestamp of the MOST RECENT response in this bucket — drives the live
+   *  "currently employed" indicator (the scan is newest-first, so first-seen wins). */
+  lastAt?: string
 }
 
 export interface AiCostSummary {
@@ -269,6 +272,8 @@ export async function getAiCostSummary(
           if (cost !== undefined) b.costCents += cost
           if (isUnpriced) b.unpriced++
           if (isFree) b.free++
+          // Newest-first scan → the first row we see for a bucket is its latest use.
+          if (!b.lastAt && d.createdAt) b.lastAt = d.createdAt
         }
       }
 
