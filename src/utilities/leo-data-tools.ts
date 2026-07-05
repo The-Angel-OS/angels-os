@@ -12761,14 +12761,16 @@ async function handleDelegateTask(
     await payload.create({
       collection: 'messages',
       data: {
-        content: taskContent,
+        // Messages.content is a required JSON field that REJECTS a bare string
+        // ("field invalid: Content") — it must be the {text} shape. This is why
+        // delegate_task failed every time LEO tried to create a task.
+        content: { text: taskContent },
         space: space.id,
         channel: 'team',
         messageType: 'system',
-        priority,
         author: leoUserId || ctx.userId || 1,
         tenant: tenantId,
-        visibility: 'tenant',
+        metadata: { priority, ...(assigneeEmail ? { assigneeEmail } : {}), ...(deadline ? { deadline } : {}) },
       } as any,
       overrideAccess: true,
     })

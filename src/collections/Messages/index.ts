@@ -261,7 +261,21 @@ export const Messages: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeValidate: [setTenantFromSpace],
+    beforeValidate: [
+      setTenantFromSpace,
+      // Make the documented "plain string values are auto-wrapped" promise TRUE.
+      // `content` is a required JSON field that REJECTS a bare string on write
+      // ("field invalid: Content"), which silently broke every tool that built a
+      // string and passed it raw (delegate_task, escalate_issue, send_emergency_alert,
+      // send_message, connector relays…). Coerce here once, so no writer has to
+      // remember the {text} shape.
+      ({ data }) => {
+        if (data && typeof (data as { content?: unknown }).content === 'string') {
+          ;(data as { content?: unknown }).content = { text: (data as { content: string }).content }
+        }
+        return data
+      },
+    ],
     // versionOnEdit AFTER setAuthor: capture prior content into metadata.revisions
     // on every content change (edits + moderator redactions), append-only.
     beforeChange: [setAuthor, versionOnEdit],
