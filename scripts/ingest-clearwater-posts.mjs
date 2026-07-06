@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const DIR = resolve(ROOT, 'docs/transcripts')
-const VIEWSTATS = '_260705 2341 Youtube Video List from Viewstats.txt'
+const VIEWSTATS = '_260705 2341 Youtube Video List from Viewstats Dom Blob.txt'
 
 const args = process.argv.slice(2)
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null
@@ -118,9 +118,10 @@ function parseDom(blob) {
 }
 
 async function loadTranscripts() {
-  const files = (await readdir(DIR)).filter((f) => ['.txt', '.md'].includes(extname(f).toLowerCase()) && f !== VIEWSTATS)
+  const files = (await readdir(DIR)).filter((f) => ['.txt', '.md'].includes(extname(f).toLowerCase()) && !f.startsWith('_'))
   const byId = new Map()
   const byTitle = new Map()
+  const list = []
   for (const file of files) {
     const raw = await readFile(resolve(DIR, file), 'utf-8')
     const urlMatch = raw.match(YT)
@@ -134,35 +135,39 @@ async function loadTranscripts() {
     }
     if (rec.videoId) byId.set(rec.videoId, rec)
     byTitle.set(titleKey(rec.title), rec)
+    list.push(rec)
   }
-  return { byId, byTitle, count: files.length }
+  return { byId, byTitle, list, count: files.length }
 }
 
 async function main() {
   const vs = await readFile(resolve(DIR, VIEWSTATS), 'utf-8')
   const domBlob = (vs.match(/<div class="videos-grid">[\s\S]*/) || [vs])[0]
   const cards = parseDom(domBlob)
-  const { byId, byTitle, count: transcriptCount } = await loadTranscripts()
+  const { byId, byTitle, list: transcripts, count: transcriptCount } = await loadTranscripts()
 
   const seenSlugs = new Map()
   const records = []
   const matchedTranscripts = new Set()
+
+  const addSlug = (title, fallback) => {
+    let slug = slugify(title) || fallback
+    const n = (seenSlugs.get(slug) || 0) + 1
+    seenSlugs.set(slug, n)
+    return n > 1 ? `${slug}-${n}` : slug
+  }
 
   for (const c of cards) {
     const t = byId.get(c.videoId) || byTitle.get(titleKey(c.title))
     if (t) matchedTranscripts.add(t.file)
     const title = (t?.title && t.title.length >= c.title.length ? t.title : c.title) || c.title
     const description = t?.description || ''
-    let slug = slugify(title) || c.videoId
-    const n = (seenSlugs.get(slug) || 0) + 1
-    seenSlugs.set(slug, n)
-    if (n > 1) slug = `${slug}-${n}`
-
     records.push({
       videoId: c.videoId,
       kind: c.kind,
       title,
-      slug,
+      slug: addSlug(title, c.videoId),
+      origin: 'dom',
       duration: c.duration,
       viewsMeta: c.meta,
       publishedOn: t?.publishedOn || null,
@@ -176,16 +181,43 @@ async function main() {
     })
   }
 
+  // ── Superset: fold in transcripts whose video isn't in the loaded DOM ──
+  // (older uploads Viewstats didn't render). They already carry a description
+  // and often a videoId, so they're publishable now — the DOM just doesn't
+  // list them yet. Keyed off matchedTranscripts so we never double-count.
+  for (const t of transcripts) {
+    if (matchedTranscripts.has(t.file)) continue
+    const title = t.title
+    records.push({
+      videoId: t.videoId, // may be null (the 73 no-URL scrapes → whisper)
+      kind: 'video',
+      title,
+      slug: addSlug(title, t.videoId || slugify(t.file)),
+      origin: 'transcript',
+      duration: null,
+      viewsMeta: null,
+      publishedOn: t.publishedOn,
+      sourceUrl: t.videoId ? `https://www.youtube.com/watch?v=${t.videoId}` : null,
+      sourceType: 'youtube',
+      thumbnail: t.videoId ? `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg` : null,
+      descriptionChars: t.description.length,
+      description: t.description,
+      hasTranscript: true,
+      needsWhisper: t.description.length === 0 || !t.videoId,
+    })
+  }
+
   // ── Report ──────────────────────────────────────────────────────────
-  const shorts = records.filter((r) => r.kind === 'short').length
-  console.log(`\n=== Clearwater video ingest — DRY RUN (no writes) ===`)
-  console.log(`Viewstats DOM cards : ${cards.length}  (${records.length - shorts} videos, ${shorts} shorts)`)
-  console.log(`Transcript files    : ${transcriptCount}  (matched to a card: ${matchedTranscripts.size})`)
-  console.log(`Ready to publish now: ${records.filter((r) => !r.needsWhisper).length}  (card + real description)`)
-  console.log(`Needs whisper pass  : ${records.filter((r) => r.needsWhisper).length}  (Merlin transcribes → fills description)`)
-  console.log(`Every card has      : videoId + title + thumbnail + youtube URL`)
-  const orphanTranscripts = transcriptCount - matchedTranscripts.size
-  console.log(`Unmatched transcripts: ${orphanTranscripts}  (transcript exists but its video isn't in the loaded DOM — scroll Viewstats to load more)`)
+  const fromDom = records.filter((r) => r.origin === 'dom').length
+  const fromTx = records.filter((r) => r.origin === 'transcript').length
+  console.log(`\n=== Clearwater video SUPERSET — DRY RUN (no writes) ===`)
+  console.log(`Total unique records: ${records.length}   (${fromDom} from DOM + ${fromTx} transcript-only)`)
+  console.log(`With a videoId+URL  : ${records.filter((r) => r.videoId).length}`)
+  console.log(`With a thumbnail    : ${records.filter((r) => r.thumbnail).length}`)
+  console.log(`With a description  : ${records.filter((r) => r.descriptionChars > 0).length}`)
+  console.log(`Ready to publish now: ${records.filter((r) => !r.needsWhisper).length}  (has URL + real description)`)
+  console.log(`Needs whisper pass  : ${records.filter((r) => r.needsWhisper).length}  (no description and/or no URL → Merlin)`)
+  console.log(`Full channel is ~1,363 — the Data API (Merlin) fills the rest beyond these two capped sources.`)
 
   console.log(`\n--- ${sampleCount} sample record(s) ---`)
   for (const r of records.slice(0, sampleCount)) {
