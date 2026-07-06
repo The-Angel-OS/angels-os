@@ -74,3 +74,6 @@ docs/transcripts/
 # Marketing/image assets — do NOT ship in the app repo (302MB); use blob storage.
 docs/marketing/
 docs/images/
+
+# Generated ingest working artifact
+docs/transcripts/_ingest-manifest.json
