@@ -22,6 +22,7 @@
  */
 import type { Payload } from 'payload'
 import { getTransport } from '@/utilities/connectorTransports'
+import { postEscalationToAiBus } from '@/utilities/escalationToAiBus'
 
 /**
  * Canonical Angel OS event types that can be escalated to Gotify.
@@ -167,6 +168,12 @@ export async function dispatchEscalation(
   now: number = Date.now(),
 ): Promise<EscalationDispatchResult> {
   const result: EscalationDispatchResult = { matched: 0, sent: 0, suppressed: 0, failed: 0 }
+
+  // Record the escalation as a durable AI Bus message FIRST — config-free, so it
+  // survives even when the tenant has no connectors (or they're down). This is the
+  // subscribable substrate for LEO monitoring + the Nimue escalation-alert path.
+  // Fail-soft + throttled internally; never blocks the connector fan-out below.
+  await postEscalationToAiBus(payload, event, now)
 
   let connectors: Array<{ id: string; type: string; config: Record<string, unknown> }>
   try {

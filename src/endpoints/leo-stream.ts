@@ -56,6 +56,7 @@ import { buildByokModel } from '@/utilities/ai-gateway'
 import { isBudgetEnforcementEnabled, getTenantAiBudgetStatusCached } from '@/utilities/aiBudget'
 import { brokerNodeChat } from '@/endpoints/node-ops'
 import { parseNodeChannelSlug } from '@/utilities/nodeBus'
+import { dispatchEscalation } from '@/utilities/gotifyEscalation'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -1624,12 +1625,28 @@ async function streamViaGateway(opts: {
   if (isBudgetEnforcementEnabled() && tenantId) {
     try {
       const status = await getTenantAiBudgetStatusCached(payload, tenantId)
-      if (status.overBudget && status.hasOwnKey) {
-        const byok = await buildByokModel(tenantAiConfig)
-        if (byok) {
-          smart = { model: byok.model, providerOptions: {}, modelId: byok.modelId, complexity, effectiveComplexity: complexity }
-          billedToTenantKey = true
-          console.log(`[LEO Stream] 💳 Tenant ${tenantId} over budget → BYOK ${byok.modelId} ($0 to platform)`)
+      if (status.overBudget) {
+        // Surface the AI-outage/credit signal as a durable escalation so a human
+        // sees it (lands in the AI Bus `errors` channel + any connectors). Stable
+        // dedupeKey → the sink's cooldown collapses the per-request repeats.
+        void dispatchEscalation(payload, {
+          tenantId,
+          eventType: 'budget_exceeded',
+          title: `💳 AI budget exceeded${status.hasOwnKey ? ' — serving via tenant key' : ''}`,
+          message: status.hasOwnKey
+            ? `Tenant ${tenantId} is over its monthly AI budget. Requests are being served on the tenant's own provider key ($0 to platform) until the budget resets.`
+            : `Tenant ${tenantId} is over its monthly AI budget and has NO own provider key. LEO is downshifting to stay within credits — quality may drop until the budget resets or a key is added.`,
+          priority: status.hasOwnKey ? 4 : 7,
+          dedupeKey: `budget:${tenantId}`,
+        }).catch(() => {})
+
+        if (status.hasOwnKey) {
+          const byok = await buildByokModel(tenantAiConfig)
+          if (byok) {
+            smart = { model: byok.model, providerOptions: {}, modelId: byok.modelId, complexity, effectiveComplexity: complexity }
+            billedToTenantKey = true
+            console.log(`[LEO Stream] 💳 Tenant ${tenantId} over budget → BYOK ${byok.modelId} ($0 to platform)`)
+          }
         }
       }
     } catch {
