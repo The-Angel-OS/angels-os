@@ -243,62 +243,143 @@ export const nodeTelemetryHandler: PayloadHandler = async (req) => {
  *   GET  /api/node-ops/chat?endeavor=&nodeId=&since=
  *        → the console transcript (user prompts + the node's replies) since a cursor.
  */
+/**
+ * Result of brokering a chat turn to a node's local (Merlin) brain.
+ * `via: 'tunnel'` carries a synchronous `response`; `via: 'bus'` was dispatched
+ * async onto the node's bus channel (the node will reply there when it picks up);
+ * `via: 'error'` means we never reached the node.
+ */
+export interface BrokerNodeChatResult {
+  ok: boolean
+  via: 'tunnel' | 'bus' | 'error'
+  response?: string
+  provider?: unknown
+  steps?: unknown
+  toolsUsed?: unknown
+  conversationId?: string
+  elapsedMs?: unknown
+  requestId?: string
+  online?: boolean
+  tunnelError?: string
+  error?: string
+  status?: number
+  /** Resolved so callers can persist the reply against the right tenant/space. */
+  tenantId?: number | string
+  spaceId?: number | string
+  channel?: string
+}
+
+/**
+ * Broker a single chat turn to a specific node's local brain — the shared core
+ * behind both POST /api/node-ops/chat and the leo-stream node-channel branch.
+ * Tries the node's tunnel first (real-time), falls back to the bus channel (poll).
+ * Never throws for the expected not-reachable cases — returns via:'error' with a
+ * status so HTTP callers can map it.
+ */
+export async function brokerNodeChat(
+  payload: Payload,
+  user: unknown,
+  opts: { endeavor: string; nodeId: string; message: string; conversationId?: string },
+): Promise<BrokerNodeChatResult> {
+  const endeavor = opts.endeavor.trim()
+  const nodeId = opts.nodeId.trim()
+  const message = opts.message.trim()
+  const conversationId = opts.conversationId || 'node-console'
+  if (!endeavor || !nodeId || !message) {
+    return { ok: false, via: 'error', error: 'endeavor, nodeId and message are required', status: 400 }
+  }
+
+  const tenant = await resolveEndeavorTenant(payload, endeavor)
+  if (!userCanAccessEndeavor(user, tenant.id)) {
+    return { ok: false, via: 'error', error: 'forbidden', status: 403, tenantId: tenant.id }
+  }
+
+  const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
+  if (!node) return { ok: false, via: 'error', error: 'unknown node', status: 404, tenantId: tenant.id }
+
+  // Try tunnel dispatch first (real-time, no polling)
+  const tunnelResult = await dispatchToNodeTunnel(node, 'chat', { message, conversationId })
+  if (tunnelResult?.ok && tunnelResult.data) {
+    const d = tunnelResult.data as Record<string, unknown>
+    return {
+      ok: true,
+      via: 'tunnel',
+      response: typeof d.response === 'string' ? d.response : '',
+      provider: d.provider,
+      steps: d.steps,
+      toolsUsed: d.toolsUsed,
+      conversationId: (typeof d.conversationId === 'string' && d.conversationId) || conversationId,
+      elapsedMs: d.elapsedMs,
+      tenantId: tenant.id,
+      spaceId: node.spaceId,
+      channel: node.channel,
+    }
+  }
+
+  // Fall back to bus channel (poll loop)
+  if (!node.channel || !node.spaceId) {
+    return { ok: false, via: 'error', error: 'node has no bus channel and no tunnel — it needs to re-register', status: 404, tenantId: tenant.id }
+  }
+
+  const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  await postBusMessage(payload, {
+    space: node.spaceId,
+    channel: node.channel,
+    text: message,
+    author: (user as { id: number }).id,
+    tenant: tenant.id,
+    messageType: 'system',
+    kind: 'node-command',
+    metadata: { requestId, tool: 'chat', args: { message, conversationId } },
+  })
+  return {
+    ok: true,
+    via: 'bus',
+    requestId,
+    channel: node.channel,
+    online: !!(node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000),
+    tunnelError: tunnelResult?.error,
+    tenantId: tenant.id,
+    spaceId: node.spaceId,
+  }
+}
+
 export const nodeChatPostHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
   if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
 
   let body: Record<string, unknown> = {}
   try { body = (await (req as unknown as Request).json()) as Record<string, unknown> } catch { /* empty */ }
-  const endeavor = typeof body.endeavor === 'string' ? body.endeavor.trim() : ''
-  const nodeId = typeof body.nodeId === 'string' ? body.nodeId.trim() : ''
-  const message = typeof body.message === 'string' ? body.message.trim() : ''
+  const endeavor = typeof body.endeavor === 'string' ? body.endeavor : ''
+  const nodeId = typeof body.nodeId === 'string' ? body.nodeId : ''
+  const message = typeof body.message === 'string' ? body.message : ''
   const conversationId = typeof body.conversationId === 'string' ? body.conversationId : 'node-console'
-  if (!endeavor || !nodeId || !message) return Response.json({ error: 'endeavor, nodeId and message are required' }, { status: 400 })
+  if (!endeavor.trim() || !nodeId.trim() || !message.trim()) {
+    return Response.json({ error: 'endeavor, nodeId and message are required' }, { status: 400 })
+  }
 
   try {
-    const tenant = await resolveEndeavorTenant(payload, endeavor)
-    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
-
-    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId)
-    if (!node) return Response.json({ error: 'unknown node' }, { status: 404 })
-
-    // Try tunnel dispatch first (real-time, no polling)
-    const tunnelResult = await dispatchToNodeTunnel(node, 'chat', { message, conversationId })
-    if (tunnelResult?.ok && tunnelResult.data) {
-      const d = tunnelResult.data as Record<string, unknown>
+    const r = await brokerNodeChat(payload, user, { endeavor, nodeId, message, conversationId })
+    if (!r.ok) return Response.json({ error: r.error || 'node routing failed' }, { status: r.status || 500 })
+    if (r.via === 'tunnel') {
       return Response.json({
         ok: true,
-        response: d.response || '',
-        provider: d.provider,
-        steps: d.steps,
-        toolsUsed: d.toolsUsed,
-        conversationId: d.conversationId || conversationId,
+        response: r.response || '',
+        provider: r.provider,
+        steps: r.steps,
+        toolsUsed: r.toolsUsed,
+        conversationId: r.conversationId || conversationId,
         via: 'tunnel',
-        elapsedMs: d.elapsedMs,
+        elapsedMs: r.elapsedMs,
       })
     }
-
-    // Fall back to bus channel (poll loop)
-    if (!node.channel || !node.spaceId) return Response.json({ error: 'node has no bus channel and no tunnel — it needs to re-register' }, { status: 404 })
-
-    const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    await postBusMessage(payload, {
-      space: node.spaceId,
-      channel: node.channel,
-      text: message,
-      author: (user as { id: number }).id,
-      tenant: tenant.id,
-      messageType: 'system',
-      kind: 'node-command',
-      metadata: { requestId, tool: 'chat', args: { message, conversationId } },
-    })
     return Response.json({
       ok: true,
-      requestId,
-      channel: node.channel,
-      online: node.lastSeen && Date.now() - new Date(node.lastSeen).getTime() < 5 * 60 * 1000,
+      requestId: r.requestId,
+      channel: r.channel,
+      online: r.online,
       via: 'bus',
-      tunnelError: tunnelResult?.error,
+      tunnelError: r.tunnelError,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

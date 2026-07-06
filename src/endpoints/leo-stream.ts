@@ -54,6 +54,8 @@ import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/ai
 import { recordAiUsage } from '@/utilities/recordCostEvent'
 import { buildByokModel } from '@/utilities/ai-gateway'
 import { isBudgetEnforcementEnabled, getTenantAiBudgetStatusCached } from '@/utilities/aiBudget'
+import { brokerNodeChat } from '@/endpoints/node-ops'
+import { parseNodeChannelSlug } from '@/utilities/nodeBus'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
@@ -952,6 +954,93 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
       })
     }
+  }
+
+  // ─── Node channel brokering ──────────────────────────────────────────────
+  // A channel whose slug is `node:{endeavor}:{nodeId}` is the bus segment bound
+  // to one specific Merlin node. A message here is answered by THAT node's local
+  // brain, not Core LEO — the slug convention IS the routing decision (config-free
+  // per the 99% doctrine; no toggle to forget). Tunnel dispatch returns the reply
+  // synchronously; an offline node falls back to the bus and replies later.
+  const nodeChannel = parseNodeChannelSlug(channelSlug)
+  if (nodeChannel) {
+    const { endeavor, nodeId } = nodeChannel
+    const nodeEncoder = new TextEncoder()
+    const nodeStream = new ReadableStream({
+      async start(ctrl) {
+        try {
+          const result = await brokerNodeChat(req.payload, req.user, {
+            endeavor,
+            nodeId,
+            message: message.trim(),
+            conversationId: resolvedConversationId,
+          })
+
+          let replyText: string
+          let persistedId: number | undefined
+
+          if (result.via === 'tunnel') {
+            replyText = (result.response || '').trim() || '(the node returned an empty reply)'
+            // Persist the node's answer so it's durable and broadcasts to the OTHER
+            // subscribers of this channel. We echo the created id in the `start` event
+            // below so the originating client reconciles its SSE stream against the
+            // create-broadcast (same dedupe contract the Core-LEO path uses).
+            const persistSpace = result.spaceId ?? (spaceId ? Number(spaceId) : undefined)
+            if (persistSpace && result.response?.trim()) {
+              try {
+                const saved = await req.payload.create({
+                  collection: 'messages',
+                  data: {
+                    content: wrapTextContent(replyText),
+                    space: persistSpace,
+                    channel: channelSlug,
+                    messageType: 'ai_agent',
+                    ...(result.tenantId ? { tenant: result.tenantId } : {}),
+                    metadata: { streaming: false, node: nodeId, endeavor, via: 'tunnel' },
+                  } as any,
+                  overrideAccess: true,
+                })
+                persistedId = saved.id as number
+              } catch (e) {
+                console.warn('[LEO Stream] node reply persist failed:', e)
+              }
+            }
+          } else if (result.via === 'bus') {
+            // No synchronous text — the node will post its own reply on the bus when
+            // it picks up the command; that create broadcasts on its own. We only
+            // acknowledge dispatch here (ephemeral, not persisted).
+            const onlineNote = result.online
+              ? 'It just picked up the request and will reply here in a moment.'
+              : 'It looks offline right now — the request is queued and it will reply here when it reconnects.'
+            replyText = `⏳ Dispatched to node **${nodeId}**. ${onlineNote}`
+          } else {
+            replyText = `⚠️ Couldn't reach node **${nodeId}**: ${result.error || 'unknown error'}`
+          }
+
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('start', {
+            conversationId: resolvedConversationId,
+            ...(persistedId ? { messageId: persistedId } : {}),
+          })))
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('delta', { text: replyText })))
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('done', {
+            text: replyText,
+            agentName: nodeId,
+            via: result.via,
+            ...(result.toolsUsed ? { toolsUsed: result.toolsUsed } : {}),
+          })))
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          const errText = `⚠️ Node routing error: ${msg}`
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('start', { conversationId: resolvedConversationId })))
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('delta', { text: errText })))
+          ctrl.enqueue(nodeEncoder.encode(sseEvent('done', { text: errText, agentName: nodeId, via: 'error' })))
+        }
+        ctrl.close()
+      },
+    })
+    return new Response(nodeStream, {
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+    })
   }
 
   // Check if we have any LLM backend available

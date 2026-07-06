@@ -127,6 +127,22 @@ export function nodeChannelSlug(endeavor: string, nodeId: string): string {
   return `node:${endeavor}:${nodeId}`
 }
 
+/**
+ * Inverse of {@link nodeChannelSlug} — parse `node:{endeavor}:{nodeId}` back into
+ * its parts, or null if the slug isn't a node channel. Splits on the FIRST colon
+ * after the `node:` prefix so a nodeId containing colons survives round-trip.
+ */
+export function parseNodeChannelSlug(slug: unknown): { endeavor: string; nodeId: string } | null {
+  if (typeof slug !== 'string' || !slug.startsWith('node:')) return null
+  const rest = slug.slice('node:'.length)
+  const sep = rest.indexOf(':')
+  if (sep < 0) return null
+  const endeavor = rest.slice(0, sep)
+  const nodeId = rest.slice(sep + 1)
+  if (!endeavor || !nodeId) return null
+  return { endeavor, nodeId }
+}
+
 /** Metadata.kind discriminators for bus messages (no messageType enum needed). */
 export const NODE_COMMAND_KIND = 'node-command'
 export const NODE_RESULT_KIND = 'node-result'
