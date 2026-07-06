@@ -64,6 +64,28 @@ its own tool belt:
 
 ---
 
+## 3b. Continuation (260705 ~2050) — channel-aware routing SHIPPED
+
+Slice #5 below built and committed (`badfd4e`, on main, **unpushed** — prod deploy to
+both projects is outward-facing, held for Ken's go):
+
+- A chat turn in a channel whose slug is `node:{endeavor}:{nodeId}` now brokers to THAT
+  node's local Merlin brain instead of Core LEO. The slug convention IS the routing
+  decision — no per-channel toggle (config-free for the 99%).
+- `src/endpoints/node-ops.ts` — extracted `brokerNodeChat()` (tunnel-first, bus fallback)
+  as the shared core behind POST `/api/node-ops/chat` and the new leo-stream branch.
+- `src/endpoints/leo-stream.ts` — branch BEFORE the LLM-backend check when `channelSlug`
+  is a node channel; streams the reply as SSE and persists the tunnel reply as an
+  `ai_agent` message (echoes the created id in `start` so the client dedupes against the
+  create-broadcast — same contract as the LEO path).
+- `src/utilities/nodeBus.ts` — `parseNodeChannelSlug()` (inverse of `nodeChannelSlug`,
+  splits on first colon so a nodeId with colons round-trips) + unit test (6/6 green).
+- `src/` typechecks clean; the ~98 full-suite failures are the known stale test drift
+  (userJourneys/createLogger/ensureTenantMembership/federation-domain), untouched here.
+
+Cures "ask the local brain to `list_files` → Core LEO timeout." Verify live once Merlin is
+locked-on and the commit is deployed.
+
 ## 4. Pending — Ken to verify on-device
 
 - Native STT: tap 🎙 → speak → auto-submit (AUTO ● default).
