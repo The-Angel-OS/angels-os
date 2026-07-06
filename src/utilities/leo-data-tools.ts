@@ -12750,6 +12750,40 @@ async function handleDelegateTask(
   if (!space) return 'Error: No space found to post the task.'
 
   try {
+    // Ensure the #team channel exists in this space (idempotent, tenant-scoped).
+    // Without it, the task posts to a slug with no channel doc → the message is
+    // orphaned and never appears in the UI, so it reads as "the task failed."
+    let teamChannelId: number | string | undefined
+    try {
+      const existing = await payload.find({
+        collection: 'channels',
+        where: { and: [{ space: { equals: space.id } }, { slug: { equals: 'team' } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (existing.docs?.[0]) {
+        teamChannelId = existing.docs[0].id as number | string
+      } else {
+        const created = await payload.create({
+          collection: 'channels',
+          data: {
+            name: 'Team',
+            slug: 'team',
+            description: 'Team tasks, assignments, and maintenance notes.',
+            type: 'team',
+            space: space.id,
+            tenant: tenantId,
+          } as any,
+          overrideAccess: true,
+        })
+        teamChannelId = created.id as number | string
+      }
+    } catch (chErr) {
+      // Non-fatal — the message still posts to the slug; log and continue.
+      logCaughtError('leo-tools.delegate_task.channel', chErr).catch(() => {})
+    }
+
     const taskContent = [
       `**Task Assignment** (Priority: ${priority.toUpperCase()})`,
       '',
@@ -12775,7 +12809,10 @@ async function handleDelegateTask(
       overrideAccess: true,
     })
 
-    return `Task delegated in #team channel:\n- **Task:** ${task}\n- **Assigned to:** ${assigneeEmail || 'team'}\n- **Priority:** ${priority}${deadline ? `\n- **Deadline:** ${deadline}` : ''}`
+    const nav = teamChannelId
+      ? navDirective(`/dashboard/spaces/${space.id}/${teamChannelId}`, 'View in #team')
+      : ''
+    return `Task delegated in #team channel:\n- **Task:** ${task}\n- **Assigned to:** ${assigneeEmail || 'team'}\n- **Priority:** ${priority}${deadline ? `\n- **Deadline:** ${deadline}` : ''}${nav}`
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error delegating task: ${err instanceof Error ? err.message : 'Unknown error'}`
