@@ -9,6 +9,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 import { setTenantFromHeader } from './hooks/setTenantFromHeader'
+import { autoAnalyzeUpload } from './hooks/autoAnalyzeUpload'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -30,6 +31,9 @@ export const Media: CollectionConfig = {
     // fixes "failed to upload" on chat attachments for super_admins viewing a
     // tenant subdomain (no payload-tenant cookie). See hook for details.
     beforeValidate: [setTenantFromHeader],
+    // Analyze every upload (image vision / PDF text) → MediaMeta → RAG, so any
+    // uploaded photo is deeply searchable later regardless of how it arrived.
+    afterChange: [autoAnalyzeUpload],
   },
   fields: [
     {
