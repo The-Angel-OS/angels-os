@@ -23,12 +23,33 @@ interface Props {
   siteName?: string
 }
 
+// Global mission content (the Library + Learn) is served from a static soul
+// manifest, not tenant-scoped — so it should be reachable from EVERY site's
+// mobile menu, even where the desktop nav demotes it to "More" or a storefront
+// suppresses it from the primary chrome. Guarantee these links so there's always
+// a way to reach Works on mobile.
+const GUARANTEED_MOBILE_LINKS = [
+  { id: 'm-learn', link: { type: 'custom' as const, label: 'Learn', url: '/learn', newTab: false } },
+  { id: 'm-works', link: { type: 'custom' as const, label: 'Works', url: '/works', newTab: false } },
+]
+
 export function MobileMenu({ menu, siteName }: Props) {
   const { user } = useAuth()
 
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isOpen, setIsOpen] = useState(false)
+
+  // Ensure the mission Library is always reachable on mobile (append only what's
+  // missing — never duplicate an item the tenant nav already provides).
+  const items = React.useMemo(() => {
+    const base = Array.isArray(menu) ? [...menu] : []
+    const urls = new Set(base.map((i) => (i as { link?: { url?: string | null } }).link?.url))
+    for (const extra of GUARANTEED_MOBILE_LINKS) {
+      if (!urls.has(extra.link.url)) base.push(extra)
+    }
+    return base
+  }, [menu])
 
   const closeMobileMenu = () => setIsOpen(false)
 
@@ -63,9 +84,9 @@ export function MobileMenu({ menu, siteName }: Props) {
         </SheetHeader>
 
         <div className="py-4">
-          {menu?.length ? (
+          {items?.length ? (
             <ul className="flex w-full flex-col">
-              {menu.map((item) => {
+              {items.map((item) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const children: any[] = Array.isArray((item as any).children) ? (item as any).children : []
                 return (
