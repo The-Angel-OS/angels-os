@@ -33,6 +33,7 @@ import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
 import { slugify, opaqueSlug, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
 import { activatePendingInvitesForUser } from '@/utilities/activatePendingInvites'
+import { ensureDefaultAvailability } from '@/utilities/ensureDefaultAvailability'
 
 /**
  * The mapping is gmail ⇔ guardian angel: 1:1 by default (auto-provisioned the
@@ -239,6 +240,14 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
     )
 
     recordProvision(u.id) // count this fresh mint against the rate-limit window
+
+    // Turnkey scheduler: seed a default weekday 9–5 availability so their
+    // "book time with me" link (`{slug}.spacesangels.com/book`) works immediately.
+    const tenantId = (result as { tenant?: { id?: number | string } }).tenant?.id
+    if (tenantId != null) {
+      await ensureDefaultAvailability(payload, tenantId, u.id).catch(() => {})
+    }
+
     return Response.json({ ...result, alreadyExisted: false, angelCount: angelCount + 1 })
   } catch (e) {
     await logError({
