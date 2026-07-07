@@ -113,6 +113,7 @@ import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
+import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -813,6 +814,13 @@ export default buildConfig({
       path: '/provision-ops/claim-guardian-angel',
       method: 'post',
       handler: claimGuardianAngelHandler,
+    },
+    // Read companion: the caller's guardian-angel standing (free tier vs over).
+    // Powers the Nimue usage banner + Stripe upsell. Safe for any signed-in user.
+    {
+      path: '/provision-ops/guardian-angel-status',
+      method: 'get',
+      handler: guardianAngelStatusHandler,
     },
     // User-facing moderation: report a message/author for review.
     {
