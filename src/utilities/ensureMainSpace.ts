@@ -12,9 +12,9 @@
 /** Default channels every main community space should have */
 const MAIN_SPACE_CHANNELS = [
   {
-    name: 'general',
-    slug: 'general',
-    description: 'General conversation for all members',
+    name: 'main',
+    slug: 'main',
+    description: 'The main community channel — where everyone lands.',
     type: 'general',
     isDefault: true,
   },
@@ -63,8 +63,22 @@ export async function ensureMainSpace(
     })
 
     if (existing.docs?.[0]) {
-      // Main space exists — ensure channels exist, then return
+      // Main space exists — self-heal the name to "Community" (older portals were
+      // named "<Person> Community"), ensure channels, then return.
       const spaceId = String(existing.docs[0].id)
+      const cur = existing.docs[0] as { name?: string; slug?: string }
+      if (cur.name !== 'Community') {
+        try {
+          await payload.update({
+            collection: 'spaces',
+            id: spaceId,
+            data: { name: 'Community', slug: 'community' },
+            overrideAccess: true,
+          })
+        } catch {
+          /* non-fatal — slug collision or drift; leave the existing name */
+        }
+      }
       const channelIds = await ensureMainChannels(payload, spaceId, tenantId)
       return { spaceId, channelIds, created: false }
     }
@@ -81,13 +95,14 @@ export async function ensureMainSpace(
       if (!tenantSlug) tenantSlug = tenant?.slug || 'community'
     }
 
-    // 3. Create the main community space
+    // 3. Create the main community space — always named "Community" (not
+    //    "<Person> Community"); the tenant already carries the person/brand name.
     const space = await payload.create({
       collection: 'spaces',
       data: {
-        name: `${tenantName} Community`,
-        slug: `${tenantSlug}-community`,
-        description: `Main community space for ${tenantName}. All members are automatically added here.`,
+        name: 'Community',
+        slug: 'community',
+        description: `The community space for ${tenantName}. All members are automatically added here.`,
         visibility: 'invite_only',
         isMain: true,
         tenant: tenantId as number,
@@ -101,7 +116,7 @@ export async function ensureMainSpace(
     const channelIds = await ensureMainChannels(payload, spaceId, tenantId)
 
     payload.logger?.info?.(
-      `[ensureMainSpace] Created main space "${tenantName} Community" (${spaceId}) with ${channelIds.length} channels for tenant ${tenantId}`,
+      `[ensureMainSpace] Created "Community" space (${spaceId}) with ${channelIds.length} channels for tenant ${tenantId}`,
     )
 
     return { spaceId, channelIds, created: true }
