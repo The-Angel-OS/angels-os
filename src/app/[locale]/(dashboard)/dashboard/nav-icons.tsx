@@ -320,6 +320,16 @@ function ActivityIcon() {
   )
 }
 
+function HistoryIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3v5h5" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.05 13A9 9 0 106 5.3L3 8" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+
 function ChevronDownIcon() {
   return (
     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,6 +377,7 @@ export const NAV_ICONS: Record<string, React.ComponentType> = {
   radar: RadarIcon,
   activity: ActivityIcon,
   anchor: AnchorIcon,
+  history: HistoryIcon,
   'chevron-down': ChevronDownIcon,
 }
 

@@ -150,6 +150,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'changelog',
+        label: 'Changelog',
+        icon: 'history',
+        href: (p) => `${p}/dashboard/changelog`,
+        isActive: active('/dashboard/changelog'),
+        visible: always, // Public — operational transparency (like Bridge / CIC)
+      },
+      {
         key: 'federation-network',
         label: 'Federation',
         icon: 'network',
