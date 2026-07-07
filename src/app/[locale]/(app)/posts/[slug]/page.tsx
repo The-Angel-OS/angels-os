@@ -12,6 +12,8 @@ import React from 'react'
 
 import { notFound } from 'next/navigation'
 import { CollectionArchive } from '@/components/CollectionArchive'
+import { VideoEmbed } from '@/components/VideoEmbed'
+import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 
 // NOTE: generateStaticParams removed — this page uses headers() + draftMode()
 // which makes it dynamic. SSG conflicts with dynamic functions and causes 500s.
@@ -26,7 +28,14 @@ export default async function PostPage({ params }: Args) {
 
   if (!post) return notFound()
 
-  const { hero, layout, id, relatedPosts, title, publishedOn, categories } = post
+  const { hero, layout, id, relatedPosts, title, publishedOn, categories, sourceUrl, sourceType } = post
+  // Frame an embedded video (YouTube/Vimeo) between the hero and the body when the
+  // post carries one — e.g. a travel vlogger's post: first photo = hero, their video
+  // framed here, their photos in the gallery block below.
+  const video =
+    sourceUrl && (sourceType === 'youtube' || sourceType === 'vimeo')
+      ? computeEmbedUrl(sourceUrl)
+      : null
   // relatedPosts arrive at the post's depth (1), so each related post's own image
   // relations (meta.image / hero.media — one level deeper) come back as raw IDs,
   // and the cards render "No image". Re-fetch the related posts at depth 2 so
@@ -62,6 +71,11 @@ export default async function PostPage({ params }: Args) {
         )}
       </div>
       <RenderHero {...hero} />
+      {video?.embedUrl && (
+        <div className="container my-8">
+          <VideoEmbed embedUrl={video.embedUrl} provider={video.provider} title={title} />
+        </div>
+      )}
       <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts' }} />
       {related.length > 0 && (
         <div className="container mt-16">

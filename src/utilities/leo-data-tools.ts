@@ -27,6 +27,7 @@ import { getBootstrapFeeStatus } from './bootstrapFees'
 import { getMembershipPlans, upsertMembershipPlan, removeMembershipPlan, type MembershipPlan } from './membershipPlans'
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
+import { computeEmbedUrl } from './computeEmbedUrl'
 // NOTE: provisionPortal is imported lazily inside its handlers (handleProvisionTenant
 // / handleResearchAndProvision) to avoid a module-load cycle: provisionPortal pulls
 // in payload.config, which registers the MCP plugin, which generates tools FROM this
@@ -1131,7 +1132,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'create_post_from_media',
     description:
-      'Create a blog post FROM a set of uploaded images. Use when the user uploads/attaches images and says "post", "new post", "make a post of these", or "resubmit these images". YOU are multimodal — look at the images and write a title and a body that describes them, then this tool assembles the post: the FIRST image becomes the banner/hero, and ALL images go into a gallery grid. Created as draft by default.',
+      'Create a blog post FROM a set of uploaded images (optionally with a video). Use when the user uploads/attaches images and says "post", "new post", "make a post of these", "resubmit these images", or e.g. a travel vlogger drops a few shots (+ maybe a YouTube link) to turn into an update. YOU are multimodal — look at the images and write a title and a body that weaves the user\'s text together with what you SEE in the photos (place, scene, story), then this tool assembles the post: the FIRST image becomes the banner/hero, ALL images go into a gallery grid, and if a videoUrl is given it is FRAMED between the hero and the gallery. Created as draft by default.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1143,7 +1144,11 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         title: { type: 'string', description: 'Post title you wrote from looking at the images. (required)' },
         body: {
           type: 'string',
-          description: 'Post body describing the images. Use \\n\\n between paragraphs. Rendered above the gallery.',
+          description: 'Post body — integrate the user\'s text input WITH your analysis of the images (location, description, the story they tell). Use \\n\\n between paragraphs. Rendered above the gallery.',
+        },
+        videoUrl: {
+          type: 'string',
+          description: 'Optional YouTube or Vimeo URL. When present, the video is embedded (framed) on the post between the hero image and the gallery — e.g. a vlogger\'s clip alongside their photos.',
         },
         galleryHeading: { type: 'string', description: 'Optional heading shown above the image grid.' },
         columns: { type: 'string', enum: ['2', '3', '4'], description: 'Gallery columns on desktop (default 3).' },
@@ -7666,6 +7671,17 @@ async function createPostFromMedia(
   }
 
   const heroId = mediaIds[0]
+
+  // Optional video (YouTube/Vimeo) — framed on the post between hero and gallery.
+  // Stored on the post's sourceUrl/sourceType (the post page renders a VideoEmbed
+  // for those); reuses the existing ingest fields, no new schema.
+  const rawVideoUrl = typeof input.videoUrl === 'string' ? input.videoUrl.trim() : ''
+  const video = rawVideoUrl ? computeEmbedUrl(rawVideoUrl) : null
+  const videoFields =
+    video?.embedUrl && (video.provider === 'youtube' || video.provider === 'vimeo')
+      ? { sourceUrl: rawVideoUrl, sourceType: video.provider }
+      : {}
+
   // Layout: optional description (Content block) then a Gallery of every image.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const layout: any[] = [
@@ -7689,6 +7705,7 @@ async function createPostFromMedia(
         layout,
         hero: { type: 'highImpact', media: heroId },
         meta: { image: heroId },
+        ...videoFields,
       },
       overrideAccess: true,
     })
@@ -7699,6 +7716,7 @@ async function createPostFromMedia(
       `- **${title}** (${status})`,
       `- Hero (banner): media ${heroId}`,
       `- Gallery: ${mediaIds.length} image${mediaIds.length !== 1 ? 's' : ''} (${columns} cols)`,
+      ...(videoFields && 'sourceUrl' in videoFields ? [`- Video framed: ${videoFields.sourceType} embed`] : []),
       `- Post ID: ${result.id}`,
     ]
     if (slug) lines.push(`- URL: /posts/${slug}` + navDirective(`/posts/${slug}`, 'View post'))
