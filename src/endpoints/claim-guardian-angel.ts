@@ -24,19 +24,39 @@
  * revenue engine. @see provisionPortal, [[project_token_economy]].
  */
 import type { PayloadHandler } from 'payload'
+import { randomBytes } from 'crypto'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
 
-/** Derive a friendly slug base from the user's name, falling back to the email local part. */
-function slugBase(name: string | undefined, email: string): string {
-  const fromName = name ? slugify(name) : ''
-  if (fromName && fromName.length >= 3) return fromName
-  const local = email.split('@')[0] || 'angel'
-  return slugify(local) || 'angel'
+/**
+ * PRIVACY BY DEFAULT: a guardian angel's slug is an opaque id, not the user's
+ * name. It's their subdomain and it's public — so unless they explicitly opt
+ * into a vanity handle, it should leak nothing (no name, no email, no
+ * enumerable sequence). Vanity is a feature, not the default. Crockford-ish
+ * base32 minus ambiguous chars (no 0/o/1/i/l) for a clean, unguessable id.
+ */
+const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
+function opaqueSlug(len = 12): string {
+  const bytes = randomBytes(len)
+  let out = ''
+  for (let i = 0; i < len; i++) out += ID_ALPHABET[bytes[i]! % ID_ALPHABET.length]
+  return out
 }
+
+/**
+ * Reserved subdomains that a self-serve VANITY handle must never claim — they'd
+ * shadow platform routing or enable impersonation. Only screened on the opt-in
+ * vanity path; the opaque default can't hit these.
+ */
+const RESERVED_SLUGS = new Set([
+  'www', 'api', 'admin', 'app', 'apps', 'mail', 'email', 'blog', 'cdn', 'static',
+  'assets', 'leo', 'merlin', 'nimue', 'federation', 'dashboard', 'auth', 'login',
+  'account', 'accounts', 'portal', 'root', 'system', 'support', 'help', 'status',
+  'kendev', 'angel', 'angels', 'angelos', 'test', 'dev', 'staging',
+])
 
 /** TODO(payment): replace with a real entitlement check (subscriptions/Stripe). */
 async function hasGuardianAngelEntitlement(
@@ -115,12 +135,10 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // Derive a unique slug: friendly base, collision-suffixed against existing tenants.
-    const base = slugBase(u.name, email)
     const baseDomain = (process.env.GUARDIAN_ANGEL_BASE_DOMAIN || 'kendev.co').replace(/^\.+|\.+$/g, '')
-    let slug = base
-    for (let i = 0; i < 50; i++) {
-      const candidate = i === 0 ? base : `${base}-${i + 1}`
+
+    // Helper: is this slug free?
+    const isFree = async (candidate: string): Promise<boolean> => {
       const clash = await payload.find({
         collection: 'tenants',
         where: { slug: { equals: candidate } },
@@ -128,14 +146,40 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
         depth: 0,
         overrideAccess: true,
       })
-      if (clash.totalDocs === 0) {
-        slug = candidate
-        break
-      }
+      return clash.totalDocs === 0
     }
 
+    // OPT-IN vanity handle: only when the caller explicitly asks and it's a
+    // legal, non-reserved slug. Otherwise the slug is opaque (privacy default).
+    const requestedVanity =
+      typeof body.vanitySlug === 'string' ? slugify(body.vanitySlug) : ''
+    let slug = ''
+    if (requestedVanity && requestedVanity.length >= 3 && !RESERVED_SLUGS.has(requestedVanity)) {
+      for (let i = 0; i < 50; i++) {
+        const candidate = i === 0 ? requestedVanity : `${requestedVanity}-${i + 1}`
+        if (await isFree(candidate)) {
+          slug = candidate
+          break
+        }
+      }
+    }
+    // Default (or vanity exhausted): an opaque, unguessable id — regenerate on
+    // the astronomically-rare collision.
+    if (!slug) {
+      for (let i = 0; i < 10; i++) {
+        const candidate = opaqueSlug()
+        if (await isFree(candidate)) {
+          slug = candidate
+          break
+        }
+      }
+    }
+    if (!slug) throw new Error('could not allocate a unique slug')
+
+    // Display name is their concern, not routing: use what they pass, else their
+    // account name, else a neutral label — never derived from the opaque slug.
     const displayName =
-      (typeof body.name === 'string' && body.name.trim()) || u.name || `${base}'s Guardian Angel`
+      (typeof body.name === 'string' && body.name.trim()) || u.name || 'My Guardian Angel'
 
     const result = await provisionPortal(
       payload,
