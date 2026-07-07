@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 import { setTenantFromHeader } from './hooks/setTenantFromHeader'
 import { autoAnalyzeUpload } from './hooks/autoAnalyzeUpload'
+import { mediaToAiBus } from './hooks/mediaToAiBus'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,7 +34,9 @@ export const Media: CollectionConfig = {
     beforeValidate: [setTenantFromHeader],
     // Analyze every upload (image vision / PDF text) → MediaMeta → RAG, so any
     // uploaded photo is deeply searchable later regardless of how it arrived.
-    afterChange: [autoAnalyzeUpload],
+    // Analyze the upload AND drop a message into the AI Bus `media` channel, so
+    // every asset is both searchable and visible in the observable message flow.
+    afterChange: [autoAnalyzeUpload, mediaToAiBus],
   },
   fields: [
     {

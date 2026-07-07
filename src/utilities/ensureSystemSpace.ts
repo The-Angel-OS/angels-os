@@ -19,6 +19,7 @@ const AI_BUS_CHANNELS = [
   { name: 'support', slug: 'support', description: 'Support requests and system help', type: 'support', isDefault: false },
   { name: 'errors', slug: 'errors', description: 'System errors and warnings — LEO monitors this channel', type: 'general', isDefault: false },
   { name: 'system-log', slug: 'system-log', description: 'System event log — cron jobs, integrations, provisioning', type: 'general', isDefault: false },
+  { name: 'Media', slug: 'media', description: 'Every new media asset lands here — uploads, Nimue camera, BOLO sentinel frames. The observable media flow.', type: 'general', isDefault: false },
   { name: 'Email', slug: 'email-inbox', description: 'Inbound email threads — messages arrive here from connected email accounts', type: 'email', isDefault: false },
   { name: 'Gotify', slug: 'gotify', description: 'Inbound Gotify notifications (Uptime-Kuma, system alerts) mirrored from connected Gotify servers', type: 'social', isDefault: false },
   { name: 'Catch-All', slug: 'catch-all', description: "Messages that don't fit any other channel — the triage bucket. Open the space-level Catch-All view to sort them.", type: 'general', isDefault: false },
