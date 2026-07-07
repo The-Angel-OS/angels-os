@@ -77,7 +77,20 @@ export function PortalSwitcher({
       const currentHost = window.location.hostname
       const localeMatch = window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/)
       const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
-      const path = targetPath || '/dashboard'
+      // Preserve the current DASHBOARD sub-page across the switch so you land on
+      // the same view on the other portal (e.g. /dashboard/spaces → the new
+      // portal's /dashboard/spaces), not the dashboard root. Dashboard routes are
+      // structural (they exist on every portal), so this is safe cross-domain;
+      // public/content paths (tenant-specific slugs) are NOT carried — they may
+      // 404 on the target — so we fall back to targetPath/dashboard for those.
+      // Query string is dropped on purpose: it often holds tenant-scoped ids.
+      const rawPath = window.location.pathname
+      const pathNoLocale = localePrefix && rawPath.startsWith(localePrefix)
+        ? rawPath.slice(localePrefix.length) || '/'
+        : rawPath
+      const path = pathNoLocale.startsWith('/dashboard')
+        ? pathNoLocale
+        : (targetPath || '/dashboard')
       // On a real host, navigate to the portal's explicit canonical domain — the
       // {slug}.{base} construction doubled the host for a tenant whose slug equals
       // the base subdomain (slug "kendev" on *.kendev.co → kendev.kendev.co). On
