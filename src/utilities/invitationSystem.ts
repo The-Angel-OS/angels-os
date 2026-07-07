@@ -188,6 +188,19 @@ export async function createInvitation(opts: CreateInvitationOptions) {
     membershipData.user = invitedByUserId
   }
 
+  // space-memberships are tenant-scoped. On a request path the multi-tenant
+  // plugin auto-assigns the tenant from the cookie, but on non-request paths
+  // (CRON provisioning) there's no cookie → "field invalid: Assigned Tenant".
+  // Derive it from the space so every caller is covered.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sp = (await payload.findByID({ collection: 'spaces', id: spaceId as any, depth: 0, overrideAccess: true })) as any
+    const spaceTenantId = sp?.tenant && typeof sp.tenant === 'object' ? sp.tenant.id : sp?.tenant
+    if (spaceTenantId != null) membershipData.tenant = spaceTenantId
+  } catch {
+    /* leave unset — request-context auto-assign may still cover it */
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const membership = await (payload.create as any)({
     collection: 'space-memberships',
