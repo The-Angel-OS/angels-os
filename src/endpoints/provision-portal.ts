@@ -14,6 +14,8 @@
  */
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
+import { createInvitation } from '@/utilities/invitationSystem'
+import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
 import { logError } from '@/utilities/logError'
 
 export const provisionPortalHandler: PayloadHandler = async (req) => {
@@ -82,7 +84,73 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
       },
       { req, actingUserId },
     )
-    return Response.json(result)
+
+    // Optional owner invite — the factory primitive: provisioning a portal FOR
+    // someone should be able to invite + EMAIL them in the same call. The
+    // interactive invite endpoint is session-gated (must already be space_admin
+    // of the target space) — impossible on a freshly-provisioned portal with zero
+    // memberships. This CRON/super_admin path creates the invitation against the
+    // portal's main space and sends the email server-side.
+    const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim() : ''
+    let invite: Record<string, unknown> | undefined
+    if (ownerEmail && (result as { ok?: boolean })?.ok) {
+      try {
+        const tenantId = (result as { tenant?: { id?: number | string } }).tenant?.id
+        if (tenantId == null) throw new Error('no tenant id from provision result')
+        // Resolve the portal's MAIN space (not AI Bus / Direct Messages).
+        const spaces = await payload.find({
+          collection: 'spaces',
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { slug: { not_in: ['ai-bus', 'direct-messages'] } },
+            ],
+          },
+          limit: 1,
+          sort: 'createdAt',
+          depth: 0,
+          overrideAccess: true,
+        })
+        const mainSpace = spaces.docs?.[0] as { id: number | string; name?: string } | undefined
+        if (!mainSpace) throw new Error('main space not found for invite')
+
+        // invitedBy must be a real user (FK). Fall back to any user on the node
+        // when the CRON path couldn't resolve a super_admin.
+        let inviterId: number | string | undefined = actingUserId
+        if (inviterId == null) {
+          const anyUser = await payload.find({ collection: 'users', limit: 1, depth: 0, overrideAccess: true })
+          inviterId = anyUser.docs?.[0]?.id
+        }
+        if (inviterId == null) throw new Error('no user available to attribute the invite')
+
+        const inv = await createInvitation({
+          payload,
+          email: ownerEmail,
+          spaceId: mainSpace.id,
+          invitedByUserId: inviterId,
+          role: 'moderator', // highest invitable space role; elevate to tenant_admin after accept
+          message: typeof body.ownerMessage === 'string' ? body.ownerMessage : undefined,
+        })
+
+        const tenantName = (result as { tenant?: { slug?: string } }).tenant?.slug
+        const emailSent = await sendInvitationEmail({
+          payload,
+          tenantId,
+          recipientEmail: ownerEmail,
+          inviterName: typeof body.inviterName === 'string' ? body.inviterName : 'Kenneth Courtney',
+          spaceName: mainSpace.name || (typeof body.name === 'string' ? body.name : 'your portal'),
+          inviteUrl: inv.inviteUrl,
+          role: 'moderator',
+          tenantName: typeof body.name === 'string' ? body.name : tenantName,
+        })
+
+        invite = { email: ownerEmail, emailSent, inviteUrl: inv.inviteUrl, expiresAt: inv.expiresAt }
+      } catch (invErr) {
+        invite = { email: ownerEmail, emailSent: false, error: invErr instanceof Error ? invErr.message : String(invErr) }
+      }
+    }
+
+    return Response.json({ ...result, ...(invite ? { invite } : {}) })
   } catch (e) {
     payload.logger.error(`[provision-portal] ${e instanceof Error ? e.message : e}`)
     await logError({
