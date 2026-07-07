@@ -23,7 +23,7 @@
  * @see [[project_leo_factory_principle]] — exposed as a LEO tool wrapper
  */
 import type { Payload, PayloadRequest } from 'payload'
-import { slugify, vanitySlugRejection } from '@/utilities/guardianSlug'
+import { slugify, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
 import { tenantBySlugCache, tenantByDomainCache } from '@/utilities/tenantCache'
 
 export interface RenamePortalSlugResult {
@@ -75,9 +75,9 @@ export async function renamePortalSlug(
     throw new RenameSlugError(rejection, RESERVED_OR_INVALID(newSlug))
   }
 
-  const baseDomain = (input.baseDomain || process.env.GUARDIAN_ANGEL_BASE_DOMAIN || 'kendev.co')
-    .replace(/^\.+|\.+$/g, '')
-    .toLowerCase()
+  const baseDomain = input.baseDomain
+    ? input.baseDomain.replace(/^\.+|\.+$/g, '').toLowerCase()
+    : guardianBaseDomain()
   const newDomain = `${newSlug}.${baseDomain}`
 
   // Load the tenant we're renaming.

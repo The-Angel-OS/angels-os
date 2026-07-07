@@ -8,8 +8,9 @@
  * immediately (they're authenticated, so no email-invite round-trip).
  *
  * Parameterized so the "where do these live" decision isn't baked in: the base
- * domain is GUARDIAN_ANGEL_BASE_DOMAIN (default kendev.co). Point it at a dedicated
- * "Guardian Angels" Enterprise + domain later by changing one env var — no rebuild.
+ * domain is GUARDIAN_ANGEL_BASE_DOMAIN (default spacesangels.com — these are The
+ * Angel OS's citizens, NOT kendev.co which is Ken's own consultancy + backup
+ * federation). Point it at a dedicated Enterprise/domain later via one env var.
  *
  * SAFEGUARDS (we're monetizing, not spamming tenants into existence):
  *   - Shipped DARK: does nothing unless GUARDIAN_ANGEL_SELF_PROVISION === 'true'.
@@ -29,7 +30,7 @@
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
-import { slugify, opaqueSlug, vanitySlugRejection } from '@/utilities/guardianSlug'
+import { slugify, opaqueSlug, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
 
 /** TODO(payment): replace with a real entitlement check (subscriptions/Stripe). */
 async function hasGuardianAngelEntitlement(
@@ -181,7 +182,7 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
       }
     }
 
-    const baseDomain = (process.env.GUARDIAN_ANGEL_BASE_DOMAIN || 'kendev.co').replace(/^\.+|\.+$/g, '')
+    const baseDomain = guardianBaseDomain()
 
     // Helper: is this slug free?
     const isFree = async (candidate: string): Promise<boolean> => {

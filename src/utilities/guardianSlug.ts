@@ -30,12 +30,25 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'assets', 'leo', 'merlin', 'nimue', 'federation', 'dashboard', 'auth', 'login',
   'account', 'accounts', 'portal', 'root', 'system', 'support', 'help', 'status',
   'kendev', 'angel', 'angels', 'angelos', 'test', 'dev', 'staging',
+  'spaces', 'spacesangels', 'www2', 'ftp', 'ns', 'ns1', 'ns2',
 ])
 
 /**
  * PRIVACY BY DEFAULT: opaque, unguessable id. Crockford-ish base32 minus
  * ambiguous chars (no 0/o/1/i/l) so it's clean when spoken/typed.
  */
+/**
+ * The base domain guardian angels live under. Default is **spacesangels.com** —
+ * these are The Angel OS's citizens (the mission), NOT kendev.co (Ken's own
+ * consultancy + backup federation). Override per-node via env. Single source of
+ * truth so the claim and rename paths can never disagree.
+ */
+export function guardianBaseDomain(): string {
+  return (process.env.GUARDIAN_ANGEL_BASE_DOMAIN || 'spacesangels.com')
+    .replace(/^\.+|\.+$/g, '')
+    .toLowerCase()
+}
+
 const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 export function opaqueSlug(len = 12): string {
   const bytes = randomBytes(len)
