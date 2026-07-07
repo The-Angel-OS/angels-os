@@ -32,6 +32,7 @@ import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
 import { slugify, opaqueSlug, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
+import { activatePendingInvitesForUser } from '@/utilities/activatePendingInvites'
 
 /**
  * The mapping is gmail ⇔ guardian angel: 1:1 by default (auto-provisioned the
@@ -99,6 +100,12 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
   const createAdditional = body.createAdditional === true
 
   try {
+    // Ignition spark: light up any invitations waiting on this person's email —
+    // getting your angel IS accepting your invites. Runs on every claim (first
+    // load and every subsequent open), so an invite sent after they joined
+    // resolves on their next app-open. Fail-soft.
+    await activatePendingInvitesForUser(payload, u.id, email).catch(() => {})
+
     // Find the user's existing GUARDIAN angels — NOT every portal they admin. This
     // is the crux: a user who already runs a business (e.g. Clearwater-Cruisin) must
     // still get a fresh PERSONAL angel on app-open, not their business handed back.
