@@ -95,6 +95,16 @@ describe('resolveProviderOrder — intent pipes', () => {
     expect(order[0]).toBe('ollama')
   })
 
+  it('google is the primary cloud brain — present and ahead of the gateway', () => {
+    const order = resolveProviderOrder()
+    expect(order).toContain('google')
+    expect(order.indexOf('google')).toBeLessThan(order.indexOf('gateway'))
+  })
+
+  it('SENSITIVE excludes google (an AI Studio key may train on the data)', () => {
+    expect(resolveProviderOrder('sensitive')).not.toContain('google')
+  })
+
   it('chitchat pulls the cheap/free providers to the front', () => {
     const order = resolveProviderOrder('chitchat')
     expect(order.indexOf('ollama')).toBeLessThan(order.indexOf('gateway'))

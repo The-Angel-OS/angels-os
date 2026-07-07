@@ -523,14 +523,16 @@ async function resolveGroqModel(
 // which reproduces the prior hardcoded behavior exactly.
 // ---------------------------------------------------------------------------
 
-type ProviderKind = 'ollama' | 'groq' | 'nvidia' | 'gateway' | 'openrouter'
+type ProviderKind = 'ollama' | 'google' | 'groq' | 'nvidia' | 'gateway' | 'openrouter'
 
-// Free providers come first (ollama → groq → nvidia), then the metered gateway,
-// then OpenRouter LAST as the "LEO must not go dark" safety net. NVIDIA NIM is
-// inert without NVIDIA_API_KEY, so adding it to the default order is a no-op on
-// nodes that haven't opted in — but a node WITH a key gets free intelligence
-// (Nemotron etc.) ahead of paid credits.
-const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'groq', 'nvidia', 'gateway', 'openrouter']
+// Order = binding order. Local (ollama) stays first for sovereignty, then GOOGLE
+// as the primary CLOUD brain (Ken's own GOOGLE_AI_API_KEY — direct, predictable
+// billing, no scary gateway rate-cliff), then the free tiers (groq/nvidia), the
+// metered gateway, and OpenRouter LAST as the "LEO must not go dark" safety net.
+// Every provider is inert without its key, so a node that hasn't set GOOGLE_AI_API_KEY
+// simply skips google and falls through — nothing else changes. Override the whole
+// order per-deployment with AI_PROVIDER_ORDER.
+const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'google', 'groq', 'nvidia', 'gateway', 'openrouter']
 
 /** Direct OpenRouter (OpenAI-compatible) model per tier — verified live 2026-06-15. */
 const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
@@ -554,6 +556,18 @@ const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
   critical: NVIDIA_DEFAULT_MODEL,
 }
 
+/** Direct Google (Gemini) via its OpenAI-compatible endpoint — Flash for the fast
+ *  lanes, Pro for the heavy ones. Model IDs are bare (no `google/` prefix) at the
+ *  API; we re-prefix on the telemetry modelId. Override with GOOGLE_MODEL to pin one
+ *  model for every tier. ⚠️ An AI Studio (free) key may be used to improve Google's
+ *  products — google is excluded from the `sensitive` pipe (see PROVIDER_LOGS_DATA). */
+const GOOGLE_TIER_MAP: Record<TaskComplexity, string> = {
+  low: 'gemini-2.5-flash',
+  medium: 'gemini-2.5-flash',
+  high: 'gemini-2.5-pro',
+  critical: 'gemini-2.5-pro',
+}
+
 // ---------------------------------------------------------------------------
 // The Hydra — purpose-named intelligence pipes. The SAME registry of
 // OpenAI-compatible providers, routed differently by the *intent* of the call:
@@ -568,7 +582,7 @@ export type ModelIntent = 'default' | 'tool_use' | 'max' | 'chitchat' | 'sensiti
  *  `sensitive` pipe so private tenant data never becomes someone's training set.
  *  NVIDIA's free tier explicitly records inputs+outputs; local (ollama/Merlin) and
  *  the metered gateway (Anthropic terms) do not. Groq does not train on API data. */
-const PROVIDER_LOGS_DATA = new Set<ProviderKind>(['nvidia'])
+const PROVIDER_LOGS_DATA = new Set<ProviderKind>(['nvidia', 'google'])
 
 /** Per-intent PREFERENCE — which providers to pull to the front. The base order
  *  (AI_PROVIDER_ORDER / default) stays the availability truth; intent reweights it. */
@@ -582,7 +596,7 @@ const INTENT_PREFERENCE: Record<ModelIntent, ProviderKind[]> = {
 
 export function resolveProviderOrder(intent: ModelIntent = 'default'): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
-  const valid = new Set<ProviderKind>(['ollama', 'groq', 'nvidia', 'gateway', 'openrouter'])
+  const valid = new Set<ProviderKind>(['ollama', 'google', 'groq', 'nvidia', 'gateway', 'openrouter'])
   let base = raw
     ? raw.split(',').map((s) => s.trim().toLowerCase()).filter((k): k is ProviderKind => valid.has(k as ProviderKind))
     : [...DEFAULT_PROVIDER_ORDER]
@@ -673,6 +687,26 @@ function attemptNvidia(ctx: ProviderAttemptCtx): SmartModelResult | null {
   return { model: provider(modelId), providerOptions: {}, modelId: `nvidia/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier }
 }
 
+/**
+ * Direct Google (Gemini) — Ken's own GOOGLE_AI_API_KEY via Google's OpenAI-compatible
+ * endpoint. The primary CLOUD brain: predictable direct billing, no Vercel-gateway
+ * rate-cliff. Placed right after local in the default order so it wins ahead of the
+ * metered gateway. Inert without a key. Serves ANY tier once reached (Flash/Pro by
+ * tier). The `google/` telemetry prefix keeps cost attribution readable.
+ */
+function attemptGoogle(ctx: ProviderAttemptCtx): SmartModelResult | null {
+  const key = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  if (!key) return null
+  const modelId = process.env.GOOGLE_MODEL || GOOGLE_TIER_MAP[ctx.tier]
+  const provider = createOpenAICompatible({
+    name: 'google',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    apiKey: key,
+  })
+  console.log(`[AI Gateway] 🔵 Google ${modelId} (${attemptReason(ctx)})`)
+  return { model: provider(modelId), providerOptions: {}, modelId: `google/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+}
+
 function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
   if (!ctx.gatewayKey) return null
   const config = TASK_MODEL_MAP[ctx.tier]
@@ -743,6 +777,7 @@ export async function getSmartModel(
   for (const kind of resolveProviderOrder(tracking?.intent)) {
     const result =
       kind === 'ollama' ? await attemptOllama(ctx)
+      : kind === 'google' ? attemptGoogle(ctx)
       : kind === 'groq' ? await attemptGroq(ctx)
       : kind === 'nvidia' ? attemptNvidia(ctx)
       : kind === 'openrouter' ? attemptOpenRouter(ctx)
