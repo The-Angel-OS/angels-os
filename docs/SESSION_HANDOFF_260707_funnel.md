@@ -17,7 +17,7 @@ Built while you slept. Everything additive, **no schema changes**, `tsc` clean, 
   - `hasGuardianAngelEntitlement` is real; status endpoint returns `subscribed` + an `upgrade` CTA only at `over_free`.
 
 ## To flip it LIVE (your morning checklist)
-1. **Stripe keys** (prod env, both Vercel projects): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOKS_SIGNING_SECRET` (webhook already at `/api/stripe/webhooks`; add `customer.subscription.*` events if not already selected).
+1. **Stripe keys** — ✅ DONE (260707): `STRIPE_SECRET_KEY` is on BOTH platforms; Connect verified via Clearwater-Cruisin (that's the *destination-charge* path). NOTE: the Guardian Angel subscription is **platform-direct** (pays the platform account, no Connect) — same key, different money flow, revenue lands in the platform Stripe balance (funds mission + infra). STILL CONFIRM: (a) `STRIPE_WEBHOOKS_SIGNING_SECRET` set on both, (b) `customer.subscription.created/updated/deleted` events selected on the `/api/stripe/webhooks` endpoint — without these the subscription→entitlement sync won't fire.
 2. **Flip the master switch**: `GUARDIAN_ANGEL_SELF_PROVISION=true` (claim is dark until this is set).
 3. Optional tuning: `GUARDIAN_ANGEL_PRICE_CENTS` (default 900), `GUARDIAN_ANGEL_FREE_MONTHLY_CENTS` (default 100), `GUARDIAN_ANGEL_FREE_TENANTS` (CSV of pinned-free slugs, e.g. `ernesto`), `GUARDIAN_ANGEL_MAX_PER_USER` (default 3).
 4. **Nimue first-run hook** (Nimue repo): on Google sign-in → `POST /api/provision-ops/claim-guardian-angel`, then poll `GET /api/provision-ops/guardian-angel-status` for the banner. Idempotent — safe to call every launch.
