@@ -110,6 +110,7 @@ import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
+import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -791,6 +792,12 @@ export default buildConfig({
       path: '/provision-ops/portal',
       method: 'post',
       handler: provisionPortalHandler,
+    },
+    // The deprovision half — dry-run by default, execute needs confirmSlug.
+    {
+      path: '/provision-ops/decommission',
+      method: 'post',
+      handler: decommissionPortalHandler,
     },
     // User-facing moderation: report a message/author for review.
     {
