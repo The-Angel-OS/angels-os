@@ -37,6 +37,8 @@ import { buildWorkDraftFromText } from './worksFromContent'
 import { getDailyBread, DailyBreadError } from './dailyBread'
 import { buildPersonalAgenda } from './buildPersonalAgenda'
 import { webSearch } from './webSearch'
+import { setWeeklyAvailability } from './setWeeklyAvailability'
+import { resolveGuardianTenant } from './guardianEntitlement'
 import { verifyEndeavorOnboarding } from './verifyEndeavorOnboarding'
 import {
   findUserSynchronicities,
@@ -2196,6 +2198,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'set_availability',
+    description:
+      "Set the signed-in person's recurring weekly availability on their personal scheduler (their 'book time with me' calendar). Use when they say things like 'I'm free weekdays 9 to 5' or 'open Tuesdays 2–5pm'. Sets the given days to the given hours, leaving other days as they are. Self-scoped to the current user's home angel.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "Days to set, by name or 0–6 (Sun=0). e.g. ['mon','tue','wed','thu','fri'].",
+        },
+        start_time: { type: 'string', description: 'Start of the window, 24-hour HH:MM (e.g. 09:00).' },
+        end_time: { type: 'string', description: 'End of the window, 24-hour HH:MM (e.g. 17:00).' },
+        slot_minutes: { type: 'number', description: 'Length of each bookable slot in minutes. Default 30.' },
+      },
+      required: ['days', 'start_time', 'end_time'],
+    },
+  },
 
   // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
 
@@ -4021,6 +4042,8 @@ async function executeToolSwitch(
         return await handleGetAgenda(payload, toolInput, ctx)
       case 'web_search':
         return await handleWebSearch(toolInput)
+      case 'set_availability':
+        return await handleSetAvailability(payload, toolInput, ctx)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -16801,5 +16824,43 @@ async function handleWebSearch(toolInput: Record<string, unknown>): Promise<stri
     return lines.join('\n')
   } catch (e) {
     return `Web search failed: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * set_availability — set the caller's recurring weekly hours on their personal
+ * (home angel) scheduler. @see setWeeklyAvailability. Self-scoped write.
+ */
+async function handleSetAvailability(
+  payload: Payload,
+  toolInput: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.userId) return 'Please sign in to set your availability.'
+  try {
+    const home = await resolveGuardianTenant(payload, ctx.userId)
+    if (!home) return 'Claim your guardian angel first — that\'s where your scheduler lives.'
+
+    const days = Array.isArray(toolInput.days) ? (toolInput.days as Array<string | number>) : []
+    const startTime = typeof toolInput.start_time === 'string' ? toolInput.start_time : ''
+    const endTime = typeof toolInput.end_time === 'string' ? toolInput.end_time : ''
+    const slot = typeof toolInput.slot_minutes === 'number' ? toolInput.slot_minutes : undefined
+
+    const r = await setWeeklyAvailability(payload, {
+      tenantId: home.id,
+      providerUserId: ctx.userId,
+      days,
+      startTime,
+      endTime,
+      slotDuration: slot,
+    })
+    if (!r.ok) return `Couldn't set availability: ${r.error || 'no changes made'}.`
+
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const which = r.days.map((d) => dayLabels[Number(d)]).join(', ')
+    const link = home.domain ? ` Your link: https://${home.domain}/book` : ''
+    return `✅ Availability set for **${which}**, ${startTime}–${endTime} (${r.updated} updated, ${r.created} added).${link}`
+  } catch (e) {
+    return `Could not set availability: ${e instanceof Error ? e.message : 'Unknown error'}`
   }
 }
