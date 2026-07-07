@@ -111,6 +111,7 @@ import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
+import { aiStatusHandler } from '@/endpoints/ai-status'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -798,6 +799,12 @@ export default buildConfig({
       path: '/provision-ops/decommission',
       method: 'post',
       handler: decommissionPortalHandler,
+    },
+    // AI switchboard probe — provider reachability + blob storage (LEO eval loop).
+    {
+      path: '/provision-ops/ai-status',
+      method: 'get',
+      handler: aiStatusHandler,
     },
     // User-facing moderation: report a message/author for review.
     {

@@ -3,6 +3,7 @@ import { headers as nextHeaders } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import AICostsPanel from './AICostsPanel'
+import ProviderSwitchboard from './ProviderSwitchboard'
 import { BootstrapFeeCard } from './BootstrapFeeCard'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getBootstrapFeeStatus, getTotalBootstrapLiability } from '@/utilities/bootstrapFees'
@@ -51,6 +52,7 @@ export default async function AICostsPage({
       {feeStatus && (
         <BootstrapFeeCard feeStatus={feeStatus} platformLiability={platformLiability} isSuperAdmin={isSuperAdmin} />
       )}
+      <ProviderSwitchboard />
       <AICostsPanel />
     </div>
   )
