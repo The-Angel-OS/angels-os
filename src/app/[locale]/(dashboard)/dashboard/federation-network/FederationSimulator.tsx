@@ -205,7 +205,7 @@ function fromLive(g: LiveGovernance): { nodes: StarNode[]; edges: StarEdge[]; na
 // Tier-aware layout. The Dioceses (sovereign Enterprises) are the STAR POINTS on
 // the ring; the substrate sits at the still center; endeavors/holons orbit their
 // parent Diocese as satellites and only appear when that Diocese is expanded.
-function layout(nodes: StarNode[], collapsed: Set<string>): Map<string, { x: number; y: number }> {
+function layout(nodes: StarNode[], focused: string | null): Map<string, { x: number; y: number }> {
   const cx = 50
   const cy = 50
   const pos = new Map<string, { x: number; y: number }>()
@@ -232,13 +232,15 @@ function layout(nodes: StarNode[], collapsed: Set<string>): Map<string, { x: num
     pos.set(node.id, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) })
   })
 
-  // Satellites: orbit their parent (Diocese or substrate). Shown by default —
-  // the full star is the payoff; clicking a parent COLLAPSES its satellites away.
+  // Satellites: orbit their parent (Diocese or substrate). Only the FOCUSED
+  // parent's satellites are shown — click a Diocese to reveal the endeavors
+  // aboard that enterprise (and tuck everyone else's away). This is what keeps the
+  // star readable instead of a hairball: the ring of sovereigns is always clear,
+  // and you drill into one enterprise at a time.
   const byParent = new Map<string, StarNode[]>()
   for (const s of satellites) {
     const key = s.parentId && pos.has(s.parentId) ? s.parentId : substrate[0]?.id ?? ''
-    if (!key) continue
-    if (collapsed.has(key)) continue
+    if (!key || key !== focused) continue
     if (!byParent.has(key)) byParent.set(key, [])
     byParent.get(key)!.push(s)
   }
@@ -288,7 +290,9 @@ export default function FederationSimulator() {
   const [meta, setMeta] = useState<Pick<SimResponse, 'online' | 'mock' | 'live' | 'dispatches' | 'completed' | 'heldUnderBackpressure' | 'liveDispatchCapped'> | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // The parent enterprise whose endeavors are currently revealed. Defaults to the
+  // substrate once data loads (see effect below); clicking a Diocese focuses it.
+  const [focused, setFocused] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const refetch = useCallback(async () => {
@@ -331,7 +335,7 @@ export default function FederationSimulator() {
     return () => clearTimeout(t)
   }, [refetch])
 
-  const positions = useMemo(() => layout(data?.nodes ?? [], collapsed), [data, collapsed])
+  const positions = useMemo(() => layout(data?.nodes ?? [], focused), [data, focused])
   const nodeById = useMemo(() => new Map((data?.nodes ?? []).map((n) => [n.id, n])), [data])
   const selectedNode = selected ? nodeById.get(selected) : null
   const tierTally = useMemo(() => {
@@ -348,16 +352,21 @@ export default function FederationSimulator() {
   const toggleLive = (id: string) =>
     setLiveIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
 
-  // Click a Diocese/substrate that has satellites → fan its endeavors in/out
-  // (shown by default; clicking collapses them away).
+  // Default the focus to the substrate once data loads, so the initial view shows
+  // The Angel OS's own endeavors rather than an empty ring.
+  useEffect(() => {
+    if (focused !== null) return
+    const sub = (data?.nodes ?? []).find((n) => n.tier === 'substrate')
+    if (sub) setFocused(sub.id)
+  }, [data, focused])
+
+  // Click a Diocese/substrate that has satellites → FOCUS it: reveal the endeavors
+  // aboard that enterprise (and tuck the others away). Click it again to fall back
+  // to the substrate view. Leaf nodes just select (show the info card).
   const onNodeClick = (id: string) => {
     setSelected(id)
     if (hasChildren.has(id)) {
-      setCollapsed((prev) => {
-        const next = new Set(prev)
-        next.has(id) ? next.delete(id) : next.add(id)
-        return next
-      })
+      setFocused((prev) => (prev === id ? null : id))
     }
   }
 
@@ -517,8 +526,8 @@ export default function FederationSimulator() {
             const isSel = n.id === selected
             return (
               <g key={n.id} onClick={() => onNodeClick(n.id)} style={{ cursor: 'pointer' }}>
-                {/* collapsed ring — a Diocese with its satellites tucked behind it */}
-                {hasChildren.has(n.id) && collapsed.has(n.id) && (
+                {/* expandable ring — a parent with endeavors tucked behind it (click to reveal) */}
+                {hasChildren.has(n.id) && focused !== n.id && (
                   <circle cx={p.x} cy={p.y} r={r + 1} fill="none" stroke={color} strokeWidth={0.25} strokeDasharray="0.5 0.7" opacity={0.6} />
                 )}
                 {/* live glow / coordinator pulse */}
@@ -533,7 +542,16 @@ export default function FederationSimulator() {
                   strokeWidth={isSel ? 0.8 : 0.4}
                   strokeDasharray={n.transport === 'mock' ? '0.8 0.8' : undefined}
                 />
-                <text x={p.x} y={p.y + r + 3.2} textAnchor="middle" fontSize={2.6} fill={C.textMuted} style={{ pointerEvents: 'none' }}>
+                {/* Label above for upper-half nodes, below for lower-half — keeps text
+                    off the neighbouring node it would otherwise collide with. */}
+                <text
+                  x={p.x}
+                  y={p.y < 42 ? p.y - r - 1.6 : p.y + r + 3.2}
+                  textAnchor="middle"
+                  fontSize={2.6}
+                  fill={isSel ? '#fff' : C.textMuted}
+                  style={{ pointerEvents: 'none' }}
+                >
                   {n.name.length > 18 ? n.name.slice(0, 17) + '…' : n.name}
                 </text>
               </g>
