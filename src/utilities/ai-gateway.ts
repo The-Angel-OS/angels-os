@@ -589,7 +589,9 @@ const PROVIDER_LOGS_DATA = new Set<ProviderKind>(['nvidia', 'google'])
 const INTENT_PREFERENCE: Record<ModelIntent, ProviderKind[]> = {
   default: [],
   tool_use: ['nvidia', 'gateway'], // Nemotron 3 Ultra + gateway are the tool-callers
-  max: ['gateway', 'openrouter'], // frontier quality first
+  max: ['gateway', 'openrouter', 'google'], // Anthropic gateway first (prompt caching +
+  //   the 10K tool-chain edge on tool-heavy escalations), then OpenRouter, then Gemini Pro
+  //   as the reliable/cheap frontier fallback when the metered gateway is unavailable.
   chitchat: ['ollama', 'groq', 'nvidia'], // cheap/fast/free first
   sensitive: ['ollama'], // sovereign first (and logging providers removed below)
 }
