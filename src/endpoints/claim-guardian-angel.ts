@@ -99,10 +99,11 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
   const createAdditional = body.createAdditional === true
 
   try {
-    // How many angels does this user already admin? The FIRST call (app open) is
-    // idempotent: no flag + already have one → hand back the primary, so opening
-    // the app repeatedly never mints duplicates.
-    const existing = await payload.find({
+    // Find the user's existing GUARDIAN angels — NOT every portal they admin. This
+    // is the crux: a user who already runs a business (e.g. Clearwater-Cruisin) must
+    // still get a fresh PERSONAL angel on app-open, not their business handed back.
+    // We filter tenant_admin memberships down to tenants marked isGuardianAngel.
+    const adminMemberships = await payload.find({
       collection: 'tenant-memberships',
       where: {
         and: [
@@ -113,19 +114,25 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
       },
       depth: 1,
       sort: 'createdAt',
-      limit: MAX_PER_USER + 1,
+      limit: 100,
       overrideAccess: true,
     })
-    const angelCount = existing.totalDocs
+    type TenantRef = { id?: number | string; slug?: string; domain?: string; isGuardianAngel?: boolean }
+    const guardianTenants = adminMemberships.docs
+      .map((m) => (m as { tenant?: TenantRef | number | string }).tenant)
+      .filter((t): t is TenantRef => t != null && typeof t === 'object' && t.isGuardianAngel === true)
+    const angelCount = guardianTenants.length
 
+    // The FIRST call (app open) is idempotent: already have a guardian + no
+    // explicit "make another" → hand back the primary, so repeated opens never
+    // mint duplicates. Business memberships are ignored here by design.
     if (angelCount > 0 && !createAdditional) {
-      const m = existing.docs[0] as { tenant?: { id?: number | string; slug?: string; domain?: string } | number | string }
-      const t = typeof m.tenant === 'object' ? m.tenant : null
+      const t = guardianTenants[0]!
       return Response.json({
         ok: true,
         alreadyExisted: true,
-        tenant: t ? { id: t.id, slug: t.slug, domain: t.domain } : { id: m.tenant },
-        url: t?.domain ? `https://${t.domain}` : undefined,
+        tenant: { id: t.id, slug: t.slug, domain: t.domain },
+        url: t.domain ? `https://${t.domain}` : undefined,
         message: 'You already have a guardian angel.',
       })
     }
@@ -219,6 +226,7 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
         tagline: 'A guardian angel in the Angel OS network',
         endeavorType: 'creator-content',
         networkVisible: false, // personal angels don't appear in Discovery (still reachable)
+        isGuardianAngel: true, // mark it as their personal angel (distinct from businesses)
       },
       { req, actingUserId: u.id }, // the claimant becomes tenant_admin directly
     )

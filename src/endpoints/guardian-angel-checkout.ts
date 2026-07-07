@@ -27,6 +27,7 @@ import {
   GUARDIAN_ANGEL_PLAN_ID,
   GUARDIAN_ANGEL_PLAN_NAME,
   guardianAngelPriceCents,
+  resolveGuardianTenant,
 } from '@/utilities/guardianEntitlement'
 
 let _stripe: Stripe | null = null
@@ -54,23 +55,10 @@ export const guardianAngelCheckoutHandler: PayloadHandler = async (req) => {
   const u = user as { id: number | string; email?: string; name?: string }
 
   try {
-    // Resolve the caller's own guardian tenant (the one they admin).
-    const membership = await payload.find({
-      collection: 'tenant-memberships',
-      where: {
-        and: [
-          { user: { equals: u.id } },
-          { role: { equals: 'tenant_admin' } },
-          { status: { in: ['active', 'pending'] } },
-        ],
-      },
-      depth: 0,
-      limit: 1,
-      sort: 'createdAt',
-      overrideAccess: true,
-    })
-    const m = membership.docs?.[0] as { tenant?: number | string | { id: number | string } } | undefined
-    const guardianTenantId = m ? (typeof m.tenant === 'object' ? m.tenant?.id : m.tenant) : undefined
+    // Resolve the caller's PERSONAL guardian tenant (marked isGuardianAngel), not
+    // a business they happen to admin.
+    const guardianTenant = await resolveGuardianTenant(payload, u.id)
+    const guardianTenantId = guardianTenant?.id
     if (guardianTenantId == null) {
       return Response.json({ error: 'Claim your guardian angel before subscribing.' }, { status: 404 })
     }

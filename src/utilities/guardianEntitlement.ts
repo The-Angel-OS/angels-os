@@ -24,6 +24,51 @@ export function guardianAngelPriceCents(): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 900
 }
 
+export interface GuardianTenantRef {
+  id: number | string
+  slug?: string
+  domain?: string
+}
+
+/**
+ * Resolve the user's PERSONAL guardian-angel tenant — the one marked
+ * `isGuardianAngel`, NOT just any portal they admin. Returns null if they have
+ * none yet. This is the shared "which tenant is their angel" lookup so claim,
+ * status, and checkout all agree (a business admin's guardian is found, not their
+ * business). Fail-soft.
+ */
+export async function resolveGuardianTenant(
+  payload: Payload,
+  userId: number | string,
+): Promise<GuardianTenantRef | null> {
+  try {
+    const memberships = await payload.find({
+      collection: 'tenant-memberships',
+      where: {
+        and: [
+          { user: { equals: userId } },
+          { role: { equals: 'tenant_admin' } },
+          { status: { in: ['active', 'pending'] } },
+        ],
+      },
+      depth: 1,
+      sort: 'createdAt',
+      limit: 100,
+      overrideAccess: true,
+    })
+    for (const m of memberships.docs) {
+      const t = (m as { tenant?: unknown }).tenant
+      if (t && typeof t === 'object' && (t as { isGuardianAngel?: boolean }).isGuardianAngel === true) {
+        const tt = t as GuardianTenantRef
+        return { id: tt.id, slug: tt.slug, domain: tt.domain }
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 /**
  * True when the user has an active/trialing Guardian Angel subscription.
  * Fail-soft: any query error (incl. a missing memberships table) → false.

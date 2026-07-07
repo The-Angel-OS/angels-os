@@ -39,6 +39,12 @@ export interface ProvisionPortalInput {
   /** Endeavor type (drives the community space's channel set). */
   endeavorType?: string
   /**
+   * Marks this as a PERSONAL guardian-angel portal (gmail⇔angel), distinct from a
+   * business/ministry portal. Set true by the claim flow so the tenant carries the
+   * `isGuardianAngel` marker the claim idempotency reads. Default false.
+   */
+  isGuardianAngel?: boolean
+  /**
    * Whether this portal's endeavor is listed in the federation Discovery tab.
    * Business/ministry portals default TRUE (they WANT to be found). Personal
    * guardian angels pass FALSE — millions of private per-person portals must not
@@ -94,6 +100,23 @@ export async function provisionPortal(
     branding: { siteName: name, tagline, primaryColor, secondaryColor },
   })
   log.push(`tenant #${tenant.id} (${tenant.slug})`)
+
+  // Stamp the personal-angel marker (fail-soft: a node missing the column just
+  // skips it rather than breaking provisioning).
+  if (input.isGuardianAngel) {
+    try {
+      await payload.update({
+        collection: 'tenants',
+        id: tenant.id as number,
+        data: { isGuardianAngel: true } as never,
+        overrideAccess: true,
+        req,
+      })
+      log.push('marked isGuardianAngel')
+    } catch (e) {
+      log.push(`isGuardianAngel mark skipped: ${(e as Error).message}`)
+    }
+  }
 
   // 1b. Alias domains (e.g. www.) → merge into tenant.domains[], idempotent
   if (domainAliases.length) {

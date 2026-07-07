@@ -16,7 +16,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { getGuardianUsage, describeGuardianUsage } from '@/utilities/guardianUsage'
-import { hasGuardianAngelEntitlement } from '@/utilities/guardianEntitlement'
+import { hasGuardianAngelEntitlement, resolveGuardianTenant } from '@/utilities/guardianEntitlement'
 
 export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -27,23 +27,10 @@ export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
   const u = user as { id: number | string }
 
   try {
-    // Find the tenant this user administers — their guardian angel.
-    const membership = await payload.find({
-      collection: 'tenant-memberships',
-      where: {
-        and: [
-          { user: { equals: u.id } },
-          { role: { equals: 'tenant_admin' } },
-          { status: { in: ['active', 'pending'] } },
-        ],
-      },
-      depth: 1,
-      limit: 1,
-      sort: 'createdAt', // oldest admin membership = their original backstore
-      overrideAccess: true,
-    })
-
-    if (membership.totalDocs === 0) {
+    // Their PERSONAL guardian angel (marked isGuardianAngel) — not a business they
+    // happen to admin. See resolveGuardianTenant.
+    const t = await resolveGuardianTenant(payload, u.id)
+    if (!t) {
       return Response.json({
         ok: true,
         hasGuardianAngel: false,
@@ -51,12 +38,8 @@ export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
       })
     }
 
-    const m = membership.docs[0] as {
-      tenant?: { id?: number | string; slug?: string; domain?: string } | number | string
-    }
-    const t = typeof m.tenant === 'object' ? m.tenant : null
-    const tenantId = t?.id ?? (m.tenant as number | string)
-    const tenantSlug = t?.slug
+    const tenantId = t.id
+    const tenantSlug = t.slug
 
     const usage = await getGuardianUsage(payload, tenantId, { tenantSlug })
     const subscribed = await hasGuardianAngelEntitlement(payload, u.id)
