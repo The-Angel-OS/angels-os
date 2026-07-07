@@ -14,8 +14,11 @@
  * SAFEGUARDS (we're monetizing, not spamming tenants into existence):
  *   - Shipped DARK: does nothing unless GUARDIAN_ANGEL_SELF_PROVISION === 'true'.
  *     Keeps the door shut until the paywall is wired.
- *   - Authenticated users only; one guardian angel per user (idempotent — a user
- *     who already admins a portal gets it back, never a second).
+ *   - Authenticated users only. The mapping is gmail ⇔ guardian angel: 1:1 by
+ *     default and IDEMPOTENT (open the app → get your primary back, never a
+ *     duplicate), but a person may create a few more with `createAdditional:true`
+ *     up to GUARDIAN_ANGEL_MAX_PER_USER (default 3) + a light per-user rate limit.
+ *     Not abuse-policing — three isn't abuse if they need three.
  *   - Paid tier: when GUARDIAN_ANGEL_REQUIRE_PAYMENT === 'true', a user without an
  *     entitlement gets 402 + a checkout hint instead of a portal. (Entitlement check
  *     is a stub today — see TODO — so the funnel shape exists before Stripe is wired.)
@@ -34,6 +37,44 @@ async function hasGuardianAngelEntitlement(
   _user: any,
 ): Promise<boolean> {
   return false
+}
+
+/**
+ * The mapping is gmail ⇔ guardian angel: 1:1 by default (auto-provisioned the
+ * instant the app opens), but a person CAN have a few — three isn't abuse if
+ * they genuinely need three. So we don't hard-cap at one; we set a generous soft
+ * ceiling and a light rate limit that only catches runaway loops / scripted
+ * abuse. The system is meant to absorb honest cost and adapt, not to police.
+ */
+const MAX_PER_USER = (() => {
+  const n = Number(process.env.GUARDIAN_ANGEL_MAX_PER_USER)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 3
+})()
+
+// Best-effort in-memory throttle (per lambda instance): cap fresh provisions per
+// user in a short window so an errant retry loop can't mint dozens. Honest use
+// (open app, claim, occasionally add one) never trips it.
+const PROVISION_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+const MAX_PROVISIONS_PER_WINDOW = 3
+const provisionHistory = new Map<string, number[]>() // userId → recent provision ms
+
+/** Reset the provision throttle — TESTS ONLY. */
+export function __resetGuardianClaimState(): void {
+  provisionHistory.clear()
+}
+
+function tooManyRecentProvisions(userId: number | string, now: number = Date.now()): boolean {
+  const key = String(userId)
+  const recent = (provisionHistory.get(key) || []).filter((t) => now - t < PROVISION_WINDOW_MS)
+  provisionHistory.set(key, recent)
+  return recent.length >= MAX_PROVISIONS_PER_WINDOW
+}
+
+function recordProvision(userId: number | string, now: number = Date.now()): void {
+  const key = String(userId)
+  const recent = (provisionHistory.get(key) || []).filter((t) => now - t < PROVISION_WINDOW_MS)
+  recent.push(now)
+  provisionHistory.set(key, recent)
 }
 
 export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
@@ -60,9 +101,13 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
     /* body optional */
   }
 
+  // Explicit intent to create ANOTHER angel (beyond the auto-provisioned primary).
+  const createAdditional = body.createAdditional === true
+
   try {
-    // Idempotency: one guardian angel per user. If they already admin a portal,
-    // hand it back rather than minting a second.
+    // How many angels does this user already admin? The FIRST call (app open) is
+    // idempotent: no flag + already have one → hand back the primary, so opening
+    // the app repeatedly never mints duplicates.
     const existing = await payload.find({
       collection: 'tenant-memberships',
       where: {
@@ -73,10 +118,13 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
         ],
       },
       depth: 1,
-      limit: 1,
+      sort: 'createdAt',
+      limit: MAX_PER_USER + 1,
       overrideAccess: true,
     })
-    if (existing.totalDocs > 0) {
+    const angelCount = existing.totalDocs
+
+    if (angelCount > 0 && !createAdditional) {
       const m = existing.docs[0] as { tenant?: { id?: number | string; slug?: string; domain?: string } | number | string }
       const t = typeof m.tenant === 'object' ? m.tenant : null
       return Response.json({
@@ -86,6 +134,34 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
         url: t?.domain ? `https://${t.domain}` : undefined,
         message: 'You already have a guardian angel.',
       })
+    }
+
+    // Additional-angel request: honor the generous soft cap. Not abuse-policing —
+    // just a ceiling so the mapping stays sane. Overridable via env.
+    if (createAdditional && angelCount >= MAX_PER_USER) {
+      return Response.json(
+        {
+          ok: false,
+          limitReached: true,
+          angelCount,
+          max: MAX_PER_USER,
+          message: `You already have ${angelCount} guardian angels (max ${MAX_PER_USER}). Reach out if you genuinely need more.`,
+        },
+        { status: 409 },
+      )
+    }
+
+    // Light rate limit: stop a runaway retry loop from minting a burst. Honest
+    // use never trips this.
+    if (tooManyRecentProvisions(u.id)) {
+      return Response.json(
+        {
+          ok: false,
+          rateLimited: true,
+          message: 'Too many new angels created just now — give it a few minutes and try again.',
+        },
+        { status: 429 },
+      )
     }
 
     // Paid tier funnel — return a checkout hint instead of a portal when required.
@@ -163,7 +239,8 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
       { req, actingUserId: u.id }, // the claimant becomes tenant_admin directly
     )
 
-    return Response.json({ ...result, alreadyExisted: false })
+    recordProvision(u.id) // count this fresh mint against the rate-limit window
+    return Response.json({ ...result, alreadyExisted: false, angelCount: angelCount + 1 })
   } catch (e) {
     await logError({
       source: 'claim-guardian-angel',
