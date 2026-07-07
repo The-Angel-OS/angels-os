@@ -76,7 +76,10 @@ export function MobileMenu({ menu, siteName }: Props) {
         <MenuIcon className="h-4" />
       </SheetTrigger>
 
-      <SheetContent side="left" className="px-4">
+      {/* h-full + overflow-y-auto so a long nav (many pages + blog entries + the
+          appended Library links + account section) scrolls instead of spilling
+          off the bottom unreachable. pb keeps the last item clear of the edge. */}
+      <SheetContent side="left" className="flex h-full flex-col overflow-y-auto px-4 pb-10">
         <SheetHeader className="px-0 pt-4 pb-0">
           <SheetTitle>{siteName || 'Angel OS'}</SheetTitle>
 
