@@ -1129,6 +1129,30 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'create_post_from_media',
+    description:
+      'Create a blog post FROM a set of uploaded images. Use when the user uploads/attaches images and says "post", "new post", "make a post of these", or "resubmit these images". YOU are multimodal — look at the images and write a title and a body that describes them, then this tool assembles the post: the FIRST image becomes the banner/hero, and ALL images go into a gallery grid. Created as draft by default.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The Media IDs of the uploaded images, in order. The first is used as the hero/banner. (required)',
+        },
+        title: { type: 'string', description: 'Post title you wrote from looking at the images. (required)' },
+        body: {
+          type: 'string',
+          description: 'Post body describing the images. Use \\n\\n between paragraphs. Rendered above the gallery.',
+        },
+        galleryHeading: { type: 'string', description: 'Optional heading shown above the image grid.' },
+        columns: { type: 'string', enum: ['2', '3', '4'], description: 'Gallery columns on desktop (default 3).' },
+        status: { type: 'string', enum: ['draft', 'published'], description: 'Defaults to draft.' },
+      },
+      required: ['mediaIds', 'title'],
+    },
+  },
+  {
     name: 'create_membership_plan',
     description:
       'Create or update a recurring membership/dues plan for the current Endeavor (e.g. a gym, church, makerspace, or club). Plans appear on the public Join surface and bill via Stripe as recurring subscriptions. Use when the user wants to add a membership tier, dues level, or subscription option. Provide an amount in dollars and a billing interval. Idempotent by name/id — re-running with the same name updates that plan.',
@@ -3873,6 +3897,8 @@ async function executeToolSwitch(
       // ─── Sprint 14: Content Management ────────────────────────────────────
       case 'create_post':
         return await createPost(payload, toolInput, ctx)
+      case 'create_post_from_media':
+        return await createPostFromMedia(payload, toolInput, ctx)
       case 'create_membership_plan':
         return await createMembershipPlan(payload, toolInput, ctx)
       case 'list_membership_plans':
@@ -7616,6 +7642,74 @@ async function describePersistedDoc(
 /**
  * create_post — Creates a new blog post with title, body, and optional categories.
  */
+async function createPostFromMedia(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: Post title is required.'
+
+  const rawIds = Array.isArray(input.mediaIds) ? input.mediaIds : []
+  const mediaIds = rawIds
+    .map((id) => (typeof id === 'number' ? id : /^\d+$/.test(String(id)) ? Number(id) : String(id)))
+    .filter((id) => id !== '' && id != null)
+  if (mediaIds.length === 0) return 'Error: mediaIds is required — pass the uploaded image IDs, first = hero.'
+
+  const status = (input.status as string) === 'published' ? 'published' : 'draft'
+  const columns = ['2', '3', '4'].includes(String(input.columns)) ? String(input.columns) : '3'
+  const body = typeof input.body === 'string' ? input.body.trim() : ''
+
+  const writeTenant = await resolveWriteTenant(payload, ctx)
+  if (!writeTenant) {
+    return "Error: I couldn't determine which Endeavor to post under. Open a specific Endeavor's workspace and I'll create the post there."
+  }
+
+  const heroId = mediaIds[0]
+  // Layout: optional description (Content block) then a Gallery of every image.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const layout: any[] = [
+    ...(body ? textToContentLayout(body) : []),
+    {
+      blockType: 'gallery',
+      ...(typeof input.galleryHeading === 'string' && input.galleryHeading.trim() ? { heading: input.galleryHeading.trim() } : {}),
+      columns,
+      images: mediaIds.map((id) => ({ image: id })),
+    },
+  ]
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (payload.create as any)({
+      collection: 'posts',
+      data: {
+        title,
+        _status: status,
+        tenant: writeTenant,
+        layout,
+        hero: { type: 'highImpact', media: heroId },
+        meta: { image: heroId },
+      },
+      overrideAccess: true,
+    })
+
+    const slug = str(result, 'slug')
+    const lines = [
+      `Post created from ${mediaIds.length} image${mediaIds.length !== 1 ? 's' : ''}!`,
+      `- **${title}** (${status})`,
+      `- Hero (banner): media ${heroId}`,
+      `- Gallery: ${mediaIds.length} image${mediaIds.length !== 1 ? 's' : ''} (${columns} cols)`,
+      `- Post ID: ${result.id}`,
+    ]
+    if (slug) lines.push(`- URL: /posts/${slug}` + navDirective(`/posts/${slug}`, 'View post'))
+    if (status === 'draft') lines.push(`\nSaved as a draft — say "publish post ${result.id}" when you're ready.`)
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools.create_post_from_media', err).catch(() => {})
+    return `Error creating post from media: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
 async function createPost(
   payload: Payload,
   input: Record<string, unknown>,

@@ -87,7 +87,7 @@ export const CORE_TOOL_NAMES = new Set<string>([
   // Booking
   'check_available_slots', 'create_booking',
   // Content
-  'create_post', 'create_page', 'update_page', 'update_post',
+  'create_post', 'create_post_from_media', 'create_page', 'update_page', 'update_post',
   // Comms + media
   'send_message', 'generate_image',
   // Context

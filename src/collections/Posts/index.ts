@@ -8,6 +8,7 @@ import { adminOnly } from '@/access/adminOnly'
 import { Archive } from '@/blocks/ArchiveBlock/config'
 import { CallToAction } from '@/blocks/CallToAction/config'
 import { Content } from '@/blocks/Content/config'
+import { Gallery } from '@/blocks/Gallery/config'
 import { Comments } from '@/blocks/Comments/config'
 import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
@@ -97,6 +98,7 @@ export const Posts: CollectionConfig = {
                 CallToAction,
                 Content,
                 MediaBlock,
+                Gallery,
                 Archive,
                 Carousel,
                 ThreeItemGrid,
