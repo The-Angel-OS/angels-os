@@ -35,6 +35,7 @@ import { computeEmbedUrl } from './computeEmbedUrl'
 import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
 import { getDailyBread, DailyBreadError } from './dailyBread'
+import { buildPersonalAgenda } from './buildPersonalAgenda'
 import { verifyEndeavorOnboarding } from './verifyEndeavorOnboarding'
 import {
   findUserSynchronicities,
@@ -2169,6 +2170,18 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'get_agenda',
+    description:
+      "The signed-in person's personal planner: their upcoming bookings and events merged into one time-sorted timeline, their active quests, and their 'book time with me' scheduling link. Use when someone asks what's on their plate, their schedule, their agenda, what's coming up, or their to-do/quests. Self-scoped to the current user.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'How many days ahead to include (1–90). Default 14.' },
+      },
+      required: [],
+    },
+  },
 
   // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
 
@@ -3990,6 +4003,8 @@ async function executeToolSwitch(
         return await handleCheckNodeHealth(payload, toolInput, ctx)
       case 'get_daily_bread':
         return await handleGetDailyBread(toolInput)
+      case 'get_agenda':
+        return await handleGetAgenda(payload, toolInput, ctx)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -16692,5 +16707,59 @@ async function handleGetDailyBread(toolInput: Record<string, unknown>): Promise<
   } catch (e) {
     if (e instanceof DailyBreadError) return `Daily Bread unavailable: ${e.message}`
     return `Error fetching Daily Bread: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * get_agenda — the signed-in person's personal planner (bookings + events +
+ * quests) in one timeline. Self-scoped via ctx.userId. @see buildPersonalAgenda.
+ */
+async function handleGetAgenda(
+  payload: Payload,
+  toolInput: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.userId) return 'Please sign in to see your agenda.'
+  try {
+    const days = typeof toolInput.days === 'number' ? toolInput.days : 14
+    const agenda = await buildPersonalAgenda(payload, ctx.userId, {
+      days,
+      nowIso: new Date().toISOString(),
+    })
+
+    const fmt = (iso: string) => {
+      try {
+        return new Date(iso).toLocaleString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+        })
+      } catch {
+        return iso
+      }
+    }
+
+    const lines: string[] = [`## Your agenda — next ${agenda.windowDays} days`]
+
+    if (agenda.items.length === 0) {
+      lines.push('', '_Nothing scheduled yet._')
+    } else {
+      lines.push('')
+      for (const it of agenda.items) {
+        const icon = it.type === 'booking' ? '📅' : '🎟️'
+        lines.push(`- ${icon} **${fmt(it.start)}** — ${it.title}${it.status ? ` _(${it.status})_` : ''}`)
+      }
+    }
+
+    if (agenda.quests.length > 0) {
+      lines.push('', '### Active quests')
+      for (const q of agenda.quests) lines.push(`- 🧭 ${q.title}${q.status ? ` _(${q.status})_` : ''}`)
+    }
+
+    if (agenda.schedulingLink) {
+      lines.push('', `**Your scheduling link:** ${agenda.schedulingLink}`)
+    }
+
+    return lines.join('\n')
+  } catch (e) {
+    return `Could not load your agenda: ${e instanceof Error ? e.message : 'Unknown error'}`
   }
 }

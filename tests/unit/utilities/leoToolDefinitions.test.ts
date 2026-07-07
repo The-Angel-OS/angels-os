@@ -37,9 +37,10 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 146 tools defined', () => {
-    // +clone_portal, +check_node_health (260703) among others since the last count.
-    expect(LEO_TOOLS.length).toBe(146)
+  it('has exactly 149 tools defined', () => {
+    // +clone_portal, +check_node_health (260703), +get_agenda (260707) among
+    // others since the last count.
+    expect(LEO_TOOLS.length).toBe(149)
   })
 
   it('registers the connector dispatch tools (send_gotify + dispatch_to_channel)', () => {

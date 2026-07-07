@@ -117,6 +117,7 @@ import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
+import { personalAgendaHandler } from '@/endpoints/personal-agenda'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -844,6 +845,12 @@ export default buildConfig({
       path: '/provision-ops/ensure-guardian-angel-column',
       method: 'get',
       handler: ensureGuardianAngelColumnHandler,
+    },
+    // Personal planner: the caller's merged bookings+events+quests timeline.
+    {
+      path: '/planner-ops/agenda',
+      method: 'get',
+      handler: personalAgendaHandler,
     },
     // User-facing moderation: report a message/author for review.
     {

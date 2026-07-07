@@ -49,11 +49,15 @@ export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
     // the CTA. Provisioning was free — this is the honest usage-time nudge.
     const shouldUpgrade = usage.status === 'over_free' && !subscribed
 
+    const homeUrl = t?.domain ? `https://${t.domain}` : undefined
+
     return Response.json({
       ok: true,
       hasGuardianAngel: true,
       tenant: { id: tenantId, slug: tenantSlug, domain: t?.domain },
-      url: t?.domain ? `https://${t.domain}` : undefined,
+      url: homeUrl,
+      // "Book time with me" — the personal scheduling link, ready to copy/share.
+      schedulingLink: homeUrl ? `${homeUrl}/book` : undefined,
       usage,
       subscribed,
       upgrade: shouldUpgrade
