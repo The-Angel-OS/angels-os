@@ -43,6 +43,18 @@ export function PortalSwitcher({
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const [filter, setFilter] = useState('')
+  // Most-recently-switched portal ids (localStorage), newest first — floats your
+  // frequent portals to the top of a long list.
+  const [recents, setRecents] = useState<string[]>([])
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('angelos.portalRecents')
+      if (raw) setRecents(JSON.parse(raw) as string[])
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   // Lazy "Edit this page" resolution — only fires the first time the menu opens.
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
@@ -114,10 +126,31 @@ export function PortalSwitcher({
         tenantHost = `${portal.slug}.${baseDomain}`
         portSuffix = window.location.port ? `:${window.location.port}` : ''
       }
+      // Remember this switch so it floats to the top next time (most-recent).
+      try {
+        const next = [String(portal.id), ...recents.filter((id) => id !== String(portal.id))].slice(0, 20)
+        window.localStorage.setItem('angelos.portalRecents', JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
       window.location.href = `${protocol}//${tenantHost}${portSuffix}${localePrefix}${path}`
     },
-    [targetPath],
+    [targetPath, recents],
   )
+
+  // Sorted (current → recent → rest) + name/slug filtered.
+  const displayedPortals = React.useMemo(() => {
+    const rank = (id: number | string) => {
+      if (String(id) === String(currentTenantId)) return -1
+      const i = recents.indexOf(String(id))
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i
+    }
+    const sorted = [...portals].sort((a, b) => rank(a.id) - rank(b.id))
+    const q = filter.trim().toLowerCase()
+    return q
+      ? sorted.filter((p) => p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q))
+      : sorted
+  }, [portals, recents, currentTenantId, filter])
 
   // Render when there are portals to switch between, OR when an editor could get
   // an "Edit this page" link here (resolved lazily on open).
@@ -185,7 +218,22 @@ export function PortalSwitcher({
             Switch portal
           </div>
           )}
-          {hasPortalList && portals.map((p) => (
+          {/* Filter — shown once the list is long enough to warrant it. */}
+          {hasPortalList && portals.length > 6 && (
+            <div className="px-2 pb-1">
+              <input
+                autoFocus
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter portals…"
+                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1.5 text-sm outline-none focus:border-primary"
+              />
+            </div>
+          )}
+          {hasPortalList && displayedPortals.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No portals match “{filter}”.</div>
+          )}
+          {hasPortalList && displayedPortals.map((p) => (
             <button
               key={String(p.id)}
               onClick={() => handleSwitch(p)}
