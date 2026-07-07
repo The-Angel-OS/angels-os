@@ -236,6 +236,7 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
         domain: `${slug}.${baseDomain}`,
         tagline: 'A guardian angel in the Angel OS network',
         endeavorType: 'creator-content',
+        networkVisible: false, // personal angels don't appear in Discovery (still reachable)
       },
       { req, actingUserId: u.id }, // the claimant becomes tenant_admin directly
     )

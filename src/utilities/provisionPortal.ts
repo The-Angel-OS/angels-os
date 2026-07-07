@@ -38,6 +38,14 @@ export interface ProvisionPortalInput {
   missionStatement?: string
   /** Endeavor type (drives the community space's channel set). */
   endeavorType?: string
+  /**
+   * Whether this portal's endeavor is listed in the federation Discovery tab.
+   * Business/ministry portals default TRUE (they WANT to be found). Personal
+   * guardian angels pass FALSE — millions of private per-person portals must not
+   * flood Discovery. They're still reachable for cross-portal comms (node bus /
+   * federated identity); "not listed" ≠ "not connected".
+   */
+  networkVisible?: boolean
 }
 
 export interface ProvisionPortalResult {
@@ -72,6 +80,7 @@ export async function provisionPortal(
   const description = input.description || `${name} — a sovereign portal enterprise in the Angel OS federation.`
   const missionStatement = input.missionStatement || `Serve, coordinate, and federate as ${name}.`
   const endeavorType = input.endeavorType || 'creator-content'
+  const networkVisible = input.networkVisible !== false // default true; personal angels pass false
   const domainAliases = (input.domainAliases || []).map((d) => d.trim().toLowerCase()).filter(Boolean)
 
   const log: string[] = []
@@ -170,7 +179,7 @@ export async function provisionPortal(
         missionStatement,
         status: 'active',
         region: { country: 'US' },
-        federation: { networkVisible: true, domain },
+        federation: { networkVisible, domain },
         tenant: tenant.id,
       } as never,
       overrideAccess: true,
