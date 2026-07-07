@@ -119,6 +119,7 @@ import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkou
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
 import { personalAgendaHandler } from '@/endpoints/personal-agenda'
 import { dailyBreadProgressHandler } from '@/endpoints/daily-bread-progress'
+import { dispatchRouteHandler } from '@/endpoints/dispatch-route'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -856,6 +857,9 @@ export default buildConfig({
     // Daily Bread reading progress + streak (Nimue reader: fetch / mark-read / verse dial).
     { path: '/works-ops/daily/progress', method: 'get', handler: dailyBreadProgressHandler },
     { path: '/works-ops/daily/progress', method: 'post', handler: dailyBreadProgressHandler },
+    // Active quest routing (Uber-Eats-style): sequence accepted quests from a
+    // current position; call again to reroute when a new destination comes on.
+    { path: '/dispatch-ops/route', method: 'post', handler: dispatchRouteHandler },
     // User-facing moderation: report a message/author for review.
     {
       path: '/moderation/report',
