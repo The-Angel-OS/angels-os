@@ -112,6 +112,7 @@ import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { aiStatusHandler } from '@/endpoints/ai-status'
+import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -805,6 +806,13 @@ export default buildConfig({
       path: '/provision-ops/ai-status',
       method: 'get',
       handler: aiStatusHandler,
+    },
+    // Self-serve: a signed-in user claims their own guardian-angel portal (the Nimue
+    // download → portal mechanic). Shipped dark behind GUARDIAN_ANGEL_SELF_PROVISION.
+    {
+      path: '/provision-ops/claim-guardian-angel',
+      method: 'post',
+      handler: claimGuardianAngelHandler,
     },
     // User-facing moderation: report a message/author for review.
     {
