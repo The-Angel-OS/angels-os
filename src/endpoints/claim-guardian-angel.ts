@@ -24,39 +24,9 @@
  * revenue engine. @see provisionPortal, [[project_token_economy]].
  */
 import type { PayloadHandler } from 'payload'
-import { randomBytes } from 'crypto'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
-
-const slugify = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50)
-
-/**
- * PRIVACY BY DEFAULT: a guardian angel's slug is an opaque id, not the user's
- * name. It's their subdomain and it's public — so unless they explicitly opt
- * into a vanity handle, it should leak nothing (no name, no email, no
- * enumerable sequence). Vanity is a feature, not the default. Crockford-ish
- * base32 minus ambiguous chars (no 0/o/1/i/l) for a clean, unguessable id.
- */
-const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
-function opaqueSlug(len = 12): string {
-  const bytes = randomBytes(len)
-  let out = ''
-  for (let i = 0; i < len; i++) out += ID_ALPHABET[bytes[i]! % ID_ALPHABET.length]
-  return out
-}
-
-/**
- * Reserved subdomains that a self-serve VANITY handle must never claim — they'd
- * shadow platform routing or enable impersonation. Only screened on the opt-in
- * vanity path; the opaque default can't hit these.
- */
-const RESERVED_SLUGS = new Set([
-  'www', 'api', 'admin', 'app', 'apps', 'mail', 'email', 'blog', 'cdn', 'static',
-  'assets', 'leo', 'merlin', 'nimue', 'federation', 'dashboard', 'auth', 'login',
-  'account', 'accounts', 'portal', 'root', 'system', 'support', 'help', 'status',
-  'kendev', 'angel', 'angels', 'angelos', 'test', 'dev', 'staging',
-])
+import { slugify, opaqueSlug, vanitySlugRejection } from '@/utilities/guardianSlug'
 
 /** TODO(payment): replace with a real entitlement check (subscriptions/Stripe). */
 async function hasGuardianAngelEntitlement(
@@ -154,7 +124,7 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
     const requestedVanity =
       typeof body.vanitySlug === 'string' ? slugify(body.vanitySlug) : ''
     let slug = ''
-    if (requestedVanity && requestedVanity.length >= 3 && !RESERVED_SLUGS.has(requestedVanity)) {
+    if (requestedVanity && vanitySlugRejection(requestedVanity) === null) {
       for (let i = 0; i < 50; i++) {
         const candidate = i === 0 ? requestedVanity : `${requestedVanity}-${i + 1}`
         if (await isFree(candidate)) {
