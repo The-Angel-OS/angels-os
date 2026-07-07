@@ -14,8 +14,8 @@
  */
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
-import { createInvitation } from '@/utilities/invitationSystem'
-import { sendInvitationEmail } from '@/utilities/sendInvitationEmail'
+import { generateInvitationToken, calculateExpiration } from '@/utilities/invitationSystem'
+import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
 import { logError } from '@/utilities/logError'
 
 export const provisionPortalHandler: PayloadHandler = async (req) => {
@@ -86,33 +86,20 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
     )
 
     // Optional owner invite — the factory primitive: provisioning a portal FOR
-    // someone should be able to invite + EMAIL them in the same call. The
-    // interactive invite endpoint is session-gated (must already be space_admin
-    // of the target space) — impossible on a freshly-provisioned portal with zero
-    // memberships. This CRON/super_admin path creates the invitation against the
-    // portal's main space and sends the email server-side.
-    const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim() : ''
+    // someone should be able to invite + EMAIL them in the same call. We mint the
+    // SAME kind of invite the team-admin "Quick Invite" button does — a pending
+    // tenant-membership carrying invitationDetails, accepted at /tenant-invite/
+    // <token>. That's the canonical Enterprise path, so the invite (a) shows up on
+    // the portal's /dashboard/admin/team page and (b) uses the exact accept-URL
+    // shape Ken already sends by hand. (The old space-scoped createInvitation path
+    // wrote a /invite/<token> record that was invisible on the team page.)
+    const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim().toLowerCase() : ''
     let invite: Record<string, unknown> | undefined
     if (ownerEmail && (result as { ok?: boolean })?.ok) {
       try {
-        const tenantId = (result as { tenant?: { id?: number | string } }).tenant?.id
+        const tenantRes = (result as { tenant?: { id?: number | string; slug?: string; domain?: string } }).tenant
+        const tenantId = tenantRes?.id
         if (tenantId == null) throw new Error('no tenant id from provision result')
-        // Resolve the portal's MAIN space (not AI Bus / Direct Messages).
-        const spaces = await payload.find({
-          collection: 'spaces',
-          where: {
-            and: [
-              { tenant: { equals: tenantId } },
-              { slug: { not_in: ['ai-bus', 'direct-messages'] } },
-            ],
-          },
-          limit: 1,
-          sort: 'createdAt',
-          depth: 0,
-          overrideAccess: true,
-        })
-        const mainSpace = spaces.docs?.[0] as { id: number | string; name?: string } | undefined
-        if (!mainSpace) throw new Error('main space not found for invite')
 
         // invitedBy must be a real user (FK). Fall back to any user on the node
         // when the CRON path couldn't resolve a super_admin.
@@ -123,28 +110,85 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
         }
         if (inviterId == null) throw new Error('no user available to attribute the invite')
 
-        const inv = await createInvitation({
-          payload,
-          email: ownerEmail,
-          spaceId: mainSpace.id,
-          invitedByUserId: inviterId,
-          role: 'moderator', // highest invitable space role; elevate to tenant_admin after accept
-          message: typeof body.ownerMessage === 'string' ? body.ownerMessage : undefined,
+        // Idempotency: if this email already has an active/pending membership on
+        // this tenant, don't mint a duplicate (provision is re-runnable).
+        const existingMembership = await payload.find({
+          collection: 'tenant-memberships',
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { 'invitationDetails.invitationEmail': { equals: ownerEmail } },
+              { status: { in: ['active', 'pending'] } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (existingMembership.totalDocs > 0) {
+          const existingDoc = existingMembership.docs[0] as {
+            status?: string
+            invitationDetails?: { invitationToken?: string; invitationExpiresAt?: string }
+          }
+          const existingToken = existingDoc.invitationDetails?.invitationToken
+          const existingUrl = existingToken
+            ? tenantRes?.domain
+              ? `https://${tenantRes.domain}/tenant-invite/${existingToken}`
+              : `/tenant-invite/${existingToken}`
+            : undefined
+          invite = {
+            email: ownerEmail,
+            emailSent: false,
+            alreadyInvited: true,
+            status: existingDoc.status,
+            inviteUrl: existingUrl,
+            expiresAt: existingDoc.invitationDetails?.invitationExpiresAt,
+          }
+          return Response.json({ ...result, invite })
+        }
+
+        const token = generateInvitationToken()
+        const expiresAt = calculateExpiration(7)
+
+        // Portal owner → tenant_admin (they run their own portal). A pending email
+        // invite intentionally has NO `user` — it's linked on accept.
+        await payload.create({
+          collection: 'tenant-memberships',
+          data: {
+            tenant: tenantId,
+            role: 'tenant_admin',
+            status: 'pending',
+            invitedBy: inviterId,
+            invitationDetails: {
+              invitationEmail: ownerEmail,
+              invitationToken: token,
+              invitationExpiresAt: expiresAt.toISOString(),
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          overrideAccess: true,
         })
 
-        const tenantName = (result as { tenant?: { slug?: string } }).tenant?.slug
-        const emailSent = await sendInvitationEmail({
+        // sendTenantInvitationEmail rewrites the accept link to the tenant's own
+        // subdomain. Return a fully-qualified URL on the portal's domain so the
+        // copy-paste companion message points at the right host.
+        const inviteUrl = `/tenant-invite/${token}`
+        const returnedUrl = tenantRes?.domain
+          ? `https://${tenantRes.domain}/tenant-invite/${token}`
+          : inviteUrl
+
+        const emailSent = await sendTenantInvitationEmail({
           payload,
           tenantId,
           recipientEmail: ownerEmail,
           inviterName: typeof body.inviterName === 'string' ? body.inviterName : 'Kenneth Courtney',
-          spaceName: mainSpace.name || (typeof body.name === 'string' ? body.name : 'your portal'),
-          inviteUrl: inv.inviteUrl,
-          role: 'moderator',
-          tenantName: typeof body.name === 'string' ? body.name : tenantName,
+          enterpriseName: typeof body.name === 'string' ? body.name : (tenantRes?.slug || 'your portal'),
+          inviteUrl,
+          role: 'tenant_admin',
+          message: typeof body.ownerMessage === 'string' ? body.ownerMessage : undefined,
         })
 
-        invite = { email: ownerEmail, emailSent, inviteUrl: inv.inviteUrl, expiresAt: inv.expiresAt }
+        invite = { email: ownerEmail, emailSent, inviteUrl: returnedUrl, expiresAt: expiresAt.toISOString() }
       } catch (invErr) {
         invite = { email: ownerEmail, emailSent: false, error: invErr instanceof Error ? invErr.message : String(invErr) }
       }
