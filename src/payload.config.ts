@@ -116,6 +116,7 @@ import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
+import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -836,6 +837,13 @@ export default buildConfig({
       path: '/provision-ops/guardian-angel-checkout',
       method: 'post',
       handler: guardianAngelCheckoutHandler,
+    },
+    // Phase 1 (schema-safe): add the is_guardian_angel column BEFORE the field
+    // deploys, so tenant reads never reference a missing column. Run per prod DB.
+    {
+      path: '/provision-ops/ensure-guardian-angel-column',
+      method: 'get',
+      handler: ensureGuardianAngelColumnHandler,
     },
     // User-facing moderation: report a message/author for review.
     {
