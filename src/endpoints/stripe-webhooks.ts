@@ -176,7 +176,11 @@ async function upsertMembershipFromSubscription(
   sub: Stripe.Subscription,
 ) {
   const meta = (sub.metadata || {}) as Record<string, string>
-  if (meta.angelOs_type !== 'membership' || !meta.tenantId) return
+  // Handles endeavor dues (angelOs_type 'membership') AND the platform Guardian
+  // Angel subscription ('guardian_angel'). Both carry meta.tenantId (guardian
+  // checkout sets it to the user's guardian tenant) + planId, so the upsert below
+  // is identical — a guardian-angel sub is just a Membership with a sentinel plan.
+  if ((meta.angelOs_type !== 'membership' && meta.angelOs_type !== 'guardian_angel') || !meta.tenantId) return
 
   // current_period_end moved off the top-level Subscription in newer API versions —
   // read it defensively (top-level, else the first item's period end).

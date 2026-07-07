@@ -20,9 +20,10 @@
  *     duplicate), but a person may create a few more with `createAdditional:true`
  *     up to GUARDIAN_ANGEL_MAX_PER_USER (default 3) + a light per-user rate limit.
  *     Not abuse-policing — three isn't abuse if they need three.
- *   - Paid tier: when GUARDIAN_ANGEL_REQUIRE_PAYMENT === 'true', a user without an
- *     entitlement gets 402 + a checkout hint instead of a portal. (Entitlement check
- *     is a stub today — see TODO — so the funnel shape exists before Stripe is wired.)
+ *   - PROVISION-FREE-FIRST: no paywall at the door — every angel is born free. The
+ *     platform meters usage (guardianUsage) and only passes cost through past the
+ *     free-tier allowance; the paid subscription (guardian-angel-checkout) is a
+ *     usage-time upsell, never an entry gate.
  *
  * Guardian Angel tier funds philanthropy + platform upkeep + living expenses — the
  * revenue engine. @see provisionPortal, [[project_token_economy]].
@@ -31,14 +32,6 @@ import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { logError } from '@/utilities/logError'
 import { slugify, opaqueSlug, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
-
-/** TODO(payment): replace with a real entitlement check (subscriptions/Stripe). */
-async function hasGuardianAngelEntitlement(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _user: any,
-): Promise<boolean> {
-  return false
-}
 
 /**
  * The mapping is gmail ⇔ guardian angel: 1:1 by default (auto-provisioned the
@@ -165,22 +158,11 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // Paid tier funnel — return a checkout hint instead of a portal when required.
-    if (process.env.GUARDIAN_ANGEL_REQUIRE_PAYMENT === 'true') {
-      const entitled = await hasGuardianAngelEntitlement(u)
-      if (!entitled) {
-        return Response.json(
-          {
-            ok: false,
-            paymentRequired: true,
-            message: 'The Guardian Angel tier is a paid subscription. Complete checkout to claim your portal.',
-            // TODO(payment): mint a real Stripe Checkout session URL here.
-            checkoutUrl: process.env.GUARDIAN_ANGEL_CHECKOUT_URL || null,
-          },
-          { status: 402 },
-        )
-      }
-    }
+    // PROVISION-FREE-FIRST: no paywall at the door. Every angel is born free; the
+    // platform absorbs honest cost and only passes it through once a user crosses
+    // their free-tier allowance (see guardianUsage / guardian-angel-status → the
+    // Nimue banner → guardian-angel-checkout). Payment is a usage-time upsell, not
+    // an entry gate. This is the Play-Store magic: open the app, get your angel.
 
     const baseDomain = guardianBaseDomain()
 

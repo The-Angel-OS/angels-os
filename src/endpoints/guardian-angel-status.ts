@@ -16,6 +16,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { getGuardianUsage, describeGuardianUsage } from '@/utilities/guardianUsage'
+import { hasGuardianAngelEntitlement } from '@/utilities/guardianEntitlement'
 
 export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -58,6 +59,12 @@ export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
     const tenantSlug = t?.slug
 
     const usage = await getGuardianUsage(payload, tenantId, { tenantSlug })
+    const subscribed = await hasGuardianAngelEntitlement(payload, u.id)
+
+    // Offer the upgrade only when it's actually warranted: over the free tier and
+    // not already subscribed. The banner reads `usage.message`; `upgrade` drives
+    // the CTA. Provisioning was free — this is the honest usage-time nudge.
+    const shouldUpgrade = usage.status === 'over_free' && !subscribed
 
     return Response.json({
       ok: true,
@@ -65,6 +72,10 @@ export const guardianAngelStatusHandler: PayloadHandler = async (req) => {
       tenant: { id: tenantId, slug: tenantSlug, domain: t?.domain },
       url: t?.domain ? `https://${t.domain}` : undefined,
       usage,
+      subscribed,
+      upgrade: shouldUpgrade
+        ? { available: true, endpoint: '/api/provision-ops/guardian-angel-checkout' }
+        : { available: false },
       message: describeGuardianUsage(usage),
     })
   } catch (e) {

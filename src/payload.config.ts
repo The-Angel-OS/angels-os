@@ -115,6 +115,7 @@ import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
+import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureSpacesHandler } from '@/endpoints/ensure-spaces'
 import { commentFlagHandler } from '@/endpoints/comment-flag'
 import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
@@ -829,6 +830,12 @@ export default buildConfig({
       path: '/provision-ops/rename-portal-slug',
       method: 'post',
       handler: renamePortalSlugHandler,
+    },
+    // Paid Guardian Angel subscription (platform-direct) — the usage-overage upsell.
+    {
+      path: '/provision-ops/guardian-angel-checkout',
+      method: 'post',
+      handler: guardianAngelCheckoutHandler,
     },
     // User-facing moderation: report a message/author for review.
     {
