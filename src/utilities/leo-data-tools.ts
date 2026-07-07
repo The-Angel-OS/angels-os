@@ -36,6 +36,7 @@ import { fetchReadableContent } from './contentIngest'
 import { buildWorkDraftFromText } from './worksFromContent'
 import { getDailyBread, DailyBreadError } from './dailyBread'
 import { buildPersonalAgenda } from './buildPersonalAgenda'
+import { webSearch } from './webSearch'
 import { verifyEndeavorOnboarding } from './verifyEndeavorOnboarding'
 import {
   findUserSynchronicities,
@@ -2182,6 +2183,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'web_search',
+    description:
+      "Search the live web for current information. Use when a question needs facts you don't already know, anything recent/time-sensitive (news, prices, events, releases), or to verify a claim. Returns titles, URLs, and snippets — cite the sources. For reading ONE known page deeply, prefer ingest/fetch tools instead.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'The search query.' },
+        max_results: { type: 'number', description: 'How many results to return (1–10). Default 5.' },
+      },
+      required: ['query'],
+    },
+  },
 
   // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────────────────
 
@@ -4005,6 +4019,8 @@ async function executeToolSwitch(
         return await handleGetDailyBread(toolInput)
       case 'get_agenda':
         return await handleGetAgenda(payload, toolInput, ctx)
+      case 'web_search':
+        return await handleWebSearch(toolInput)
       case 'track_soul':
         return await handleTrackSoul(payload, toolInput, ctx)
       // ─── Sprint 21: Arch Angel LEO's Wishlist ──────────────────
@@ -16761,5 +16777,29 @@ async function handleGetAgenda(
     return lines.join('\n')
   } catch (e) {
     return `Could not load your agenda: ${e instanceof Error ? e.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * web_search — live web lookup via the best available provider (Tavily/Brave/
+ * keyless DuckDuckGo fallback). @see utilities/webSearch.ts. Read-only.
+ */
+async function handleWebSearch(toolInput: Record<string, unknown>): Promise<string> {
+  const query = typeof toolInput.query === 'string' ? toolInput.query.trim() : ''
+  if (!query) return 'Please provide a search query.'
+  try {
+    const max = typeof toolInput.max_results === 'number' ? toolInput.max_results : 5
+    const r = await webSearch(query, { maxResults: max })
+    if (r.results.length === 0) {
+      return `No web results for "${query}".${r.note ? ` (${r.note})` : ''}`
+    }
+    const lines = [`## Web results for "${query}"`, '']
+    r.results.forEach((res, i) => {
+      lines.push(`${i + 1}. **${res.title}**`, `   ${res.url}`, res.snippet ? `   ${res.snippet}` : '')
+    })
+    if (r.note) lines.push('', `_${r.note}_`)
+    return lines.join('\n')
+  } catch (e) {
+    return `Web search failed: ${e instanceof Error ? e.message : 'Unknown error'}`
   }
 }
