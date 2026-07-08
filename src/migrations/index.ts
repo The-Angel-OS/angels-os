@@ -22,6 +22,7 @@ import * as migration_20260607_120000_contacts_campaign_fields from './20260607_
 import * as migration_20260607_220000_add_presence from './20260607_220000_add_presence';
 import * as migration_20260626_190000_add_cost_events from './20260626_190000_add_cost_events';
 import * as migration_20260704_060000_add_nvidia_ai_config from './20260704_060000_add_nvidia_ai_config';
+import * as migration_20260708_000000_add_message_channel_ref from './20260708_000000_add_message_channel_ref';
 
 export const migrations = [
   {
@@ -143,5 +144,10 @@ export const migrations = [
     up: migration_20260704_060000_add_nvidia_ai_config.up,
     down: migration_20260704_060000_add_nvidia_ai_config.down,
     name: '20260704_060000_add_nvidia_ai_config',
+  },
+  {
+    up: migration_20260708_000000_add_message_channel_ref.up,
+    down: migration_20260708_000000_add_message_channel_ref.down,
+    name: '20260708_000000_add_message_channel_ref',
   },
 ];
