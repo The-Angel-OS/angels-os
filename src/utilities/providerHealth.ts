@@ -22,8 +22,20 @@ const DEFAULT_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 const outages = new Map<string, Outage>()
 
+/** Pull an HTTP status off an AI SDK error (APICallError) or its nested cause. */
+function statusOf(err: unknown): number | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = err as any
+  const s = e?.statusCode ?? e?.status ?? e?.cause?.statusCode ?? e?.cause?.status
+  return typeof s === 'number' ? s : undefined
+}
+
 /** Error messages that mean "this provider is unusable right now" (skip it). */
 export function isFatalProviderError(err: unknown): boolean {
+  // Status-code path — most reliable when the SDK preserves it.
+  const status = statusOf(err)
+  if (status === 429 || status === 529 || status === 401 || status === 402 || status === 403) return true
+
   const msg = (err instanceof Error ? err.message : String(err || '')).toLowerCase()
   return (
     msg.includes('credit balance is too low') ||
@@ -31,7 +43,14 @@ export function isFatalProviderError(err: unknown): boolean {
     msg.includes('quota') ||
     msg.includes('billing') ||
     msg.includes('429') ||
+    msg.includes('529') ||
     msg.includes('rate limit') ||
+    msg.includes('rate_limit') ||
+    // The exact text the AI SDK surfaced on Core's outage ("Last error: Too Many
+    // Requests") — matched neither '429' nor 'rate limit', so failover never fired.
+    msg.includes('too many request') ||
+    msg.includes('overloaded') ||
+    msg.includes('capacity') ||
     msg.includes('401') ||
     msg.includes('403') ||
     msg.includes('unauthorized') ||
