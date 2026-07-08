@@ -61,6 +61,7 @@ export const READ_ONLY_TOOLS = new Set<string>([
   'search_federation_wide', 'discover_federation_products',
   'fetch_reviews', 'suggest_products', 'recommend_products', 'analyze_trends',
   'extract_pdf_pages', 'federation_pulse', 'my_place', 'payload_find',
+  'list_contacts',
 ])
 
 /** True only if every tool in the round is a pure read (→ safe to parallelize). */
@@ -89,7 +90,7 @@ export const CORE_TOOL_NAMES = new Set<string>([
   // Content
   'create_post', 'create_post_from_media', 'create_page', 'update_page', 'update_post',
   // Comms + media
-  'send_message', 'generate_image',
+  'send_message', 'list_contacts', 'message_contact', 'generate_image',
   // Context
   'get_enterprise_stage', 'my_place',
 ])

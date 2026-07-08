@@ -209,6 +209,7 @@ import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authFederatedHandler } from '@/endpoints/auth-federated'
+import { addressBookListHandler } from '@/endpoints/address-book'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
@@ -1442,6 +1443,11 @@ export default buildConfig({
       path: '/auth/federated',
       method: 'post',
       handler: authFederatedHandler,
+    },
+    {
+      path: '/address-book-ops/list',
+      method: 'get',
+      handler: addressBookListHandler,
     },
     {
       path: '/auth/system-token',

@@ -66,6 +66,7 @@ import { affectedPublicUrl, affectedUrlDirective } from './affectedUrl'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
 import { findOrCreateDM } from './dmChannels'
 import { ensureDMSpace } from './ensureSystemSpace'
+import { getAddressBook, resolveContact, type AddressBookEntry } from './addressBook'
 import {
   findMatchingHolons,
   calculateVendorShare,
@@ -2264,6 +2265,44 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'list_contacts',
+    description:
+      "List the user's personal address book — the people they actually communicate with (their conversation partners), most-recent first, then other reachable contacts. Use when the user asks 'who are my people', 'show my contacts/address book', or when you need to resolve a name before messaging someone on their behalf. Returns each contact's name, email, whether you can message/call them, and when you last talked.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Optional filter — only return contacts whose name or email matches this text.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'message_contact',
+    description:
+      "Send a message to someone in the user's address book ON THE USER'S BEHALF. This is an OUTWARD action that reaches another human, so it is GATED: the first call (without confirm) returns a preview and does NOT send — you must relay the preview to the user and get their explicit go-ahead, then call again with confirm=true to actually send. NEVER set confirm=true unless the user has just explicitly approved sending this exact message. Resolve the recipient with list_contacts first if you're unsure who they mean.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contact: {
+          type: 'string',
+          description: "Who to message — a name, email, or numeric user id from the address book (e.g. 'Maria', 'maria@example.com').",
+        },
+        content: {
+          type: 'string',
+          description: 'The message text to send on the user’s behalf.',
+        },
+        confirm: {
+          type: 'boolean',
+          description: 'Set to true ONLY after the user has explicitly approved sending. Omit or false to get a confirmation preview (nothing is sent).',
+        },
+      },
+      required: ['contact', 'content'],
+    },
+  },
+  {
     name: 'create_announcement',
     description:
       'Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.',
@@ -4052,6 +4091,10 @@ async function executeToolSwitch(
         return await handleSendMessage(payload, toolInput, ctx)
       case 'send_direct_message':
         return await handleSendDirectMessage(payload, toolInput, ctx)
+      case 'list_contacts':
+        return await handleListContacts(payload, toolInput, ctx)
+      case 'message_contact':
+        return await handleMessageContact(payload, toolInput, ctx)
       case 'create_announcement':
         return await handleCreateAnnouncement(payload, toolInput, ctx)
       case 'moderate_content':
@@ -10713,6 +10756,116 @@ async function handleSendMessage(
     return `Message sent to #${channel} (message ID: ${msg.id}). Content: "${content.slice(0, 100)}${content.length > 100 ? '...' : ''}"`
   } catch (err) {
     logCaughtError('leo-tools', err).catch(() => {})
+    return `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * list_contacts — the user's personal address book (conversation partners +
+ * reachable CRM contacts). Read-only; safe.
+ */
+async function handleListContacts(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId, userId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+  if (!userId) return 'Error: No user context available (address book is per-user).'
+
+  let entries = await getAddressBook(payload, { tenantId, userId })
+  const query = (input.query as string | undefined)?.trim()
+  if (query) entries = resolveContact(entries, query)
+
+  if (entries.length === 0) {
+    return query
+      ? `No contacts match "${query}".`
+      : 'The address book is empty — no conversation partners or contacts yet.'
+  }
+
+  const lines = entries.slice(0, 50).map((e, i) => {
+    const when = e.lastMessageAt ? ` · last talked ${e.lastMessageAt.slice(0, 10)}` : ''
+    const reach = e.kind === 'user' ? 'can message/call' : 'reachable (invite to start a thread)'
+    return `${i + 1}. ${e.name}${e.email ? ` <${e.email}>` : ''} — ${reach}${when}`
+  })
+  return `Address book (${entries.length}):\n${lines.join('\n')}`
+}
+
+/**
+ * message_contact — send a message on the user's behalf, GATED.
+ *
+ * The outward gate: the first call (confirm falsy) resolves the recipient and
+ * returns a preview WITHOUT sending. Only a call carrying confirm=true actually
+ * sends — so nothing reaches another human until the model has relayed the
+ * preview and the user has explicitly approved.
+ */
+async function handleMessageContact(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId, userId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+  if (!userId) return 'Error: No user context available (messaging is per-user).'
+
+  const contactRef = (input.contact as string | undefined)?.trim()
+  const content = (input.content as string | undefined)?.trim()
+  const confirm = input.confirm === true
+  if (!contactRef) return 'Error: contact (name, email, or user id) is required.'
+  if (!content) return 'Error: message content is required.'
+
+  const entries = await getAddressBook(payload, { tenantId, userId })
+  const matches = resolveContact(entries, contactRef)
+
+  if (matches.length === 0) {
+    return `No contact found matching "${contactRef}". Use list_contacts to see the address book.`
+  }
+  if (matches.length > 1) {
+    const names = matches.slice(0, 8).map((m) => `${m.name}${m.email ? ` <${m.email}>` : ''}`).join(', ')
+    return `"${contactRef}" is ambiguous — it matches: ${names}. Ask the user which one, then call again with a more specific name or email.`
+  }
+
+  const target: AddressBookEntry = matches[0]
+
+  // ── The outward gate ──────────────────────────────────────────────────
+  if (!confirm) {
+    return (
+      `⏸️ CONFIRMATION REQUIRED — nothing has been sent yet.\n` +
+      `About to send to ${target.name}${target.email ? ` <${target.email}>` : ''} on the user's behalf:\n` +
+      `"${content}"\n\n` +
+      `Relay this to the user and get their explicit go-ahead. Only if they approve, call message_contact again with the same contact + content and confirm=true. Do NOT set confirm=true on your own.`
+    )
+  }
+
+  // kind:'contact' has no account/DM channel yet — can't deliver in-app.
+  if (target.kind !== 'user') {
+    return `${target.name} is a contact who hasn't joined yet, so there's no in-app thread to message. Invite them first (they'd need an account), or reach them another way.`
+  }
+
+  // ── Send (confirmed) — the human is the author; Nimue is the broker ────
+  try {
+    const dmSpaceId = await ensureDMSpace(String(tenantId))
+    if (!dmSpaceId) return 'Error: Failed to provision DM space.'
+
+    const dm = await findOrCreateDM(tenantId, dmSpaceId, userId, target.id as number)
+
+    const msg = await payload.create({
+      collection: 'messages',
+      data: {
+        content,
+        space: Number(dmSpaceId),
+        channel: dm.channelSlug,
+        messageType: 'user',
+        author: userId,
+        tenant: tenantId,
+        visibility: 'private',
+      } as any,
+      overrideAccess: true,
+    })
+
+    return `✅ Sent to ${target.name} (message ID: ${msg.id}, channel: ${dm.channelSlug}${dm.isNew ? ' — new conversation started' : ''}).`
+  } catch (err) {
+    logCaughtError('leo-tools/message_contact', err).catch(() => {})
     return `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
