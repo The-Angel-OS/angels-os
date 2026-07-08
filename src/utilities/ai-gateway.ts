@@ -370,6 +370,9 @@ export interface SmartModelResult {
   effectiveComplexity: TaskComplexity
   /** Whether this round is an escalation (deep think) round */
   isEscalationRound?: boolean
+  /** Which provider served this — so a caller can mark it DOWN on a 429/quota
+   *  error and the next getSmartModel() call skips it (real failover). */
+  providerKind?: ProviderKind
 }
 
 /**
@@ -596,6 +599,8 @@ const INTENT_PREFERENCE: Record<ModelIntent, ProviderKind[]> = {
   sensitive: ['ollama'], // sovereign first (and logging providers removed below)
 }
 
+import { isDown as providerIsDown } from './providerHealth'
+
 export function resolveProviderOrder(intent: ModelIntent = 'default'): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
   const valid = new Set<ProviderKind>(['ollama', 'google', 'groq', 'nvidia', 'gateway', 'openrouter'])
@@ -645,7 +650,7 @@ async function attemptOllama(ctx: ProviderAttemptCtx): Promise<SmartModelResult 
     return null
   }
   console.log(`[AI Gateway] 🏠 Local model ${local.modelId} (${attemptReason(ctx)})`)
-  return { model: local.model, providerOptions: {}, modelId: local.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model: local.model, providerOptions: {}, modelId: local.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'ollama' }
 }
 
 async function attemptGroq(ctx: ProviderAttemptCtx): Promise<SmartModelResult | null> {
@@ -654,7 +659,7 @@ async function attemptGroq(ctx: ProviderAttemptCtx): Promise<SmartModelResult | 
   const groq = await resolveGroqModel(ctx.tier)
   if (!groq) return null
   console.log(`[AI Gateway] ⚡ Groq ${groq.modelId} (${attemptReason(ctx)})`)
-  return { model: groq.model, providerOptions: {}, modelId: groq.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model: groq.model, providerOptions: {}, modelId: groq.modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'groq' }
 }
 
 /**
@@ -670,7 +675,7 @@ function attemptOpenRouter(ctx: ProviderAttemptCtx): SmartModelResult | null {
   const modelId = OPENROUTER_TIER_MAP[ctx.tier]
   const provider = createOpenAICompatible({ name: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: key })
   console.log(`[AI Gateway] 🔀 OpenRouter ${modelId} (${attemptReason(ctx)})`)
-  return { model: provider(modelId), providerOptions: {}, modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model: provider(modelId), providerOptions: {}, modelId, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'openrouter' }
 }
 
 /**
@@ -686,7 +691,7 @@ function attemptNvidia(ctx: ProviderAttemptCtx): SmartModelResult | null {
   const modelId = process.env.NVIDIA_MODEL || NVIDIA_TIER_MAP[ctx.tier]
   const provider = createOpenAICompatible({ name: 'nvidia', baseURL: 'https://integrate.api.nvidia.com/v1', apiKey: key })
   console.log(`[AI Gateway] 🟩 NVIDIA NIM ${modelId} (${attemptReason(ctx)})`)
-  return { model: provider(modelId), providerOptions: {}, modelId: `nvidia/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model: provider(modelId), providerOptions: {}, modelId: `nvidia/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'nvidia' }
 }
 
 /**
@@ -706,7 +711,7 @@ function attemptGoogle(ctx: ProviderAttemptCtx): SmartModelResult | null {
     apiKey: key,
   })
   console.log(`[AI Gateway] 🔵 Google ${modelId} (${attemptReason(ctx)})`)
-  return { model: provider(modelId), providerOptions: {}, modelId: `google/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model: provider(modelId), providerOptions: {}, modelId: `google/${modelId}`, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'google' }
 }
 
 function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
@@ -731,7 +736,7 @@ function attemptGateway(ctx: ProviderAttemptCtx): SmartModelResult | null {
   if (config.primary.startsWith('anthropic/')) {
     providerOptions.anthropic = { cacheControl: { type: 'ephemeral' } }
   }
-  return { model, providerOptions, modelId: config.primary, complexity: ctx.requested, effectiveComplexity: ctx.tier }
+  return { model, providerOptions, modelId: config.primary, complexity: ctx.requested, effectiveComplexity: ctx.tier, providerKind: 'gateway' }
 }
 
 /**
@@ -777,6 +782,14 @@ export async function getSmartModel(
   // Walk the intent's provider order; the first provider available for this tier
   // wins, failing to the next. `sensitive` excludes data-logging providers.
   for (const kind of resolveProviderOrder(tracking?.intent)) {
+    // Skip a provider that was recently marked DOWN (429/quota/auth) so a retry
+    // after a rate-limit advances to the NEXT provider instead of re-picking the
+    // throttled one. The breaker self-heals on its TTL. `gateway` is exempt — it
+    // has its own internal model fallbacks and is the metered safety net.
+    if (kind !== 'gateway' && providerIsDown(kind)) {
+      console.warn(`[AI Gateway] ⏭️ skipping ${kind} — circuit-broken (recent 429/quota)`)
+      continue
+    }
     const result =
       kind === 'ollama' ? await attemptOllama(ctx)
       : kind === 'google' ? attemptGoogle(ctx)

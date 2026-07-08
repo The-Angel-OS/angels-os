@@ -53,6 +53,7 @@ import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilitie
 import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/aiUsage'
 import { recordAiUsage } from '@/utilities/recordCostEvent'
 import { buildByokModel } from '@/utilities/ai-gateway'
+import { markDown as markProviderDown, isFatalProviderError } from '@/utilities/providerHealth'
 import { isBudgetEnforcementEnabled, getTenantAiBudgetStatusCached } from '@/utilities/aiBudget'
 import { brokerNodeChat } from '@/endpoints/node-ops'
 import { parseNodeChannelSlug } from '@/utilities/nodeBus'
@@ -1678,7 +1679,19 @@ async function streamViaGateway(opts: {
   const streamStart = Date.now()
   let ttftMs: number | undefined
   let servedModelId = smartModelId
+  let servedProviderKind = smart.providerKind
   let failedOver = false
+
+  // On a rate-limit/quota error, mark the CURRENT provider DOWN briefly so the
+  // retry's getSmartModel() skips it and advances to the next provider — real
+  // failover instead of re-hitting the throttled one (the "429 after 3 attempts"
+  // dead-end). 90s TTL: long enough to clear a per-minute cap, short enough to
+  // return to the preferred provider quickly.
+  const failoverOnRateLimit = (err: unknown) => {
+    if (servedProviderKind && servedProviderKind !== 'gateway' && isFatalProviderError(err)) {
+      markProviderDown(servedProviderKind, `leo-stream: ${err instanceof Error ? err.message.slice(0, 80) : '429'}`, 90_000)
+    }
+  }
 
   // Small/free providers (Groq free tier, local 8GB) can't fit LEO's full tool
   // payload in their token budget — subset to the core toolset so the request
@@ -1850,6 +1863,8 @@ async function streamViaGateway(opts: {
       )
       return { text: fullText, hadStreamError: true, errorMessage: streamErrorDetail }
     }
+    // Mark the throttled provider DOWN so the retry advances to the NEXT one.
+    failoverOnRateLimit(streamErr)
     // Retry with high-tier model if primary stream produced no output
     const retrySmart = await getSmartModel('high', {
       tenantId,
@@ -1857,7 +1872,8 @@ async function streamViaGateway(opts: {
       tags: ['leo-stream', 'retry'],
     })
     if (retrySmart) {
-      console.warn(`[LEO Stream] Retrying with ${retrySmart.modelId}`)
+      servedProviderKind = retrySmart.providerKind
+      console.warn(`[LEO Stream] Retrying with ${retrySmart.modelId} (was ${servedModelId})`)
       controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
       const retryResult = streamText({
         model: retrySmart.model,
@@ -1885,9 +1901,12 @@ async function streamViaGateway(opts: {
   // small/free provider) so a provider-side limit recovers instead of dead-ending.
   if (streamHadError && !fullText.trim()) {
     try {
+      // A 429/quota error part → mark the provider DOWN so the retry advances.
+      failoverOnRateLimit(streamErrorDetail)
       const retrySmart = await getSmartModel('high', { tenantId, userId, tags: ['leo-stream', 'retry-errpart'] })
       if (retrySmart) {
-        console.warn(`[LEO Stream] Error part with no text — retrying with ${retrySmart.modelId}`)
+        servedProviderKind = retrySmart.providerKind
+        console.warn(`[LEO Stream] Error part with no text — retrying with ${retrySmart.modelId} (was ${servedModelId})`)
         controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
         const retryResult = streamText({
           model: retrySmart.model,
