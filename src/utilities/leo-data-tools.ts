@@ -1808,6 +1808,22 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'verify_address',
+    description:
+      "Check whether an address complies with residency-restriction proximity rules for reentry housing — flags nearby schools, preschools, playgrounds, child-care agencies, and community centers within the restriction distance (Google Places). Use when someone needs to know if an address is LEGAL housing for a registered person. Each check is logged as a message to a tracking channel. IMPORTANT: the result is ADVISORY — Google Places doesn't list every state-licensed child-care facility (Florida requires a manual DCF search); relay that caveat and never present a pass as a legal clearance.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        address: { type: 'string', description: 'Full street address to verify (geocoded automatically). Provide this OR lat+lng.' },
+        lat: { type: 'number', description: 'Latitude (if you already have coordinates).' },
+        lng: { type: 'number', description: 'Longitude.' },
+        restrictionFeet: { type: 'number', description: 'Restriction distance in feet. Default 1000 (Florida state statute); many localities use 2500.' },
+        channel: { type: 'string', description: 'Channel slug to log the verification to. Default "address-verifications".' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'extract_pdf_pages',
     description:
       'Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.',
@@ -4118,6 +4134,8 @@ async function executeToolSwitch(
         return await handleCombineImages(payload, toolInput, ctx)
       case 'list_channel_media':
         return await handleListChannelMedia(payload, toolInput, ctx)
+      case 'verify_address':
+        return await handleVerifyAddress(payload, toolInput, ctx)
       case 'analyze_image':
         return await handleAnalyzeImage(payload, toolInput, ctx)
       case 'extract_pdf_pages':
@@ -9213,6 +9231,107 @@ async function handleListChannelMedia(
 
   if (rows.length === 0) return 'No media found in this channel yet.'
   return `Media in this channel (${rows.length}, most-recent first) — pass these ids to combine_images:\n${rows.join('\n')}`
+}
+
+/**
+ * verify_address — residency-restriction proximity check + log the verification
+ * as a tracking message. ADVISORY (Google Places ≠ full DCF child-care list).
+ */
+async function handleVerifyAddress(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const address = typeof input.address === 'string' ? input.address.trim() : ''
+  let lat = typeof input.lat === 'number' ? input.lat : undefined
+  let lng = typeof input.lng === 'number' ? input.lng : undefined
+  const restrictionFeet = typeof input.restrictionFeet === 'number' ? input.restrictionFeet : 1000
+  const channel = (typeof input.channel === 'string' && input.channel.trim()) || 'address-verifications'
+
+  if (!address && (lat == null || lng == null)) {
+    return 'Error: provide an address, or lat + lng, to verify.'
+  }
+
+  try {
+    const { verifyAddress, geocodeAddress } = await import('./addressVerification')
+
+    let resolvedAddress = address
+    if (lat == null || lng == null) {
+      const geo = await geocodeAddress(address)
+      if (!geo) return `Could not geocode "${address}". Try a more complete street address.`
+      lat = geo.lat
+      lng = geo.lng
+      resolvedAddress = geo.formatted
+    }
+
+    const result = await verifyAddress({ lat, lng, restrictionFeet, address: resolvedAddress })
+    if (!result.ok) return `Address verification unavailable: ${result.error || 'unknown error'}`
+
+    // ── Log the verification as a tracking message ─────────────────────────
+    let loggedTo = ''
+    try {
+      let spaceId: number | undefined = ctx.spaceId
+      if (!spaceId && tenantId) {
+        const { resolveAiBusSpaceId } = await import('./ensureSystemSpace')
+        const sid = await resolveAiBusSpaceId(payload as never, tenantId)
+        if (sid) spaceId = Number(sid)
+      }
+      if (spaceId) {
+        const verdict = result.compliantAdvisory ? '🟢 No restricted zones found' : `🔴 ${result.failing.length} restricted zone(s) within ${restrictionFeet} ft`
+        const author = ctx.userId || (tenantId ? await findLeoUser(payload, tenantId) : undefined) || 1
+        await payload.create({
+          collection: 'messages',
+          data: {
+            content: wrapTextContent(
+              `📍 **Address check** — ${resolvedAddress}\n${verdict} (${restrictionFeet} ft rule)\n\n_${result.advisory}_`,
+            ),
+            space: spaceId,
+            channel,
+            messageType: 'system',
+            author,
+            ...(tenantId ? { tenant: tenantId } : {}),
+            visibility: 'tenant',
+            metadata: {
+              kind: 'address_verification',
+              address: resolvedAddress,
+              lat,
+              lng,
+              restrictionFeet,
+              compliantAdvisory: result.compliantAdvisory,
+              failingCount: result.failing.length,
+              failing: result.failing.slice(0, 20),
+              nearbyCount: result.nearby.length,
+            },
+          } as never,
+          overrideAccess: true,
+        })
+        loggedTo = channel
+      }
+    } catch (logErr) {
+      logCaughtError('leo-tools/verify_address:log', logErr).catch(() => {})
+    }
+
+    // ── Return the verdict ─────────────────────────────────────────────────
+    const lines: string[] = [
+      `📍 Address check — ${resolvedAddress}`,
+      result.compliantAdvisory
+        ? `🟢 No restricted zones found within ${restrictionFeet} ft (Google Places).`
+        : `🔴 NOT compliant — ${result.failing.length} restricted zone(s) within ${restrictionFeet} ft:`,
+    ]
+    for (const z of result.failing.slice(0, 12)) {
+      lines.push(`  • ${z.name} (${z.types.filter((t) => t !== 'point_of_interest' && t !== 'establishment').join(', ') || 'zone'}) — ${z.distanceFeet} ft`)
+    }
+    if (result.compliantAdvisory && result.nearby.length) {
+      lines.push(`(Nearest zone: ${result.nearby[0].name} at ${result.nearby[0].distanceFeet} ft — outside the ${restrictionFeet} ft rule.)`)
+    }
+    lines.push('', `⚠️ ${result.advisory}`)
+    if (loggedTo) lines.push('', `Logged to #${loggedTo}.`)
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/verify_address', err).catch(() => {})
+    return `Error verifying address: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
 }
 
 /**
