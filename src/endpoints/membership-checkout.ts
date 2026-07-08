@@ -22,6 +22,7 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { getMembershipPlan } from '@/utilities/membershipPlans'
+import { getBillingMode } from '@/utilities/billingMode'
 import { getServerSideURL } from '@/utilities/getURL'
 import { logError } from '@/utilities/logError'
 
@@ -66,8 +67,14 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     if (tenant?.id != null) resolvedTenantId = Number(tenant.id)
     if (!tenant) return Response.json({ error: `No endeavor "${slug}"` }, { status: 404 })
 
+    // Billing topology: first-party portals bill PLATFORM-DIRECT (money to the
+    // root's Stripe, no Connect); third-party endeavors use a Connect DESTINATION
+    // charge (Stripe settles their bank). Default is platform-direct.
+    const billingMode = await getBillingMode(payload, tenant.id)
     const connect = tenant.stripeConnect as Record<string, unknown> | undefined
-    if (!connect?.stripeAccountId || !connect?.stripeChargesEnabled) {
+
+    // Connect is REQUIRED only for the destination-charge (third-party) path.
+    if (billingMode === 'connect' && (!connect?.stripeAccountId || !connect?.stripeChargesEnabled)) {
       return Response.json(
         { error: `${tenant.name || slug} hasn't finished connecting their bank yet — memberships can't be collected until then.` },
         { status: 409 },
@@ -83,6 +90,27 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     const baseUrl = getServerSideURL()
     const applicationFeePercent = Math.max(0, Math.min(PLATFORM_FEE_PERCENT, 100))
 
+    const subMetadata = {
+      angelOs_type: 'membership',
+      tenantId: String(tenant.id),
+      tenantSlug: slug,
+      planId: plan.id,
+      planName: plan.name,
+    }
+
+    // Connect (third-party): destination-transfer the dues to their account, keep
+    // the platform fee. Platform-direct (first-party, default): no transfer, no
+    // fee — the money is the platform's; the webhook records the Membership either
+    // way (both carry angelOs_type 'membership' + tenantId).
+    const subscription_data =
+      billingMode === 'connect'
+        ? {
+            transfer_data: { destination: connect!.stripeAccountId as string },
+            application_fee_percent: applicationFeePercent,
+            metadata: subMetadata,
+          }
+        : { metadata: subMetadata }
+
     const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       line_items: [
@@ -96,17 +124,7 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
           },
         },
       ],
-      subscription_data: {
-        transfer_data: { destination: connect.stripeAccountId as string },
-        application_fee_percent: applicationFeePercent,
-        metadata: {
-          angelOs_type: 'membership',
-          tenantId: String(tenant.id),
-          tenantSlug: slug,
-          planId: plan.id,
-          planName: plan.name,
-        },
-      },
+      subscription_data,
       ...(memberEmail ? { customer_email: memberEmail } : {}),
       success_url: `${baseUrl}/?membership=success`,
       cancel_url: `${baseUrl}/?membership=cancelled`,

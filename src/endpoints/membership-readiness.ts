@@ -16,6 +16,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { getMembershipPlans } from '@/utilities/membershipPlans'
+import { getBillingMode } from '@/utilities/billingMode'
 
 export const membershipReadinessHandler: PayloadHandler = async (req) => {
   const url = new URL(req.url || '', 'http://localhost')
@@ -33,9 +34,14 @@ export const membershipReadinessHandler: PayloadHandler = async (req) => {
   const tenant = tenants.docs?.[0] as any
   if (!tenant) return Response.json({ error: `No endeavor "${slug}"` }, { status: 404 })
 
+  const billingMode = await getBillingMode(req.payload, tenant.id)
   const connect = (tenant.stripeConnect || {}) as Record<string, unknown>
   const connectOnboarded = Boolean(connect.stripeAccountId)
   const chargesEnabled = Boolean(connect.stripeChargesEnabled)
+  // Connect is ONLY a prerequisite in the third-party destination-charge mode.
+  // Platform-direct (first-party, default) charges on the platform Stripe.
+  const needsConnect = billingMode === 'connect'
+  const connectReady = !needsConnect || (connectOnboarded && chargesEnabled)
 
   const plans = await getMembershipPlans(req.payload, tenant.id)
   const activePlans = plans.filter((p) => p.active !== false)
@@ -44,24 +50,26 @@ export const membershipReadinessHandler: PayloadHandler = async (req) => {
 
   // First blocker → the one thing to do next.
   let nextAction: string
-  if (!connectOnboarded) {
-    nextAction = `Connect ${tenant.name || slug}'s Stripe account — run Stripe Connect onboarding for this endeavor.`
-  } else if (!chargesEnabled) {
+  if (needsConnect && !connectOnboarded) {
+    nextAction = `Connect ${tenant.name || slug}'s Stripe account — this endeavor is set to connect mode (third-party payouts). Run Stripe Connect onboarding, or switch it to platform-direct.`
+  } else if (needsConnect && !chargesEnabled) {
     nextAction = `Stripe Connect is linked but charges aren't enabled yet — finish the Stripe onboarding (identity/bank) so chargesEnabled flips true.`
   } else if (activePlans.length === 0) {
     nextAction = `Create a membership plan — ask LEO on this portal "create a $1/month plan called Founding Dollar" (create_membership_plan) or POST /api/membership-ops/plans.`
   } else if (!webhookConfigured) {
     nextAction = `Set STRIPE_WEBHOOK_SECRET + register the platform webhook — otherwise a paid subscription charges but never records a Membership.`
   } else {
-    nextAction = `Ready to earn. Start a checkout: POST /api/membership-ops/checkout { planId: "${activePlans[0].id}" } with x-tenant-id: ${slug}.`
+    nextAction = `Ready to earn (${billingMode}). Start a checkout: POST /api/membership-ops/checkout { planId: "${activePlans[0].id}" } with x-tenant-id: ${slug}.`
   }
 
-  const ready = connectOnboarded && chargesEnabled && activePlans.length > 0 && webhookConfigured
+  const ready = connectReady && activePlans.length > 0 && webhookConfigured
 
   return Response.json({
     tenant: slug,
     ready,
+    billingMode,
     checks: {
+      connectRequired: needsConnect,
       connectOnboarded,
       chargesEnabled,
       planCount: activePlans.length,
