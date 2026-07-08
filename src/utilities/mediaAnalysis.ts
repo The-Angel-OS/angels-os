@@ -20,7 +20,7 @@
 
 import type { Payload } from 'payload'
 import { isDown, markDown, recordSuccess, isFatalProviderError } from './providerHealth'
-import { analyzeImageWithGemini } from './geminiVision'
+import { analyzeImageWithGemini, analyzeImagesWithGemini } from './geminiVision'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -288,6 +288,181 @@ Return ONLY the JSON object, no markdown, no commentary.${customSection}`
       error: message,
       durationMs,
     }
+  }
+}
+
+/**
+ * Upper bound on images per combine call. Both providers accept more, but this
+ * keeps one request's tokens + latency sane for the nightly-inventory use case
+ * (a junk drawer to a vape shelf is typically 1–6 photos). Extras are dropped
+ * with a note rather than silently truncated.
+ */
+export const MAX_COMBINE_IMAGES = 8
+
+/**
+ * Analyze 1–N images in a SINGLE provider call and return ONE combined result.
+ *
+ * The model sees every image at once, so it can merge them: stitch sequential
+ * screenshots into one timeline, or dedupe an inventory across several shelf
+ * photos (summing quantities, noting which shot each item came from). Maintains
+ * the exact provider chain as analyzeImage(): Anthropic vision first (circuit-
+ * broken on fatal errors), Gemini as the cross-vendor fallback.
+ *
+ * `droppedForCap` reports how many images were dropped when over MAX_COMBINE_IMAGES.
+ */
+export async function analyzeImages(
+  imageUrls: string[],
+  options: Partial<MediaAnalysisOptions> = {},
+): Promise<AnalysisResult & { imageCount?: number; droppedForCap?: number }> {
+  const startTime = Date.now()
+
+  const urls = imageUrls.filter((u) => typeof u === 'string' && u.length > 0)
+  if (urls.length === 0) return { success: false, error: 'No images provided.' }
+
+  const droppedForCap = Math.max(0, urls.length - MAX_COMBINE_IMAGES)
+  const used = urls.slice(0, MAX_COMBINE_IMAGES)
+
+  // Single image → the existing single-image path is identical work; reuse it.
+  if (used.length === 1) {
+    const single = await analyzeImage(used[0], options)
+    return { ...single, imageCount: 1, droppedForCap }
+  }
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const geminiKey = process.env.GOOGLE_AI_API_KEY
+  if (!anthropicKey && !geminiKey) {
+    return { success: false, error: 'No vision provider configured (ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY).' }
+  }
+
+  try {
+    const inventorySection = options.inventoryMode
+      ? `\n- "inventoryItems": array of { "item": string, "quantity": number|null, "location": string|null } — the MERGED inventory across ALL images. When the same product appears in more than one image, list it ONCE and sum the counts; use "location" to note where it was seen (e.g. "top shelf", "image 2").`
+      : ''
+
+    const customSection = options.customPrompt ? `\n\nAdditional context: ${options.customPrompt}` : ''
+
+    // The combine instruction — the whole reason this path exists.
+    const systemPrompt = `You are a media analysis engine. You are given ${used.length} images that are DIFFERENT VIEWS OR SEGMENTS OF THE SAME SUBJECT (e.g. sections of one shelf, consecutive screenshots of one timeline, several angles of one drawer). Combine them into ONE unified analysis — do NOT describe each image separately. Merge and de-duplicate: an item or entry visible in multiple images is ONE thing, not several.
+
+Return ONLY a valid JSON object with these fields:
+- "description": string — combined description of the whole subject across all ${used.length} images (2-4 sentences)
+- "objects": string[] — distinct objects/subjects across all images (de-duplicated)
+- "colors": string[] — dominant colors (max 5)
+- "sceneType": string — one of: "document", "product", "indoor", "outdoor", "portrait", "food", "abstract", "screenshot", "diagram", "inventory", "artwork", "other"
+- "textContent": string — combined readable text across all images (labels, screenshots, signs)
+- "confidence": number — 0.0 to 1.0
+- "tags": string[] — 5-15 descriptive tags
+- "entities": { "people": string[], "places": string[], "organizations": string[], "dates": string[], "amounts": string[] }
+- "summary": string — one-line summary of the combined result (max 100 chars)${inventorySection}
+
+Return ONLY the JSON object, no markdown, no commentary.${customSection}`
+
+    const userText = `Combine these ${used.length} images into a single analysis according to the system instructions.`
+    let rawText = ''
+    let usedModel: string = VISION_MODEL
+
+    // ── Provider 1: Anthropic vision (skipped while circuit-broken) ──────────
+    if (anthropicKey && !isDown('anthropic')) {
+      try {
+        const Anthropic = (await import('@anthropic-ai/sdk')).default
+        const client = new Anthropic({ apiKey: anthropicKey })
+
+        const content: any[] = []
+        for (const imageUrl of used) {
+          if (imageUrl.startsWith('data:')) {
+            const [header, base64Data] = imageUrl.split(',')
+            const mediaType = header?.match(/data:([^;]+)/)?.[1] || 'image/png'
+            content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } })
+          } else {
+            content.push({ type: 'image', source: { type: 'url', url: imageUrl } })
+          }
+        }
+        content.push({ type: 'text', text: userText })
+
+        const response = await client.messages.create({
+          model: VISION_MODEL,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content }],
+        })
+        const textBlock = response.content.find((b) => b.type === 'text')
+        rawText = textBlock?.type === 'text' ? textBlock.text : ''
+        recordSuccess('anthropic')
+      } catch (anthropicErr) {
+        console.error('[mediaAnalysis] Anthropic multi-image vision failed:', anthropicErr)
+        if (isFatalProviderError(anthropicErr)) {
+          const firstDown = markDown('anthropic', anthropicErr instanceof Error ? anthropicErr.message : 'vision error')
+          if (firstDown) console.error('[mediaAnalysis] ⚠ ESCALATE: Anthropic vision DOWN → falling back to Gemini')
+        }
+      }
+    }
+
+    // ── Provider 2: Gemini fallback (single multi-image call) ────────────────
+    if (!rawText) {
+      if (!geminiKey) {
+        return { success: false, error: 'Vision unavailable — Anthropic failed and GOOGLE_AI_API_KEY not set.' }
+      }
+      try {
+        rawText = await analyzeImagesWithGemini(used, systemPrompt, userText, { apiKey: geminiKey, expectJson: true })
+        usedModel = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash'
+        recordSuccess('google')
+      } catch (geminiErr) {
+        console.error('[mediaAnalysis] Gemini multi-image vision failed:', geminiErr)
+        if (isFatalProviderError(geminiErr)) markDown('google', geminiErr instanceof Error ? geminiErr.message : 'gemini error')
+        return { success: false, error: `Vision analysis failed (all providers): ${geminiErr instanceof Error ? geminiErr.message : 'unknown'}` }
+      }
+    }
+
+    // Parse the JSON response (same tolerant parse as analyzeImage)
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(rawText)
+    } catch {
+      const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[1])
+      else {
+        const braceMatch = rawText.match(/\{[\s\S]*\}/)
+        if (braceMatch) parsed = JSON.parse(braceMatch[0])
+        else throw new Error(`Could not parse vision response as JSON: ${rawText.slice(0, 200)}`)
+      }
+    }
+
+    const durationMs = Date.now() - startTime
+
+    return {
+      success: true,
+      imageCount: used.length,
+      droppedForCap,
+      vision: {
+        description: String(parsed.description || ''),
+        objects: Array.isArray(parsed.objects) ? parsed.objects.map(String) : [],
+        colors: Array.isArray(parsed.colors) ? parsed.colors.map(String) : [],
+        sceneType: String(parsed.sceneType || 'other'),
+        textContent: String(parsed.textContent || ''),
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
+        inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : undefined,
+        rawNotes: undefined,
+      },
+      ocrText: parsed.textContent ? String(parsed.textContent) : undefined,
+      tags: Array.isArray(parsed.tags) ? parsed.tags.map(String) : [],
+      entities: parsed.entities
+        ? {
+            people: Array.isArray((parsed.entities as any).people) ? (parsed.entities as any).people.map(String) : [],
+            places: Array.isArray((parsed.entities as any).places) ? (parsed.entities as any).places.map(String) : [],
+            organizations: Array.isArray((parsed.entities as any).organizations) ? (parsed.entities as any).organizations.map(String) : [],
+            dates: Array.isArray((parsed.entities as any).dates) ? (parsed.entities as any).dates.map(String) : [],
+            amounts: Array.isArray((parsed.entities as any).amounts) ? (parsed.entities as any).amounts.map(String) : [],
+          }
+        : undefined,
+      summary: parsed.summary ? String(parsed.summary).slice(0, 200) : undefined,
+      modelUsed: usedModel,
+      durationMs,
+    }
+  } catch (err) {
+    const durationMs = Date.now() - startTime
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[MediaAnalysis] Multi-image analysis failed:', message)
+    return { success: false, error: message, durationMs }
   }
 }
 

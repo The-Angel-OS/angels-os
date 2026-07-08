@@ -1771,6 +1771,30 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'combine_images',
+    description:
+      "Analyze 1–8 images TOGETHER in a single pass and return ONE combined result — the model sees them all at once and merges them. Use when several photos are views/segments of the SAME subject: shelf sections or a junk drawer to inventory (dedupes items across shots and sums quantities), consecutive screenshots to stitch into one timeline, or multiple angles of one thing. THIS is the nightly visual-inventory tool: hand it the shelf photos, set inventoryMode, get back one merged item list. For a single standalone image use analyze_image instead.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mediaIds: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Media IDs of the images to combine (1–8). These should be views/segments of the same subject.',
+        },
+        inventoryMode: {
+          type: 'boolean',
+          description: 'Set true for shelf/drawer inventory — returns a merged item list with counts + locations, deduped across all images.',
+        },
+        customPrompt: {
+          type: 'string',
+          description: 'Optional context, e.g. "these are shelf sections left-to-right", "consecutive Google Timeline screenshots", "vape products — capture brand + flavor + count".',
+        },
+      },
+      required: ['mediaIds'],
+    },
+  },
+  {
     name: 'extract_pdf_pages',
     description:
       'Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.',
@@ -4045,6 +4069,8 @@ async function executeToolSwitch(
       case 'ping_federation':
         return await handlePingFederation(payload, toolInput, ctx)
       // ─── Sprint 18B: Media Analysis & Knowledge ────────────────
+      case 'combine_images':
+        return await handleCombineImages(payload, toolInput, ctx)
       case 'analyze_image':
         return await handleAnalyzeImage(payload, toolInput, ctx)
       case 'extract_pdf_pages':
@@ -9083,6 +9109,80 @@ async function handlePingFederation(
 // ---------------------------------------------------------------------------
 // Sprint 18B: Media Analysis & Knowledge Extraction
 // ---------------------------------------------------------------------------
+
+/**
+ * combine_images — analyze 1–8 images together in ONE provider call and return
+ * a single merged result. The nightly visual-inventory path: shelf photos in,
+ * one deduped item list out. Maintains the Anthropic→Gemini provider chain.
+ */
+async function handleCombineImages(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const rawIds = Array.isArray(input.mediaIds) ? input.mediaIds : []
+  const mediaIds = rawIds
+    .map((v) => (typeof v === 'number' ? v : Number(v)))
+    .filter((n) => Number.isFinite(n)) as number[]
+  if (mediaIds.length === 0) return 'Error: mediaIds (an array of 1–8 image Media IDs) is required.'
+
+  try {
+    const { analyzeImages, resolveMediaUrl, isAnalyzableImage } = await import('./mediaAnalysis')
+
+    // Resolve each media doc → URL, skipping non-images (with a note).
+    const urls: string[] = []
+    const skipped: number[] = []
+    for (const id of mediaIds) {
+      const mediaDoc = (await payload
+        .findByID({ collection: 'media', id, depth: 0, overrideAccess: true })
+        .catch(() => null)) as Record<string, unknown> | null
+      if (!mediaDoc || !isAnalyzableImage(mediaDoc)) {
+        skipped.push(id)
+        continue
+      }
+      const url = resolveMediaUrl(mediaDoc)
+      if (url) urls.push(url)
+      else skipped.push(id)
+    }
+
+    if (urls.length === 0) return 'Error: none of the provided mediaIds resolved to analyzable images.'
+
+    const result = await analyzeImages(urls, {
+      tenantId: ctx.tenantId,
+      customPrompt: input.customPrompt as string | undefined,
+      inventoryMode: Boolean(input.inventoryMode),
+    })
+
+    if (!result.success) return `Combined analysis failed: ${result.error || 'Unknown error'}`
+
+    const v = result.vision
+    const lines: string[] = [
+      `Combined ${result.imageCount ?? urls.length} image(s) into one analysis (via ${result.modelUsed || 'vision'}).`,
+    ]
+    if (result.droppedForCap) lines.push(`⚠️ ${result.droppedForCap} extra image(s) were dropped — the cap is 8 per combine.`)
+    if (skipped.length) lines.push(`(Skipped non-image media: ${skipped.join(', ')}.)`)
+    lines.push('')
+    if (result.summary) lines.push(`**Summary:** ${result.summary}`)
+    if (v?.description) lines.push(`**Description:** ${v.description}`)
+
+    const items = v?.inventoryItems
+    if (Array.isArray(items) && items.length > 0) {
+      lines.push('', `**Inventory (${items.length} distinct items, merged across all images):**`)
+      for (const it of items) {
+        const qty = it.quantity != null ? ` ×${it.quantity}` : ''
+        const loc = it.location ? ` — ${it.location}` : ''
+        lines.push(`- ${it.item}${qty}${loc}`)
+      }
+    } else if (v?.textContent) {
+      lines.push('', `**Combined text:** ${String(v.textContent).slice(0, 1500)}`)
+    }
+
+    return lines.join('\n')
+  } catch (err) {
+    logCaughtError('leo-tools/combine_images', err).catch(() => {})
+    return `Error combining images: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
 
 /**
  * analyze_image — Analyze an uploaded image with Anthropic Vision.
