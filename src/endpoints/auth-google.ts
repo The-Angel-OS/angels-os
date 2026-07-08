@@ -18,10 +18,9 @@
  *    through /api/auth/token-relay on the origin domain to set the cookie.
  */
 import type { PayloadHandler } from 'payload'
-import { SignJWT } from 'jose'
-import crypto from 'crypto'
 import { getServerSideURL } from '@/utilities/getURL'
 import { logError } from '@/utilities/logError'
+import { resolveUserFromGoogleClaims } from '@/endpoints/googleIdentity'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -227,7 +226,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // ----- Find or create user -----
+    // ----- Find or create user + mint session/JWT (shared with federated auth) -----
     const socialEntry = {
       provider: 'google' as const,
       providerId: sub,
@@ -237,98 +236,10 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       linkedAt: new Date().toISOString(),
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let user: any
-
-    const existing = await req.payload.find({
-      collection: 'users',
-      where: { email: { equals: email } },
-      limit: 1,
-      overrideAccess: true,
-    })
-
-    if (existing.docs.length > 0) {
-      user = existing.docs[0]
-
-      // Ensure the Google provider entry exists in socialProviders
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const providers: any[] = Array.isArray(user.socialProviders)
-        ? user.socialProviders
-        : []
-
-      const alreadyLinked = providers.some(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p: any) => p.providerId === sub,
-      )
-
-      if (!alreadyLinked) {
-        await req.payload.update({
-          collection: 'users',
-          id: user.id,
-          data: {
-            socialProviders: [...providers, socialEntry],
-          } as any, // socialProviders not yet in generated types
-          overrideAccess: true,
-        })
-      }
-    } else {
-      // Create a new user with a random unguessable password
-      user = await req.payload.create({
-        collection: 'users',
-        data: {
-          email,
-          name: name || '',
-          password: crypto.randomUUID() + crypto.randomUUID(),
-          roles: ['customer'],
-          socialProviders: [socialEntry],
-        } as any, // socialProviders not yet in generated types
-        overrideAccess: true,
-      })
-    }
-
-    // PII-safe: log only opaque IDs, never email
-    console.log('[Google OAuth] User resolved:', {
-      userId: user.id,
-      isNew: existing.docs.length === 0,
-    })
-
-    // ----- Create session (required for Payload 3.x useSessions default) -----
-    // Payload's JWT strategy rejects tokens without a valid `sid` when
-    // useSessions is true (the default in Payload 3.77+).
-    const sid = crypto.randomUUID()
-    const now = new Date()
-    const tokenExpMs = 14 * 24 * 60 * 60 * 1000 // 14 days
-    const expiresAt = new Date(now.getTime() + tokenExpMs)
-    const session = { id: sid, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existingSessions: any[] = (user as any).sessions || []
-    const validSessions = existingSessions.filter(
-      (s: { expiresAt: string }) => new Date(s.expiresAt) > now,
+    const { user, token: payloadToken } = await resolveUserFromGoogleClaims(
+      req.payload,
+      { email, name, sub, picture },
     )
-    validSessions.push(session)
-
-    await req.payload.update({
-      collection: 'users',
-      id: user.id,
-      data: { sessions: validSessions } as any,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    // ----- Generate Payload-compatible JWT -----
-    // CRITICAL: Use `req.payload.secret` — Payload internally hashes the config
-    // secret via sha256(PAYLOAD_SECRET).slice(0, 32). Signing with the raw env
-    // var produces tokens Payload's JWT strategy cannot verify.
-    const secretKey = new TextEncoder().encode(req.payload.secret)
-    const issuedAt = Math.floor(Date.now() / 1000)
-    const expiration = issuedAt + 14 * 24 * 60 * 60 // 14 days
-
-    const payloadToken = await new SignJWT({ id: user.id, email: user.email, collection: 'users', sid })
-      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-      .setIssuedAt(issuedAt)
-      .setExpirationTime(expiration)
-      .sign(secretKey)
 
     // ----- Parse state to determine redirect + origin domain + link mode -----
     let stateRedirect: string | undefined
