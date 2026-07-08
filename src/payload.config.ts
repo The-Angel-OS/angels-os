@@ -210,6 +210,7 @@ import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/au
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authFederatedHandler } from '@/endpoints/auth-federated'
 import { addressBookListHandler } from '@/endpoints/address-book'
+import { channelMediaHandler } from '@/endpoints/channel-media'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
@@ -1448,6 +1449,11 @@ export default buildConfig({
       path: '/address-book-ops/list',
       method: 'get',
       handler: addressBookListHandler,
+    },
+    {
+      path: '/media-ops/channel',
+      method: 'get',
+      handler: channelMediaHandler,
     },
     {
       path: '/auth/system-token',
