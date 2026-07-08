@@ -1795,6 +1795,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'list_channel_media',
+    description:
+      "List the media (images) already present in the current channel — from message attachments, most-recent first. Use to find images the user ALREADY uploaded here so you can act on them WITHOUT asking them to re-upload — e.g. 'combine the last four shelf photos in this channel' → list them, take their media ids, call combine_images. Returns each item's media id and filename.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Max items to return (default 20).' },
+        imagesOnly: { type: 'boolean', description: 'Only analyzable images (default true).' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'extract_pdf_pages',
     description:
       'Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.',
@@ -2397,6 +2410,38 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['productId', 'adjustment', 'reason'],
+    },
+  },
+  {
+    name: 'apply_inventory_count',
+    description:
+      "Apply a COUNTED inventory list to product stock — the second half of the nightly visual-inventory flow (combine_images produces the counts, this writes them). Give it the merged item list; each item is matched to a product by title and its stock set (or adjusted). Use mode='set' for a physical shelf count ('this is what's actually there now'), mode='adjust' to add/subtract. Unmatched items are reported, not guessed; set createMissing=true to create a product for anything with no match. Confirm with the user before applying.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        counts: {
+          type: 'array',
+          description: 'The counted items, e.g. from combine_images inventoryItems.',
+          items: {
+            type: 'object',
+            properties: {
+              item: { type: 'string', description: 'Product title/name to match.' },
+              quantity: { type: 'number', description: 'Counted quantity.' },
+            },
+            required: ['item', 'quantity'],
+          },
+        },
+        mode: {
+          type: 'string',
+          enum: ['set', 'adjust'],
+          description: "'set' = stock becomes the counted quantity (physical count); 'adjust' = add the quantity to current stock. Default 'set'.",
+        },
+        createMissing: {
+          type: 'boolean',
+          description: 'Create a minimal product for any counted item with no matching product. Default false (unmatched items are reported instead).',
+        },
+      },
+      required: ['counts'],
     },
   },
   {
@@ -4071,6 +4116,8 @@ async function executeToolSwitch(
       // ─── Sprint 18B: Media Analysis & Knowledge ────────────────
       case 'combine_images':
         return await handleCombineImages(payload, toolInput, ctx)
+      case 'list_channel_media':
+        return await handleListChannelMedia(payload, toolInput, ctx)
       case 'analyze_image':
         return await handleAnalyzeImage(payload, toolInput, ctx)
       case 'extract_pdf_pages':
@@ -4128,6 +4175,8 @@ async function executeToolSwitch(
       // Phase 2: Inventory & Stock Management
       case 'update_inventory':
         return await handleUpdateInventory(payload, toolInput, ctx)
+      case 'apply_inventory_count':
+        return await handleApplyInventoryCount(payload, toolInput, ctx)
       case 'track_inventory_movement':
         return await handleTrackInventoryMovement(payload, toolInput, ctx)
       case 'set_low_stock_alert':
@@ -9111,6 +9160,62 @@ async function handlePingFederation(
 // ---------------------------------------------------------------------------
 
 /**
+ * list_channel_media — images already attached to messages in the current
+ * channel, so LEO can act on them without a re-upload. Reads ctx.spaceId +
+ * ctx.channelSlug; returns media ids + filenames for combine_images.
+ */
+async function handleListChannelMedia(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { spaceId, channelSlug, tenantId } = ctx
+  if (!spaceId || !channelSlug) {
+    return 'Error: no current channel context — this tool lists media in the channel LEO is answering in.'
+  }
+  const imagesOnly = input.imagesOnly !== false
+  const limit = Number.isFinite(Number(input.limit)) && Number(input.limit) > 0 ? Math.min(Number(input.limit), 100) : 20
+
+  const msgs = await payload.find({
+    collection: 'messages',
+    where: {
+      and: [
+        { space: { equals: spaceId } },
+        { channel: { equals: channelSlug } },
+        ...(tenantId ? [{ tenant: { equals: tenantId } }] : []),
+      ],
+    } as never,
+    sort: '-createdAt',
+    limit: 300,
+    depth: 2,
+    overrideAccess: true,
+  })
+
+  const seen = new Set<string>()
+  const rows: string[] = []
+  for (const msg of msgs.docs) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attachments: unknown[] = Array.isArray((msg as any).attachments) ? (msg as any).attachments : []
+    for (const att of attachments) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const media = (att as any)?.media
+      if (!media || typeof media !== 'object') continue
+      const mid = String(media.id)
+      if (seen.has(mid)) continue
+      const mime = typeof media.mimeType === 'string' ? media.mimeType : ''
+      if (imagesOnly && !mime.startsWith('image/')) continue
+      seen.add(mid)
+      rows.push(`- media #${media.id} — ${media.filename || media.alt || 'image'}`)
+      if (rows.length >= limit) break
+    }
+    if (rows.length >= limit) break
+  }
+
+  if (rows.length === 0) return 'No media found in this channel yet.'
+  return `Media in this channel (${rows.length}, most-recent first) — pass these ids to combine_images:\n${rows.join('\n')}`
+}
+
+/**
  * combine_images — analyze 1–8 images together in ONE provider call and return
  * a single merged result. The nightly visual-inventory path: shelf photos in,
  * one deduped item list out. Maintains the Anthropic→Gemini provider chain.
@@ -11169,6 +11274,98 @@ async function handleUpdateInventory(
     logCaughtError('leo-tools', err).catch(() => {})
     return `Error updating inventory: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+/**
+ * apply_inventory_count — write a counted inventory list to product stock. The
+ * second half of the visual-inventory flow (combine_images → counts → here).
+ * Matches each counted item to a product by title (case-insensitive exact),
+ * sets or adjusts stock, reports unmatched, optionally creates missing products.
+ * Tenant-scoped; never touches products outside the acting tenant.
+ */
+async function handleApplyInventoryCount(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available.'
+
+  const rawCounts = Array.isArray(input.counts) ? input.counts : []
+  const counts = rawCounts
+    .map((c) => {
+      const o = c as { item?: unknown; quantity?: unknown }
+      const item = typeof o.item === 'string' ? o.item.trim() : ''
+      const quantity = Number(o.quantity)
+      return { item, quantity }
+    })
+    .filter((c) => c.item && Number.isFinite(c.quantity) && c.quantity >= 0)
+
+  if (counts.length === 0) return 'Error: counts must be a non-empty array of { item, quantity } with quantity ≥ 0.'
+
+  const mode = input.mode === 'adjust' ? 'adjust' : 'set'
+  const createMissing = Boolean(input.createMissing)
+
+  const updated: string[] = []
+  const created: string[] = []
+  const unmatched: string[] = []
+  const failed: string[] = []
+
+  for (const { item, quantity } of counts) {
+    try {
+      // Case-insensitive exact title match, tenant-scoped. `like` narrows the
+      // candidate set; we confirm an exact (ci) title so we never write to the
+      // wrong product on a loose substring.
+      const candidates = await payload.find({
+        collection: 'products',
+        where: { and: [{ tenant: { equals: tenantId } }, { title: { like: item } }] },
+        limit: 10,
+        depth: 0,
+        overrideAccess: true,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const match = candidates.docs.find((p: any) => String(p.title).trim().toLowerCase() === item.toLowerCase())
+
+      if (match) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const current = Number((match as any).inventory) || 0
+        const next = mode === 'set' ? quantity : current + quantity
+        if (next < 0) {
+          failed.push(`${item} (would go negative: ${current}${quantity >= 0 ? '+' : ''}${quantity})`)
+          continue
+        }
+        await payload.update({
+          collection: 'products',
+          id: match.id,
+          data: { inventory: next } as any,
+          overrideAccess: true,
+        })
+        updated.push(`${item}: ${current} → ${next}`)
+      } else if (createMissing) {
+        await payload.create({
+          collection: 'products',
+          data: { title: item, inventory: quantity, tenant: tenantId } as any,
+          overrideAccess: true,
+        })
+        created.push(`${item} (stock ${quantity})`)
+      } else {
+        unmatched.push(item)
+      }
+    } catch (err) {
+      failed.push(`${item} (${err instanceof Error ? err.message : 'error'})`)
+    }
+  }
+
+  const lines: string[] = [
+    `Inventory count applied (mode: ${mode}). ${updated.length} updated, ${created.length} created, ${unmatched.length} unmatched, ${failed.length} failed.`,
+  ]
+  if (updated.length) lines.push('', '**Updated:**', ...updated.map((u) => `- ${u}`))
+  if (created.length) lines.push('', '**Created:**', ...created.map((c) => `- ${c}`))
+  if (unmatched.length) {
+    lines.push('', `**No matching product (re-run with createMissing=true to add these):**`, ...unmatched.map((u) => `- ${u}`))
+  }
+  if (failed.length) lines.push('', '**Failed:**', ...failed.map((f) => `- ${f}`))
+  return lines.join('\n')
 }
 
 async function handleTrackInventoryMovement(

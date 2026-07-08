@@ -61,7 +61,7 @@ export const READ_ONLY_TOOLS = new Set<string>([
   'search_federation_wide', 'discover_federation_products',
   'fetch_reviews', 'suggest_products', 'recommend_products', 'analyze_trends',
   'extract_pdf_pages', 'federation_pulse', 'my_place', 'payload_find',
-  'list_contacts',
+  'list_contacts', 'list_channel_media',
 ])
 
 /** True only if every tool in the round is a pure read (→ safe to parallelize). */
