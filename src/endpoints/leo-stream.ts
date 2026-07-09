@@ -772,7 +772,10 @@ async function gatherHealthContext(
     // errorsRes = the hippocampus's first sense: this tenant's UNRESOLVED
     // error-level logs. Makes LEO aware of its own pain in the health digest.
     const [pendingOrdersRes, overdueOrdersRes, productsRes, pendingCommentsRes, draftPostsRes, spacesRes, membershipsRes, errorsRes] = await Promise.allSettled([
-      payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any, overrideAccess: true }),
+      // 'processing' only — OrderStatus has NO 'pending' value; querying it made
+      // postgres reject the enum cast, so this count failed (→ false 0 + a
+      // leo-health.query warning) on EVERY LEO turn. Processing = in-flight.
+      payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }] } as any, overrideAccess: true }),
       payload.count({ collection: 'orders' as any, where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }, { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } }] } as any, overrideAccess: true }),
       payload.find({ collection: 'products' as any, where: { tenant: { equals: tenantId } } as any, limit: 200, depth: 0, overrideAccess: true, select: { inventory: true, _status: true } as any }),
       payload.count({ collection: 'comments', where: { and: [{ tenant: { equals: tenantId } }, { isApproved: { equals: false } }] } as any, overrideAccess: true }),
