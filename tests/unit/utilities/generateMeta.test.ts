@@ -83,15 +83,21 @@ describe('generateMeta', () => {
     }
   })
 
-  it('handles array slug by joining with slash', async () => {
+  // og:url must be ABSOLUTE — messengers/unfurlers ignore relative URLs.
+  it('handles array slug by joining with slash (absolute)', async () => {
     const doc = { slug: ['products', 'widgets'] } as any
     const meta = await generateMeta({ doc })
-    expect((meta.openGraph as any)?.url).toBe('products/widgets')
+    expect((meta.openGraph as any)?.url).toBe('http://localhost:3000/products/widgets')
   })
 
-  it('defaults url to "/" for non-array slug', async () => {
+  it('defaults url to origin root for non-array slug', async () => {
     const doc = {}
     const meta = await generateMeta({ doc })
-    expect((meta.openGraph as any)?.url).toBe('/')
+    expect((meta.openGraph as any)?.url).toBe('http://localhost:3000/')
+  })
+
+  it('falls back to doc title when meta.title is missing', async () => {
+    const meta = await generateMeta({ doc: { title: 'Donate' } as any })
+    expect(meta.title).toBe('Donate | Angel OS')
   })
 })

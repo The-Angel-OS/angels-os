@@ -128,7 +128,12 @@ export async function Header({ tenant }: Props) {
         events.docs as Array<{ slug?: string | null; title?: string | null; coverImage?: unknown }>
       ).map((e) => ({ slug: e.slug, title: e.title, image: thumb(e.coverImage) }))
 
-      let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList)
+      // 'donate' is excluded: the client chrome ALWAYS appends the Donate/Giving
+      // CTA as a first-class item, so a CMS-authored donate Page (which overrides
+      // the built-in /donate surface) must not duplicate it under Home.
+      let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList, {
+        excludeSlugs: ['home', 'donate'],
+      })
       navItems = injectPostsUnderNav(navItems, postList)
       navItems = injectProductsUnderNav(navItems, productList)
       navItems = injectEventsUnderNav(navItems, eventList)

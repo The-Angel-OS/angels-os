@@ -1,13 +1,20 @@
+import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BookingPage } from './BookingPage'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { resolveServices } from '@/utilities/resolveServices'
+import { generateTenantRouteMeta } from '@/utilities/generateMeta'
 
-export const metadata = {
-  title: 'Book a Service',
-  description: 'Schedule an appointment, consultation, or service session.',
+// Tenant-branded unfurl (og:title/image/url) — a shared /book link previews as
+// THIS portal, not the bare platform.
+export async function generateMetadata(): Promise<Metadata> {
+  return generateTenantRouteMeta({
+    title: 'Book a Service',
+    description: 'Schedule an appointment, consultation, or service session.',
+    path: '/book',
+  })
 }
 
 export default async function BookPage({

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
@@ -5,12 +6,21 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { queryPageBySlug } from '@/utilities/queryPageBySlug'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
+import { generateMeta, generateTenantRouteMeta } from '@/utilities/generateMeta'
 import { DonatePage } from './DonatePage'
 
-export const metadata = {
-  title: 'Donate',
-  description:
-    'Support Angel OS — 100% of donations go directly to housing, food, and infrastructure for the community building this platform.',
+// Unfurl-complete metadata: the authored CMS Page's meta (title/description/
+// image) when one exists for this tenant, else a tenant-branded default — so a
+// shared /donate link previews as THIS portal on every messenger.
+export async function generateMetadata(): Promise<Metadata> {
+  const cmsPage = await queryPageBySlug({ slug: 'donate' })
+  if (cmsPage) return generateMeta({ doc: cmsPage })
+  return generateTenantRouteMeta({
+    title: 'Donate',
+    description:
+      'Support this mission — donations go directly to the endeavor, with a share to the Angel OS Justice Fund.',
+    path: '/donate',
+  })
 }
 
 export const dynamic = 'force-dynamic'
