@@ -114,6 +114,7 @@ import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
+import { guardianAngelDiagnoseHandler } from '@/endpoints/guardian-angel-diagnose'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
@@ -832,6 +833,11 @@ export default buildConfig({
       path: '/provision-ops/guardian-angel-status',
       method: 'get',
       handler: guardianAngelStatusHandler,
+    },
+    {
+      path: '/provision-ops/guardian-angel-diagnose',
+      method: 'get',
+      handler: guardianAngelDiagnoseHandler,
     },
     // Mutable public address: rename a portal's slug as its endeavor takes shape,
     // preserving the old subdomain as an alias so links already sent keep working.
