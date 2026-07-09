@@ -264,6 +264,11 @@ export default buildConfig({
     'https://*.kendev.co',
     'http://localhost:3000',
     'http://localhost:3001',
+    // Nimue browser-dev (`pnpm dev` :3002) + the preview harness (:3097).
+    // Without these, desktop-browser Nimue can't even log in — the response has
+    // no Access-Control-Allow-Origin and every call reads as 'Failed to fetch'.
+    'http://localhost:3002',
+    'http://localhost:3097',
     // Native clients (Nimue / Capacitor WebView). Auth is bearer-token (no
     // cookies), so allowing these origins is safe — it lets the native app use
     // standard fetch (multipart uploads + real SSE streaming) instead of the
