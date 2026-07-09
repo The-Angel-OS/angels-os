@@ -220,10 +220,17 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
     }
     if (!slug) throw new Error('could not allocate a unique slug')
 
-    // Display name is their concern, not routing: use what they pass, else their
-    // account name, else a neutral label — never derived from the opaque slug.
-    const displayName =
-      (typeof body.name === 'string' && body.name.trim()) || u.name || 'My Guardian Angel'
+    // Display name — PRIVACY-FIRST convention (see [[project guardian naming]]):
+    //   - An explicit name the caller passes wins (they chose it).
+    //   - Otherwise default to their FIRST name only — NEVER auto-expose a surname
+    //     pulled from their Google account (Tyler doesn't want her last name shown;
+    //     the default must protect that without her having to configure anything).
+    //   - Disambiguate additional angels with an instance suffix (First-2, First-3).
+    // Never derived from the opaque slug.
+    const explicitName = typeof body.name === 'string' ? body.name.trim() : ''
+    const firstName = (u.name || '').trim().split(/\s+/)[0] || 'Guardian'
+    const instanceSuffix = angelCount > 0 ? `-${angelCount + 1}` : ''
+    const displayName = explicitName || `${firstName}${instanceSuffix}`
 
     const result = await provisionPortal(
       payload,
