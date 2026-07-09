@@ -180,6 +180,7 @@ import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashbo
 import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disconnect'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
+import { donationRoutingHandler } from '@/endpoints/donation-routing'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
 import { federationSimulateHandler } from '@/endpoints/federation-simulate'
 import { debugConnectivityHandler } from '@/endpoints/debug-connectivity'
@@ -1227,6 +1228,12 @@ export default buildConfig({
       path: '/donation-ops/create-intent',
       method: 'post',
       handler: donationCreateIntentHandler,
+    },
+    {
+      // Public transparency readout: where does a gift on THIS host go?
+      path: '/donation-ops/routing',
+      method: 'get',
+      handler: donationRoutingHandler,
     },
     // ─── Works Engine — seal / serve / translate (slice #2) ───────
     {

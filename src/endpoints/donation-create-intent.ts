@@ -20,6 +20,7 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { logError } from '@/utilities/logError'
+import { resolveDonationRecipient, DONATION_JUSTICE_FUND_PERCENT } from '@/utilities/donationRouting'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -38,8 +39,6 @@ function getStripe(): Stripe {
 const MIN_DONATION_CENTS = 100
 /** Maximum donation: $10,000.00 (1,000,000 cents) */
 const MAX_DONATION_CENTS = 1_000_000
-/** Justice Fund share (constitutional floor) taken from endeavor donations. */
-const DONATION_JUSTICE_FUND_PERCENT = 5
 
 export const donationCreateIntentHandler: PayloadHandler = async (req) => {
   // ── Parse body ────────────────────────────────────────────────
@@ -96,41 +95,28 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
   let chargeModel: 'destination' | 'platform' = 'platform'
   let applicationFee = 0
 
-  if (slug && slug !== 'default' && slug !== 'platform') {
-    try {
-      const tenants = await req.payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: slug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const tenant = tenants.docs?.[0] as any
-      if (tenant?.id != null) resolvedTenantId = Number(tenant.id)
-      const connect = tenant?.stripeConnect as Record<string, unknown> | undefined
-      if (
-        tenant &&
-        tenant.type !== 'platform' &&
-        connect?.stripeAccountId &&
-        connect?.stripeChargesEnabled
-      ) {
-        connectedAccountId = connect.stripeAccountId as string
-        recipientName = tenant.branding?.siteName || tenant.name || 'this enterprise'
-        chargeModel = 'destination'
-        applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
-      }
-    } catch (err) {
-      // Fall back to platform / Justice Fund on any lookup failure — but ESCALATE:
-      // a failed tenant/Connect-account lookup silently misroutes a donation meant
-      // for this endeavor to the platform account. That must never be invisible.
-      void logError({
-        level: 'warning',
-        source: 'donation-create-intent/resolveTenantAccount',
-        message: `Failed to resolve Stripe Connect account for tenant '${slug}' — donation of $${(amount / 100).toFixed(2)} may misroute to the platform: ${err instanceof Error ? err.message : String(err)}`,
-        details: err instanceof Error ? err.stack : String(err),
-        tenantId: resolvedTenantId,
-      })
+  try {
+    // Shared with GET /donation-ops/routing — the breakdown the form SHOWS is
+    // resolved by the same code as the charge that's MADE.
+    const recipient = await resolveDonationRecipient(req.payload, slug)
+    resolvedTenantId = recipient.tenantId
+    if (recipient.chargeModel === 'destination') {
+      connectedAccountId = recipient.connectedAccountId
+      recipientName = recipient.recipientName
+      chargeModel = 'destination'
+      applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
     }
+  } catch (err) {
+    // Fall back to platform / Justice Fund on any lookup failure — but ESCALATE:
+    // a failed tenant/Connect-account lookup silently misroutes a donation meant
+    // for this endeavor to the platform account. That must never be invisible.
+    void logError({
+      level: 'warning',
+      source: 'donation-create-intent/resolveTenantAccount',
+      message: `Failed to resolve Stripe Connect account for tenant '${slug}' — donation of $${(amount / 100).toFixed(2)} may misroute to the platform: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      tenantId: resolvedTenantId,
+    })
   }
 
   // ── Create Stripe PaymentIntent ───────────────────────────────

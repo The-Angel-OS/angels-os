@@ -116,12 +116,16 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
               hero: { type: 'lowImpact', richText: buildRichText([`Support ${tenantName}`]) },
               layout: [
                 {
+                  // No hardcoded split claims here — the Donation block renders the
+                  // LIVE breakdown for this portal from /api/donation-ops/routing
+                  // (destination charge vs Justice Fund stewardship), so seeded copy
+                  // can never contradict where the money actually goes.
                   blockType: 'content',
-                  columns: [{ size: 'full' as const, richText: buildRichText(['100% of every donation goes to the Justice Fund — community support, wrongful conviction advocacy, and guild infrastructure. No platform fees on donations. This is constitutional.']) }],
+                  columns: [{ size: 'full' as const, richText: buildRichText([`Every gift supports ${tenantName}'s mission — processed securely by Stripe, all of it on the record.`]) }],
                 },
                 { blockType: 'donation', presetAmounts: '5,10,25,50,100', showDonorFields: true },
               ],
-              meta: { title: `Donate — ${tenantName}`, description: `Support ${tenantName}. 100% of donations go to the Justice Fund.` },
+              meta: { title: 'Donate', description: `Support ${tenantName} — secure giving via Stripe, all on the record.` },
             } as any,
           }),
         )

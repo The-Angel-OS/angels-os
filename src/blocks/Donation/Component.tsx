@@ -77,6 +77,23 @@ export const DonationBlock: React.FC<{
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
+  const [breakdown, setBreakdown] = useState<string | null>(null)
+
+  // Transparency line: fetch the ACTUAL routing for this host (destination
+  // charge to the endeavor vs Justice Fund stewardship) — never a hardcoded
+  // claim. Same resolver the charge itself uses. Fail-soft to a neutral line.
+  React.useEffect(() => {
+    let cancelled = false
+    fetch('/api/donation-ops/routing')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.ok && typeof d.breakdown === 'string') setBreakdown(d.breakdown)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Check for success return from Stripe
   React.useEffect(() => {
@@ -205,7 +222,7 @@ export const DonationBlock: React.FC<{
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              100% of every donation goes to the Justice Fund — community support, advocacy, and infrastructure. No platform fees.
+              {breakdown || 'Your gift is processed securely by Stripe, with a receipt to your email.'}
             </p>
             <Button onClick={handleContinue} className="w-full" size="lg">
               Continue — ${(amountCents / 100).toFixed(2)}
