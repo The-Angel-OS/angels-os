@@ -28,6 +28,8 @@ interface ServiceOption {
   priceUSD: number
   depositPercent: number
   durationMinutes: number
+  /** Optional service image — shown on the selection card like a product. */
+  imageUrl?: string
   /** Optional rental/service agreement terms; when set, must be e-signed before deposit. */
   serviceAgreement?: string
 }
@@ -343,15 +345,19 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                         setStep('date')
                         setBookingState('idle')
                       }}
-                      className={`rounded-xl border p-4 text-left transition-colors ${active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-primary/5'}`}
+                      className={`overflow-hidden rounded-xl border text-left transition-colors ${active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-primary/5'}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      {s.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.imageUrl} alt={s.label} className="h-32 w-full object-cover" />
+                      )}
+                      <div className={`flex items-start justify-between gap-2 ${s.imageUrl ? 'px-4 pt-4' : 'px-4 pt-4'}`}>
                         <span className="font-semibold">{s.label}</span>
                         {/* Quote-based services (price 0) read as "free" if shown as $0. */}
                         <span className="shrink-0 font-bold">{s.priceUSD > 0 ? `$${s.priceUSD}` : 'Quote'}</span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-1 px-4 text-xs text-muted-foreground">{s.description}</p>
+                      <p className="mt-2 px-4 pb-4 text-xs text-muted-foreground">
                         {s.durationMinutes} min · {dep > 0 ? `$${dep} deposit to reserve` : 'no deposit — request a visit'}
                       </p>
                     </button>

@@ -35,6 +35,8 @@ export interface BookableService {
   unitLabel?: string
   unitRateUSD?: number
   allowsExtraCosts?: boolean
+  /** Optional service image URL — shown on the booking selection card like a product. */
+  imageUrl?: string
   /** Optional rental/service agreement terms; when set, the customer must e-sign before the deposit. */
   serviceAgreement?: string
 }

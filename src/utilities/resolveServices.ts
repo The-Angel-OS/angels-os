@@ -29,6 +29,8 @@ function toBookableService(doc: any): BookableService {
     unitRateUSD: doc.unitRateUsd != null ? Number(doc.unitRateUsd) : undefined,
     allowsExtraCosts: doc.allowsExtraCosts ?? undefined,
     serviceAgreement: doc.serviceAgreement ?? undefined,
+    // image is a media relationship — populated at depth 1 (see the find below).
+    imageUrl: doc.image && typeof doc.image === 'object' ? (doc.image.url ?? undefined) : undefined,
   }
 }
 
@@ -54,7 +56,8 @@ export async function resolveServices(
       const res = await payload.find({
         collection: 'services' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         where: { and: [{ tenant: { equals: tenantId } }, { enabled: { equals: true } }] },
-        limit: 100, depth: 0, overrideAccess: true, sort: 'label',
+        limit: 100, depth: 1, overrideAccess: true, sort: 'label', // depth 1 → populate the image media
+
       })
       if (res.totalDocs > 0) return (res.docs as any[]).map(toBookableService) // eslint-disable-line @typescript-eslint/no-explicit-any
     } catch {

@@ -78,6 +78,7 @@ export default async function BookPage({
     depositPercent: s.depositPercent,
     durationMinutes: s.durationMinutes,
     serviceAgreement: s.serviceAgreement,
+    imageUrl: s.imageUrl,
   }))
 
   return (
