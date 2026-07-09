@@ -77,7 +77,7 @@ export async function resolveDonationRecipient(
  */
 export function donationBreakdownText(r: DonationRecipient): string {
   if (r.chargeModel === 'destination') {
-    return `95% of your gift goes directly to ${r.recipientName}'s own account; the remaining 5% sustains the Angel OS Justice Fund and covers card processing. All on the record.`
+    return `95% of your gift goes directly to ${r.recipientName}; the remaining 5% sustains the Angel OS Justice Fund and covers card processing. All on the record.`
   }
   if (r.recipientName !== 'the Justice Fund') {
     return `Your gift supports ${r.recipientName}, stewarded through the Angel OS Justice Fund until this endeavor connects its own account. Card processing is the only other cost.`
