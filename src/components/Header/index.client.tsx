@@ -273,10 +273,16 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   // Giving promotes to top-level only for a church/ministry/nonprofit; otherwise it
   // lives in More (the link still exists for any community site, just not up front).
   if (!isGivingOrg) demoteUrls.push('/donate')
+  // Revenue CTAs stay PRIMARY when populated — booking a service and buying a
+  // product are how the endeavor earns, so they're never buried in More past the
+  // inline cap. (Populated = the section actually has something to sell/book.)
+  const forcePrimaryUrls: string[] = discoveryEnabled ? ['/federation/discover'] : []
+  if (hasBook) forcePrimaryUrls.push('/book')
+  if (hasProducts) forcePrimaryUrls.push('/shop')
+  if (isGivingOrg) forcePrimaryUrls.push('/donate')
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
-    // Discovery, when enabled, is always top-level (never demoted to More).
-    forcePrimaryUrls: discoveryEnabled ? ['/federation/discover'] : [],
+    forcePrimaryUrls,
     forceOverflowUrls: ['/dashboard'],
     demoteUrls,
   })
