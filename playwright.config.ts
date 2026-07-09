@@ -13,6 +13,8 @@ export default defineConfig({
   testDir: './tests/e2e',
   /* Seed dev database before all tests — creates admin user + test data */
   globalSetup: './tests/e2e/global-setup.ts',
+  /* Sweep the timestamped throwaway users the specs mint per run */
+  globalTeardown: './tests/e2e/global-teardown.ts',
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
