@@ -7,7 +7,7 @@ import { queryPageBySlug } from '@/utilities/queryPageBySlug'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta, generateTenantRouteMeta } from '@/utilities/generateMeta'
-import { DonatePage } from './DonatePage'
+import { DonationBlock } from '@/blocks/Donation/Component'
 
 // Unfurl-complete metadata: the authored CMS Page's meta (title/description/
 // image) when one exists for this tenant, else a tenant-branded default — so a
@@ -53,7 +53,6 @@ export default async function DonatePageRoute({
   // The payload-tenant cookie is unreliable across subdomains (stale/absent), which
   // made every endeavor's /donate show the platform ("Support Angel OS") copy.
   const { tenant } = await resolveTenantFromHeaders()
-  const tenantSlug = (tenant as any)?.slug || 'default'
   const tenantName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
   const isPlatform = !tenant || (tenant as any).type === 'platform'
 
@@ -82,13 +81,33 @@ export default async function DonatePageRoute({
     // Fallback to defaults
   }
 
+  if (!donationsEnabled) {
+    return (
+      <div className="container mx-auto max-w-lg py-20 text-center">
+        <h1 className="mb-4 text-3xl font-bold">Donations</h1>
+        <p className="opacity-70">
+          Donations are not currently accepted for {tenantName}. Please check back later.
+        </p>
+      </div>
+    )
+  }
+
+  // Built-in fallback = the SAME DonationBlock the CMS override uses (one form
+  // implementation, no drift). Authoring a `donate` Page simply replaces this
+  // shell with editable hero/copy around that same block.
   return (
-    <DonatePage
-      tenantName={tenantName}
-      tenantSlug={tenantSlug}
-      donationsEnabled={donationsEnabled}
-      isEndeavorDonation={isEndeavorDonation}
-      isPlatform={isPlatform}
-    />
+    <article className="pt-16 pb-24">
+      <div className="container mb-10 max-w-2xl">
+        <h1 className="mb-3 text-4xl font-bold">Support {tenantName}</h1>
+        <p className="text-lg opacity-80">
+          {isEndeavorDonation
+            ? `Your gift goes directly to ${tenantName} (95%), with 5% to the Angel OS Justice Fund. Secure giving via Stripe, all on the record.`
+            : isPlatform
+              ? '100% of your gift goes to the Angel OS Justice Fund — keeping the lights on, the servers running, and the community fed.'
+              : `Your gift supports ${tenantName}, stewarded through the Angel OS Justice Fund until this endeavor connects its own account.`}
+        </p>
+      </div>
+      <DonationBlock presetAmounts="10,25,50,100,500" showDonorFields />
+    </article>
   )
 }

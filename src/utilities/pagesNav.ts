@@ -24,6 +24,15 @@ export interface PageLite {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NavItem = any
 
+/**
+ * Page slugs that must NEVER be injected under Home because the header chrome
+ * already promotes them as first-class items ('home' is the parent itself;
+ * 'donate' is always appended as the Donate/Giving CTA by HeaderClient). When a
+ * new always-on CTA collides with a CMS page slug, add it here — this constant
+ * is the single source both the server header and any future menu builders use.
+ */
+export const ALWAYS_PROMOTED_PAGE_SLUGS = ['home', 'donate'] as const
+
 const isHomeItem = (item: NavItem): boolean => {
   const link = item?.link
   return link?.url === '/' || (typeof link?.label === 'string' && link.label.toLowerCase() === 'home')

@@ -6,7 +6,7 @@ const defaultOpenGraph: Metadata['openGraph'] = {
   description: 'Angel OS — the cooperative operating system for ethical commerce, community spaces, and AI-assisted workflows.',
   images: [
     {
-      url: `${getServerSideURL()}/website-template-OG.webp`,
+      url: `${getServerSideURL()}/og-fallback.jpg`,
     },
   ],
   siteName: 'Angel OS',

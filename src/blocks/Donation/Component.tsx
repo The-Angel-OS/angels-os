@@ -133,19 +133,14 @@ export const DonationBlock: React.FC<{
 
     setError(null)
     try {
-      // Get tenant slug from cookie
-      const tenantSlug =
-        document.cookie
-          .split('; ')
-          .find((c) => c.startsWith('payload-tenant='))
-          ?.split('=')[1] || 'default'
-
+      // No tenantSlug in the body: the server resolves the recipient from the
+      // HOST header (x-tenant-id set by middleware) — authoritative even when
+      // the payload-tenant cookie is stale or absent on a public portal.
       const res = await fetch('/api/donation-ops/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amountCents,
-          tenantSlug,
           donorName: donorName || undefined,
           donorEmail: donorEmail || undefined,
           message: donorMessage || undefined,

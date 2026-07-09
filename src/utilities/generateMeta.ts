@@ -54,7 +54,9 @@ const getImageURL = (
     return absolute(image.url, branding.origin)
   }
   if (branding.tenantImage) return absolute(branding.tenantImage, branding.origin)
-  return `${branding.origin}/website-template-OG.webp`
+  // Real asset in public/ — the old website-template-OG.webp never existed (the
+  // URL 200'd with an HTML page, so unfurlers showed no thumbnail anywhere).
+  return `${branding.origin}/og-fallback.jpg`
 }
 
 export const generateMeta = async (args: {

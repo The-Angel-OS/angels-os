@@ -1,6 +1,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { draftMode } from 'next/headers'
+import { cache } from 'react'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import type { Page } from '@/payload-types'
 
@@ -9,8 +10,11 @@ import type { Page } from '@/payload-types'
  * in preview). Returns null if none exists — callers fall back to their own
  * render. Shared by the dynamic `[slug]` route and the "special" routes
  * (/donate, /about) so any of them can be CMS-managed when a Page is authored.
+ *
+ * React-cache-wrapped: generateMetadata and the page render both call this in
+ * the same request — one DB find serves both.
  */
-export async function queryPageBySlug({ slug }: { slug: string }): Promise<Page | null> {
+export const queryPageBySlug = cache(async ({ slug }: { slug: string }): Promise<Page | null> => {
   try {
     const { isEnabled: draft } = await draftMode()
     const { tenantFilter } = await resolveTenantFromHeaders()
@@ -36,4 +40,4 @@ export async function queryPageBySlug({ slug }: { slug: string }): Promise<Page 
     console.error('[queryPageBySlug] Query failed:', err)
     return null
   }
-}
+})

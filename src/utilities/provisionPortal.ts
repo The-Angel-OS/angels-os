@@ -257,6 +257,36 @@ export async function provisionPortal(
         tenantId: tenant.id,
         role: 'tenant_admin',
       })
+      // VERIFY-AFTER-WRITE: under pool starvation the create above can report
+      // success in JS yet ROLL BACK — its operation transaction sits idle while
+      // afterChange hooks run on other connections, and PgBouncer terminates it
+      // (idle-in-transaction timeout → 260709 guardian incident: the owner
+      // membership evaporated, so claim idempotency minted duplicates). Re-check
+      // on a fresh operation and retry once WITHOUT req before declaring victory.
+      const verifyMembership = async (): Promise<boolean> => {
+        const check = await payload.find({
+          collection: 'tenant-memberships',
+          where: { and: [{ user: { equals: actingUserId } }, { tenant: { equals: tenant.id } }] },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        return check.docs.length > 0
+      }
+      if (!(await verifyMembership())) {
+        await findOrCreateTenantMembership(payload, undefined, {
+          userId: actingUserId,
+          tenantId: tenant.id,
+          role: 'tenant_admin',
+        })
+        log.push(
+          (await verifyMembership())
+            ? 'owner membership self-healed (first write rolled back)'
+            : 'OWNER MEMBERSHIP MISSING after retry — run verify-onboarding',
+        )
+      } else {
+        log.push('owner membership verified')
+      }
       const fullUser = (await payload.findByID({
         collection: 'users',
         id: actingUserId,

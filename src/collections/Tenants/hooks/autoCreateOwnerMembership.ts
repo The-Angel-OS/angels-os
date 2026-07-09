@@ -62,15 +62,26 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       `[autoCreateOwnerMembership] User ${userId} linked as tenant_admin to new tenant "${doc.name}" (${doc.id})`,
     )
 
-    // Pages, navigation, and main space creation are independent — run in parallel
-    const [pagesResult, navResult, spaceResult] = await Promise.allSettled([
+    // SEQUENTIAL only — never parallelize creates on the max=3 Vercel pool. This
+    // hook runs INSIDE the tenant-create operation's transaction window: parallel
+    // write chains here starved the pool, the transaction connection sat idle past
+    // PgBouncer's idle-in-transaction timeout, and inserts (including the owner
+    // membership) were killed/rolled back mid-provision (260709 guardian incident).
+    const settle = async <T,>(p: Promise<T>): Promise<PromiseSettledResult<T>> => {
+      try {
+        return { status: 'fulfilled', value: await p }
+      } catch (reason) {
+        return { status: 'rejected', reason }
+      }
+    }
+    const pagesResult = await settle(
       createDefaultTenantPages(payload, doc.id, {
         siteName: doc.branding?.siteName || doc.name || 'Welcome',
         tagline: typeof doc.branding?.tagline === 'string' ? doc.branding.tagline : '',
       }),
-      createDefaultTenantNavigation(payload, doc.id),
-      ensureMainSpace(payload, doc.id, doc.name, doc.slug),
-    ])
+    )
+    const navResult = await settle(createDefaultTenantNavigation(payload, doc.id))
+    const spaceResult = await settle(ensureMainSpace(payload, doc.id, doc.name, doc.slug))
 
     if (pagesResult.status === 'fulfilled') {
       payload.logger.info(
