@@ -7,6 +7,13 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// logError lazy-imports @payload-config (boots Payload against a live DB) —
+// unmocked, error-path tests hang to the 30s timeout instead of asserting.
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn(async () => {}),
+  logCaughtError: vi.fn(async () => {}),
+}))
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockApplyRateLimit = vi.hoisted(() => vi.fn().mockReturnValue(null))
@@ -182,17 +189,28 @@ describe('chatSendHandler', () => {
     expect(body.doc).toEqual(SAVED_MESSAGE)
   })
 
-  it('includes attachments in message when provided', async () => {
+  it('attaches media in a phase-2 update, never in the create (rollback hardening)', async () => {
+    // The endpoint is deliberately TWO-PHASE: create the message attachment-
+    // free (so the attachment-gated hook chain can't roll the save back), then
+    // link media in a follow-up update that is isolated in its own try/catch.
     const createMock = vi.fn().mockResolvedValue(SAVED_MESSAGE)
+    const updateMock = vi.fn().mockResolvedValue({
+      ...SAVED_MESSAGE,
+      attachments: [{ media: 5, caption: 'Photo' }],
+    })
     const req = makeReq(
       { id: 1, roles: ['admin'] },
       { ...VALID_BODY, attachments: [{ media: 5, caption: 'Photo' }] },
-      { create: createMock },
+      { create: createMock, update: updateMock },
     )
     await chatSendHandler(req)
     const createData = createMock.mock.calls[0][0].data
-    expect(createData.attachments).toHaveLength(1)
-    expect(createData.attachments[0].media).toBe(5)
+    expect(createData.attachments).toBeUndefined()
+    expect(updateMock).toHaveBeenCalledOnce()
+    const updateArgs = updateMock.mock.calls[0][0]
+    expect(updateArgs.id).toBe(SAVED_MESSAGE.id)
+    expect(updateArgs.data.attachments).toHaveLength(1)
+    expect(updateArgs.data.attachments[0].media).toBe(5)
   })
 
   it('returns 500 when message creation fails', async () => {

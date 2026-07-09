@@ -6,6 +6,13 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// logError lazy-imports @payload-config (boots Payload against a live DB) —
+// unmocked, error-path tests hang to the 30s timeout instead of asserting.
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn(async () => {}),
+  logCaughtError: vi.fn(async () => {}),
+}))
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockApplyRateLimit = vi.hoisted(() => vi.fn().mockReturnValue(null))
@@ -25,6 +32,20 @@ const mockPaymentIntentsCreate = vi.hoisted(() =>
 vi.mock('@/utilities/apiRateLimiter', () => ({ applyRateLimit: mockApplyRateLimit }))
 vi.mock('@/lib/stripe-connect-config', () => ({
   getStripeApplicationFeeCents: mockGetApplicationFee,
+}))
+// The endpoint grew a booking-provider spine + payment-mode setting + conflict
+// guard after these tests were written — stub them so the checkout flow under
+// test is reachable (provider 42, deposit mode, no slot conflicts).
+vi.mock('@/utilities/resolveBookingProvider', () => ({
+  resolveBookingProvider: vi.fn(async () => 42),
+}))
+vi.mock('@/utilities/bookingSettings', () => ({
+  getBookingPaymentMode: vi.fn(async () => 'deposit'),
+}))
+vi.mock('@/utilities/bookingEngine', () => ({
+  BookingEngine: vi.fn().mockImplementation(() => ({
+    checkBookingConflicts: vi.fn(async () => ({ hasConflict: false, conflicts: [] })),
+  })),
 }))
 vi.mock('stripe', () => ({
   default: vi.fn().mockReturnValue({

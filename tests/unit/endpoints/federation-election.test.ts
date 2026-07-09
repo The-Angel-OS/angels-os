@@ -9,6 +9,13 @@
  */
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 
+// logError lazy-imports @payload-config (boots Payload against a live DB) —
+// unmocked, error-path tests hang to the 30s timeout instead of asserting.
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn(async () => {}),
+  logCaughtError: vi.fn(async () => {}),
+}))
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockVerifySignature = vi.hoisted(() => vi.fn().mockReturnValue(true))
@@ -19,9 +26,37 @@ import { federationElectionHandler } from '@/endpoints/federation-election'
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+// The endpoint persists proposals via SettingService (Oqtane settings spine):
+// getJsonSetting/setJsonSetting on the single 'proposals' setting. These tests
+// build state ACROSS requests (propose → vote → tally), which the old module-
+// level in-memory store gave for free — so the fake settings store must
+// persist across makePayload calls too. Single-slot: one settingValue string.
+const settingsStore = new Map<string, string>()
+
 function makePayload(overrides: Record<string, unknown> = {}) {
   return {
-    create: vi.fn().mockResolvedValue({ id: 1 }),
+    create: vi.fn(async ({ collection, data }: { collection: string; data: Record<string, unknown> }) => {
+      if (collection === 'settings' && typeof data?.settingName === 'string') {
+        settingsStore.set(data.settingName, String(data.settingValue ?? ''))
+      }
+      return { id: 1 }
+    }),
+    find: vi.fn(async ({ collection, where }: { collection: string; where?: { and?: Array<Record<string, { equals?: unknown }>> } }) => {
+      if (collection === 'settings') {
+        const name = where?.and?.find((c) => c.settingName)?.settingName?.equals as string | undefined
+        const value = name != null ? settingsStore.get(name) : undefined
+        return value != null
+          ? { docs: [{ id: 1, settingName: name, settingValue: value }], totalDocs: 1 }
+          : { docs: [], totalDocs: 0 }
+      }
+      return { docs: [], totalDocs: 0 }
+    }),
+    update: vi.fn(async ({ collection, data }: { collection: string; data: Record<string, unknown> }) => {
+      if (collection === 'settings' && typeof data?.settingName === 'string') {
+        settingsStore.set(data.settingName, String(data.settingValue ?? ''))
+      }
+      return { id: 1 }
+    }),
     ...overrides,
   }
 }

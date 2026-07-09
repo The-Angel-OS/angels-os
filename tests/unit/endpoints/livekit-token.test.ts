@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// logError lazy-imports @payload-config (boots Payload against a live DB) —
+// unmocked, error-path tests hang to the 30s timeout instead of asserting.
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn(async () => {}),
+  logCaughtError: vi.fn(async () => {}),
+}))
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockToJwt = vi.hoisted(() => vi.fn())
