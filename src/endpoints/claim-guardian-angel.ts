@@ -79,10 +79,10 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
   if (!user) {
     return Response.json({ error: 'sign-in required' }, { status: 401 })
   }
-  // Shipped dark — the door stays shut until the paywall is ready.
-  if (process.env.GUARDIAN_ANGEL_SELF_PROVISION !== 'true') {
-    return Response.json({ error: 'guardian-angel self-provisioning is not enabled on this node' }, { status: 403 })
-  }
+  // No env flag — self-provisioning just works (config-free for the 99%). The real
+  // safeguards ride BELOW: gmail⇔angel 1:1 idempotency (never a duplicate), a soft
+  // per-user cap, and a light rate limit. Every angel is born free; cost is metered
+  // (guardianUsage) and only passed through past the free tier — never an entry gate.
 
   const u = user as { id: number | string; email?: string; name?: string; roles?: string[] }
   const email = (u.email || '').trim().toLowerCase()

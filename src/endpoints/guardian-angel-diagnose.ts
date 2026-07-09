@@ -24,8 +24,6 @@ export const guardianAngelDiagnoseHandler: PayloadHandler = async (req) => {
   if (!user) return Response.json({ error: 'sign-in required' }, { status: 401 })
   const u = user as { id: number | string; email?: string }
 
-  const selfProvisionEnabled = process.env.GUARDIAN_ANGEL_SELF_PROVISION === 'true'
-
   // Probe the column by filtering on it — a missing column throws (drift).
   let isGuardianAngelColumn = false
   try {
@@ -59,15 +57,12 @@ export const guardianAngelDiagnoseHandler: PayloadHandler = async (req) => {
   const hasGuardianAngel = Boolean(guardian)
 
   let nextAction: string
-  if (!selfProvisionEnabled) {
-    nextAction =
-      'Self-provisioning is OFF (shipped dark). Set GUARDIAN_ANGEL_SELF_PROVISION=true on BOTH Vercel projects (angels-os + angels-os-kendev) and redeploy. Then re-open Nimue (or POST /api/provision-ops/claim-guardian-angel) to mint your guardian angel.'
-  } else if (!isGuardianAngelColumn) {
+  if (!isGuardianAngelColumn) {
     nextAction =
       'The is_guardian_angel column is missing on this DB — run GET /api/provision-ops/ensure-guardian-angel-column, confirm ok:true, then claim again.'
   } else if (!hasGuardianAngel) {
     nextAction =
-      'Everything is enabled but you have no guardian angel yet — POST /api/provision-ops/claim-guardian-angel (or re-open Nimue, which calls it on sign-in) to provision one.'
+      'No guardian angel yet — POST /api/provision-ops/claim-guardian-angel (or re-open Nimue, which calls it on sign-in). Self-provisioning is always on now.'
   } else {
     nextAction = `You have a guardian angel: ${guardian?.slug} (${guardian?.domain || 'no domain'}). It should appear in the chooser + Payload Admin.`
   }
@@ -75,7 +70,7 @@ export const guardianAngelDiagnoseHandler: PayloadHandler = async (req) => {
   return Response.json({
     ok: true,
     hasGuardianAngel,
-    checks: { selfProvisionEnabled, isGuardianAngelColumn, adminTenants },
+    checks: { isGuardianAngelColumn, adminTenants },
     guardian: guardian ? { id: guardian.id, slug: guardian.slug, domain: guardian.domain } : null,
     nextAction,
   })
