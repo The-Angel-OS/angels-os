@@ -17,19 +17,25 @@ async function getLocalPayload() {
  *
  * The channel is created in the DMs system space with type: 'dm'.
  */
+// AI agents you can DM. Each gets a deterministic dm-{userId}-{agent} channel with
+// only the human as a member (the agent isn't a user row). 'leo' = the Guardian
+// Angel brain; 'nimue' = the device client agent (the GuardianDelta surface).
+const AGENTS = new Set(['leo', 'nimue'])
+
 export async function findOrCreateDM(
   tenantId: number | string,
   dmSpaceId: number | string,
   userA: number | string,
-  userB: number | string | 'leo',
+  userB: number | string,
 ): Promise<{ channelId: string; channelSlug: string; isNew: boolean }> {
   const payload = await getLocalPayload()
 
+  const agent = typeof userB === 'string' && AGENTS.has(userB) ? userB : null
+
   // Generate deterministic slug
-  const parts =
-    userB === 'leo'
-      ? [String(userA), 'leo']
-      : [String(userA), String(userB)].sort()
+  const parts = agent
+    ? [String(userA), agent]
+    : [String(userA), String(userB)].sort()
   const slug = `dm-${parts.join('-')}`
 
   // Look for existing channel(s) — fetch up to 5 to detect & clean duplicates
@@ -75,10 +81,10 @@ export async function findOrCreateDM(
   }
 
   // Determine display name
-  const isLeo = userB === 'leo'
+  const agentLabel = agent ? (agent === 'nimue' ? 'Nimue' : 'LEO') : null
   let displayName = 'Direct Message'
-  if (isLeo) {
-    // Fetch user name for LEO DM display
+  if (agent) {
+    // Fetch user name for the agent DM display
     try {
       const user = await payload.findByID({
         collection: 'users',
@@ -86,9 +92,9 @@ export async function findOrCreateDM(
         depth: 0,
         overrideAccess: true,
       })
-      displayName = `LEO \u2194 ${(user as any).name || (user as any).email || 'User'}`
+      displayName = `${agentLabel} \u2194 ${(user as any).name || (user as any).email || 'User'}`
     } catch {
-      displayName = 'LEO DM'
+      displayName = `${agentLabel} DM`
     }
   } else {
     // Fetch both user names
@@ -105,8 +111,8 @@ export async function findOrCreateDM(
     }
   }
 
-  // Build members array (LEO doesn't need a user record)
-  const members = isLeo
+  // Build members array (an agent isn't a user row — only the human is a member)
+  const members = agent
     ? [Number(userA)]
     : [Number(userA), Number(userB)]
 
@@ -119,7 +125,7 @@ export async function findOrCreateDM(
       data: {
         name: displayName,
         slug,
-        description: isLeo ? 'Conversation with LEO AI assistant' : 'Direct message',
+        description: agent ? `Conversation with ${agentLabel}` : 'Direct message',
         type: 'dm',
         space: Number(dmSpaceId),
         members,
@@ -158,9 +164,9 @@ export async function findOrCreateDM(
     throw createErr
   }
 
-  // Ensure SpaceMembership for human users
+  // Ensure SpaceMembership for human users (an agent has no user row to add)
   await ensureDMSpaceMembership(userA, dmSpaceId, tenantId)
-  if (!isLeo) {
+  if (!agent) {
     await ensureDMSpaceMembership(userB as number | string, dmSpaceId, tenantId)
   }
 
