@@ -42,13 +42,23 @@ export const Tenants: CollectionConfig = {
         description: 'Platform tenant is the special singleton for Angel OS infrastructure',
       },
     },
-    // NOTE: the `isGuardianAngel` field was TEMPORARILY REMOVED (260707) — it
-    // deployed before the `is_guardian_angel` column existed on every prod DB
-    // (platform node lacked it), so every tenant read that selected the column
-    // 500'd → login/enterprise-browse outage. Re-add ONLY after confirming the
-    // column via /provision-ops/ensure-guardian-angel-column on ALL prod DBs.
-    // Consumers (resolveGuardianTenant, claim idempotency) degrade gracefully to
-    // "no marker" while it's absent; the claim funnel is dark so no live impact.
+    {
+      // Marks a PERSONAL guardian-angel portal (the gmail⇔angel data store) as
+      // distinct from a business/ministry portal. The claim flow uses this to find
+      // "which of the tenants this user admins is their personal angel", so a user
+      // who already runs a business (e.g. Clearwater-Cruisin) still gets a fresh
+      // personal angel on Nimue load instead of their business handed back.
+      // Column MUST exist on every prod DB before this field deploys — confirmed
+      // 260709 via /provision-ops/ensure-guardian-angel-column on spacesangels,
+      // www.kendev.co, and federation.kendev.co (all returned ok, column present).
+      name: 'isGuardianAngel',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      admin: {
+        description: 'True for personal guardian-angel portals (auto-provisioned per gmail via Nimue).',
+      },
+    },
     {
       name: 'name',
       type: 'text',

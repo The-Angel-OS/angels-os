@@ -302,6 +302,10 @@ export interface Tenant {
    * Platform tenant is the special singleton for Angel OS infrastructure
    */
   type: 'platform' | 'tenant' | 'ministry';
+  /**
+   * True for personal guardian-angel portals (auto-provisioned per gmail via Nimue).
+   */
+  isGuardianAngel?: boolean | null;
   name: string;
   /**
    * Used in x-tenant-id header and URLs (e.g., hays-cactus)
@@ -3773,6 +3777,7 @@ export interface Post {
     | CallToActionBlock
     | ContentBlock
     | MediaBlock
+    | GalleryBlock
     | ArchiveBlock
     | CarouselBlock
     | ThreeItemGridBlock
@@ -6505,6 +6510,10 @@ export interface PayloadMcpApiKey {
      */
     createPost?: boolean | null;
     /**
+     * Create a blog post FROM a set of uploaded images (optionally with a video). Use when the user uploads/attaches images and says "post", "new post", "make a post of these", "resubmit these images", or e.g. a travel vlogger drops a few shots (+ maybe a YouTube link) to turn into an update. YOU are multimodal — look at the images and write a title and a body that weaves the user's text together with what you SEE in the photos (place, scene, story), then this tool assembles the post: the FIRST image becomes the banner/hero, ALL images go into a gallery grid, and if a videoUrl is given it is FRAMED between the hero and the gallery. Created as draft by default.
+     */
+    createPostFromMedia?: boolean | null;
+    /**
      * Create or update a recurring membership/dues plan for the current Endeavor (e.g. a gym, church, makerspace, or club). Plans appear on the public Join surface and bill via Stripe as recurring subscriptions. Use when the user wants to add a membership tier, dues level, or subscription option. Provide an amount in dollars and a billing interval. Idempotent by name/id — re-running with the same name updates that plan.
      */
     createMembershipPlan?: boolean | null;
@@ -6617,6 +6626,18 @@ export interface PayloadMcpApiKey {
      */
     analyzeImage?: boolean | null;
     /**
+     * Analyze 1–8 images TOGETHER in a single pass and return ONE combined result — the model sees them all at once and merges them. Use when several photos are views/segments of the SAME subject: shelf sections or a junk drawer to inventory (dedupes items across shots and sums quantities), consecutive screenshots to stitch into one timeline, or multiple angles of one thing. THIS is the nightly visual-inventory tool: hand it the shelf photos, set inventoryMode, get back one merged item list. For a single standalone image use analyze_image instead.
+     */
+    combineImages?: boolean | null;
+    /**
+     * List the media (images) already present in the current channel — from message attachments, most-recent first. Use to find images the user ALREADY uploaded here so you can act on them WITHOUT asking them to re-upload — e.g. 'combine the last four shelf photos in this channel' → list them, take their media ids, call combine_images. Returns each item's media id and filename.
+     */
+    listChannelMedia?: boolean | null;
+    /**
+     * Check whether an address complies with residency-restriction proximity rules for reentry housing — flags nearby schools, preschools, playgrounds, child-care agencies, and community centers within the restriction distance (Google Places). Use when someone needs to know if an address is LEGAL housing for a registered person. Each check is logged as a message to a tracking channel. IMPORTANT: the result is ADVISORY — Google Places doesn't list every state-licensed child-care facility (Florida requires a manual DCF search); relay that caveat and never present a pass as a legal clearance.
+     */
+    verifyAddress?: boolean | null;
+    /**
      * Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.
      */
     extractPdfPages?: boolean | null;
@@ -6673,6 +6694,18 @@ export interface PayloadMcpApiKey {
      */
     getDailyBread?: boolean | null;
     /**
+     * The signed-in person's personal planner: their upcoming bookings and events merged into one time-sorted timeline, their active quests, and their 'book time with me' scheduling link. Use when someone asks what's on their plate, their schedule, their agenda, what's coming up, or their to-do/quests. Self-scoped to the current user.
+     */
+    getAgenda?: boolean | null;
+    /**
+     * Search the live web for current information. Use when a question needs facts you don't already know, anything recent/time-sensitive (news, prices, events, releases), or to verify a claim. Returns titles, URLs, and snippets — cite the sources. For reading ONE known page deeply, prefer ingest/fetch tools instead.
+     */
+    webSearch?: boolean | null;
+    /**
+     * Set the signed-in person's recurring weekly availability on their personal scheduler (their 'book time with me' calendar). Use when they say things like 'I'm free weekdays 9 to 5' or 'open Tuesdays 2–5pm'. Sets the given days to the given hours, leaving other days as they are. Self-scoped to the current user's home angel.
+     */
+    setAvailability?: boolean | null;
+    /**
      * Send a message to a community channel. Use when the user asks you to post, announce, or say something in a specific channel or space. You must confirm with the user before sending.
      */
     sendMessage?: boolean | null;
@@ -6680,6 +6713,14 @@ export interface PayloadMcpApiKey {
      * Send a direct message to a specific user. Use when LEO needs to privately communicate with someone. Confirm with the user before sending.
      */
     sendDirectMessage?: boolean | null;
+    /**
+     * List the user's personal address book — the people they actually communicate with (their conversation partners), most-recent first, then other reachable contacts. Use when the user asks 'who are my people', 'show my contacts/address book', or when you need to resolve a name before messaging someone on their behalf. Returns each contact's name, email, whether you can message/call them, and when you last talked.
+     */
+    listContacts?: boolean | null;
+    /**
+     * Send a message to someone in the user's address book ON THE USER'S BEHALF. This is an OUTWARD action that reaches another human, so it is GATED: the first call (without confirm) returns a preview and does NOT send — you must relay the preview to the user and get their explicit go-ahead, then call again with confirm=true to actually send. NEVER set confirm=true unless the user has just explicitly approved sending this exact message. Resolve the recipient with list_contacts first if you're unsure who they mean.
+     */
+    messageContact?: boolean | null;
     /**
      * Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.
      */
@@ -6692,6 +6733,10 @@ export interface PayloadMcpApiKey {
      * Adjust product inventory by a positive or negative amount. Use when stock needs to be added (restock) or removed (sale, damage, etc.). Confirm adjustment with user before executing.
      */
     updateInventory?: boolean | null;
+    /**
+     * Apply a COUNTED inventory list to product stock — the second half of the nightly visual-inventory flow (combine_images produces the counts, this writes them). Give it the merged item list; each item is matched to a product by title and its stock set (or adjusted). Use mode='set' for a physical shelf count ('this is what's actually there now'), mode='adjust' to add/subtract. Unmatched items are reported, not guessed; set createMissing=true to create a product for anything with no match. Confirm with the user before applying.
+     */
+    applyInventoryCount?: boolean | null;
     /**
      * Process an order by decrementing inventory for each item. Use after an order is paid to ensure stock levels reflect the sale. Links order to inventory changes.
      */
@@ -7262,6 +7307,7 @@ export interface PayloadMigration {
  */
 export interface TenantsSelect<T extends boolean = true> {
   type?: T;
+  isGuardianAngel?: T;
   name?: T;
   slug?: T;
   domain?: T;
@@ -8289,6 +8335,7 @@ export interface PostsSelect<T extends boolean = true> {
         cta?: T | CallToActionBlockSelect<T>;
         content?: T | ContentBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
+        gallery?: T | GalleryBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         carousel?: T | CarouselBlockSelect<T>;
         threeItemGrid?: T | ThreeItemGridBlockSelect<T>;
@@ -9992,6 +10039,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         fetchReviews?: T;
         draftReviewResponse?: T;
         createPost?: T;
+        createPostFromMedia?: T;
         createMembershipPlan?: T;
         listMembershipPlans?: T;
         deleteMembershipPlan?: T;
@@ -10020,6 +10068,9 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         signConstitution?: T;
         pingFederation?: T;
         analyzeImage?: T;
+        combineImages?: T;
+        listChannelMedia?: T;
+        verifyAddress?: T;
         extractPdfPages?: T;
         queryKnowledge?: T;
         getThemeSettings?: T;
@@ -10034,11 +10085,17 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         clonePortal?: T;
         checkNodeHealth?: T;
         getDailyBread?: T;
+        getAgenda?: T;
+        webSearch?: T;
+        setAvailability?: T;
         sendMessage?: T;
         sendDirectMessage?: T;
+        listContacts?: T;
+        messageContact?: T;
         createAnnouncement?: T;
         moderateContent?: T;
         updateInventory?: T;
+        applyInventoryCount?: T;
         trackInventoryMovement?: T;
         setLowStockAlert?: T;
         queryInventoryHistory?: T;
