@@ -163,6 +163,7 @@ import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-bloc
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
+import { workProgressHandler } from '@/endpoints/work-progress'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
@@ -1099,6 +1100,8 @@ export default buildConfig({
     { path: '/membership-ops/plans', method: 'get', handler: membershipPlansHandler },
     { path: '/membership-ops/plans', method: 'post', handler: membershipPlansHandler },
     { path: '/membership-ops/readiness', method: 'get', handler: membershipReadinessHandler },
+    { path: '/works-ops/progress', method: 'get', handler: workProgressHandler },
+    { path: '/works-ops/progress', method: 'post', handler: workProgressHandler },
     { path: '/membership-ops/checkout', method: 'post', handler: membershipCheckoutHandler },
     // Member self-service: view my membership + open the Stripe billing portal.
     { path: '/membership-ops/my', method: 'get', handler: myMembershipsHandler },
