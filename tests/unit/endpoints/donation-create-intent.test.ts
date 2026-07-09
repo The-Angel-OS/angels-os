@@ -13,6 +13,13 @@ vi.mock('stripe', () => {
   }
 })
 
+// logError lazy-imports @payload-config (boots Payload against a live DB) —
+// unmocked, the 500-path test hangs to the 30s timeout instead of asserting.
+vi.mock('@/utilities/logError', () => ({
+  logError: vi.fn(async () => {}),
+  logCaughtError: vi.fn(async () => {}),
+}))
+
 // Dynamic import after mocks
 const { donationCreateIntentHandler } = await import(
   '@/endpoints/donation-create-intent'
