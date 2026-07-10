@@ -110,6 +110,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: adminOrBusinessOwner, // economic data — owners + admins
       },
       {
+        key: 'solvency',
+        label: 'Solvency',
+        icon: 'banknote',
+        href: (p) => `${p}/dashboard/solvency`,
+        isActive: active('/dashboard/solvency'),
+        visible: adminOnly, // platform-wide money view — super_admin (page enforces)
+      },
+      {
         key: 'payload-admin',
         label: 'Payload Admin',
         icon: 'gear',

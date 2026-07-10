@@ -1334,6 +1334,17 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'check_solvency',
+    description:
+      'Report whether THE PLATFORM (all of The Angel OS, every tenant) is money-positive right now: revenue the platform actually keeps (Justice Fund allocations — 5% of Connect sales + 100% of donations) minus what it spends to run (AI/telephony/storage/infra cost-events, excluding tenants\' own keys). Answers "are the dollars still positive?", "can we cover our own infra?", "how are we doing overall?". Platform-wide and super_admin only — not per-Endeavor (use query_booking_revenue for one Endeavor\'s bookings). Optionally set windowDays for the rolling window (default 30).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        windowDays: { type: 'number', description: 'Rolling window in days for the recent leg (default 30, max 365).' },
+      },
+    },
+  },
+  {
     name: 'apply_site_template',
     description:
       'Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor\'s public site.',
@@ -4100,6 +4111,8 @@ async function executeToolSwitch(
         return await configurePaymentMethod(payload, toolInput, ctx)
       case 'query_booking_revenue':
         return await queryBookingRevenue(payload, toolInput, ctx)
+      case 'check_solvency':
+        return await checkSolvency(payload, toolInput, ctx)
       case 'apply_site_template':
         return await applySiteTemplate(payload, toolInput, ctx)
       case 'create_work_from_url':
@@ -17289,6 +17302,54 @@ async function queryBookingRevenue(
   }
 
   return lines.join('\n') + navDirective('/dashboard/bookings', 'View Bookings')
+}
+
+/**
+ * check_solvency — the one number Kenneth keeps positive. Platform-wide revenue
+ * kept vs. infra cost, super_admin only. @see src/utilities/solvency.ts
+ */
+async function checkSolvency(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const gate = ensureToolSuperAdmin(ctx, 'check_solvency')
+  if (gate) return gate
+
+  const { getSolvencySnapshot } = await import('@/utilities/solvency')
+  const windowDays = typeof input.windowDays === 'number' ? input.windowDays : 30
+  const s = await getSolvencySnapshot(payload, { windowDays })
+
+  const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`
+  const icon = s.status === 'positive' ? '🟢' : s.status === 'watch' ? '🟡' : '🔴'
+
+  const lines = [
+    `${icon} **Platform solvency** — ${s.verdict}`,
+    '',
+    `**Lifetime**`,
+    `- Kept (covers infra): **${usd(s.lifetime.platformRetainedCents)}** from ${s.lifetime.revenueEvents} charge${s.lifetime.revenueEvents !== 1 ? 's' : ''} (gross processed ${usd(s.lifetime.grossProcessedCents)})`,
+    `- Infra spent: **${usd(s.lifetime.infraCostCents)}** across ${s.lifetime.costEvents} event${s.lifetime.costEvents !== 1 ? 's' : ''}`,
+    `- Operational net: **${usd(s.lifetime.operationalNetCents)}**`,
+  ]
+  if (s.lifetime.disbursedCents > 0) {
+    lines.push(`- Justice Fund disbursed (mission, not infra): ${usd(s.lifetime.disbursedCents)}`)
+  }
+  lines.push(
+    '',
+    `**Last ${s.windowDays} days**`,
+    `- Kept ${usd(s.window.platformRetainedCents)} · infra ${usd(s.window.infraCostCents)} · net **${usd(s.window.operationalNetCents)}**`,
+  )
+  if (s.topCostCategory) {
+    lines.push('', `Biggest cost lever: **${s.topCostCategory.category}** (${usd(s.topCostCategory.costCents)} lifetime).`)
+  }
+  if (!s.available.revenue || !s.available.cost) {
+    lines.push(
+      '',
+      `_Note: ${!s.available.revenue ? 'revenue' : 'cost'} ledger unavailable on this node — figure may be partial._`,
+    )
+  }
+
+  return lines.join('\n') + navDirective('/dashboard/solvency', 'Open Solvency')
 }
 
 /**

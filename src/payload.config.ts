@@ -115,6 +115,7 @@ import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { guardianAngelDiagnoseHandler } from '@/endpoints/guardian-angel-diagnose'
+import { solvencySnapshotHandler } from '@/endpoints/solvency-snapshot'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
@@ -844,6 +845,13 @@ export default buildConfig({
       path: '/provision-ops/guardian-angel-diagnose',
       method: 'get',
       handler: guardianAngelDiagnoseHandler,
+    },
+    // The one number to keep positive: platform revenue kept vs. infra cost.
+    // super_admin only. Feeds /dashboard/solvency + external monitoring.
+    {
+      path: '/solvency-ops/snapshot',
+      method: 'get',
+      handler: solvencySnapshotHandler,
     },
     // Mutable public address: rename a portal's slug as its endeavor takes shape,
     // preserving the old subdomain as an alias so links already sent keep working.
