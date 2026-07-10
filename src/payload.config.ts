@@ -116,6 +116,7 @@ import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
 import { guardianAngelDiagnoseHandler } from '@/endpoints/guardian-angel-diagnose'
 import { solvencySnapshotHandler } from '@/endpoints/solvency-snapshot'
+import { solvencyBriefingHandler } from '@/endpoints/solvency-briefing'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
@@ -852,6 +853,14 @@ export default buildConfig({
       path: '/solvency-ops/snapshot',
       method: 'get',
       handler: solvencySnapshotHandler,
+    },
+    // Daily "are the dollars still positive?" ping — pushed via the GENERIC
+    // escalation layer (medium-agnostic; Gotify is one connector). Vercel cron +
+    // CRON_SECRET. @see vercel.json crons.
+    {
+      path: '/solvency-ops/briefing',
+      method: 'get',
+      handler: solvencyBriefingHandler,
     },
     // Mutable public address: rename a portal's slug as its endeavor takes shape,
     // preserving the old subdomain as an alias so links already sent keep working.
