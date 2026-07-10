@@ -55,14 +55,6 @@ export default async function LearnPage({
           <WorksGrid souls={souls} />
         )}
 
-        {/* Prime Directive footer */}
-        <div className="mt-16 rounded-xl border border-border/50 bg-muted/20 p-6 text-center">
-          <p className="text-sm italic text-muted-foreground">
-            &ldquo;This is not vendetta. This is restorative justice. The Prime Directive of Love does not exile any node
-            from the network — it reconfigures the system so that extraction becomes nourishment.&rdquo;
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground/60">— THE RAINMAKER</p>
-        </div>
       </div>
     </div>
   )
