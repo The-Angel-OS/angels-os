@@ -1345,6 +1345,22 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'commission_endeavor',
+    description:
+      "Commission a NEW endeavor (a business/ministry/creator portal) for the person you're talking to, and hand back a live link to it. Use when someone says \"make me a site\", \"I want to start a <business>\", \"set up my <shop/ministry/studio>\". This mints a real portal — its own subdomain, home + spaces, and the caller as owner (tenant_admin) — then returns a clickable link to open it while the chat stays open. Any signed-in user can commission their own endeavor (this is the Creator rung — still free). Distinct from a personal guardian angel (that's auto-minted, private); an endeavor is a public, findable business. Distinct from provision_tenant (super_admin, custom domain).",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: "The endeavor's name, e.g. \"Bay Area Pressure Washing\" or \"Grace Community Church\" (required)." },
+        handle: { type: 'string', description: 'Optional desired subdomain handle (lowercase letters/numbers/hyphens, 3–50 chars). Defaults to a slug of the name; a random suffix is added if taken.' },
+        missionStatement: { type: 'string', description: 'One-line mission of the endeavor (optional).' },
+        tagline: { type: 'string', description: 'Short tagline shown on the site (optional).' },
+        endeavorType: { type: 'string', enum: ['service-provider', 'retail-commerce', 'creator-content', 'booking-based', 'custom'], description: 'Primary operational model (optional; defaults to creator-content).' },
+      },
+      required: ['name'],
+    },
+  },
+  {
     name: 'apply_site_template',
     description:
       'Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor\'s public site.',
@@ -4113,6 +4129,8 @@ async function executeToolSwitch(
         return await queryBookingRevenue(payload, toolInput, ctx)
       case 'check_solvency':
         return await checkSolvency(payload, toolInput, ctx)
+      case 'commission_endeavor':
+        return await commissionEndeavor(payload, toolInput, ctx)
       case 'apply_site_template':
         return await applySiteTemplate(payload, toolInput, ctx)
       case 'create_work_from_url':
@@ -17350,6 +17368,119 @@ async function checkSolvency(
   }
 
   return lines.join('\n') + navDirective('/dashboard/solvency', 'Open Solvency')
+}
+
+/**
+ * commission_endeavor — mint a business/ministry/creator portal for the CALLER
+ * and hand back a live link. The "talk to Nimue → get a minted site → link
+ * delivered, chat stays open" loop. Thin specialization over provisionPortal:
+ * commerce base domain + guaranteed-unique slug + the caller as owner.
+ *
+ * Auth posture (DELIBERATE departure from the super_admin-only provisioners): ANY
+ * signed-in user may commission THEIR OWN endeavor — this is the Creator rung of
+ * the monetization ladder, still free. Gated on ctx.userId, capped as a runaway
+ * backstop. @see src/utilities/provisionPortal.ts @see src/utilities/guardianSlug.ts
+ */
+const COMMISSION_ENDEAVOR_CAP = 10
+
+async function commissionEndeavor(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const userId = ctx.userId
+  if (!userId) {
+    return 'To commission an endeavor I need you signed in — that way it becomes yours (you as the owner). Sign in and ask me again.'
+  }
+
+  const name = typeof input.name === 'string' ? input.name.trim() : ''
+  if (!name) return 'What should the endeavor be called? Give me a name and I\'ll stand it up.'
+
+  const { slugify, opaqueSlug, vanitySlugRejection, commerceBaseDomain } = await import('@/utilities/guardianSlug')
+
+  // Runaway backstop — a signed-in user gets a reasonable number of endeavors,
+  // not unlimited free tenants. (Metered/paid additional endeavors are the
+  // guardian-angel monetization path, not this tool.)
+  try {
+    const owned = await payload.count({
+      collection: 'tenant-memberships',
+      where: { and: [{ user: { equals: userId } }, { role: { equals: 'tenant_admin' } }] },
+      overrideAccess: true,
+    })
+    if (owned.totalDocs >= COMMISSION_ENDEAVOR_CAP) {
+      return `You already own ${owned.totalDocs} endeavors — that's the limit for self-serve commissioning right now. Reach out if you need more and we'll sort it out.`
+    }
+  } catch {
+    /* non-fatal — don't let the cap check block provisioning */
+  }
+
+  // Desired handle: an explicit vanity handle (validated), else a slug of the name.
+  let baseSlug: string
+  if (typeof input.handle === 'string' && input.handle.trim()) {
+    const candidate = slugify(input.handle)
+    const rejection = vanitySlugRejection(candidate)
+    if (rejection) return `That handle won't work: ${rejection} Try another, or let me pick one from the name.`
+    baseSlug = candidate
+  } else {
+    baseSlug = slugify(name) || `endeavor-${opaqueSlug(6)}`
+  }
+
+  const base = commerceBaseDomain()
+
+  // Guarantee uniqueness: findOrCreateTenant is idempotent by slug/domain, so a
+  // collision would silently hand back SOMEONE ELSE'S portal. Probe and suffix.
+  let slug = baseSlug
+  let domain = `${slug}.${base}`
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let taken = false
+    try {
+      const clash = await payload.find({
+        collection: 'tenants',
+        where: { or: [{ slug: { equals: slug } }, { domain: { equals: domain } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      taken = (clash.docs?.length ?? 0) > 0
+    } catch {
+      /* if the probe fails, fall through and let provisionPortal be authoritative */
+    }
+    if (!taken) break
+    slug = `${baseSlug}-${opaqueSlug(4)}`
+    domain = `${slug}.${base}`
+  }
+
+  try {
+    const { provisionPortal } = await import('@/utilities/provisionPortal')
+    const result = await provisionPortal(
+      payload,
+      {
+        name,
+        slug,
+        domain,
+        missionStatement: typeof input.missionStatement === 'string' ? input.missionStatement : undefined,
+        tagline: typeof input.tagline === 'string' ? input.tagline : undefined,
+        endeavorType: typeof input.endeavorType === 'string' ? input.endeavorType : undefined,
+        isGuardianAngel: false,
+        networkVisible: true, // a business WANTS to be found in Discovery
+      },
+      { actingUserId: userId },
+    )
+
+    if (!result?.ok) {
+      return `I hit a snag standing up "${name}" — nothing was charged and nothing's half-built. Try again in a moment.`
+    }
+
+    return [
+      `✨ **${name}** is live.`,
+      '',
+      `Your new endeavor is minted at **${result.url}** — it's yours (you're the owner), with a home page and its spaces ready. Open it to start shaping it; I'll stay right here.`,
+      '',
+      `Next, just tell me what it does and I can add pages, a booking or shop, or apply a template.`,
+    ].join('\n') + navDirective(result.url, `Open ${name}`)
+  } catch (err) {
+    return `I couldn't finish commissioning "${name}": ${err instanceof Error ? err.message : String(err)}. Nothing was charged — we can try again.`
+  }
 }
 
 /**

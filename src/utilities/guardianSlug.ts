@@ -49,6 +49,19 @@ export function guardianBaseDomain(): string {
     .toLowerCase()
 }
 
+/**
+ * The base domain COMMISSIONED (business/ministry) endeavors live under. Config-
+ * free by default — falls back to the guardian font (spacesangels.com) so the
+ * tool works out of the box — but overridable per-node so the identity↔commerce
+ * split can point commerce at its own shore (e.g. federation.kendev.co) once that
+ * second server is the intended home. See the commission_endeavor LEO tool.
+ */
+export function commerceBaseDomain(): string {
+  return (process.env.COMMERCE_BASE_DOMAIN || guardianBaseDomain())
+    .replace(/^\.+|\.+$/g, '')
+    .toLowerCase()
+}
+
 const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 export function opaqueSlug(len = 12): string {
   const bytes = randomBytes(len)
