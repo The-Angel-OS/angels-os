@@ -171,6 +171,68 @@ export async function createSpaceFromTemplate(
   return { spaceId: space.id, channelIds }
 }
 
+/**
+ * PERSONAL channel set — for a guardian angel / personal portal, NOT a business.
+ * A personal portal is one person's private home: a life-log timeline (ties to the
+ * guardian-timeline vision + Nimue life-log ingestion), a private journal, and
+ * reminders — instead of a business's general/announcements/support/community.
+ * "Sorted separate from the other endeavors."
+ */
+export const PERSONAL_CHANNELS: ChannelTemplate[] = [
+  { name: 'timeline', type: 'general', description: 'Your life-log — moments, photos, and notes over time', isDefault: true },
+  { name: 'journal', type: 'general', description: 'Private reflections' },
+  { name: 'reminders', type: 'general', description: 'Things to remember and follow up on' },
+]
+
+/**
+ * Create a PERSONAL space (guardian-angel / personal portal) with the personal
+ * channel set. Mirrors createSpaceFromTemplate but is not endeavor-typed — a
+ * personal portal is private and single-person, not a business hub.
+ */
+export async function createPersonalSpace(
+  payload: Payload,
+  tenantId: number | string,
+  customName?: string,
+  req?: PayloadRequest,
+): Promise<{ spaceId: number | string; channelIds: (number | string)[] }> {
+  const spaceName = customName || 'My Space'
+  const slug = spaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'my-space'
+
+  const space = await payload.create({
+    collection: 'spaces',
+    data: {
+      name: spaceName,
+      slug,
+      description: 'Your personal space — timeline, journal, and reminders',
+      tenant: tenantId as number,
+      visibility: 'invite_only',
+    },
+    ...(req ? { req } : {}),
+    overrideAccess: true,
+  })
+
+  const channelIds: (number | string)[] = []
+  for (const ch of PERSONAL_CHANNELS) {
+    const channel = await payload.create({
+      collection: 'channels',
+      data: {
+        name: ch.name,
+        slug: ch.name,
+        description: ch.description,
+        space: space.id,
+        type: ch.type as 'general',
+        isDefault: ch.isDefault ?? false,
+        tenant: tenantId as number,
+      },
+      ...(req ? { req } : {}),
+      overrideAccess: true,
+    })
+    channelIds.push(channel.id)
+  }
+
+  return { spaceId: space.id, channelIds }
+}
+
 /** Get all available endeavor templates for the wizard. */
 export function getAvailableTemplates(): {
   key: EndeavorType

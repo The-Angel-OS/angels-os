@@ -16,11 +16,13 @@ import type { Payload, PayloadRequest } from 'payload'
 import {
   addChannelToSpace,
   createSpaceFromTemplate,
+  createPersonalSpace,
+  PERSONAL_CHANNELS,
   type ChannelTemplate,
   type EndeavorType,
 } from './spaceProvisioning'
 
-/** The baseline every space should carry, regardless of endeavor type. */
+/** The baseline every BUSINESS space should carry, regardless of endeavor type. */
 const BASELINE_CHANNELS: ChannelTemplate[] = [
   { name: 'general', type: 'general', description: 'General discussion', isDefault: true },
   { name: 'announcements', type: 'announcements', description: 'Important updates and news' },
@@ -37,7 +39,17 @@ export interface EnsureSpacesResult {
 export async function ensureTenantSpaces(
   payload: Payload,
   tenantId: number | string,
-  opts: { endeavorType?: EndeavorType; spaceName?: string; req?: PayloadRequest } = {},
+  opts: {
+    endeavorType?: EndeavorType
+    spaceName?: string
+    req?: PayloadRequest
+    /**
+     * Personal/guardian-angel portal — gets the PERSONAL channel set (timeline/
+     * journal/reminders) instead of a business's endeavor-typed community hub.
+     * "Sorted separate from the other endeavors."
+     */
+    personal?: boolean
+  } = {},
 ): Promise<EnsureSpacesResult> {
   const reqOpt = opts.req ? { req: opts.req } : {}
 
@@ -52,8 +64,13 @@ export async function ensureTenantSpaces(
     ...reqOpt,
   })
 
-  // 2. No Space → create one from the endeavor template (resolve type if absent).
+  // 2. No Space → create the primary space. Personal portals get a private
+  //    personal space; businesses get the endeavor-typed community hub.
   if (!spaces.docs?.length) {
+    if (opts.personal) {
+      const { spaceId } = await createPersonalSpace(payload, tenantId, opts.spaceName || 'My Space', opts.req)
+      return { spaceId, createdSpace: true, addedChannels: [] }
+    }
     let endeavorType = opts.endeavorType
     if (!endeavorType) {
       const endeavors = await payload
@@ -91,7 +108,8 @@ export async function ensureTenantSpaces(
   })
   const existingNames = new Set((existing.docs as Array<{ name?: string }>).map((c) => c.name))
   const addedChannels: string[] = []
-  for (const ch of BASELINE_CHANNELS) {
+  const baseline = opts.personal ? PERSONAL_CHANNELS : BASELINE_CHANNELS
+  for (const ch of baseline) {
     if (!existingNames.has(ch.name)) {
       await addChannelToSpace(payload, space.id, tenantId, ch, opts.req)
       addedChannels.push(ch.name)

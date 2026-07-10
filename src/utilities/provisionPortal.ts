@@ -235,14 +235,18 @@ export async function provisionPortal(
     log.push(`ensureTenantDefaults skipped: ${(e as Error).message}`)
   }
   try {
+    // Personal/guardian portals get a PERSONAL space (timeline/journal/reminders),
+    // sorted separate from a business endeavor's community hub.
+    const personal = input.isGuardianAngel === true
     const s = await ensureTenantSpaces(payload, tenant.id as number, {
       endeavorType: endeavorType as EndeavorType,
-      spaceName: 'Community',
+      spaceName: personal ? 'My Space' : 'Community',
+      personal,
       req,
     })
     log.push(
       s.createdSpace
-        ? `community space #${s.spaceId} created (+ channels)`
+        ? `${personal ? 'personal' : 'community'} space #${s.spaceId} created (+ channels)`
         : `space #${s.spaceId} present (backfilled: ${s.addedChannels.join(', ') || 'none'})`,
     )
   } catch (e) {
