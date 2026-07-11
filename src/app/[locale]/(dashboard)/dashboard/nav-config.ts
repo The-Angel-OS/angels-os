@@ -79,6 +79,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'circles',
+        label: 'My Circles',
+        icon: 'users',
+        href: (p) => `${p}/dashboard/circles`,
+        isActive: active('/dashboard/circles'),
+        visible: authenticated, // the people & endeavors you're part of (Life360++)
+      },
+      {
         key: 'bridge',
         label: 'Bridge',
         icon: 'helm',
