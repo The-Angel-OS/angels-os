@@ -175,6 +175,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         badge: { text: 'Live', color: 'bg-amber-500' },
       },
       {
+        key: 'endeavors',
+        label: 'Endeavors',
+        icon: 'grid',
+        href: (p) => `${p}/dashboard/endeavors`,
+        isActive: active('/dashboard/endeavors'),
+        visible: authenticated, // browse the federation directory across nodes
+      },
+      {
         key: 'setup',
         label: 'Enterprise Setup',
         icon: 'wand',
