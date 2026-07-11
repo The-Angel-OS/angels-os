@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import Link from 'next/link'
+import { checkRole } from '@/access/utilities'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,45 +32,67 @@ export default async function MyCirclesPage({
   const { user } = await payload.auth({ headers: await headers() })
   if (!user) redirect(`${prefix}/dashboard`)
   const uid = (user as { id: string | number }).id
+  const isSuperAdmin = checkRole(['super_admin'], user)
 
-  // My active memberships → tenant ids + my role per tenant.
-  const mem = await payload.find({
-    collection: 'tenant-memberships',
-    where: { and: [{ user: { equals: uid } }, { status: { equals: 'active' } }] },
-    limit: 100,
-    depth: 0,
-    overrideAccess: true,
-  })
+  // Reuse the dashboard chooser's tenant resolution so My Circles == the Switch-Tenant
+  // list (layout.tsx): super_admins see ALL tenants (incl. the platform root, which has
+  // no membership row); everyone else sees tenants they hold an ACTIVE or PENDING
+  // membership in. My role per tenant still comes from my membership rows.
+  const [allTenantsRes, myMemRes] = await Promise.all([
+    isSuperAdmin
+      ? payload.find({ collection: 'tenants', limit: 100, depth: 0, overrideAccess: true, sort: 'name' })
+      : Promise.resolve(null),
+    payload.find({
+      collection: 'tenant-memberships',
+      where: { and: [{ user: { equals: uid } }, { status: { in: ['active', 'pending'] } }] },
+      limit: 200,
+      depth: 1,
+      overrideAccess: true,
+    }),
+  ])
+
   const roleByTenant = new Map<string, string>()
-  const tenantIds: (string | number)[] = []
-  for (const m of mem.docs as Array<{ tenant: unknown; role?: string }>) {
+  for (const m of myMemRes.docs as Array<{ tenant: unknown; role?: string }>) {
     const tid = idOf(m.tenant)
-    if (tid != null) {
-      tenantIds.push(tid)
-      roleByTenant.set(String(tid), m.role || 'member')
-    }
+    if (tid != null) roleByTenant.set(String(tid), m.role || 'member')
   }
 
-  // The endeavors (circles) for those tenants + the member roster per tenant.
+  // The tenant set — each tenant IS a circle. From the same source as the chooser.
+  const tenantById = new Map<string, { id: string | number; name: string }>()
+  if (isSuperAdmin && allTenantsRes) {
+    for (const t of allTenantsRes.docs as Array<{ id: string | number; name?: string }>) {
+      tenantById.set(String(t.id), { id: t.id, name: t.name || 'Tenant' })
+    }
+  } else {
+    for (const m of myMemRes.docs as Array<{ tenant: unknown }>) {
+      const t = m.tenant as { id?: string | number; name?: string } | number | string
+      const tid = idOf(t)
+      if (tid != null && !tenantById.has(String(tid))) {
+        tenantById.set(String(tid), { id: tid, name: (t && typeof t === 'object' && t.name) || 'Tenant' })
+      }
+    }
+  }
+  const tenantIds = [...tenantById.values()].map((t) => t.id)
+
+  // Attach endeavor data (tagline/type) + the member roster per tenant.
   const [endeavors, members] = tenantIds.length
     ? await Promise.all([
-        payload.find({
-          collection: 'endeavors',
-          where: { tenant: { in: tenantIds } },
-          limit: 100,
-          depth: 1,
-          overrideAccess: true,
-          sort: '-updatedAt',
-        }),
+        payload.find({ collection: 'endeavors', where: { tenant: { in: tenantIds } }, limit: 200, depth: 1, overrideAccess: true }),
         payload.find({
           collection: 'tenant-memberships',
           where: { and: [{ tenant: { in: tenantIds } }, { status: { equals: 'active' } }] },
-          limit: 500,
+          limit: 1000,
           depth: 1,
           overrideAccess: true,
         }),
       ])
     : [{ docs: [] as unknown[] }, { docs: [] as unknown[] }]
+
+  const endeavorByTenant = new Map<string, Record<string, unknown>>()
+  for (const e of endeavors.docs as Array<Record<string, unknown>>) {
+    const tid = String(idOf(e.tenant))
+    if (!endeavorByTenant.has(tid)) endeavorByTenant.set(tid, e)
+  }
 
   const rosterByTenant = new Map<string, Array<{ id: string | number; name: string }>>()
   for (const mm of members.docs as Array<{ tenant: unknown; user: unknown }>) {
@@ -92,15 +115,15 @@ export default async function MyCirclesPage({
     myRole: string
     members: Array<{ id: string | number; name: string }>
   }
-  const circles: Circle[] = (endeavors.docs as Array<Record<string, unknown>>).map((e) => {
-    const tenant = e.tenant as { id?: string | number; name?: string } | undefined
-    const tid = String(idOf(e.tenant))
+  const circles: Circle[] = [...tenantById.values()].map((t) => {
+    const tid = String(t.id)
+    const e = endeavorByTenant.get(tid)
     return {
-      id: e.id as string | number,
-      name: (e.name as string) || tenant?.name || 'Circle',
-      tagline: (e.tagline as string) || '',
-      type: (e.endeavorType as string) || '',
-      myRole: roleByTenant.get(tid) || 'member',
+      id: tid,
+      name: (e?.name as string) || t.name,
+      tagline: (e?.tagline as string) || '',
+      type: (e?.endeavorType as string) || '',
+      myRole: roleByTenant.get(tid) || (isSuperAdmin ? 'super_admin' : 'member'),
       members: rosterByTenant.get(tid) || [],
     }
   })
