@@ -25,9 +25,11 @@ One coherent area, four threads Ken raised. Diagnoses are complete; this is imme
 - **Change:** the DM section should render in EVERY space's navigator (the user's DMs are global). Decouple the DM list from the active space — always fetch + show the user's DMs regardless of which space is active. Channels remain per-space.
 - Files: `src/components/ChatControl/ChatProvider.tsx` (DM load is already separate from channel load — surface it in every space, not just the DM space), `MultiChannelChat.tsx` (render the DM section unconditionally).
 
-## Thread 4 — Nimue ⟷ Core navigator parity  — GAP
-- Nimue's `src/app/channels/page.tsx` shows LESS than Core (screenshot: only `LEO · Guardian`, "No channels here", missing the Nimue DM). It resolves channels/DMs from a different source/scope than Core's `ChatProvider`.
-- **Fix:** align Nimue's channels page to the same resolution Core uses — the user's channels for the active space + the user's global DMs (LEO, node, user DMs). Likely `src/lib/channels.ts` `listChannels` scope + the DM query.
+## Thread 4 — Nimue ⟷ Core navigator parity  — ROOT CAUSE FOUND
+- Nimue shows only `LEO · Guardian` (missing the `Nimue ↔ Kenneth` DM); Core shows all DMs.
+- **Root cause:** `src/lib/channels.ts:44` `listChannels` EXCLUDES DMs (`where[type][not_equals]=dm`), and Nimue's DM section is populated by a **separate, incomplete** source that only resolves the **LEO** DM specifically (`leo.ts` resolveLeoDm) — it never fetches the user's FULL DM list. Core's `ChatProvider` fetches all DMs (`type=dm & members=userId`), so it shows both.
+- **Fix:** add `listDirectMessages(userId, dmSpaceId?)` to Nimue `channels.ts` — `GET /api/channels?where[type][equals]=dm&where[members][in]=${userId}&sort=-updatedAt` — and render ALL returned DMs in the DM section (LEO, the Nimue node DM, any user DMs), not just the resolved LEO channel. The DM-render site is the chat page's channel switcher panel (`src/app/chat/page.tsx`, the `switcher` panel).
+- Ken's functional bar ("navigate to Nimue + LEO in Spaces and view it") is ALREADY MET on Core; this parity fix brings the same to Nimue.
 
 ## Suggested order (shared plumbing)
 1. **Node-channel resolver** (Nimue) — unblocks #2 and gives the Nimue DM a stable identity.
