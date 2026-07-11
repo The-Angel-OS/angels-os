@@ -679,6 +679,8 @@ export function MultiChannelChat({
             <MessageInput
               onSend={sendMessage}
               disabled={isLoading}
+              spaceId={activeSpaceId}
+              channelSlug={activeChannel}
               placeholder={
                 activeChannelData?.type === 'dm'
                   ? activeChannelData.slug.endsWith('-leo')

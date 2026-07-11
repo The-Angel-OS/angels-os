@@ -776,8 +776,15 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
   // Send a message (with optional file attachments)
   const sendMessage = useCallback(
-    async (content: string, files?: File[]) => {
-      if ((!content.trim() && (!files || files.length === 0)) || !spaceId) return
+    async (
+      content: string,
+      files?: File[],
+      // Reused images already in cloud storage (channel/library picker) — passed by
+      // media id + url so they attach by REFERENCE, no re-upload (mirrors Nimue).
+      existingMedia?: Array<{ id: number | string; url: string; alt?: string }>,
+    ) => {
+      const hasExisting = !!(existingMedia && existingMedia.length > 0)
+      if ((!content.trim() && (!files || files.length === 0) && !hasExisting) || !spaceId) return
 
       // Reset poll to fast interval on user activity
       resetPollInterval()
@@ -786,10 +793,10 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
       const tempId = `temp_${Date.now()}`
       const imageFiles = files?.filter((f) => f.type.startsWith('image/'))
       const nonImageFiles = files?.filter((f) => !f.type.startsWith('image/'))
-      const previewImages = imageFiles?.map((f) => ({
-        url: URL.createObjectURL(f),
-        alt: f.name,
-      }))
+      const previewImages = [
+        ...(imageFiles?.map((f) => ({ url: URL.createObjectURL(f), alt: f.name })) || []),
+        ...(existingMedia?.map((m) => ({ url: m.url, alt: m.alt || '' })) || []),
+      ]
       const previewAttachments = nonImageFiles?.map((f) => ({
         url: '#',
         filename: f.name,
@@ -906,6 +913,18 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
                 timestamp: new Date(),
               },
             ])
+          }
+        }
+
+        // Reused channel/library images already live in cloud storage — attach them
+        // by id (no re-upload) and feed their urls to LEO's vision, same as uploads.
+        if (hasExisting) {
+          if (!attachments) attachments = []
+          for (const m of existingMedia!) {
+            const mid = typeof m.id === 'number' ? m.id : Number(m.id)
+            if (!mid || Number.isNaN(mid)) continue
+            attachments.push({ media: mid })
+            uploadedImageUrls.push({ url: m.url, mediaId: mid, alt: m.alt })
           }
         }
 

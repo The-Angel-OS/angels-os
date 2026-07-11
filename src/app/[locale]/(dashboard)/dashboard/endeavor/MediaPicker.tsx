@@ -31,21 +31,42 @@ const thumb = (m: MediaDoc) => m.sizes?.thumbnail?.url || m.thumbnailURL || m.ur
 
 export function MediaPicker({
   onSelect,
+  onConfirm,
   onClose,
   tenantId,
   spaceId,
   channelSlug,
+  multiple = false,
+  defaultSource,
 }: {
   onSelect: (m: { id: number | string; url: string }) => void
+  /** Multi-select confirm — receives all picked items at once. Requires multiple. */
+  onConfirm?: (items: Array<{ id: number | string; url: string }>) => void
   onClose: () => void
   /** Scope the library to a single tenant (super_admins are in every tenant). */
   tenantId?: string | number | null
   /** Optional: enables a "This channel" tab sourcing images from channel posts. */
   spaceId?: string | number | null
   channelSlug?: string | null
+  /** Select many images and confirm together (for "add these three to a gallery"). */
+  multiple?: boolean
+  /** Which tab to open on first render (falls back to library if no channel). */
+  defaultSource?: 'library' | 'channel'
 }) {
   const hasChannel = !!(spaceId && channelSlug)
-  const [source, setSource] = useState<'library' | 'channel'>('library')
+  const [source, setSource] = useState<'library' | 'channel'>(
+    defaultSource === 'channel' && hasChannel ? 'channel' : defaultSource || 'library',
+  )
+  // Multi-select accumulator (keyed by media id). Unused in single-select mode.
+  const [selected, setSelected] = useState<Map<string, { id: number | string; url: string }>>(new Map())
+  const toggle = (m: { id: number | string; url: string }) =>
+    setSelected((prev) => {
+      const next = new Map(prev)
+      const k = String(m.id)
+      if (next.has(k)) next.delete(k)
+      else next.set(k, m)
+      return next
+    })
   const [items, setItems] = useState<MediaDoc[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -168,34 +189,58 @@ export function MediaPicker({
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-              {items.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => m.url && onSelect({ id: m.id, url: m.url })}
-                  title={m.filename || String(m.id)}
-                  className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted/30 hover:border-primary"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb(m)} alt={m.alt || m.filename || ''} loading="lazy" className="h-full w-full object-cover" />
-                </button>
-              ))}
+              {items.map((m) => {
+                const isSel = selected.has(String(m.id))
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      if (!m.url) return
+                      if (multiple) toggle({ id: m.id, url: m.url })
+                      else onSelect({ id: m.id, url: m.url })
+                    }}
+                    title={m.filename || String(m.id)}
+                    className={`group relative aspect-square overflow-hidden rounded-md border bg-muted/30 hover:border-primary ${isSel ? 'border-primary ring-2 ring-primary' : 'border-border'}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb(m)} alt={m.alt || m.filename || ''} loading="lazy" className="h-full w-full object-cover" />
+                    {multiple && (
+                      <span className={`absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${isSel ? 'bg-primary text-primary-foreground' : 'bg-black/40 text-white/70'}`}>
+                        {isSel ? '✓' : '+'}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
 
         {/* Footer: count + pager (library only; channel is a single window) */}
         <div className="flex items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          <span>{rangeLabel}</span>
-          {source === 'library' && totalPages > 1 && (
-            <span className="flex items-center gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded border border-border px-2 py-0.5 disabled:opacity-40 hover:bg-muted">← Prev</button>
-              <span>Page {page} / {totalPages}</span>
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded border border-border px-2 py-0.5 disabled:opacity-40 hover:bg-muted">Next →</button>
-            </span>
-          )}
+          <span>{rangeLabel}{multiple && selected.size > 0 ? ` · ${selected.size} selected` : ''}</span>
+          <span className="flex items-center gap-2">
+            {source === 'library' && totalPages > 1 && (
+              <>
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded border border-border px-2 py-0.5 disabled:opacity-40 hover:bg-muted">← Prev</button>
+                <span>Page {page} / {totalPages}</span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded border border-border px-2 py-0.5 disabled:opacity-40 hover:bg-muted">Next →</button>
+              </>
+            )}
+            {multiple && (
+              <button
+                type="button"
+                disabled={selected.size === 0}
+                onClick={() => onConfirm?.(Array.from(selected.values()))}
+                className="rounded bg-primary px-3 py-1 font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90"
+              >
+                Add {selected.size || ''} selected
+              </button>
+            )}
+          </span>
         </div>
       </div>
     </div>

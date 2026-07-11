@@ -1,7 +1,11 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film, Image as ImageIcon } from 'lucide-react'
+import { Send, Paperclip, X, FileText, FileArchive, FileSpreadsheet, Film, Image as ImageIcon, Images } from 'lucide-react'
+import { MediaPicker } from '@/app/[locale]/(dashboard)/dashboard/endeavor/MediaPicker'
+
+/** A reused image already in cloud storage — attached by reference, not re-uploaded. */
+type ReusedMedia = { id: number | string; url: string }
 
 /** Max file size per attachment: 25 MB */
 const MAX_FILE_SIZE = 25 * 1024 * 1024
@@ -120,11 +124,16 @@ function ImageThumbnail({
 }
 
 interface MessageInputProps {
-  onSend: (content: string, attachments?: File[]) => void
+  onSend: (content: string, attachments?: File[], existingMedia?: ReusedMedia[]) => void
   disabled?: boolean
   placeholder?: string
   /** Full-page mode: larger input, centered layout */
   fullPage?: boolean
+  /** When set (with channelSlug), shows a "reuse from channel/library" picker button. */
+  spaceId?: string | number | null
+  channelSlug?: string | null
+  /** Scope the reuse picker's Library tab to a tenant. */
+  tenantId?: string | number | null
 }
 
 export function MessageInput({
@@ -132,10 +141,16 @@ export function MessageInput({
   disabled = false,
   placeholder = 'Type a message...',
   fullPage = false,
+  spaceId,
+  channelSlug,
+  tenantId,
 }: MessageInputProps) {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
+  const [reused, setReused] = useState<ReusedMedia[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const canReuse = !!(spaceId && channelSlug)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -143,17 +158,22 @@ export function MessageInput({
   const isOverLimit = value.length > MAX_MESSAGE_LENGTH
 
   const handleSubmit = useCallback(() => {
-    if ((!value.trim() && attachments.length === 0) || disabled || isOverLimit) return
-    onSend(value.trim(), attachments.length > 0 ? attachments : undefined)
+    if ((!value.trim() && attachments.length === 0 && reused.length === 0) || disabled || isOverLimit) return
+    onSend(
+      value.trim(),
+      attachments.length > 0 ? attachments : undefined,
+      reused.length > 0 ? reused : undefined,
+    )
     setValue('')
     setAttachments([])
+    setReused([])
     // Defer height reset to avoid synchronous reflow during submit
     requestAnimationFrame(() => {
       if (inputRef.current) {
         inputRef.current.style.height = 'auto'
       }
     })
-  }, [value, attachments, disabled, isOverLimit, onSend])
+  }, [value, attachments, reused, disabled, isOverLimit, onSend])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -241,7 +261,19 @@ export function MessageInput({
   // Split attachments into images and files for Gemini-style layout
   const images = attachments.filter((f) => getFileCategory(f) === 'image')
   const files = attachments.filter((f) => getFileCategory(f) !== 'image')
-  const hasAttachments = attachments.length > 0
+  const hasAttachments = attachments.length > 0 || reused.length > 0
+
+  const removeReused = useCallback((id: number | string) => {
+    setReused((prev) => prev.filter((m) => m.id !== id))
+  }, [])
+
+  const addReused = useCallback((items: ReusedMedia[]) => {
+    setReused((prev) => {
+      const seen = new Set(prev.map((m) => String(m.id)))
+      return [...prev, ...items.filter((m) => !seen.has(String(m.id)))]
+    })
+    setPickerOpen(false)
+  }, [])
 
   const attachButton = (
     <button
@@ -255,6 +287,33 @@ export function MessageInput({
       <Paperclip size={18} className="md:h-4 md:w-4" />
     </button>
   )
+
+  // Reuse-from-channel/library button — only when a channel context is provided.
+  const reuseButton = canReuse ? (
+    <button
+      type="button"
+      onClick={() => setPickerOpen(true)}
+      disabled={disabled}
+      className="flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-40 h-9 w-9 md:h-8 md:w-8"
+      title="Reuse images from this channel or the library"
+      aria-label="Reuse existing images"
+    >
+      <Images size={18} className="md:h-4 md:w-4" />
+    </button>
+  ) : null
+
+  const pickerModal = pickerOpen ? (
+    <MediaPicker
+      multiple
+      defaultSource="channel"
+      spaceId={spaceId}
+      channelSlug={channelSlug}
+      tenantId={tenantId}
+      onSelect={(m) => addReused([m])}
+      onConfirm={(items) => addReused(items)}
+      onClose={() => setPickerOpen(false)}
+    />
+  ) : null
 
   // Gemini-style attachment preview bar (inside the input container)
   const attachmentBar = hasAttachments && (
@@ -278,6 +337,22 @@ export function MessageInput({
             onRemove={() => removeAttachment(attachments.indexOf(file))}
           />
         ))}
+        {/* Reused (by-reference) channel/library images */}
+        {reused.map((m) => (
+          <div key={`reused-${m.id}`} className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/40 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={m.url} alt="" className="h-16 w-16 object-cover" loading="lazy" />
+            <span className="absolute bottom-0.5 left-0.5 rounded bg-primary/80 px-1 py-0.5 text-[8px] font-medium text-primary-foreground">reuse</span>
+            <button
+              type="button"
+              onClick={() => removeReused(m.id)}
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm opacity-0 transition-all group-hover:opacity-100 hover:bg-destructive"
+              aria-label="Remove reused image"
+            >
+              <X size={10} />
+            </button>
+          </div>
+        ))}
         {/* File chips after images */}
         {files.map((file, i) => (
           <div key={`file-${file.name}-${file.size}-${i}`} className="shrink-0">
@@ -292,11 +367,15 @@ export function MessageInput({
       {/* Summary line */}
       <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
         <span>
-          {attachments.length} file{attachments.length !== 1 ? 's' : ''} · {formatFileSize(attachments.reduce((sum, f) => sum + f.size, 0))}
+          {attachments.length > 0 && (
+            <>{attachments.length} file{attachments.length !== 1 ? 's' : ''} · {formatFileSize(attachments.reduce((sum, f) => sum + f.size, 0))}</>
+          )}
+          {attachments.length > 0 && reused.length > 0 && ' · '}
+          {reused.length > 0 && <>{reused.length} reused</>}
         </span>
         <button
           type="button"
-          onClick={() => { setAttachments([]); setFileError(null) }}
+          onClick={() => { setAttachments([]); setReused([]); setFileError(null) }}
           className="text-muted-foreground/40 hover:text-destructive transition-colors"
         >
           Clear all
@@ -351,6 +430,7 @@ export function MessageInput({
             {attachmentBar}
             <div className="flex items-end gap-3 px-3 pb-3 pt-2">
               {attachButton}
+              {reuseButton}
               <textarea
                 ref={inputRef}
                 value={value}
@@ -365,7 +445,7 @@ export function MessageInput({
               />
               <button
                 onClick={handleSubmit}
-                disabled={disabled || isOverLimit || (!value.trim() && attachments.length === 0)}
+                disabled={disabled || isOverLimit || (!value.trim() && !hasAttachments)}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
                   isOverLimit
                     ? 'bg-destructive text-destructive-foreground'
@@ -389,6 +469,7 @@ export function MessageInput({
           </div>
         </div>
         {hiddenFileInput}
+        {pickerModal}
       </div>
     )
   }
@@ -416,6 +497,7 @@ export function MessageInput({
           {attachmentBar}
           <div className="flex items-end gap-2 px-2 pb-2 pt-1.5">
             {attachButton}
+            {reuseButton}
             <textarea
               ref={inputRef}
               value={value}
@@ -430,7 +512,7 @@ export function MessageInput({
             />
             <button
               onClick={handleSubmit}
-              disabled={disabled || isOverLimit || (!value.trim() && attachments.length === 0)}
+              disabled={disabled || isOverLimit || (!value.trim() && !hasAttachments)}
               className={`flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
                 isOverLimit
                   ? 'bg-destructive text-destructive-foreground'

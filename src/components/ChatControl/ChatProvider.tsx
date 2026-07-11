@@ -31,7 +31,11 @@ export interface ChatContextValue {
   isLoading: boolean
   isLoadingMore: boolean
   hasMore: boolean
-  sendMessage: (content: string, files?: File[]) => Promise<void>
+  sendMessage: (
+    content: string,
+    files?: File[],
+    existingMedia?: Array<{ id: number | string; url: string; alt?: string }>,
+  ) => Promise<void>
   loadMoreMessages: () => Promise<void>
 
   // DM shortcuts
