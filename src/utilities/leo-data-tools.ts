@@ -2383,6 +2383,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'save_contact',
+    description:
+      "Save a person to the user's address book (CRM contacts) so they autocomplete later and can be invited. Use when the user says 'save my brother's email', 'add a contact', 'remember alice@example.com', or gives you someone's details to keep. Idempotent — saving an email that already exists updates the name instead of duplicating. Pair with invite_member to then send them an invite.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        email: { type: 'string', description: "The contact's email address (required)." },
+        name: { type: 'string', description: "The contact's name (optional but recommended)." },
+      },
+      required: ['email'],
+    },
+  },
+  {
     name: 'create_announcement',
     description:
       'Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.',
@@ -4237,6 +4250,8 @@ async function executeToolSwitch(
         return await handleListContacts(payload, toolInput, ctx)
       case 'message_contact':
         return await handleMessageContact(payload, toolInput, ctx)
+      case 'save_contact':
+        return await handleSaveContact(payload, toolInput, ctx)
       case 'create_announcement':
         return await handleCreateAnnouncement(payload, toolInput, ctx)
       case 'moderate_content':
@@ -11244,6 +11259,53 @@ async function handleMessageContact(
   } catch (err) {
     logCaughtError('leo-tools/message_contact', err).catch(() => {})
     return `Error sending message: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * save_contact — persist a person to the tenant's CRM contacts so they autocomplete
+ * later (invite field, address book) and can be invited. Idempotent by email per
+ * tenant (the collection enforces uniqueness); saving a known email updates the name.
+ */
+async function handleSaveContact(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  if (!tenantId) return 'Error: No tenant context available to save the contact into.'
+
+  const email = (input.email as string)?.trim().toLowerCase()
+  const name = (input.name as string)?.trim()
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return 'Please give me a valid email address to save (e.g. "alice@example.com").'
+  }
+
+  try {
+    const existing = await payload.find({
+      collection: 'contacts',
+      where: { and: [{ email: { equals: email } }, { tenant: { equals: tenantId } }] },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const found = existing.docs?.[0] as { id: number | string; name?: string } | undefined
+    if (found) {
+      if (name && name !== found.name) {
+        await payload.update({ collection: 'contacts', id: found.id, data: { name }, overrideAccess: true })
+        return `Updated **${name}** (${email}) in your contacts. Want me to invite them?`
+      }
+      return `**${found.name || email}** is already in your contacts. Want me to invite them?`
+    }
+    const created = await payload.create({
+      collection: 'contacts',
+      data: { email, name: name || undefined, source: 'manual', tenant: tenantId } as never,
+      overrideAccess: true,
+    })
+    return `✅ Saved **${name || email}** to your contacts (#${(created as { id: number | string }).id}). Say the word and I'll send them an invite.`
+  } catch (err) {
+    logCaughtError('leo-tools/save_contact', err).catch(() => {})
+    return `Error saving contact: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
