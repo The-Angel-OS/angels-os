@@ -80,16 +80,38 @@ export function parseReference(input: string): ParsedRef | null {
   return { code, bookName: m[1].trim(), chapter, verseStart, verseEnd }
 }
 
-type BookData = { code: string; name: string; chapters: Array<{ chapter: number; verses: Array<{ v: number; web: string; kjv: string }> }> }
+// Source verses from the reader's CDN-served library (manifest + per-language text),
+// the SAME reliable path Daily Bread uses. A bundled dynamic import of the per-book
+// JSON is NOT traced into the Vercel serverless function (nested dynamic + variable
+// path), so it returned null in prod and BOTH scripture tools silently failed. The
+// manifest maps a "PSA.32" ref → page order; each text file is page-keyed arrays of
+// { v, t }. Pure fetch — no fs, no bundled import — so this stays client-safe.
+type ManifestPage = { order: number; ref?: string; book?: string; bookName?: string; chapter?: number }
+type LibText = Record<string, Array<{ v: number; t: string }>>
 
-/** Load one book's verse JSON — bundled dynamic import, no runtime fs. */
-async function loadBook(code: string): Promise<BookData | null> {
+const _cache: { manifest?: ManifestPage[]; text: Record<string, LibText> } = { text: {} }
+
+async function fetchJson<T>(url: string): Promise<T | null> {
   try {
-    const mod = await import(`../souls/holy-bible/data/${code}.json`)
-    return (mod.default ?? mod) as BookData
+    const r = await fetch(url, { headers: { accept: 'application/json' } })
+    return r.ok ? ((await r.json()) as T) : null
   } catch {
     return null
   }
+}
+
+async function loadManifestPages(base: string): Promise<ManifestPage[] | null> {
+  if (_cache.manifest) return _cache.manifest
+  const m = await fetchJson<{ pages?: ManifestPage[] }>(`${base}/library/holy-bible/manifest.json`)
+  if (m?.pages?.length) return (_cache.manifest = m.pages)
+  return null
+}
+
+async function loadText(base: string, transFile: string): Promise<LibText | null> {
+  if (_cache.text[transFile]) return _cache.text[transFile]
+  const t = await fetchJson<LibText>(`${base}/library/holy-bible/text/${transFile}.json`)
+  if (t) return (_cache.text[transFile] = t)
+  return null
 }
 
 export interface ScriptureResult {
@@ -105,32 +127,45 @@ export interface ScriptureResult {
 const MAX_VERSES = 60
 
 /** Resolve a reference to verse text in the requested translation. */
-export async function lookupScripture(input: string, translation: Translation = 'web'): Promise<ScriptureResult> {
+export async function lookupScripture(
+  input: string,
+  translation: Translation = 'web',
+  origin: string = process.env.NEXT_PUBLIC_SERVER_URL || '',
+): Promise<ScriptureResult> {
   const parsed = parseReference(input)
   if (!parsed) return { ok: false, error: `Could not parse the reference "${input}". Try "John 3:16" or "Psalm 23".` }
 
-  const book = await loadBook(parsed.code)
-  if (!book) return { ok: false, error: `No data for book "${parsed.bookName}".` }
-  const chap = book.chapters.find((c) => c.chapter === parsed.chapter)
-  if (!chap) return { ok: false, error: `${book.name} has no chapter ${parsed.chapter}.` }
+  const base = origin.replace(/\/+$/, '')
+  if (!base) return { ok: false, error: 'Scripture source is not configured.' }
 
-  let verses = chap.verses
+  const pages = await loadManifestPages(base)
+  if (!pages) return { ok: false, error: 'The scripture library is unavailable right now.' }
+  const page = pages.find((p) => p.ref === `${parsed.code}.${parsed.chapter}`)
+  if (!page) return { ok: false, error: `${parsed.bookName} has no chapter ${parsed.chapter}.` }
+
+  const text = await loadText(base, translation === 'kjv' ? 'kjv' : 'web')
+  if (!text) return { ok: false, error: 'The scripture text is unavailable right now.' }
+  const chapterVerses = text[String(page.order)]
+  if (!Array.isArray(chapterVerses) || chapterVerses.length === 0) {
+    return { ok: false, error: `No text available for ${parsed.bookName} ${parsed.chapter}.` }
+  }
+
+  let verses = chapterVerses
   if (parsed.verseStart != null) {
     const end = parsed.verseEnd ?? parsed.verseStart
     verses = verses.filter((vr) => vr.v >= parsed.verseStart! && vr.v <= end)
-    if (verses.length === 0) return { ok: false, error: `${book.name} ${parsed.chapter} has no verse ${parsed.verseStart}.` }
+    if (verses.length === 0) return { ok: false, error: `${parsed.bookName} ${parsed.chapter} has no verse ${parsed.verseStart}.` }
   }
 
+  const bookName = page.bookName || parsed.bookName
   const truncated = verses.length > MAX_VERSES
-  const shown = truncated ? verses.slice(0, MAX_VERSES) : verses
-  const out = shown.map((vr) => ({ v: vr.v, t: (translation === 'kjv' ? vr.kjv : vr.web) || vr.web }))
+  const out = (truncated ? verses.slice(0, MAX_VERSES) : verses).map((vr) => ({ v: vr.v, t: vr.t }))
 
-  // Canonical reference label.
   const refLabel =
     parsed.verseStart != null
-      ? `${book.name} ${parsed.chapter}:${parsed.verseStart}${parsed.verseEnd && parsed.verseEnd !== parsed.verseStart ? `-${parsed.verseEnd}` : ''}`
-      : `${book.name} ${parsed.chapter}`
+      ? `${bookName} ${parsed.chapter}:${parsed.verseStart}${parsed.verseEnd && parsed.verseEnd !== parsed.verseStart ? `-${parsed.verseEnd}` : ''}`
+      : `${bookName} ${parsed.chapter}`
 
-  const text = out.map((vr) => `${vr.v} ${vr.t}`).join(' ')
-  return { ok: true, reference: refLabel, translation, verses: out, text, truncated }
+  const text2 = out.map((vr) => `${vr.v} ${vr.t}`).join(' ')
+  return { ok: true, reference: refLabel, translation, verses: out, text: text2, truncated }
 }
