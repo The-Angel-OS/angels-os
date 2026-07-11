@@ -105,3 +105,60 @@ export function selectToolsForModel<T extends { name: string }>(tools: T[], mode
   if (!isSmallProvider) return tools
   return tools.filter((t) => CORE_TOOL_NAMES.has(t.name))
 }
+
+// ── Context subsetting — the big cloud-provider win ──────────────────────────
+// Cloud providers (Gemini via the OpenAI-compat shim) get NO prompt caching here,
+// so the full ~159-tool schema (~30-34k tokens) is re-sent and re-billed every
+// turn AND every agentic round. That's the latency. Instead: always send the CORE
+// conversational set, plus the tools most RELEVANT to this message (keyword-scored
+// over each tool's name + description), capped. A commerce chat no longer ships the
+// 20 federation/provisioning schemas. Direction is safe-ish: CORE always survives,
+// and the cap is generous — but a keyword-miss can drop a tool, so keep the cap
+// comfortable and the kill-switch (LEO_TOOL_SUBSET=off) handy.
+
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'to', 'of', 'for', 'in', 'on', 'my', 'me', 'you', 'is', 'it',
+  'this', 'that', 'with', 'can', 'please', 'how', 'what', 'get', 'set', 'do', 'does', 'i', 'we',
+  'our', 'your', 'has', 'have', 'was', 'are', 'be', 'as', 'at', 'by', 'from', 'all', 'any',
+])
+
+function tokenize(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => w.length > 2 && !STOPWORDS.has(w))
+}
+
+/**
+ * Pick CORE + the tools most relevant to `userMessage` (up to `cap` total).
+ * `tools` should already be role-filtered (selectToolsForUser). Empty/short
+ * messages → CORE only (covers conversational turns).
+ */
+export function selectToolsForContext<T extends { name: string; description?: string }>(
+  tools: T[],
+  userMessage: string,
+  opts: { cap?: number } = {},
+): T[] {
+  const cap = opts.cap ?? 40
+  const core = tools.filter((t) => CORE_TOOL_NAMES.has(t.name))
+  const msgTokens = tokenize(userMessage)
+  if (msgTokens.length === 0 || tools.length <= cap) {
+    // No signal, or already small enough — don't bother scoring.
+    return tools.length <= cap ? tools : core
+  }
+  const msgSet = new Set(msgTokens)
+  const coreNames = new Set(core.map((t) => t.name))
+  const scored = tools
+    .filter((t) => !coreNames.has(t.name))
+    .map((t) => {
+      const nameTokens = new Set(tokenize(t.name))
+      const descTokens = new Set(tokenize(t.description || ''))
+      let score = 0
+      for (const w of msgSet) {
+        if (nameTokens.has(w)) score += 3 // a name hit is a strong signal
+        else if (descTokens.has(w)) score += 1
+      }
+      return { t, score }
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+  const room = Math.max(0, cap - core.length)
+  return [...core, ...scored.slice(0, room).map((s) => s.t)]
+}

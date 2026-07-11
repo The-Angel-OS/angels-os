@@ -49,7 +49,7 @@ import type { WizardContext } from '@/utilities/wizardPrompt'
 import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, complexityFloorForRoles } from '@/utilities/ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
-import { selectToolsForUser, allReadOnly, selectToolsForModel } from '@/utilities/leoToolSelection'
+import { selectToolsForUser, allReadOnly, selectToolsForModel, selectToolsForContext } from '@/utilities/leoToolSelection'
 import { buildResponseTelemetry, type AiResponseTelemetry } from '@/utilities/aiUsage'
 import { recordAiUsage } from '@/utilities/recordCostEvent'
 import { buildByokModel } from '@/utilities/ai-gateway'
@@ -1698,8 +1698,22 @@ async function streamViaGateway(opts: {
 
   // Small/free providers (Groq free tier, local 8GB) can't fit LEO's full tool
   // payload in their token budget — subset to the core toolset so the request
-  // stays under their limit (e.g. Groq free = 8000 TPM). Cloud gateway keeps all.
-  const effectiveTools = selectToolsForModel(availableTools, smartModelId)
+  // stays under their limit (e.g. Groq free = 8000 TPM).
+  let effectiveTools = selectToolsForModel(availableTools, smartModelId)
+
+  // Context subsetting for the cloud gateway (Gemini): the full ~159-tool schema
+  // (~30-34k tokens) is re-sent EVERY turn AND every agentic round with NO prompt
+  // caching on the OpenAI-compat shim — the dominant latency/cost. Send CORE + the
+  // tools relevant to THIS message (image turns also unlock media/inventory tools).
+  // Kill-switch: LEO_TOOL_SUBSET=off. Escalation/deep-think rounds keep the full set.
+  if (process.env.LEO_TOOL_SUBSET !== 'off' && !isEscalationRound) {
+    const before = effectiveTools.length
+    const imgHint = userImages.length > 0 ? ' photo image picture inventory media count shelf' : ''
+    effectiveTools = selectToolsForContext(effectiveTools, `${userMessage}${imgHint}`, { cap: 40 })
+    if (effectiveTools.length < before) {
+      console.log(`[leo-stream] tool subset ${before}→${effectiveTools.length} (model=${smartModelId})`)
+    }
+  }
 
   // Convert history to AI SDK format
   const messages: ModelMessage[] = historyMessages.map((m) => ({
