@@ -215,7 +215,7 @@ import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
 import { authFederatedHandler } from '@/endpoints/auth-federated'
-import { addressBookListHandler } from '@/endpoints/address-book'
+import { addressBookListHandler, addressBookAllHandler } from '@/endpoints/address-book'
 import { channelMediaHandler } from '@/endpoints/channel-media'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
@@ -1489,6 +1489,11 @@ export default buildConfig({
       path: '/address-book-ops/list',
       method: 'get',
       handler: addressBookListHandler,
+    },
+    {
+      path: '/address-book-ops/all',
+      method: 'get',
+      handler: addressBookAllHandler,
     },
     {
       path: '/media-ops/channel',
