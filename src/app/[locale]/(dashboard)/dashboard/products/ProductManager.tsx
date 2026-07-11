@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
+import { ListControls } from '../_components/ListControls'
+import { Pager } from '../_components/Pager'
 
 export interface SerializedProduct {
   id: number
@@ -20,23 +22,20 @@ export interface SerializedProduct {
 interface ProductManagerProps {
   products: SerializedProduct[]
   totalProducts: number
+  page: number
+  totalPages: number
+  hasFilter: boolean
 }
 
-type FilterStatus = 'all' | 'draft' | 'published'
+const STATUS_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'published', label: 'Published' },
+  { key: 'draft', label: 'Drafts' },
+]
 
-export function ProductManager({ products, totalProducts }: ProductManagerProps) {
-  const [filter, setFilter] = useState<FilterStatus>('all')
-  const [search, setSearch] = useState('')
-
-  const filtered = products.filter((p) => {
-    if (filter !== 'all' && p.status !== filter) return false
-    if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
-
-  const publishedCount = products.filter((p) => p.status === 'published').length
-  const draftCount = products.filter((p) => p.status === 'draft').length
-
+// Server-driven list: filtering + pagination live in the URL (see ListControls),
+// so this component just renders the current page of results.
+export function ProductManager({ products, totalProducts, page, totalPages, hasFilter }: ProductManagerProps) {
   return (
     <div>
       {/* Header */}
@@ -44,9 +43,8 @@ export function ProductManager({ products, totalProducts }: ProductManagerProps)
         <div>
           <h1 className="text-2xl font-bold">Products</h1>
           <p className="text-sm text-muted-foreground">
-            {totalProducts} product{totalProducts !== 1 ? 's' : ''} total
-            {publishedCount > 0 && ` · ${publishedCount} published`}
-            {draftCount > 0 && ` · ${draftCount} draft${draftCount !== 1 ? 's' : ''}`}
+            {totalProducts} product{totalProducts !== 1 ? 's' : ''}
+            {hasFilter ? ' match' : ' total'}
           </p>
         </div>
         <Link
@@ -57,55 +55,16 @@ export function ProductManager({ products, totalProducts }: ProductManagerProps)
         </Link>
       </div>
 
-      {/* Filters + Search */}
-      {totalProducts > 0 && (
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          {/* Search */}
-          <div className="relative flex-1">
-            <svg
-              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              style={{ fontSize: '16px' }}
-            />
-          </div>
-
-          {/* Status filter tabs */}
-          <div className="flex gap-1 rounded-md border border-border bg-muted/50 p-0.5">
-            {(['all', 'published', 'draft'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setFilter(s)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filter === s
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {s === 'all' ? 'All' : s === 'published' ? 'Published' : 'Drafts'}
-              </button>
-            ))}
-          </div>
-        </div>
+      {(totalProducts > 0 || hasFilter) && (
+        <ListControls searchPlaceholder="Search products…" tabParam="status" tabs={STATUS_TABS} />
       )}
 
       {/* Empty state */}
-      {totalProducts === 0 ? (
+      {totalProducts === 0 && hasFilter ? (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-muted-foreground">No products match your filters.</p>
+        </div>
+      ) : totalProducts === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
             <svg className="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,25 +93,16 @@ export function ProductManager({ products, totalProducts }: ProductManagerProps)
             </Link>
           </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No products match your filters.{' '}
-            <button
-              onClick={() => { setFilter('all'); setSearch('') }}
-              className="text-primary hover:underline"
-            >
-              Clear filters
-            </button>
-          </p>
-        </div>
       ) : (
-        /* Product grid */
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {/* Product grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          <Pager page={page} totalPages={totalPages} />
+        </>
       )}
     </div>
   )

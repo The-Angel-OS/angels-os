@@ -5,26 +5,34 @@ import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import Link from 'next/link'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
-import { MediaFilters } from './MediaFilters'
+import { resolvePageSize } from '@/utilities/pageSize'
+import { ListControls } from '../_components/ListControls'
+import { Pager } from '../_components/Pager'
 
 export const dynamic = 'force-dynamic'
 
-const PAGE_SIZE = 50
+const TYPE_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'image', label: 'Images' },
+  { key: 'video', label: 'Videos' },
+  { key: 'document', label: 'Documents' },
+]
 
 export default async function DashboardMediaPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ q?: string; type?: string; page?: string }>
+  searchParams: Promise<{ q?: string; type?: string; page?: string; limit?: string }>
 }) {
   const { locale } = await params
-  const { q = '', type = 'all', page: pageParam } = await searchParams
+  const { q = '', type = 'all', page: pageParam, limit: limitParam } = await searchParams
   setRequestLocale(locale)
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()
+  const PAGE_SIZE = resolvePageSize(limitParam)
   const page = Math.max(1, Number(pageParam) || 1)
 
   // Build the where clause SERVER-side so filtering spans the whole library,
@@ -58,14 +66,6 @@ export default async function DashboardMediaPage({
 
   const start = media.totalDocs === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const end = (page - 1) * PAGE_SIZE + media.docs.length
-  const qs = (p: number) => {
-    const sp = new URLSearchParams()
-    if (q) sp.set('q', q)
-    if (type && type !== 'all') sp.set('type', type)
-    if (p > 1) sp.set('page', String(p))
-    const s = sp.toString()
-    return s ? `?${s}` : ''
-  }
 
   return (
     <div>
@@ -89,7 +89,7 @@ export default async function DashboardMediaPage({
         </Link>
       </div>
 
-      <MediaFilters />
+      <ListControls searchPlaceholder="Search by filename…" tabParam="type" tabs={TYPE_TABS} />
 
       {media.totalDocs === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/10 p-12 text-center">
@@ -141,28 +141,7 @@ export default async function DashboardMediaPage({
             ))}
           </div>
 
-          {/* Pager */}
-          {media.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {media.hasPrevPage ? (
-                <Link href={qs(page - 1)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
-                  ← Prev
-                </Link>
-              ) : (
-                <span className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground/50">← Prev</span>
-              )}
-              <span className="px-2 text-sm text-muted-foreground">
-                Page {media.page} of {media.totalPages}
-              </span>
-              {media.hasNextPage ? (
-                <Link href={qs(page + 1)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
-                  Next →
-                </Link>
-              ) : (
-                <span className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground/50">Next →</span>
-              )}
-            </div>
-          )}
+          <Pager page={media.page || 1} totalPages={media.totalPages} />
         </>
       )}
     </div>
