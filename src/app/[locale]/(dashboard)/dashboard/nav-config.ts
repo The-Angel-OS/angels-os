@@ -7,6 +7,7 @@
  */
 
 import type { NavIconKey } from './nav-icons'
+import { FEATURES } from '@/config/features'
 
 // ─── Visibility Context ─────────────────────────────────────────
 
@@ -171,7 +172,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'network',
         href: (p) => `${p}/dashboard/federation-network`,
         isActive: active('/dashboard/federation-network'),
-        visible: always,
+        visible: () => FEATURES.federation, // built + demonstrated; off until a real peer joins
         badge: { text: 'Live', color: 'bg-amber-500' },
       },
       {
@@ -180,7 +181,8 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'grid',
         href: (p) => `${p}/dashboard/endeavors`,
         isActive: active('/dashboard/endeavors'),
-        visible: authenticated, // browse the federation directory across nodes
+        // Cross-federation directory — dormant behind the flag while we run single-node.
+        visible: (ctx) => FEATURES.endeavorBrowser && ctx.isAuthenticated,
       },
       {
         key: 'setup',
