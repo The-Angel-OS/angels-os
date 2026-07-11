@@ -116,6 +116,9 @@ export function BookReader({
   const [lang, setLang] = useState<string>('en')
   const [texts, setTexts] = useState<Record<string, PageText>>({})
   const [reading, setReading] = useState(false)
+  // Verse deep-link target (from ?verse= on entry, e.g. LEO's open_passage nav).
+  // Scrolled to once the target chapter's verses render, highlighted, then cleared.
+  const [verseTarget, setVerseTarget] = useState<number | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
 
@@ -164,6 +167,26 @@ export function BookReader({
       window.history.replaceState(null, '', `${basePath}/${slug}`)
     }
   }, [index, basePath, pageSlugs])
+
+  // Read a ?verse= deep-link target on entry (LEO's open_passage sends it).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const v = Number(new URLSearchParams(window.location.search).get('verse'))
+    if (Number.isFinite(v) && v > 0) setVerseTarget(v)
+  }, [])
+
+  // Once the target chapter's verses have rendered, scroll to the verse, flash a
+  // highlight, and clear the target. Re-runs as async text loads (texts/lang/index).
+  useEffect(() => {
+    if (verseTarget == null || typeof document === 'undefined') return
+    const el = document.getElementById(`v${verseTarget}`)
+    if (!el) return // text not rendered yet — retry when texts/index change
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.style.backgroundColor = '#C4956A33'
+    const t = setTimeout(() => { el.style.backgroundColor = '' }, 1800)
+    setVerseTarget(null)
+    return () => clearTimeout(t)
+  }, [verseTarget, index, texts, lang])
 
   // Pick initial language: manifest default, or the browser's if available.
   useEffect(() => {
@@ -343,7 +366,7 @@ export function BookReader({
           )}
           <p className="text-[1.0625rem] leading-[1.95] text-[#f5f2f0d9]">
             {raw.map((vs) => (
-              <span key={vs.v}>
+              <span key={vs.v} id={`v${vs.v}`} data-verse={vs.v} className="scroll-mt-28 rounded transition-colors duration-1000">
                 <sup className="mr-0.5 align-super text-[0.68em] font-semibold text-[#C4956A]">{vs.v}</sup>
                 {vs.t}{' '}
               </span>

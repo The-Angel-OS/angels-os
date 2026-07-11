@@ -3870,6 +3870,26 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['reference'],
     },
   },
+  {
+    name: 'open_passage',
+    description:
+      "Open a Bible passage IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage (e.g. 'take me to Psalm 32', 'open Romans 8'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Psalm 32:5', 'John 3:16', 'Romans 8:28-30'.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        reference: {
+          type: 'string',
+          description: "A Bible reference, e.g. 'Psalm 32', 'Psalm 32:5', 'John 3:16', 'Romans 8:28-30'.",
+        },
+        translation: {
+          type: 'string',
+          enum: ['web', 'kjv'],
+          description: 'Translation: web (World English Bible, default) or kjv (King James Version).',
+        },
+      },
+      required: ['reference'],
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -4355,6 +4375,8 @@ async function executeToolSwitch(
         return await handleRunSubsafeCheck(payload, toolInput, ctx)
       case 'lookup_scripture':
         return await handleLookupScripture(toolInput)
+      case 'open_passage':
+        return await handleOpenPassage(toolInput)
       default:
         return `Unknown tool: ${toolName}`
     }
@@ -13793,6 +13815,48 @@ async function handleLookupScripture(input: Record<string, unknown>): Promise<st
   const body = (res.verses || []).map((v) => `**${v.v}** ${v.t}`).join(' ')
   const note = res.truncated ? `\n\n_(Showing the first ${res.verses?.length} verses — ask for a specific range for more.)_` : ''
   return `**${res.reference}** (${edition})\n\n${body}${note}`
+}
+
+/**
+ * open_passage — resolve a reference, quote the verses, AND emit a nav directive
+ * driving the reader to that chapter (with a ?verse anchor for fine-scroll).
+ * Composes scripture.ts (text) + resolveChapterPage (page) + navDirective (bridge).
+ * The "take me there" companion to lookup_scripture. @see BookReader verse anchors.
+ */
+async function handleOpenPassage(input: Record<string, unknown>): Promise<string> {
+  const reference = typeof input.reference === 'string' ? input.reference : ''
+  const translation = input.translation === 'kjv' ? 'kjv' : 'web'
+  if (!reference.trim()) return 'Please give me a passage to open, e.g. "Psalm 32" or "John 3:16".'
+
+  const { lookupScripture, parseReference } = await import('@/utilities/scripture')
+  const res = await lookupScripture(reference, translation)
+  if (!res.ok) return res.error || 'Could not find that passage.'
+
+  // Resolve the chapter's reader page and build the deep link (verse anchor when
+  // a specific verse was named). Navigation is best-effort — always quote the text.
+  const parsed = parseReference(reference)
+  let nav = ''
+  let opening = ''
+  if (parsed) {
+    try {
+      const { resolveChapterPage } = await import('@/components/Library/bookManifestServer')
+      const page = await resolveChapterPage('holy-bible', `${parsed.code}.${parsed.chapter}`, process.env.NEXT_PUBLIC_SERVER_URL || '')
+      if (page) {
+        // ?verse drives Core's BookReader scroll; ?ref (stable "PSA.32" key) lets
+        // other clients (Nimue) resolve the chapter without the slug's page order.
+        const qs = new URLSearchParams({ ref: `${parsed.code}.${parsed.chapter}` })
+        if (parsed.verseStart) qs.set('verse', String(parsed.verseStart))
+        const path = `/learn/holy-bible/${page.slug}?${qs.toString()}`
+        nav = navDirective(path, `Open ${res.reference} in the Reader`)
+        opening = `\n\n_Opening **${res.reference}** in the Reader…_`
+      }
+    } catch { /* reader nav is best-effort; the quote still stands */ }
+  }
+
+  const edition = translation === 'kjv' ? 'King James Version' : 'World English Bible'
+  const body = (res.verses || []).map((v) => `**${v.v}** ${v.t}`).join(' ')
+  const note = res.truncated ? `\n\n_(Showing the first ${res.verses?.length} verses — ask for a specific range for more.)_` : ''
+  return `**${res.reference}** (${edition})\n\n${body}${note}${opening}${nav}`
 }
 
 async function handleLogMaintenanceNote(

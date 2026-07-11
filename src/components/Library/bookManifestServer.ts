@@ -118,6 +118,28 @@ export async function loadBookFromOrigin(bookSlug: string, origin: string): Prom
 }
 
 /**
+ * Resolve a chapter reference (e.g. "PSA.32") to its reader page, so a caller can
+ * build a deep link `/learn/<soul>/<slug>`. fs first, CDN origin fallback (Vercel
+ * API routes don't trace public/). Returns null if the book or chapter is unknown.
+ */
+export async function resolveChapterPage(
+  bookSlug: string,
+  ref: string,
+  origin: string,
+): Promise<{ order: number; slug: string; title: string } | null> {
+  const loaded = loadBookFromPublic(bookSlug) ?? (await loadBookFromOrigin(bookSlug, origin))
+  if (!loaded) return null
+  const pages = loaded.manifest.pages || []
+  const idx = pages.findIndex((p) => (p as { ref?: string }).ref === ref)
+  if (idx < 0) return null
+  return {
+    order: pages[idx].order,
+    slug: loaded.pageSlugs[idx] || String(pages[idx].order),
+    title: loaded.pageTitles[idx] || pages[idx].title || '',
+  }
+}
+
+/**
  * Resolve a `<n>-<name>` page param to a page index. The leading integer (1-based
  * position) is authoritative; the name is cosmetic, so a stale/renamed name still
  * resolves correctly. Out-of-range or missing → page 0.

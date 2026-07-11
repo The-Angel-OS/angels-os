@@ -6562,6 +6562,14 @@ export interface PayloadMcpApiKey {
      */
     queryBookingRevenue?: boolean | null;
     /**
+     * Report whether THE PLATFORM (all of The Angel OS, every tenant) is money-positive right now: revenue the platform actually keeps (Justice Fund allocations — 5% of Connect sales + 100% of donations) minus what it spends to run (AI/telephony/storage/infra cost-events, excluding tenants' own keys). Answers "are the dollars still positive?", "can we cover our own infra?", "how are we doing overall?". Platform-wide and super_admin only — not per-Endeavor (use query_booking_revenue for one Endeavor's bookings). Optionally set windowDays for the rolling window (default 30).
+     */
+    checkSolvency?: boolean | null;
+    /**
+     * Commission a NEW endeavor (a business/ministry/creator portal) for the person you're talking to, and hand back a live link to it. Use when someone says "make me a site", "I want to start a <business>", "set up my <shop/ministry/studio>". This mints a real portal — its own subdomain, home + spaces, and the caller as owner (tenant_admin) — then returns a clickable link to open it while the chat stays open. Any signed-in user can commission their own endeavor (this is the Creator rung — still free). Distinct from a personal guardian angel (that's auto-minted, private); an endeavor is a public, findable business. Distinct from provision_tenant (super_admin, custom domain).
+     */
+    commissionEndeavor?: boolean | null;
+    /**
      * Stand up a complete website for the current Endeavor from a template — pages, default membership plans, and legal/policy pages (Privacy/Terms/Cookie/Refund) — assembled from existing blocks. "fitness" = a gym/yoga/Pilates/martial-arts studio (Home/Classes/Pricing/Coaches/Get Started/Contact). "church" = a parish (Home/Worship/Sermons/Events/Giving/About/Ministries/Prayer/Contact). Idempotent — existing pages are skipped unless overwrite=true. Use to quickly launch a new endeavor's public site.
      */
     applySiteTemplate?: boolean | null;
@@ -6969,6 +6977,10 @@ export interface PayloadMcpApiKey {
      * Look up a Bible passage from the canonical Holy Bible Work and return the verse text. Use when a user asks what a verse says, to quote scripture, or to read a passage. Accepts natural references like 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', or 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).
      */
     lookupScripture?: boolean | null;
+    /**
+     * Open a Bible passage IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage (e.g. 'take me to Psalm 32', 'open Romans 8'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Psalm 32:5', 'John 3:16', 'Romans 8:28-30'.
+     */
+    openPassage?: boolean | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -10052,6 +10064,8 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         setHolonProfile?: T;
         configurePaymentMethod?: T;
         queryBookingRevenue?: T;
+        checkSolvency?: T;
+        commissionEndeavor?: T;
         applySiteTemplate?: T;
         createWorkFromUrl?: T;
         createQuest?: T;
@@ -10154,6 +10168,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         connectorHealthSummary?: T;
         runSubsafeCheck?: T;
         lookupScripture?: T;
+        openPassage?: T;
       };
   updatedAt?: T;
   createdAt?: T;

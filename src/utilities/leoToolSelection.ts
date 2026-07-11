@@ -84,7 +84,7 @@ export const CORE_TOOL_NAMES = new Set<string>([
   // Querying (read)
   'query_products', 'query_posts', 'query_spaces', 'query_bookings',
   'query_events', 'query_orders', 'query_knowledge', 'query_navigation',
-  'query_federation', 'lookup_scripture',
+  'query_federation', 'lookup_scripture', 'open_passage',
   // Booking
   'check_available_slots', 'create_booking',
   // Content
