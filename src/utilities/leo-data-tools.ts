@@ -3975,6 +3975,42 @@ const CONTENT_MUTATION_TOOLS: Record<string, (input: Record<string, unknown>) =>
   payload_create: (i) => ({ collection: i.collection as string }),
 }
 
+// Pure reads — everything else is treated as a mutating/CRUD/action tool and is
+// audited. Erring toward logging is deliberate (Ken 260711: "for troubleshooting no
+// reason not to"). Can be gated behind a flag later.
+const READ_TOOL_RE = /^(query_|list_|get_|lookup_|find_|search_|check_|read_|resolve_|my_|open_passage$)/
+function isAuditableTool(name: string): boolean {
+  return !READ_TOOL_RE.test(name)
+}
+
+/**
+ * System-log every AI tool call that changes data (CRUD/actions) to application-logs,
+ * so there's an audit trail of what LEO did on the user's behalf. Fire-and-forget,
+ * best-effort — never blocks or fails the turn.
+ */
+async function logToolAudit(
+  payload: Payload,
+  opts: { toolName: string; input: Record<string, unknown>; tenantId?: number | string; userId?: number | string },
+): Promise<void> {
+  try {
+    await payload.create({
+      collection: 'application-logs',
+      data: {
+        level: 'info',
+        source: `ai-tool:${opts.toolName}`,
+        message: `LEO ran ${opts.toolName}`,
+        details: JSON.stringify(redactToolInput(opts.input)).slice(0, 2000),
+        userId: opts.userId != null ? String(opts.userId) : undefined,
+        tenantId: opts.tenantId != null ? String(opts.tenantId) : undefined,
+        resolved: true,
+      } as never,
+      overrideAccess: true,
+    })
+  } catch {
+    /* audit is best-effort */
+  }
+}
+
 export async function executeToolCall(
   toolName: string,
   toolInput: Record<string, unknown>,
@@ -4006,6 +4042,16 @@ export async function executeToolCall(
       if (url && typeof result === 'string' && !result.startsWith('Error') && !result.startsWith('Input validation')) {
         enriched = result + affectedUrlDirective(url)
       }
+    }
+
+    // System-log every non-read tool call (CRUD/actions) — best-effort audit trail.
+    if (
+      isAuditableTool(toolName) &&
+      typeof enriched === 'string' &&
+      !enriched.startsWith('Error') &&
+      !enriched.startsWith('Input validation')
+    ) {
+      void logToolAudit(payload, { toolName, input: toolInput, tenantId, userId: ctx.userId })
     }
 
     if (step) ctx.trace?.end(step, 'ok', { meta: { bytes: enriched?.length ?? 0 } })
