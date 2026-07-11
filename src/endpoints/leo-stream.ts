@@ -1718,39 +1718,47 @@ async function streamViaGateway(opts: {
     lastHistoryMsg?.role === 'user' &&
     turnEchoesUserMessage(lastHistoryMsg.content, userMessage)
 
+  // Resolve each attached image to a DOWNSCALED variant (Payload's 1440w `hero`,
+  // else `card`) before handing it to the vision model. Full-res 8K stills (20-40MB)
+  // make the provider silently drop the image and return an empty 200 — which the
+  // empty-response handler then reports as the misleading "I couldn't read that
+  // image". Sending the small variant is the reliable fix for every upload path.
+  const visionImageParts: Array<{ type: 'image'; image: URL }> = []
+  if (userImages.length > 0) {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const abs = (u: string) => (u.startsWith('/') ? `${serverUrl}${u}` : u)
+    for (const img of userImages) {
+      let url = img.url
+      if (img.mediaId != null) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const doc = (await payload.findByID({ collection: 'media', id: img.mediaId as any, depth: 0, overrideAccess: true })) as any
+          const sizes = doc?.sizes || {}
+          const variant: string | undefined = sizes?.hero?.url || sizes?.card?.url
+          if (variant) url = variant
+        } catch {
+          /* variant lookup failed — fall back to the original url */
+        }
+      }
+      try {
+        visionImageParts.push({ type: 'image', image: new URL(abs(url)) })
+      } catch {
+        /* skip a malformed url rather than throw the whole turn */
+      }
+    }
+  }
+
   if (!alreadyInHistory) {
     // Build user message (with images if present)
     if (userImages.length > 0) {
-      const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
-      const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = [
-        { type: 'text', text: userMessage },
-      ]
-      for (const img of userImages) {
-        let imageUrl = img.url
-        if (imageUrl.startsWith('/')) {
-          imageUrl = `${serverUrl}${imageUrl}`
-        }
-        parts.push({ type: 'image', image: new URL(imageUrl) })
-      }
-      messages.push({ role: 'user', content: parts })
+      messages.push({ role: 'user', content: [{ type: 'text', text: userMessage }, ...visionImageParts] })
     } else {
       messages.push({ role: 'user', content: userMessage })
     }
   } else if (userImages.length > 0) {
     // History has the text but not the images — replace the last entry
     // with a multimodal message so the LLM can see both text and images.
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
-    const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = [
-      { type: 'text', text: userMessage },
-    ]
-    for (const img of userImages) {
-      let imageUrl = img.url
-      if (imageUrl.startsWith('/')) {
-        imageUrl = `${serverUrl}${imageUrl}`
-      }
-      parts.push({ type: 'image', image: new URL(imageUrl) })
-    }
-    messages[messages.length - 1] = { role: 'user', content: parts }
+    messages[messages.length - 1] = { role: 'user', content: [{ type: 'text', text: userMessage }, ...visionImageParts] }
   }
 
   // Per-turn tool-chain audit trail — every executeToolCall records a step.
