@@ -111,6 +111,13 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
   const startTime = Date.now()
   const url = new URL(req.url || 'http://localhost', 'http://localhost')
 
+  // CORS: custom Payload endpoints don't inherit the global cors allow-origin, so
+  // the federation directory (a public GET) must emit it itself — otherwise a
+  // browser on one node can't read a peer node's endeavors (the cross-federation
+  // Endeavors browser). Echo the caller's origin; the payload here is public.
+  const origin = req.headers.get('origin')
+  const corsHeaders: Record<string, string> = { Vary: 'Origin', 'Access-Control-Allow-Origin': origin || '*' }
+
   // Parse query params
   const holonType = url.searchParams.get('type') || undefined
   const region = url.searchParams.get('region') || undefined
@@ -178,12 +185,12 @@ export const federationHolonsHandler: PayloadHandler = async (req) => {
       holons,
       total,
       query: { type: holonType, region, q, status: ministryStatus, limit },
-    })
+    }, { headers: corsHeaders })
   } catch (err) {
     console.error('[Federation Holons] Error:', err)
     return Response.json(
       { error: 'Federation directory temporarily unavailable', holons: [], total: 0 },
-      { status: 500 },
+      { status: 500, headers: corsHeaders },
     )
   }
 }
