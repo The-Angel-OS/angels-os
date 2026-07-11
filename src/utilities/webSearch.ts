@@ -5,9 +5,14 @@
  * search API when a key is present, else a keyless fallback so the tool WORKS
  * out of the box (config-free for the 99%) — just better once a key is added.
  *
- *   TAVILY_API_KEY        → Tavily (LLM-optimized results + snippets)   [best]
+ *   SEARXNG_URL           → self-hosted SearXNG metasearch (no keys)     [best, owned]
+ *   TAVILY_API_KEY        → Tavily (LLM-optimized results + snippets)   [great]
  *   BRAVE_SEARCH_API_KEY  → Brave Search API                            [great]
  *   (none)                → DuckDuckGo Instant Answer (keyless)         [limited]
+ *
+ * SearXNG is the owned/self-hosted backbone: run one container (docs/infra/
+ * SEARXNG_SELFHOST.md), point SEARXNG_URL at it, and web search is real, free,
+ * and key-free forever — the config-free-intelligence stance applied to retrieval.
  *
  * Fail-soft + time-boxed so a slow/blocked provider never hangs LEO's turn.
  *
@@ -23,7 +28,7 @@ export interface WebSearchResult {
 
 export interface WebSearchResponse {
   query: string
-  provider: 'tavily' | 'brave' | 'duckduckgo' | 'none'
+  provider: 'searxng' | 'tavily' | 'brave' | 'duckduckgo' | 'none'
   results: WebSearchResult[]
   /** Optional note (e.g. "add a key for fuller results"). */
   note?: string
@@ -39,6 +44,23 @@ async function timedFetch(url: string, init?: RequestInit): Promise<Response> {
   } finally {
     clearTimeout(timer)
   }
+}
+
+async function viaSearxng(query: string, max: number, baseUrl: string): Promise<WebSearchResult[]> {
+  // Self-hosted SearXNG. Requires `format: json` enabled in its settings.yml
+  // (search.formats) — see docs/infra/SEARXNG_SELFHOST.md.
+  const base = baseUrl.replace(/\/+$/, '')
+  const res = await timedFetch(
+    `${base}/search?q=${encodeURIComponent(query)}&format=json&safesearch=0`,
+    { headers: { Accept: 'application/json' } },
+  )
+  if (!res.ok) throw new Error(`SearXNG HTTP ${res.status}`)
+  const data = (await res.json()) as { results?: Array<{ title?: string; url?: string; content?: string }> }
+  return (data.results || []).slice(0, max).map((r) => ({
+    title: r.title || r.url || 'result',
+    url: r.url || '',
+    snippet: (r.content || '').slice(0, 500),
+  }))
 }
 
 async function viaTavily(query: string, max: number, key: string): Promise<WebSearchResult[]> {
@@ -109,9 +131,18 @@ export async function webSearch(
   const max = Math.max(1, Math.min(10, Math.round(opts.maxResults ?? 5)))
   if (!q) return { query: q, provider: 'none', results: [], note: 'empty query' }
 
+  const searxng = process.env.SEARXNG_URL
   const tavily = process.env.TAVILY_API_KEY
   const brave = process.env.BRAVE_SEARCH_API_KEY
 
+  // Owned/self-hosted first — free, key-free, and ours to move.
+  if (searxng) {
+    try {
+      return { query: q, provider: 'searxng', results: await viaSearxng(q, max, searxng) }
+    } catch {
+      /* fall through to the keyed/keyless providers */
+    }
+  }
   if (tavily) {
     try {
       return { query: q, provider: 'tavily', results: await viaTavily(q, max, tavily) }
