@@ -478,11 +478,17 @@ export function resolveMediaUrl(mediaDoc: Record<string, unknown>): string | nul
     return mediaDoc.url
   }
 
-  // Local file — construct URL from server
+  // Served via Payload's /api/media/file route (relative) — prefix an ABSOLUTE
+  // base. Mirror leo-stream's working vision path exactly: NEXT_PUBLIC_SERVER_URL
+  // (or PAYLOAD_PUBLIC_SERVER_URL) first, then the Vercel prod URL, then localhost.
+  // The old form `A || B ? https://B : localhost` mis-parsed as `(A||B) ? https://B
+  // : localhost`, ignoring A and yielding `https://undefined` → the vision 404.
   const serverUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL
+    process.env.NEXT_PUBLIC_SERVER_URL ||
+    process.env.PAYLOAD_PUBLIC_SERVER_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'http://localhost:3000'
+      : 'http://localhost:3000')
 
   if (typeof mediaDoc.url === 'string') {
     return `${serverUrl}${mediaDoc.url}`
