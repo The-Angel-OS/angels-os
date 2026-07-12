@@ -1746,12 +1746,13 @@ async function streamViaGateway(opts: {
   // make the provider silently drop the image and return an empty 200 — which the
   // empty-response handler then reports as the misleading "I couldn't read that
   // image". Sending the small variant is the reliable fix for every upload path.
-  const visionImageParts: Array<{ type: 'image'; image: URL }> = []
+  const visionImageParts: Array<{ type: 'image'; image: URL | Uint8Array; mediaType?: string }> = []
   if (userImages.length > 0) {
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
     const abs = (u: string) => (u.startsWith('/') ? `${serverUrl}${u}` : u)
     for (const img of userImages) {
       let url = img.url
+      let mediaType: string | undefined
       if (img.mediaId != null) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1759,12 +1760,33 @@ async function streamViaGateway(opts: {
           const sizes = doc?.sizes || {}
           const variant: string | undefined = sizes?.hero?.url || sizes?.card?.url
           if (variant) url = variant
+          mediaType = typeof doc?.mimeType === 'string' ? doc.mimeType : undefined
         } catch {
           /* variant lookup failed — fall back to the original url */
         }
       }
+      // Fetch the image bytes server-side and pass them INLINE, rather than handing
+      // the provider a URL to fetch itself. Passing a URL broke when the platform
+      // host began 307-redirecting media (apex → www, content-type text/plain): the
+      // provider's own fetch dropped the image and returned an empty "other"
+      // completion, surfaced as the misleading "I couldn't read that image". A
+      // server-side fetch FOLLOWS the redirect and inlines the bytes, so the model
+      // never fetches anything. Falls back to the URL if the download fails, so it
+      // is never worse than before.
+      const absUrl = abs(url)
       try {
-        visionImageParts.push({ type: 'image', image: new URL(abs(url)) })
+        const res = await fetch(absUrl, { redirect: 'follow' })
+        const ct = res.headers.get('content-type') || ''
+        if (res.ok && ct.startsWith('image/')) {
+          const bytes = new Uint8Array(await res.arrayBuffer())
+          visionImageParts.push({ type: 'image', image: bytes, mediaType: mediaType || ct })
+          continue
+        }
+      } catch {
+        /* download failed — fall through to the URL form below */
+      }
+      try {
+        visionImageParts.push({ type: 'image', image: new URL(absUrl) })
       } catch {
         /* skip a malformed url rather than throw the whole turn */
       }
