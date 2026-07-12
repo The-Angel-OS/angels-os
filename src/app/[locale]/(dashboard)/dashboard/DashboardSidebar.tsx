@@ -488,9 +488,22 @@ function TenantChooser({
   collapsed: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [filter, setFilter] = useState('')
   const ref = useRef<HTMLDivElement>(null)
-  const closeDropdown = useCallback(() => setOpen(false), [])
+  const closeDropdown = useCallback(() => {
+    setOpen(false)
+    setFilter('')
+  }, [])
   useClickOutside(ref, closeDropdown, open)
+
+  // Name/slug filter — matches the brochure PortalSwitcher's "Filter portals…" UX.
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase()
+    if (!q) return tenants
+    return tenants.filter(
+      (t) => t.name.toLowerCase().includes(q) || String(t.slug || '').toLowerCase().includes(q),
+    )
+  }, [tenants, filter])
 
   const handleSwitch = (tenant: TenantInfo) => {
     setOpen(false)
@@ -552,7 +565,24 @@ function TenantChooser({
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Switch tenant
           </div>
-          {tenants.map((t) => (
+          {tenants.length > 5 && (
+            <div className="px-2 pb-1.5">
+              <input
+                autoFocus
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter portals…"
+                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary/50"
+              />
+            </div>
+          )}
+          <div className="max-h-72 overflow-y-auto">
+          {filtered.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              No portals match “{filter}”.
+            </div>
+          )}
+          {filtered.map((t) => (
             <button
               key={String(t.id)}
               onClick={() => handleSwitch(t)}
@@ -580,6 +610,7 @@ function TenantChooser({
               )}
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>
