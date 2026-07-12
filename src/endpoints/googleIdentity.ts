@@ -153,5 +153,19 @@ export async function resolveUserFromGoogleClaims(
     .setExpirationTime(expiration)
     .sign(secretKey)
 
+  // Onboarding floor: every person gets their personal guardian-angel portal on
+  // Google sign-in. This lives HERE (not in a single endpoint) because it's the
+  // shared choke point for BOTH Google entry paths — the native id_token
+  // federation (auth-federated) AND the system-browser OAuth callback that Nimue
+  // actually uses (auth-google). Idempotent (find-or-mint by gmail⇔angel 1:1), so
+  // repeat logins are a fast find; awaited so the angel is ready when the client
+  // loads My Portals, but fail-soft — a provisioning hiccup never blocks sign-in.
+  try {
+    const { ensureGuardianAngel } = await import('@/utilities/ensureGuardianAngel')
+    await ensureGuardianAngel(payload, { id: user.id, email: user.email, name: user.name })
+  } catch (gaErr) {
+    console.warn('[Google Identity] guardian-angel ensure failed:', gaErr instanceof Error ? gaErr.message : gaErr)
+  }
+
   return { user, token, isNew }
 }

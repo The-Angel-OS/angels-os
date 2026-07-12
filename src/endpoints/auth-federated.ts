@@ -26,7 +26,6 @@ import type { PayloadHandler } from 'payload'
 import { jwtVerify, createRemoteJWKSet } from 'jose'
 import { resolveUserFromGoogleClaims } from '@/endpoints/googleIdentity'
 import { logError } from '@/utilities/logError'
-import { ensureGuardianAngel, type EnsureGuardianAngelResult } from '@/utilities/ensureGuardianAngel'
 
 // Google's OpenID Connect JWKS endpoint. createRemoteJWKSet caches keys and
 // refreshes on rotation, so this is created once per module load.
@@ -122,26 +121,9 @@ export const authFederatedHandler: PayloadHandler = async (req) => {
 
     console.log('[Federated Auth] Minted session:', { userId: user.id, isNew })
 
-    // Onboarding floor: every person gets their personal guardian-angel portal,
-    // minted on first authentication. Idempotent (find-or-mint by gmail⇔angel 1:1),
-    // so every subsequent login is a fast find + return. Awaited so the angel is
-    // ready when the client immediately loads "My Portals", but fail-soft — a
-    // provisioning hiccup must NEVER block a valid sign-in (it re-attempts next login).
-    let guardianAngel: EnsureGuardianAngelResult | undefined
-    try {
-      guardianAngel = await ensureGuardianAngel(
-        req.payload,
-        { id: user.id, email: user.email, name: user.name },
-        { req },
-      )
-    } catch (gaErr) {
-      void logError({
-        level: 'warning',
-        source: 'auth/federated',
-        message: `guardian-angel ensure failed for ${user.email}`,
-        details: gaErr instanceof Error ? gaErr.stack || gaErr.message : String(gaErr),
-      })
-    }
+    // Note: guardian-angel auto-provision runs inside resolveUserFromGoogleClaims
+    // (the shared choke point for both this native path and the /api/auth/google
+    // OAuth callback Nimue uses), so it is NOT duplicated here.
 
     return Response.json({
       token,
@@ -152,8 +134,6 @@ export const authFederatedHandler: PayloadHandler = async (req) => {
         roles: Array.isArray(user.roles) ? user.roles : [],
       },
       isNew,
-      // The client can route straight to the user's guardian angel after login.
-      guardianAngel,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
