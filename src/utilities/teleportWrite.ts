@@ -72,28 +72,34 @@ function relId(value: unknown): string | number | undefined {
   return undefined
 }
 
+interface RelMaps {
+  media: IdMap
+  page: IdMap
+  form: IdMap
+}
+
 /**
- * Deep-remap a value in place-ish (returns a new value):
- *  - any field whose KEY is in MEDIA_FIELD_NAMES and holds a relationship id → mediaMap
- *  - Lexical `upload` nodes (type:'upload', value:{id}|id) → mediaMap
- *  - Lexical internal `link`/`relationship` nodes pointing at pages → pageMap
+ * Deep-remap a value (returns a new value):
+ *  - any field whose KEY is in MEDIA_FIELD_NAMES holding a relationship id → media map
+ *  - a field named `form` (FormBlock) holding a relationship id → form map
+ *  - Lexical `upload` nodes (type:'upload', value:{id}|id) → media map
+ *  - Lexical internal `link`/`relationship` nodes pointing at pages → page map
  * Everything else is copied untouched (no blind "any number == id" replacement).
  */
-function deepRemap(
-  value: unknown,
-  key: string | undefined,
-  mediaMap: IdMap,
-  pageMap: IdMap,
-): unknown {
+function deepRemap(value: unknown, key: string | undefined, maps: RelMaps): unknown {
   // Media by field-name
   if (key && MEDIA_FIELD_NAMES.has(key)) {
     const id = relId(value)
-    if (id != null && mediaMap.has(id)) return mediaMap.get(id)
-    // leave as-is if unmapped (may be a non-relationship value with a colliding name)
+    if (id != null && maps.media.has(id)) return maps.media.get(id)
+  }
+  // FormBlock form reference
+  if (key === 'form') {
+    const id = relId(value)
+    if (id != null && maps.form.has(id)) return maps.form.get(id)
   }
 
   if (Array.isArray(value)) {
-    return value.map((v) => deepRemap(v, key, mediaMap, pageMap))
+    return value.map((v) => deepRemap(v, key, maps))
   }
 
   if (value && typeof value === 'object') {
@@ -102,24 +108,21 @@ function deepRemap(
     // Lexical upload node
     if (obj.type === 'upload' && (obj.relationTo === 'media' || obj.value != null)) {
       const id = relId(obj.value)
-      if (id != null && mediaMap.has(id)) {
-        return { ...obj, value: mediaMap.get(id) }
+      if (id != null && maps.media.has(id)) {
+        return { ...obj, value: maps.media.get(id) }
       }
     }
     // Lexical internal doc link to a page
-    if (
-      (obj.type === 'link' || obj.type === 'relationship') &&
-      obj.relationTo === 'pages'
-    ) {
+    if ((obj.type === 'link' || obj.type === 'relationship') && obj.relationTo === 'pages') {
       const id = relId(obj.value ?? (obj.fields as Doc | undefined)?.doc)
-      if (id != null && pageMap.has(id)) {
-        return { ...obj, value: pageMap.get(id) }
+      if (id != null && maps.page.has(id)) {
+        return { ...obj, value: maps.page.get(id) }
       }
     }
 
     const out: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(obj)) {
-      out[k] = deepRemap(v, k, mediaMap, pageMap)
+      out[k] = deepRemap(v, k, maps)
     }
     return out
   }
@@ -157,6 +160,8 @@ export async function teleportWrite(
   const mediaMap: IdMap = new Map()
   const pageMap: IdMap = new Map()
   const catMap: IdMap = new Map()
+  const formMap: IdMap = new Map()
+  const maps: RelMaps = { media: mediaMap, page: pageMap, form: formMap }
 
   // ── 1. Create the target tenant ────────────────────────────────────────────
   let targetTenantId: string | number | undefined
@@ -209,8 +214,8 @@ export async function teleportWrite(
       try {
         let doc = stripSystemFields(raw)
         for (const f of opts.drop || []) delete (doc as Record<string, unknown>)[f]
-        // deep media/page remap
-        doc = deepRemap(doc, undefined, mediaMap, pageMap) as Doc
+        // deep media/page/form remap
+        doc = deepRemap(doc, undefined, maps) as Doc
         // categories remap (hasMany relationship of ids)
         if (opts.remapCategories && Array.isArray((doc as Doc).categories)) {
           ;(doc as Doc).categories = ((doc as Doc).categories as unknown[])
@@ -229,10 +234,14 @@ export async function teleportWrite(
           }).create({ collection, data })
           newId = created.id as string | number
         } else {
+          // Draft source docs may have empty required fields — create as draft so
+          // Payload relaxes required-field validation (matches their source state).
+          const isDraft = (data as Doc)._status === 'draft'
           const created = (await payload.create({
             collection: collection as never,
             data: data as never,
             overrideAccess: true,
+            ...(isDraft ? { draft: true } : {}),
           })) as { id: string | number }
           newId = created.id
         }
@@ -254,6 +263,9 @@ export async function teleportWrite(
 
   // ── 3. Categories (leaf, before content that references them) ───────────────
   await migrate('categories', get('categories'), { idMap: catMap })
+
+  // ── 3b. Forms (before pages — FormBlock in a page layout references a form) ──
+  await migrate('forms', get('forms'), { idMap: formMap })
 
   // ── 4. Pages (build pageMap for nav/link remap) ─────────────────────────────
   await migrate('pages', get('pages'), { idMap: pageMap })

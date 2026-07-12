@@ -233,6 +233,41 @@ export const teleportImportHandler: PayloadHandler = async (req) => {
     )
   }
 
+  // ── Gather referenced GLOBAL forms (formBuilder forms are not tenant-scoped,
+  //     so they're absent from the tenant export). Walk the content for
+  //     FormBlock.form ids, fetch just those from source, and inject as data.forms
+  //     so the migrator can recreate + remap them (else FormBlock inserts fail). ──
+  const referencedFormIds = new Set<string | number>()
+  const collectFormIds = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(collectFormIds)
+    if (v && typeof v === 'object') {
+      const o = v as Record<string, unknown>
+      if (o.blockType === 'formBlock' && o.form != null) {
+        const id = typeof o.form === 'object' ? (o.form as { id?: unknown }).id : o.form
+        if (typeof id === 'string' || typeof id === 'number') referencedFormIds.add(id)
+      }
+      Object.values(o).forEach(collectFormIds)
+    }
+  }
+  collectFormIds(data.pages)
+  collectFormIds(data.posts)
+  if (referencedFormIds.size > 0) {
+    const forms: Array<Record<string, unknown>> = []
+    await Promise.all(
+      [...referencedFormIds].map(async (fid) => {
+        try {
+          const r = await fetch(`${sourceBaseUrl}/api/forms/${fid}?depth=0`, {
+            headers: { 'x-tenant-id': sourceSlug },
+          })
+          if (r.ok) forms.push(await r.json())
+        } catch {
+          /* skip unreachable form */
+        }
+      }),
+    )
+    data.forms = forms
+  }
+
   // ── Execute: content-only write (media rows verbatim + remapped content) ─────
   const srcTenantFull = exportJson.sourceTenant || (data.tenants as Array<Record<string, unknown>>)?.[0] || srcTenant
   const write = await teleportWrite(payload, {
