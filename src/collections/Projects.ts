@@ -8,6 +8,7 @@ export const Projects: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'client', 'status', 'projectType', 'completedAt', 'tenant'],
+    listSearchableFields: ['title', 'slug', 'client.name', 'client.displayName'],
     group: 'Commerce',
     description: 'Portfolio showcase — completed projects, case studies, and client work.',
   },

@@ -27,6 +27,7 @@ export const Shipments: CollectionConfig = {
     group: 'Logistics',
     useAsTitle: 'shipmentId',
     defaultColumns: ['shipmentId', 'origin', 'destination', 'priority', 'status', 'createdAt'],
+    listSearchableFields: ['shipmentId', 'failureReason'],
     description: 'Resource shipments moving between logistics nodes.',
   },
   access: {

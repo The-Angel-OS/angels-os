@@ -24,6 +24,7 @@ export const StreetSigns: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'title',
     defaultColumns: ['title', 'contentType', 'sourceEnterprise', 'status', 'impressions'],
+    listSearchableFields: ['title', 'description', 'region', 'source.dioceseName', 'source.dioceseDomain', 'source.creatorName'],
     description:
       'Cross-holon content references — lightweight pointers that surface content across the federation.',
   },

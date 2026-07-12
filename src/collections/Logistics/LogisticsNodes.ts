@@ -85,6 +85,7 @@ export const LogisticsNodes: CollectionConfig = {
     group: 'Logistics',
     useAsTitle: 'name',
     defaultColumns: ['name', 'handle', 'type', 'governanceMode', 'trustScore'],
+    listSearchableFields: ['name', 'handle', 'contactName', 'contactEmail', 'contactPhone', 'operatingHours'],
     description: 'Physical nodes in the Universal Logistics Network — pantries, shelters, drop zones.',
   },
   access: {

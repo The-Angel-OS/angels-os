@@ -12,6 +12,9 @@ export const ProcessedStripeEvents: CollectionConfig = {
   admin: {
     group: 'System',
     hidden: true,
+    useAsTitle: 'eventId',
+    defaultColumns: ['eventId', 'eventType', 'processedAt'],
+    listSearchableFields: ['eventId', 'eventType'],
   },
   access: {
     create: () => false, // System only (overrideAccess)

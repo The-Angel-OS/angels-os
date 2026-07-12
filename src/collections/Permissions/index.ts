@@ -25,6 +25,7 @@ export const Permissions: CollectionConfig = {
     group: 'System',
     useAsTitle: 'permissionName',
     defaultColumns: ['entityName', 'entityId', 'permissionName', 'roleName', 'isAuthorized'],
+    listSearchableFields: ['entityName', 'entityId', 'permissionName', 'roleName'],
     description: 'Generic per-entity access grants (Oqtane Permission rows).',
   },
   access: {

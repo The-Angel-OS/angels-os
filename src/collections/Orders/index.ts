@@ -20,6 +20,11 @@ import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
  */
 export const OrdersCollection: CollectionOverride = ({ defaultCollection }) => ({
   ...defaultCollection,
+  admin: {
+    ...defaultCollection?.admin,
+    defaultColumns: ['id', 'customer', 'total', 'currency', 'status', 'createdAt'],
+    listSearchableFields: ['id', 'currency'],
+  },
   fields: [
     ...defaultCollection.fields,
     // ─── Fulfillment Routing ────────────────────────────────

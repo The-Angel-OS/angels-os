@@ -21,6 +21,7 @@ export const Services: CollectionConfig = {
     group: 'Commerce',
     useAsTitle: 'label',
     defaultColumns: ['label', 'priceUSD', 'durationMinutes', 'enabled', 'tenant'],
+    listSearchableFields: ['label', 'serviceId', 'description', 'unitLabel'],
     description: 'Bookable services offered by this tenant (the /book catalog).',
   },
   access: {

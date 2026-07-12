@@ -23,6 +23,7 @@ export const Pheromones: CollectionConfig = {
     group: 'Intelligence',
     useAsTitle: 'path',
     defaultColumns: ['contextHash', 'path', 'toolName', 'strength', 'successfulTraversals', 'lastTraversedAt'],
+    listSearchableFields: ['path', 'contextHash', 'toolName'],
     description: 'Digital pheromone trails — swarm intelligence for LEO navigation paths.',
   },
   access: {

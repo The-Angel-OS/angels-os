@@ -13,6 +13,7 @@ export const Spaces: CollectionConfig = {
     group: 'Spaces',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'tenant', 'visibility'],
+    listSearchableFields: ['name', 'slug', 'description'],
     description: 'Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.',
   },
   access: {

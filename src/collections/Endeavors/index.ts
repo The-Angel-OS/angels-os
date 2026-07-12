@@ -38,6 +38,7 @@ export const Endeavors: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'name',
     defaultColumns: ['name', 'endeavorType', 'status', 'updatedAt'],
+    listSearchableFields: ['name', 'tagline', 'missionStatement', 'operator.name', 'operator.email'],
     description:
       'The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.',
   },

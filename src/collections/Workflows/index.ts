@@ -12,6 +12,7 @@ export const Workflows: CollectionConfig = {
     group: 'Configuration',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'triggerType', 'channelTypes', 'isActive'],
+    listSearchableFields: ['name', 'slug', 'description'],
   },
   access: {
     create: authenticated,

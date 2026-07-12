@@ -19,6 +19,7 @@ export const TokenLedger: CollectionConfig = {
     group: 'Economy',
     useAsTitle: 'hash',
     defaultColumns: ['account', 'tokenKind', 'direction', 'amount', 'balanceAfter', 'createdAt'],
+    listSearchableFields: ['account', 'reason', 'ref', 'hash'],
     description: 'Hash-linked, append-only token ledger (Angel Tokens, Karma Coins, Legacy Tokens).',
   },
   access: {

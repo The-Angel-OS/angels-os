@@ -7,6 +7,7 @@ export const Bookings: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'bookingType', 'startDateTime', 'status', 'tenant'],
+    listSearchableFields: ['title'],
     group: 'Commerce',
     description: 'Appointment and service bookings — links providers, clients, and time slots.',
   },

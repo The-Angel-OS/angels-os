@@ -20,6 +20,7 @@ export const Presence: CollectionConfig = {
     group: 'System',
     useAsTitle: 'id',
     defaultColumns: ['user', 'status', 'space', 'lastSeenAt'],
+    listSearchableFields: ['path'],
     description: 'Live online-presence heartbeats (one row per user).',
   },
   access: {

@@ -15,6 +15,7 @@ export const Contacts: CollectionConfig = {
     group: 'Configuration',
     useAsTitle: 'email',
     defaultColumns: ['email', 'name', 'source', 'contactStatus', 'inviteStatus'],
+    listSearchableFields: ['email', 'name', 'sourceId', 'notes'],
     description: 'CRM contact records for invite management',
   },
   access: {

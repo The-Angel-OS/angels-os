@@ -21,6 +21,7 @@ export const Vendors: CollectionConfig = {
     group: 'Marketplace',
     useAsTitle: 'name',
     defaultColumns: ['name', 'status', 'trustLevel', 'contactEmail'],
+    listSearchableFields: ['name', 'contactEmail', 'contactPhone'],
     description: 'Fulfillment-holon registry — operators the platform routes leads to.',
   },
   access: {

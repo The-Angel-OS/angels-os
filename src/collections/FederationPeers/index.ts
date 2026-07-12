@@ -21,6 +21,7 @@ export const FederationPeers: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'name',
     defaultColumns: ['name', 'domain', 'ministryStatus', 'trustLevel', 'lastHeartbeatAt'],
+    listSearchableFields: ['name', 'domain', 'federationId', 'region.country', 'region.city'],
     description: 'Remote Enterprises (Dioceses) in the Angel OS federation mesh.',
   },
   access: {

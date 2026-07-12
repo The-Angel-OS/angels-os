@@ -22,6 +22,7 @@ export const TenantMemberships: CollectionConfig = {
     group: 'Core',
     useAsTitle: 'id',
     defaultColumns: ['user', 'tenant', 'role', 'status'],
+    listSearchableFields: ['invitationDetails.invitationEmail', 'invitationDetails.invitationToken'],
     description: 'User–tenant membership with role-based permissions (tenant_admin, tenant_manager, tenant_member).',
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },

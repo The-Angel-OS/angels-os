@@ -9,7 +9,8 @@ export const Comments: CollectionConfig = {
   admin: {
     group: 'Content',
     defaultColumns: ['author', 'content', 'rating', 'isApproved', 'parent', 'updatedAt'],
-    useAsTitle: 'id',
+    useAsTitle: 'author',
+    listSearchableFields: ['author', 'email', 'content'],
     description: 'Comments and reviews on Posts and Products. Product comments include star ratings.',
   },
   access: {

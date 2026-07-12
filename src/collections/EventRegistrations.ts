@@ -6,6 +6,7 @@ export const EventRegistrations: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['event', 'name', 'email', 'status', 'registrationType', 'attendanceMode'],
+    listSearchableFields: ['name', 'email'],
     group: 'Commerce',
   },
   access: {

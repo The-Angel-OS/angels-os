@@ -18,6 +18,7 @@ export const Tenants: CollectionConfig = {
     group: 'Core',
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'domain', 'status'],
+    listSearchableFields: ['name', 'slug', 'domain'],
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },
   access: {

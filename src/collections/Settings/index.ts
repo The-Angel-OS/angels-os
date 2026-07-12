@@ -23,6 +23,7 @@ export const Settings: CollectionConfig = {
     group: 'System',
     useAsTitle: 'settingName',
     defaultColumns: ['entityName', 'entityId', 'settingName', 'isPrivate'],
+    listSearchableFields: ['entityName', 'entityId', 'settingName', 'settingValue'],
     description: 'Generic per-entity key/value settings (Oqtane Setting bag).',
   },
   access: {

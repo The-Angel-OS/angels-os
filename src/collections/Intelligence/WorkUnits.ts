@@ -30,6 +30,7 @@ export const WorkUnits: CollectionConfig = {
       'skillName',
       'createdAt',
     ],
+    listSearchableFields: ['workUnitId', 'assignedNode', 'originNode', 'skillName', 'parentWorkUnitId'],
     description:
       'Distributed work units — atoms of computation routed across the federation mesh.',
   },

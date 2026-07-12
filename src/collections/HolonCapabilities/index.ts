@@ -23,8 +23,9 @@ export const HolonCapabilities: CollectionConfig = {
   },
   admin: {
     group: 'Federation',
-    useAsTitle: 'nodeType',
-    defaultColumns: ['tenant', 'nodeType', 'serviceRadius', 'constitutionalCompliance'],
+    useAsTitle: 'businessName',
+    defaultColumns: ['businessName', 'nodeType', 'serviceRadius', 'constitutionalCompliance'],
+    listSearchableFields: ['businessName', 'contactName'],
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),

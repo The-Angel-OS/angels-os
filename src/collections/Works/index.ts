@@ -23,6 +23,7 @@ export const Works: CollectionConfig = {
     group: 'Content',
     useAsTitle: 'title',
     defaultColumns: ['title', 'type', 'owner', 'checksum', 'updatedAt'],
+    listSearchableFields: ['title', 'slug', 'subtitle', 'description', 'owner', 'checksum'],
     description: 'The Library catalog — one record per Work (the manifest handle).',
   },
   access: {

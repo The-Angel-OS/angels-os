@@ -13,6 +13,7 @@ export const Reviews: CollectionConfig = {
     group: 'Commerce',
     useAsTitle: 'author',
     defaultColumns: ['author', 'rating', 'source', 'isVerified', 'publishedAt'],
+    listSearchableFields: ['author', 'authorEmail', 'content'],
     description: 'Customer feedback and ratings — native, Google Places import, or manual entry.',
   },
   access: {

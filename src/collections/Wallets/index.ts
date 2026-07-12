@@ -17,6 +17,7 @@ export const Wallets: CollectionConfig = {
     group: 'Economy',
     useAsTitle: 'account',
     defaultColumns: ['account', 'tokenKind', 'balance', 'tenant', 'updatedAt'],
+    listSearchableFields: ['account'],
     description: 'Denormalized token balances (cache of the TokenLedger).',
   },
   access: {

@@ -22,6 +22,7 @@ export const Connectors: CollectionConfig = {
     group: 'Configuration',
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'status', 'tenant', 'space'],
+    listSearchableFields: ['name', 'errorMessage'],
     hidden: ({ user }) =>
       !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },

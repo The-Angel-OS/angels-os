@@ -71,6 +71,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   admin: {
     ...defaultCollection?.admin,
     defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants'],
+    listSearchableFields: ['title', 'slug'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({

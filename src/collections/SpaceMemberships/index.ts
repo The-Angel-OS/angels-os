@@ -19,6 +19,7 @@ export const SpaceMemberships: CollectionConfig = {
     group: 'Spaces',
     useAsTitle: 'id',
     defaultColumns: ['user', 'space', 'role', 'status'],
+    listSearchableFields: ['invitationDetails.invitationEmail', 'invitationDetails.invitationToken'],
   },
   access: {
     read: ({ req: { user } }) => {

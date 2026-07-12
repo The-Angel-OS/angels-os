@@ -53,6 +53,7 @@ export const Pages: CollectionConfig = {
   admin: {
     group: 'Content',
     defaultColumns: ['title', 'slug', 'updatedAt'],
+    listSearchableFields: ['title', 'slug', 'navLabel'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({

@@ -10,6 +10,7 @@ export const Quests: CollectionConfig = {
     group: 'Intelligence',
     useAsTitle: 'title',
     defaultColumns: ['title', 'status', 'questType', 'payout.amount', 'createdAt'],
+    listSearchableFields: ['title', 'questType'],
   },
   access: {
     create: authenticated,

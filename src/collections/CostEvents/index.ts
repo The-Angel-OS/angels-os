@@ -30,6 +30,7 @@ export const CostEvents: CollectionConfig = {
     group: 'System',
     useAsTitle: 'source',
     defaultColumns: ['category', 'provider', 'costCents', 'occurredAt', 'tenant'],
+    listSearchableFields: ['source', 'provider', 'model', 'conversationId', 'userId'],
     hidden: ({ user }) =>
       !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },

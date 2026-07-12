@@ -57,6 +57,7 @@ export const Signatures: CollectionConfig = {
     group: 'Trust',
     useAsTitle: 'signerName',
     defaultColumns: ['signerName', 'documentType', 'documentRef', 'signedAt', 'tenant'],
+    listSearchableFields: ['signerName', 'documentRef', 'documentTitle', 'documentChecksum'],
     description: 'Immutable, tamper-evident human e-signature consent records.',
   },
   access: {

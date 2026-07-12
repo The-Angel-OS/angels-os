@@ -19,6 +19,7 @@ export const Transports: CollectionConfig = {
     group: 'Logistics',
     useAsTitle: 'vehicleName',
     defaultColumns: ['vehicleName', 'owner', 'transportType', 'status', 'capacity'],
+    listSearchableFields: ['vehicleName', 'availableFrom'],
     description: 'Soul Fleet vehicles and couriers that move resources between nodes.',
   },
   access: {

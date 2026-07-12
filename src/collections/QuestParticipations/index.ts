@@ -10,6 +10,7 @@ export const QuestParticipations: CollectionConfig = {
   admin: {
     group: 'Intelligence',
     defaultColumns: ['quest', 'participant', 'status', 'createdAt'],
+    listSearchableFields: ['teamId'],
     description: 'Quest participation records — tracks evidence, objectives, review, and payout for each participant.',
   },
   access: {

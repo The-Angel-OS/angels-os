@@ -24,6 +24,7 @@ export const Memberships: CollectionConfig = {
     group: 'Economy',
     useAsTitle: 'memberEmail',
     defaultColumns: ['memberEmail', 'planName', 'status', 'amountCents', 'interval', 'tenant'],
+    listSearchableFields: ['memberEmail', 'memberName', 'planName', 'planId', 'stripeSubscriptionId', 'stripeCustomerId'],
     description: 'Recurring membership/dues subscriptions per endeavor.',
   },
   access: {

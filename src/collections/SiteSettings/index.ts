@@ -16,6 +16,8 @@ export const SiteSettings: CollectionConfig = {
   admin: {
     group: 'Configuration',
     useAsTitle: 'label',
+    defaultColumns: ['label', 'donationsEnabled', 'maintenanceMode', 'updatedAt'],
+    listSearchableFields: ['label', 'googleAnalyticsId', 'defaultMetaDescription', 'announcementBar.text'],
     description: 'Site-wide settings — social links, SEO defaults, maintenance mode, and announcement bar. One per tenant.',
   },
   access: {

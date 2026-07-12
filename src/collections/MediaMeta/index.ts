@@ -36,6 +36,7 @@ export const MediaMeta: CollectionConfig = {
     group: 'Content',
     useAsTitle: 'summary',
     defaultColumns: ['media', 'status', 'extractionType', 'documentGroup', 'pageNumber', 'createdAt'],
+    listSearchableFields: ['summary', 'ocrText', 'documentGroup', 'processedBy'],
     description: 'Progressive metadata extracted from uploaded media — vision analysis, OCR, document pages, RAG chunks.',
   },
   access: {

@@ -15,6 +15,7 @@ export const ApplicationLogs: CollectionConfig = {
     group: 'System',
     useAsTitle: 'message',
     defaultColumns: ['level', 'source', 'message', 'createdAt'],
+    listSearchableFields: ['message', 'source', 'details', 'url', 'userId', 'tenantId'],
   },
   access: {
     create: () => false, // System only (overrideAccess)

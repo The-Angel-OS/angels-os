@@ -10,6 +10,8 @@ export const Categories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
+    defaultColumns: ['title', 'slug'],
+    listSearchableFields: ['title', 'slug'],
     group: 'Content',
   },
   fields: [

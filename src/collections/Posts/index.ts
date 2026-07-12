@@ -39,6 +39,7 @@ export const Posts: CollectionConfig = {
   admin: {
     group: 'Content',
     defaultColumns: ['title', 'slug', 'updatedAt'],
+    listSearchableFields: ['title', 'slug', 'sourceUrl'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({

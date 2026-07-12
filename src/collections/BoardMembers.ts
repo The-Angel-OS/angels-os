@@ -17,6 +17,7 @@ export const BoardMembers: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'title',
     defaultColumns: ['title', 'role', 'status', 'appointedAt'],
+    listSearchableFields: ['title'],
     description: 'Federation governance board members',
   },
   access: {

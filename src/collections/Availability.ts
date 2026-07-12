@@ -6,6 +6,7 @@ export const Availability: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'provider', 'dayOfWeek', 'startTime', 'endTime', 'isActive'],
+    listSearchableFields: ['title'],
     group: 'Commerce',
     description: 'Provider availability slots — defines when a user or resource can accept bookings.',
   },

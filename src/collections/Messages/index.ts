@@ -72,6 +72,7 @@ export const Messages: CollectionConfig = {
     group: 'Spaces',
     useAsTitle: 'id',
     defaultColumns: ['messageType', 'space', 'channel', 'visibility', 'author', 'createdAt'],
+    listSearchableFields: ['channel', 'federationId'],
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),

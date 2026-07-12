@@ -24,6 +24,7 @@ export const FederationAuditLog: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'action',
     defaultColumns: ['action', 'sourceFederationId', 'allowed', 'createdAt'],
+    listSearchableFields: ['sourceFederationId', 'sourceDomain', 'sourceName', 'targetAction', 'deniedReason'],
     description: 'Immutable audit trail of all federation network activity.',
   },
   access: {

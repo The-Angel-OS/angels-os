@@ -66,6 +66,7 @@ export const CrewAssignments: CollectionConfig = {
     group: 'Core',
     useAsTitle: 'station',
     defaultColumns: ['station', 'department', 'rank', 'dutyStatus', 'watchSection'],
+    listSearchableFields: ['station', 'notes'],
     description:
       'Naval crew assignments — maps members to departments, stations, and watches within an Endeavor.',
   },

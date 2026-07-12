@@ -21,6 +21,7 @@ export const Channels: CollectionConfig = {
     group: 'Spaces',
     useAsTitle: 'name',
     defaultColumns: ['name', 'space', 'type', 'isDefault'],
+    listSearchableFields: ['name', 'slug', 'description'],
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),

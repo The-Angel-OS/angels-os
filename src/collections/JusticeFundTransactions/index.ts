@@ -16,6 +16,7 @@ export const JusticeFundTransactions: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'description',
     defaultColumns: ['type', 'amountCents', 'status', 'processedAt'],
+    listSearchableFields: ['description', 'sourcePaymentIntentId'],
   },
   access: {
     read: ({ req: { user } }) => Boolean(checkRole(['super_admin'], user)),

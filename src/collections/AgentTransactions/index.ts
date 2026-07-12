@@ -23,6 +23,7 @@ export const AgentTransactions: CollectionConfig = {
     group: 'Federation',
     useAsTitle: 'description',
     defaultColumns: ['type', 'amountCents', 'description', 'status', 'createdAt'],
+    listSearchableFields: ['description', 'counterpartyName', 'counterpartyDomain', 'counterpartyFederationId', 'skillInvoked', 'stripePaymentIntentId'],
     description: 'LEO agent wallet transaction ledger — every spend and earn across the federation',
   },
   access: {

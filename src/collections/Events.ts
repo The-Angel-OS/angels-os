@@ -8,6 +8,7 @@ export const Events: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'eventType', 'startDateTime', 'status', 'tenant'],
+    listSearchableFields: ['title', 'slug', 'timezone'],
     group: 'Commerce',
   },
   access: {
