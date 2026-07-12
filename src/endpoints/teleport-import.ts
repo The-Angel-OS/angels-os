@@ -131,20 +131,26 @@ export const teleportImportHandler: PayloadHandler = async (req) => {
     totalDocs += n
   }
 
-  // ── Media: list filenames and check each ALREADY resolves on THIS node ──────
-  // (Confirms the shared-blob assumption per-file before we rely on verbatim rows.)
+  // ── Media: check each source file ALREADY resolves at the TARGET tenant host ──
+  // Confirms the shared-blob assumption per-file before we rely on verbatim rows.
+  // The blob-backed media route serves from the shared store on any *.spacesangels.com
+  // host — even before the tenant exists — so we probe the FUTURE tenant domain.
+  // Use a Range: bytes=0-0 GET (the route 404s on HEAD but serves GET); this is a
+  // ~1-byte existence probe, not a full download.
   const mediaDocs = (data.media as Array<Record<string, unknown>>) || []
-  const thisOrigin = new URL(req.url || `https://${targetDomain}`, `https://${targetDomain}`).origin
+  const probeOrigin = `https://${targetDomain}`
   const mediaChecks: Array<{ filename: string; resolvesHere: boolean; status: number }> = []
   await Promise.all(
     mediaDocs.slice(0, 100).map(async (m) => {
       const filename = String(m.filename || '')
       if (!filename) return
       try {
-        const r = await fetch(`${thisOrigin}/api/media/file/${encodeURIComponent(filename)}`, {
-          method: 'HEAD',
+        const r = await fetch(`${probeOrigin}/api/media/file/${encodeURIComponent(filename)}`, {
+          method: 'GET',
+          headers: { Range: 'bytes=0-0' },
         })
-        mediaChecks.push({ filename, resolvesHere: r.ok, status: r.status })
+        // 200 (full) or 206 (partial) both mean the blob resolves here.
+        mediaChecks.push({ filename, resolvesHere: r.ok || r.status === 206, status: r.status })
       } catch {
         mediaChecks.push({ filename, resolvesHere: false, status: 0 })
       }
