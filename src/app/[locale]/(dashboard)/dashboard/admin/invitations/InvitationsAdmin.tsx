@@ -3,6 +3,14 @@
 import React, { useState, useCallback } from 'react'
 import { sendQuickInvite, type QuickInviteResult } from './actions'
 import { resendTenantInvitation } from '../team/actions'
+import { ListControls } from '../../_components/ListControls'
+import { Pager } from '../../_components/Pager'
+
+const STATUS_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'active', label: 'Accepted' },
+]
 
 /**
  * InvitationsAdmin — Quick Invite form + manage sent invitations.
@@ -25,11 +33,24 @@ interface Invitation {
 interface InvitationsAdminProps {
   invitations: Invitation[]
   totalInvitations: number
+  pendingCount?: number
+  acceptedCount?: number
+  page?: number
+  totalPages?: number
 }
 
-export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsAdminProps) {
-  const pending = invitations.filter((i) => i.status === 'pending')
-  const accepted = invitations.filter((i) => i.status === 'active')
+export function InvitationsAdmin({
+  invitations,
+  totalInvitations,
+  pendingCount,
+  acceptedCount,
+  page = 1,
+  totalPages = 1,
+}: InvitationsAdminProps) {
+  // Stat counts come from the server (whole invitation set), independent of the
+  // active search/status filter; fall back to counting the current page.
+  const pendingTotal = pendingCount ?? invitations.filter((i) => i.status === 'pending').length
+  const acceptedTotal = acceptedCount ?? invitations.filter((i) => i.status === 'active').length
 
   const [resendingId, setResendingId] = useState<string | number | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -203,11 +224,11 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="text-2xl font-bold text-amber-600">{pending.length}</p>
+          <p className="text-2xl font-bold text-amber-600">{pendingTotal}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">Accepted</p>
-          <p className="text-2xl font-bold text-emerald-600">{accepted.length}</p>
+          <p className="text-2xl font-bold text-emerald-600">{acceptedTotal}</p>
         </div>
       </div>
 
@@ -225,6 +246,8 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
       )}
 
       {/* Invitation List */}
+      <ListControls searchPlaceholder="Search by email…" tabParam="status" tabs={STATUS_TABS} />
+
       {invitations.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/20 p-12 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -317,6 +340,8 @@ export function InvitationsAdmin({ invitations, totalInvitations }: InvitationsA
           </table>
         </div>
       )}
+
+      <Pager page={page} totalPages={totalPages} />
     </div>
   )
 }
