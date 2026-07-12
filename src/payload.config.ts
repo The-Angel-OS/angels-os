@@ -83,6 +83,7 @@ import { CrewAssignments } from '@/collections/CrewAssignments'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
 import { exportSite } from '@/endpoints/export-site'
+import { teleportImportHandler } from '@/endpoints/teleport-import'
 import { chatSendHandler } from '@/endpoints/chat-send'
 import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
@@ -700,6 +701,14 @@ export default buildConfig({
       path: '/export-site',
       method: 'get',
       handler: exportSite,
+    },
+    {
+      // Teleport — cross-instance tenant move (consolidation primitive). Target
+      // side: pulls a tenant's graph from a source node's /api/export-site and
+      // (dry-run) reports what would move + readiness. super_admin or ?key=CRON_SECRET.
+      path: '/provision-ops/teleport',
+      method: 'post',
+      handler: teleportImportHandler,
     },
     {
       path: '/ai-bus/poll',

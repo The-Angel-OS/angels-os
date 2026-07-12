@@ -125,14 +125,20 @@ export const exportSite: PayloadHandler = async (req) => {
   const { payload, user } = req
 
   // ── Auth ─────────────────────────────────────────────────────────────────
-  if (!user || !('roles' in user) || !Array.isArray(user.roles)) {
-    return Response.json({ message: 'Unauthorized' }, { status: 401 })
-  }
-
-  const roles = (user.roles ?? []) as string[]
+  // A super_admin|tenant_admin|admin session, OR ?key=CRON_SECRET so the export
+  // is callable node-to-node without an interactive session (the Teleport
+  // primitive: the target instance pulls a tenant's graph from the source).
+  // Read-only endpoint, so the key path is safe. Same pattern as provision-portal.
+  const url = new URL(req.url || 'http://localhost', 'http://localhost')
+  const key = url.searchParams.get('key')
+  const keyValid = Boolean(key && process.env.CRON_SECRET && key === process.env.CRON_SECRET)
+  const roles = (user && 'roles' in user && Array.isArray(user.roles) ? user.roles : []) as string[]
   const isAdmin = roles.some((r) => ['super_admin', 'tenant_admin', 'admin'].includes(r))
-  if (!isAdmin) {
-    return Response.json({ message: 'Forbidden: requires admin role' }, { status: 403 })
+  if (!isAdmin && !keyValid) {
+    return Response.json(
+      { message: 'Unauthorized: requires admin role or ?key=CRON_SECRET' },
+      { status: 401 },
+    )
   }
 
   // ── Resolve Tenant ───────────────────────────────────────────────────────
@@ -199,7 +205,7 @@ export const exportSite: PayloadHandler = async (req) => {
     }
 
     // ── Build manifest with checksums ────────────────────────────────────
-    const exportedBy = (user as any).email || 'system'
+    const exportedBy = (user as any)?.email || 'cron-secret'
     const manifest = buildManifest(tenant as any, collectionData, exportedBy)
 
     // ── Build data payload ──────────────────────────────────────────────
