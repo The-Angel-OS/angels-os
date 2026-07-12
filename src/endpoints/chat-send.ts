@@ -212,24 +212,87 @@ export const chatSendHandler: PayloadHandler = async (req) => {
     // linked, and we log it — instead of the whole post vanishing.
     let attachedCount = 0
     if (attachmentList.length > 0) {
-      try {
-        const withAtt = await req.payload.update({
-          collection: 'messages',
-          id: saved.id,
-          data: { attachments: attachmentList } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-          overrideAccess: true,
-          req,
-          depth: 0,
-        })
-        attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
-          ? (withAtt as { attachments: unknown[] }).attachments.length
-          : 0
-      } catch (attErr) {
-        // Non-fatal — message already persisted. Log so the failure is visible.
+      // A media upload and the message-send that references it are SEPARATE
+      // requests; a fast client (Nimue) can send the message before the upload's
+      // row is committed/queryable. Payload validates the WHOLE attachments array,
+      // so one not-yet-committed media makes the entire link fail ("The following
+      // field is invalid: Attachments N > Media") — the image vanishes even though
+      // the upload eventually lands. Fix: verify which media actually resolve
+      // (with brief retries to absorb commit lag), link the ones that do, and drop
+      // the rest with a warning instead of failing all of them.
+      const attMediaId = (a: unknown): string | null => {
+        const m = (a as { media?: unknown })?.media
+        if (m == null) return null
+        if (typeof m === 'object') {
+          const id = (m as { id?: unknown }).id
+          return id == null ? null : String(id)
+        }
+        return String(m)
+      }
+      const wantedIds = [...new Set(attachmentList.map(attMediaId).filter((v): v is string => v != null))]
+
+      const findExisting = async (): Promise<Set<string>> => {
+        if (!wantedIds.length) return new Set()
+        try {
+          const res = await req.payload.find({
+            collection: 'media',
+            where: { id: { in: wantedIds } },
+            limit: wantedIds.length,
+            depth: 0,
+            overrideAccess: true,
+            req,
+          })
+          return new Set((res.docs || []).map((d: { id: unknown }) => String(d.id)))
+        } catch {
+          return new Set()
+        }
+      }
+
+      // Poll for commit lag: up to 3 rechecks, ~350ms apart (~1s worst case).
+      let existing = await findExisting()
+      for (let attempt = 0; attempt < 3 && existing.size < wantedIds.length; attempt++) {
+        await new Promise((r) => setTimeout(r, 350))
+        existing = await findExisting()
+      }
+
+      const validAttachments = attachmentList.filter((a) => {
+        const id = attMediaId(a)
+        return id != null && existing.has(id)
+      })
+      const droppedCount = attachmentList.length - validAttachments.length
+
+      if (validAttachments.length > 0) {
+        try {
+          const withAtt = await req.payload.update({
+            collection: 'messages',
+            id: saved.id,
+            data: { attachments: validAttachments } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            overrideAccess: true,
+            req,
+            depth: 0,
+          })
+          attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
+            ? (withAtt as { attachments: unknown[] }).attachments.length
+            : 0
+        } catch (attErr) {
+          // Non-fatal — message already persisted. Log so the failure is visible.
+          await logError({
+            source: 'chat-send/attach',
+            message: `Failed to link ${validAttachments.length} attachment(s) to message ${saved.id}`,
+            details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+            tenantId: tenantId != null ? String(tenantId) : undefined,
+          }).catch(() => {})
+        }
+      }
+
+      if (droppedCount > 0) {
+        // Media never resolved (upload failed or still uncommitted after retries).
+        // Warn, don't error — the message + any valid images were saved.
         await logError({
+          level: 'warning',
           source: 'chat-send/attach',
-          message: `Failed to link ${attachmentList.length} attachment(s) to message ${saved.id}`,
-          details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+          message: `Dropped ${droppedCount} attachment(s) on message ${saved.id} — media did not resolve`,
+          details: `wanted media ids: ${wantedIds.join(', ')}; resolved: ${[...existing].join(', ') || 'none'}`,
           tenantId: tenantId != null ? String(tenantId) : undefined,
         }).catch(() => {})
       }
