@@ -220,7 +220,7 @@ export function InvitationsAdmin({
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">Total Sent</p>
-          <p className="text-2xl font-bold">{totalInvitations}</p>
+          <p className="text-2xl font-bold">{pendingTotal + acceptedTotal}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">Pending</p>
