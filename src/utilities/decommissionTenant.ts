@@ -23,7 +23,7 @@ export const TENANT_SCOPED_COLLECTIONS = [
 export interface DecommissionStep {
   collection: string
   count: number
-  status: 'counted' | 'deleted' | 'error' | 'scrubbed'
+  status: 'counted' | 'deleted' | 'error' | 'scrubbed' | 'preserved'
   error?: string
 }
 
@@ -40,10 +40,16 @@ export interface DecommissionResult {
 
 export async function decommissionTenant(
   payload: Payload,
-  opts: { slug: string; execute?: boolean },
+  opts: { slug: string; execute?: boolean; preserveBlobs?: boolean },
 ): Promise<DecommissionResult> {
   const { slug } = opts
   const execute = opts.execute === true
+  // Preserve blobs by DEFAULT. In a consolidated single-blob-account world, a
+  // Teleported tenant's media rows point at the SAME blob object as the source
+  // (rows-not-bytes), so deleting blobs here would break the other node's portal.
+  // Orphaned blobs are cheap and harmless; a deleted shared blob is data loss.
+  // Only purge blobs when the caller explicitly opts in (preserveBlobs === false).
+  const preserveBlobs = opts.preserveBlobs !== false
   const steps: DecommissionStep[] = []
   let totalRows = 0
 
@@ -79,7 +85,7 @@ export async function decommissionTenant(
   // every blob (main + every image size variant) to guarantee a demo portal's hosted
   // artifacts are DEFINITELY gone. Idempotent + fail-soft: no-ops on local/non-blob
   // URLs and never throws on an already-deleted blob.
-  if (execute) {
+  if (execute && !preserveBlobs) {
     try {
       const { deleteMediaFromVercelBlob } = await import('./deleteMediaFromVercelBlob')
       let purged = 0
@@ -96,6 +102,8 @@ export async function decommissionTenant(
     } catch (err) {
       steps.push({ collection: 'media:blob', count: 0, status: 'error', error: (err as Error).message })
     }
+  } else if (execute && preserveBlobs) {
+    steps.push({ collection: 'media:blob', count: 0, status: 'preserved' })
   }
 
   for (const collection of TENANT_SCOPED_COLLECTIONS) {
