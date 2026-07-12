@@ -514,6 +514,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'backups',
+        label: 'Backups',
+        icon: 'history',
+        href: (p) => `${p}/dashboard/admin/backups`,
+        isActive: active('/dashboard/admin/backups'),
+        visible: always,
+      },
+      {
         key: 'admin-federation',
         label: 'Federation',
         icon: 'federation',
