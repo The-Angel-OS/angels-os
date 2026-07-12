@@ -150,6 +150,7 @@ import { dmRosterHandler } from '@/endpoints/dm-roster'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { signCaptureHandler } from '@/endpoints/sign-capture'
+import { contactSellerHandler } from '@/endpoints/contact-seller'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
@@ -1049,6 +1050,14 @@ export default buildConfig({
       path: '/sign-ops/capture',
       method: 'post',
       handler: signCaptureHandler,
+    },
+    // "Contact the seller / Email me about this" on a product page — captures a
+    // lead into the tenant's inbox (form_submission message + Gotify) without a
+    // Form Builder doc. POST; open to anonymous visitors. -ops prefix.
+    {
+      path: '/contact-ops/seller',
+      method: 'post',
+      handler: contactSellerHandler,
     },
     // Provision the `signatures` table (+ enums + lock-rel column) on a prod DB
     // BEFORE the config referencing it deploys. GET; super_admin or ?key=.

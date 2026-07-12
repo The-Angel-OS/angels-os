@@ -7,6 +7,8 @@ import { Price } from '@/components/Price'
 import React, { Suspense, useEffect } from 'react'
 
 import { VariantSelector } from './VariantSelector'
+import { BuyNow } from './BuyNow'
+import { ContactSeller } from './ContactSeller'
 import { useCurrency } from '@payloadcms/plugin-ecommerce/client/react'
 import { StockIndicator } from '@/components/product/StockIndicator'
 import { trackViewItem } from '@/utilities/gtagEcommerce'
@@ -94,10 +96,14 @@ export function ProductDescription({ product }: { product: Product }) {
         </Suspense>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-3">
+        <Suspense fallback={null}>
+          <BuyNow product={product} />
+        </Suspense>
         <Suspense fallback={null}>
           <AddToCart product={product} />
         </Suspense>
+        <ContactSeller product={product} />
       </div>
     </div>
   )

@@ -1851,6 +1851,22 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'capture_lead',
+    description:
+      "Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone in chat wants to be contacted about a product/listing, leaves their details, or you're taking a message for the seller/operator. name + email are enough; include product/message context when you have it.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: "The lead's name." },
+        email: { type: 'string', description: "The lead's email address." },
+        phone: { type: 'string', description: 'Optional phone number.' },
+        message: { type: 'string', description: 'What they want / their message to the seller.' },
+        product: { type: 'string', description: 'Product or listing title this is about, if any.' },
+      },
+      required: ['name', 'email'],
+    },
+  },
+  {
     name: 'extract_pdf_pages',
     description:
       'Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.',
@@ -4246,6 +4262,8 @@ async function executeToolSwitch(
         return await handleListChannelMedia(payload, toolInput, ctx)
       case 'verify_address':
         return await handleVerifyAddress(payload, toolInput, ctx)
+      case 'capture_lead':
+        return await handleCaptureLead(payload, toolInput, ctx)
       case 'analyze_image':
         return await handleAnalyzeImage(payload, toolInput, ctx)
       case 'extract_pdf_pages':
@@ -9445,6 +9463,53 @@ async function handleVerifyAddress(
   } catch (err) {
     logCaughtError('leo-tools/verify_address', err).catch(() => {})
     return `Error verifying address: ${err instanceof Error ? err.message : 'Unknown error'}`
+  }
+}
+
+/**
+ * capture_lead — land a contact/lead into the tenant's inbox (form_submission
+ * message + Gotify escalation) via the shared deliverLead primitive. Same path the
+ * product-page "Contact seller" endpoint uses (factory principle).
+ */
+async function handleCaptureLead(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const { tenantId } = ctx
+  const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+  const name = str(input.name)
+  const email = str(input.email)
+  const phone = str(input.phone)
+  const message = str(input.message)
+  const product = str(input.product)
+
+  if (!tenantId) return 'Error: no tenant context — cannot route the lead.'
+  if (!name) return 'Error: a name is required to capture the lead.'
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return 'Error: a valid email is required to capture the lead.'
+  }
+
+  try {
+    const { deliverLead } = await import('./deliverLead')
+    const fields: Record<string, unknown> = {
+      name,
+      email,
+      ...(phone ? { phone } : {}),
+      ...(message ? { message } : {}),
+      ...(product ? { product } : {}),
+    }
+    const result = await deliverLead(payload, {
+      tenantId,
+      formTitle: product ? `Contact Seller: ${product}` : 'New Lead',
+      fields,
+      source: 'capture_lead',
+    })
+    if (!result.ok) return `Could not route the lead: ${result.error || 'unknown error'}`
+    return `✅ Lead captured — ${name} (${email})${product ? ` re: ${product}` : ''} landed in the inbox and the operator was notified.`
+  } catch (err) {
+    logCaughtError('leo-tools/capture_lead', err).catch(() => {})
+    return `Error capturing lead: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
