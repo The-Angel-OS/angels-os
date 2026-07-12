@@ -26,6 +26,7 @@
  */
 
 import type { PayloadHandler } from 'payload'
+import { teleportWrite } from '@/utilities/teleportWrite'
 
 interface TeleportBody {
   /** Base URL of the source node, e.g. "https://kendev.co" or "https://arctic-cool.kendev.co". */
@@ -89,6 +90,7 @@ export const teleportImportHandler: PayloadHandler = async (req) => {
   let exportJson: {
     success?: boolean
     manifest?: { tenant?: Record<string, unknown>; totalDocuments?: number; collections?: Record<string, { count?: number }> }
+    sourceTenant?: Record<string, unknown>
     data?: Record<string, unknown[]>
     message?: string
   }
@@ -213,14 +215,42 @@ export const teleportImportHandler: PayloadHandler = async (req) => {
     return Response.json({ success: true, ...report })
   }
 
-  // ── Execute path (id-remap graph walk) — lands after dry-run review. ─────────
-  return Response.json(
-    {
-      success: false,
-      ...report,
-      error:
-        'Execute path not enabled in this build. Review the dry-run manifest first; the write path ships next.',
-    },
-    { status: 501 },
-  )
+  // ── Execute: refuse if not safe (collision or blob not shared) ──────────────
+  if (targetSlugTaken || targetDomainTaken) {
+    return Response.json(
+      { success: false, ...report, error: 'Refusing to execute: target slug/domain already exists.' },
+      { status: 409 },
+    )
+  }
+  if (mediaMissing.length > 0) {
+    return Response.json(
+      {
+        success: false,
+        ...report,
+        error: `Refusing to execute: ${mediaMissing.length} media file(s) do not resolve on this node (blob not shared).`,
+      },
+      { status: 409 },
+    )
+  }
+
+  // ── Execute: content-only write (media rows verbatim + remapped content) ─────
+  const srcTenantFull = exportJson.sourceTenant || (data.tenants as Array<Record<string, unknown>>)?.[0] || srcTenant
+  const write = await teleportWrite(payload, {
+    data: data as Record<string, Array<Record<string, unknown>>>,
+    sourceTenant: { ...srcTenantFull },
+    targetSlug,
+    targetDomain,
+  })
+
+  const totalErrors = write.steps.reduce((n, s) => n + s.errors, 0)
+  return Response.json({
+    success: totalErrors === 0 && write.targetTenantId != null,
+    ...report,
+    write,
+    totalErrors,
+    nextSteps:
+      write.targetTenantId != null
+        ? `Tenant created. Verify https://${targetDomain} then, when confident, decommission the source tenant on kendev.`
+        : 'Tenant creation failed — see write.steps.',
+  })
 }

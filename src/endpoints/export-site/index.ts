@@ -217,6 +217,9 @@ export const exportSite: PayloadHandler = async (req) => {
     return Response.json({
       success: true,
       manifest,
+      // Full source tenant row (branding/colors/etc.) so a consumer (Teleport) can
+      // recreate the tenant faithfully — manifest.tenant is trimmed to id/name/slug.
+      sourceTenant: tenant,
       data,
       message: `Site export complete. ${manifest.totalDocuments} documents across ${manifest.totalCollections} collections.`,
     })
