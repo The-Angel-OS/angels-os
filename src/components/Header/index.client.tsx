@@ -193,6 +193,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
         domain: t.domain || '',
         logoUrl: typeof t.branding?.logo === 'object' && t.branding?.logo?.url ? t.branding.logo.url : null,
         primaryColor: t.branding?.primaryColor || null,
+        isGuardianAngel: Boolean(t.isGuardianAngel),
       }
     }
     const roles = (user as { roles?: string[] }).roles

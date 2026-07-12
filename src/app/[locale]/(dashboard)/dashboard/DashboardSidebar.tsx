@@ -34,6 +34,7 @@ interface TenantInfo {
   domain: string
   logoUrl: string | null
   primaryColor: string | null
+  isGuardianAngel?: boolean
 }
 
 interface DashboardSidebarProps {
@@ -536,6 +537,39 @@ function TenantChooser({
     window.location.href = `${protocol}//${tenantHost}${portSuffix}${localePrefix}/dashboard`
   }
 
+  // Group portals: personal guardian angel(s) vs endeavors/businesses.
+  const guardians = filtered.filter((t) => t.isGuardianAngel)
+  const endeavors = filtered.filter((t) => !t.isGuardianAngel)
+
+  const renderRow = (t: TenantInfo) => (
+    <button
+      key={String(t.id)}
+      onClick={() => handleSwitch(t)}
+      className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+        String(t.id) === String(currentTenantId)
+          ? 'bg-muted font-medium text-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      }`}
+    >
+      {t.logoUrl ? (
+        <img src={t.logoUrl} alt={t.name} className="h-5 w-5 shrink-0 rounded object-cover" />
+      ) : (
+        <span
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-bold text-primary-foreground"
+          style={t.primaryColor ? { backgroundColor: t.primaryColor } : undefined}
+        >
+          {t.name[0]?.toUpperCase() || '?'}
+        </span>
+      )}
+      <span className="truncate">{t.name}</span>
+      {String(t.id) === String(currentTenantId) && (
+        <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </button>
+  )
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -577,39 +611,27 @@ function TenantChooser({
             </div>
           )}
           <div className="max-h-72 overflow-y-auto">
-          {filtered.length === 0 && (
-            <div className="px-3 py-2 text-xs text-muted-foreground">
-              No portals match “{filter}”.
-            </div>
-          )}
-          {filtered.map((t) => (
-            <button
-              key={String(t.id)}
-              onClick={() => handleSwitch(t)}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                String(t.id) === String(currentTenantId)
-                  ? 'bg-muted font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {t.logoUrl ? (
-                <img src={t.logoUrl} alt={t.name} className="h-5 w-5 shrink-0 rounded object-cover" />
-              ) : (
-                <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-bold text-primary-foreground"
-                  style={t.primaryColor ? { backgroundColor: t.primaryColor } : undefined}
-                >
-                  {t.name[0]?.toUpperCase() || '?'}
-                </span>
-              )}
-              <span className="truncate">{t.name}</span>
-              {String(t.id) === String(currentTenantId) && (
-                <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-          ))}
+            {filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                No portals match “{filter}”.
+              </div>
+            )}
+            {guardians.length > 0 && (
+              <>
+                <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  {guardians.length === 1 ? 'Your guardian angel' : 'Guardian angels'}
+                </div>
+                {guardians.map(renderRow)}
+              </>
+            )}
+            {endeavors.length > 0 && (
+              <>
+                <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  Endeavors
+                </div>
+                {endeavors.map(renderRow)}
+              </>
+            )}
           </div>
         </div>
       )}

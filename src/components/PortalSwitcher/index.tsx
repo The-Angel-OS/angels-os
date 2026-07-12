@@ -9,6 +9,8 @@ export interface PortalInfo {
   domain: string
   logoUrl: string | null
   primaryColor: string | null
+  /** true = a personal guardian-angel portal; false/undefined = an endeavor/business. */
+  isGuardianAngel?: boolean
 }
 
 /**
@@ -159,6 +161,34 @@ export function PortalSwitcher({
   const currentPortal = portals.find((p) => String(p.id) === String(currentTenantId))
   const hasPortalList = portals.length >= 2
 
+  // Group: personal guardian angel(s) vs endeavors/businesses.
+  const guardianPortals = displayedPortals.filter((p) => p.isGuardianAngel)
+  const endeavorPortals = displayedPortals.filter((p) => !p.isGuardianAngel)
+
+  const renderPortalRow = (p: PortalInfo) => (
+    <button
+      key={String(p.id)}
+      onClick={() => handleSwitch(p)}
+      className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+        String(p.id) === String(currentTenantId)
+          ? 'bg-muted font-medium text-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      }`}
+    >
+      {p.logoUrl ? (
+        <img src={p.logoUrl} alt={p.name} className="h-5 w-5 shrink-0 rounded object-cover" />
+      ) : (
+        <PortalAvatar name={p.name} color={p.primaryColor} />
+      )}
+      <span className="truncate">{p.name}</span>
+      {String(p.id) === String(currentTenantId) && (
+        <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </button>
+  )
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -233,29 +263,22 @@ export function PortalSwitcher({
           {hasPortalList && displayedPortals.length === 0 && (
             <div className="px-3 py-2 text-xs text-muted-foreground">No portals match “{filter}”.</div>
           )}
-          {hasPortalList && displayedPortals.map((p) => (
-            <button
-              key={String(p.id)}
-              onClick={() => handleSwitch(p)}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                String(p.id) === String(currentTenantId)
-                  ? 'bg-muted font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {p.logoUrl ? (
-                <img src={p.logoUrl} alt={p.name} className="h-5 w-5 shrink-0 rounded object-cover" />
-              ) : (
-                <PortalAvatar name={p.name} color={p.primaryColor} />
-              )}
-              <span className="truncate">{p.name}</span>
-              {String(p.id) === String(currentTenantId) && (
-                <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-          ))}
+          {hasPortalList && guardianPortals.length > 0 && (
+            <>
+              <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {guardianPortals.length === 1 ? 'Your guardian angel' : 'Guardian angels'}
+              </div>
+              {guardianPortals.map(renderPortalRow)}
+            </>
+          )}
+          {hasPortalList && endeavorPortals.length > 0 && (
+            <>
+              <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                Endeavors
+              </div>
+              {endeavorPortals.map(renderPortalRow)}
+            </>
+          )}
           {/* Single-portal editor whose current page has no editor — keep the
               menu from rendering empty. */}
           {!hasPortalList && !editTarget && (

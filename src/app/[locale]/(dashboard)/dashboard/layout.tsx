@@ -110,6 +110,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     domain: string
     logoUrl: string | null
     primaryColor: string | null
+    isGuardianAngel?: boolean
   }
 
   // super_admins have all-tenant access (userHasAccessToAllTenants is gated to
@@ -194,6 +195,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           ? t.branding.logo.url
           : null,
       primaryColor: t.branding?.primaryColor || null,
+      isGuardianAngel: Boolean(t.isGuardianAngel),
     }
   }
 
