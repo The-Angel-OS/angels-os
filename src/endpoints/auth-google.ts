@@ -111,13 +111,18 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     statePayload.origin = currentOrigin
   }
 
+  // Account switching: `?switch=1` forces Google's account chooser so a signed-in
+  // Google user can pick a DIFFERENT account (Nimue's "Switch account" flow — clearing
+  // our Payload token alone doesn't clear Google's own browser session). Normal login
+  // keeps the smoother `consent` prompt.
+  const forceChooser = url.searchParams.get('switch') === '1'
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'openid email profile',
     access_type: 'offline',
-    prompt: 'consent',
+    prompt: forceChooser ? 'select_account consent' : 'consent',
   })
 
   if (Object.keys(statePayload).length > 0) {
