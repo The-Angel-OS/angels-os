@@ -1,7 +1,9 @@
 import { Banner } from '@payloadcms/ui'
 import React from 'react'
 import { getPayload } from 'payload'
+import type { Where } from 'payload'
 import config from '@payload-config'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 import { SeedButton } from './SeedButton'
 import './index.scss'
@@ -20,23 +22,44 @@ export async function BeforeDashboard() {
   let stats = { pages: 0, posts: 0, products: 0, media: 0, users: 0, tenants: 0, spaces: 0, draftPages: 0, draftPosts: 0 }
   let recentEdits: Array<{ collection: string; title: string; id: string | number; updatedAt: string; status?: string }> = []
 
+  // Scope the command center to the CURRENT portal (the admin domain's tenant), so
+  // a tenant_admin — or a super_admin viewing a specific portal's /admin — sees THAT
+  // portal's content + recent edits, not the whole node's global content (which
+  // linked to docs that don't exist in the current portal). On the platform apex
+  // (no specific tenant), stay global.
+  let tenantId: number | string | undefined
+  let scoped = false
+  try {
+    const { tenant } = await resolveTenantFromHeaders()
+    tenantId = tenant?.id
+    // Only scope to a REAL portal — the platform/default tenant stays global.
+    scoped = tenantId != null && (tenant as { type?: string })?.type !== 'platform' && (tenant as { slug?: string })?.slug !== 'default'
+  } catch {
+    /* can't resolve → global view */
+  }
+  const tenantWhere: Where | undefined = scoped ? { tenant: { equals: tenantId } } : undefined
+  const withTenant = (w?: Where): Where | undefined => {
+    if (!tenantWhere) return w
+    return w ? { and: [tenantWhere, w] } : tenantWhere
+  }
+
   try {
     const payload = await getPayload({ config })
 
     const [pages, posts, products, media, users, tenants, spaces, draftPages, draftPosts, recentPages, recentPosts, recentProducts] = await Promise.all([
-      payload.count({ collection: 'pages', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'posts', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'products', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'media', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'pages', where: withTenant(), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'posts', where: withTenant(), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'products', where: withTenant(), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'media', where: withTenant(), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
       payload.count({ collection: 'users', where: { isSystemUser: { not_equals: true } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
       payload.count({ collection: 'tenants', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'spaces', overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'pages', where: { _status: { equals: 'draft' } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      payload.count({ collection: 'posts', where: { _status: { equals: 'draft' } }, overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
-      // Recent edits — 3 from each content collection
-      payload.find({ collection: 'pages', sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
-      payload.find({ collection: 'posts', sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
-      payload.find({ collection: 'products', sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
+      payload.count({ collection: 'spaces', where: withTenant(), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'pages', where: withTenant({ _status: { equals: 'draft' } }), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      payload.count({ collection: 'posts', where: withTenant({ _status: { equals: 'draft' } }), overrideAccess: true }).catch(() => ({ totalDocs: 0 })),
+      // Recent edits — 3 from each content collection, scoped to the current portal
+      payload.find({ collection: 'pages', where: withTenant(), sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
+      payload.find({ collection: 'posts', where: withTenant(), sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
+      payload.find({ collection: 'products', where: withTenant(), sort: '-updatedAt', limit: 3, depth: 0, overrideAccess: true }).catch(() => ({ docs: [] })),
     ])
 
     stats = {
@@ -104,8 +127,9 @@ export async function BeforeDashboard() {
         <StatCard label="Posts" value={stats.posts} href="/admin/collections/posts" color="#99ccff" />
         <StatCard label="Products" value={stats.products} href="/admin/collections/products" color="#cc99cc" />
         <StatCard label="Media" value={stats.media} href="/admin/collections/media" color="#f5a623" />
-        <StatCard label="Users" value={stats.users} href="/admin/collections/users" color="#4caf50" />
-        <StatCard label="Tenants" value={stats.tenants} href="/admin/collections/tenants" color="#cc99cc" />
+        {/* Users + Tenants are platform-level (not tenant-scoped) — hide on a portal view. */}
+        {!scoped && <StatCard label="Users" value={stats.users} href="/admin/collections/users" color="#4caf50" />}
+        {!scoped && <StatCard label="Tenants" value={stats.tenants} href="/admin/collections/tenants" color="#cc99cc" />}
         <StatCard label="Spaces" value={stats.spaces} href="/admin/collections/spaces" color="#99ccff" />
         {totalDrafts > 0 && (
           <StatCard label="Drafts" value={totalDrafts} href="/admin/collections/pages" color="#ff9800" />
