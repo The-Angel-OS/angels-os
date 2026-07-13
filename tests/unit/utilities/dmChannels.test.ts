@@ -14,7 +14,7 @@ vi.mock('@/utilities/ensureSystemSpace', () => ({
   ensureDMSpaceMembership: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { findOrCreateDM } from '@/utilities/dmChannels'
+import { findOrCreateDM, mergeDmChannelGroup } from '@/utilities/dmChannels'
 import { getPayload } from 'payload'
 
 const mockGetPayload = vi.mocked(getPayload)
@@ -26,11 +26,14 @@ function makePayload({
   createReturn = { id: 'new-dm-ch' },
   userAReturn = { id: 1, name: 'Alice' },
   userBReturn = { id: 2, name: 'Bob' },
+  messageCounts = {},
 }: {
   existingChannels?: unknown[]
   createReturn?: unknown
   userAReturn?: unknown
   userBReturn?: unknown
+  /** channelId → message count, consumed by the merge's payload.count */
+  messageCounts?: Record<string, number>
 } = {}) {
   let findByIDCallCount = 0
   return {
@@ -41,6 +44,10 @@ function makePayload({
     }),
     create: vi.fn().mockResolvedValue(createReturn),
     delete: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({ docs: [] }),
+    count: vi.fn().mockImplementation(({ where }: any) =>
+      Promise.resolve({ totalDocs: messageCounts[String(where?.channelRef?.equals)] ?? 0 }),
+    ),
   } as any
 }
 
@@ -106,18 +113,94 @@ describe('findOrCreateDM — existing channel', () => {
     expect(payload.create).not.toHaveBeenCalled()
   })
 
-  it('deletes duplicate channels and returns the canonical one', async () => {
+  it('merges duplicate channels into the one with the most messages', async () => {
+    // Per-tenant legacy dupes: the richest thread wins; the others' messages
+    // are repointed onto it BEFORE their rows are deleted.
     const payload = makePayload({
       existingChannels: [
-        { id: 'dm-canonical' },
-        { id: 'dm-duplicate-1' },
-        { id: 'dm-duplicate-2' },
+        { id: 'dm-t1', slug: 'dm-1-2', space: 30, members: [1, 2], createdAt: '2026-01-01' },
+        { id: 'dm-t5', slug: 'dm-1-2', space: 18, members: [1, 2], createdAt: '2026-02-01' },
+        { id: 'dm-t7', slug: 'dm-1-2', space: 19, members: [1, 2], createdAt: '2026-03-01' },
       ],
+      messageCounts: { 'dm-t5': 94, 'dm-t1': 37, 'dm-t7': 0 },
     })
     mockGetPayload.mockResolvedValue(payload)
     const result = await findOrCreateDM(1, 'dm-sp', 1, 2)
-    expect(result.channelId).toBe('dm-canonical')
+    expect(result.channelId).toBe('dm-t5')
     expect(payload.delete).toHaveBeenCalledTimes(2)
+    // Messages repointed to the canonical thread (channelRef + space)
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'messages',
+        where: { channelRef: { equals: 'dm-t1' } },
+        data: expect.objectContaining({ channelRef: 'dm-t5', space: 18 }),
+      }),
+    )
+  })
+
+  it('looks up the DM globally — no tenant constraint in the where', async () => {
+    const payload = makePayload({ existingChannels: [{ id: 'existing-dm' }] })
+    mockGetPayload.mockResolvedValue(payload)
+    await findOrCreateDM(1, 'dm-sp', 1, 2)
+    const where = payload.find.mock.calls[0][0].where
+    expect(JSON.stringify(where)).not.toContain('tenant')
+  })
+})
+
+// ── mergeDmChannelGroup ────────────────────────────────────────────────────────
+
+describe('mergeDmChannelGroup', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('ties break to the oldest channel', async () => {
+    const payload = makePayload({ messageCounts: {} })
+    const report = await mergeDmChannelGroup(
+      payload,
+      [
+        { id: 'newer', slug: 'dm-9-leo', space: 2, members: [9], createdAt: '2026-06-01' },
+        { id: 'older', slug: 'dm-9-leo', space: 1, members: [9], createdAt: '2026-01-01' },
+      ],
+      true,
+    )
+    expect(report?.canonicalId).toBe('older')
+    expect(payload.delete).toHaveBeenCalledWith(
+      expect.objectContaining({ collection: 'channels', id: 'newer' }),
+    )
+  })
+
+  it('dry-run reports without writing', async () => {
+    const payload = makePayload({ messageCounts: { a: 5, b: 1 } })
+    const report = await mergeDmChannelGroup(
+      payload,
+      [
+        { id: 'a', slug: 'dm-1-leo', space: 1, members: [1], createdAt: '2026-01-01' },
+        { id: 'b', slug: 'dm-1-leo', space: 2, members: [1], createdAt: '2026-02-01' },
+      ],
+      false,
+    )
+    expect(report?.canonicalId).toBe('a')
+    expect(report?.merged).toEqual([{ channelId: 'b', messagesMoved: 1 }])
+    expect(payload.update).not.toHaveBeenCalled()
+    expect(payload.delete).not.toHaveBeenCalled()
+  })
+
+  it('unions members from merged dupes onto the canonical', async () => {
+    const payload = makePayload({ messageCounts: { keep: 3 } })
+    await mergeDmChannelGroup(
+      payload,
+      [
+        { id: 'keep', slug: 'dm-1-2', space: 1, members: [1], createdAt: '2026-01-01' },
+        { id: 'drop', slug: 'dm-1-2', space: 2, members: [1, 2], createdAt: '2026-02-01' },
+      ],
+      true,
+    )
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'channels',
+        id: 'keep',
+        data: expect.objectContaining({ members: expect.arrayContaining([1, 2]) }),
+      }),
+    )
   })
 })
 

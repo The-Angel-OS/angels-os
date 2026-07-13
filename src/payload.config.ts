@@ -153,6 +153,7 @@ import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { contactSellerHandler } from '@/endpoints/contact-seller'
 import { ensureCommunitySpaceHandler } from '@/endpoints/ensure-community-space'
 import { foldDmsHandler } from '@/endpoints/fold-dms'
+import { unifyDmsHandler } from '@/endpoints/unify-dms'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
@@ -859,6 +860,14 @@ export default buildConfig({
       path: '/provision-ops/fold-dms',
       method: 'post',
       handler: foldDmsHandler,
+    },
+    // Channel-model fold phase 3: merge per-tenant duplicate DM threads (same
+    // deterministic slug) into ONE channel per conversation — a DM is the
+    // user's, not a tenant's. super_admin; dry-run by default.
+    {
+      path: '/provision-ops/unify-dms',
+      method: 'post',
+      handler: unifyDmsHandler,
     },
     // Read companion: the caller's guardian-angel standing (free tier vs over).
     // Powers the Nimue usage banner + Stripe upsell. Safe for any signed-in user.

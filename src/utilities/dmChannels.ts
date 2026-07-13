@@ -22,6 +22,132 @@ async function getLocalPayload() {
 // Angel brain; 'nimue' = the device client agent (the GuardianDelta surface).
 const AGENTS = new Set(['leo', 'nimue'])
 
+/** One channel's share of a DM-group merge (see mergeDmChannelGroup). */
+export interface DmMergeReport {
+  slug: string
+  canonicalId: number | string
+  canonicalSpaceId: number | string | undefined
+  merged: Array<{ channelId: number | string; messagesMoved: number }>
+  errors: string[]
+}
+
+/**
+ * Merge duplicate DM channels (same deterministic slug) into ONE canonical
+ * thread. DMs are the USER's — the slug encodes the participant pair, so two
+ * rows with the same slug are the same conversation, whatever tenant/space
+ * minted them (the pre-260713 findOrCreateDM was tenant-scoped, so every
+ * portal minted its own dm-{u}-leo — nine per user in the wild).
+ *
+ * Canonical = the row with the most messages (tie → oldest). Every other
+ * row's messages are REPOINTED (channelRef + space) onto the canonical before
+ * the row is deleted — history is never orphaned. Members are unioned.
+ */
+export async function mergeDmChannelGroup(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  docs: any[],
+  execute = true,
+): Promise<DmMergeReport | null> {
+  if (!docs?.length) return null
+  const slug = String(docs[0].slug)
+
+  // Message count per candidate — channelRef is the stable key post-fold.
+  const counts = new Map<string, number>()
+  for (const d of docs) {
+    const n = await payload.count({
+      collection: 'messages',
+      where: { channelRef: { equals: d.id } },
+      overrideAccess: true,
+    })
+    counts.set(String(d.id), n.totalDocs)
+  }
+  const sorted = [...docs].sort((a, b) => {
+    const diff = (counts.get(String(b.id)) ?? 0) - (counts.get(String(a.id)) ?? 0)
+    if (diff !== 0) return diff
+    return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+  })
+  const canonical = sorted[0]
+  const canonicalSpace =
+    typeof canonical.space === 'object' ? canonical.space?.id : canonical.space
+
+  const report: DmMergeReport = {
+    slug,
+    canonicalId: canonical.id,
+    canonicalSpaceId: canonicalSpace,
+    merged: [],
+    errors: [],
+  }
+
+  const memberIds = new Set<number>(
+    (canonical.members ?? []).map((m: unknown) =>
+      Number(typeof m === 'object' && m !== null ? (m as { id: number }).id : m),
+    ),
+  )
+  let membersGrew = false
+
+  for (const dupe of sorted.slice(1)) {
+    const dupeSpace = typeof dupe.space === 'object' ? dupe.space?.id : dupe.space
+    try {
+      let moved = counts.get(String(dupe.id)) ?? 0
+      if (execute) {
+        // Re-home the dupe's messages onto the canonical thread: stable ref +
+        // space (clients still page history by (space, slug)).
+        const upd = await payload.update({
+          collection: 'messages',
+          where: { channelRef: { equals: dupe.id } },
+          data: { channelRef: canonical.id, space: Number(canonicalSpace) } as never,
+          overrideAccess: true,
+        })
+        moved = Array.isArray((upd as { docs?: unknown[] }).docs)
+          ? (upd as { docs: unknown[] }).docs.length
+          : moved
+        // Stray sweep: pre-fold rows in the dupe's space that never got a ref.
+        if (dupeSpace != null && String(dupeSpace) !== String(canonicalSpace)) {
+          await payload.update({
+            collection: 'messages',
+            where: {
+              and: [
+                { space: { equals: dupeSpace } },
+                { channel: { equals: slug } },
+                { channelRef: { exists: false } },
+              ],
+            },
+            data: { channelRef: canonical.id, space: Number(canonicalSpace) } as never,
+            overrideAccess: true,
+          })
+        }
+        for (const m of (dupe.members ?? []) as unknown[]) {
+          const id = Number(typeof m === 'object' && m !== null ? (m as { id: number }).id : m)
+          if (!memberIds.has(id)) {
+            memberIds.add(id)
+            membersGrew = true
+          }
+        }
+        await payload.delete({ collection: 'channels', id: dupe.id, overrideAccess: true })
+      }
+      report.merged.push({ channelId: dupe.id, messagesMoved: moved })
+    } catch (e) {
+      report.errors.push(`channel ${dupe.id}: ${(e as Error).message}`)
+    }
+  }
+
+  if (execute && membersGrew) {
+    try {
+      await payload.update({
+        collection: 'channels',
+        id: canonical.id,
+        data: { members: [...memberIds] } as never,
+        overrideAccess: true,
+      })
+    } catch (e) {
+      report.errors.push(`member union: ${(e as Error).message}`)
+    }
+  }
+
+  return report
+}
+
 export async function findOrCreateDM(
   tenantId: number | string,
   dmSpaceId: number | string,
@@ -38,38 +164,36 @@ export async function findOrCreateDM(
     : [String(userA), String(userB)].sort()
   const slug = `dm-${parts.join('-')}`
 
-  // Look for existing channel(s) — fetch up to 5 to detect & clean duplicates
+  // Look for the existing channel GLOBALLY — a DM is the user's, not a
+  // tenant's. The slug encodes the participant pair, so the same conversation
+  // must resolve from every portal (tenant-scoped lookup was why each portal
+  // minted its own dm-{u}-leo with a disjoint history).
   const existing = await payload.find({
     collection: 'channels',
     where: {
       and: [
         { slug: { equals: slug } },
-        { tenant: { equals: tenantId } },
         { type: { equals: 'dm' } },
       ],
     },
-    limit: 5,
+    limit: 25,
     depth: 0,
     overrideAccess: true,
   })
 
   if (existing.docs?.length > 0) {
-    // Keep the first (oldest/canonical) and delete any duplicates
-    const canonical = existing.docs[0]
+    let canonical = existing.docs[0]
     if (existing.docs.length > 1) {
+      // Legacy per-tenant duplicates — merge them (messages repointed, never
+      // dropped) and carry on with the survivor.
       console.warn(
-        `[findOrCreateDM] Found ${existing.docs.length} duplicate channels for slug "${slug}" — cleaning up`,
+        `[findOrCreateDM] Found ${existing.docs.length} channels for slug "${slug}" — merging into one thread`,
       )
-      for (let i = 1; i < existing.docs.length; i++) {
-        try {
-          await payload.delete({
-            collection: 'channels',
-            id: existing.docs[i].id,
-            overrideAccess: true,
-          })
-        } catch {
-          // Non-critical — dedup cleanup is best-effort
-        }
+      const merged = await mergeDmChannelGroup(payload, existing.docs, true)
+      if (merged) {
+        canonical =
+          existing.docs.find((d: { id: number | string }) => String(d.id) === String(merged.canonicalId)) ??
+          canonical
       }
     }
 
@@ -137,13 +261,13 @@ export async function findOrCreateDM(
     })
   } catch (createErr) {
     // If creation failed (likely due to race condition), re-query for the
-    // channel that the other concurrent request created.
+    // channel that the other concurrent request created — globally, same as
+    // the primary lookup.
     const retry = await payload.find({
       collection: 'channels',
       where: {
         and: [
           { slug: { equals: slug } },
-          { tenant: { equals: tenantId } },
           { type: { equals: 'dm' } },
         ],
       },
