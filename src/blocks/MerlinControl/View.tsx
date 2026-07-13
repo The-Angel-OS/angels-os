@@ -241,10 +241,12 @@ function FileBrowser({ endeavor, nodeId, nodeName }: { endeavor: string; nodeId:
   const [lanUrl, setLanUrl] = React.useState<string | undefined>()
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [error, setError] = React.useState<string | null>(null)
+  const filesCacheKey = (e: string, n: string) => `merlin.files.${e}.${n}`
 
   const load = React.useCallback(
-    async (q: string) => {
-      setStatus('loading')
+    async (q: string, silent = false) => {
+      // silent = revalidate without tearing down the currently-shown (cached) list.
+      if (!silent) setStatus('loading')
       setError(null)
       try {
         const post = await fetch('/api/node-ops/files', {
@@ -275,11 +277,27 @@ function FileBrowser({ endeavor, nodeId, nodeName }: { endeavor: string; nodeId:
               setError(gd.error)
               return
             }
-            setFiles(Array.isArray(gd.files) ? gd.files : [])
-            setRoots(Array.isArray(gd.roots) ? gd.roots : [])
-            setTunnelUrl(typeof gd.tunnelUrl === 'string' ? gd.tunnelUrl : undefined)
-            setLanUrl(typeof gd.lanUrl === 'string' ? gd.lanUrl : undefined)
+            const nextFiles = Array.isArray(gd.files) ? gd.files : []
+            const nextRoots = Array.isArray(gd.roots) ? gd.roots : []
+            const nextTunnel = typeof gd.tunnelUrl === 'string' ? gd.tunnelUrl : undefined
+            const nextLan = typeof gd.lanUrl === 'string' ? gd.lanUrl : undefined
+            setFiles(nextFiles)
+            setRoots(nextRoots)
+            setTunnelUrl(nextTunnel)
+            setLanUrl(nextLan)
             setStatus('ready')
+            // Cache the DEFAULT listing (empty query) so reopening the tab paints
+            // instantly instead of re-polling the node over the async bus (~seconds).
+            if (!q) {
+              try {
+                window.localStorage.setItem(
+                  filesCacheKey(endeavor, nodeId),
+                  JSON.stringify({ files: nextFiles, roots: nextRoots, tunnelUrl: nextTunnel, lanUrl: nextLan, at: new Date().toISOString() }),
+                )
+              } catch {
+                /* storage full / disabled — non-fatal */
+              }
+            }
             return
           }
         }
@@ -294,18 +312,38 @@ function FileBrowser({ endeavor, nodeId, nodeName }: { endeavor: string; nodeId:
   )
 
   React.useEffect(() => {
+    // Cache-first: paint the last-known listing instantly, then revalidate behind.
+    try {
+      const raw = window.localStorage.getItem(filesCacheKey(endeavor, nodeId))
+      if (raw) {
+        const c = JSON.parse(raw) as { files?: BrowsableFile[]; roots?: string[]; tunnelUrl?: string; lanUrl?: string }
+        if (Array.isArray(c.files) && c.files.length) {
+          setFiles(c.files)
+          setRoots(Array.isArray(c.roots) ? c.roots : [])
+          setTunnelUrl(c.tunnelUrl)
+          setLanUrl(c.lanUrl)
+          setStatus('ready')
+          // Revalidate silently — keep the cached list on screen, no spinner.
+          void load('', true)
+          return
+        }
+      }
+    } catch {
+      /* no/invalid cache — fall through to a live load */
+    }
     void load('')
   }, [load])
 
-  // Tiered link resolution (matches the home-user, no-install vision):
-  //   1. tunnel  → direct off the node, zero Core bandwidth (best)
-  //   2. LAN     → if the viewer is on the node's network, stream DIRECT from its
-  //                localIp:3000 — no tunnel, no service install
-  //   3. proxy   → Core relays (only works if the node has a public origin; the
-  //                endpoint returns a friendly 409 otherwise)
+  // Link resolution — every link is an INDIRECT (endeavor, nodeId, ref) reference
+  // resolved through Core at CLICK time, never a persisted/direct tunnel URL. Core
+  // looks up the node's CURRENT tunnel per request, so links survive a rotating /
+  // dynamic tunnel (the old `f.tunnelUrl` direct link went dead the moment the
+  // tunnel changed or for any remote viewer — the "media links don't work" bug).
+  //   • LAN-direct stays as a faster path ONLY when the node has no tunnel and
+  //     advertises a LAN url (same-network viewing; Core can't reach a LAN address).
+  //   • Otherwise → Core proxy, which resolves the live tunnel server-side.
   const hrefFor = (f: BrowsableFile) => {
-    if (f.tunnelUrl) return f.tunnelUrl
-    if (lanUrl) return `${lanUrl.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(f.ref)}`
+    if (!tunnelUrl && lanUrl) return `${lanUrl.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(f.ref)}`
     return `/api/node-ops/file?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&ref=${encodeURIComponent(f.ref)}`
   }
 
