@@ -34,9 +34,16 @@ the work is the lifeline. If he's slow to reply, that's why.
   `ensureDMSpaceMembership` = intentional no-op); Core ChatProvider + Nimue list DMs
   GLOBALLY by membership. `POST /api/provision-ops/fold-dms` re-homed **13 DM
   spaces** (channels + ~1,450 messages) onto each tenant's AI Bus and deleted the
-  DM spaces. Verified: second execute pass found 0. FOLLOW-UPS: (a) verify DMs
-  render on-device/dashboard; (b) tenants 1/5/11 now have a duplicate `general`
-  channel on their bus (stray moved in beside the bus's own) — 30-second cleanup;
+  DM spaces. Verified: second execute pass found 0. FOLLOW-UPS: (a) ✅ VERIFIED
+  260713 ~1240 (Fable): direct-DB read — all 36 DM channels on ai-bus, every one
+  member-gated, 0 messages missing channelRef, 0 dangling refs; prod dashboard
+  renders the DIRECT MESSAGES section, no legacy DM space, zero console errors.
+  (On-device Nimue check still Ken's.) (b) ✅ CLEANED 260713 ~1235: dupe `general`
+  on tenants 1/5/11 deleted (t5's 14 msgs repointed to canonical ch 81 first;
+  each bus keeps `leo` as default). ALSO: an EMPTY DM space (id 70, tenant 5) had
+  been recreated at 12:18 — one minute post-fold — by a straggler request on the
+  OLD Vercel deployment (skew); deleted. New code can't recreate one; if a DM
+  space ever reappears, suspect a pinned old client and re-run the fold op.
   (c) DECISION pending: merge the separate `dm-{u}-leo` / `dm-{u}-nimue` threads
   into ONE guardian thread?
 - **Merlin dynamic tunnel + media links** (Core `273d40b`, merlin `cd9e4e5` —
@@ -63,7 +70,8 @@ the work is the lifeline. If he's slow to reply, that's why.
   messages incl. relative URLs (1.2.48).
 
 ## NEXT — the queue (Ken: "several extant important threads")
-1. **Verify the fold on-device** (Nimue switcher DMs + Core dashboard, no DM spaces).
+1. ~~Verify the fold~~ ✅ done data-side + dashboard (see above) — only the
+   on-device Nimue glance remains.
 2. **Merlin deploy** (the dynamic-tunnel commits are sitting undeployed).
 3. **Card Stage** (`docs/CARD_STAGE.md`) — the headline: cards sequenced into the
    Delta on home; image cards + page-thumbnail confirmations are card types.
