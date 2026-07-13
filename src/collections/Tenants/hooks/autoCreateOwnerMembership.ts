@@ -81,7 +81,11 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       }),
     )
     const navResult = await settle(createDefaultTenantNavigation(payload, doc.id))
-    const spaceResult = await settle(ensureMainSpace(payload, doc.id, doc.name, doc.slug))
+    // Pass `req` so ensureMainSpace's channel writes JOIN this hook's transaction
+    // (same connection) instead of opening autonomous connections that starve the
+    // pool — the very failure mode this block's comment warns about, which left
+    // new tenants' Community space channel-less (invited members saw nothing).
+    const spaceResult = await settle(ensureMainSpace(payload, doc.id, doc.name, doc.slug, req))
 
     if (pagesResult.status === 'fulfilled') {
       payload.logger.info(

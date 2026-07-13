@@ -24,6 +24,7 @@ export interface OnboardingReport {
   aiBusSpaceId?: string
   mainSpaceId?: string
   dmSpaceId?: string
+  mainChannelsCreated: number
   pageChannelsReparented: number
   membersBackfilled: number
   spacesCount: number
@@ -34,11 +35,16 @@ export interface OnboardingReport {
 export async function verifyEndeavorOnboarding(
   payload: Payload,
   tenantId: number | string,
+  // The request — threaded to ensureTenantDefaults so baseline-channel writes
+  // reuse the request connection (prod pool starvation fix). Optional so
+  // non-HTTP callers still work (they get autonomous writes).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req?: any,
 ): Promise<OnboardingReport> {
   const errors: string[] = []
 
   // 1. Baseline spaces + channels (idempotent create-if-missing).
-  const defaults = await ensureTenantDefaults(payload, tenantId)
+  const defaults = await ensureTenantDefaults(payload, tenantId, req)
   errors.push(...defaults.errors)
 
   const aiBusSpaceId = defaults.aiBusSpaceId ?? (await resolveAiBusSpaceId(payload, tenantId))
@@ -127,6 +133,7 @@ export async function verifyEndeavorOnboarding(
     aiBusSpaceId,
     mainSpaceId: defaults.mainSpaceId,
     dmSpaceId: defaults.dmSpaceId,
+    mainChannelsCreated: defaults.mainChannelsCreated,
     pageChannelsReparented,
     membersBackfilled,
     spacesCount,

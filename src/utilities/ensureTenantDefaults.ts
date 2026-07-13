@@ -23,12 +23,18 @@ export interface TenantDefaultsResult {
   aiBusSpaceId: string | undefined
   mainSpaceId: string | undefined
   dmSpaceId: string | undefined
+  /** Channels created in the main space THIS call. */
+  mainChannelsCreated: number
   errors: string[]
 }
 
 export async function ensureTenantDefaults(
   payload: Payload,
   tenantId: number | string,
+  // Thread the request so writes reuse its connection/transaction (see
+  // ensureMainSpace — autonomous connections starve on prod's PgBouncer pool).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req?: any,
 ): Promise<TenantDefaultsResult> {
   const errors: string[] = []
 
@@ -43,9 +49,12 @@ export async function ensureTenantDefaults(
 
   // 2. Main community space — where members land, auto-joined on onboarding.
   let mainSpaceId: string | undefined
+  let mainChannelsCreated = 0
   try {
-    const r = await ensureMainSpace(payload, tenantId)
+    const r = await ensureMainSpace(payload, tenantId, undefined, undefined, req)
     mainSpaceId = r?.spaceId
+    mainChannelsCreated = r?.channelsCreated ?? 0
+    if (r?.channelErrors?.length) errors.push(...r.channelErrors.map((m) => `Main channel — ${m}`))
   } catch (e) {
     errors.push(`Main space: ${e instanceof Error ? e.message : String(e)}`)
   }
@@ -59,5 +68,5 @@ export async function ensureTenantDefaults(
     errors.push(`DM space: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  return { aiBusSpaceId, mainSpaceId, dmSpaceId, errors }
+  return { aiBusSpaceId, mainSpaceId, dmSpaceId, mainChannelsCreated, errors }
 }

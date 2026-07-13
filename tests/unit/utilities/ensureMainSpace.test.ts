@@ -42,7 +42,7 @@ function makePayload({
       return Promise.resolve({ id: 'generic-id' })
     }),
     update: vi.fn().mockResolvedValue({}),
-    logger: { info: vi.fn(), warn: vi.fn() },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   } as any
 }
 
@@ -57,15 +57,17 @@ describe('ensureMainSpace', () => {
     expect(result).toBeDefined()
     expect(result!.spaceId).toBe('new-space-42')
     expect(result!.created).toBe(true)
-    expect(result!.channelIds).toHaveLength(3) // general, announcements, support
+    expect(result!.channelIds).toHaveLength(3) // main, announcements, support
+    expect(result!.channelsCreated).toBe(3)
+    expect(result!.channelErrors).toEqual([])
 
-    // Verify space was created with correct data
+    // The space is always named "Community" (the tenant carries the brand name).
     expect(payload.create).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'spaces',
         data: expect.objectContaining({
-          name: 'TestCorp Community',
-          slug: 'testcorp-community',
+          name: 'Community',
+          slug: 'community',
           visibility: 'invite_only',
           isMain: true,
           tenant: 1,
@@ -111,21 +113,21 @@ describe('ensureMainSpace', () => {
     expect(channelCreates).toHaveLength(3)
 
     const slugs = channelCreates.map((c: any) => c[0].data.slug)
-    expect(slugs).toContain('general')
+    expect(slugs).toContain('main')
     expect(slugs).toContain('announcements')
     expect(slugs).toContain('support')
 
-    // general should be isDefault=true
-    const generalCreate = channelCreates.find((c: any) => c[0].data.slug === 'general')
-    expect(generalCreate[0].data.isDefault).toBe(true)
+    // 'main' is the landing channel → isDefault=true
+    const mainCreate = channelCreates.find((c: any) => c[0].data.slug === 'main')
+    expect(mainCreate[0].data.isDefault).toBe(true)
   })
 
   it('self-heals missing channels on existing space', async () => {
     const payload = makePayload({
-      spaceDocs: [{ id: 'existing-space-99', isMain: true }],
+      spaceDocs: [{ id: 'existing-space-99', isMain: true, name: 'Community' }],
       channelDocs: [
-        // Only has general, missing announcements and support
-        { id: 'ch-1', slug: 'general', tenant: 1 },
+        // Only has main, missing announcements and support
+        { id: 'ch-1', slug: 'main', tenant: 1 },
       ],
     })
 
@@ -136,6 +138,7 @@ describe('ensureMainSpace', () => {
       (c: any) => c[0]?.collection === 'channels',
     )
     expect(channelCreates).toHaveLength(2)
+    expect(result!.channelsCreated).toBe(2)
 
     const slugs = channelCreates.map((c: any) => c[0].data.slug)
     expect(slugs).toContain('announcements')
@@ -144,9 +147,9 @@ describe('ensureMainSpace', () => {
 
   it('backfills missing tenant on existing channels', async () => {
     const payload = makePayload({
-      spaceDocs: [{ id: 'existing-space-99', isMain: true }],
+      spaceDocs: [{ id: 'existing-space-99', isMain: true, name: 'Community' }],
       channelDocs: [
-        { id: 'ch-1', slug: 'general', tenant: null }, // Missing tenant
+        { id: 'ch-1', slug: 'main', tenant: null }, // Missing tenant
         { id: 'ch-2', slug: 'announcements', tenant: 1 },
         { id: 'ch-3', slug: 'support', tenant: 1 },
       ],
@@ -164,12 +167,42 @@ describe('ensureMainSpace', () => {
     )
   })
 
+  it('threads req to every write so it joins the request transaction', async () => {
+    const payload = makePayload()
+    const req = { transactionID: 'tx-abc', user: null }
+
+    await ensureMainSpace(payload, 1, 'TestCorp', 'testcorp', req)
+
+    // Space create + all channel creates must carry the same req.
+    for (const call of (payload.create as any).mock.calls) {
+      expect(call[0].req).toBe(req)
+    }
+  })
+
+  it('surfaces channel-create errors instead of swallowing them', async () => {
+    const payload = makePayload()
+    payload.create = vi.fn().mockImplementation((opts: any) => {
+      if (opts.collection === 'spaces') return Promise.resolve({ id: 'space-1' })
+      if (opts.collection === 'channels' && opts.data.slug === 'support') {
+        return Promise.reject(new Error('pool timeout'))
+      }
+      return Promise.resolve({ id: 'ch-x' })
+    })
+
+    const result = await ensureMainSpace(payload, 1, 'TestCorp', 'testcorp')
+
+    expect(result!.channelsCreated).toBe(2)
+    expect(result!.channelErrors).toHaveLength(1)
+    expect(result!.channelErrors[0]).toContain('support')
+    expect(result!.channelErrors[0]).toContain('pool timeout')
+  })
+
   it('resolves tenant name/slug from DB when not provided', async () => {
     const payload = makePayload({
       tenantDoc: { id: 5, name: 'ResolvedCorp', slug: 'resolved-corp' },
     })
 
-    const result = await ensureMainSpace(payload, 5)
+    await ensureMainSpace(payload, 5)
 
     expect(payload.findByID).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -178,13 +211,11 @@ describe('ensureMainSpace', () => {
       }),
     )
 
+    // Space name is always 'Community' regardless of tenant name.
     expect(payload.create).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'spaces',
-        data: expect.objectContaining({
-          name: 'ResolvedCorp Community',
-          slug: 'resolved-corp-community',
-        }),
+        data: expect.objectContaining({ name: 'Community', slug: 'community' }),
       }),
     )
   })

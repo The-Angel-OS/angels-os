@@ -38,6 +38,10 @@ interface EnsureMainSpaceResult {
   spaceId: string
   channelIds: string[]
   created: boolean
+  /** Channels created THIS call (vs already-present). */
+  channelsCreated: number
+  /** Real errors from channel creation — surfaced, no longer swallowed. */
+  channelErrors: string[]
 }
 
 export async function ensureMainSpace(
@@ -46,6 +50,13 @@ export async function ensureMainSpace(
   tenantId: number | string,
   tenantName?: string,
   tenantSlug?: string,
+  // Pass the request so writes JOIN its transaction/connection. Without it,
+  // every payload.create opens an AUTONOMOUS connection — on prod's PgBouncer
+  // pool (small, transaction-mode) those starve behind the endpoint's own
+  // transaction and the channel creates silently fail (the bug that left
+  // invited-in members staring at an empty Community space). See callers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req?: any,
 ): Promise<EnsureMainSpaceResult | undefined> {
   try {
     // 1. Check if a main space already exists for this tenant
@@ -60,6 +71,7 @@ export async function ensureMainSpace(
       limit: 1,
       depth: 0,
       overrideAccess: true,
+      req,
     })
 
     if (existing.docs?.[0]) {
@@ -74,13 +86,15 @@ export async function ensureMainSpace(
             id: spaceId,
             data: { name: 'Community', slug: 'community' },
             overrideAccess: true,
+            req,
           })
         } catch {
           /* non-fatal — slug collision or drift; leave the existing name */
         }
       }
-      const channelIds = await ensureMainChannels(payload, spaceId, tenantId)
-      return { spaceId, channelIds, created: false }
+      const { channelIds, created: channelsCreated, errors: channelErrors } =
+        await ensureMainChannels(payload, spaceId, tenantId, req)
+      return { spaceId, channelIds, created: false, channelsCreated, channelErrors }
     }
 
     // 2. Resolve tenant name/slug if not provided
@@ -90,6 +104,7 @@ export async function ensureMainSpace(
         id: tenantId,
         depth: 0,
         overrideAccess: true,
+        req,
       })
       if (!tenantName) tenantName = tenant?.name || 'Community'
       if (!tenantSlug) tenantSlug = tenant?.slug || 'community'
@@ -108,18 +123,20 @@ export async function ensureMainSpace(
         tenant: tenantId as number,
       },
       overrideAccess: true,
+      req,
     })
 
     const spaceId = String(space.id)
 
     // 4. Create default channels
-    const channelIds = await ensureMainChannels(payload, spaceId, tenantId)
+    const { channelIds, created: channelsCreated, errors: channelErrors } =
+      await ensureMainChannels(payload, spaceId, tenantId, req)
 
     payload.logger?.info?.(
       `[ensureMainSpace] Created "Community" space (${spaceId}) with ${channelIds.length} channels for tenant ${tenantId}`,
     )
 
-    return { spaceId, channelIds, created: true }
+    return { spaceId, channelIds, created: true, channelsCreated, channelErrors }
   } catch (err) {
     // Non-critical — don't break tenant creation
     console.warn('[ensureMainSpace] Failed to ensure main space:', err)
@@ -136,8 +153,12 @@ async function ensureMainChannels(
   payload: any,
   spaceId: string | number,
   tenantId: number | string,
-): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req?: any,
+): Promise<{ channelIds: string[]; created: number; errors: string[] }> {
   const channelIds: string[] = []
+  const errors: string[] = []
+  let created = 0
 
   try {
     // Fetch existing channels for this space
@@ -147,6 +168,7 @@ async function ensureMainChannels(
       limit: 50,
       depth: 0,
       overrideAccess: true,
+      req,
     })
 
     const existingBySlug = new Map(
@@ -169,13 +191,15 @@ async function ensureMainChannels(
               id: existing.id,
               data: { tenant: tenantId as number },
               overrideAccess: true,
+              req,
             })
           } catch {
             console.warn(`[ensureMainSpace] Failed to backfill tenant on channel ${template.slug}`)
           }
         }
       } else {
-        // Create missing channel
+        // Create missing channel — surface the REAL error (was silently swallowed,
+        // which hid the pool-starvation failure on prod for weeks).
         try {
           const channel = await payload.create({
             collection: 'channels',
@@ -189,16 +213,22 @@ async function ensureMainChannels(
               tenant: tenantId as number,
             } as any,
             overrideAccess: true,
+            req,
           })
           channelIds.push(String(channel.id))
-        } catch {
-          console.warn(`[ensureMainSpace] Failed to create channel ${template.slug}`)
+          created++
+        } catch (e) {
+          const msg = `channel ${template.slug}: ${e instanceof Error ? e.message : String(e)}`
+          errors.push(msg)
+          payload.logger?.error?.(`[ensureMainSpace] ${msg}`)
         }
       }
     }
   } catch (err) {
-    console.warn('[ensureMainSpace] Failed to ensure channels:', err)
+    const msg = `list/heal channels: ${err instanceof Error ? err.message : String(err)}`
+    errors.push(msg)
+    payload.logger?.error?.(`[ensureMainSpace] ${msg}`)
   }
 
-  return channelIds
+  return { channelIds, created, errors }
 }

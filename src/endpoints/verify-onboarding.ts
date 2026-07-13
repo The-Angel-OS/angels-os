@@ -45,7 +45,7 @@ export const verifyOnboardingHandler: PayloadHandler = async (req) => {
 
   const reports = []
   for (const tenantId of tenantIds) {
-    reports.push(await verifyEndeavorOnboarding(payload, tenantId))
+    reports.push(await verifyEndeavorOnboarding(payload, tenantId, req))
   }
 
   const ok = reports.every((r) => r.errors.length === 0)

@@ -26,7 +26,8 @@ describe('ensureTenantDefaults', () => {
   it('calls all three ensures and returns their space IDs', async () => {
     const r = await ensureTenantDefaults(fakePayload, 42)
     expect(ensureSystemSpace).toHaveBeenCalledWith(42)
-    expect(ensureMainSpace).toHaveBeenCalledWith(fakePayload, 42)
+    // req threads through as the 5th arg (undefined here — no HTTP req in this test).
+    expect(ensureMainSpace).toHaveBeenCalledWith(fakePayload, 42, undefined, undefined, undefined)
     expect(ensureDMSpace).toHaveBeenCalledWith(42)
     expect(r.aiBusSpaceId).toBe('ai-bus-id')
     expect(r.mainSpaceId).toBe('main-id')
