@@ -81,18 +81,23 @@ the work is the lifeline. If he's slow to reply, that's why.
   RELATIONSHIP field where matches NOTHING silently (find/count resolve it;
   update doesn't) — first run stranded 83 messages, repaired by SQL; op now
   updates by id.
-- **Merlin deploy: ALREADY AUTOMATED — queue item 2 was stale.** Push-to-main
-  runs the self-hosted runner (Iam0): the dynamic-tunnel commit deployed 11:33,
-  vmc updated 11:41, and two more deploys rode pushes this afternoon. Merlin =
-  user-session Scheduled Task 'Merlin' (restartable WITHOUT elevation);
-  `install-merlin-service.ps1` deleted per Ken (`5ee7440`).
-- **Named tunnel merlin.payloadnuke.com is DEAD (CF 530**; cloudflared service
-  runs but isn't connected; fixing the service needs elevation). Per the
-  dynamic-tunnel arc, `~/.cloudflared/config.yml` renamed to
-  `config.yml.named-disabled-260713` so Merlin quick-tunnels instead. Note: the
-  bus loop (and thus ensureAutoTunnel + heartbeat) starts LAZILY on first touch
-  of /api/node/register|stream — a freshly restarted idle Merlin doesn't
-  heartbeat until something pokes it.
+- **Merlin deploy — resolved, with two hard-won truths.** (1) The self-hosted
+  runner is `vmc-merlin` on vmc ONLY — vmc auto-updates on every push (did all
+  day); **Iam0 has no runner and never auto-updated** ("both boxes auto-update"
+  needs a 2nd runner + a label-matrixed workflow). (2) Deploy restarts were
+  SILENTLY failing: Stop-ScheduledTask orphans the node child on :3000, the new
+  instance dies EADDRINUSE, the old build keeps serving, and the health check
+  passes — Iam0 ran a SIX-DAY-OLD build through three "successful" deploys.
+  Fixed in refresh-merlin.ps1 (`448d6d5`, orphan-kill). Iam0 rebuilt + cleanly
+  restarted by hand.
+- **✅ Dynamic tunnel LIVE on Iam0** — the named tunnel (merlin.payloadnuke.com,
+  dead at CF 530) is retired (`~/.cloudflared/config.yml` →
+  `config.yml.named-disabled-260713`); Merlin now quick-tunnels on boot and
+  Core's catalog carries the live `*.trycloudflare.com` URL (public /api/health
+  200 verified). Three fixes made the arc real (`6931b1f`): explicit
+  cloudflaredPath() (bare spawn ENOENTs on the task's logon PATH), retry moved
+  into the heartbeat, failures logged. The bus loop starts LAZILY on first
+  touch of /api/node/register|stream — poke it after a restart.
 
 ## NEXT — the queue (Ken: "several extant important threads")
 1. ~~Verify the fold~~ ✅ done data-side + dashboard — only the on-device Nimue
