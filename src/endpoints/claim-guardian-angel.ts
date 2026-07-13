@@ -30,6 +30,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
+import { ensureTenantSpaces } from '@/utilities/ensureTenantSpaces'
 import { logError } from '@/utilities/logError'
 import { slugify, opaqueSlug, vanitySlugRejection, guardianBaseDomain } from '@/utilities/guardianSlug'
 import { activatePendingInvitesForUser } from '@/utilities/activatePendingInvites'
@@ -136,6 +137,20 @@ export const claimGuardianAngelHandler: PayloadHandler = async (req) => {
     // mint duplicates. Business memberships are ignored here by design.
     if (angelCount > 0 && !createAdditional) {
       const t = guardianTenants[0]!
+      // SELF-HEAL: claim runs on every app-open, so it's the right place to repair
+      // an under-seeded existing angel. Angels minted before personal-space channel
+      // seeding (or whose space create partially failed) have a Space with NO
+      // channels — Nimue then shows an empty portal (Tyler's symptom). This
+      // idempotent backfill adds any missing personal channels (timeline/journal/
+      // reminders), or creates the personal space if it's absent. Fail-soft: never
+      // block handing the angel back.
+      if (t.id != null) {
+        await ensureTenantSpaces(payload, t.id, {
+          personal: true,
+          spaceName: 'My Space',
+          req,
+        }).catch(() => {})
+      }
       return Response.json({
         ok: true,
         alreadyExisted: true,
