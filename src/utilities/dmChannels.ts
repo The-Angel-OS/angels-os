@@ -93,29 +93,40 @@ export async function mergeDmChannelGroup(
       if (execute) {
         // Re-home the dupe's messages onto the canonical thread: stable ref +
         // space (clients still page history by (space, slug)).
-        const upd = await payload.update({
+        // ⚠️ Find ids first, then update by id: Payload's BULK update silently
+        // matches NOTHING when the `where` keys on a relationship field
+        // (channelRef) — find/count resolve it, update does not. Learned in
+        // prod 260713: the first unify run deleted the channels but moved zero
+        // messages (83 dangling refs, repaired by hand).
+        const strayWhere = {
+          and: [
+            { space: { equals: dupeSpace } },
+            { channel: { equals: slug } },
+            { channelRef: { exists: false } },
+          ],
+        }
+        const targets = await payload.find({
           collection: 'messages',
-          where: { channelRef: { equals: dupe.id } },
-          data: { channelRef: canonical.id, space: Number(canonicalSpace) } as never,
+          where:
+            dupeSpace != null && String(dupeSpace) !== String(canonicalSpace)
+              ? { or: [{ channelRef: { equals: dupe.id } }, strayWhere] }
+              : { channelRef: { equals: dupe.id } },
+          limit: 0, // unlimited — every row must move before the channel dies
+          depth: 0,
+          select: { id: true } as never,
           overrideAccess: true,
         })
-        moved = Array.isArray((upd as { docs?: unknown[] }).docs)
-          ? (upd as { docs: unknown[] }).docs.length
-          : moved
-        // Stray sweep: pre-fold rows in the dupe's space that never got a ref.
-        if (dupeSpace != null && String(dupeSpace) !== String(canonicalSpace)) {
+        const ids = (targets.docs as Array<{ id: number | string }>).map((m) => m.id)
+        moved = 0
+        for (const id of ids) {
           await payload.update({
             collection: 'messages',
-            where: {
-              and: [
-                { space: { equals: dupeSpace } },
-                { channel: { equals: slug } },
-                { channelRef: { exists: false } },
-              ],
-            },
+            id,
             data: { channelRef: canonical.id, space: Number(canonicalSpace) } as never,
+            depth: 0,
             overrideAccess: true,
           })
+          moved++
         }
         for (const m of (dupe.members ?? []) as unknown[]) {
           const id = Number(typeof m === 'object' && m !== null ? (m as { id: number }).id : m)

@@ -37,7 +37,17 @@ function makePayload({
 } = {}) {
   let findByIDCallCount = 0
   return {
-    find: vi.fn().mockResolvedValue({ docs: existingChannels }),
+    find: vi.fn().mockImplementation(({ collection, where }: any) => {
+      if (collection === 'messages') {
+        // The merge's target query: synthesize one message id per counted message
+        const refEq = where?.channelRef?.equals ?? where?.or?.[0]?.channelRef?.equals
+        const n = messageCounts[String(refEq)] ?? 0
+        return Promise.resolve({
+          docs: Array.from({ length: n }, (_, i) => ({ id: `msg-${refEq}-${i}` })),
+        })
+      }
+      return Promise.resolve({ docs: existingChannels })
+    }),
     findByID: vi.fn().mockImplementation(() => {
       findByIDCallCount++
       return Promise.resolve(findByIDCallCount === 1 ? userAReturn : userBReturn)
@@ -128,14 +138,19 @@ describe('findOrCreateDM — existing channel', () => {
     const result = await findOrCreateDM(1, 'dm-sp', 1, 2)
     expect(result.channelId).toBe('dm-t5')
     expect(payload.delete).toHaveBeenCalledTimes(2)
-    // Messages repointed to the canonical thread (channelRef + space)
+    // Messages repointed BY ID to the canonical thread (channelRef + space) —
+    // never by a relationship-field where (Payload bulk update matches nothing).
     expect(payload.update).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'messages',
-        where: { channelRef: { equals: 'dm-t1' } },
+        id: 'msg-dm-t1-0',
         data: expect.objectContaining({ channelRef: 'dm-t5', space: 18 }),
       }),
     )
+    const messageUpdates = payload.update.mock.calls.filter(
+      (c: any) => c[0].collection === 'messages',
+    )
+    expect(messageUpdates).toHaveLength(37) // every dm-t1 message moved (dm-t7 had none)
   })
 
   it('looks up the DM globally — no tenant constraint in the where', async () => {
