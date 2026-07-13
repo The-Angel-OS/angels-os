@@ -154,6 +154,7 @@ import { contactSellerHandler } from '@/endpoints/contact-seller'
 import { ensureCommunitySpaceHandler } from '@/endpoints/ensure-community-space'
 import { foldDmsHandler } from '@/endpoints/fold-dms'
 import { unifyDmsHandler } from '@/endpoints/unify-dms'
+import { probeChannelCreateHandler } from '@/endpoints/probe-channel-create'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
@@ -878,6 +879,12 @@ export default buildConfig({
       path: '/provision-ops/unify-dms',
       method: 'post',
       handler: unifyDmsHandler,
+    },
+    // TEMP diagnostic — which channel-create strategy survives prod. Remove after.
+    {
+      path: '/provision-ops/probe-channel-create',
+      method: 'get',
+      handler: probeChannelCreateHandler,
     },
     // Read companion: the caller's guardian-angel standing (free tier vs over).
     // Powers the Nimue usage banner + Stripe upsell. Safe for any signed-in user.
