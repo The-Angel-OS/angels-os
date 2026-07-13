@@ -138,6 +138,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               },
               depth: 2,
               limit: 50,
+              // Show a user their OWN portals. Without overrideAccess this find runs
+              // with no user context, so the depth-2 tenant hydration is access-denied
+              // and each m.tenant comes back as a bare ID — toTenantInfo then drops it
+              // and a non-super-admin's chooser ends up EMPTY (they can't switch to
+              // their own guardian angel). Super-admins never hit this (their branch
+              // already uses overrideAccess). We already authed the user above.
+              overrideAccess: true,
             }),
           )
         : Promise.resolve(null),
