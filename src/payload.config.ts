@@ -438,8 +438,18 @@ export default buildConfig({
         // ─── Soul Data (atomic per-tenant) ───────────────────
         spaces: {},
         'space-memberships': {},
-        channels: {},
-        messages: {},
+        // Channels + messages OPT OUT of the plugin's tenant access-AND
+        // (useTenantAccess:false keeps the tenant field + admin list filter).
+        // Their own access is the real gate — PermissionService's space
+        // visibility resolver is already tenant-membership-scoped internally,
+        // and two designed features are tenant-TRANSCENDENT by nature: DM
+        // channels/messages (visible to their MEMBERS wherever they live —
+        // one thread per conversation across portals) and 'community' spaces
+        // (the universal town square). The blunt tenant AND silently hid both
+        // from non-super-admins (burned 260713: a merged DM thread showed only
+        // the reader's-tenant slice of its history).
+        channels: { useTenantAccess: false },
+        messages: { useTenantAccess: false },
         // ─── Scheduling & Events ─────────────────────────────
         bookings: {},
         events: {},
