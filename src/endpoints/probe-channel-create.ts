@@ -26,6 +26,19 @@ export const probeChannelCreateHandler: PayloadHandler = async (req) => {
   const tenant = Number(url.searchParams.get('tenant') || 0)
   if (!space || !tenant) return Response.json({ error: 'pass ?space= &tenant=' }, { status: 400 })
 
+  // ?afterOnboarding=1 → run the SAME preamble verify-onboarding does on THIS req
+  // first, so the strategies below run in the poisoned context that actually fails.
+  let preamble: string | undefined
+  if (url.searchParams.get('afterOnboarding') === '1') {
+    try {
+      const { verifyEndeavorOnboarding } = await import('@/utilities/verifyEndeavorOnboarding')
+      const rep = await verifyEndeavorOnboarding(payload, tenant, req)
+      preamble = `ran verifyEndeavorOnboarding — mainChannelsCreated=${rep.mainChannelsCreated} errors=${JSON.stringify(rep.errors)}`
+    } catch (e) {
+      preamble = `preamble threw: ${e instanceof Error ? e.message : String(e)}`
+    }
+  }
+
   // A real super_admin (whoever it is on this node) + the first user (archangel).
   let realSuper: unknown = null
   let firstUser: unknown = null
@@ -70,6 +83,7 @@ export const probeChannelCreateHandler: PayloadHandler = async (req) => {
     ok: true,
     space,
     tenant,
+    preamble,
     realSuperId: (realSuper as { id?: unknown })?.id ?? null,
     firstUserId: (firstUser as { id?: unknown })?.id ?? null,
     results,
