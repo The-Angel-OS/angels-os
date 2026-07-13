@@ -144,21 +144,25 @@ describe('ensureSystemSpace', () => {
 describe('ensureDMSpace', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('returns existing DM space ID', async () => {
-    const payload = makePayload({ spaceDocs: [{ id: 'dm-space-7' }] })
+  // CHANNEL-MODEL FOLD (260713): ensureDMSpace now resolves the AI BUS space —
+  // new DMs are born on the bus (channel-membership-grained privacy), never in a
+  // dedicated "Direct Messages" space.
+
+  it('returns the existing AI Bus space ID', async () => {
+    const payload = makePayload({ spaceDocs: [{ id: 'bus-space-7' }] })
     mockGetPayload.mockResolvedValue(payload)
     const result = await ensureDMSpace(1)
-    expect(result).toBe('dm-space-7')
+    expect(result).toBe('bus-space-7')
   })
 
-  it('creates DM space when none exists', async () => {
-    const payload = makePayload({ spaceDocs: [], createSpaceReturn: { id: 'new-dm' } })
+  it('creates the AI BUS space (not a DM space) when none exists', async () => {
+    const payload = makePayload({ spaceDocs: [], createSpaceReturn: { id: 'new-bus' } })
     mockGetPayload.mockResolvedValue(payload)
     const result = await ensureDMSpace(1)
-    expect(result).toBe('new-dm')
+    expect(result).toBe('new-bus')
     expect(payload.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ slug: 'direct-messages' }),
+        data: expect.objectContaining({ slug: 'ai-bus' }),
       }),
     )
   })
@@ -175,31 +179,19 @@ describe('ensureDMSpace', () => {
 describe('ensureDMSpaceMembership', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('creates membership when none exists', async () => {
+  // CHANNEL-MODEL FOLD (260713): intentionally a NO-OP. DM visibility is
+  // channel-membership-grained; a space-level membership on the AI Bus would
+  // wrongly expose the bus's system channels to every DM participant.
+
+  it('never creates a space-membership (no-op)', async () => {
     const payload = makePayload()
     mockGetPayload.mockResolvedValue(payload)
     await ensureDMSpaceMembership(42, 'dm-sp', 1)
-    expect(payload.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: 'space-memberships',
-        data: expect.objectContaining({ user: 42, role: 'member' }),
-      }),
-    )
-  })
-
-  it('does not create membership when one already exists', async () => {
-    const payload = {
-      find: vi.fn().mockResolvedValue({ docs: [{ id: 'existing-membership' }] }),
-      create: vi.fn(),
-      update: vi.fn(),
-    } as any
-    mockGetPayload.mockResolvedValue(payload)
-    await ensureDMSpaceMembership(42, 'dm-sp', 1)
     expect(payload.create).not.toHaveBeenCalled()
+    expect(payload.find).not.toHaveBeenCalled()
   })
 
-  it('does not throw when payload fails', async () => {
-    mockGetPayload.mockRejectedValue(new Error('DB fail'))
+  it('does not throw', async () => {
     await expect(ensureDMSpaceMembership(42, 'dm-sp', 1)).resolves.not.toThrow()
   })
 })

@@ -372,6 +372,71 @@ export async function buildSpaceVisibilityFilter(
   return { [field]: { in: ids } } as Where
 }
 
+// ── DM privacy (channel-grained) ──────────────────────────────────────────────
+// DMs are the USER's, not a space's (channel-model fold): a DM channel is visible
+// to its MEMBERS wherever it lives — even in a space the user can't see (the AI
+// Bus). Space visibility alone no longer grants or denies a DM.
+
+/** Ids of the DM channels this user is a member of. */
+export async function resolveDmChannelIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+): Promise<Array<string | number>> {
+  if (!user) return []
+  try {
+    const res = await payload.find({
+      collection: 'channels',
+      where: { and: [{ type: { equals: 'dm' } }, { members: { in: [user.id] } }] },
+      limit: 200,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return (res.docs || []).map((c: Record<string, unknown>) => c.id as string | number)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Channels.read — space-visible channels PLUS the user's own DM channels
+ * (membership-grained, space-independent).
+ */
+export async function buildChannelReadFilter(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+): Promise<true | false | Where> {
+  const spaceFilter = await buildSpaceVisibilityFilter(payload, user, 'space')
+  if (spaceFilter === true) return true
+  if (!user) return false
+  const dmBranch: Where = { and: [{ type: { equals: 'dm' } }, { members: { in: [user.id] } }] }
+  if (spaceFilter === false) return dmBranch
+  return { or: [spaceFilter, dmBranch] }
+}
+
+/**
+ * Messages.read — messages in visible spaces PLUS messages in the user's own DM
+ * channels (via the stable channelRef), wherever those channels live.
+ */
+export async function buildMessageReadFilter(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+): Promise<true | false | Where> {
+  const spaceFilter = await buildSpaceVisibilityFilter(payload, user, 'space')
+  if (spaceFilter === true) return true
+  const dmIds = await resolveDmChannelIds(payload, user)
+  if (spaceFilter === false) {
+    return dmIds.length ? ({ channelRef: { in: dmIds } } as Where) : false
+  }
+  if (!dmIds.length) return spaceFilter
+  return { or: [spaceFilter, { channelRef: { in: dmIds } } as Where] }
+}
+
 // ── Administration (Leo-capable; never in the enforcement path) ──────────────
 
 /** Grant or deny a permission to a role or user on an entity. Upsert by identity. */

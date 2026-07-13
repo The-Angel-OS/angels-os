@@ -2853,6 +2853,10 @@ export interface Message {
    */
   channel: string;
   /**
+   * Canonical channel row (stable across moves/renames). Auto-set on create.
+   */
+  channelRef?: (number | null) | Channel;
+  /**
    * Universal Message Structure — JSON content supporting text, rich text, payload blocks, widgets, BI metrics, system actions, and any future data format. Backward-compatible: plain string values are auto-wrapped.
    */
   content:
@@ -6405,7 +6409,7 @@ export interface PayloadMcpApiKey {
      */
     viewCart?: boolean | null;
     /**
-     * Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. When productName is provided with autoAttach=true (default), the image is automatically attached to that product's gallery — no separate attach step needed. Always describe what you're generating before calling this tool.
+     * Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. SUBJECT-CONSISTENT / IMAGE-TO-IMAGE: to keep a person, product, or scene from an EXISTING image (e.g. "put me driving the Morgan", "restyle this product", "same person, new background"), set useRecentChannelImage=true to condition on the most recent image the user shared in this channel, or pass explicit referenceImages URLs. Only use images the user has shared or that belong to them — do not depict a real, identifiable person from an image the user did not provide. When productName is provided with autoAttach=true (default), the image is auto-attached to that product's gallery. Always describe what you're generating before calling this tool.
      */
     generateImage?: boolean | null;
     /**
@@ -6985,11 +6989,11 @@ export interface PayloadMcpApiKey {
      */
     runSubsafeCheck?: boolean | null;
     /**
-     * Look up a Bible passage from the canonical Holy Bible Work and return the verse text. Use when a user asks what a verse says, to quote scripture, or to read a passage. Accepts natural references like 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', or 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).
+     * Look up a Bible / scripture passage, verse, prayer, psalm, gospel, or chapter from the canonical Holy Bible Work and return the text. Use when a user asks what a verse says, to quote scripture, to read a passage, or names a well-known passage or PRAYER — e.g. the Lord's Prayer, the 23rd Psalm, the Beatitudes, the Ten Commandments, the Christmas story, the Sermon on the Mount, a parable, the Nativity — or names any book of the Bible (Genesis, Exodus, Psalms, Proverbs, Isaiah, Matthew, Mark, Luke, John, Acts, Romans, Corinthians, Revelation, etc.). For a NAMED passage or prayer, convert it to its reference yourself and pass that (the Lord's Prayer → 'Matthew 6:9-13'; the 23rd Psalm → 'Psalm 23'). Accepts natural references like 'John 3:16', 'Matthew 6', 'Romans 8:28-30', 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).
      */
     lookupScripture?: boolean | null;
     /**
-     * Open a Bible passage IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage (e.g. 'take me to Psalm 32', 'open Romans 8'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Psalm 32:5', 'John 3:16', 'Romans 8:28-30'.
+     * Open a Bible / scripture passage, verse, prayer, psalm, gospel, or chapter IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage, or names a well-known passage or PRAYER — e.g. the Lord's Prayer, the 23rd Psalm, the Beatitudes, the Ten Commandments, the Sermon on the Mount, a parable — or any book of the Bible (Genesis, Psalms, Proverbs, Isaiah, Matthew, Mark, Luke, John, Romans, Revelation, etc.). For a NAMED passage or prayer, convert it to its reference yourself and pass that (the Lord's Prayer → 'Matthew 6:9-13'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Matthew 6', 'John 3:16', 'Romans 8:28-30'.
      */
     openPassage?: boolean | null;
   };
@@ -7652,6 +7656,7 @@ export interface MessagesSelect<T extends boolean = true> {
   author?: T;
   space?: T;
   channel?: T;
+  channelRef?: T;
   content?: T;
   messageType?: T;
   visibility?: T;

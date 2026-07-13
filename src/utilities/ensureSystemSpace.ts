@@ -192,46 +192,15 @@ async function ensureChannels(
 export async function ensureDMSpace(
   tenantId: number | string,
 ): Promise<string | undefined> {
-  try {
-    const { getPayload } = await import('payload')
-    const configPromise = (await import('@payload-config')).default
-    const payload = await getPayload({ config: configPromise })
-
-    // Check if DMs space already exists for this tenant
-    const existing = await payload.find({
-      collection: 'spaces',
-      where: {
-        and: [
-          { tenant: { equals: tenantId } },
-          { slug: { equals: DM_SPACE_SLUG } },
-        ],
-      },
-      limit: 1,
-      depth: 0,
-    })
-
-    if (existing.docs?.[0]) {
-      return String(existing.docs[0].id)
-    }
-
-    // Create the DMs space
-    const space = await payload.create({
-      collection: 'spaces',
-      data: {
-        name: DM_SPACE_NAME,
-        slug: DM_SPACE_SLUG,
-        description: 'System space for direct messages between users and LEO.',
-        visibility: 'private',
-        tenant: tenantId as number,
-      },
-      overrideAccess: true,
-    })
-
-    return String(space.id)
-  } catch (err) {
-    console.warn('[ensureDMSpace] Failed to ensure DMs space:', err)
-    return undefined
-  }
+  // CHANNEL-MODEL FOLD (260713): DMs are the user's, not a space's. New DM channels
+  // are born on the AI BUS space (gated by channel membership, not space visibility
+  // — see PermissionService.buildChannelReadFilter/buildMessageReadFilter), so this
+  // now resolves the AI Bus instead of creating a dedicated "Direct Messages" space.
+  // Every DM creator (dm/find-or-create + all connector webhooks) flows through this
+  // single chokepoint, so the fold lands everywhere at once. Existing DM channels
+  // are re-homed by POST /api/provision-ops/fold-dms, which then retires the old
+  // DM spaces.
+  return ensureSystemSpace(tenantId)
 }
 
 /**
@@ -239,44 +208,14 @@ export async function ensureDMSpace(
  * Creates one if missing. Idempotent.
  */
 export async function ensureDMSpaceMembership(
-  userId: number | string,
-  dmSpaceId: number | string,
-  tenantId: number | string,
+  _userId: number | string,
+  _dmSpaceId: number | string,
+  _tenantId: number | string,
 ): Promise<void> {
-  try {
-    const { getPayload } = await import('payload')
-    const configPromise = (await import('@payload-config')).default
-    const payload = await getPayload({ config: configPromise })
-
-    // Check existing membership
-    const existing = await payload.find({
-      collection: 'space-memberships',
-      where: {
-        and: [
-          { user: { equals: userId } },
-          { space: { equals: dmSpaceId } },
-        ],
-      },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (existing.docs?.length > 0) return
-
-    // Create membership
-    await payload.create({
-      collection: 'space-memberships',
-      data: {
-        user: userId as number,
-        space: dmSpaceId as number,
-        role: 'member',
-        status: 'active',
-        tenant: tenantId as number,
-      } as any,
-      overrideAccess: true,
-    })
-  } catch (err) {
-    console.warn('[ensureDMSpaceMembership] Failed:', err)
-  }
+  // CHANNEL-MODEL FOLD (260713): intentionally a no-op. DM visibility is now
+  // CHANNEL-membership-grained (Channels.members via buildChannelReadFilter /
+  // buildMessageReadFilter), so no space-membership is needed to see your DMs —
+  // and granting one would be WRONG: DMs live on the AI Bus, and a space-level
+  // membership there would expose the bus's system channels (errors, system-log)
+  // to every DM participant. Kept exported so legacy callers stay harmless.
 }

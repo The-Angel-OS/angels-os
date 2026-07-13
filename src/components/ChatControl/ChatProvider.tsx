@@ -134,7 +134,9 @@ export function ChatProvider({
   const effectiveSpaceId = useMemo(() => {
     if (!activeChannelSlugLocal) return activeSpaceId
     const isDM = dmChannels.find((c) => c.slug === activeChannelSlugLocal)
-    if (isDM && dmSpaceId) return dmSpaceId
+    // Route to the DM channel's OWN home (post-fold: the AI Bus; pre-fold: the
+    // legacy DM space) — each DM row carries its spaceId, so this survives the fold.
+    if (isDM) return isDM.spaceId || dmSpaceId || activeSpaceId
     return activeSpaceId
   }, [activeChannelSlugLocal, activeSpaceId, dmSpaceId, dmChannels])
 
@@ -160,11 +162,14 @@ export function ChatProvider({
     // find-or-create endpoint internally calls ensureDMSpace.
     const loadDMs = async () => {
       try {
-        // Step 1: Load only MY DM channels (filtered by membership + tenant)
+        // Step 1: Load MY DM channels — GLOBAL by membership + tenant, NOT scoped to
+        // a DM space (channel-model fold: DMs are the user's, wherever they live —
+        // the AI Bus post-fold, the legacy DM space pre-fold). Each row carries its
+        // own spaceId for message routing.
         let deduped: ChatChannel[] = []
-        if (dmSpaceId) {
+        {
           const res = await fetch(
-            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[space][equals]=${dmSpaceId}&where[tenant][equals]=${tenantId}&where[members][in]=${userId}&sort=-updatedAt&limit=50`,
+            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[tenant][equals]=${tenantId}&where[members][in]=${userId}&sort=-updatedAt&limit=50`,
             { credentials: 'include' },
           )
           const data = res.ok ? await res.json() : null

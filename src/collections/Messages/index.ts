@@ -58,8 +58,10 @@ function isAdminOrSystem(user: any): boolean {
  */
 const readMessages: Access = async ({ req }) => {
   const { user, payload } = req
-  const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
-  return buildSpaceVisibilityFilter(payload, user, 'space')
+  // Space-visible messages PLUS the user's own DM threads via the stable channelRef
+  // (channel-model fold: DMs live on the AI Bus, gated by channel membership).
+  const { buildMessageReadFilter } = await import('@/services/PermissionService')
+  return buildMessageReadFilter(payload, user)
 }
 
 export const Messages: CollectionConfig = {
@@ -114,6 +116,20 @@ export const Messages: CollectionConfig = {
       required: true,
       index: true,
       admin: { description: 'Channel name (e.g. welcome, general, support)' },
+    },
+    {
+      // Phase 2 of the channel re-key (see migration 20260708_000000): the STABLE
+      // reference to the canonical channel row. The (space, channel-slug) pair above
+      // stays for back-compat reads, but this id survives channel moves/renames —
+      // and it's what gates DM privacy (Messages.read: DM messages are visible only
+      // to the channel's members via this ref). Set automatically by beforeChange.
+      name: 'channelRef',
+      type: 'relationship',
+      relationTo: 'channels',
+      index: true,
+      admin: {
+        description: 'Canonical channel row (stable across moves/renames). Auto-set on create.',
+      },
     },
 
     // ─── Universal Message Content (JSON) ───
@@ -279,7 +295,31 @@ export const Messages: CollectionConfig = {
     ],
     // versionOnEdit AFTER setAuthor: capture prior content into metadata.revisions
     // on every content change (edits + moderator redactions), append-only.
-    beforeChange: [setAuthor, versionOnEdit],
+    beforeChange: [
+      setAuthor,
+      versionOnEdit,
+      // Resolve channelRef from the (space, channel-slug) pair on create — the single
+      // write-path chokepoint for the stable channel id (phase 2 of the re-key).
+      // Fail-soft: a miss (e.g. page-channel slugs with no channel row) leaves it null.
+      async ({ data, operation, req }) => {
+        if (operation !== 'create' || !data || data.channelRef || !data.channel || !data.space) return data
+        try {
+          const spaceId = typeof data.space === 'object' ? (data.space as { id?: number | string })?.id : data.space
+          const found = await req.payload.find({
+            collection: 'channels',
+            where: { and: [{ slug: { equals: data.channel } }, { space: { equals: spaceId } }] },
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          })
+          const ch = found.docs?.[0]
+          if (ch) data.channelRef = ch.id
+        } catch {
+          /* non-fatal — back-compat reads still key on (space, slug) */
+        }
+        return data
+      },
+    ],
     afterChange: [
       runWorkflows,
       // Broadcast to SSE subscribers for real-time updates

@@ -71,6 +71,13 @@ export const dmFindOrCreateHandler: PayloadHandler = async (req) => {
       overrideAccess: true,
     })
 
+    // Report the channel's ACTUAL home space — new DMs are born on the AI Bus
+    // (ensureDMSpace now resolves it), but a pre-fold DM may still live in the
+    // legacy Direct Messages space until provision-ops/fold-dms re-homes it.
+    // Clients load history against this id, so it must match the channel row.
+    const chSpace = (channel as any).space
+    const actualSpaceId = chSpace != null && typeof chSpace === 'object' ? chSpace.id : chSpace
+
     return Response.json({
       channel: {
         id: String(channel.id),
@@ -80,7 +87,7 @@ export const dmFindOrCreateHandler: PayloadHandler = async (req) => {
         members: (channel as any).members,
         source: (channel as any).source,
       },
-      dmSpaceId,
+      dmSpaceId: actualSpaceId != null ? String(actualSpaceId) : dmSpaceId,
       isNew: result.isNew,
     })
   } catch (err) {

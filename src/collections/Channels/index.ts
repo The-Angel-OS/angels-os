@@ -25,11 +25,12 @@ export const Channels: CollectionConfig = {
   },
   access: {
     create: ({ req: { user } }) => Boolean(user),
-    // Channels inherit the space's visibility — same resolver as Spaces.read +
-    // Messages.read (role-inherits-non-private + explicit-private-grants).
+    // Channels inherit the space's visibility, PLUS the user's own DM channels are
+    // always theirs (membership-grained, space-independent) — the channel-model
+    // fold: DMs live on the AI Bus but are visible only to their members.
     read: async ({ req: { user, payload } }) => {
-      const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
-      return buildSpaceVisibilityFilter(payload, user, 'space')
+      const { buildChannelReadFilter } = await import('@/services/PermissionService')
+      return buildChannelReadFilter(payload, user)
     },
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),
