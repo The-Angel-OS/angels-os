@@ -79,10 +79,15 @@ export const Spaces: CollectionConfig = {
       type: 'select',
       defaultValue: 'invite_only',
       options: [
+        { label: 'Community (universal town square)', value: 'community' },
         { label: 'Public', value: 'public' },
         { label: 'Invite only', value: 'invite_only' },
         { label: 'Private', value: 'private' },
       ],
+      admin: {
+        description:
+          "'Community' is the town square: readable AND postable by ANY authenticated user across the whole node, no membership or invite needed (distinct from 'Public', which is only visible within its own tenant). 'Private' hides the space except from explicit members.",
+      },
     },
     {
       name: 'isMain',

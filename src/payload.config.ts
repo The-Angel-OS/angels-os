@@ -151,6 +151,7 @@ import { navRepairHandler } from '@/endpoints/nav-repair'
 import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { signCaptureHandler } from '@/endpoints/sign-capture'
 import { contactSellerHandler } from '@/endpoints/contact-seller'
+import { ensureCommunitySpaceHandler } from '@/endpoints/ensure-community-space'
 import { ensureSignaturesTableHandler } from '@/endpoints/ensure-signatures-table'
 import { ensureFormSignatureBlockHandler } from '@/endpoints/ensure-form-signature-block'
 import { churchTemplateHandler } from '@/endpoints/church-template'
@@ -844,6 +845,12 @@ export default buildConfig({
       path: '/provision-ops/claim-guardian-angel',
       method: 'post',
       handler: claimGuardianAngelHandler,
+    },
+    // Designate/create the universal Community space (town square). super_admin.
+    {
+      path: '/provision-ops/ensure-community-space',
+      method: 'post',
+      handler: ensureCommunitySpaceHandler,
     },
     // Read companion: the caller's guardian-angel standing (free tier vs over).
     // Powers the Nimue usage banner + Stripe upsell. Safe for any signed-in user.

@@ -2242,7 +2242,10 @@ export interface Space {
   generateSlug?: boolean | null;
   slug: string;
   description?: string | null;
-  visibility?: ('public' | 'invite_only' | 'private') | null;
+  /**
+   * 'Community' is the town square: readable AND postable by ANY authenticated user across the whole node, no membership or invite needed (distinct from 'Public', which is only visible within its own tenant). 'Private' hides the space except from explicit members.
+   */
+  visibility?: ('community' | 'public' | 'invite_only' | 'private') | null;
   /**
    * Primary community space for this tenant. Auto-joined by all new members on onboarding.
    */

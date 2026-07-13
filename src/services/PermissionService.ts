@@ -317,6 +317,25 @@ export async function resolveVisibleSpaceIds(
     }
   }
 
+  // 2b. COMMUNITY spaces — the universal town square. Any authenticated user may
+  //     see (and post to) a space marked visibility:'community', regardless of
+  //     tenant membership. This is what makes a shared "Community" space reachable
+  //     by everyone on the node without an invite. Queried globally (no tenant
+  //     filter), so it's additive to the user's own tenants' non-private spaces.
+  let community: Array<string | number> = []
+  try {
+    const cs = await payload.find({
+      collection: 'spaces',
+      where: { visibility: { equals: 'community' } },
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
+    community = (cs.docs || []).map((s: Record<string, unknown>) => s.id as string | number)
+  } catch {
+    /* non-fatal */
+  }
+
   // 3. Explicit space-membership grants — covers private spaces + cross-tenant invites.
   let explicit: Array<string | number> = []
   try {
@@ -332,7 +351,7 @@ export async function resolveVisibleSpaceIds(
     /* non-fatal */
   }
 
-  const ids = mergeVisibleSpaceIds(nonPrivate, explicit)
+  const ids = mergeVisibleSpaceIds([...nonPrivate, ...community], explicit)
   return ids.length === 0 ? false : ids
 }
 
