@@ -81,10 +81,11 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       }),
     )
     const navResult = await settle(createDefaultTenantNavigation(payload, doc.id))
-    // Pass `req` so ensureMainSpace's channel writes JOIN this hook's transaction
-    // (same connection) instead of opening autonomous connections that starve the
-    // pool — the very failure mode this block's comment warns about, which left
-    // new tenants' Community space channel-less (invited members saw nothing).
+    // Pass `req` so ensureMainSpace's writes join this hook's transaction. (The
+    // actual empty-Community-space fix is the SYSTEM_ADMIN user sysOpts injects —
+    // multi-tenant relationship validation re-reads the target space and needs a
+    // privileged reader; the owner req.user here would also suffice for their own
+    // new tenant, but SYSTEM_ADMIN makes it uniform with the CRON heal path.)
     const spaceResult = await settle(ensureMainSpace(payload, doc.id, doc.name, doc.slug, req))
 
     if (pagesResult.status === 'fulfilled') {

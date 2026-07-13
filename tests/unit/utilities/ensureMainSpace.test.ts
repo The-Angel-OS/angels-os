@@ -167,15 +167,36 @@ describe('ensureMainSpace', () => {
     )
   })
 
-  it('threads req to every write so it joins the request transaction', async () => {
+  it('runs writes as a super_admin so relationship validation can read the space', async () => {
+    // THE fix: multi-tenant filterOptions re-reads channels.space under the op
+    // user's access; without a privileged reader every create fails "invalid
+    // Space" on prod. Every write must carry a super_admin user.
     const payload = makePayload()
-    const req = { transactionID: 'tx-abc', user: null }
+
+    await ensureMainSpace(payload, 1, 'TestCorp', 'testcorp')
+
+    const allWrites = [
+      ...(payload.create as any).mock.calls,
+      ...(payload.find as any).mock.calls,
+    ]
+    expect(allWrites.length).toBeGreaterThan(0)
+    for (const call of allWrites) {
+      expect(call[0].user?.roles).toContain('super_admin')
+      expect(call[0].overrideAccess).toBe(true)
+    }
+  })
+
+  it('joins the request transaction (cloned req) when one is passed', async () => {
+    const payload = makePayload()
+    const req = { transactionID: 'tx-abc', user: null, payload }
 
     await ensureMainSpace(payload, 1, 'TestCorp', 'testcorp', req)
 
-    // Space create + all channel creates must carry the same req.
+    // Writes carry a req carrying the same transactionID (cloned, not the shared
+    // object — so SYSTEM_ADMIN doesn't leak onto the caller's req.user).
     for (const call of (payload.create as any).mock.calls) {
-      expect(call[0].req).toBe(req)
+      expect(call[0].req.transactionID).toBe('tx-abc')
+      expect(call[0].req).not.toBe(req)
     }
   })
 

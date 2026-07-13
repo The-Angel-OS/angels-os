@@ -44,17 +44,41 @@ interface EnsureMainSpaceResult {
   channelErrors: string[]
 }
 
+/**
+ * Synthetic super_admin principal for provisioning writes.
+ *
+ * THE fix for "invited members land in an empty Community space": the
+ * multi-tenant plugin adds filterOptions to the channels.space relationship
+ * that, during create validation, RE-READS the target space under the operation
+ * user's access (NOT bypassed by overrideAccess). With no user — or a
+ * tenant-scoped user — that read returns nothing on prod and every channel
+ * create fails "The following field is invalid: Space", silently. A super_admin
+ * reads every space, so validation passes. The access checks it hits
+ * (buildSpaceVisibilityFilter, userHasAccessToAllTenants) short-circuit on the
+ * super_admin role / isSystemUser flag — no DB lookup, no env-specific id.
+ */
+const SYSTEM_ADMIN = { id: 0, collection: 'users', roles: ['super_admin'], isSystemUser: true }
+
+/**
+ * Local-API options for a provisioning write: run as SYSTEM_ADMIN so relationship
+ * validation can read the target space, and (when a request is in flight) join its
+ * transaction. The req is CLONED — createLocalReq does `req.user = user`, and we
+ * must not leak SYSTEM_ADMIN onto the caller's shared req.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sysOpts(req?: any): Record<string, unknown> {
+  return { overrideAccess: true, user: SYSTEM_ADMIN, ...(req ? { req: { ...req } } : {}) }
+}
+
 export async function ensureMainSpace(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any,
   tenantId: number | string,
   tenantName?: string,
   tenantSlug?: string,
-  // Pass the request so writes JOIN its transaction/connection. Without it,
-  // every payload.create opens an AUTONOMOUS connection — on prod's PgBouncer
-  // pool (small, transaction-mode) those starve behind the endpoint's own
-  // transaction and the channel creates silently fail (the bug that left
-  // invited-in members staring at an empty Community space). See callers.
+  // Optional in-flight request — when present, writes join its transaction (via
+  // sysOpts, which clones it and swaps in SYSTEM_ADMIN). The privileged user, not
+  // the req, is what actually fixes the empty-Community-space bug; see SYSTEM_ADMIN.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   req?: any,
 ): Promise<EnsureMainSpaceResult | undefined> {
@@ -70,8 +94,7 @@ export async function ensureMainSpace(
       },
       limit: 1,
       depth: 0,
-      overrideAccess: true,
-      req,
+      ...sysOpts(req),
     })
 
     if (existing.docs?.[0]) {
@@ -85,8 +108,7 @@ export async function ensureMainSpace(
             collection: 'spaces',
             id: spaceId,
             data: { name: 'Community', slug: 'community' },
-            overrideAccess: true,
-            req,
+            ...sysOpts(req),
           })
         } catch {
           /* non-fatal — slug collision or drift; leave the existing name */
@@ -103,8 +125,7 @@ export async function ensureMainSpace(
         collection: 'tenants',
         id: tenantId,
         depth: 0,
-        overrideAccess: true,
-        req,
+        ...sysOpts(req),
       })
       if (!tenantName) tenantName = tenant?.name || 'Community'
       if (!tenantSlug) tenantSlug = tenant?.slug || 'community'
@@ -122,8 +143,7 @@ export async function ensureMainSpace(
         isMain: true,
         tenant: tenantId as number,
       },
-      overrideAccess: true,
-      req,
+      ...sysOpts(req),
     })
 
     const spaceId = String(space.id)
@@ -167,8 +187,7 @@ async function ensureMainChannels(
       where: { space: { equals: spaceId } },
       limit: 50,
       depth: 0,
-      overrideAccess: true,
-      req,
+      ...sysOpts(req),
     })
 
     const existingBySlug = new Map(
@@ -190,8 +209,7 @@ async function ensureMainChannels(
               collection: 'channels',
               id: existing.id,
               data: { tenant: tenantId as number },
-              overrideAccess: true,
-              req,
+              ...sysOpts(req),
             })
           } catch {
             console.warn(`[ensureMainSpace] Failed to backfill tenant on channel ${template.slug}`)
@@ -199,7 +217,9 @@ async function ensureMainChannels(
         }
       } else {
         // Create missing channel — surface the REAL error (was silently swallowed,
-        // which hid the pool-starvation failure on prod for weeks).
+        // which hid the relationship-validation failure on prod for weeks: see
+        // SYSTEM_ADMIN — the space read during validation returned nothing without
+        // a privileged user, so every create failed "invalid field: Space").
         try {
           const channel = await payload.create({
             collection: 'channels',
@@ -212,8 +232,7 @@ async function ensureMainChannels(
               isDefault: template.isDefault,
               tenant: tenantId as number,
             } as any,
-            overrideAccess: true,
-            req,
+            ...sysOpts(req),
           })
           channelIds.push(String(channel.id))
           created++
