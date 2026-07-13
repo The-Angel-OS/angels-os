@@ -18,6 +18,12 @@ export const FEATURES = {
   /** The cross-federation Endeavors directory browser (/dashboard/endeavors).
    *  Fetches peer nodes' holons — only meaningful when federation is live. */
   endeavorBrowser: on(process.env.NEXT_PUBLIC_FEATURE_ENDEAVOR_BROWSER),
+  /** Local-pickup checkout path: offer a "Local pickup — no shipping needed"
+   *  fulfillment option that drops the shipping/billing address wall down to
+   *  email + card. Meant for cash-and-carry / local-pickup catalogs (e.g. the
+   *  Clearwater fire sale). Default OFF so shipping tenants keep the full
+   *  address requirement. Buyers who pick "Ship" always get address-required. */
+  localPickup: on(process.env.NEXT_PUBLIC_FEATURE_LOCAL_PICKUP),
 } as const
 
 export type FeatureFlag = keyof typeof FEATURES

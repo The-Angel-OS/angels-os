@@ -26,6 +26,7 @@ import { FormItem } from '@/components/forms/FormItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { trackBeginCheckout, trackAddPaymentInfo } from '@/utilities/gtagEcommerce'
+import { FEATURES } from '@/config/features'
 
 const STRIPE_PUBLISHABLE_KEY = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
 
@@ -50,6 +51,15 @@ export const CheckoutPage: React.FC = () => {
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
   const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
+  /**
+   * Fulfillment method. When local-pickup is offered (FEATURES.localPickup) and
+   * the buyer chooses 'pickup', we drop the address wall entirely — cash-and-carry
+   * items need no shipping address, and Stripe's PaymentElement collects whatever
+   * billing details the card network actually requires. 'ship' keeps the full
+   * address requirement unchanged.
+   */
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<'ship' | 'pickup'>('ship')
+  const isPickup = FEATURES.localPickup && fulfillmentMethod === 'pickup'
 
   // Direct charges: when paymentData includes stripeAccountId, load Stripe
   // with the connected account context so Elements targets the seller's account.
@@ -66,7 +76,9 @@ export const CheckoutPage: React.FC = () => {
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
 
   const canGoToPayment = Boolean(
-    (email || user) && billingAddress && (billingAddressSameAsShipping || shippingAddress),
+    (email || user) &&
+    // Local pickup drops the address requirement to just email + card.
+    (isPickup || (billingAddress && (billingAddressSameAsShipping || shippingAddress))),
   )
 
   // On initial load wait for addresses to be loaded and check to see if we can prefill a default one
@@ -97,8 +109,13 @@ export const CheckoutPage: React.FC = () => {
         const paymentData = (await initiatePayment(paymentID, {
           additionalData: {
             ...(email ? { customerEmail: email } : {}),
-            billingAddress,
-            shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+            fulfillmentMethod: isPickup ? 'pickup' : 'ship',
+            ...(isPickup
+              ? {}
+              : {
+                  billingAddress,
+                  shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+                }),
           },
         })) as Record<string, unknown>
 
@@ -132,13 +149,13 @@ export const CheckoutPage: React.FC = () => {
         toast.error(errorMessage)
       }
     },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress],
+    [billingAddress, billingAddressSameAsShipping, shippingAddress, isPickup, email, cart],
   )
 
   // Derive current checkout step for progress indicator
   const checkoutStep: 'contact' | 'address' | 'payment' = paymentData?.['clientSecret']
     ? 'payment'
-    : billingAddress
+    : billingAddress || (isPickup && (user || (email && !emailEditable)))
       ? 'address'
       : 'contact'
 
@@ -245,53 +262,56 @@ export const CheckoutPage: React.FC = () => {
           </div>
         )}
 
-        <h2 className="font-medium text-3xl">Address</h2>
-
-        {billingAddress ? (
-          <div>
-            <AddressItem
-              actions={
-                <Button
-                  variant={'outline'}
-                  disabled={Boolean(paymentData)}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setBillingAddress(undefined)
-                  }}
-                >
-                  Remove
-                </Button>
-              }
-              address={billingAddress}
-            />
-          </div>
-        ) : user ? (
-          <CheckoutAddresses heading="Billing address" setAddress={setBillingAddress} />
-        ) : (
-          <CreateAddressModal
-            disabled={!email || Boolean(emailEditable)}
-            callback={(address) => {
-              setBillingAddress(address)
-            }}
-            skipSubmission={true}
-          />
+        {FEATURES.localPickup && (
+          <>
+            <h2 className="font-medium text-3xl">Fulfillment</h2>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                disabled={Boolean(paymentData)}
+                onClick={() => setFulfillmentMethod('ship')}
+                className={`text-left rounded-lg border p-4 transition-colors ${
+                  fulfillmentMethod === 'ship'
+                    ? 'border-primary ring-1 ring-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <p className="font-medium">Ship to me</p>
+                <p className="text-sm text-muted-foreground">
+                  Enter a shipping address and we&apos;ll deliver it.
+                </p>
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(paymentData)}
+                onClick={() => setFulfillmentMethod('pickup')}
+                className={`text-left rounded-lg border p-4 transition-colors ${
+                  fulfillmentMethod === 'pickup'
+                    ? 'border-primary ring-1 ring-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <p className="font-medium">Local pickup — no shipping needed</p>
+                <p className="text-sm text-muted-foreground">
+                  Cash-and-carry. No address required — we&apos;ll email you to arrange pickup.
+                </p>
+              </button>
+            </div>
+          </>
         )}
 
-        <div className="flex gap-4 items-center">
-          <Checkbox
-            id="shippingTheSameAsBilling"
-            checked={billingAddressSameAsShipping}
-            disabled={Boolean(paymentData || (!user && (!email || Boolean(emailEditable))))}
-            onCheckedChange={(state) => {
-              setBillingAddressSameAsShipping(state as boolean)
-            }}
-          />
-          <Label htmlFor="shippingTheSameAsBilling">Shipping is the same as billing</Label>
-        </div>
-
-        {!billingAddressSameAsShipping && (
+        {isPickup ? (
+          <div className="bg-accent dark:bg-card rounded-lg p-4">
+            <p className="font-medium">Local pickup selected</p>
+            <p className="text-sm text-muted-foreground">
+              No shipping address needed. After payment we&apos;ll email you to arrange pickup.
+            </p>
+          </div>
+        ) : (
           <>
-            {shippingAddress ? (
+            <h2 className="font-medium text-3xl">Address</h2>
+
+            {billingAddress ? (
               <div>
                 <AddressItem
                   actions={
@@ -300,29 +320,75 @@ export const CheckoutPage: React.FC = () => {
                       disabled={Boolean(paymentData)}
                       onClick={(e) => {
                         e.preventDefault()
-                        setShippingAddress(undefined)
+                        setBillingAddress(undefined)
                       }}
                     >
                       Remove
                     </Button>
                   }
-                  address={shippingAddress}
+                  address={billingAddress}
                 />
               </div>
             ) : user ? (
-              <CheckoutAddresses
-                heading="Shipping address"
-                description="Please select a shipping address."
-                setAddress={setShippingAddress}
-              />
+              <CheckoutAddresses heading="Billing address" setAddress={setBillingAddress} />
             ) : (
               <CreateAddressModal
-                callback={(address) => {
-                  setShippingAddress(address)
-                }}
                 disabled={!email || Boolean(emailEditable)}
+                callback={(address) => {
+                  setBillingAddress(address)
+                }}
                 skipSubmission={true}
               />
+            )}
+
+            <div className="flex gap-4 items-center">
+              <Checkbox
+                id="shippingTheSameAsBilling"
+                checked={billingAddressSameAsShipping}
+                disabled={Boolean(paymentData || (!user && (!email || Boolean(emailEditable))))}
+                onCheckedChange={(state) => {
+                  setBillingAddressSameAsShipping(state as boolean)
+                }}
+              />
+              <Label htmlFor="shippingTheSameAsBilling">Shipping is the same as billing</Label>
+            </div>
+
+            {!billingAddressSameAsShipping && (
+              <>
+                {shippingAddress ? (
+                  <div>
+                    <AddressItem
+                      actions={
+                        <Button
+                          variant={'outline'}
+                          disabled={Boolean(paymentData)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setShippingAddress(undefined)
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      }
+                      address={shippingAddress}
+                    />
+                  </div>
+                ) : user ? (
+                  <CheckoutAddresses
+                    heading="Shipping address"
+                    description="Please select a shipping address."
+                    setAddress={setShippingAddress}
+                  />
+                ) : (
+                  <CreateAddressModal
+                    callback={(address) => {
+                      setShippingAddress(address)
+                    }}
+                    disabled={!email || Boolean(emailEditable)}
+                    skipSubmission={true}
+                  />
+                )}
+              </>
             )}
           </>
         )}
@@ -438,12 +504,10 @@ export const CheckoutPage: React.FC = () => {
                         ? (galleryItem.variantOption as { id?: number })?.id
                         : galleryItem.variantOption
 
-                    const hasMatch = variant?.options?.some(
-                      (option: { id?: number } | number) => {
-                        if (typeof option === 'object') return option.id === variantOptionID
-                        else return option === variantOptionID
-                      },
-                    )
+                    const hasMatch = variant?.options?.some((option: { id?: number } | number) => {
+                      if (typeof option === 'object') return option.id === variantOptionID
+                      else return option === variantOptionID
+                    })
 
                     return hasMatch
                   },
@@ -539,7 +603,12 @@ function CheckoutSteps({ currentStep }: { currentStep: 'contact' | 'address' | '
               >
                 {isCompleted ? (
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 ) : (
                   step.number

@@ -182,6 +182,14 @@ export function angelOsStripeAdapter(
       const { customerEmail, currency, cart } = data
       const amount = cart.subtotal
 
+      // Fulfillment method (from checkout additionalData). 'pickup' means the
+      // buyer chose local pickup — no shipping address collected. Recorded on the
+      // PaymentIntent so downstream order handling / receipts can skip shipping.
+      const fulfillmentMethod =
+        (req.data as Record<string, unknown> | undefined)?.['fulfillmentMethod'] === 'pickup'
+          ? 'pickup'
+          : 'ship'
+
       if (!currency) throw new Error('Currency is required.')
       if (!cart?.items?.length) throw new Error('Cart is empty or not provided.')
       if (!customerEmail || typeof customerEmail !== 'string')
@@ -259,6 +267,7 @@ export function angelOsStripeAdapter(
               cartID: String(cart.id),
               cartItemsSnapshot: JSON.stringify(flattenedCart),
               shippingAddress: JSON.stringify(data.shippingAddress || {}),
+              angelOs_fulfillment: fulfillmentMethod,
               angelOs_splitEnabled: 'true',
               angelOs_chargeModel: 'direct',
               angelOs_platformAccount: 'self',
@@ -322,6 +331,7 @@ export function angelOsStripeAdapter(
             cartID: String(cart.id),
             cartItemsSnapshot: JSON.stringify(flattenedCart),
             shippingAddress: JSON.stringify(data.shippingAddress || {}),
+            angelOs_fulfillment: fulfillmentMethod,
             angelOs_splitEnabled: 'false',
             angelOs_chargeModel: 'platform',
             angelOs_splitReason: connectAccount

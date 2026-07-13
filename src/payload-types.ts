@@ -6646,6 +6646,10 @@ export interface PayloadMcpApiKey {
      */
     verifyAddress?: boolean | null;
     /**
+     * Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone in chat wants to be contacted about a product/listing, leaves their details, or you're taking a message for the seller/operator. name + email are enough; include product/message context when you have it.
+     */
+    captureLead?: boolean | null;
+    /**
      * Extract and analyze a PDF document page by page. Each page becomes a separate metadata record linked by a document group. Extracts text, visual elements, entities, and builds a searchable knowledge base. Use for analyzing uploaded PDFs — contracts, journals, books, invoices, manuals, etc.
      */
     extractPdfPages?: boolean | null;
@@ -6729,6 +6733,10 @@ export interface PayloadMcpApiKey {
      * Send a message to someone in the user's address book ON THE USER'S BEHALF. This is an OUTWARD action that reaches another human, so it is GATED: the first call (without confirm) returns a preview and does NOT send — you must relay the preview to the user and get their explicit go-ahead, then call again with confirm=true to actually send. NEVER set confirm=true unless the user has just explicitly approved sending this exact message. Resolve the recipient with list_contacts first if you're unsure who they mean.
      */
     messageContact?: boolean | null;
+    /**
+     * Save a person to the user's address book (CRM contacts) so they autocomplete later and can be invited. Use when the user says 'save my brother's email', 'add a contact', 'remember alice@example.com', or gives you someone's details to keep. Idempotent — saving an email that already exists updates the name instead of duplicating. Pair with invite_member to then send them an invite.
+     */
+    saveContact?: boolean | null;
     /**
      * Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.
      */
@@ -10085,6 +10093,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         combineImages?: T;
         listChannelMedia?: T;
         verifyAddress?: T;
+        captureLead?: T;
         extractPdfPages?: T;
         queryKnowledge?: T;
         getThemeSettings?: T;
@@ -10106,6 +10115,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         sendDirectMessage?: T;
         listContacts?: T;
         messageContact?: T;
+        saveContact?: T;
         createAnnouncement?: T;
         moderateContent?: T;
         updateInventory?: T;
