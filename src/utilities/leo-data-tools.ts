@@ -491,7 +491,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'generate_image',
     description:
-      'Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. When productName is provided with autoAttach=true (default), the image is automatically attached to that product\'s gallery — no separate attach step needed. Always describe what you\'re generating before calling this tool.',
+      'Generate an AI image using Gemini, GPT, or other models via OpenRouter. Use when a user asks to create, generate, design, or make an image, photo, or visual. Can generate product photos, content images, logos, illustrations, and more. SUBJECT-CONSISTENT / IMAGE-TO-IMAGE: to keep a person, product, or scene from an EXISTING image (e.g. "put me driving the Morgan", "restyle this product", "same person, new background"), set useRecentChannelImage=true to condition on the most recent image the user shared in this channel, or pass explicit referenceImages URLs. Only use images the user has shared or that belong to them — do not depict a real, identifiable person from an image the user did not provide. When productName is provided with autoAttach=true (default), the image is auto-attached to that product\'s gallery. Always describe what you\'re generating before calling this tool.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -499,6 +499,17 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           type: 'string',
           description:
             'Detailed description of the image to generate. Be specific about subject, style, lighting, colors, composition. The more detail, the better the result.',
+        },
+        useRecentChannelImage: {
+          type: 'boolean',
+          description:
+            'Set true to condition generation on the MOST RECENT image the user shared in this channel (image-to-image / keep-the-subject). Use when the request references "this", "that photo", "me", or an image just uploaded — e.g. user uploads a selfie then says "make me driving the Morgan". Default false.',
+        },
+        referenceImages: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Explicit reference image URLs (absolute or /api/media/file/… ) to condition on, for subject-consistent editing. Alternative to useRecentChannelImage when you already have specific image URLs (e.g. from list_channel_media).',
         },
         productName: {
           type: 'string',
@@ -5816,6 +5827,57 @@ async function inviteMember(
 // Image Generation & Media Management Handlers
 // ---------------------------------------------------------------------------
 
+/** Absolutize a media url (relative `/api/media/file/…` → server host). */
+function absMediaUrl(url: string): string {
+  if (!url) return url
+  return /^https?:\/\//i.test(url) ? url : `${(process.env.NEXT_PUBLIC_SERVER_URL || '').replace(/\/$/, '')}${url}`
+}
+
+/** Most-recent image URLs attached to messages in the current channel (newest first). */
+async function resolveRecentChannelImageUrls(
+  payload: Payload,
+  ctx: ToolExecutorContext | undefined,
+  count: number,
+): Promise<string[]> {
+  if (!ctx?.spaceId || !ctx?.channelSlug) return []
+  const msgs = await payload.find({
+    collection: 'messages',
+    where: {
+      and: [
+        { space: { equals: ctx.spaceId } },
+        { channel: { equals: ctx.channelSlug } },
+        ...(ctx.tenantId ? [{ tenant: { equals: ctx.tenantId } }] : []),
+      ],
+    } as never,
+    sort: '-createdAt',
+    limit: 100,
+    depth: 2,
+    overrideAccess: true,
+  })
+  const urls: string[] = []
+  const seen = new Set<string>()
+  for (const msg of msgs.docs) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attachments: unknown[] = Array.isArray((msg as any).attachments) ? (msg as any).attachments : []
+    for (const att of attachments) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const media = (att as any)?.media
+      if (!media || typeof media !== 'object') continue
+      const mime = typeof media.mimeType === 'string' ? media.mimeType : ''
+      if (!mime.startsWith('image/')) continue
+      const raw = typeof media.url === 'string' ? media.url : ''
+      if (!raw) continue
+      const url = absMediaUrl(raw)
+      if (seen.has(url)) continue
+      seen.add(url)
+      urls.push(url)
+      if (urls.length >= count) return urls
+    }
+    if (urls.length >= count) break
+  }
+  return urls
+}
+
 async function handleGenerateImage(
   payload: Payload,
   input: Record<string, unknown>,
@@ -5837,6 +5899,20 @@ async function handleGenerateImage(
   const autoAttach = input.autoAttach === undefined ? true : Boolean(input.autoAttach)
   const productName = input.productName as string | undefined
 
+  // Reference images for subject-consistent / image-to-image generation: explicit
+  // URLs the model passed, plus (when asked) the most recent image the user shared
+  // in this channel. Absolutized so the model can fetch them.
+  const explicitRefs = Array.isArray(input.referenceImages)
+    ? (input.referenceImages as unknown[]).filter((u): u is string => typeof u === 'string' && u.length > 0).map(absMediaUrl)
+    : []
+  const recentRefs = input.useRecentChannelImage === true
+    ? await resolveRecentChannelImageUrls(payload, ctx, 3).catch(() => [] as string[])
+    : []
+  const inputImages = [...explicitRefs, ...recentRefs].filter((u, i, a) => a.indexOf(u) === i)
+  if (input.useRecentChannelImage === true && recentRefs.length === 0 && explicitRefs.length === 0) {
+    return "You asked me to use a shared image, but I don't see one in this channel yet. Upload the photo here, then ask me again and I'll use it."
+  }
+
   try {
     const result = await generateImage(
       {
@@ -5847,6 +5923,7 @@ async function handleGenerateImage(
           brandStyle: input.brandStyle as string | undefined,
           backgroundColor: input.backgroundColor as string | undefined,
         },
+        ...(inputImages.length ? { inputImages } : {}),
         autoUpload: autoSave,
         tenantId,
       },

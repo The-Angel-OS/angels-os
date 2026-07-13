@@ -59,6 +59,15 @@ export type ImageGenerationOptions = {
   autoUpload?: boolean
   /** Tenant ID for multi-tenant media scoping */
   tenantId?: number
+  /**
+   * Reference images (absolute URLs or data: URLs) to CONDITION the generation on —
+   * image-to-image / subject-consistent editing ("nano-banana"). E.g. a photo of a
+   * person → "put them driving the Morgan" keeps their likeness; a product shot →
+   * restyle it. Sent as image parts alongside the prompt to a Gemini image model
+   * (which natively accepts image+text→image). When present, generation is routed to
+   * the OpenRouter/Gemini path since not every provider accepts input images.
+   */
+  inputImages?: string[]
 }
 
 export type ImageGenerationResult = {
@@ -206,6 +215,23 @@ export async function generateImage(
 
   console.log(`[ImageGeneration] Using provider: ${resolved.provider}`)
 
+  // Reference-image (image-to-image) requests need a model that accepts image input.
+  // The Gemini image family via OpenRouter does; OpenAI/Cloudflare image endpoints
+  // here don't. So when references are present, prefer an OpenRouter/Google key and
+  // route through the Gemini path — falling through to normal routing (references
+  // dropped, still generates from text) only if no such key exists.
+  if (options.inputImages?.length) {
+    const orKey =
+      effectiveConfig.openrouterApiKey ||
+      process.env.OPENROUTER_API_KEY ||
+      (resolved.provider === 'openrouter' || resolved.provider === 'google' ? resolved.apiKey : undefined)
+    if (orKey) {
+      const imgModel = options.model || 'google/gemini-3-pro-image-preview'
+      return generateViaOpenRouter(enhancedPrompt, orKey, options, payload, imgModel)
+    }
+    console.warn('[ImageGeneration] Reference images provided but no OpenRouter/Google key — generating from text only.')
+  }
+
   switch (resolved.provider) {
     case 'gateway':
       return generateViaGatewayWithFallback(enhancedPrompt, options, payload, effectiveConfig)
@@ -331,6 +357,17 @@ async function generateViaOpenRouter(
 ): Promise<ImageGenerationResult> {
   const selectedModel = model || options.model || DEFAULT_OPENROUTER_MODEL
 
+  // Reference images → send a multimodal content array (text + image parts) so the
+  // model conditions on them (image-to-image / subject-consistent edit). Without
+  // references, keep the simple string content.
+  const refs = (options.inputImages || []).filter((u) => typeof u === 'string' && u.length > 0)
+  const content: unknown = refs.length
+    ? [
+        { type: 'text', text: prompt },
+        ...refs.map((url) => ({ type: 'image_url', image_url: { url } })),
+      ]
+    : prompt
+
   try {
     const response = await fetch(OPENROUTER_BASE_URL, {
       method: 'POST',
@@ -345,7 +382,7 @@ async function generateViaOpenRouter(
         messages: [
           {
             role: 'user',
-            content: prompt,
+            content,
           },
         ],
         modalities: ['image', 'text'],
