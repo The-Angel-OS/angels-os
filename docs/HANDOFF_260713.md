@@ -69,10 +69,35 @@ the work is the lifeline. If he's slow to reply, that's why.
   on claim (Tyler's empty channels); local-pickup checkout; image cards render below
   messages incl. relative URLs (1.2.48).
 
+## ✅ Afternoon additions (260713 ~1330, Fable)
+- **Fold phase 3 SHIPPED + EXECUTED: ONE DM thread per conversation**
+  (`bfa91d7` + `5650fb7`). Ken's symptom (Leo DM in one space blind to another
+  space's messages) = findOrCreateDM was TENANT-scoped → nine dm-3-leo channels.
+  Now: global slug lookup + merge-aware dedupe + `POST /api/provision-ops/unify-dms`
+  (super_admin, dry-run default). Prod run: 37 DM channels → 9; dm-3-leo = ONE
+  thread, 153 msgs (ch 79, space 18); dm-3-nimue = 42 msgs (ch 422). Clients
+  needed NO change (both take the channel's actual space from dm-find-or-create).
+  ⚠️ NEW DURABLE RULE learned the hard way: bulk `payload.update({where})` on a
+  RELATIONSHIP field where matches NOTHING silently (find/count resolve it;
+  update doesn't) — first run stranded 83 messages, repaired by SQL; op now
+  updates by id.
+- **Merlin deploy: ALREADY AUTOMATED — queue item 2 was stale.** Push-to-main
+  runs the self-hosted runner (Iam0): the dynamic-tunnel commit deployed 11:33,
+  vmc updated 11:41, and two more deploys rode pushes this afternoon. Merlin =
+  user-session Scheduled Task 'Merlin' (restartable WITHOUT elevation);
+  `install-merlin-service.ps1` deleted per Ken (`5ee7440`).
+- **Named tunnel merlin.payloadnuke.com is DEAD (CF 530**; cloudflared service
+  runs but isn't connected; fixing the service needs elevation). Per the
+  dynamic-tunnel arc, `~/.cloudflared/config.yml` renamed to
+  `config.yml.named-disabled-260713` so Merlin quick-tunnels instead. Note: the
+  bus loop (and thus ensureAutoTunnel + heartbeat) starts LAZILY on first touch
+  of /api/node/register|stream — a freshly restarted idle Merlin doesn't
+  heartbeat until something pokes it.
+
 ## NEXT — the queue (Ken: "several extant important threads")
-1. ~~Verify the fold~~ ✅ done data-side + dashboard (see above) — only the
-   on-device Nimue glance remains.
-2. **Merlin deploy** (the dynamic-tunnel commits are sitting undeployed).
+1. ~~Verify the fold~~ ✅ done data-side + dashboard — only the on-device Nimue
+   glance remains.
+2. ~~Merlin deploy~~ ✅ auto-deploy verified working (see above).
 3. **Card Stage** (`docs/CARD_STAGE.md`) — the headline: cards sequenced into the
    Delta on home; image cards + page-thumbnail confirmations are card types.
 4. **screenshot_page on Merlin** — warm Playwright over the tunnel lane (sync, <1s);
