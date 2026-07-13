@@ -3882,7 +3882,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'lookup_scripture',
     description:
-      "Look up a Bible passage from the canonical Holy Bible Work and return the verse text. Use when a user asks what a verse says, to quote scripture, or to read a passage. Accepts natural references like 'John 3:16', 'Philemon 1:6', 'Romans 8:28-30', or 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).",
+      "Look up a Bible / scripture passage, verse, prayer, psalm, gospel, or chapter from the canonical Holy Bible Work and return the text. Use when a user asks what a verse says, to quote scripture, to read a passage, or names a well-known passage or PRAYER — e.g. the Lord's Prayer, the 23rd Psalm, the Beatitudes, the Ten Commandments, the Christmas story, the Sermon on the Mount, a parable, the Nativity — or names any book of the Bible (Genesis, Exodus, Psalms, Proverbs, Isaiah, Matthew, Mark, Luke, John, Acts, Romans, Corinthians, Revelation, etc.). For a NAMED passage or prayer, convert it to its reference yourself and pass that (the Lord's Prayer → 'Matthew 6:9-13'; the 23rd Psalm → 'Psalm 23'). Accepts natural references like 'John 3:16', 'Matthew 6', 'Romans 8:28-30', 'Psalm 23'. Returns the verse(s) in the requested translation (World English Bible by default, or King James Version).",
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -3902,7 +3902,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'open_passage',
     description:
-      "Open a Bible passage IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage (e.g. 'take me to Psalm 32', 'open Romans 8'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Psalm 32:5', 'John 3:16', 'Romans 8:28-30'.",
+      "Open a Bible / scripture passage, verse, prayer, psalm, gospel, or chapter IN THE READER — navigate the user to the chapter and scroll to the verse, AND quote the text. Use when the user asks to 'go to', 'take me to', 'open', 'show me', 'read', or 'navigate to' a passage, or names a well-known passage or PRAYER — e.g. the Lord's Prayer, the 23rd Psalm, the Beatitudes, the Ten Commandments, the Sermon on the Mount, a parable — or any book of the Bible (Genesis, Psalms, Proverbs, Isaiah, Matthew, Mark, Luke, John, Romans, Revelation, etc.). For a NAMED passage or prayer, convert it to its reference yourself and pass that (the Lord's Prayer → 'Matthew 6:9-13'). Prefer this over lookup_scripture whenever the intent is to READ in the reader, not just quote inline. Accepts natural references like 'Psalm 32', 'Matthew 6', 'John 3:16', 'Romans 8:28-30'.",
     input_schema: {
       type: 'object' as const,
       properties: {
