@@ -45,29 +45,23 @@ interface EnsureMainSpaceResult {
 }
 
 /**
- * Synthetic super_admin principal for provisioning writes.
+ * Local-API options for a provisioning write. overrideAccess bypasses the
+ * collection's access; the request (when in flight) is threaded so writes join
+ * its transaction.
  *
- * THE fix for "invited members land in an empty Community space": the
- * multi-tenant plugin adds filterOptions to the channels.space relationship
- * that, during create validation, RE-READS the target space under the operation
- * user's access (NOT bypassed by overrideAccess). With no user — or a
- * tenant-scoped user — that read returns nothing on prod and every channel
- * create fails "The following field is invalid: Space", silently. A super_admin
- * reads every space, so validation passes. The access checks it hits
- * (buildSpaceVisibilityFilter, userHasAccessToAllTenants) short-circuit on the
- * super_admin role / isSystemUser flag — no DB lookup, no env-specific id.
- */
-const SYSTEM_ADMIN = { id: 0, collection: 'users', roles: ['super_admin'], isSystemUser: true }
-
-/**
- * Local-API options for a provisioning write: run as SYSTEM_ADMIN so relationship
- * validation can read the target space, and (when a request is in flight) join its
- * transaction. The req is CLONED — createLocalReq does `req.user = user`, and we
- * must not leak SYSTEM_ADMIN onto the caller's shared req.
+ * ⚠️ THE actual "invited members land in an empty Community space" bug was NOT
+ * access — it was a STRING space id. The multi-tenant plugin adds filterOptions
+ * to channels.space that, on create, validates the id against the tenant's
+ * spaces; that check compares the submitted id against numeric ids in JS, so a
+ * STRING "62" never matches numeric 62 → "The following field is invalid:
+ * Space", swallowed silently. ensureSystemSpace (AI Bus) passed the raw numeric
+ * id and worked; ensureMainSpace String()'d it and didn't. The finding took a
+ * probe (docs: proved every create strategy works with a NUMBER, none of the
+ * user/req variants mattered). Fix: coerce space/tenant to Number below.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sysOpts(req?: any): Record<string, unknown> {
-  return { overrideAccess: true, user: SYSTEM_ADMIN, ...(req ? { req: { ...req } } : {}) }
+  return { overrideAccess: true, ...(req ? { req } : {}) }
 }
 
 export async function ensureMainSpace(
@@ -141,7 +135,7 @@ export async function ensureMainSpace(
         description: `The community space for ${tenantName}. All members are automatically added here.`,
         visibility: 'invite_only',
         isMain: true,
-        tenant: tenantId as number,
+        tenant: Number(tenantId),
       },
       ...sysOpts(req),
     })
@@ -208,7 +202,7 @@ async function ensureMainChannels(
             await payload.update({
               collection: 'channels',
               id: existing.id,
-              data: { tenant: tenantId as number },
+              data: { tenant: Number(tenantId) },
               ...sysOpts(req),
             })
           } catch {
@@ -228,9 +222,12 @@ async function ensureMainChannels(
               slug: template.slug,
               description: template.description,
               type: template.type as string,
-              space: spaceId as number,
+              // Number(), NOT `as number`: the multi-tenant relationship validation
+              // matches the submitted id against numeric space ids in JS, so a
+              // STRING id silently fails "invalid: Space". This was THE bug.
+              space: Number(spaceId),
               isDefault: template.isDefault,
-              tenant: tenantId as number,
+              tenant: Number(tenantId),
             } as any,
             ...sysOpts(req),
           })
