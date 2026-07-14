@@ -19,8 +19,10 @@ const nextConfig = {
       // ── Local dev: *.angelos.local subdomains + plain localhost ────────────
       { protocol: 'http', hostname: '**.angelos.local' },
       { protocol: 'http', hostname: 'localhost' },
-      // ── Vercel Blob Storage ────────────────────────────────────────────────
+      // ── Vercel Blob Storage (legacy — media migrated to R2) ────────────────
       { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
+      // ── Cloudflare R2 (current media store — pub-*.r2.dev + custom domains) ─
+      { protocol: 'https', hostname: '**.r2.dev' },
     ],
     // Add quality 90 to allowed qualities (Next.js 16 requirement)
     // Default is [75], but our Image component uses quality={90}
