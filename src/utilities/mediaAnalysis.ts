@@ -117,11 +117,36 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024
  * Returns structured metadata: description, objects, colors, OCR text,
  * entities, tags, and a summary line.
  */
+/**
+ * Give the vision model image BYTES (base64) instead of a URL. R2's public r2.dev
+ * host is rate-limited ("not for production"), so a model provider fetching it
+ * directly fails intermittently — the "trouble fetching from a web link, let me
+ * check the media library" fallback. Core fetching once, server-side, is reliable.
+ * Data/relative URLs, non-images, empty/huge files, and fetch errors pass through
+ * unchanged (the provider-URL path still works as a fallback).
+ */
+async function toBase64ImageUrl(imageUrl: string): Promise<string> {
+  if (typeof imageUrl !== 'string' || !/^https?:\/\//i.test(imageUrl)) return imageUrl
+  try {
+    const res = await fetch(imageUrl)
+    if (!res.ok) return imageUrl
+    const ct = (res.headers.get('content-type') || '').split(';')[0].trim() || 'image/jpeg'
+    if (!ct.startsWith('image/')) return imageUrl
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length === 0 || buf.length > 18 * 1024 * 1024) return imageUrl
+    return `data:${ct};base64,${buf.toString('base64')}`
+  } catch {
+    return imageUrl
+  }
+}
+
 export async function analyzeImage(
   imageUrl: string,
   options: Partial<MediaAnalysisOptions> = {},
 ): Promise<AnalysisResult> {
   const startTime = Date.now()
+  // Vision reads bytes, not a (rate-limited r2.dev) URL — fetch server-side once.
+  imageUrl = await toBase64ImageUrl(imageUrl)
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const geminiKey = process.env.GOOGLE_AI_API_KEY
@@ -320,7 +345,8 @@ export async function analyzeImages(
   if (urls.length === 0) return { success: false, error: 'No images provided.' }
 
   const droppedForCap = Math.max(0, urls.length - MAX_COMBINE_IMAGES)
-  const used = urls.slice(0, MAX_COMBINE_IMAGES)
+  // Bytes-not-URL for each (see toBase64ImageUrl) — reliable past r2.dev rate limits.
+  const used = await Promise.all(urls.slice(0, MAX_COMBINE_IMAGES).map(toBase64ImageUrl))
 
   // Single image → the existing single-image path is identical work; reuse it.
   if (used.length === 1) {
