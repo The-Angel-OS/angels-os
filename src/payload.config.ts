@@ -12,7 +12,7 @@ import { afterErrorHook } from '@/utilities/payloadAfterError'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
+import { mediaStoragePlugin } from '@/utilities/mediaStorage'
 import sharp from 'sharp'
 
 import {
@@ -498,13 +498,10 @@ export default buildConfig({
       // Allow users with no tenant (e.g. first user before seed) to appear in the Users list
       useUsersTenantFilter: false,
     }),
-    vercelBlobStorage({
-      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-      collections: {
-        media: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN!,
-    }),
+    // Media storage: Cloudflare R2 when the R2_* env is set (direct upload + zero
+    // egress), else Vercel Blob — see utilities/mediaStorage.ts. Dormant until
+    // configured, so this is a no-op change with no R2 env present.
+    mediaStoragePlugin,
   ],
   editor: lexicalEditor({
     features: () => {
