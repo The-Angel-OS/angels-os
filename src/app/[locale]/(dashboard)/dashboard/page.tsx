@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
-import OnboardingGuide from '@/components/OnboardingGuide'
 import { FederationPulse } from '@/components/dashboard/widgets/FederationPulse'
 import { PresenceRoster } from '@/components/dashboard/widgets/PresenceRoster'
 import { FederationStar } from '@/components/dashboard/widgets/FederationStar'
@@ -122,7 +121,7 @@ export default async function DashboardPage({
           overrideAccess: true,
         })
         if (memberships.totalDocs === 0) {
-          redirect(`${prefix}/dashboard/new-endeavor`)
+          redirect(`${prefix}/dashboard/admin/provision`)
         }
       }
     }
@@ -280,9 +279,6 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      {/* Onboarding Guide — framework-managed widget (collapse/hide/restore) */}
-      <OnboardingGuide role={userRole} prefix={prefix} />
-
       {/* The Network — community pulse: you're part of a living federation */}
       <FederationPulse />
 

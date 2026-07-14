@@ -192,15 +192,10 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         // Cross-federation directory — dormant behind the flag while we run single-node.
         visible: (ctx) => FEATURES.endeavorBrowser && ctx.isAuthenticated,
       },
-      {
-        key: 'setup',
-        label: 'Enterprise Setup',
-        icon: 'wand',
-        href: (p) => `${p}/dashboard/setup`,
-        isActive: active('/dashboard/setup'),
-        visible: (ctx) => !ctx.wizardComplete && ctx.isAdmin,
-        badge: { text: 'Setup', color: 'bg-primary' },
-      },
+      // Retired 260714: the 17-min conversational "Enterprise Setup" wizard was
+      // one of THREE overlapping setup surfaces. Creation now goes through the
+      // fast ProvisionWizard (/dashboard/admin/provision), ongoing config through
+      // Settings. /dashboard/setup redirects to /dashboard.
     ],
   },
 
