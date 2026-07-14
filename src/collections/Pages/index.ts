@@ -34,6 +34,7 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { revalidatePage, revalidateDelete } from './hooks/revalidatePage'
+import { pagePublishedDirective } from './hooks/pagePublishedDirective'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -211,7 +212,7 @@ export const Pages: CollectionConfig = {
     simpleSlugField,
   ],
   hooks: {
-    afterChange: [revalidatePage],
+    afterChange: [revalidatePage, pagePublishedDirective],
     afterDelete: [revalidateDelete],
   },
   versions: {
