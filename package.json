@@ -34,6 +34,8 @@
     "@ai-sdk/gateway": "^3.0.53",
     "@ai-sdk/openai-compatible": "^2.0.48",
     "@anthropic-ai/sdk": "^0.74.0",
+    "@aws-sdk/client-s3": "3.1086.0",
+    "@aws-sdk/s3-request-presigner": "3.1086.0",
     "@livekit/components-react": "^2.9.20",
     "@livekit/components-styles": "^1.2.0",
     "@payloadcms/admin-bar": "^3.77.0",

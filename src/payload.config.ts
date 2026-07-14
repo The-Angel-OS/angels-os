@@ -225,6 +225,8 @@ import { channelMediaHandler } from '@/endpoints/channel-media'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
 import { authRequestOtpHandler } from '@/endpoints/auth-request-otp'
 import { authVerifyOtpHandler } from '@/endpoints/auth-verify-otp'
+import { mediaR2UploadUrlHandler } from '@/endpoints/media-r2-upload-url'
+import { mediaR2RegisterHandler } from '@/endpoints/media-r2-register'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationMigrateHandler } from '@/endpoints/federation-migrate'
@@ -1550,6 +1552,18 @@ export default buildConfig({
       path: '/media-ops/channel',
       method: 'get',
       handler: channelMediaHandler,
+    },
+    {
+      // Device direct-upload (large clips past Vercel's ~4.5MB body cap): mint a
+      // presigned R2 PUT, then register the doc referencing the uploaded key.
+      path: '/media-ops/r2-upload-url',
+      method: 'post',
+      handler: mediaR2UploadUrlHandler,
+    },
+    {
+      path: '/media-ops/r2-register',
+      method: 'post',
+      handler: mediaR2RegisterHandler,
     },
     {
       path: '/auth/system-token',
