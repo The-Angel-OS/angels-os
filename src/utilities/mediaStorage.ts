@@ -67,5 +67,8 @@ function blobPlugin() {
   })
 }
 
+// Cutover 260713: R2 env set in prod; existing 2134 media objects migrated
+// Blob→R2 (scripts/_local/migrate-blob-to-r2.mjs, 0 failures). This deploy flips
+// media to R2 — direct upload past the 4.5 MB wall + zero-egress serving.
 /** The media storage plugin to register — R2 when fully configured, else Blob. */
 export const mediaStoragePlugin = usingR2 ? r2Plugin() : blobPlugin()
