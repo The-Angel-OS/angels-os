@@ -650,6 +650,39 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['email'],
     },
   },
+  // ─── Device / Card Stage ────────────────────────────────────────
+  {
+    name: 'post_card_directive',
+    description:
+      "Surface a card on the user's device home screen (the Nimue Card Stage — the breathing Delta). A nudge with a title, optional body, and a link back into the site. Use for workflow continuation (\"your checkout is waiting\", \"your page is live\", \"your booking needs a time\") or a proactive suggestion the user asked you to remind them about. The card appears on their home surface and taps through to the URL. Posts to the CURRENT user's device.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Card title / headline (required)' },
+        body: { type: 'string', description: 'Optional supporting copy shown on the card' },
+        url: {
+          type: 'string',
+          description: 'Link the card opens — a site path like /checkout or /works/read?soul=…, or a full URL',
+        },
+        eyebrow: {
+          type: 'string',
+          description: 'Optional small label above the title, e.g. "CONTINUE YOUR CHECKOUT"',
+        },
+        ctaLabel: { type: 'string', description: 'Primary button label (default "OPEN ▸")' },
+        cardKind: {
+          type: 'string',
+          enum: ['directive', 'link', 'suggestion', 'update'],
+          description: 'Accent/priority hint (default: directive)',
+        },
+        dedupeKey: {
+          type: 'string',
+          description:
+            'Stable key so re-posting REPLACES the prior card instead of stacking a new one, e.g. "cart-123"',
+        },
+      },
+      required: ['title'],
+    },
+  },
   // ─── Product Creation & Management Tools ────────────────────────
   {
     name: 'create_product',
@@ -4158,6 +4191,9 @@ async function executeToolSwitch(
       // Invitation
       case 'invite_member':
         return await inviteMember(payload, toolInput, ctx)
+      // Device / Card Stage
+      case 'post_card_directive':
+        return await handlePostCardDirective(payload, toolInput, ctx)
       // Product creation & management
       case 'create_product':
         return await createProduct(payload, toolInput, ctx)
@@ -5751,6 +5787,38 @@ async function updateProduct(
 // ---------------------------------------------------------------------------
 // Invitation Handler
 // ---------------------------------------------------------------------------
+
+/**
+ * post_card_directive — surface a card on the user's device (Nimue Card Stage).
+ * Posts a `card_directive` message onto the user's Nimue DM channel; the device's
+ * directive feed materializes it as a card. Targets the CURRENT user only (a
+ * non-privileged caller can't push a card onto someone else's device).
+ */
+async function handlePostCardDirective(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.userId) return 'Error: You must be signed in to receive a home-screen card.'
+  if (!ctx.tenantId) return 'Error: No tenant context for the card.'
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: A card needs a title.'
+
+  const { postCardDirective } = await import('./cardDirectives')
+  const res = await postCardDirective(payload, {
+    userId: ctx.userId,
+    tenantId: ctx.tenantId,
+    title,
+    body: (input.body as string) || undefined,
+    url: (input.url as string) || undefined,
+    eyebrow: (input.eyebrow as string) || undefined,
+    ctaLabel: (input.ctaLabel as string) || undefined,
+    cardKind: (input.cardKind as 'directive' | 'link' | 'suggestion' | 'update') || undefined,
+    dedupeKey: (input.dedupeKey as string) || undefined,
+  })
+  if (!res.ok) return `Error posting card: ${res.error || 'unknown'}`
+  return `Done — "${title}" is on the user's home screen (Nimue Card Stage).`
+}
 
 async function inviteMember(
   payload: Payload,
