@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ':(exclude)docs/'",
+  "ignoreCommand": "git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ':(exclude)docs/' ':(exclude)*.md'",
   "functions": {
     "src/app/(payload)/api/[...slug]/route.ts": {
       "maxDuration": 300
@@ -49,7 +49,7 @@
         { "key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=()" },
         { "key": "X-DNS-Prefetch-Control", "value": "on" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com https://vercel.live; connect-src 'self' api.stripe.com *.livekit.cloud api.anthropic.com api.openai.com api.openrouter.ai *.sentry.io *.kendev.co *.spacesangels.com https://vercel.live wss://ws-us3.pusher.com; frame-src 'self' js.stripe.com https://vercel.live; img-src 'self' blob: data: *.public.blob.vercel-storage.com *.kendev.co *.spacesangels.com https://vercel.live https://vercel.com; style-src 'self' 'unsafe-inline' https://vercel.live; font-src 'self' data: https://vercel.live https://assets.vercel.com; media-src 'self' blob:; worker-src 'self' blob:;" }
+        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com https://vercel.live; connect-src 'self' api.stripe.com *.livekit.cloud api.anthropic.com api.openai.com api.openrouter.ai *.sentry.io *.kendev.co *.spacesangels.com *.r2.dev *.r2.cloudflarestorage.com https://vercel.live wss://ws-us3.pusher.com; frame-src 'self' js.stripe.com https://vercel.live; img-src 'self' blob: data: *.public.blob.vercel-storage.com *.r2.dev *.kendev.co *.spacesangels.com https://vercel.live https://vercel.com; style-src 'self' 'unsafe-inline' https://vercel.live; font-src 'self' data: https://vercel.live https://assets.vercel.com; media-src 'self' blob: *.r2.dev; worker-src 'self' blob:;" }
       ]
     }
   ]
