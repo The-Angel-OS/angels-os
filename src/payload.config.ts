@@ -223,6 +223,8 @@ import { authFederatedHandler } from '@/endpoints/auth-federated'
 import { addressBookListHandler, addressBookAllHandler } from '@/endpoints/address-book'
 import { channelMediaHandler } from '@/endpoints/channel-media'
 import { authSystemTokenHandler } from '@/endpoints/auth-system-token'
+import { authRequestOtpHandler } from '@/endpoints/auth-request-otp'
+import { authVerifyOtpHandler } from '@/endpoints/auth-verify-otp'
 import { authSocialUnlinkHandler } from '@/endpoints/auth-social-unlink'
 import { beneficiaryClaimHandler } from '@/endpoints/beneficiary-claim'
 import { federationMigrateHandler } from '@/endpoints/federation-migrate'
@@ -1556,6 +1558,16 @@ export default buildConfig({
       path: '/auth/system-token',
       method: 'post',
       handler: authSystemTokenHandler,
+    },
+    {
+      path: '/auth/request-otp',
+      method: 'post',
+      handler: authRequestOtpHandler,
+    },
+    {
+      path: '/auth/verify-otp',
+      method: 'post',
+      handler: authVerifyOtpHandler,
     },
     {
       path: '/auth/social-unlink',
