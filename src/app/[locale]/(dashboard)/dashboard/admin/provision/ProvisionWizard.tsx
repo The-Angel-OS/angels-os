@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { ALL_FONTS as FONT_OPTIONS } from '@/config/brandingOptions'
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,17 +28,6 @@ const ENDEAVOR_ICONS: Record<EndeavorType, React.ReactNode> = {
   'booking-based': <Calendar size={24} />,
   custom: <Layers size={24} />,
 }
-
-const FONT_OPTIONS = [
-  { value: 'inter', label: 'Inter' },
-  { value: 'playfair-display', label: 'Playfair Display' },
-  { value: 'montserrat', label: 'Montserrat' },
-  { value: 'raleway', label: 'Raleway' },
-  { value: 'poppins', label: 'Poppins' },
-  { value: 'open-sans', label: 'Open Sans' },
-  { value: 'lato', label: 'Lato' },
-  { value: 'roboto', label: 'Roboto' },
-]
 
 const DEFAULT_STATE: WizardState = {
   identity: { name: '', slug: '', domain: '' },

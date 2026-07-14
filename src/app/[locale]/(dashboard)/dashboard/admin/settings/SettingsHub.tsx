@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import EndeavorSetup from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
+import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,21 +45,7 @@ export interface SettingsHubProps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const HEADING_FONTS = [
-  { value: 'inter', label: 'Inter' },
-  { value: 'playfair-display', label: 'Playfair Display' },
-  { value: 'montserrat', label: 'Montserrat' },
-  { value: 'raleway', label: 'Raleway' },
-  { value: 'poppins', label: 'Poppins' },
-]
-
-const BODY_FONTS = [
-  { value: 'inter', label: 'Inter' },
-  { value: 'open-sans', label: 'Open Sans' },
-  { value: 'lato', label: 'Lato' },
-  { value: 'roboto', label: 'Roboto' },
-  { value: 'source-sans-3', label: 'Source Sans 3' },
-]
+// Font catalogs now live in one place — src/config/brandingOptions.ts (53).
 
 const CURRENCIES = [
   { value: 'usd', label: 'USD ($)' },
