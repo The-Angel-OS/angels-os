@@ -24,6 +24,20 @@ export type EndeavorType =
   | 'booking-based'
   | 'custom'
 
+/** Canonical value+label options for endeavor-type pickers — ONE source, colocated
+ *  with the union. The Record forces a label for EVERY EndeavorType, so adding a
+ *  union member is a compile error until it's labelled (can't drift). (53.) */
+export const ENDEAVOR_TYPE_LABELS: Record<EndeavorType, string> = {
+  'service-provider': 'Service Provider',
+  'retail-commerce': 'Retail & Commerce',
+  'creator-content': 'Creator & Content',
+  'booking-based': 'Booking & Scheduling',
+  custom: 'Custom',
+}
+export const ENDEAVOR_TYPE_OPTIONS: { value: EndeavorType; label: string }[] = (
+  Object.entries(ENDEAVOR_TYPE_LABELS) as [EndeavorType, string][]
+).map(([value, label]) => ({ value, label }))
+
 export interface SpaceTemplate {
   name: string
   description: string

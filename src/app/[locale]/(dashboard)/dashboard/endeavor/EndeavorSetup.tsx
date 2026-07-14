@@ -3,14 +3,8 @@
 import React, { useCallback, useEffect, useState, useTransition } from 'react'
 import { getEndeavor, updateEndeavor, type EndeavorData } from './actions'
 import { MediaPicker } from './MediaPicker'
-
-const ENDEAVOR_TYPES = [
-  { label: 'Service Provider', value: 'service-provider' },
-  { label: 'Retail & Commerce', value: 'retail-commerce' },
-  { label: 'Creator & Content', value: 'creator-content' },
-  { label: 'Booking & Scheduling', value: 'booking-based' },
-  { label: 'Custom', value: 'custom' },
-]
+// Endeavor-type options are canonical in spaceProvisioning.ts (with the union) — 53.
+import { ENDEAVOR_TYPE_OPTIONS as ENDEAVOR_TYPES } from '@/utilities/spaceProvisioning'
 
 const HOLON_OPTIONS = [
   { label: 'Manufacturer', value: 'manufacturer' },
