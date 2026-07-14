@@ -11,6 +11,7 @@ import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 import { setTenantFromHeader } from './hooks/setTenantFromHeader'
 import { autoAnalyzeUpload } from './hooks/autoAnalyzeUpload'
 import { mediaToAiBus } from './hooks/mediaToAiBus'
+import { guardVideoUpload } from './hooks/guardVideoUpload'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,7 +34,7 @@ export const Media: CollectionConfig = {
     // Fill `tenant` from the subdomain (x-tenant-id) when the client omits it —
     // fixes "failed to upload" on chat attachments for super_admins viewing a
     // tenant subdomain (no payload-tenant cookie). See hook for details.
-    beforeValidate: [setTenantFromHeader],
+    beforeValidate: [setTenantFromHeader, guardVideoUpload],
     // Analyze every upload (image vision / PDF text) → MediaMeta → RAG, so any
     // uploaded photo is deeply searchable later regardless of how it arrived.
     // Analyze the upload AND drop a message into the AI Bus `media` channel, so
