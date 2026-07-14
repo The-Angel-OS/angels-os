@@ -65,7 +65,7 @@ importers:
         specifier: ^3.77.0
         version: 3.77.0(@faceless-ui/modal@3.0.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(@faceless-ui/scroll-info@2.0.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(@payloadcms/next@3.77.0(@types/react@19.2.9)(graphql@16.12.0)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2))(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2)
       '@payloadcms/storage-s3':
-        specifier: ^3.77.0
+        specifier: 3.77.0
         version: 3.77.0(@types/react@19.2.9)(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4))(payload@3.77.0(patch_hash=97ccc1d96ed8c71c6ee33690151c2bcb7b1d1aa21bd38339b3a0c04d0a98a8ae)(graphql@16.12.0)(typescript@5.7.2))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.7.2)
       '@payloadcms/storage-vercel-blob':
         specifier: ^3.77.0
