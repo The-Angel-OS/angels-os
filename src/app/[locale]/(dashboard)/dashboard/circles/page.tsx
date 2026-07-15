@@ -29,10 +29,24 @@ export default async function MyCirclesPage({
   const prefix = locale === 'en' ? '' : `/${locale}`
 
   const payload = await getPayload({ config })
-  const { user } = await payload.auth({ headers: await headers() })
+  const hdrs = await headers()
+  const { user } = await payload.auth({ headers: hdrs })
   if (!user) redirect(`${prefix}/dashboard`)
   const uid = (user as { id: string | number }).id
   const isSuperAdmin = checkRole(['super_admin'], user)
+
+  // "Open" must hop to the circle's OWN portal (its FQDN), like the portal chooser —
+  // not the current portal's /dashboard/spaces. Derive {slug}.{apex} from the request
+  // host (or a real custom domain). Cookie SSO (.apex) carries the session across.
+  const hostLabels = (hdrs.get('host') || 'spacesangels.com').split(':')[0].replace(/^www\./, '').split('.').filter(Boolean)
+  const apex = hostLabels.length > 2 ? hostLabels.slice(1).join('.') : hostLabels.join('.')
+  const proto = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+  const isReal = (d?: string) => !!d && !d.endsWith('.local') && !d.includes('localhost')
+  const portalUrl = (slug?: string, domain?: string): string => {
+    if (isReal(domain)) return `${proto}://${domain!.replace(/^www\./, '')}/dashboard/spaces`
+    if (slug && slug !== 'default' && slug !== 'platform') return `${proto}://${slug}.${apex}/dashboard/spaces`
+    return '/dashboard/spaces' // platform root → stay on this host
+  }
 
   // Reuse the dashboard chooser's tenant resolution so My Circles == the Switch-Tenant
   // list (layout.tsx): super_admins see ALL tenants (incl. the platform root, which has
@@ -58,17 +72,18 @@ export default async function MyCirclesPage({
   }
 
   // The tenant set — each tenant IS a circle. From the same source as the chooser.
-  const tenantById = new Map<string, { id: string | number; name: string }>()
+  const tenantById = new Map<string, { id: string | number; name: string; slug?: string; domain?: string }>()
   if (isSuperAdmin && allTenantsRes) {
-    for (const t of allTenantsRes.docs as Array<{ id: string | number; name?: string }>) {
-      tenantById.set(String(t.id), { id: t.id, name: t.name || 'Tenant' })
+    for (const t of allTenantsRes.docs as Array<{ id: string | number; name?: string; slug?: string; domain?: string }>) {
+      tenantById.set(String(t.id), { id: t.id, name: t.name || 'Tenant', slug: t.slug, domain: t.domain })
     }
   } else {
     for (const m of myMemRes.docs as Array<{ tenant: unknown }>) {
-      const t = m.tenant as { id?: string | number; name?: string } | number | string
+      const t = m.tenant as { id?: string | number; name?: string; slug?: string; domain?: string } | number | string
       const tid = idOf(t)
       if (tid != null && !tenantById.has(String(tid))) {
-        tenantById.set(String(tid), { id: tid, name: (t && typeof t === 'object' && t.name) || 'Tenant' })
+        const obj = t && typeof t === 'object' ? t : null
+        tenantById.set(String(tid), { id: tid, name: obj?.name || 'Tenant', slug: obj?.slug, domain: obj?.domain })
       }
     }
   }
@@ -114,6 +129,7 @@ export default async function MyCirclesPage({
     type: string
     myRole: string
     members: Array<{ id: string | number; name: string }>
+    href: string
   }
   const circles: Circle[] = [...tenantById.values()].map((t) => {
     const tid = String(t.id)
@@ -125,6 +141,7 @@ export default async function MyCirclesPage({
       type: (e?.endeavorType as string) || '',
       myRole: roleByTenant.get(tid) || (isSuperAdmin ? 'super_admin' : 'member'),
       members: rosterByTenant.get(tid) || [],
+      href: portalUrl(t.slug, t.domain),
     }
   })
 
@@ -185,9 +202,9 @@ export default async function MyCirclesPage({
               <div className="mt-3 flex items-center gap-2 text-[10px]">
                 {c.type && <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">{c.type}</span>}
                 <span className="text-muted-foreground">{c.members.length} {c.members.length === 1 ? 'person' : 'people'}</span>
-                <Link href="/dashboard/spaces" className="ml-auto font-medium text-primary hover:underline">
+                <a href={c.href} className="ml-auto font-medium text-primary hover:underline">
                   Open →
-                </Link>
+                </a>
               </div>
             </div>
           ))}
