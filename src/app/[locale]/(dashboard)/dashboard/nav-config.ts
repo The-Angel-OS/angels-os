@@ -79,6 +79,16 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        // Spaces (the AI Bus / Discord-class chat) is the daily driver — promoted
+        // to the top of OVERVIEW, right under Dashboard, ahead of My Circles.
+        key: 'spaces',
+        label: 'Spaces',
+        icon: 'bot',
+        href: (p) => `${p}/dashboard/spaces`,
+        isActive: active('/dashboard/spaces'),
+        visible: authenticated,
+      },
+      {
         key: 'circles',
         label: 'My Circles',
         icon: 'users',
@@ -133,14 +143,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         href: (p) => `${p}/admin`,
         isActive: () => false,
         visible: adminOnly,
-      },
-      {
-        key: 'spaces',
-        label: 'Spaces',
-        icon: 'bot',
-        href: (p) => `${p}/dashboard/spaces`,
-        isActive: active('/dashboard/spaces'),
-        visible: authenticated,
       },
       {
         key: 'my-orders',
