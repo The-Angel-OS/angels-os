@@ -39,6 +39,13 @@ export interface ProvisionPortalInput {
   /** Endeavor type (drives the community space's channel set). */
   endeavorType?: string
   /**
+   * Tenant flavor (see AGENTS.md "The model") — 'business' | 'circle' |
+   * 'guardian_angel' | 'personal_portal'. Optional; when omitted the tenant keeps
+   * the legacy 'tenant' value. `isGuardianAngel: true` implies 'guardian_angel'
+   * and wins over this. Never set 'platform' here (that's the reserved root).
+   */
+  type?: 'business' | 'circle' | 'guardian_angel' | 'personal_portal' | 'tenant'
+  /**
    * Marks this as a PERSONAL guardian-angel portal (gmail⇔angel), distinct from a
    * business/ministry portal. Set true by the claim flow so the tenant carries the
    * `isGuardianAngel` marker the claim idempotency reads. Default false.
@@ -92,11 +99,14 @@ export async function provisionPortal(
   const log: string[] = []
 
   // 1. Tenant (canonical helper → correct branding + domain sync)
+  // Flavor (canonical model): a personal guardian portal is a 'guardian_angel';
+  // otherwise honor an explicit flavor, else legacy 'tenant'. Never 'platform'.
+  const tenantFlavor = input.isGuardianAngel ? 'guardian_angel' : (input.type || 'tenant')
   const tenant = await findOrCreateTenant(payload, req, {
     name,
     slug,
     domain,
-    type: 'tenant',
+    type: tenantFlavor,
     branding: { siteName: name, tagline, primaryColor, secondaryColor },
   })
   log.push(`tenant #${tenant.id} (${tenant.slug})`)

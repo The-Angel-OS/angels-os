@@ -33,15 +33,22 @@ export const Tenants: CollectionConfig = {
       type: 'select',
       index: true,
       options: [
+        // Root — the one Enterprise/federation node everything connects through.
         { label: 'Platform (root portal)', value: 'platform' },
-        { label: 'Tenant', value: 'tenant' },
-        { label: 'Ministry', value: 'ministry' },
+        // Flavors — a tenant IS one of these (see AGENTS.md "The model").
+        { label: 'Business', value: 'business' },
+        { label: 'Circle (family)', value: 'circle' },
+        { label: 'Guardian Angel', value: 'guardian_angel' },
+        { label: 'Personal Portal', value: 'personal_portal' },
+        // Legacy — pre-flavor rows; kept so existing data + queries never break.
+        { label: 'Tenant (legacy)', value: 'tenant' },
+        { label: 'Ministry (legacy)', value: 'ministry' },
       ],
       defaultValue: 'tenant',
       required: true,
       admin: {
         description:
-          'The kind of tenant. "Platform (root portal)" is the special singleton — the Enterprise / federation root, the node everything connects through its AI bus. NOTE: "Enterprise" is NOT a tenant type — it is the root config itself; the Platform tenant IS that root. Every Circle, Business, Guardian Angel, and Personal Portal is just a tenant. (See AGENTS.md "The model".)',
+          'The flavor of this tenant. A tenant is the universal primitive — every Business, Circle (family), Guardian Angel, and Personal Portal IS a tenant. "Platform (root portal)" is the special singleton: the Enterprise / federation root, the node everything connects through its AI bus. NOTE: "Enterprise" is NOT a tenant type — it is the root config itself; the Platform tenant IS that root. "Tenant/Ministry (legacy)" are pre-flavor values kept for back-compat. (See AGENTS.md "The model".)',
       },
     },
     {

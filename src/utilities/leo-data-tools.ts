@@ -17887,6 +17887,7 @@ async function commissionEndeavor(
         tagline: typeof input.tagline === 'string' ? input.tagline : undefined,
         endeavorType: typeof input.endeavorType === 'string' ? input.endeavorType : undefined,
         isGuardianAngel: false,
+        type: 'business', // canonical flavor — a commissioned Endeavor is a Business (AGENTS.md "The model")
         networkVisible: true, // a business WANTS to be found in Discovery
       },
       { actingUserId: userId },

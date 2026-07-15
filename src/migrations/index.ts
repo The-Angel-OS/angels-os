@@ -24,6 +24,7 @@ import * as migration_20260626_190000_add_cost_events from './20260626_190000_ad
 import * as migration_20260704_060000_add_nvidia_ai_config from './20260704_060000_add_nvidia_ai_config';
 import * as migration_20260708_000000_add_message_channel_ref from './20260708_000000_add_message_channel_ref';
 import * as migration_20260713_000000_add_community_visibility from './20260713_000000_add_community_visibility';
+import * as migration_20260715_000000_add_tenant_flavors from './20260715_000000_add_tenant_flavors';
 
 export const migrations = [
   {
@@ -155,5 +156,10 @@ export const migrations = [
     up: migration_20260713_000000_add_community_visibility.up,
     down: migration_20260713_000000_add_community_visibility.down,
     name: '20260713_000000_add_community_visibility',
+  },
+  {
+    up: migration_20260715_000000_add_tenant_flavors.up,
+    down: migration_20260715_000000_add_tenant_flavors.down,
+    name: '20260715_000000_add_tenant_flavors',
   },
 ];

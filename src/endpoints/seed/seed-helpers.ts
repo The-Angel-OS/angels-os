@@ -39,7 +39,7 @@ const SYSTEM_EMAIL_DOMAIN = 'system.spacesangels.com'
 export async function findOrCreateTenant(
   payload: Payload,
   req: PayloadRequest | undefined,
-  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant'; businessType?: string },
+  data: { name: string; slug: string; domain: string; branding?: Record<string, unknown>; type?: 'platform' | 'tenant' | 'business' | 'circle' | 'guardian_angel' | 'personal_portal' | 'ministry'; businessType?: string },
 ): Promise<{ id: number | string; name: string; slug: string }> {
   const existing = await payload.find({
     collection: 'tenants',

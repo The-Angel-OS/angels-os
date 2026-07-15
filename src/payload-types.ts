@@ -299,9 +299,9 @@ export interface PayloadMcpApiKeyAuthOperations {
 export interface Tenant {
   id: number;
   /**
-   * Platform tenant is the special singleton for Angel OS infrastructure
+   * The flavor of this tenant. A tenant is the universal primitive — every Business, Circle (family), Guardian Angel, and Personal Portal IS a tenant. "Platform (root portal)" is the special singleton: the Enterprise / federation root, the node everything connects through its AI bus. NOTE: "Enterprise" is NOT a tenant type — it is the root config itself; the Platform tenant IS that root. "Tenant/Ministry (legacy)" are pre-flavor values kept for back-compat. (See AGENTS.md "The model".)
    */
-  type: 'platform' | 'tenant' | 'ministry';
+  type: 'platform' | 'business' | 'circle' | 'guardian_angel' | 'personal_portal' | 'tenant' | 'ministry';
   /**
    * True for personal guardian-angel portals (auto-provisioned per gmail via Nimue).
    */
@@ -2013,7 +2013,7 @@ export interface FeaturedEndeavorsBlock {
   blockType: 'featuredEndeavors';
 }
 /**
- * The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.
+ * The constitutional identity of an Endeavor (a tenant) — what it is, what it does, and what it stands for.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "endeavors".
@@ -2022,7 +2022,7 @@ export interface Endeavor {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * Official name of this Endeavor / Enterprise
+   * Official name of this Endeavor
    */
   name: string;
   /**
@@ -2030,11 +2030,11 @@ export interface Endeavor {
    */
   tagline?: string | null;
   /**
-   * Full description of what this Enterprise does and stands for
+   * Full description of what this Endeavor does and stands for
    */
   description?: string | null;
   /**
-   * The primary operational model of this Enterprise
+   * The primary operational model of this Endeavor
    */
   endeavorType: 'service-provider' | 'retail-commerce' | 'creator-content' | 'booking-based' | 'custom';
   /**
@@ -2053,11 +2053,11 @@ export interface Endeavor {
       )[]
     | null;
   /**
-   * What does this Enterprise serve? Set during Leo Wizard step 5.
+   * What does this Endeavor serve? Set during Leo Wizard step 5.
    */
   missionStatement?: string | null;
   /**
-   * "Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.
+   * "Forming" during Leo Wizard setup. "Active" once the Endeavor is live and federated.
    */
   status: 'forming' | 'active' | 'suspended' | 'retired';
   /**
@@ -2065,7 +2065,7 @@ export interface Endeavor {
    */
   primarySpace?: (number | null) | Space;
   /**
-   * The human who runs this Enterprise
+   * The human who runs this Endeavor
    */
   operator?: {
     name?: string | null;
@@ -2076,7 +2076,7 @@ export interface Endeavor {
     role?: string | null;
   };
   /**
-   * What this Enterprise can offer to the network (visible in federation catalog)
+   * What this Endeavor can offer to the network (visible in federation catalog)
    */
   capabilities?:
     | {
@@ -6429,6 +6429,10 @@ export interface PayloadMcpApiKey {
      */
     inviteMember?: boolean | null;
     /**
+     * Surface a card on the user's device home screen (the Nimue Card Stage — the breathing Delta). A nudge with a title, optional body, and a link back into the site. Use for workflow continuation ("your checkout is waiting", "your page is live", "your booking needs a time") or a proactive suggestion the user asked you to remind them about. The card appears on their home surface and taps through to the URL. Posts to the CURRENT user's device.
+     */
+    postCardDirective?: boolean | null;
+    /**
      * Create a new product listing. Use when a user wants to list a product for sale, add an item to their shop, or create a new offering. Always confirm product details with the user before creating — Article III.2 requires human confirmation for irreversible actions. After creating, offer to generate a product image.
      */
     createProduct?: boolean | null;
@@ -10045,6 +10049,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         attachImageToProduct?: T;
         replaceImage?: T;
         inviteMember?: T;
+        postCardDirective?: T;
         createProduct?: T;
         updateProduct?: T;
         findProducers?: T;
