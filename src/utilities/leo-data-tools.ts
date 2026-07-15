@@ -4071,6 +4071,20 @@ async function logToolAudit(
   }
 }
 
+/**
+ * Tools whose success drops a home-screen CARD (directive rail) linking to the
+ * thing Leo just made — so "Leo, build a product from this photo" hands you a
+ * tappable link, not just a chat line. Allowlisted (not every mutation) to avoid
+ * card spam. Fired at the executor chokepoint; the card URL is the affected
+ * public surface, made absolute to the tenant's own host.
+ */
+const CARD_ON_MUTATION: Record<string, { noun: string; verb: string }> = {
+  create_product: { noun: 'product', verb: 'is live' },
+  update_product: { noun: 'product', verb: 'was updated' },
+  create_post: { noun: 'post', verb: 'is live' },
+  create_post_from_media: { noun: 'post', verb: 'is live' },
+}
+
 export async function executeToolCall(
   toolName: string,
   toolInput: Record<string, unknown>,
@@ -4101,6 +4115,35 @@ export async function executeToolCall(
       const url = affectedPublicUrl(collection, slug)
       if (url && typeof result === 'string' && !result.startsWith('Error') && !result.startsWith('Input validation')) {
         enriched = result + affectedUrlDirective(url)
+
+        // Also surface it as a home-screen card on the user's device (directive
+        // rail) for card-worthy mutations — a tappable link to what Leo made.
+        const cardMeta = CARD_ON_MUTATION[toolName]
+        if (cardMeta && ctx.userId) {
+          void (async () => {
+            try {
+              const [{ postCardDirective }, { resolveTenantBaseUrl }] = await Promise.all([
+                import('./cardDirectives'),
+                import('./tenantBaseUrl'),
+              ])
+              const base = await resolveTenantBaseUrl(payload, tenantId)
+              const abs = url.startsWith('http') ? url : `${base}${url}`
+              await postCardDirective(payload, {
+                userId: ctx.userId!,
+                tenantId,
+                eyebrow: `✦ YOUR ${cardMeta.noun.toUpperCase()} ${cardMeta.verb.toUpperCase()}`,
+                title: `Your ${cardMeta.noun} ${cardMeta.verb}`,
+                body: 'Tap to view it — or keep talking to Leo to refine it.',
+                url: abs,
+                ctaLabel: 'OPEN ▸',
+                cardKind: 'update',
+                dedupeKey: `${collection}-${slug}`,
+              })
+            } catch {
+              /* fail-soft — a card must never break a tool call */
+            }
+          })()
+        }
       }
     }
 
