@@ -3,6 +3,7 @@
 import React from 'react'
 import { useAddresses } from '@payloadcms/plugin-ecommerce/client/react'
 import { AddressItem } from '@/components/addresses/AddressItem'
+import { DeleteAddressButton } from '@/components/addresses/DeleteAddressButton'
 
 export const AddressListing: React.FC = () => {
   const { addresses } = useAddresses()
@@ -16,7 +17,10 @@ export const AddressListing: React.FC = () => {
       <ul className="flex flex-col gap-8">
         {addresses.map((address) => (
           <li key={address.id} className="border-b pb-8 last:border-none">
-            <AddressItem address={address} />
+            <AddressItem
+              address={address}
+              afterActions={address.id ? <DeleteAddressButton id={address.id} /> : null}
+            />
           </li>
         ))}
       </ul>
