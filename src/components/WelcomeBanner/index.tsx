@@ -333,7 +333,7 @@ function getRoleBannerConfig(
         steps: [
           {
             title: 'Manage Tenants',
-            description: 'Provision new enterprises, view federation stats, and manage platform operations.',
+            description: 'Provision new Endeavors, view federation stats, and manage platform operations.',
           },
           {
             title: 'Explore the Dashboard',
@@ -368,13 +368,13 @@ function getRoleBannerConfig(
           },
           {
             title: 'Discover the Federation',
-            description: 'Browse other Enterprises, find partners, and grow your network.',
+            description: 'Browse other Endeavors, find partners, and grow your network.',
           },
         ],
         links: [
           { href: '/dashboard/spaces', icon: <ChatIconSmall />, label: 'Spaces' },
           { href: '/shop', icon: <GlobeIcon />, label: 'Visit Shop' },
-          { href: '/dashboard/setup', icon: <AdminIcon />, label: 'Enterprise Setup' },
+          { href: '/dashboard/admin/settings?tab=endeavor', icon: <AdminIcon />, label: 'Endeavor Setup' },
         ],
       }
 

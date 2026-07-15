@@ -166,7 +166,7 @@ export default function EndeavorSetup() {
         <div>
           <h1 className="text-2xl font-bold">Endeavor Setup</h1>
           <p className="text-sm text-muted-foreground">
-            Define your Enterprise&apos;s constitutional identity — mission, capabilities, and
+            Define your Endeavor&apos;s constitutional identity — mission, capabilities, and
             federation presence
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function EndeavorSetup() {
 
       {/* Identity Section */}
       <Section title="Identity">
-        <FormField label="Enterprise Name" required>
+        <FormField label="Endeavor Name" required>
           <input
             type="text"
             value={endeavor.name}
@@ -232,7 +232,7 @@ export default function EndeavorSetup() {
             value={endeavor.description}
             onChange={(e) => updateField('description', e.target.value)}
             rows={3}
-            placeholder="What does this Enterprise do and stand for?"
+            placeholder="What does this Endeavor do and stand for?"
             className="input-field"
           />
         </FormField>
@@ -254,7 +254,7 @@ export default function EndeavorSetup() {
             value={endeavor.missionStatement}
             onChange={(e) => updateField('missionStatement', e.target.value)}
             rows={2}
-            placeholder="What does this Enterprise serve?"
+            placeholder="What does this Endeavor serve?"
             className="input-field"
           />
         </FormField>
@@ -320,7 +320,7 @@ export default function EndeavorSetup() {
       {/* Holon Types */}
       <Section title="Federation Holon Types">
         <p className="mb-3 text-sm text-muted-foreground">
-          Select the roles this Enterprise plays in the federation network.
+          Select the roles this Endeavor plays in the federation network.
         </p>
         <div className="flex flex-wrap gap-2">
           {HOLON_OPTIONS.map((h) => (
@@ -342,7 +342,7 @@ export default function EndeavorSetup() {
       {/* Capabilities */}
       <Section title="Capabilities">
         <p className="mb-3 text-sm text-muted-foreground">
-          What can this Enterprise offer to the federation network?
+          What can this Endeavor offer to the federation network?
         </p>
         {endeavor.capabilities.map((cap, i) => (
           <div key={i} className="mb-3 flex items-start gap-2">
@@ -436,7 +436,7 @@ export default function EndeavorSetup() {
             <span className="text-sm font-medium">Show in Discovery</span>
             <p className="text-xs text-muted-foreground">
               Adds the <strong>Discovery</strong> link to your site header and lists this
-              Enterprise in the Angel OS network catalog so others can find you.
+              Endeavor in the Angel OS network catalog so others can find you.
             </p>
           </div>
         </label>

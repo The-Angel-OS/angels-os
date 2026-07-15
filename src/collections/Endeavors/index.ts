@@ -1,16 +1,18 @@
 /**
  * Endeavors Collection
  *
- * The constitutional identity of an Enterprise — what it is, what it does,
- * and what it stands for. Think of it as the "Articles of Incorporation"
- * for an Angel OS Enterprise.
+ * The constitutional identity of an Endeavor (a tenant) — what it is, what it
+ * does, and what it stands for. Think of it as the "Articles of Incorporation"
+ * for an Angel OS Endeavor.
  *
- * One Endeavor per Enterprise. Created during the Leo Wizard (wizard step 1).
- * Contains constitution signing data and federation network status.
+ * One Endeavor per tenant. Created during the Leo Wizard (wizard step 1).
+ * Contains constitution signing data and federation network status. (The
+ * Enterprise/Diocese — the operator node — is the container these tenants live
+ * inside; it is not this object. See AGENTS.md "The model".)
  *
  * This is NOT a replacement for Products/Bookings/Events — those remain
  * separate collections. The Endeavor is the meta-object that declares
- * what kind of value-creation this Enterprise is organized around.
+ * what kind of value-creation this Endeavor is organized around.
  *
  * Beneficiaries (Sprint 25):
  * An Endeavor can designate beneficiaries — people the Endeavor serves who
@@ -40,7 +42,7 @@ export const Endeavors: CollectionConfig = {
     defaultColumns: ['name', 'endeavorType', 'status', 'updatedAt'],
     listSearchableFields: ['name', 'tagline', 'missionStatement', 'operator.name', 'operator.email'],
     description:
-      'The constitutional identity of an Enterprise — what it is, what it does, and what it stands for.',
+      'The constitutional identity of an Endeavor (a tenant) — what it is, what it does, and what it stands for.',
   },
   access: {
     // Network-visible for federation catalog, scoped to current tenant for REST API
@@ -61,7 +63,7 @@ export const Endeavors: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        description: 'Official name of this Endeavor / Enterprise',
+        description: 'Official name of this Endeavor',
         placeholder: 'e.g., Clearwater Cruisin\' Ministries',
       },
     },
@@ -77,7 +79,7 @@ export const Endeavors: CollectionConfig = {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Full description of what this Enterprise does and stands for',
+        description: 'Full description of what this Endeavor does and stands for',
         rows: 4,
       },
     },
@@ -93,7 +95,7 @@ export const Endeavors: CollectionConfig = {
         { label: 'Custom', value: 'custom' },
       ],
       admin: {
-        description: 'The primary operational model of this Enterprise',
+        description: 'The primary operational model of this Endeavor',
       },
     },
     // ── Holon Types (Sprint 20) ────────────────────────────────────
@@ -124,7 +126,7 @@ export const Endeavors: CollectionConfig = {
       name: 'missionStatement',
       type: 'textarea',
       admin: {
-        description: 'What does this Enterprise serve? Set during Leo Wizard step 5.',
+        description: 'What does this Endeavor serve? Set during Leo Wizard step 5.',
         rows: 3,
         placeholder: 'e.g., "Connecting Gulf Coast creators with the world"',
       },
@@ -145,7 +147,7 @@ export const Endeavors: CollectionConfig = {
         {
           label: 'Active',
           value: 'active',
-          // Wizard complete, Enterprise is operating
+          // Wizard complete, Endeavor is operating
         },
         {
           label: 'Suspended',
@@ -160,7 +162,7 @@ export const Endeavors: CollectionConfig = {
       ],
       admin: {
         description:
-          '"Forming" during Leo Wizard setup. "Active" once the Enterprise is live and federated.',
+          '"Forming" during Leo Wizard setup. "Active" once the Endeavor is live and federated.',
       },
     },
 
@@ -180,7 +182,7 @@ export const Endeavors: CollectionConfig = {
       name: 'operator',
       type: 'group',
       admin: {
-        description: 'The human who runs this Enterprise',
+        description: 'The human who runs this Endeavor',
       },
       fields: [
         {
@@ -207,7 +209,7 @@ export const Endeavors: CollectionConfig = {
       name: 'capabilities',
       type: 'array',
       admin: {
-        description: 'What this Enterprise can offer to the network (visible in federation catalog)',
+        description: 'What this Endeavor can offer to the network (visible in federation catalog)',
         initCollapsed: true,
       },
       fields: [

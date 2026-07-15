@@ -14,6 +14,34 @@ optional and connect to a running Core.
 
 ---
 
+## The model — one primitive, three scopes (read this first)
+
+Everything a user works inside is a **tenant**. There is one provisioning engine,
+one permission spine, one teleport primitive — the terms below name *scopes of the
+same primitive*, not different machinery. Use them consistently in code, copy, and
+UI. If a string uses one to mean another, that is drift — fix it toward this table.
+
+| Term | What it means | Scope |
+|------|---------------|-------|
+| **Enterprise** = **Diocese** = **Platform** | The **operator / federation container** — whoever stood up this node, holds the storage/DB/AI accounts, runs and configures it. NOT a business you provision; the thing the businesses live *inside*. | the node / operator |
+| **Endeavor** | A business or organization **tenant** — the general thing you provision (a shop, a church, a gym, a market). | organization |
+| **Circle** | A **family Endeavor** — the same tenant primitive at personal/kin scope. "Part and parcel" with Endeavor, not a separate concept. | family / personal |
+
+Consequences worth internalizing:
+- "Create an Endeavor" and "Create a Circle" are the same act at different scopes —
+  one provisioning path, scope-flavored.
+- **Enterprise** never means "a business." When you see "set up your Enterprise" in
+  onboarding copy that actually means "provision your first Endeavor," that's the
+  drift Ken flagged — reword it.
+- **Diocese** is the federation/trust word for the same operator container; keep it
+  where the federation/economy context calls for it, but know it == Enterprise ==
+  Platform.
+- Structural identifiers (collection slugs, field names, TS unions, package names)
+  are **not** part of this pass — renaming a slug is a migration. This pass is
+  vocabulary and surfaces, not schema.
+
+---
+
 ## 0. Prerequisites
 
 - **Node** `^18.20.2 || >=20.9.0`
