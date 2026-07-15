@@ -1227,6 +1227,9 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       let streamErrorDetail: string | undefined
       let streamTelemetry: AiResponseTelemetry | undefined
       let streamBilledToTenantKey = false
+      // Media doc ids Leo generated this turn (both provider paths) — attached to
+      // the persisted assistant message so generated images land in the gallery.
+      let streamGeneratedMediaIds: number[] = []
 
       // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
       // Sends a comment line every 15s, which SSE clients silently ignore.
@@ -1309,6 +1312,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             fullText = gwResult.text
             streamTelemetry = gwResult.telemetry
             streamBilledToTenantKey = gwResult.billedToTenantKey ?? false
+            streamGeneratedMediaIds = gwResult.generatedMediaIds ?? []
             if (gwResult.hadStreamError) {
               hadError = true
               streamErrorDetail = gwResult.errorMessage
@@ -1361,6 +1365,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 userRoles,
               })
               fullText = result.fullText
+              streamGeneratedMediaIds = result.generatedMediaIds ?? []
             } else {
               throw gwErr // No fallback available
             }
@@ -1388,6 +1393,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             userRoles,
           })
           fullText = result.fullText
+          streamGeneratedMediaIds = result.generatedMediaIds ?? []
         }
       } catch (error) {
         hadError = true
@@ -1414,6 +1420,14 @@ After this turn, you'll return to the faster model for responsive day-to-day int
         // Strip navigation directives before persisting — they're ephemeral SSE-only
         const persistText = stripNavDirective(fullText)
 
+        // Images Leo generated this turn → message attachments, so they surface in
+        // the channel gallery (Files applet) + reuse picker and are linkable to a
+        // page/post/product. Dedup ids; only present when a tool emitted a Media ID.
+        const uniqueMediaIds = [...new Set(streamGeneratedMediaIds)]
+        const generatedAttachments = uniqueMediaIds.length
+          ? uniqueMediaIds.map((id) => ({ media: id }))
+          : undefined
+
         try {
           if (preCreatedMsgId) {
             // Update the pre-created placeholder with final content. This is the
@@ -1425,6 +1439,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               data: {
                 content: wrapTextContent(persistText),
                 metadata: { streaming: false, model: resolveModelId(), partial: hadError, ...(streamTelemetry ?? {}) },
+                ...(generatedAttachments ? { attachments: generatedAttachments } : {}),
               } as any,
               overrideAccess: true,
               context: { skipMessageVersioning: true },
@@ -1442,6 +1457,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 ...(tenantId ? { tenant: tenantId } : {}),
                 metadata: { streaming: false, ...(streamTelemetry ?? {}) },
                 ...(leoUserId ? { author: leoUserId } : {}),
+                ...(generatedAttachments ? { attachments: generatedAttachments } : {}),
               } as any,
               overrideAccess: true,
             })
@@ -1621,7 +1637,7 @@ async function streamViaGateway(opts: {
   resolvedChannel?: string
   /** Acting user's roles — threaded into the tool context for privileged-tool gates. */
   userRoles?: string[]
-}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean }> {
+}): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean; generatedMediaIds?: number[] }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -2039,7 +2055,15 @@ async function streamViaGateway(opts: {
     await emitToolChainTrace(toolTrace, tenantId)
   }
 
-  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry, billedToTenantKey }
+  // Media doc ids for images Leo generated this turn — threaded out so the
+  // persist block can attach them to the assistant message (→ channel gallery
+  // + reuse picker). Best-effort: only entries whose tool result emitted a
+  // "Media ID:" token carry a mediaId.
+  const generatedMediaIds = validImageUrls
+    .map((img) => img.mediaId)
+    .filter((id): id is number => typeof id === 'number')
+
+  return { text: fullText, hadStreamError: streamHadError, errorMessage: streamHadError ? streamErrorDetail : undefined, telemetry, billedToTenantKey, generatedMediaIds }
 }
 
 /**
@@ -2085,7 +2109,7 @@ async function streamViaAnthropic(opts: {
   resolvedChannel?: string
   /** Acting user's roles — threaded into the tool context for privileged-tool gates. */
   userRoles?: string[]
-}): Promise<{ fullText: string }> {
+}): Promise<{ fullText: string; generatedMediaIds?: number[] }> {
   const {
     controller, encoder, client, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
@@ -2298,5 +2322,8 @@ async function streamViaAnthropic(opts: {
   }
 
   await emitToolChainTrace(toolTrace, tenantId)
-  return { fullText }
+  const generatedMediaIds = validImageUrls
+    .map((img) => img.mediaId)
+    .filter((id): id is number => typeof id === 'number')
+  return { fullText, generatedMediaIds }
 }
