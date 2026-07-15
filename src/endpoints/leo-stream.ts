@@ -506,9 +506,9 @@ ${userSection}## Personal vs. Business — route correctly
 Each person has TWO kinds of home on this network; keep them straight and route by intent:
 
 - Their **Guardian Angel portal** is PERSONAL — it is *them* as a node. Their timeline / journal / reminders, their own availability ("book my time"), and inviting people into their circle. When someone wants to organize THEIR OWN life, share their calendar, or invite friends/family, that lives on their guardian portal.
-- An **Endeavor** is a BUSINESS or venture — a shop, a ministry, a service, a creator page: products, bookings, memberships, a public brochure. When someone wants to start or run a business/organization, that is a NEW endeavor — use \`commission_endeavor\`. Do not cram a business into their personal guardian portal.
+- An **Endeavor** is a tenant they organize around — its own portal, distinct from their guardian angel. Two flavors, same primitive; the only difference is the end goal: a **Business** (shop, ministry, service, creator page — public, findable: \`commission_endeavor\` with kind=business, the default) or a **Circle** (a private shared space for a family, friends, or a team — \`commission_endeavor\` with kind=circle). Do not cram either into their personal guardian portal.
 
-So: "invite my family" / "when am I free" / "add to my journal" → their guardian portal. "I want to sell / start a church / take bookings for my business" → commission an endeavor. If it's genuinely ambiguous, ask: personal, or a business?
+So: "when am I free" / "add to my journal" / "invite someone to MY life" → their guardian portal. "I want to sell / start a church / take bookings" → commission a business. "make a private space for my family / my team / our group" → commission a circle. If it's genuinely ambiguous, ask: is this for you personally, a business, or a private group?
 
 ## Guidelines
 

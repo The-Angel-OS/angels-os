@@ -1391,11 +1391,12 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'commission_endeavor',
     description:
-      "Commission a NEW endeavor (a business/ministry/creator portal) for the person you're talking to, and hand back a live link to it. Use when someone says \"make me a site\", \"I want to start a <business>\", \"set up my <shop/ministry/studio>\". This mints a real portal — its own subdomain, home + spaces, and the caller as owner (tenant_admin) — then returns a clickable link to open it while the chat stays open. Any signed-in user can commission their own endeavor (this is the Creator rung — still free). Distinct from a personal guardian angel (that's auto-minted, private); an endeavor is a public, findable business. Distinct from provision_tenant (super_admin, custom domain).",
+      "Commission a NEW endeavor for the person you're talking to, and hand back a live link to it. An endeavor is a tenant you organize around — a BUSINESS (shop/ministry/creator/service: public, findable) or a CIRCLE (a family, friends, a team, a drum circle: private, kin-scoped). Same primitive; the only real distinction is the end goal. Use when someone says \"make me a site\", \"I want to start a <business>\", \"set up my <shop/studio>\" (kind=business), or \"start a circle for my family\", \"make a group for my team\" (kind=circle). This mints a real portal — its own subdomain, home + spaces, the caller as owner (tenant_admin) — then returns a clickable link. Any signed-in user can commission their own (the Creator rung — still free). Distinct from a personal guardian angel (auto-minted, private) and provision_tenant (super_admin, custom domain).",
     input_schema: {
       type: 'object' as const,
       properties: {
-        name: { type: 'string', description: "The endeavor's name, e.g. \"Bay Area Pressure Washing\" or \"Grace Community Church\" (required)." },
+        name: { type: 'string', description: "The endeavor's name, e.g. \"Bay Area Pressure Washing\", \"Grace Community Church\", or \"The Garcia Family\" (required)." },
+        kind: { type: 'string', enum: ['business', 'circle'], description: 'What the person is organizing around: "business" (a public, findable venture — the default) or "circle" (a private family/friends/team group). Pick "circle" when the intent is kinship/community rather than commerce.' },
         handle: { type: 'string', description: 'Optional desired subdomain handle (lowercase letters/numbers/hyphens, 3–50 chars). Defaults to a slug of the name; a random suffix is added if taken.' },
         missionStatement: { type: 'string', description: 'One-line mission of the endeavor (optional).' },
         tagline: { type: 'string', description: 'Short tagline shown on the site (optional).' },
@@ -17821,6 +17822,11 @@ async function commissionEndeavor(
   const name = typeof input.name === 'string' ? input.name.trim() : ''
   if (!name) return 'What should the endeavor be called? Give me a name and I\'ll stand it up.'
 
+  // Circle vs Business — same primitive, distinguished by end goal (kinship vs
+  // commerce). A Circle is private (not listed in Discovery); Business is public.
+  const isCircle = input.kind === 'circle'
+  const kindWord = isCircle ? 'circle' : 'endeavor'
+
   const { slugify, opaqueSlug, vanitySlugRejection, commerceBaseDomain } = await import('@/utilities/guardianSlug')
 
   // Runaway backstop — a signed-in user gets a reasonable number of endeavors,
@@ -17887,8 +17893,11 @@ async function commissionEndeavor(
         tagline: typeof input.tagline === 'string' ? input.tagline : undefined,
         endeavorType: typeof input.endeavorType === 'string' ? input.endeavorType : undefined,
         isGuardianAngel: false,
-        type: 'business', // canonical flavor — a commissioned Endeavor is a Business (AGENTS.md "The model")
-        networkVisible: true, // a business WANTS to be found in Discovery
+        // Flavor by end goal (Ken 260715): a Circle organizes around family/kin, a
+        // Business around commerce — same primitive. A Circle is private (not in
+        // Discovery); a Business wants to be found. Default business.
+        type: isCircle ? 'circle' : 'business',
+        networkVisible: !isCircle,
       },
       { actingUserId: userId },
     )
@@ -17900,9 +17909,13 @@ async function commissionEndeavor(
     return [
       `✨ **${name}** is live.`,
       '',
-      `Your new endeavor is minted at **${result.url}** — it's yours (you're the owner), with a home page and its spaces ready. Open it to start shaping it; I'll stay right here.`,
+      isCircle
+        ? `Your new circle is at **${result.url}** — it's yours (you're the owner), with a home and its spaces ready, and it's private (not listed in Discovery). Open it and invite your people; I'll stay right here.`
+        : `Your new ${kindWord} is minted at **${result.url}** — it's yours (you're the owner), with a home page and its spaces ready. Open it to start shaping it; I'll stay right here.`,
       '',
-      `Next, just tell me what it does and I can add pages, a booking or shop, or apply a template.`,
+      isCircle
+        ? `Next, tell me who to invite or what the circle is for, and I can set it up.`
+        : `Next, just tell me what it does and I can add pages, a booking or shop, or apply a template.`,
     ].join('\n') + navDirective(result.url, `Open ${name}`)
   } catch (err) {
     return `I couldn't finish commissioning "${name}": ${err instanceof Error ? err.message : String(err)}. Nothing was charged — we can try again.`
