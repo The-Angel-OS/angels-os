@@ -16,29 +16,33 @@ optional and connect to a running Core.
 
 ## The model — one primitive, three scopes (read this first)
 
-Everything a user works inside is a **tenant**. There is one provisioning engine,
-one permission spine, one teleport primitive — the terms below name *scopes of the
-same primitive*, not different machinery. Use them consistently in code, copy, and
-UI. If a string uses one to mean another, that is drift — fix it toward this table.
+**Tenant** is the universal primitive. Every Circle, Business, Guardian Angel, and
+Personal Portal *is* a tenant — essentially identical, differing only by flavor.
+There is one provisioning engine, one permission spine, one teleport primitive. The
+terms below name roles/scopes of that one primitive (plus the container it lives in),
+not different machinery. Use them consistently in code, copy, and UI. If a string
+uses one to mean another, that is drift — fix it toward this table.
 
-| Term | What it means | Scope |
-|------|---------------|-------|
-| **Enterprise** = **Diocese** = **Platform** | The **operator / federation container** — whoever stood up this node, holds the storage/DB/AI accounts, runs and configures it. NOT a business you provision; the thing the businesses live *inside*. | the node / operator |
-| **Endeavor** | A business or organization **tenant** — the general thing you provision (a shop, a church, a gym, a market). | organization |
-| **Circle** | A **family Endeavor** — the same tenant primitive at personal/kin scope. "Part and parcel" with Endeavor, not a separate concept. | family / personal |
+| Term | What it means | Is it a tenant? |
+|------|---------------|-----------------|
+| **Enterprise** = **Diocese** = **Platform** | The **root configuration for the federation** — the node/platform itself. Everything connects through each Enterprise's **AI (system) bus**. Whoever stood up this node, holds the storage/DB/AI accounts, runs it. The thing tenants live *inside*. | **No.** Never a tenant type. At most a *toggle* marking the root portal — the `Platform` singleton tenant IS that root. |
+| **Tenant** | The universal primitive — a superset of essentially-identical Circles, Businesses, Guardian Angels, and Personal Portals. What you provision and scope data by. | — (it is the primitive) |
+| **Endeavor** | A **tenant you organize around** — a Circle, a Business, a creator channel, a cause, anything. Has its own identity, Guardian Angel, and revenue. | Yes — an Endeavor *is* a tenant. |
+| **Circle** | A **family Endeavor** — the same tenant primitive at personal/kin scope. "Part and parcel" with Endeavor, not a separate concept. | Yes — a tenant. |
 
 Consequences worth internalizing:
 - "Create an Endeavor" and "Create a Circle" are the same act at different scopes —
-  one provisioning path, scope-flavored.
-- **Enterprise** never means "a business." When you see "set up your Enterprise" in
-  onboarding copy that actually means "provision your first Endeavor," that's the
-  drift Ken flagged — reword it.
-- **Diocese** is the federation/trust word for the same operator container; keep it
-  where the federation/economy context calls for it, but know it == Enterprise ==
-  Platform.
+  one provisioning path, tenant-flavored.
+- **Enterprise** never means "a business" and is never a tenant *type*. When you see
+  "set up your Enterprise" in onboarding copy that means "provision your first
+  Endeavor," that's the drift Ken flagged — reword it. The only legitimate
+  Enterprise-as-toggle is the root-portal marker (the `Platform` tenant).
+- **Diocese** is the federation/trust word for the same root; keep it where the
+  federation/economy context calls for it, but know it == Enterprise == Platform.
 - Structural identifiers (collection slugs, field names, TS unions, package names)
   are **not** part of this pass — renaming a slug is a migration. This pass is
-  vocabulary and surfaces, not schema.
+  vocabulary and surfaces, not schema. (The `Tenants.type` select is label-only
+  cleanup: values `platform`/`tenant`/`ministry` stay; only display strings change.)
 
 ---
 

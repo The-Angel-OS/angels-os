@@ -33,14 +33,15 @@ export const Tenants: CollectionConfig = {
       type: 'select',
       index: true,
       options: [
-        { label: 'Platform', value: 'platform' },
+        { label: 'Platform (root portal)', value: 'platform' },
         { label: 'Tenant', value: 'tenant' },
-        { label: 'Enterprise', value: 'ministry' },
+        { label: 'Ministry', value: 'ministry' },
       ],
       defaultValue: 'tenant',
       required: true,
       admin: {
-        description: 'Platform tenant is the special singleton for Angel OS infrastructure',
+        description:
+          'The kind of tenant. "Platform (root portal)" is the special singleton — the Enterprise / federation root, the node everything connects through its AI bus. NOTE: "Enterprise" is NOT a tenant type — it is the root config itself; the Platform tenant IS that root. Every Circle, Business, Guardian Angel, and Personal Portal is just a tenant. (See AGENTS.md "The model".)',
       },
     },
     {
