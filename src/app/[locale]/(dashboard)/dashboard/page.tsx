@@ -25,6 +25,8 @@ import {
 import { LCARSStatCard } from '@/components/dashboard/LCARSStatCard'
 import { LCARSQuickAction } from '@/components/dashboard/LCARSQuickAction'
 import { BridgeOfficerStatus } from '@/components/dashboard/BridgeOfficerStatus'
+import { EarnReadinessCard } from '@/components/dashboard/EarnReadinessCard'
+import { getEarnReadiness, type EarnReadiness } from '@/utilities/earnReadiness'
 
 /**
  * Dashboard Overview – Rev 2 style stat cards + quick access.
@@ -65,6 +67,9 @@ export default async function DashboardPage({
 
   // Growth stats (admin only)
   let growthStats = { pendingInvites: 0, activeMembers: 0, federationPeers: 0 }
+
+  // Earn-loop readiness (admin/owner only) — surfaces the "can I take a dollar" gate.
+  let earnReadiness: EarnReadiness | null = null
 
   // Recent activity (admin only)
   let recentActivity: Array<{ action: string; detail?: string; createdAt: string; allowed?: boolean }> = []
@@ -230,6 +235,10 @@ export default async function DashboardPage({
         activeMembers: membersResult.totalDocs,
         federationPeers: peersResult.totalDocs,
       }
+
+      // Earn-loop readiness — the "can I take a dollar" gate, surfaced as a card.
+      // Non-fatal: a hiccup just hides the card.
+      earnReadiness = await getEarnReadiness(payload, { tenantId: currentTenant.id }).catch(() => null)
     }
 
     // Recent activity feed + draft counts (parallel, non-critical)
@@ -290,6 +299,9 @@ export default async function DashboardPage({
 
       {/* Welcome Banner — role-based onboarding, dismissible */}
       <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
+
+      {/* Ready to Earn — the earn-loop gate, so owners never fly blind on monetization */}
+      {earnReadiness && <EarnReadinessCard readiness={earnReadiness} />}
 
       {/* LCARS Command Center Header */}
       <div className="flex items-center gap-3">
