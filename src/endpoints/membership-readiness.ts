@@ -46,7 +46,13 @@ export const membershipReadinessHandler: PayloadHandler = async (req) => {
   const plans = await getMembershipPlans(req.payload, tenant.id)
   const activePlans = plans.filter((p) => p.active !== false)
 
-  const webhookConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET)
+  // The CANONICAL name — the actual webhook handler (stripe-webhooks.ts) and the
+  // ecommerce plugin (plugins/index.ts) both read STRIPE_WEBHOOKS_SIGNING_SECRET,
+  // and .env.example documents it. Readiness previously checked STRIPE_WEBHOOK_SECRET
+  // (a name NOTHING else uses), so it always reported webhook:false and told owners
+  // to set a var that does nothing — the earn loop looked broken (or falsely fixed)
+  // regardless of the real state. Check the name the handler actually verifies with.
+  const webhookConfigured = Boolean(process.env.STRIPE_WEBHOOKS_SIGNING_SECRET)
 
   // First blocker → the one thing to do next.
   let nextAction: string
@@ -57,7 +63,7 @@ export const membershipReadinessHandler: PayloadHandler = async (req) => {
   } else if (activePlans.length === 0) {
     nextAction = `Create a membership plan — ask LEO on this portal "create a $1/month plan called Founding Dollar" (create_membership_plan) or POST /api/membership-ops/plans.`
   } else if (!webhookConfigured) {
-    nextAction = `Set STRIPE_WEBHOOK_SECRET + register the platform webhook — otherwise a paid subscription charges but never records a Membership.`
+    nextAction = `Set STRIPE_WEBHOOKS_SIGNING_SECRET (from the Stripe Dashboard webhook you register at /api/stripe/webhooks) — otherwise a paid subscription charges but never records a Membership.`
   } else {
     nextAction = `Ready to earn (${billingMode}). Start a checkout: POST /api/membership-ops/checkout { planId: "${activePlans[0].id}" } with x-tenant-id: ${slug}.`
   }
