@@ -4,7 +4,8 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { resolveActiveTenant } from '@/utilities/resolveActiveTenant'
+import type { User } from '@/payload-types'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { fetchUserSpaces } from '@/utilities/fetchUserSpaces'
@@ -43,25 +44,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const locale = await getLocale()
   const prefix = locale === 'en' ? '' : `/${locale}`
 
-  // Resolve tenant (cached, React.cache deduped)
-  const { tenant } = await resolveTenantFromHeaders()
-
   // Server-side: resolve auth + space context
   const headersList = await headers()
-
-  // Serialize tenant branding for sidebar
-  const tenantBranding = tenant
-    ? {
-        siteName: tenant.branding?.siteName || tenant.name || 'Angel OS',
-        logoUrl:
-          typeof tenant.branding?.logo === 'object' &&
-          tenant.branding?.logo !== null &&
-          'url' in (tenant.branding.logo as object)
-            ? ((tenant.branding.logo as Media).url ?? null)
-            : null,
-        primaryColor: tenant.branding?.primaryColor || null,
-      }
-    : null
 
   // Server-side auth: extract user roles for dynamic nav
   // Auth is OPTIONAL — anonymous users see public dashboard pages
@@ -74,11 +58,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let userId: number | string | undefined
   let platformRoles: string[] = []
   let dashboardPrefs: { collapsed?: string[]; dismissed?: string[]; order?: string[] } | null = null
+  // The resolved user authorizes the active-endeavor override below — anonymous
+  // stays null, which keeps tenant resolution strictly host-based.
+  let authUser: User | null = null
 
   try {
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: headersList })
     if (user) {
+      authUser = user as User
       isAuthenticated = true
       userId = user.id
       platformRoles = ((user as any).roles as string[]) || []
@@ -99,6 +87,24 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   } catch {
     // Auth system unavailable — continue as anonymous
   }
+
+  // Resolve tenant — host by default, or the user's active endeavor if they've
+  // switched portals in-app (validated against membership; anon → host only).
+  const { tenant } = await resolveActiveTenant(authUser)
+
+  // Serialize tenant branding for sidebar
+  const tenantBranding = tenant
+    ? {
+        siteName: tenant.branding?.siteName || tenant.name || 'Angel OS',
+        logoUrl:
+          typeof tenant.branding?.logo === 'object' &&
+          tenant.branding?.logo !== null &&
+          'url' in (tenant.branding.logo as object)
+            ? ((tenant.branding.logo as Media).url ?? null)
+            : null,
+        primaryColor: tenant.branding?.primaryColor || null,
+      }
+    : null
 
   // ── Parallel data fetching ─────────────────────────────────────
   // These queries are independent (only depend on auth result above).

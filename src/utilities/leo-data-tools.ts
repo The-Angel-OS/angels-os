@@ -96,8 +96,16 @@ import { buildConstitutionalPrompt, validateConstitutionalResponse } from './con
 // Format: <!--nav:{"path":"/dashboard/products","label":"View Products"}-->
 // The SSE layer strips this before displaying and forwards it as a navigateTo event.
 
-function navDirective(path: string, label?: string): string {
-  return `\n<!--nav:${JSON.stringify({ path, ...(label ? { label } : {}) })}-->`
+function navDirective(
+  path: string,
+  label?: string,
+  extra?: { activateEndeavor?: number | string },
+): string {
+  return `\n<!--nav:${JSON.stringify({
+    path,
+    ...(label ? { label } : {}),
+    ...(extra?.activateEndeavor != null ? { activateEndeavor: extra.activateEndeavor } : {}),
+  })}-->`
 }
 
 // Visual-echo marker (producer side) — see src/utilities/affectedUrl.ts.
@@ -17916,7 +17924,11 @@ async function commissionEndeavor(
       isCircle
         ? `Next, tell me who to invite or what the circle is for, and I can set it up.`
         : `Next, just tell me what it does and I can add pages, a booking or shop, or apply a template.`,
-    ].join('\n') + navDirective(result.url, `Open ${name}`)
+      // Land the owner IN the new endeavor in-app: activate it (validated against
+      // the membership provisionPortal just created) and route to /dashboard on the
+      // current origin — no subdomain reload. This is the "provision → stand inside
+      // it" motion. @see resolveActiveTenant.ts @see useLeoNavigation.ts
+    ].join('\n') + navDirective('/dashboard', `Open ${name}`, { activateEndeavor: result.tenant.id })
   } catch (err) {
     return `I couldn't finish commissioning "${name}": ${err instanceof Error ? err.message : String(err)}. Nothing was charged — we can try again.`
   }

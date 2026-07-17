@@ -282,7 +282,9 @@ function sseEvent(event: string, data: Record<string, unknown>): string {
 // LEO Navigation Bridge — extract/strip nav directives from tool responses
 // ---------------------------------------------------------------------------
 
-function extractNavDirective(text: string): { path: string; label?: string } | null {
+function extractNavDirective(
+  text: string,
+): { path: string; label?: string; activateEndeavor?: number | string } | null {
   const match = text.match(/<!--nav:(.*?)-->/)
   if (!match) return null
   try { return JSON.parse(match[1]) } catch { return null }

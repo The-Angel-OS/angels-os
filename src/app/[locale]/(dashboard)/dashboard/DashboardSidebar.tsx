@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useIsMobile } from '@/utilities/useMediaQuery'
 import { useClickOutside } from '@/hooks/useClickOutside'
 import { Backdrop } from '@/components/Backdrop'
@@ -506,35 +506,20 @@ function TenantChooser({
     )
   }, [tenants, filter])
 
+  const router = useRouter()
+
+  // Smooth in-app switch: set the validated `active-endeavor` cookie and refresh
+  // in place — NO cross-origin subdomain reload. The dashboard layout re-resolves
+  // the tenant from this cookie (resolveActiveTenant), which is authorized against
+  // the user's memberships server-side, and TenantCookieSync re-points REST scoping
+  // to match. Staying on one origin is what makes personal-portal ↔ endeavor feel
+  // like one motion (and it's the only thing that works in local dev, where there
+  // are no tenant subdomains).
   const handleSwitch = (tenant: TenantInfo) => {
     setOpen(false)
-    const protocol = window.location.protocol
-    const currentHost = window.location.hostname
-    const localeMatch = window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/)
-    const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
-    // On a real host, navigate to the tenant's explicit canonical domain — the
-    // {slug}.{base} construction doubled the host for a tenant whose slug equals
-    // the base subdomain (slug "kendev" on *.kendev.co → kendev.kendev.co). On
-    // localhost keep the slug construction (+ dev port) so dev stays local.
-    const isLocalHost = currentHost === 'localhost' || currentHost === '127.0.0.1' || !currentHost.includes('.')
-    // A stored domain seeded in local dev is `<slug>.angelos.local` (see
-    // seed/use-case-tenants.ts DOMAIN_SUFFIX). On a real host that is a dead link —
-    // IGNORE non-public domains and fall back to constructing `{slug}.{currentBase}`,
-    // which yields the right real domain. Self-heals bad seed data on any DB.
-    const tenantDomain = tenant.domain?.trim()
-    const isPublicDomain = !!tenantDomain && !tenantDomain.endsWith('.local') && !tenantDomain.includes('localhost')
-    let tenantHost: string
-    let portSuffix: string
-    if (!isLocalHost && isPublicDomain) {
-      tenantHost = tenantDomain!
-      portSuffix = '' // a real external domain uses its own default port
-    } else {
-      const hostParts = currentHost.split('.')
-      const baseDomain = hostParts.length >= 3 ? hostParts.slice(1).join('.') : currentHost
-      tenantHost = `${tenant.slug}.${baseDomain}`
-      portSuffix = window.location.port ? `:${window.location.port}` : ''
-    }
-    window.location.href = `${protocol}//${tenantHost}${portSuffix}${localePrefix}/dashboard`
+    const maxAge = 60 * 60 * 24 * 365 // 1 year
+    document.cookie = `active-endeavor=${encodeURIComponent(String(tenant.id))}; max-age=${maxAge}; path=/; samesite=lax`
+    router.refresh()
   }
 
   // Group portals: personal guardian angel(s) vs endeavors/businesses.
