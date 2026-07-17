@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { SocialProvidersPanel } from '@/components/forms/SocialProvidersPanel'
+import { ContactsImportPanel } from '@/components/dashboard/ContactsImportPanel'
 
 /**
  * Dashboard Account — Connections page.
@@ -18,6 +20,12 @@ export default function DashboardConnectionsPage() {
 
       <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
         <SocialProvidersPanel />
+      </div>
+
+      <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
+        <Suspense fallback={null}>
+          <ContactsImportPanel />
+        </Suspense>
       </div>
     </div>
   )

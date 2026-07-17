@@ -2465,6 +2465,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'import_google_contacts',
+    description:
+      "Bring in the user's Google contacts in bulk so they don't have to type addresses. Use when the user wants to import/sync/pull in their contacts, or when you're setting up a Circle/endeavor and helping them invite people and they'd rather pull from Google than name people one by one. Returns a consent link the user clicks (they approve in Google's own screen); contacts import into their own address book only. For a single person the user names in chat, use save_contact instead — this is the bulk path.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+    },
+  },
+  {
     name: 'create_announcement',
     description:
       'Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.',
@@ -4415,6 +4424,8 @@ async function executeToolSwitch(
         return await handleMessageContact(payload, toolInput, ctx)
       case 'save_contact':
         return await handleSaveContact(payload, toolInput, ctx)
+      case 'import_google_contacts':
+        return await handleImportGoogleContacts(payload, toolInput, ctx)
       case 'create_announcement':
         return await handleCreateAnnouncement(payload, toolInput, ctx)
       case 'moderate_content':
@@ -11615,6 +11626,32 @@ async function handleSaveContact(
     logCaughtError('leo-tools/save_contact', err).catch(() => {})
     return `Error saving contact: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
+}
+
+/**
+ * import_google_contacts — hand the user a Google consent link that pulls their
+ * Google contacts into their own address book (People API). The actual import runs
+ * in the OAuth callback (auth-google.ts, mode=contacts); this tool just produces
+ * the entry link conversationally. Consent is Google's own screen; contacts land
+ * only in the user's portal. @see src/utilities/googleContactsImport.ts
+ */
+async function handleImportGoogleContacts(
+  _payload: Payload,
+  _input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.userId) {
+    return 'Sign in first and I can pull in your Google contacts so you don\'t have to type anyone\'s address.'
+  }
+  const redirect = '/dashboard/account/connections'
+  const link = `/api/auth/google?contacts=1&redirect=${encodeURIComponent(redirect)}`
+  return [
+    "Happy to — I can pull in your Google contacts so you don't have to type anyone's address. You'll approve it on Google's own screen, and I only ever import them into your own address book (nothing's shared, and I never reveal who's already here).",
+    '',
+    `👉 [Connect Google & import my contacts](${link})`,
+    '',
+    "Once you're back, just tell me who you'd like to invite and I'll send them into your circle.",
+  ].join('\n')
 }
 
 async function handleSendDirectMessage(
