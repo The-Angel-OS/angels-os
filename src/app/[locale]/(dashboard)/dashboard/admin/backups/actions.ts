@@ -7,7 +7,9 @@
  * Merlin's secured /api/backup over its tunnel — the ops key never leaves the server.
  *
  * Config (Core env):
- *   MERLIN_OPS_URL   — Merlin base URL (default https://merlin.payloadnuke.com)
+ *   MERLIN_OPS_URL   — OPTIONAL explicit Merlin base URL override. By default the URL
+ *                      is resolved dynamically from the platform node's live tunnelUrl
+ *                      (the registry) — no hardcoded/named tunnel.
  *   BACKUP_OPS_KEY   — shared secret matching Merlin's BACKUP_OPS_KEY
  */
 import { getPayload } from 'payload'
@@ -35,16 +37,41 @@ async function requireSuperAdmin(): Promise<{ ok: true } | { ok: false; error: s
   return { ok: true }
 }
 
-function merlin(path: string): string {
-  const base = (process.env.MERLIN_OPS_URL || 'https://merlin.payloadnuke.com').replace(/\/+$/, '')
-  return `${base}${path}`
+/**
+ * Resolve Merlin's base URL — the platform node's LIVE tunnelUrl from the registry
+ * (config-free; a fresh *.trycloudflare.com each boot), or an explicit MERLIN_OPS_URL
+ * override. Null when neither is available — never a hardcoded host.
+ */
+async function merlinBase(): Promise<string | null> {
+  try {
+    const payload = await getPayload({ config })
+    const { resolveEndeavorNodeUrl } = await import('@/utilities/nodeBus')
+    const plat = await payload.find({
+      collection: 'tenants',
+      where: { type: { equals: 'platform' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const slug = (plat.docs?.[0] as { slug?: string } | undefined)?.slug
+    if (slug) {
+      const dynamic = await resolveEndeavorNodeUrl(payload, slug)
+      if (dynamic) return dynamic
+    }
+  } catch {
+    /* fall through to the env override */
+  }
+  const env = process.env.MERLIN_OPS_URL
+  return env ? env.replace(/\/+$/, '') : null
 }
 
 async function callMerlin(method: 'GET' | 'POST', body?: unknown): Promise<BackupOpsResult> {
   const key = process.env.BACKUP_OPS_KEY
   if (!key) return { ok: false, error: 'BACKUP_OPS_KEY is not configured on the server.' }
+  const base = await merlinBase()
+  if (!base) return { ok: false, configured: false, error: 'No Merlin node reachable — no registered platform node with a live tunnel, and no MERLIN_OPS_URL override.' }
   try {
-    const res = await fetch(merlin('/api/backup'), {
+    const res = await fetch(`${base}/api/backup`, {
       method,
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,

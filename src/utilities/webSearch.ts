@@ -5,19 +5,20 @@
  * search API when a key is present, else a keyless fallback so the tool WORKS
  * out of the box (config-free for the 99%) — just better once a key is added.
  *
- *   MERLIN_SEARCH_URL     → proxy search THROUGH the Merlin node         [preferred]
+ *   opts.merlinUrl        → the tenant's Merlin node (resolved DYNAMICALLY)  [preferred]
  *   SEARXNG_URL           → self-hosted SearXNG metasearch (no keys)     [best, owned]
  *   TAVILY_API_KEY        → Tavily (LLM-optimized results + snippets)   [great]
  *   BRAVE_SEARCH_API_KEY  → Brave Search API                            [great]
  *   (none)                → DuckDuckGo Instant Answer (keyless)         [limited]
  *
- * MERLIN_SEARCH_URL routes the query to the Merlin node (a long-lived worker on a
- * RESIDENTIAL IP), which runs the search there and returns results — so Leo Core
- * searches from a real browser/IP instead of a datacenter (dodges cloud-IP blocks)
- * and offloads the work. It's tried FIRST when set, and is fully fail-soft: if
- * Merlin is unreachable or slow it falls straight through to the cascade below, so
- * search never breaks when Merlin is down.
- *   Merlin-side contract (separate repo): POST MERLIN_SEARCH_URL with JSON
+ * The Merlin node runs the search on a RESIDENTIAL IP — so Leo Core searches from a
+ * real IP instead of a datacenter (dodges cloud-IP blocks) and offloads the work.
+ * The node URL is resolved DYNAMICALLY from the node registry's live tunnelUrl (a
+ * fresh *.trycloudflare.com each boot) and passed as opts.merlinUrl by the web_search
+ * tool — NO hardcoded/named tunnel. MERLIN_SEARCH_URL remains only as an optional
+ * manual override. Fully fail-soft: unreachable/slow/absent → falls straight through
+ * to the cascade below, so search never breaks.
+ *   Merlin-side contract (separate repo): POST <node>/api/search with JSON
  *   { query: string, maxResults: number } → 200 { results: [{title,url,snippet}] }.
  *
  * SearXNG is the owned/self-hosted backbone: run one container (docs/infra/
@@ -153,13 +154,15 @@ async function viaDuckDuckGo(query: string, max: number): Promise<WebSearchResul
  */
 export async function webSearch(
   query: string,
-  opts: { maxResults?: number } = {},
+  opts: { maxResults?: number; merlinUrl?: string } = {},
 ): Promise<WebSearchResponse> {
   const q = (query || '').trim()
   const max = Math.max(1, Math.min(10, Math.round(opts.maxResults ?? 5)))
   if (!q) return { query: q, provider: 'none', results: [], note: 'empty query' }
 
-  const merlin = process.env.MERLIN_SEARCH_URL
+  // Dynamic node URL (resolved from the registry's live tunnelUrl) wins; the
+  // MERLIN_SEARCH_URL env is only an optional manual override. No hardcoded host.
+  const merlin = opts.merlinUrl || process.env.MERLIN_SEARCH_URL
   const searxng = process.env.SEARXNG_URL
   const tavily = process.env.TAVILY_API_KEY
   const brave = process.env.BRAVE_SEARCH_API_KEY

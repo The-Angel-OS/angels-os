@@ -4390,7 +4390,7 @@ async function executeToolSwitch(
       case 'get_agenda':
         return await handleGetAgenda(payload, toolInput, ctx)
       case 'web_search':
-        return await handleWebSearch(toolInput)
+        return await handleWebSearch(payload, toolInput, ctx)
       case 'set_availability':
         return await handleSetAvailability(payload, toolInput, ctx)
       case 'track_soul':
@@ -18007,12 +18007,26 @@ async function handleGetAgenda(
  * web_search — live web lookup via the best available provider (Tavily/Brave/
  * keyless DuckDuckGo fallback). @see utilities/webSearch.ts. Read-only.
  */
-async function handleWebSearch(toolInput: Record<string, unknown>): Promise<string> {
+async function handleWebSearch(
+  payload: Payload,
+  toolInput: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
   const query = typeof toolInput.query === 'string' ? toolInput.query.trim() : ''
   if (!query) return 'Please provide a search query.'
   try {
     const max = typeof toolInput.max_results === 'number' ? toolInput.max_results : 5
-    const r = await webSearch(query, { maxResults: max })
+    // Prefer proxying the search through THIS tenant's Merlin node (residential IP +
+    // offload) — resolved dynamically from the node registry's live tunnelUrl, so no
+    // hardcoded/named tunnel. Fail-soft: null → webSearch uses MERLIN_SEARCH_URL (if
+    // set) then its own provider cascade.
+    let merlinUrl: string | undefined
+    if (ctx?.tenantId) {
+      const { resolveTenantNodeUrl } = await import('./nodeBus')
+      const base = await resolveTenantNodeUrl(payload, ctx.tenantId).catch(() => null)
+      if (base) merlinUrl = `${base}/api/search`
+    }
+    const r = await webSearch(query, { maxResults: max, merlinUrl })
     if (r.results.length === 0) {
       return `No web results for "${query}".${r.note ? ` (${r.note})` : ''}`
     }

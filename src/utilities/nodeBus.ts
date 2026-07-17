@@ -59,6 +59,34 @@ export function isNodeOnline(node: RegisteredNode): boolean {
   return Date.now() - new Date(node.lastSeen).getTime() < ONLINE_MS
 }
 
+/**
+ * The current, LIVE base URL of a Merlin node bound to this endeavor — read from the
+ * node registry's EPHEMERAL tunnelUrl (a fresh *.trycloudflare.com each boot when the
+ * node runs a quick tunnel). This is how Core reaches a node WITHOUT any hardcoded or
+ * named-tunnel config (no merlin.payloadnuke.com): the node advertises its current URL
+ * on every 2-min heartbeat, Core just reads the freshest ONLINE one. Null when none is
+ * registered/online — callers should fail soft, never fall back to a hardcoded host.
+ */
+export async function resolveEndeavorNodeUrl(payload: Payload, endeavor: string): Promise<string | null> {
+  const nodes = await listEndeavorNodes(payload, endeavor)
+  for (const n of nodes) {
+    const tunnelUrl = typeof (n as { tunnelUrl?: string }).tunnelUrl === 'string' ? (n as { tunnelUrl?: string }).tunnelUrl : undefined
+    if (tunnelUrl && isNodeOnline(n)) return tunnelUrl.replace(/\/+$/, '')
+  }
+  return null
+}
+
+/** resolveEndeavorNodeUrl, resolving the endeavor slug from a tenantId first. */
+export async function resolveTenantNodeUrl(payload: Payload, tenantId: number): Promise<string | null> {
+  try {
+    const t = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true })
+    const slug = (t as { slug?: string } | null)?.slug
+    return slug ? await resolveEndeavorNodeUrl(payload, slug) : null
+  } catch {
+    return null
+  }
+}
+
 // ─── Intelligence broker (Thread 7) ───────────────────────────────────────────
 // Core as the compute DIRECTORY: a node asks "who can serve model X?" and Core
 // returns the best available provider gateway from the registry. Every connected
