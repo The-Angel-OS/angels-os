@@ -36,7 +36,24 @@ const defaultStripe = loadStripe(STRIPE_PUBLISHABLE_KEY)
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuth()
   const router = useRouter()
-  const { cart } = useCart()
+  const { cart, removeItem } = useCart()
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null)
+
+  const handleRemoveCartItem = useCallback(
+    async (itemId: string, label: string) => {
+      if (!itemId || removingItemId) return
+      setRemovingItemId(itemId)
+      try {
+        await removeItem(itemId)
+        toast.success(`Removed ${label} from your cart.`)
+      } catch {
+        toast.error('Could not remove that item — please try again.')
+      } finally {
+        setRemovingItemId(null)
+      }
+    },
+    [removeItem, removingItemId],
+  )
   const [error, setError] = useState<null | string>(null)
   const { theme } = useTheme()
   /**
@@ -547,7 +564,35 @@ export const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {typeof price === 'number' && <Price amount={price} />}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {typeof price === 'number' && <Price amount={price} />}
+                      {(() => {
+                        const itemId = String((item as { id?: string | number }).id ?? '')
+                        if (!itemId) return null
+                        const isRemoving = removingItemId === itemId
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCartItem(itemId, title)}
+                            disabled={isRemoving}
+                            aria-label={`Remove ${title} from cart`}
+                            title="Remove from cart"
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-primary/40 transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                          >
+                            {isRemoving ? (
+                              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
+                          </button>
+                        )
+                      })()}
+                    </div>
                   </div>
                 </div>
               )
