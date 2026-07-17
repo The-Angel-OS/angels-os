@@ -64,6 +64,23 @@ export function SidebarChat({
   const setActiveSpace = hasProvider ? chatCtx!.setActiveSpace : () => {}
   const activeSpaceId = hasProvider ? chatCtx!.activeSpaceId : spaceId
 
+  // External seed: a `leo:ask` event (e.g. from the first-run driver card) opens
+  // the panel and sends a starter message, so a button elsewhere in the dashboard
+  // can hand a conversation off to LEO. Detail: { text: string }.
+  useEffect(() => {
+    function onAsk(e: Event) {
+      const text = (e as CustomEvent).detail?.text
+      if (typeof text !== 'string' || !text.trim()) return
+      setIsExpanded(true)
+      if (hasProvider && leoDM) switchChannel(leoDM.slug)
+      // Let the panel mount / channel switch settle before sending.
+      setTimeout(() => sendMessage(text.trim()), 200)
+    }
+    window.addEventListener('leo:ask', onAsk)
+    return () => window.removeEventListener('leo:ask', onAsk)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasProvider, leoDM?.slug])
+
   // Lock body scroll when mobile overlay is open
   useEffect(() => {
     if (isMobile && isExpanded) {
