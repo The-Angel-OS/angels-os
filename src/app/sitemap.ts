@@ -17,6 +17,11 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
+// Per-request, per-tenant (resolved from the Host header) — must NOT be prerendered
+// at build (that would bake one tenant's sitemap AND require a live DB during the
+// container build). force-dynamic makes it correct AND decouples the build from the DB.
+export const dynamic = 'force-dynamic'
+
 const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'https://spacesangels.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

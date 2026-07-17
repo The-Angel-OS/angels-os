@@ -1,0 +1,18 @@
+# Keep the build context small + never bake secrets/artifacts into the image.
+node_modules
+.next
+.git
+.github
+.vercel
+.env
+.env.*
+!.env.example
+docs
+*.log
+build-out.log
+coverage
+playwright-report
+test-results
+tests/e2e
+.DS_Store
+scratchpad
