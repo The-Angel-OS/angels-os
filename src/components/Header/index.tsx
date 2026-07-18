@@ -10,6 +10,7 @@ import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 import { getAllSouls } from '@/souls'
+import { getBookableServices } from '@/config/bookableServices'
 import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 
 import './index.css'
@@ -153,16 +154,17 @@ export async function Header({ tenant }: Props) {
         payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
         payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
         payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
-        // Book promotes when the tenant has at least one enabled bookable service.
-        // ponytail: counts the DB `services` collection only — a tenant relying purely on
-        // the static bookableServices fallback would read 0 here; acceptable since provisioned
-        // verticals create real rows. Widen to availability if a static-only site needs it.
+        // Book promotes when the tenant has at least one enabled bookable service —
+        // DB `services` OR the static bookableServices seed (fallback-aware, matching
+        // what the /book page actually resolves via resolveServices). A tenant whose
+        // catalog lives only in the static config (e.g. clearwater-cruisin) was
+        // previously read as 0 and Book collapsed into "More".
         payload.count({ collection: 'services', where: { and: [{ tenant: { equals: tenantId } }, { enabled: { equals: true } }] }, overrideAccess: true }),
       ])
       hasProducts = products.totalDocs > 0
       hasEvents = events.totalDocs > 0
       hasPosts = posts.totalDocs > 0
-      hasBook = services.totalDocs > 0
+      hasBook = services.totalDocs > 0 || getBookableServices(tenant?.slug).length > 0
     } catch (err) {
       console.error('[Header] Failed to count products/events/posts/services:', err)
     }

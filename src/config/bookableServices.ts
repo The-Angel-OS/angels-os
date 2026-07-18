@@ -70,6 +70,16 @@ const CATALOG: Record<string, BookableService[]> = {
       depositPercent: 20,
       durationMinutes: 30,
     },
+    {
+      id: 'soul-van-birthday-roadtrip',
+      label: 'Soul Van Birthday Road Trip',
+      description:
+        'The Soul Van is your ride and your camera crew for the day — ~4 hours driving you and your crew around Florida while we film the whole thing (4K/8K), cut into a keepsake highlight video within the week. No set plan, down for wacky. Great for birthdays.',
+      bookingType: 'event',
+      priceUSD: 120,
+      depositPercent: 20,
+      durationMinutes: 240,
+    },
   ],
 }
 

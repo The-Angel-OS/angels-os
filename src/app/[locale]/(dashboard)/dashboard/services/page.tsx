@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { OfferingConfigurator, type FieldDef } from '@/components/OfferingConfigurator'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
+import { seedServicesFromStatic } from '@/utilities/resolveServices'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,20 @@ export default async function DashboardServicesPage({ params }: { params: Promis
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
-  const { tenantId, tenantFilter } = await resolveTenantFromHeaders()
+  const { tenantId, tenantFilter, tenant } = await resolveTenantFromHeaders()
+
+  // Materialize any static bookableServices seed into editable DB rows so the
+  // configurator shows + manages them (and Book promotes in nav). Idempotent —
+  // a no-op once seeded. This is why clearwater-cruisin's static catalog was
+  // "filtered out": it only lived in config, never in the `services` collection.
+  const tenantSlug = (tenant as { slug?: string } | null)?.slug
+  if (tenantId != null && tenantSlug) {
+    try {
+      await seedServicesFromStatic(payload, tenantSlug, tenantId)
+    } catch {
+      /* seeding is best-effort — fall through to whatever rows exist */
+    }
+  }
 
   let items: Record<string, unknown>[] = []
   try {

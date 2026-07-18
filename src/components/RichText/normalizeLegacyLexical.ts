@@ -12,6 +12,17 @@
  */
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 
+/**
+ * Rewrite a dead `/products` listing link to `/shop` (the live listing). Only the
+ * BARE listing path is rewritten — individual product detail links (`/products/
+ * <slug>`, which is a real route) are preserved, as are query/hash on the bare
+ * path. Product descriptions authored with `/products` links pointed at a page
+ * that no longer lists anything.
+ */
+export function rewriteProductsListingUrl(url: string): string {
+  return url.replace(/^\/products\/?(?=$|[?#])/, '/shop')
+}
+
 export function normalizeLegacyLexicalNode<T>(node: T): T {
   if (!node || typeof node !== 'object') return node
   const n = node as Record<string, unknown>
@@ -25,6 +36,17 @@ export function normalizeLegacyLexicalNode<T>(node: T): T {
       listType: (n.listType as string) || (ordered ? 'number' : 'bullet'),
       tag: (n.tag as string) || (ordered ? 'ol' : 'ul'),
       ...(ordered ? { start: (n.start as number) ?? 1 } : {}),
+    }
+  }
+
+  // Link nodes: fix bare /products listing links → /shop (in-flight, non-mutating).
+  if ((n.type === 'link' || n.type === 'autolink') && n.fields && typeof n.fields === 'object') {
+    const fields = n.fields as Record<string, unknown>
+    if (typeof fields.url === 'string') {
+      const rewritten = rewriteProductsListingUrl(fields.url)
+      if (rewritten !== fields.url) {
+        next = { ...next, fields: { ...fields, url: rewritten } }
+      }
     }
   }
 
