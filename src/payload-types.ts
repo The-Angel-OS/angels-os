@@ -6577,7 +6577,7 @@ export interface PayloadMcpApiKey {
      */
     checkSolvency?: boolean | null;
     /**
-     * Commission a NEW endeavor (a business/ministry/creator portal) for the person you're talking to, and hand back a live link to it. Use when someone says "make me a site", "I want to start a <business>", "set up my <shop/ministry/studio>". This mints a real portal — its own subdomain, home + spaces, and the caller as owner (tenant_admin) — then returns a clickable link to open it while the chat stays open. Any signed-in user can commission their own endeavor (this is the Creator rung — still free). Distinct from a personal guardian angel (that's auto-minted, private); an endeavor is a public, findable business. Distinct from provision_tenant (super_admin, custom domain).
+     * Commission a NEW endeavor for the person you're talking to, and hand back a live link to it. An endeavor is a tenant you organize around — a BUSINESS (shop/ministry/creator/service: public, findable) or a CIRCLE (a family, friends, a team, a drum circle: private, kin-scoped). Same primitive; the only real distinction is the end goal. Use when someone says "make me a site", "I want to start a <business>", "set up my <shop/studio>" (kind=business), or "start a circle for my family", "make a group for my team" (kind=circle). This mints a real portal — its own subdomain, home + spaces, the caller as owner (tenant_admin) — then returns a clickable link. Any signed-in user can commission their own (the Creator rung — still free). Distinct from a personal guardian angel (auto-minted, private) and provision_tenant (super_admin, custom domain).
      */
     commissionEndeavor?: boolean | null;
     /**
