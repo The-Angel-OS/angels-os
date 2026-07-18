@@ -1225,6 +1225,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           type: 'boolean',
           description: 'Whether the plan is offered publicly. Default true. Set false to keep billing existing members but hide it from new sign-ups.',
         },
+        kind: {
+          type: 'string',
+          enum: ['dues', 'rent'],
+          description: 'Plan kind. "dues" (default) = memberships (card). "rent" = a lease: pays by ACH bank-debit, fee-free by default, and hidden from the public Join surface. Use "rent" for a rental unit or property.',
+        },
+        feePercent: {
+          type: 'number',
+          description: 'Platform application-fee % on this plan (0 = fee-free). Defaults to the platform default for dues, and 0 for rent.',
+        },
       },
       required: ['name', 'amountUsd'],
     },
@@ -8340,7 +8349,16 @@ async function createMembershipPlan(
   }
 
   const interval = input.interval === 'year' ? 'year' : 'month'
-  const active = input.active !== false
+  // Rent plans represent a lease: ACH rail + fee-free by default + hidden from the
+  // public Join surface (a lease isn't a public offering). Dues default visible.
+  const kind = input.kind === 'rent' ? 'rent' : undefined
+  const active = kind === 'rent' ? input.active === true : input.active !== false
+  const feePercent =
+    typeof input.feePercent === 'number' && Number.isFinite(input.feePercent)
+      ? Math.max(0, Math.min(input.feePercent, 100))
+      : kind === 'rent'
+        ? 0
+        : undefined
 
   const writeTenant = await resolveWriteTenant(payload, ctx)
   if (!writeTenant) {
@@ -8354,6 +8372,8 @@ async function createMembershipPlan(
     interval,
     description: typeof input.description === 'string' ? input.description.trim() || undefined : undefined,
     active,
+    ...(kind ? { kind } : {}),
+    ...(feePercent !== undefined ? { feePercent } : {}),
   }
 
   const existing = await getMembershipPlans(payload, writeTenant)
