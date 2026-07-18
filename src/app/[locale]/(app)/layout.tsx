@@ -18,6 +18,7 @@ import { PageComments } from '@/components/ChatControl/PageComments'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { SiteLogBeacon } from '@/components/SiteLogBeacon'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { fetchTenantByDomain, fetchTenantByExactDomain } from '@/utilities/fetchTenantByDomain'
 import { fetchTenantBySlug } from '@/utilities/fetchTenantBySlug'
@@ -165,6 +166,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {tenant?.id && <TenantCookieSync tenantId={String(tenant.id)} />}
           <Analytics />
           <SpeedInsights />
+          {/* Native self-hosted Site Log — cookieless page-view beacon */}
+          <SiteLogBeacon />
         </Providers>
       </body>
     </html>

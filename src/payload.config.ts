@@ -79,6 +79,8 @@ import { Works } from '@/collections/Works'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { Pheromones, WorkUnits } from '@/collections/Intelligence'
+import { PageViews } from '@/collections/Analytics/PageViews'
+import { siteLogCollectHandler } from '@/endpoints/site-log-collect'
 import { CrewAssignments } from '@/collections/CrewAssignments'
 import { plugins } from './plugins'
 import { mcpPluginConfig } from './plugins/mcp'
@@ -366,6 +368,7 @@ export default buildConfig({
     Transports,
     Shipments,
     Pheromones,
+    PageViews,
     WorkUnits,
     CrewAssignments,
   ],
@@ -464,6 +467,7 @@ export default buildConfig({
         'holon-capabilities': {},
         'justice-fund-transactions': {},
         contacts: {},
+        'page-views': {},
         header: {},
         footer: {},
         'site-settings': {},
@@ -586,6 +590,8 @@ export default buildConfig({
     { path: '/log-ops/consolidate', method: 'get', handler: logConsolidateHandler },
     { path: '/log-ops/consolidate', method: 'post', handler: logConsolidateHandler },
     { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },
+    // Native Site Log — cookieless page-view beacon (public, fire-and-forget).
+    { path: '/site-log/collect', method: 'post', handler: siteLogCollectHandler },
     {
       path: '/leo',
       method: 'get',
