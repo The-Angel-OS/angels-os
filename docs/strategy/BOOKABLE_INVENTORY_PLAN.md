@@ -90,15 +90,25 @@ BookingEngine (slot gen, conflict/overlap, reschedule, cancel), `bookings` colle
 
 ---
 
-## 7. Recommended sequence
-1. **Mode 1 — Bookable Spaces (facilities)** as a church-vertical module. Rides the existing slot engine; near-free; real users (small churches) immediately. `Listings` collection (facility mode) + a Book-a-Space block + `provisionFacilitiesSite` template.
-2. **Mode 2 — Stays** (campground-first skin): date-range listings + booking engine extension + site-map picker.
-3. **Mode 3 — Rent** (landlady/storage): ACH enablement + recurring lease on Memberships rails.
+## 7. Sequence — REVISED (Ken 260718: landlady rent is the near-term target)
 
-## 8. Open questions for Ken
-1. **The landlady** — real near-term target (pulls **Mode 3 + ACH** forward), or someday? Only thing that reorders the sequence.
-2. **Lead skin for Mode 2** — campground (recommended: underserved) vs motel/Airbnb (crowded)?
-3. **Monetization shape** — booking-fee % (Connect app fee, already built, self-funding) vs flat SaaS to the operator vs both? (Changes the pitch more than the model.)
+**Mode 3 (Rent) leads** — Ken has a real first user (his landlady) who needs a portal to collect rent. Rent is the biggest unlock-per-effort because it's *almost entirely existing infrastructure*: rent = a monthly membership subscription on the Memberships + Stripe-Connect rails, and the only true gap was the ACH payment rail.
+
+1. **Mode 3 — Rent (landlady portal)** — NOW.
+   - ✅ **Slice 1 — ACH rail SHIPPED** (`c8d39a6`): `membership-ops/checkout` accepts `rail='ach'|'both'`; recurring rent pays by bank debit (0.8%, $5 cap), mandate + instant verification handled by Checkout.
+   - **Slice 2 — rent portal surface** (next): landlady creates a monthly rent "plan" per unit (reuse `create_membership_plan`, interval=month) → a shareable ACH autopay link for each renter (posts to checkout with `rail='ach'`). A `Listing` in rent mode can own/generate the plan. Renter's subscription → a `Membership` row (webhook-synced) = the lease of record. Landlady dashboard shows who's paid.
+   - **Depends on Ken:** her actual setup (see §8) — # units, whether she wants a renter portal or just a payment link, lease-term tracking.
+2. **Mode 1 — Bookable Spaces (facilities)** — church-hall module; rides the existing slot engine.
+3. **Mode 2 — Stays** (campground-first): date-range listings + booking-engine extension + site-map picker.
+
+## 8. Open questions for Ken (to build the landlady portal surface, Slice 2)
+1. **Her units** — how many, and does she want to list them (addresses/units) in the portal, or is a per-renter payment link enough to start?
+2. **Renter experience** — a full renter portal (log in, see lease, autopay, history) or just a "set up autopay" ACH link she texts them? (Link-only is far faster to a working rent collection.)
+3. **Lease terms** — track rent amount + due date + start/end, or just "collect $X/month" for now?
+4. **Platform fee** — take a small application fee on her rent (self-funding), or run it fee-free for her as the first user? (`MEMBERSHIP_PLATFORM_FEE_PERCENT`, currently 2%.)
+5. **Her Stripe** — does she have / will she onboard a Stripe Connect account (needed so rent settles to HER bank)? First-party/platform-direct is the fallback but then money lands in the platform account.
+
+*(Deferred, for later modes: Mode 2 lead skin campground vs motel; overall monetization booking-fee% vs SaaS.)*
 
 ---
 
