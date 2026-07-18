@@ -116,11 +116,24 @@ pnpm start          # serve the production build   (or: `pnpm dev` for local dev
   (with `secretHash = sha256(PAYLOAD_SECRET).slice(0,32)`) mints a super-admin token
   for scripted ops.
 
-### Or deploy to Vercel (recommended)
+### Or deploy to Vercel
 
 Import the repo, set the same env vars in the Vercel project (Production), deploy.
 The build command already runs `payload migrate`. Point your domain at it; set
 `COOKIE_DOMAIN=.yourdomain.com` for subdomain SSO across tenants.
+
+### Or run the local self-host stack (current production topology)
+
+Core runs in Docker on an always-on machine, public over a Cloudflare tunnel — no
+cloud build to ship a change. Ship an edit with **one command**:
+
+```
+C:\Dev\datacenter\stack\rebuild.cmd      # rebuild Core image, restart, verify
+```
+
+Full build/operate/backup guide: **[docs/LOCAL_SELFHOST.md](docs/LOCAL_SELFHOST.md)**.
+Compose stack (Postgres + Core) at `C:\Dev\datacenter\stack\docker-compose.yml`;
+tunnel auto-starts as a boot-time SYSTEM task.
 
 ---
 
