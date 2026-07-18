@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
+import { AppointmentsView, type CalBooking } from './AppointmentsView'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,15 @@ export default async function DashboardAppointmentsPage({
       laterBookings.push(booking)
     }
   }
+
+  // Serialized bookings for the calendar month-grid view.
+  const calBookings: CalBooking[] = (bookings.docs as any[]).map((b) => ({
+    id: b.id,
+    title: (typeof b.product === 'object' ? b.product?.title : null) || b.title || 'Appointment',
+    start: b.startDateTime,
+    status: b.status || 'pending',
+    subtitle: typeof b.client === 'object' ? b.client?.name || b.client?.email : undefined,
+  }))
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-500 text-black',
@@ -116,6 +126,7 @@ export default async function DashboardAppointmentsPage({
           </div>
         </div>
       ) : (
+        <AppointmentsView bookings={calBookings} list={
         <div className="space-y-8">
           {todayBookings.length > 0 && (
             <BookingGroup title="Today" bookings={todayBookings} statusColors={statusColors} />
@@ -141,6 +152,7 @@ export default async function DashboardAppointmentsPage({
             <BookingGroup title="Past" bookings={pastBookings} statusColors={statusColors} />
           )}
         </div>
+        } />
       )}
     </div>
   )
