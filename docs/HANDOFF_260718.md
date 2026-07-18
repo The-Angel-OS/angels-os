@@ -85,3 +85,17 @@ existing booking + membership/subscription engines. See `project_market_vendor_v
 - Cloudflare MCP is Workers-only (no DNS tools); DNS via `cloudflared tunnel route dns`.
 - New collection/field needs a migration (container runs `migrate`, not `push`).
 - Tenants resolve by subdomain-slug regardless of apex — why `*.payloadnuke.com` works.
+
+---
+
+## Overnight addendum (260718 ~0230, Fable) — autonomous loop
+
+Ken selected 3 items before resting: read-aloud fix, onboarding reception+wizard, rentals eval/plan. All done.
+
+**1. Reader read-aloud regression — FIXED.** The Card Stage (Nimue) superseded `HomeReaderWidget` but dropped its `ListenControl`. Added the existing `ReadAloudButton` to `CardView`'s actions row for any card with a body — restores Listen on EVERY text card (Daily Bread, DMs, guardian replies), not just Daily Bread. Nimue commit `845b2fa` on `main` (local, NOT pushed — Ken builds/deploys Nimue). tsc clean.
+
+**2. Onboarding reception + wizard — BUILT (branch, needs review).** `feat/onboarding-reception` (`539f8d7`, pushed to origin, NOT merged — changes user-facing provisioning-landing behavior + adds a migration). Reception route `/welcome` on the endeavor FQDN walks the locked flat spec (welcome→identity→invite→first-act→done); shared isomorphic step spec `src/utilities/onboardingFlow.ts` (Nimue imports the same shape next). New `Endeavors.onboardingStep` field + additive migration. Provisioning now lands on `/welcome` (ProvisionWizard domain case + `commissionEndeavor`). tsc: 0 src errors (98 pre-existing tests/ errors unchanged). **Ken TODO:** review + verify `/welcome` renders on a real tenant host (owner-gated, needs auth), then decide merge order vs `feat/active-endeavor-switch`.
+
+**3. Rentals vertical — EVAL + PLAN written.** `docs/strategy/RENTALS_VERTICAL_PLAN.md` (committed on the branch above). Key: `rental` is already a first-class `bookingType`; `provisionMarketVendorSite.ts` is the copy target; the real gap is per-night/multi-day ranges + unit-as-listing. Slice A (slot rentals template) = a night's work; Slice B (lodging listings) = the substantive build. 3 open questions for Ken at the doc's end.
+
+Monetization: parked per Ken's selection.
