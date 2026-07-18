@@ -163,8 +163,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <FloatingBubble spaceId={defaultSpaceId} />
           <PageComments spaceId={defaultSpaceId} />
           {tenant?.id && <TenantCookieSync tenantId={String(tenant.id)} />}
-          <Analytics />
-          <SpeedInsights />
+          {/* Vercel analytics beacons only work on Vercel — off-Vercel (self-host)
+              they 404 /_vercel/insights/* and spam the console. Gate to Vercel. */}
+          {process.env.VERCEL === '1' && (
+            <>
+              <Analytics />
+              <SpeedInsights />
+            </>
+          )}
         </Providers>
       </body>
     </html>

@@ -60,8 +60,14 @@ export default async function DashboardGroupLayout({ children }: { children: Rea
       </head>
       <body>
         <Providers>{children}</Providers>
-        <Analytics />
-        <SpeedInsights />
+        {/* Vercel analytics beacons only work on Vercel — off-Vercel (self-host)
+            they 404 /_vercel/insights/* and spam the console. Gate to Vercel. */}
+        {process.env.VERCEL === '1' && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
       </body>
     </html>
   )
