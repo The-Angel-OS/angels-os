@@ -37,7 +37,18 @@ export function SpacesChat({
     ? (spaces.find((s) => String(s.id) === initialSpaceSlug || s.slug === initialSpaceSlug)?.id
         ?? (/^\d+$/.test(initialSpaceSlug) ? initialSpaceSlug : undefined))
     : undefined
-  const effectiveSpaceId = urlSpaceId ?? activeSpaceId ?? '1'
+  // Bare /dashboard/spaces (no deep link, no sticky space) resolves to THIS
+  // tenant's default space — the Community town square if it has one, else the
+  // first real (non-system) space, else the first space of any kind. Only if the
+  // tenant has no spaces at all do we fall back to id 1. Previously this hardcoded
+  // '1' (the platform's space), so a guardian-angel / tenant portal landed on a
+  // space it doesn't own. ChatControl opens that space's Main channel by default.
+  const defaultSpaceId =
+    spaces.find((s) => !s.isSystem && s.visibility === 'public')?.id ??
+    spaces.find((s) => !s.isSystem)?.id ??
+    spaces[0]?.id ??
+    '1'
+  const effectiveSpaceId = urlSpaceId ?? activeSpaceId ?? defaultSpaceId
 
   // Keep the sticky/sidebar space in sync with the URL (highlight + return target).
   useEffect(() => {
