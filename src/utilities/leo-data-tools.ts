@@ -17916,7 +17916,9 @@ async function commissionEndeavor(
       isCircle
         ? `Next, tell me who to invite or what the circle is for, and I can set it up.`
         : `Next, just tell me what it does and I can add pages, a booking or shop, or apply a template.`,
-    ].join('\n') + navDirective(result.url, `Open ${name}`)
+      // Land the owner on the reception route (/welcome) so they walk the
+      // onboarding flow — say who you are, invite people, do the first act.
+    ].join('\n') + navDirective(`${result.url.replace(/\/$/, '')}/welcome`, `Open ${name}`)
   } catch (err) {
     return `I couldn't finish commissioning "${name}": ${err instanceof Error ? err.message : String(err)}. Nothing was charged — we can try again.`
   }

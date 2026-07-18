@@ -210,3 +210,51 @@ export async function updateEndeavor(
 
   return { success: true }
 }
+
+// ── setOnboardingStep ─────────────────────────────────────────────────────────
+
+/**
+ * Persist the current endeavor's reception-flow position (/welcome).
+ *
+ * Records where the owner is in the flat step list so the flow resumes and the
+ * dashboard can nudge unfinished onboarding. Reaching 'done' also flips the
+ * endeavor to 'active' (the reception flow is the last gate of "forming").
+ * Step keys are validated against the shared spec in onboardingFlow.ts.
+ */
+export async function setOnboardingStep(
+  step: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { onboardingStepIndex } = await import('@/utilities/onboardingFlow')
+  if (onboardingStepIndex(step) < 0) {
+    return { success: false, error: `Unknown onboarding step: ${step}` }
+  }
+
+  const { payload, tenantId, error } = await getAuthenticatedAdmin()
+  if (error || !tenantId) {
+    return { success: false, error: error || 'Tenant not found' }
+  }
+
+  const existing = await payload.find({
+    collection: 'endeavors',
+    where: { tenant: { equals: tenantId } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!existing.docs[0]) {
+    return { success: false, error: 'No endeavor for this tenant' }
+  }
+
+  const data: Record<string, any> = { onboardingStep: step }
+  // Completing the reception flow is the last gate of "forming".
+  if (step === 'done') data.status = 'active'
+
+  await payload.update({
+    collection: 'endeavors',
+    id: existing.docs[0].id,
+    data,
+    overrideAccess: true,
+  })
+
+  return { success: true }
+}

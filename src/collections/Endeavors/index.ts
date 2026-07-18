@@ -166,6 +166,21 @@ export const Endeavors: CollectionConfig = {
       },
     },
 
+    {
+      // Post-provision reception flow position — the flat step list the owner
+      // walks on /welcome (welcome → identity → invite → first-act → done).
+      // Null = never entered; 'done' = completed. Source of truth for the step
+      // spec is src/utilities/onboardingFlow.ts (shared with Nimue cards).
+      name: 'onboardingStep',
+      type: 'text',
+      index: true,
+      admin: {
+        description:
+          'Reception flow position (welcome→identity→invite→first-act→done). Null until first entered; "done" when complete. See onboardingFlow.ts.',
+        position: 'sidebar',
+      },
+    },
+
     // ── Relationships ─────────────────────────────────────────────
     // Note: 'tenant' field is added automatically by the multi-tenant plugin
     {

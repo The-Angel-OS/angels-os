@@ -146,10 +146,12 @@ export function ProvisionWizard() {
         </p>
         <button
           onClick={() => {
-            // If tenant has a domain, navigate there; otherwise go to dashboard
+            // New endeavor → land on its host-authoritative reception route
+            // (/welcome) so the owner walks the onboarding flow. Localhost dev has
+            // no tenant host to resolve reception, so fall back to the dashboard.
             const domain = state.identity.domain
             if (domain && !domain.includes('localhost')) {
-              window.location.href = `https://${domain}/dashboard`
+              window.location.href = `https://${domain}/welcome`
             } else {
               router.push('/dashboard')
             }

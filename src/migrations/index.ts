@@ -26,6 +26,7 @@ import * as migration_20260708_000000_add_message_channel_ref from './20260708_0
 import * as migration_20260713_000000_add_community_visibility from './20260713_000000_add_community_visibility';
 import * as migration_20260715_000000_add_tenant_flavors from './20260715_000000_add_tenant_flavors';
 import * as migration_20260715_010000_backfill_guardian_angel_flavor from './20260715_010000_backfill_guardian_angel_flavor';
+import * as migration_20260718_000000_add_endeavor_onboarding_step from './20260718_000000_add_endeavor_onboarding_step';
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260715_010000_backfill_guardian_angel_flavor.up,
     down: migration_20260715_010000_backfill_guardian_angel_flavor.down,
     name: '20260715_010000_backfill_guardian_angel_flavor',
+  },
+  {
+    up: migration_20260718_000000_add_endeavor_onboarding_step.up,
+    down: migration_20260718_000000_add_endeavor_onboarding_step.down,
+    name: '20260718_000000_add_endeavor_onboarding_step',
   },
 ];
