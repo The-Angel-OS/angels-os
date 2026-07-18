@@ -24,6 +24,8 @@ function getTenantSlugFromHostname(): string | null {
 
   // Main platform domains — no tenant prefix
   const mainDomains = [
+    'payloadnuke.com',
+    'www.payloadnuke.com',
     'spacesangels.com',
     'www.spacesangels.com',
     'kendev.co',

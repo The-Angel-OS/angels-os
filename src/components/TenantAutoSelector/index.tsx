@@ -30,6 +30,8 @@ function getSubdomainSlug(): string | null {
   const hostname = window.location.hostname
 
   const mainDomains = [
+    'payloadnuke.com',
+    'www.payloadnuke.com',
     'spacesangels.com',
     'www.spacesangels.com',
     'kendev.co',
