@@ -41,10 +41,16 @@ export const setTenantFromHeader: CollectionBeforeValidateHook = async ({
     delete (data as Record<string, unknown>)._tenantSpace
   }
 
-  // A server caller already resolved the tenant — leave it alone.
-  if (data?.tenant) return data
-
-  // 1. Resolve from the active chat space (authoritative; works on Core).
+  // 1. Resolve from the active chat space — AUTHORITATIVE, and it overrides any
+  //    client/plugin-provided `data.tenant`. A chat attachment MUST live in its
+  //    space's tenant: the message's `attachments[].media` relationship is
+  //    validated against the space's tenant, so a media stamped with a different
+  //    tenant (e.g. the `payload-tenant` cookie defaulting to the platform tenant
+  //    while the space belongs to a guardian-angel tenant) is rejected downstream
+  //    as "invalid: Attachments > Media" — the upload appears to fail. The space
+  //    is the ground truth, so it wins here. Only browser chat uploads send
+  //    `_tenantSpace`; server callers don't, so their explicit `data.tenant`
+  //    (handled below) is untouched.
   if (spaceHint != null && spaceHint !== '') {
     const spaceId = typeof spaceHint === 'object'
       ? (spaceHint as { id?: string | number }).id
@@ -74,6 +80,11 @@ export const setTenantFromHeader: CollectionBeforeValidateHook = async ({
       }
     }
   }
+
+  // A server caller (or the plugin default) already resolved a tenant and there's
+  // no authoritative space hint — leave it alone. This preserves provisioning /
+  // bridge writes that set `data.tenant` deliberately.
+  if (data?.tenant) return data
 
   // 2. Fall back to the subdomain slug header.
   const tenantSlug = req.headers?.get?.('x-tenant-id')
