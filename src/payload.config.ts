@@ -273,6 +273,11 @@ export default buildConfig({
     'https://kendev.co',
     'https://www.kendev.co',
     'https://*.kendev.co',
+    // Self-hosted primary node (260717): the stack runs on Ken's box, public via
+    // the Cloudflare tunnel at *.payloadnuke.com. Nimue + federation + cross-subdomain.
+    'https://payloadnuke.com',
+    'https://www.payloadnuke.com',
+    'https://*.payloadnuke.com',
     'http://localhost:3000',
     'http://localhost:3001',
     // Nimue browser-dev (`pnpm dev` :3002) + the preview harness (:3097).
