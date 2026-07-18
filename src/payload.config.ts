@@ -31,6 +31,7 @@ import { buildConfig } from 'payload'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { Availability } from '@/collections/Availability'
 import { Bookings } from '@/collections/Bookings'
+import { Listings } from '@/collections/Listings'
 import { Categories } from '@/collections/Categories'
 import { Comments } from '@/collections/Comments'
 import { Channels } from '@/collections/Channels'
@@ -328,6 +329,7 @@ export default buildConfig({
     Messages,
     Workflows,
     Bookings,
+    Listings,
     Events,
     EventRegistrations,
     Availability,
@@ -461,6 +463,7 @@ export default buildConfig({
         messages: { useTenantAccess: false },
         // ─── Scheduling & Events ─────────────────────────────
         bookings: {},
+        listings: {},
         events: {},
         'event-registrations': {},
         availability: {},
