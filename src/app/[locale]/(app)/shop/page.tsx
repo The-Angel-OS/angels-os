@@ -31,15 +31,23 @@ type Props = {
  * the multi-tenant plugin's access control (which was hiding products
  * when the hostname-derived slug didn't match tenant records).
  */
+const PRODUCTS_PER_PAGE = 12
+
 export default async function ShopPage({ searchParams }: Props) {
-  const { q: searchValue, sort, category } = await searchParams
+  const { q: searchValue, sort, category, page: pageParam } = await searchParams
   const payload = await getPayload({ config: configPromise })
   const { tenantFilter } = await resolveTenantFromHeaders()
+
+  const pageRaw = Array.isArray(pageParam) ? pageParam[0] : pageParam
+  const page = Math.max(1, Number.parseInt(pageRaw || '1', 10) || 1)
 
   const products = await payload.find({
     collection: 'products',
     draft: false,
     overrideAccess: true,
+    limit: PRODUCTS_PER_PAGE,
+    page,
+    pagination: true,
     select: {
       title: true,
       slug: true,
@@ -59,6 +67,20 @@ export default async function ShopPage({ searchParams }: Props) {
     },
   })
 
+  // Build a page URL that preserves the active filters (q/sort/category).
+  const pageHref = (n: number) => {
+    const p = new URLSearchParams()
+    if (typeof searchValue === 'string' && searchValue) p.set('q', searchValue)
+    if (typeof sort === 'string' && sort) p.set('sort', sort)
+    if (typeof category === 'string' && category) p.set('category', category)
+    if (n > 1) p.set('page', String(n))
+    const qs = p.toString()
+    return qs ? `/shop?${qs}` : '/shop'
+  }
+
+  const { totalDocs, totalPages, hasPrevPage, hasNextPage } = products
+  const firstOnPage = totalDocs === 0 ? 0 : (page - 1) * PRODUCTS_PER_PAGE + 1
+  const lastOnPage = (page - 1) * PRODUCTS_PER_PAGE + products.docs.length
   const resultsText = products.docs.length > 1 ? 'results' : 'result'
 
   return (
@@ -89,11 +111,55 @@ export default async function ShopPage({ searchParams }: Props) {
       )}
 
       {products?.docs.length > 0 ? (
-        <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.docs.map((product) => {
-            return <ProductGridItem key={product.id} product={product} />
-          })}
-        </Grid>
+        <>
+          <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.docs.map((product) => {
+              return <ProductGridItem key={product.id} product={product} />
+            })}
+          </Grid>
+
+          {totalPages > 1 && (
+            <nav
+              className="mt-10 flex items-center justify-between gap-4 border-t border-border pt-6"
+              aria-label="Shop pagination"
+            >
+              <span className="text-sm text-muted-foreground">
+                Showing {firstOnPage}–{lastOnPage} of {totalDocs} {resultsText}
+              </span>
+              <div className="flex items-center gap-2">
+                {hasPrevPage ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    rel="prev"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                  >
+                    ← Prev
+                  </Link>
+                ) : (
+                  <span className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground/50">
+                    ← Prev
+                  </span>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                {hasNextPage ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    rel="next"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                  >
+                    Next →
+                  </Link>
+                ) : (
+                  <span className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground/50">
+                    Next →
+                  </span>
+                )}
+              </div>
+            </nav>
+          )}
+        </>
       ) : null}
     </div>
   )
