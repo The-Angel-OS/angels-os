@@ -18,6 +18,19 @@ export interface MembershipPlan {
   description?: string
   /** Hidden plans aren't offered on the public join surface but still bill. */
   active?: boolean
+  /**
+   * Plan kind. 'dues' (default) = memberships/subscriptions (card). 'rent' = a
+   * lease: prefers the ACH rail and is surfaced as a lease in the renter portal.
+   * @see docs/strategy/BOOKABLE_INVENTORY_PLAN.md
+   */
+  kind?: 'dues' | 'rent'
+  /**
+   * Platform application-fee % override for THIS plan (0 = fee-free). Admin-set
+   * (plans are trusted, not renter-controlled). Falls back to
+   * MEMBERSHIP_PLATFORM_FEE_PERCENT when undefined — e.g. the landlady's rent is
+   * fee-free (0), gym dues use the default.
+   */
+  feePercent?: number
 }
 
 const ENTITY = 'membership-plans'

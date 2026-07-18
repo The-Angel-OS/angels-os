@@ -90,7 +90,13 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     // dues stay on card (ACH's verification step is clunky for small dues), so ACH
     // is OPT-IN per request: rail='ach' (bank only) | 'both' (bank+card) | default
     // card. @see docs/strategy/BOOKABLE_INVENTORY_PLAN.md §4.
-    const rail = typeof body.rail === 'string' ? body.rail.trim().toLowerCase() : ''
+    // Rent plans prefer ACH by default (the caller can still force a rail).
+    const rail =
+      typeof body.rail === 'string' && body.rail.trim()
+        ? body.rail.trim().toLowerCase()
+        : plan.kind === 'rent'
+          ? 'ach'
+          : ''
     const wantsAch = rail === 'ach' || rail === 'both'
     const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] | undefined =
       rail === 'ach' ? ['us_bank_account'] : rail === 'both' ? ['us_bank_account', 'card'] : undefined
@@ -98,7 +104,11 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     const memberEmail = typeof body.memberEmail === 'string' ? body.memberEmail.trim() : ((user as { email?: string } | null)?.email || '')
     const memberName = typeof body.memberName === 'string' ? body.memberName.trim() : ((user as { name?: string } | null)?.name || '')
     const baseUrl = getServerSideURL()
-    const applicationFeePercent = Math.max(0, Math.min(PLATFORM_FEE_PERCENT, 100))
+    // Plan-level fee override (admin-set, trusted) wins over the env default — a
+    // rent plan set feePercent:0 bills the renter fee-free (money all to the
+    // landlady's connected account).
+    const feeBase = typeof plan.feePercent === 'number' ? plan.feePercent : PLATFORM_FEE_PERCENT
+    const applicationFeePercent = Math.max(0, Math.min(feeBase, 100))
 
     const subMetadata = {
       angelOs_type: 'membership',
