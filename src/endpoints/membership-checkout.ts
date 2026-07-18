@@ -85,6 +85,16 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     if (!plan) return Response.json({ error: `No membership plan "${planId}"` }, { status: 404 })
     if (plan.active === false) return Response.json({ error: 'That plan is not currently available.' }, { status: 409 })
 
+    // Payment rail. Recurring RENT should ride ACH bank-debit (0.8%, capped $5)
+    // — card (2.9%+30¢) is ~$44/mo on $1,500 rent and kills the model. Gym/church
+    // dues stay on card (ACH's verification step is clunky for small dues), so ACH
+    // is OPT-IN per request: rail='ach' (bank only) | 'both' (bank+card) | default
+    // card. @see docs/strategy/BOOKABLE_INVENTORY_PLAN.md §4.
+    const rail = typeof body.rail === 'string' ? body.rail.trim().toLowerCase() : ''
+    const wantsAch = rail === 'ach' || rail === 'both'
+    const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] | undefined =
+      rail === 'ach' ? ['us_bank_account'] : rail === 'both' ? ['us_bank_account', 'card'] : undefined
+
     const memberEmail = typeof body.memberEmail === 'string' ? body.memberEmail.trim() : ((user as { email?: string } | null)?.email || '')
     const memberName = typeof body.memberName === 'string' ? body.memberName.trim() : ((user as { name?: string } | null)?.name || '')
     const baseUrl = getServerSideURL()
@@ -125,6 +135,12 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
         },
       ],
       subscription_data,
+      // ACH bank-debit rail (opt-in). Checkout collects the mandate and verifies
+      // the bank instantly via Financial Connections. Omitted → Stripe's card default.
+      ...(paymentMethodTypes ? { payment_method_types: paymentMethodTypes } : {}),
+      ...(wantsAch
+        ? { payment_method_options: { us_bank_account: { verification_method: 'automatic' as const } } }
+        : {}),
       ...(memberEmail ? { customer_email: memberEmail } : {}),
       success_url: `${baseUrl}/?membership=success`,
       cancel_url: `${baseUrl}/?membership=cancelled`,
