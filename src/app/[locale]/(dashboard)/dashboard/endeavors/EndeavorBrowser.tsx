@@ -14,13 +14,38 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 
-/** Known federation entry points — mirrors Nimue's enterprise seed. The empty
- *  base is THIS node (same-origin), which always answers. */
-const NODES: Array<{ id: string; name: string; base: string }> = [
-  { id: 'here', name: 'This node', base: '' },
-  { id: 'platform', name: 'Spaces Angels', base: 'https://platform.spacesangels.com' },
-  { id: 'federation', name: 'KenDev Federation', base: 'https://federation.kendev.co' },
-]
+interface FedNode {
+  id: string
+  name: string
+  /** Fetch base; empty = THIS node (same-origin), which always answers. */
+  base: string
+}
+
+/**
+ * The node set is DISCOVERED, not hardcoded: this node (same-origin) is always
+ * first, and peers come from the `federation-peers` DB (networkVisible). So the
+ * browser auto-spans the network as it grows and no other node's domain is baked
+ * into the code — the same image runs on any node and federates via config/DB.
+ */
+async function discoverNodes(): Promise<FedNode[]> {
+  const nodes: FedNode[] = [{ id: 'here', name: 'The Angel OS', base: '' }]
+  try {
+    const res = await fetch(
+      '/api/federation-peers?where[networkVisible][equals]=true&limit=100&depth=0',
+      { headers: { accept: 'application/json' } },
+    )
+    if (res.ok) {
+      const data = await res.json()
+      for (const p of Array.isArray(data?.docs) ? data.docs : []) {
+        const domain = typeof p?.domain === 'string' ? p.domain.trim() : ''
+        if (domain) nodes.push({ id: String(p.id), name: p.name || domain, base: `https://${domain}` })
+      }
+    }
+  } catch {
+    /* peer discovery is best-effort — same-origin still answers */
+  }
+  return nodes
+}
 
 interface Holon {
   id: number | string
@@ -48,8 +73,10 @@ export function EndeavorBrowser() {
     let active = true
     ;(async () => {
       setLoading(true)
+      const nodes = await discoverNodes()
+      if (!active) return
       const results = await Promise.allSettled(
-        NODES.map(async (node) => {
+        nodes.map(async (node) => {
           const res = await fetch(`${node.base}/api/federation/holons?limit=100`, {
             headers: { accept: 'application/json' },
             // same-origin sends the session; cross-origin is a plain public GET
@@ -74,7 +101,7 @@ export function EndeavorBrowser() {
             if (!seen.has(key)) { seen.add(key); merged.push(h) }
           }
         } else {
-          bad.push(NODES[i].name)
+          bad.push(nodes[i].name)
         }
       })
       setHolons(merged)

@@ -266,34 +266,48 @@ export default buildConfig({
   // Note: the primary cross-subdomain auth fix is in AuthProvider (uses
   // window.location.origin so calls are same-origin). This is belt-and-suspenders
   // for federation, partner embeds, and any remaining cross-origin fetch paths.
-  cors: [
-    'https://spacesangels.com',
-    'https://www.spacesangels.com',
-    'https://*.spacesangels.com',
-    'https://kendev.co',
-    'https://www.kendev.co',
-    'https://*.kendev.co',
-    // Self-hosted primary node (260717): the stack runs on Ken's box, public via
-    // the Cloudflare tunnel at *.payloadnuke.com. Nimue + federation + cross-subdomain.
-    'https://payloadnuke.com',
-    'https://www.payloadnuke.com',
-    'https://*.payloadnuke.com',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    // Nimue browser-dev (`pnpm dev` :3002) + the preview harness (:3097).
-    // Without these, desktop-browser Nimue can't even log in — the response has
-    // no Access-Control-Allow-Origin and every call reads as 'Failed to fetch'.
-    'http://localhost:3002',
-    'http://localhost:3097',
-    // Native clients (Nimue / Capacitor WebView). Auth is bearer-token (no
-    // cookies), so allowing these origins is safe — it lets the native app use
-    // standard fetch (multipart uploads + real SSE streaming) instead of the
-    // CapacitorHttp CORS-bypass that mangles binary bodies.
-    'https://localhost',
-    'http://localhost',
-    'capacitor://localhost',
-    'ionic://localhost',
-  ],
+  // Origins are config-driven, not hardcoded — so this same image runs on any
+  // node (payloadnuke.com, kendev.co, spacesangels.com, or a fresh clone) without
+  // baking another node's domain into the code. Each node self-allows its own
+  // apex + wildcard from NEXT_PUBLIC_SERVER_URL; extra cross-node origins come
+  // from CORS_ORIGINS (comma-separated). Native + local-dev origins are the same
+  // everywhere (not cross-node coupling) so they stay as constants.
+  cors: (() => {
+    const fromEnv = (process.env.CORS_ORIGINS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    // This node's own domain, derived from its server URL (apex + subdomains).
+    const selfOrigins: string[] = (() => {
+      try {
+        const host = new URL(process.env.NEXT_PUBLIC_SERVER_URL || '').hostname
+        if (!host) return []
+        const apex = host.split('.').slice(-2).join('.')
+        return [`https://${apex}`, `https://*.${apex}`]
+      } catch {
+        return []
+      }
+    })()
+
+    // Native clients (Nimue / Capacitor WebView) — bearer-token auth, no cookies,
+    // so safe on every node; lets the native app use standard fetch (multipart +
+    // SSE) instead of the CapacitorHttp CORS-bypass that mangles binary bodies.
+    const nativeOrigins = [
+      'https://localhost',
+      'http://localhost',
+      'capacitor://localhost',
+      'ionic://localhost',
+    ]
+
+    // Local dev: Core :3000/:3001, Nimue browser-dev :3002, preview harness :3097.
+    const devOrigins =
+      process.env.NODE_ENV !== 'production'
+        ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3097']
+        : []
+
+    return Array.from(new Set([...fromEnv, ...selfOrigins, ...nativeOrigins, ...devOrigins]))
+  })(),
   admin: {
     meta: {
       titleSuffix: ' — Angel OS',

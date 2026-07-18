@@ -481,7 +481,7 @@ function DeveloperTab() {
           args: ['tsx', 'mcp-server/index.ts'],
           cwd: '/path/to/angels-os',
           env: {
-            ANGEL_OS_URL: 'https://www.spacesangels.com',
+            ANGEL_OS_URL: process.env.NEXT_PUBLIC_SERVER_URL || 'https://your-angel-os-node',
             ANGEL_OS_TENANT: 'default',
           },
         },
@@ -587,7 +587,7 @@ function DeveloperTab() {
         <ul className="text-sm text-muted-foreground space-y-1">
           <li><span className="font-medium text-foreground">Transport:</span> stdio (Claude Code manages lifecycle)</li>
           <li><span className="font-medium text-foreground">Auth:</span> Auto-JWT from PAYLOAD_SECRET or ANGEL_OS_API_KEY</li>
-          <li><span className="font-medium text-foreground">Endpoint:</span> https://www.spacesangels.com</li>
+          <li><span className="font-medium text-foreground">Endpoint:</span> {process.env.NEXT_PUBLIC_SERVER_URL || 'https://your-angel-os-node'}</li>
           <li><span className="font-medium text-foreground">Tenant:</span> default</li>
         </ul>
       </div>

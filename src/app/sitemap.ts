@@ -22,7 +22,7 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 // container build). force-dynamic makes it correct AND decouples the build from the DB.
 export const dynamic = 'force-dynamic'
 
-const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'https://spacesangels.com'
+const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const payload = await getPayload({ config: configPromise })
