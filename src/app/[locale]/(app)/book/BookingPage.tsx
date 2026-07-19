@@ -255,8 +255,12 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
   ]
   const currentIdx = wizardSteps.findIndex((s) => s.key === step)
 
-  // Navigate back to an already-completed step via the progress bar.
+  // Navigate back to an already-completed step via the progress bar. No-op if it's
+  // the step we're already on — clicking the CURRENT chip used to reset
+  // bookingState to 'idle', which unmounted the Stripe deposit form mid-payment
+  // (and re-initiating then 409'd against the hold already created).
   const goToStep = (key: StepKey) => {
+    if (key === step) return
     setBookingState('idle')
     setBookingError('')
     setStep(key)
@@ -294,7 +298,9 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
               {wizardSteps.map((s, i) => {
                 const done = i < currentIdx && s.value != null
                 const current = i === currentIdx
-                const clickable = i <= currentIdx
+                // Only PAST steps navigate back; the current chip is not clickable
+                // (clicking it would reset the in-progress deposit form).
+                const clickable = i < currentIdx
                 return (
                   <React.Fragment key={s.key}>
                     {i > 0 && <div className={`h-px flex-1 min-w-3 ${i <= currentIdx ? 'bg-primary/40' : 'bg-border'}`} />}

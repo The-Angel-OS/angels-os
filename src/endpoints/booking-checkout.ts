@@ -133,6 +133,33 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     }
     const endDateTime = new Date(startDateTime.getTime() + slotDuration * 60 * 1000)
 
+    // Re-initiating checkout for the SAME slot supersedes this user's own prior
+    // pending hold (an earlier attempt they didn't pay) — cancel it so the guard
+    // below doesn't reject them against themselves and no orphan hold lingers.
+    try {
+      const ownPending = await payload.find({
+        collection: 'bookings' as any,
+        where: {
+          and: [
+            { client: { equals: user.id } },
+            { provider: { equals: providerId } },
+            { status: { equals: 'pending' } },
+            { startDateTime: { equals: startDateTime.toISOString() } },
+          ],
+        },
+        limit: 10,
+        depth: 0,
+        overrideAccess: true,
+      })
+      for (const b of ownPending.docs) {
+        await payload
+          .delete({ collection: 'bookings' as any, id: (b as { id: number | string }).id, overrideAccess: true })
+          .catch(() => {})
+      }
+    } catch {
+      /* non-fatal — the conflict guard still protects against real double-booking */
+    }
+
     // ── Overbooking guard ──────────────────────────────────────────────
     // Reject the slot if it overlaps an existing pending/confirmed booking on
     // the provider's calendar. A pending booking already blocks the slot, so
