@@ -564,9 +564,12 @@ const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
  *  API; we re-prefix on the telemetry modelId. Override with GOOGLE_MODEL to pin one
  *  model for every tier. ⚠️ An AI Studio (free) key may be used to improve Google's
  *  products — google is excluded from the `sensitive` pipe (see PROVIDER_LOGS_DATA). */
+// Use the stable `-latest` alias for Flash: on some paid projects the pinned
+// version id (gemini-2.5-flash) 404s on the OpenAI-compat endpoint while the alias
+// resolves fine. Pro's pinned id works everywhere. Override per-node with GOOGLE_MODEL.
 const GOOGLE_TIER_MAP: Record<TaskComplexity, string> = {
-  low: 'gemini-2.5-flash',
-  medium: 'gemini-2.5-flash',
+  low: 'gemini-flash-latest',
+  medium: 'gemini-flash-latest',
   high: 'gemini-2.5-pro',
   critical: 'gemini-2.5-pro',
 }
