@@ -28,12 +28,15 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { trackBeginCheckout, trackAddPaymentInfo } from '@/utilities/gtagEcommerce'
 import { FEATURES } from '@/config/features'
 
-const STRIPE_PUBLISHABLE_KEY = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
+// Build-time fallback (works on Vercel where NEXT_PUBLIC_* bake into the bundle).
+// On a self-hosted Docker build this is empty, so prefer the runtime `publishableKey`
+// prop threaded from the server page.
+const BUILD_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
-// Default Stripe instance (platform account — used when no Connect account)
-const defaultStripe = loadStripe(STRIPE_PUBLISHABLE_KEY)
-
-export const CheckoutPage: React.FC = () => {
+export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishableKey }) => {
+  const stripeKey = publishableKey || BUILD_PUBLISHABLE_KEY
+  // Default Stripe instance (platform account — used when no Connect account).
+  const defaultStripe = useMemo(() => (stripeKey ? loadStripe(stripeKey) : null), [stripeKey])
   const { user } = useAuth()
   const router = useRouter()
   const { cart, removeItem } = useCart()
@@ -84,11 +87,11 @@ export const CheckoutPage: React.FC = () => {
   const stripePromise = useMemo(() => {
     if (!paymentData) return defaultStripe
     const connectedAccountId = paymentData['stripeAccountId'] as string | undefined
-    if (connectedAccountId) {
-      return loadStripe(STRIPE_PUBLISHABLE_KEY, { stripeAccount: connectedAccountId })
+    if (connectedAccountId && stripeKey) {
+      return loadStripe(stripeKey, { stripeAccount: connectedAccountId })
     }
     return defaultStripe
-  }, [paymentData])
+  }, [paymentData, stripeKey, defaultStripe])
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
 

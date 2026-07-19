@@ -34,7 +34,11 @@ export default function Checkout() {
 
       <h1 className="sr-only">Checkout</h1>
 
-      <CheckoutPage />
+      {/* Pass the publishable key from the server at RUNTIME. NEXT_PUBLIC_* only
+          bake into the client bundle at build time — on a self-hosted Docker node
+          built without it, the client key is empty and Stripe Elements never
+          mounts. Threading it as a prop makes checkout work from runtime env. */}
+      <CheckoutPage publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''} />
     </div>
   )
 }
