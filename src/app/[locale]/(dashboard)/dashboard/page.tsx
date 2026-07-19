@@ -279,6 +279,10 @@ export default async function DashboardPage({
   // "database hasn't been seeded yet" banner — and its destructive Seed button —
   // from showing on a live federated node just because the current tenant is empty.
   const isSeeded = stats.spaces > 0 || stats.products > 0 || nodeHasData
+  // Federation viz (The Network / The Federation) is off by default — federation
+  // is flagged off and these read as dev/testbed cruft on a tenant's operational
+  // dashboard. Opt in per-node with NEXT_PUBLIC_SHOW_FEDERATION=true.
+  const showFederation = process.env.NEXT_PUBLIC_SHOW_FEDERATION === 'true'
 
   // Stardate display: YYYY.DDD format
   const now = new Date()
@@ -288,17 +292,17 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      {/* The Network — community pulse: you're part of a living federation */}
-      <FederationPulse />
+      {/* The Network — community pulse (federation viz; off by default) */}
+      {showFederation && <FederationPulse />}
 
       {/* Crew online — live presence roster (the dashboard-as-MMORPG hub) */}
       <PresenceRoster />
 
-      {/* The Federation — the permanent five-pointed star, glanceable */}
-      <FederationStar />
+      {/* The Federation — the five-pointed star (federation viz; off by default) */}
+      {showFederation && <FederationStar />}
 
-      {/* Welcome Banner — role-based onboarding, dismissible */}
-      <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />
+      {/* Welcome Banner — only on a fresh/unseeded node, never a populated tenant */}
+      {!isSeeded && <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />}
 
       {/* Ready to Earn — the earn-loop gate, so owners never fly blind on monetization */}
       {earnReadiness && <EarnReadinessCard readiness={earnReadiness} />}
