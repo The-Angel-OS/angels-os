@@ -20,7 +20,7 @@
 import type { Payload } from 'payload'
 import { getImageModel, isGatewayAvailable, resolveImageProvider, resolveImageProviderChain } from './ai-gateway'
 import type { TenantAiConfig, ResolvedImageProvider } from './ai-gateway'
-import { circuitOpen, reportSuccess, reportFailure, isProviderHealthFailure } from './providerCircuit'
+import { isDown, markDown, recordSuccess, isFatalProviderError } from './providerHealth'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -231,19 +231,23 @@ export async function generateImage(
   let lastError = 'Image generation failed.'
   let anyTried = false
   for (const resolved of chain) {
-    if (circuitOpen(resolved.provider)) continue
+    // Namespace the circuit per-purpose: image-gen quota is separate from the
+    // vision/analysis quota, so an image 429 on Google shouldn't skip Gemini
+    // vision (and vice-versa). Shares the ONE providerHealth breaker + CIC panel.
+    const key = `image:${resolved.provider}`
+    if (isDown(key)) continue
     anyTried = true
     console.log(`[ImageGeneration] Trying provider: ${resolved.provider}`)
     const result = await runImageProvider(resolved, enhancedPrompt, options, payload)
     if (result.success) {
-      reportSuccess(resolved.provider)
+      recordSuccess(key)
       return result
     }
     lastError = result.error || lastError
     // A content-policy / bad-prompt failure fails on EVERY provider — don't burn
-    // the chain or open circuits over it; return it as-is.
-    if (!isProviderHealthFailure(result.error || '')) return result
-    reportFailure(resolved.provider)
+    // the chain or mark the provider down over it; return it as-is.
+    if (!isFatalProviderError(result.error || '')) return result
+    markDown(key, result.error || 'image generation failed', 5 * 60 * 1000)
     console.warn(`[ImageGeneration] ${resolved.provider} unhealthy — failing up. (${result.error})`)
   }
 
