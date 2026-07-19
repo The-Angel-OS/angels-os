@@ -1716,7 +1716,12 @@ async function streamViaGateway(opts: {
   // dead-end). 90s TTL: long enough to clear a per-minute cap, short enough to
   // return to the preferred provider quickly.
   const failoverOnRateLimit = (err: unknown) => {
-    if (servedProviderKind && servedProviderKind !== 'gateway' && isFatalProviderError(err)) {
+    // Mark the throttled provider DOWN — INCLUDING the metered gateway. A gateway
+    // 429/quota means its internal chain is exhausted too, so the retry must
+    // advance to a DIRECT provider (OpenRouter, the "LEO must not go dark" net)
+    // rather than re-picking the gateway and dead-ending ("429 after 3 attempts").
+    // 90s TTL returns to the preferred provider quickly once the cap clears.
+    if (servedProviderKind && isFatalProviderError(err)) {
       markProviderDown(servedProviderKind, `leo-stream: ${err instanceof Error ? err.message.slice(0, 80) : '429'}`, 90_000)
     }
   }
