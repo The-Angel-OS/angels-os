@@ -96,11 +96,26 @@ export function angelOsStripeAdapter(
 ): PaymentAdapter {
   const { secretKey, publishableKey, webhookSecret } = props
 
+  // Resolve the platform secret key lazily: prefer the value passed at config
+  // time, but fall back to the live env (so a key set AFTER module-load, or one
+  // the build captured as empty, still works). Fail with a CLEAR, actionable
+  // message instead of Stripe's cryptic "Neither apiKey nor config.authenticator
+  // provided" — a missing STRIPE_SECRET_KEY is the #1 checkout outage.
+  function resolveSecretKey(): string {
+    const key = secretKey || process.env.STRIPE_SECRET_KEY || ''
+    if (!key) {
+      throw new Error(
+        'Payments are not configured on this node — STRIPE_SECRET_KEY is missing. Set it in the environment and redeploy.',
+      )
+    }
+    return key
+  }
+
   // Lazy Stripe instance (platform account)
   let _stripe: Stripe | null = null
   function getStripe(): Stripe {
     if (!_stripe) {
-      _stripe = new Stripe(secretKey, {
+      _stripe = new Stripe(resolveSecretKey(), {
         apiVersion: '2025-08-27.basil' as any,
         appInfo: {
           name: 'Angel OS Platform',
@@ -120,7 +135,7 @@ export function angelOsStripeAdapter(
       '@payloadcms/plugin-ecommerce/payments/stripe'
     )
     _baseAdapter = stripeAdapter({
-      secretKey,
+      secretKey: resolveSecretKey(),
       publishableKey,
       webhookSecret,
     }) as PaymentAdapter
