@@ -17867,7 +17867,15 @@ async function commissionEndeavor(
     try {
       const clash = await payload.find({
         collection: 'tenants',
-        where: { or: [{ slug: { equals: slug } }, { domain: { equals: domain } }] },
+        // Also clash on a bound alias — don't let a new tenant claim a domain
+        // already used as another tenant's alias.
+        where: {
+          or: [
+            { slug: { equals: slug } },
+            { domain: { equals: domain } },
+            { 'domains.domain': { equals: domain } },
+          ],
+        },
         limit: 1,
         depth: 0,
         overrideAccess: true,

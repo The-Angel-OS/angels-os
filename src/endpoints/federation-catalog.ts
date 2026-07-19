@@ -42,10 +42,10 @@ async function resolveHostTenant(
 ): Promise<Record<string, unknown> | undefined> {
   const host = (req.headers?.get('host') || 'localhost').split(':')[0].toLowerCase()
 
-  // 1. Exact domain match
+  // 1. Exact domain match (primary domain OR a bound alias in domains[])
   const byDomain = await req.payload.find({
     collection: 'tenants',
-    where: { domain: { equals: host } },
+    where: { or: [{ domain: { equals: host } }, { 'domains.domain': { equals: host } }] },
     limit: 1,
     depth: 0,
     overrideAccess: true,

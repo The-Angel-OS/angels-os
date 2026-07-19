@@ -28,7 +28,11 @@ export async function fetchTenantByExactDomain(host: string): Promise<Tenant | n
     const payload = await getPayload({ config: configPromise })
     const tenants = await payload.find({
       collection: 'tenants',
-      where: { domain: { equals: domain } },
+      // Match the primary `domain` OR any bound alias in `domains[]`. Still an EXACT
+      // match against a real bound domain (no slug guessing) — so zero leakage, but
+      // aliases entered on the tenant now actually route. This was the footgun:
+      // fetchTenantByDomain already did this fallback; the exact resolver didn't.
+      where: { or: [{ domain: { equals: domain } }, { 'domains.domain': { equals: domain } }] },
       limit: 1,
       depth: 2,
       overrideAccess: true,

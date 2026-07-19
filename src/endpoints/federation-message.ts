@@ -62,7 +62,7 @@ async function resolveTenant(
     const domain = host.split(':')[0] // strip port
     const result = await payload.find({
       collection: 'tenants',
-      where: { domain: { equals: domain } },
+      where: { or: [{ domain: { equals: domain } }, { 'domains.domain': { equals: domain } }] },
       limit: 1,
       depth: 0,
       overrideAccess: true,
