@@ -168,6 +168,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
         title: `${service.label} — ${endeavorName}`,
         bookingType: service.bookingType,
         status: 'pending',
+        // Deposit-holds expire in 15 min if unpaid, so an abandoned checkout frees
+        // the slot. No-deposit REQUESTS get no expiry (hold until owner acts).
+        holdExpiresAt: needsPayment ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : undefined,
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
         duration: slotDuration,

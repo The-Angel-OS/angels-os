@@ -83,12 +83,18 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     // server their stored instant's UTC clock IS the intended wall clock — and so are
     // the availability open/close times. Using minutes-of-day avoids any absolute-
     // instant timezone drift between the candidate and the stored booking.
+    // A pending DEPOSIT-hold only blocks until its holdExpiresAt — an abandoned
+    // checkout past that time frees the slot again. Confirmed/in-progress and
+    // no-expiry pending (no-deposit requests) always block.
+    const nowMs = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const busy = (bookings.docs as any[]).map((b) => {
-      const s = new Date(b.startDateTime)
-      const e = new Date(b.endDateTime)
-      return { startMin: s.getUTCHours() * 60 + s.getUTCMinutes(), endMin: e.getUTCHours() * 60 + e.getUTCMinutes() }
-    })
+    const busy = (bookings.docs as any[])
+      .filter((b) => !(b.status === 'pending' && b.holdExpiresAt && new Date(b.holdExpiresAt).getTime() < nowMs))
+      .map((b) => {
+        const s = new Date(b.startDateTime)
+        const e = new Date(b.endDateTime)
+        return { startMin: s.getUTCHours() * 60 + s.getUTCMinutes(), endMin: e.getUTCHours() * 60 + e.getUTCMinutes() }
+      })
 
     const nowD = new Date()
     const todayUTC = nowD.toISOString().slice(0, 10)

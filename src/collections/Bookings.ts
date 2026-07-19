@@ -98,6 +98,20 @@ export const Bookings: CollectionConfig = {
       },
     },
     {
+      // Soft hold: a deposit checkout reserves the slot only until this time. If
+      // the deposit isn't paid by then, availability ignores the pending booking
+      // so an abandoned checkout stops eating the slot forever. Null = no expiry
+      // (a no-deposit REQUEST holds until the owner confirms/declines).
+      name: 'holdExpiresAt',
+      type: 'date',
+      index: true,
+      admin: {
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime' },
+        description: 'Deposit-hold expiry. Empty = holds until the owner acts.',
+      },
+    },
+    {
       name: 'endDateTime',
       type: 'date',
       required: true,

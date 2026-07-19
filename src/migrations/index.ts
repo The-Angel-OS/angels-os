@@ -27,6 +27,7 @@ import * as migration_20260713_000000_add_community_visibility from './20260713_
 import * as migration_20260715_000000_add_tenant_flavors from './20260715_000000_add_tenant_flavors';
 import * as migration_20260715_010000_backfill_guardian_angel_flavor from './20260715_010000_backfill_guardian_angel_flavor';
 import * as migration_20260719_000000_add_google_reviews_block from './20260719_000000_add_google_reviews_block';
+import * as migration_20260719_010000_add_booking_hold_expiry from './20260719_010000_add_booking_hold_expiry';
 
 export const migrations = [
   {
@@ -173,5 +174,10 @@ export const migrations = [
     up: migration_20260719_000000_add_google_reviews_block.up,
     down: migration_20260719_000000_add_google_reviews_block.down,
     name: '20260719_000000_add_google_reviews_block',
+  },
+  {
+    up: migration_20260719_010000_add_booking_hold_expiry.up,
+    down: migration_20260719_010000_add_booking_hold_expiry.down,
+    name: '20260719_010000_add_booking_hold_expiry',
   },
 ];

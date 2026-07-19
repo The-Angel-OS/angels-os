@@ -400,7 +400,13 @@ export class BookingEngine {
       }
     })
 
+    const nowMs = Date.now()
     existingBookings.docs.forEach(booking => {
+      // An abandoned deposit-hold (pending, past its holdExpiresAt) no longer
+      // reserves the slot — don't let it block a fresh booking. Mirrors the same
+      // rule in booking-public-slots so the calendar and commit-time check agree.
+      const hold = (booking as { holdExpiresAt?: string }).holdExpiresAt
+      if (booking.status === 'pending' && hold && new Date(hold).getTime() < nowMs) return
       conflicts.push({
         conflictId: String(booking.id),
         conflictType: 'booking',
