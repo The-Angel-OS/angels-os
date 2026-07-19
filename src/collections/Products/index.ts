@@ -3,6 +3,7 @@ import { Comments } from '@/blocks/Comments/config'
 import { Content } from '@/blocks/Content/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
+import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
@@ -182,7 +183,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock, Comments, Calendar],
+              blocks: [CallToAction, Content, MediaBlock, Comments, Calendar, GoogleReviews],
             },
           ],
           label: 'Content',

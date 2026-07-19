@@ -13,6 +13,7 @@ import { MembershipBlock } from '@/blocks/Membership/Component'
 import { FeaturedEndeavorsBlock } from '@/blocks/FeaturedEndeavors/Component'
 import { GalleryBlock } from '@/blocks/Gallery/Component'
 import { MerlinControlBlock } from '@/blocks/MerlinControl/Component'
+import { GoogleReviewsBlock } from '@/blocks/GoogleReviews/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -36,6 +37,7 @@ const blockComponents = {
   featuredEndeavors: FeaturedEndeavorsBlock,
   gallery: GalleryBlock,
   merlinControl: MerlinControlBlock,
+  googleReviews: GoogleReviewsBlock,
 }
 
 export const RenderBlocks: React.FC<{

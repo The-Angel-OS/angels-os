@@ -12,6 +12,7 @@ import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
 import { Donation } from '@/blocks/Donation/config'
+import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
@@ -174,6 +175,7 @@ export const Pages: CollectionConfig = {
                 FeaturedEndeavors,
                 MerlinControl,
                 Gallery,
+                GoogleReviews,
               ],
               required: true,
             },

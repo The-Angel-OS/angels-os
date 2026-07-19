@@ -13,6 +13,7 @@ import { Comments } from '@/blocks/Comments/config'
 import { FormBlock } from '@/blocks/Form/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
+import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { hero } from '@/fields/hero'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
@@ -107,6 +108,7 @@ export const Posts: CollectionConfig = {
                 FormBlock,
                 Comments,
                 Calendar,
+                GoogleReviews,
               ],
               required: true,
             },
