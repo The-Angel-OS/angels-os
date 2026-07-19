@@ -274,12 +274,97 @@ function runImageProvider(
     case 'cloudflare':
       return generateViaCloudflare(prompt, resolved.apiKey, resolved.accountId!, options, payload)
     case 'google':
-      // Gemini image gen via OpenRouter-style chat completions.
-      return generateViaOpenRouter(prompt, resolved.apiKey, options, payload, 'google/gemini-3-pro-image-preview')
+      // NATIVE Gemini image gen (generativelanguage generateContent). A Google AI
+      // key is NOT an OpenRouter key, so the old OpenRouter route could never work
+      // with a `google` provider — this calls Google directly.
+      return generateViaGemini(prompt, resolved.apiKey, options, payload)
     case 'openrouter':
     default:
       return generateViaOpenRouter(prompt, resolved.apiKey, options, payload)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Native Google Gemini image generation (generativelanguage generateContent)
+// ---------------------------------------------------------------------------
+
+/** Gemini image models that emit inline image parts, in fallback order. */
+const GEMINI_IMAGE_MODELS = ['gemini-2.5-flash-image', 'gemini-3-pro-image', 'gemini-3.1-flash-image']
+
+/**
+ * Generate an image via Google's Gemini API directly (not OpenRouter). Uses
+ * generateContent with responseModalities:['IMAGE','TEXT'] and extracts the
+ * inline base64 image part. Tries the configured model then falls back through
+ * GEMINI_IMAGE_MODELS on a 404 (model not available to this key).
+ */
+async function generateViaGemini(
+  prompt: string,
+  apiKey: string,
+  options: ImageGenerationOptions,
+  payload?: Payload,
+): Promise<ImageGenerationResult> {
+  const models = options.model
+    ? [options.model, ...GEMINI_IMAGE_MODELS.filter((m) => m !== options.model)]
+    : [process.env.GEMINI_IMAGE_MODEL || GEMINI_IMAGE_MODELS[0], ...GEMINI_IMAGE_MODELS]
+  const tried = new Set<string>()
+  let lastError = 'Gemini image generation failed.'
+
+  for (const model of models) {
+    if (tried.has(model)) continue
+    tried.add(model)
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+          }),
+          signal: AbortSignal.timeout(120_000),
+        },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        lastError = `Gemini image failed (HTTP ${res.status}).`
+        // 404 = this model isn't available to the key → try the next model.
+        // 429/5xx = provider health → bubble up so the breaker/chain fails up.
+        if (res.status === 404) {
+          console.warn(`[ImageGeneration] Gemini ${model} unavailable (404) — trying next model.`)
+          continue
+        }
+        console.error('[ImageGeneration] Gemini error:', res.status, body.slice(0, 200))
+        return { success: false, error: `${lastError} ${body.slice(0, 120)}` }
+      }
+
+      const data = await res.json()
+      const parts = data?.candidates?.[0]?.content?.parts ?? []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inline = parts.find((p: any) => p?.inlineData || p?.inline_data)
+      const blob = inline?.inlineData || inline?.inline_data
+      if (!blob?.data) {
+        lastError = 'Gemini returned text but no image part.'
+        continue
+      }
+      const mime = blob.mimeType || blob.mime_type || 'image/png'
+      const imageDataUrl = `data:${mime};base64,${blob.data}`
+
+      const result: ImageGenerationResult = { success: true, imageDataUrl, modelUsed: `google/${model}` }
+      if (options.autoUpload && payload) {
+        await tryUploadToMedia(result, imageDataUrl, options, payload)
+      }
+      return result
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err)
+      console.error('[ImageGeneration] Gemini exception:', lastError)
+      // Network/timeout — provider health; stop and let the chain fail up.
+      return { success: false, error: `Gemini image generation failed: ${lastError}` }
+    }
+  }
+
+  return { success: false, error: lastError }
 }
 
 /**
