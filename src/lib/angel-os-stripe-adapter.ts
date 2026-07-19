@@ -226,7 +226,10 @@ export function angelOsStripeAdapter(
               ? item.variant.id
               : item.variant
             : undefined
-          const { product: _p, variant: _v, ...customProps } = item
+          // Drop the cart line-item's own `id` — reusing it as the transactions_items
+          // id collides (transactions_items_pkey) when the SAME cart is checked out
+          // more than once. Let Payload generate a fresh id per transaction item.
+          const { product: _p, variant: _v, id: _id, ...customProps } = item
           return {
             ...customProps,
             product: productID,
