@@ -555,7 +555,17 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                     stripeAccountId={payment.stripeAccountId}
                     amountLabel={money(payment.depositCents)}
                     publishableKey={publishableKey}
-                    onSuccess={() => setBookingState('success')}
+                    onSuccess={() => {
+                      setBookingState('success')
+                      // Server-verify the deposit + lock the booking (clears the
+                      // 15-min hold so a paid slot can't expire). Fire-and-forget:
+                      // the UI already shows success; confirmation is idempotent.
+                      void fetch('/api/booking-ops/confirm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookingId: payment.bookingId }),
+                      }).catch(() => {})
+                    }}
                   />
                 </div>
               ) : (

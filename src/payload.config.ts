@@ -179,6 +179,7 @@ import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
+import { bookingConfirmHandler } from '@/endpoints/booking-confirm'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
 import { makerOpportunitiesHandler } from '@/endpoints/maker-opportunities'
@@ -1278,6 +1279,11 @@ export default buildConfig({
       path: '/booking-ops/checkout',
       method: 'post',
       handler: bookingCheckoutHandler,
+    },
+    {
+      path: '/booking-ops/confirm',
+      method: 'post',
+      handler: bookingConfirmHandler,
     },
     // ─── Angel Token & Maker Queue Endpoints ──────────────────────
     {
