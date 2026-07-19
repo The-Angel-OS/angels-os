@@ -95,6 +95,9 @@ export default async function BookPage({
       services={services}
       tenantSlug={tenant?.slug ?? undefined}
       tenantId={tenant?.id ?? undefined}
+      // Runtime key from the server — NEXT_PUBLIC_* is empty in a self-host Docker
+      // build, which showed "Payments aren't configured" on the deposit step.
+      publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
     />
   )
 }

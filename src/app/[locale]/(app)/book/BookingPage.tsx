@@ -40,6 +40,7 @@ interface BookingPageProps {
   services: ServiceOption[]
   tenantSlug?: string
   tenantId?: number | string
+  publishableKey?: string
 }
 
 interface PaymentData {
@@ -53,7 +54,7 @@ interface PaymentData {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
-export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId }: BookingPageProps) {
+export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId, publishableKey }: BookingPageProps) {
   const [serviceId, setServiceId] = useState<string | null>(
     services.length === 1 ? services[0]!.id : null,
   )
@@ -553,6 +554,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                     clientSecret={payment.clientSecret}
                     stripeAccountId={payment.stripeAccountId}
                     amountLabel={money(payment.depositCents)}
+                    publishableKey={publishableKey}
                     onSuccess={() => setBookingState('success')}
                   />
                 </div>

@@ -4,16 +4,19 @@ import React, { useMemo, useState, type FormEvent } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+// Build-time fallback (Vercel bakes NEXT_PUBLIC_*); on a self-host Docker build
+// this is empty, so prefer the runtime `publishableKey` prop from the server.
+const BUILD_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
 // Stripe.js instances are cached per connected account — the booking deposit is a
 // Direct Charge on the seller's account, so Elements must target that account.
 const stripeCache = new Map<string, Promise<Stripe | null>>()
-function getStripe(connectedAccountId: string): Promise<Stripe | null> {
-  let p = stripeCache.get(connectedAccountId)
+function getStripe(connectedAccountId: string, publishableKey: string): Promise<Stripe | null> {
+  const cacheKey = `${publishableKey}:${connectedAccountId}`
+  let p = stripeCache.get(cacheKey)
   if (!p) {
-    p = loadStripe(PUBLISHABLE_KEY, { stripeAccount: connectedAccountId })
-    stripeCache.set(connectedAccountId, p)
+    p = loadStripe(publishableKey, { stripeAccount: connectedAccountId })
+    stripeCache.set(cacheKey, p)
   }
   return p
 }
@@ -69,16 +72,22 @@ export function BookingDeposit({
   clientSecret,
   stripeAccountId,
   amountLabel,
+  publishableKey,
   onSuccess,
 }: {
   clientSecret: string
   stripeAccountId: string
   amountLabel: string
+  publishableKey?: string
   onSuccess: () => void
 }) {
-  const stripePromise = useMemo(() => getStripe(stripeAccountId), [stripeAccountId])
+  const stripeKey = publishableKey || BUILD_PUBLISHABLE_KEY
+  const stripePromise = useMemo(
+    () => (stripeKey ? getStripe(stripeAccountId, stripeKey) : Promise.resolve(null)),
+    [stripeAccountId, stripeKey],
+  )
 
-  if (!PUBLISHABLE_KEY) {
+  if (!stripeKey) {
     return (
       <p className="text-sm text-muted-foreground">
         Payments aren’t configured in this environment.
