@@ -18,8 +18,9 @@
  */
 
 import type { Payload } from 'payload'
-import { getImageModel, isGatewayAvailable, resolveImageProvider } from './ai-gateway'
+import { getImageModel, isGatewayAvailable, resolveImageProvider, resolveImageProviderChain } from './ai-gateway'
 import type { TenantAiConfig, ResolvedImageProvider } from './ai-gateway'
+import { circuitOpen, reportSuccess, reportFailure, isProviderHealthFailure } from './providerCircuit'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -203,28 +204,13 @@ export async function generateImage(
       : {}),
   }
 
-  // Resolve the best available provider
-  const resolved = resolveImageProvider(effectiveConfig)
-
-  if (!resolved) {
-    return {
-      success: false,
-      error: 'Image generation unavailable — no AI provider keys configured.',
-    }
-  }
-
-  console.log(`[ImageGeneration] Using provider: ${resolved.provider}`)
-
-  // Reference-image (image-to-image) requests need a model that accepts image input.
-  // The Gemini image family via OpenRouter does; OpenAI/Cloudflare image endpoints
-  // here don't. So when references are present, prefer an OpenRouter/Google key and
-  // route through the Gemini path — falling through to normal routing (references
-  // dropped, still generates from text) only if no such key exists.
+  // Reference-image (image-to-image) requests need a model that accepts image
+  // input (Gemini via OpenRouter). Route those directly to that path.
   if (options.inputImages?.length) {
-    const orKey =
-      effectiveConfig.openrouterApiKey ||
-      process.env.OPENROUTER_API_KEY ||
-      (resolved.provider === 'openrouter' || resolved.provider === 'google' ? resolved.apiKey : undefined)
+    const orProvider = resolveImageProviderChain(effectiveConfig).find(
+      (c) => c.provider === 'openrouter' || c.provider === 'google',
+    )
+    const orKey = effectiveConfig.openrouterApiKey || process.env.OPENROUTER_API_KEY || orProvider?.apiKey
     if (orKey) {
       const imgModel = options.model || 'google/gemini-3-pro-image-preview'
       return generateViaOpenRouter(enhancedPrompt, orKey, options, payload, imgModel)
@@ -232,56 +218,64 @@ export async function generateImage(
     console.warn('[ImageGeneration] Reference images provided but no OpenRouter/Google key — generating from text only.')
   }
 
-  switch (resolved.provider) {
-    case 'gateway':
-      return generateViaGatewayWithFallback(enhancedPrompt, options, payload, effectiveConfig)
+  // Fail-soft / fail-up: walk the provider chain, skipping any whose circuit is
+  // open (cooling down after a recent failure) so we never hammer a rate-limited
+  // or down provider. The real calls ARE the health signal — a failure opens that
+  // provider's circuit for an exponentially-backing-off cooldown and we fail up to
+  // the next; a success closes it. No separate health-check traffic.
+  const chain = resolveImageProviderChain(effectiveConfig)
+  if (chain.length === 0) {
+    return { success: false, error: 'Image generation unavailable — no AI provider keys configured.' }
+  }
 
-    case 'openai':
-      return generateViaOpenAI(enhancedPrompt, resolved.apiKey, options, payload)
+  let lastError = 'Image generation failed.'
+  let anyTried = false
+  for (const resolved of chain) {
+    if (circuitOpen(resolved.provider)) continue
+    anyTried = true
+    console.log(`[ImageGeneration] Trying provider: ${resolved.provider}`)
+    const result = await runImageProvider(resolved, enhancedPrompt, options, payload)
+    if (result.success) {
+      reportSuccess(resolved.provider)
+      return result
+    }
+    lastError = result.error || lastError
+    // A content-policy / bad-prompt failure fails on EVERY provider — don't burn
+    // the chain or open circuits over it; return it as-is.
+    if (!isProviderHealthFailure(result.error || '')) return result
+    reportFailure(resolved.provider)
+    console.warn(`[ImageGeneration] ${resolved.provider} unhealthy — failing up. (${result.error})`)
+  }
 
-    case 'cloudflare':
-      return generateViaCloudflare(enhancedPrompt, resolved.apiKey, resolved.accountId!, options, payload)
-
-    case 'google':
-      // Google Gemini image gen goes through OpenRouter-style chat completions
-      return generateViaOpenRouter(enhancedPrompt, resolved.apiKey, options, payload, 'google/gemini-3-pro-image-preview')
-
-    case 'openrouter':
-    default:
-      return generateViaOpenRouter(enhancedPrompt, resolved.apiKey, options, payload)
+  return {
+    success: false,
+    error: anyTried
+      ? lastError
+      : 'All image providers are cooling down after recent failures — please try again shortly.',
   }
 }
 
-/**
- * Try AI Gateway first, fall back to next available provider on failure.
- */
-async function generateViaGatewayWithFallback(
+/** Dispatch a single resolved provider to its generation function. */
+function runImageProvider(
+  resolved: ResolvedImageProvider,
   prompt: string,
   options: ImageGenerationOptions,
-  payload: Payload | undefined,
-  config: TenantAiConfig,
+  payload?: Payload,
 ): Promise<ImageGenerationResult> {
-  try {
-    const result = await generateViaGateway(prompt, options, payload)
-    if (result.success) return result
-    console.warn('[ImageGeneration] Gateway failed, trying fallback:', result.error)
-  } catch (err) {
-    console.warn('[ImageGeneration] Gateway error, trying fallback:', err)
+  switch (resolved.provider) {
+    case 'gateway':
+      return generateViaGateway(prompt, options, payload)
+    case 'openai':
+      return generateViaOpenAI(prompt, resolved.apiKey, options, payload)
+    case 'cloudflare':
+      return generateViaCloudflare(prompt, resolved.apiKey, resolved.accountId!, options, payload)
+    case 'google':
+      // Gemini image gen via OpenRouter-style chat completions.
+      return generateViaOpenRouter(prompt, resolved.apiKey, options, payload, 'google/gemini-3-pro-image-preview')
+    case 'openrouter':
+    default:
+      return generateViaOpenRouter(prompt, resolved.apiKey, options, payload)
   }
-
-  // Try OpenRouter next
-  const orKey = config.openrouterApiKey || process.env.OPENROUTER_API_KEY
-  if (orKey) return generateViaOpenRouter(prompt, orKey, options, payload)
-
-  // Try OpenAI
-  if (config.openaiApiKey) return generateViaOpenAI(prompt, config.openaiApiKey, options, payload)
-
-  // Try Cloudflare
-  if (config.cloudflareAiToken && config.cloudflareAccountId) {
-    return generateViaCloudflare(prompt, config.cloudflareAiToken, config.cloudflareAccountId, options, payload)
-  }
-
-  return { success: false, error: 'All image generation providers failed.' }
 }
 
 /**

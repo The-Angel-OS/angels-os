@@ -1058,67 +1058,74 @@ export interface ResolvedImageProvider {
  *   2. Auto: Gateway → OpenRouter (tenant key) → OpenAI → Google → Cloudflare → OpenRouter (platform)
  *   3. Falls back to null if nothing is available
  */
+/** Check if a specific image provider has a valid key (env or tenant config). */
+function tryImageProvider(
+  p: ImageProvider,
+  tenantConfig?: TenantAiConfig,
+): ResolvedImageProvider | null {
+  switch (p) {
+    case 'gateway': {
+      const key = resolveGatewayKey()
+      return key ? { provider: 'gateway', apiKey: key } : null
+    }
+    case 'openai': {
+      const key = tenantConfig?.openaiApiKey || process.env.OPENAI_API_KEY
+      return key ? { provider: 'openai', apiKey: key } : null
+    }
+    case 'google': {
+      const key = tenantConfig?.googleAiApiKey || process.env.GOOGLE_AI_API_KEY
+      return key ? { provider: 'google', apiKey: key } : null
+    }
+    case 'openrouter': {
+      const key = tenantConfig?.openrouterApiKey || process.env.OPENROUTER_API_KEY
+      return key ? { provider: 'openrouter', apiKey: key } : null
+    }
+    case 'cloudflare': {
+      const token = tenantConfig?.cloudflareAiToken || process.env.CLOUDFLARE_AI_TOKEN
+      const accountId = tenantConfig?.cloudflareAccountId || process.env.CLOUDFLARE_ACCOUNT_ID
+      return token && accountId ? { provider: 'cloudflare', apiKey: token, accountId } : null
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * The full ordered chain of AVAILABLE image providers for fail-soft/fail-up
+ * fallback — tenant preference first, then the node-level IMAGE_PROVIDER default,
+ * then the auto priority order, de-duplicated, keeping only those with keys. The
+ * caller walks this list skipping circuit-open providers (see providerCircuit) so
+ * a rate-limited/outage provider is bypassed without extra health-check traffic.
+ */
+export function resolveImageProviderChain(
+  tenantConfig?: TenantAiConfig,
+): ResolvedImageProvider[] {
+  const pref = tenantConfig?.preferredImageProvider ?? 'auto'
+  const envPref = process.env.IMAGE_PROVIDER as ImageProvider | undefined
+  const autoOrder: ImageProvider[] = ['gateway', 'openrouter', 'openai', 'google', 'cloudflare']
+
+  const order: ImageProvider[] = [
+    ...(pref !== 'auto' ? [pref] : []),
+    ...(pref === 'auto' && envPref ? [envPref] : []),
+    ...autoOrder,
+  ]
+
+  const seen = new Set<ImageProvider>()
+  const chain: ResolvedImageProvider[] = []
+  for (const p of order) {
+    if (seen.has(p)) continue
+    seen.add(p)
+    const resolved = tryImageProvider(p, tenantConfig)
+    if (resolved) chain.push(resolved)
+  }
+  return chain
+}
+
+/** The single best available image provider (first of the chain), or null. */
 export function resolveImageProvider(
   tenantConfig?: TenantAiConfig,
 ): ResolvedImageProvider | null {
-  const pref = tenantConfig?.preferredImageProvider ?? 'auto'
-
-  // Helper: check if a specific provider has a valid key
-  const tryProvider = (p: ImageProvider): ResolvedImageProvider | null => {
-    switch (p) {
-      case 'gateway': {
-        const key = resolveGatewayKey()
-        return key ? { provider: 'gateway', apiKey: key } : null
-      }
-      case 'openai': {
-        const key = tenantConfig?.openaiApiKey || process.env.OPENAI_API_KEY
-        return key ? { provider: 'openai', apiKey: key } : null
-      }
-      case 'google': {
-        const key = tenantConfig?.googleAiApiKey || process.env.GOOGLE_AI_API_KEY
-        return key ? { provider: 'google', apiKey: key } : null
-      }
-      case 'openrouter': {
-        const key = tenantConfig?.openrouterApiKey || process.env.OPENROUTER_API_KEY
-        return key ? { provider: 'openrouter', apiKey: key } : null
-      }
-      case 'cloudflare': {
-        const token = tenantConfig?.cloudflareAiToken || process.env.CLOUDFLARE_AI_TOKEN
-        const accountId = tenantConfig?.cloudflareAccountId || process.env.CLOUDFLARE_ACCOUNT_ID
-        return token && accountId
-          ? { provider: 'cloudflare', apiKey: token, accountId }
-          : null
-      }
-      default:
-        return null
-    }
-  }
-
-  // If tenant specified a preferred provider, try it first
-  if (pref !== 'auto') {
-    const result = tryProvider(pref)
-    if (result) return result
-    // Fall through to auto if preferred provider's key is missing
-  }
-
-  // Node-level default via env — lets a self-host node DECLARE its image provider
-  // (e.g. IMAGE_PROVIDER=cloudflare for free Flux) so it isn't silently shadowed by
-  // another provider's key winning the auto order (e.g. a Gemini/GOOGLE_AI key that's
-  // fine for text but has no image quota). A tenant's explicit preference still wins.
-  const envPref = process.env.IMAGE_PROVIDER as ImageProvider | undefined
-  if (pref === 'auto' && envPref) {
-    const result = tryProvider(envPref)
-    if (result) return result
-  }
-
-  // Auto: try providers in priority order
-  const autoOrder: ImageProvider[] = ['gateway', 'openrouter', 'openai', 'google', 'cloudflare']
-  for (const p of autoOrder) {
-    const result = tryProvider(p)
-    if (result) return result
-  }
-
-  return null
+  return resolveImageProviderChain(tenantConfig)[0] ?? null
 }
 
 // ---------------------------------------------------------------------------
