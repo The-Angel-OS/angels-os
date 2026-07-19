@@ -1101,6 +1101,16 @@ export function resolveImageProvider(
     // Fall through to auto if preferred provider's key is missing
   }
 
+  // Node-level default via env — lets a self-host node DECLARE its image provider
+  // (e.g. IMAGE_PROVIDER=cloudflare for free Flux) so it isn't silently shadowed by
+  // another provider's key winning the auto order (e.g. a Gemini/GOOGLE_AI key that's
+  // fine for text but has no image quota). A tenant's explicit preference still wins.
+  const envPref = process.env.IMAGE_PROVIDER as ImageProvider | undefined
+  if (pref === 'auto' && envPref) {
+    const result = tryProvider(envPref)
+    if (result) return result
+  }
+
   // Auto: try providers in priority order
   const autoOrder: ImageProvider[] = ['gateway', 'openrouter', 'openai', 'google', 'cloudflare']
   for (const p of autoOrder) {
