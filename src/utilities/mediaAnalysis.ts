@@ -584,10 +584,17 @@ export async function buildMediaMeta(
   options: MediaAnalysisOptions,
 ): Promise<{ success: boolean; metaIds: (number | string)[]; error?: string }> {
   const { mediaDoc, tenantId, sourceMessageId } = options
+  // Coerce to Number — media ids are integer serials, and the media-meta `media`
+  // relationship's multi-tenant filterOptions compares in JS, so a STRING id fails
+  // "invalid: Media" and the whole analysis aborts (the "image posted but no
+  // analysis" bug). Non-numeric → undefined (fails gracefully).
+  const rawId = mediaDoc.id
   const mediaId =
-    typeof mediaDoc.id === 'number' || typeof mediaDoc.id === 'string'
-      ? mediaDoc.id
-      : undefined
+    typeof rawId === 'number'
+      ? rawId
+      : typeof rawId === 'string' && rawId.trim() !== '' && !Number.isNaN(Number(rawId))
+        ? Number(rawId)
+        : undefined
 
   if (!mediaId) {
     return { success: false, metaIds: [], error: 'Media document has no ID' }

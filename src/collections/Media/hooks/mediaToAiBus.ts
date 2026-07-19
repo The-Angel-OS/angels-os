@@ -119,9 +119,11 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
           channel: MEDIA_CHANNEL_SLUG,
           messageType: 'system',
           author,
-          tenant: tenantId,
+          tenant: Number(tenantId),
           visibility: 'tenant',
-          attachments: [{ media: mediaId }],
+          // Number() — the attachments `media` relationship's filterOptions compares
+          // in JS, so a string id fails "invalid: Attachments 1 > Media".
+          attachments: [{ media: Number(mediaId) }],
           metadata: {
             kind: 'media_created',
             mediaId,
