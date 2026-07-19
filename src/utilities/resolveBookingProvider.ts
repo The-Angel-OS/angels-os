@@ -23,6 +23,31 @@ export async function resolveBookingProvider(
     return typeof uId === 'number' ? uId : parseInt(String(uId), 10)
   }
 
+  // 0. Prefer the provider who actually has an active availability calendar. With
+  // multiple tenant_admins, "first admin" is arbitrary and often ISN'T the person
+  // who configured hours — so bookings resolved to an empty calendar and showed
+  // "no open times" despite availability existing. The provider IS whoever set up
+  // their calendar. (Single-calendar-per-tenant model; if several configured one,
+  // any is acceptable — sorted by provider for determinism.)
+  try {
+    const withAvail = await payload.find({
+      collection: 'availability' as any,
+      where: { and: [{ tenant: { equals: tenantIdNum } }, { isActive: { equals: true } }] },
+      depth: 0,
+      limit: 1,
+      sort: 'provider',
+      overrideAccess: true,
+    })
+    const doc = withAvail.docs?.[0] as { provider?: unknown } | undefined
+    const provId = doc ? (typeof doc.provider === 'object' ? (doc.provider as any)?.id : doc.provider) : null
+    if (provId != null) {
+      const n = typeof provId === 'number' ? provId : parseInt(String(provId), 10)
+      if (!Number.isNaN(n)) return n
+    }
+  } catch {
+    // fall through to membership-based resolution
+  }
+
   // 1. First active tenant_admin (the natural service provider / owner)
   try {
     const admins = await payload.find({
