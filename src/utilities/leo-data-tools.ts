@@ -87,6 +87,7 @@ import { dispatchToGotify } from './gotifyEscalation'
 import { runProbe } from './connectorProbes'
 import { GENESIS_BREATH } from './genesis-breath'
 import { buildConstitutionalPrompt, validateConstitutionalResponse } from './constitutional-prompt'
+import { FEATURES } from '@/config/features'
 
 // ---------------------------------------------------------------------------
 // Navigation Directive Helper — LEO Navigation Bridge
@@ -14509,7 +14510,11 @@ async function handleCheckEnterpriseHealth(
     }
 
     // ─── Federation ──────────────────────────────────────────────
-    if (shouldCheck('federation')) {
+    // Only surface federation in the status report when the feature is ENABLED.
+    // On a consolidation node (FEATURES.federation off) the code stays wired but
+    // dormant, so the health check shouldn't nag to "sign the constitution /
+    // complete registration". Flip NEXT_PUBLIC_FEATURE_FEDERATION on to restore it.
+    if (shouldCheck('federation') && FEATURES.federation) {
       try {
         const tenant = await payload.findByID({
           collection: 'tenants',
@@ -14635,11 +14640,11 @@ async function handleGetEnterpriseStage(
     if (lifecycle.stage === 'BIRTH') {
       if (!completedSteps.includes(5)) suggestions.push('🎯 Create your first product')
       if (!completedSteps.includes(6)) suggestions.push('🎯 Connect Stripe for payments')
-      if (!completedSteps.includes(8)) suggestions.push('🎯 Join the federation network')
+      if (FEATURES.federation && !completedSteps.includes(8)) suggestions.push('🎯 Join the federation network')
       if (completedSteps.length >= 7) suggestions.push('🎯 Make your first sale!')
     } else if (lifecycle.stage === 'GROWTH') {
       suggestions.push('🎯 Reach 10 published products')
-      suggestions.push('🎯 Earn 2+ federation vouches for sentinel status')
+      if (FEATURES.federation) suggestions.push('🎯 Earn 2+ federation vouches for sentinel status')
       suggestions.push('🎯 Host your first event')
     }
 
