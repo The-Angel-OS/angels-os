@@ -7,11 +7,23 @@ import { HeaderThemeProvider } from './HeaderTheme'
 import { ThemeProvider } from './Theme'
 import { SonnerProvider } from '@/providers/Sonner'
 import { ClientReliability } from '@/components/ClientReliability'
+import { RuntimeConfigProvider } from './RuntimeConfig'
 
 export const Providers: React.FC<{
   children: React.ReactNode
 }> = ({ children }) => {
+  // Read NEXT_PUBLIC_* on the SERVER (runtime) and hand them to client components
+  // via context — so a self-host Docker build without them baked still gets the
+  // real values. See RuntimeConfig.tsx. This is a server component, so these reads
+  // are runtime-safe (unlike a 'use client' module-scope process.env read).
+  const runtimeConfig = {
+    stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+    gaMeasurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '',
+    livekitUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
+    serverUrl: process.env.NEXT_PUBLIC_SERVER_URL || '',
+  }
   return (
+    <RuntimeConfigProvider value={runtimeConfig}>
     <ThemeProvider>
       <AuthProvider>
         <HeaderThemeProvider>
@@ -60,5 +72,6 @@ export const Providers: React.FC<{
         </HeaderThemeProvider>
       </AuthProvider>
     </ThemeProvider>
+    </RuntimeConfigProvider>
   )
 }

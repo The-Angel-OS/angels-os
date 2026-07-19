@@ -7,8 +7,7 @@ import { RichText } from '@/components/RichText'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+import { useRuntimeConfig } from '@/providers/RuntimeConfig'
 
 function PaymentForm({ amountCents, donorEmail }: { amountCents: number; donorEmail: string }) {
   const stripe = useStripe()
@@ -75,6 +74,12 @@ export const DonationBlock: React.FC<{
   const [donorEmail, setDonorEmail] = useState('')
   const [donorMessage, setDonorMessage] = useState('')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  // Runtime publishable key (NEXT_PUBLIC_* is empty in a self-host client bundle).
+  const { stripePublishableKey } = useRuntimeConfig()
+  const stripePromise = useMemo(
+    () => (stripePublishableKey ? loadStripe(stripePublishableKey) : null),
+    [stripePublishableKey],
+  )
   const [error, setError] = useState<string | null>(null)
   const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
   const [breakdown, setBreakdown] = useState<string | null>(null)
