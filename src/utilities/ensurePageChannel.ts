@@ -54,9 +54,12 @@ export async function ensurePageChannel(
       name: pageChannelName(channel),
       slug: channel, // MUST equal message.channel so the viewer loads these messages
       description: 'Comments left on this page (AI bus).',
-      space: aiBusSpaceId as unknown as number,
+      // Relationship ids MUST be Number — the multi-tenant filterOptions compares
+      // in JS, so a string id fails "invalid: Space" (the `as number` cast above
+      // was compile-time only; resolveAiBusSpaceId can return a string).
+      space: Number(aiBusSpaceId),
       type: 'social',
-      tenant: tenantId as number,
+      tenant: Number(tenantId),
     } as never,
     overrideAccess: true,
   })
