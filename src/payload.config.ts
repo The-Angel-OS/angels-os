@@ -130,6 +130,7 @@ import { ensurePageChannelsHandler } from '@/endpoints/ensure-page-channels'
 import { verifyOnboardingHandler } from '@/endpoints/verify-onboarding'
 import { ensureFoundersHandler } from '@/endpoints/ensure-founders'
 import { dbRepairLocksHandler } from '@/endpoints/db-repair-locks'
+import { dbRepairSequencesHandler } from '@/endpoints/db-repair-sequences'
 import { ensureTenantHeroColumnsHandler } from '@/endpoints/ensure-tenant-hero-columns'
 import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
@@ -1010,6 +1011,14 @@ export default buildConfig({
       path: '/provision-ops/db-repair-locks',
       method: 'get',
       handler: dbRepairLocksHandler,
+    },
+    // Idempotent DB self-heal: resync id serial sequences to MAX(id). Restores/
+    // teleports copy rows but not sequence position → next INSERT collides on id
+    // ("Value must be unique"). This was the checkout/transactions outage.
+    {
+      path: '/provision-ops/db-repair-sequences',
+      method: 'get',
+      handler: dbRepairSequencesHandler,
     },
     // Idempotent: add the per-section listing-hero columns to `tenants` ahead of
     // the Payload fields that reference them (Posts/Events/Shop hero images).
