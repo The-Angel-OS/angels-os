@@ -35,17 +35,20 @@ export async function resolveBookingProvider(
       where: { and: [{ tenant: { equals: tenantIdNum } }, { isActive: { equals: true } }] },
       depth: 0,
       limit: 1,
-      sort: 'provider',
       overrideAccess: true,
     })
     const doc = withAvail.docs?.[0] as { provider?: unknown } | undefined
     const provId = doc ? (typeof doc.provider === 'object' ? (doc.provider as any)?.id : doc.provider) : null
     if (provId != null) {
       const n = typeof provId === 'number' ? provId : parseInt(String(provId), 10)
-      if (!Number.isNaN(n)) return n
+      if (!Number.isNaN(n)) {
+        console.log(`[resolveBookingProvider] tenant ${tenantIdNum} → provider ${n} (via availability, ${withAvail.totalDocs} rows)`)
+        return n
+      }
     }
-  } catch {
-    // fall through to membership-based resolution
+    console.warn(`[resolveBookingProvider] tenant ${tenantIdNum}: no availability rows (docs=${withAvail.docs?.length ?? 0}) — falling back to admin`)
+  } catch (e) {
+    console.warn(`[resolveBookingProvider] availability lookup threw: ${e instanceof Error ? e.message : String(e)} — falling back to admin`)
   }
 
   // 1. First active tenant_admin (the natural service provider / owner)
