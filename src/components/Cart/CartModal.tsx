@@ -33,6 +33,14 @@ export function CartModal() {
     setIsOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    // Open the drawer when something adds to the cart (AddToCart dispatches this),
+    // so a successful add has an unmistakable result instead of a silent badge tick.
+    const open = () => setIsOpen(true)
+    window.addEventListener('cart:open', open)
+    return () => window.removeEventListener('cart:open', open)
+  }, [])
+
   // An item is "purchasable" only when its product is still a populated, published
   // object (deleted products come back as null, drafts as a bare ID). The badge must
   // count only these — otherwise orphaned items inflate the count (e.g. 22) while the

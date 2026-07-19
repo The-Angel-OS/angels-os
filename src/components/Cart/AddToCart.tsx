@@ -44,9 +44,13 @@ export function AddToCart({ product }: Props) {
       addItem({
         product: product.id,
         variant: selectedVariant?.id ?? undefined,
-      }).then(() => {
-        toast.success('Item added to cart.')
       })
+        .then(() => {
+          toast.success('Item added to cart.')
+          // Reveal the drawer so the add is visibly confirmed (CartModal listens).
+          window.dispatchEvent(new Event('cart:open'))
+        })
+        .catch(() => toast.error('Could not add to cart — please try again.'))
     },
     [addItem, product, selectedVariant],
   )
@@ -94,6 +98,18 @@ export function AddToCart({ product }: Props) {
     return false
   }, [selectedVariant, cart?.items, product])
 
+  // Explain WHY the button is disabled so it never reads as a dead/broken control.
+  const inStock = product.enableVariants
+    ? (selectedVariant?.inventory ?? 0) > 0
+    : (product.inventory ?? 0) > 0
+  const label = !disabled
+    ? 'Add To Cart'
+    : product.enableVariants && !selectedVariant
+      ? 'Choose an option'
+      : !inStock
+        ? 'Out of stock'
+        : 'Max in cart'
+
   return (
     <Button
       aria-label="Add to cart"
@@ -105,7 +121,7 @@ export function AddToCart({ product }: Props) {
       onClick={addToCart}
       type="submit"
     >
-      Add To Cart
+      {label}
     </Button>
   )
 }
