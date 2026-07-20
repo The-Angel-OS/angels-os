@@ -8277,10 +8277,16 @@ async function createPost(
   const title = (input.title as string)?.trim()
   if (!title) return 'Error: Post title is required.'
 
-  const content = input.content as string | undefined
+  const content = (input.content as string | undefined)?.trim()
   const status = (input.status as string) || 'draft'
   if (status !== 'draft' && status !== 'published') {
     return 'Error: Status must be "draft" or "published".'
+  }
+  // The Posts `layout` field is required — a post with no body would fail Payload
+  // validation ("Content > Layout invalid"). Ask for the body rather than crash,
+  // and point at the media tool when images are the point.
+  if (!content) {
+    return 'Error: Post content is required — pass the body text in the "content" field. (If the post is built around uploaded images, use create_post_from_media instead.)'
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
