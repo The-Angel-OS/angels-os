@@ -528,6 +528,9 @@ export function MessageInput({
         </div>
       </div>
       {hiddenFileInput}
+      {/* Compact mode must ALSO render the reuse picker — the button set pickerOpen
+          but only the full-mode branch mounted the modal, so clicking did nothing. */}
+      {pickerModal}
     </div>
   )
 }
