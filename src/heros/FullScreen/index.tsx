@@ -21,14 +21,29 @@ export const FullScreenHero: React.FC<Page['hero']> = ({ links, media, richText 
     setHeaderTheme('dark')
   })
 
+  const mediaObj = media && typeof media === 'object' ? (media as { mimeType?: string | null; url?: string | null }) : null
+  const isVideo = !!mediaObj?.mimeType?.startsWith('video/')
+
   return (
     <div
       className="relative flex min-h-[90vh] w-full select-none items-center justify-center overflow-hidden text-white"
       data-theme="dark"
     >
-      {/* Full-bleed background image */}
-      {media && typeof media === 'object' && (
-        <Media fill imgClassName="object-cover" priority resource={media} size="100vw" />
+      {/* Full-bleed background — video autoplays muted/looped; image otherwise */}
+      {mediaObj && isVideo && mediaObj.url ? (
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          src={mediaObj.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      ) : (
+        media && typeof media === 'object' && (
+          <Media fill imgClassName="object-cover" priority resource={media} size="100vw" />
+        )
       )}
       {/* Legibility overlay — keeps the headline readable over any image */}
       <div
