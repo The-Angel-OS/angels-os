@@ -64,6 +64,23 @@ export const getClientSideURL = () => {
 }
 
 /**
+ * The registrable apex this node hangs tenant subdomains off, e.g. "payloadnuke.com"
+ * on self-host or "spacesangels.com" on Vercel. Derived from NEXT_PUBLIC_SERVER_URL
+ * (same source payload.config.ts uses for CORS) so a provisioned portal's domain is
+ * actually reachable at <slug>.<suffix>. Falls back to "angelos.local" only when no
+ * server URL is configured at all.
+ */
+export const getPortalDomainSuffix = (): string => {
+  try {
+    const host = new URL(getServerSideURL()).hostname.replace(/^(www|platform)\./, '')
+    if (host && host !== 'localhost') return host
+  } catch {
+    /* malformed URL — fall through */
+  }
+  return 'angelos.local'
+}
+
+/**
  * Get tenant-specific URL for a given hostname
  * Useful for generating URLs for specific tenants
  */

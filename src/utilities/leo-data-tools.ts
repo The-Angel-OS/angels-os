@@ -7363,7 +7363,7 @@ async function handleOnboardVendor(
       data: {
         name: businessName,
         slug,
-        domain: `${slug}.${process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'}`,
+        domain: `${slug}.${(await import('./getURL')).getPortalDomainSuffix()}`,
         type: 'tenant',
         status: 'active',
         businessType,
@@ -11229,7 +11229,8 @@ async function handleResearchAndProvision(
               : suggestedType === 'nonprofit'
                 ? 'custom'
                 : 'creator-content'
-      const domainSuffix = process.env.VERCEL ? 'spacesangels.com' : 'angelos.local'
+      const { getPortalDomainSuffix } = await import('./getURL')
+      const domainSuffix = getPortalDomainSuffix()
 
       // Full-fidelity provisioning — same flow as the Provision Portal: tenant +
       // endeavor + nav/pages + ALL baseline spaces (AI Bus, main, DMs, community)
