@@ -541,8 +541,25 @@ export default buildConfig({
             const defaultFieldsWithoutUrl = defaultFields.filter(
               (field: { name?: string }) => !('name' in field && field.name === 'url'),
             )
+            // The multi-tenant plugin doesn't scope lexical-injected relationship
+            // fields, so the internal-link `doc` picker leaks every tenant's pages.
+            // Filter it to the tenant of the document being edited.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const scopedFields = defaultFieldsWithoutUrl.map((field: any) => {
+              if (field?.name !== 'doc') return field
+              return {
+                ...field,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                filterOptions: ({ data }: { data: any }) => {
+                  const t = data?.tenant
+                  const tenantId = t && typeof t === 'object' ? t.id : t
+                  if (tenantId == null) return true
+                  return { tenant: { equals: Number(tenantId) } }
+                },
+              }
+            })
             return [
-              ...defaultFieldsWithoutUrl,
+              ...scopedFields,
               {
                 name: 'url',
                 type: 'text',

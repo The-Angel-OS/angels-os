@@ -389,7 +389,21 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     // which silently drops cookies set via cookies() or Set-Cookie headers.
     // Instead, we redirect to a standalone Next.js route handler that
     // sets the cookie outside of Payload's pipeline.
-    const completeUrl = new URL('/api/auth/complete', canonicalUrl)
+    //
+    // Complete on the ORIGIN host the user started from (e.g. their tenant
+    // subdomain) when it's covered by COOKIE_DOMAIN — the cookie set there is
+    // scoped to the apex and roams every subdomain, and the user lands back on
+    // their own portal instead of stranded on canonical www. Falls back to
+    // canonical for non-subdomain origins.
+    let completeBase = canonicalUrl
+    if (stateOrigin) {
+      const originHostname = getHostname(stateOrigin)
+      const cookieBase = (process.env.COOKIE_DOMAIN || '').replace(/^\./, '')
+      if (cookieBase && isSubdomainOf(originHostname, cookieBase)) {
+        completeBase = stateOrigin
+      }
+    }
+    const completeUrl = new URL('/api/auth/complete', completeBase)
     completeUrl.searchParams.set('token', payloadToken)
     completeUrl.searchParams.set('redirect', redirectPath)
 

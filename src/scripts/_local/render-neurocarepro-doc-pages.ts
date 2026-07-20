@@ -14,9 +14,11 @@ import { createLexicalContent, createHeadingNode } from '@/utilities/lexicalHelp
 const TENANT = 22
 const DECK_URL = 'https://claude.ai/code/artifact/a7cbc1c5-cfee-46e5-8315-6d4df5b16974'
 const DOCS = [
-  { file: 'neurocarepro-research.md', slug: 'proposal-research', title: 'Research Brief', label: 'Research Brief' },
-  { file: 'neurocarepro-campaign-playbook.md', slug: 'proposal-campaign', title: 'Campaign Playbook', label: 'Campaign Playbook' },
-  { file: 'neurocarepro-video-transcript.md', slug: 'proposal-transcript', title: 'Founder Video Transcript', label: 'Founder Video Transcript' },
+  { file: 'neurocarepro-research.md', slug: 'proposal-research', title: 'Research Brief', label: 'Research Brief', linkInProposal: true },
+  { file: 'neurocarepro-campaign-playbook.md', slug: 'proposal-campaign', title: 'Campaign Playbook', label: 'Campaign Playbook', linkInProposal: true },
+  // Transcript page stays (background / knowledge base) but is NOT linked on the
+  // proposal — the video already has its transcript.
+  { file: 'neurocarepro-video-transcript.md', slug: 'proposal-transcript', title: 'Founder Video Transcript', label: 'Founder Video Transcript', linkInProposal: false },
 ]
 
 const payload = await getPayload({ config })
@@ -64,7 +66,7 @@ for (const d of DOCS) {
   const richText = convertMarkdownToLexical({ editorConfig, markdown: md })
   if (richText?.root) stripHorizontalRules(richText.root)
   await upsertPage(d.slug, d.title, richText)
-  links.push({ label: d.label, url: `/${d.slug}` })
+  if (d.linkInProposal) links.push({ label: d.label, url: `/${d.slug}` })
 }
 
 // 2. Repoint the "Proposal documents" links block on /proposal.

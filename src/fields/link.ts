@@ -78,6 +78,15 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       maxDepth: 1,
       relationTo: ['pages'],
       required: true,
+      // Scope the picker to the editing document's tenant — the multi-tenant
+      // plugin doesn't auto-filter this nested block relationship, so it would
+      // otherwise leak every tenant's pages.
+      filterOptions: ({ data }: { data: any }) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        const t = data?.tenant
+        const tenantId = t && typeof t === 'object' ? t.id : t
+        if (tenantId == null) return true
+        return { tenant: { equals: Number(tenantId) } }
+      },
     },
     {
       name: 'url',
