@@ -14398,14 +14398,16 @@ async function handleCheckEnterpriseHealth(
     // ─── Orders ──────────────────────────────────────────────────
     if (shouldCheck('orders')) {
       try {
-        const pendingOrders = await payload.find({
+        // NOTE: the orders status enum is processing|completed|cancelled|refunded —
+        // there is NO 'pending' (that's a booking/transaction status). Querying it
+        // threw "invalid input value for enum" → the recurring "Orders: Unable to
+        // query" system note. 'processing' is the only in-flight order state.
+        const pendingOrders = await payload.count({
           collection: 'orders' as any,
-          where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['pending', 'processing'] } }] } as any,
-          limit: 0,
-          depth: 0,
+          where: { and: [{ tenant: { equals: tenantId } }, { status: { equals: 'processing' } }] } as any,
           overrideAccess: true,
         })
-        const overdueOrders = await payload.find({
+        const overdueOrders = await payload.count({
           collection: 'orders' as any,
           where: {
             and: [
@@ -14414,8 +14416,6 @@ async function handleCheckEnterpriseHealth(
               { createdAt: { less_than: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } },
             ],
           } as any,
-          limit: 0,
-          depth: 0,
           overrideAccess: true,
         })
         const emoji = overdueOrders.totalDocs > 0 ? '🔴' : pendingOrders.totalDocs > 0 ? '🟡' : '🟢'
