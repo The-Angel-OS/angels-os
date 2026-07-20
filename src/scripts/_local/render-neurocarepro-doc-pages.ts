@@ -23,6 +23,19 @@ const payload = await getPayload({ config })
 const fs = await import('fs')
 const editorConfig = await editorConfigFactory.default({ config: payload.config })
 
+// The Pages richText editor doesn't register the HorizontalRule node, so a
+// `---` divider (which convertMarkdownToLexical emits as a horizontalrule node)
+// crashes the admin editor with Lexical error #17. Strip those nodes; the prose
+// reads fine without dividers.
+function stripHorizontalRules(node: any): any {
+  if (node && Array.isArray(node.children)) {
+    node.children = node.children
+      .filter((c: any) => c?.type !== 'horizontalrule' && c?.type !== 'horizontalRule')
+      .map(stripHorizontalRules)
+  }
+  return node
+}
+
 async function upsertPage(slug: string, title: string, richText: any) {
   const existing = await payload.find({
     collection: 'pages',
@@ -49,6 +62,7 @@ const links: { label: string; url: string }[] = [{ label: 'The Presentation', ur
 for (const d of DOCS) {
   const md = fs.readFileSync(`/tmp/${d.file}`, 'utf8')
   const richText = convertMarkdownToLexical({ editorConfig, markdown: md })
+  if (richText?.root) stripHorizontalRules(richText.root)
   await upsertPage(d.slug, d.title, richText)
   links.push({ label: d.label, url: `/${d.slug}` })
 }
