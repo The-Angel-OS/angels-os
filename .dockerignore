@@ -13,6 +13,19 @@ build-out.log
 coverage
 playwright-report
 test-results
-tests/e2e
+tests
 .DS_Store
 scratchpad
+# Dev/editor/tooling detritus — never referenced by `next build` or the runtime.
+# Trims the build context; the image bulk is node_modules (deps), not these.
+.cursor
+.vscode
+.storybook
+.opencode
+.claude
+.github-issues
+.bible-tmp
+.hintrc
+mcp-server
+*.md
+!README.md

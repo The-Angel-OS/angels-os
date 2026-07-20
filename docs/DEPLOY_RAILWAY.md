@@ -67,6 +67,13 @@ latest schema, or it fast-forwards. Verify: `GET /api/health` → 200.
 
 (Merlin's `pg_dump`/`pg_restore` backup engine can also produce/consume the dump.)
 
+> **REQUIRED after any restore — repair id sequences.** `pg_restore` leaves each
+> table's id sequence behind `MAX(id)`, so the first insert throws *"value must be
+> unique on id"* (Payload masks the real `..._pkey` violation). Immediately after the
+> restore, once Core is up, hit `GET /api/provision-ops/db-repair-sequences` (super_admin).
+> Also run `GET /api/provision-ops/db-repair-locks` if any collection writes fail on
+> locked-docs-rels drift. Skipping this = checkout/provisioning breaks on the first write.
+
 ## 4. Domains + Cloudflare
 - Railway gives the service a `*.up.railway.app` URL. Add your custom domains
   (`spacesangels.com`, `www`, `*.spacesangels.com`) on the Core service.
@@ -88,6 +95,47 @@ latest schema, or it fast-forwards. Verify: `GET /api/health` → 200.
 The 3.85 upgrade (PR #133) only 500'd on Vercel's runtime. On Railway's plain Node
 container it should build/run — do it as a separate, isolated deploy after the move
 is stable.
+
+## 7. Cost sizing, image size & readiness (Hobby-plan reality)
+
+**Status (260719): staged, NOT pushed.** Dockerfile + `railway.json` + `/api/health`
++ boot-migrate CMD all present and correct; a prior Railway deploy came up healthy.
+We're holding until the build is stable and the env below is set. The eventual move
+is **payloadnuke.com (the always-on home self-host node) → Railway** as its permanent
+home, with self-host demoted to local failover — not just the Vercel/IONOS retirement.
+
+**Cost — "$5 Hobby" undersizes this.** Hobby is a $5/mo subscription that *includes*
+$5 of usage, then meters. You run **two always-on services** (Core container + managed
+Postgres) 24/7 → realistically **~$15–25/mo**, not $5. If `kendev` deploys as a second
+Core service, double it. Decide up front: **consolidate to one Core service** (the
+single-node north star) and budget ~$15–20/mo, or run Railway as cold failover you
+spin up only when self-host is down.
+
+**Image size is NOT a cost lever here.** Railway isn't size-billed; a Payload+Next
+image is normally 1–2 GB and that's almost all `node_modules` (sharp, next, payload,
+react, plugins) — the app, not detritus. Image size only affects build/deploy *time*.
+What costs money is runtime **RAM/CPU**, so size chasing is low-value. `.dockerignore`
+already drops `docs/` + dev/editor detritus; that trims build-context upload, not the
+deps bulk.
+
+**Build memory is the first-deploy risk.** `next build` wants 4–8 GB
+(`--max-old-space-size` = 4096 in the Dockerfile, 8000 in the `build` script). Hobby's
+ceiling is 8 GB/service, so it should squeak through — watch the first build log for OOM.
+
+**Two future size levers — only AFTER the build is stable, not before:**
+- Next `output: 'standalone'` — big runtime shrink, but we deliberately went
+  non-standalone so the `payload` CLI is present for boot migrations. Revisit with care.
+- `pnpm prune --prod` in the runner stage — the runner currently ships devDependencies.
+  Verify boot (`payload migrate`) still has everything it needs before adopting.
+
+**Pre-first-deploy checklist (silent breakage if skipped):**
+- [ ] Every `NEXT_PUBLIC_*` set as a service var **before the first build** (Railway
+      bakes them at build time — missing = e.g. Stripe Elements never mounts).
+- [ ] `PAYLOAD_SECRET`, `ENCRYPTION_SECRET`, `ENCRYPTION_SALT` **match prod** (else all
+      sessions drop and encrypted fields become unreadable).
+- [ ] After DB restore: `GET /api/provision-ops/db-repair-sequences` (see §3).
+- [ ] Wildcard `*.spacesangels.com` (and/or `*.payloadnuke.com`) DNS → Railway.
+- [ ] Re-point the Stripe webhook + confirm `STRIPE_WEBHOOKS_SIGNING_SECRET` matches.
 
 ## Notes
 - The container is stateless (media on R2). No Railway volume needed.
