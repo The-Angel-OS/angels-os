@@ -48,6 +48,14 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[P1] Login-killing DB jam (idle-in-tx holding a lock)** — a transaction opened, `select`ed media, then sat
+  `idle in transaction` ~23min holding a lock; a cascade of `insert into users` (Google login find-or-create,
+  retried) blocked behind it and exhausted Core's pg pool → *every* query timed out (`timeout exceeded when
+  trying to connect`), breaking BOTH password + Google login. *Mitigated:* `ALTER DATABASE angels SET
+  idle_in_transaction_session_timeout='60s'` (auto-kills abandoned tx). *Root cause still open:* a transaction
+  held open across an await leaks — find & fix the user-create/media path. Also fold the timeout into the stack
+  compose PG config so a fresh volume keeps it. [[project_provisioning_transaction_fragility]]. `260720`
+
 - **[P2] Node hardening 260718** — CORS commit NOT pushed (touches kendev/spacesangels); federation peers
   from DB; AI resilience = one `providerHealth` breaker. [[project_node_hardening_260718]]. `260719`
 - **[P2] Container `payload run` can't resolve `@payload-config`** in the pruned prod image — blocks
