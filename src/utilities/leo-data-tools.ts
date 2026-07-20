@@ -1608,6 +1608,33 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'create_event',
+    description:
+      'Create a calendar Event for the current Endeavor (meet-and-greet, market appearance, workshop, livestream, screening, etc.). Use when the user wants to add an event. Requires a title and a startDateTime. Defaults to status "upcoming". If you just generated an image for the event, pass its media id as coverImageMediaId to attach it.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Event title (required)' },
+        startDateTime: { type: 'string', description: 'ISO 8601 start, e.g. "2026-08-15T18:00:00Z" (required)' },
+        endDateTime: { type: 'string', description: 'ISO 8601 end (optional)' },
+        eventType: {
+          type: 'string',
+          enum: ['market_appearance', 'meetup', 'workshop', 'livestream', 'conference', 'screening', 'custom'],
+          description: 'Event type — defaults to "meetup".',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'upcoming', 'live', 'completed', 'cancelled'],
+          description: 'Defaults to "upcoming". Use "draft" to keep it private.',
+        },
+        slug: { type: 'string', description: 'URL path (e.g. "summer-meetup"). Auto-generated from title if omitted.' },
+        description: { type: 'string', description: 'Event description text (optional).' },
+        coverImageMediaId: { type: 'number', description: 'Media id of a cover image to attach (e.g. one you just generated).' },
+      },
+      required: ['title', 'startDateTime'],
+    },
+  },
+  {
     name: 'update_page',
     description:
       'Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.',
@@ -4332,6 +4359,8 @@ async function executeToolSwitch(
         return await updatePost(payload, toolInput, ctx)
       case 'create_page':
         return await createPage(payload, toolInput, ctx)
+      case 'create_event':
+        return await createEvent(payload, toolInput, ctx)
       case 'update_page':
         return await updatePage(payload, toolInput, ctx)
       case 'query_media':
@@ -8958,6 +8987,60 @@ async function updatePost(
 /**
  * create_page — Creates a new static page with body content.
  */
+async function createEvent(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const title = (input.title as string)?.trim()
+  if (!title) return 'Error: Event title is required.'
+
+  const startDateTime = (input.startDateTime as string) || ''
+  if (!startDateTime) return 'Error: startDateTime is required (ISO 8601, e.g. 2026-08-15T18:00:00Z).'
+
+  const status = (input.status as string) || 'upcoming'
+  const validStatus = ['draft', 'upcoming', 'live', 'completed', 'cancelled']
+  if (!validStatus.includes(status)) return `Error: status must be one of ${validStatus.join(', ')}.`
+  const eventType = (input.eventType as string) || 'meetup'
+
+  const eventTenant = await resolveWriteTenant(payload, ctx)
+  if (!eventTenant) {
+    return "Error: I couldn't determine which Endeavor to create the event under. Open a specific Endeavor's workspace (or tell me which) and I'll create it there."
+  }
+  // host is a required relationship — the acting user runs the event.
+  if (!ctx.userId) return 'Error: no acting user to set as the event host.'
+  const host = Number(ctx.userId)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = { title, tenant: eventTenant, host, eventType, status, startDateTime }
+  if (input.slug) data.slug = (input.slug as string).toLowerCase().replace(/\s+/g, '-')
+  if (input.endDateTime) data.endDateTime = input.endDateTime as string
+  const desc = (input.description as string)?.trim()
+  if (desc) {
+    // Minimal lexical richText for the description field.
+    data.description = {
+      root: { type: 'root', format: '', indent: 0, version: 1, direction: 'ltr',
+        children: [{ type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr',
+          children: [{ type: 'text', text: desc, format: 0, style: '', mode: 'normal', detail: 0, version: 1 }] }] },
+    }
+  }
+  // coverImage is a media RELATIONSHIP — Number() (filterOptions compares in JS).
+  if (input.coverImageMediaId != null) data.coverImage = Number(input.coverImageMediaId)
+
+  const result = await (payload.create as any)({ collection: 'events', data, overrideAccess: true })
+  const slug = str(result, 'slug')
+  const lines = [
+    `Event created!`,
+    `- **${title}** — ${eventType}, ${status}`,
+    `- Starts: ${startDateTime}`,
+    `- Event ID: ${result.id}`,
+  ]
+  if (slug) lines.push(`- URL: /events/${slug}`)
+  if (input.coverImageMediaId != null) lines.push(`- Cover image attached (media #${input.coverImageMediaId})`)
+  if (status === 'draft') lines.push(`\nSaved as a draft. Set status to "upcoming" to publish it.`)
+  return lines.join('\n')
+}
+
 async function createPage(
   payload: Payload,
   input: Record<string, unknown>,
