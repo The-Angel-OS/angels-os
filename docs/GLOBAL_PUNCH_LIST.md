@@ -20,6 +20,16 @@
   layering Quiz/LMS on top. *Where:* Works collection + [[project_works_wip_status]] / [[project_reader_reference_layer]]. *Next:* audit + list the concrete Works breakages, then fix. `260720`
 - **[P1] LEO fabricates tool success** — claims actions done that never persisted (e.g. "saved the post as a
   draft" with no row; enterprise-health prose embellished into fake "Federation ACTIVE"). *Where:* leo-stream / constitutional-prompt / executeToolCall. *Next:* LEO must not report success without a tool result; validate tool-result → response. `260720`
+- **[P1] create_post crashes on required `layout` — FIX STAGED** — `create_post` schema made `content`
+  optional but Posts `layout` is `required:true`; a call without content left layout unset → Payload
+  "The following field is invalid: Content > Layout". Also LEO picked create_post over create_post_from_media
+  when media was selected. *Fixed (staged, awaiting rebuild):* `createPost` now errors clearly + points at the
+  media tool so content/layout is always set (`leo-data-tools.ts` ~8280). *Also:* nudge tool-selection toward
+  create_post_from_media when media is attached. `260720`
+- **[P1] Channel media upload lost on refresh** — uploading media into channel `general` (NeuroCare Pro
+  portal) did not survive a refresh — never rendered, gone "into the void." *Where:* channel media upload path
+  (`channel-media.ts` / message attachments / MultiChannelChat composer). *Next:* trace whether the upload
+  persists a message+attachment row at all, and why it's not surfaced on reload. `260720`
 - **[P1] Stripe webhook secret unset in Vercel** — `STRIPE_WEBHOOKS_SIGNING_SECRET` not set + webhook
   `/api/stripe/webhooks` unregistered → Clearwater earn loop gated. *Where:* Vercel env + Stripe dash. *Next:* Ken sets it. [[project_earn_loop_clearwater]] `260720`
 - **[P2] Header logo doesn't render tenant `branding.logo`** — set the FK and it still shows the Angel
