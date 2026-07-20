@@ -32,6 +32,7 @@ interface MemberData {
   status: string
   joinedAt: string | null
   invitationEmail: string | null
+  inviteUrl: string | null
   createdAt: string | null
 }
 
@@ -63,6 +64,18 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const handleCopyLink = async (id: string, path: string) => {
+    const url = `${window.location.origin}${path}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch {
+      showToast(url, 'success') // clipboard blocked — show the link so it can be copied manually
+    }
   }
 
   const [resendingId, setResendingId] = useState<string | null>(null)
@@ -241,6 +254,15 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
+                    {member.status === 'pending' && member.inviteUrl && (
+                      <button
+                        onClick={() => handleCopyLink(member.id, member.inviteUrl!)}
+                        className="mr-3 text-xs font-medium text-primary hover:underline"
+                        title="Copy the invite link to send directly"
+                      >
+                        {copiedId === member.id ? 'Copied!' : 'Copy link'}
+                      </button>
+                    )}
                     {member.status === 'pending' && (
                       <button
                         onClick={() => handleResend(member.id)}

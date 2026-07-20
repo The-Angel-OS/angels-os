@@ -396,7 +396,7 @@ export async function cleanupDuplicateMembers(): Promise<{
 
 export async function resendTenantInvitation(
   membershipId: string | number,
-): Promise<{ success: boolean; emailSent?: boolean; error?: string }> {
+): Promise<{ success: boolean; emailSent?: boolean; inviteUrl?: string; error?: string }> {
   const { payload, user, tenantId, error } = await getAuthorizedUser()
   if (error || !tenantId || !user) {
     return { success: false, error: error || 'Unauthorized' }
@@ -461,7 +461,7 @@ export async function resendTenantInvitation(
       role: membership.role || 'tenant_member',
     })
 
-    return { success: true, emailSent }
+    return { success: true, emailSent, inviteUrl: `/tenant-invite/${token}` }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Resend failed' }
   }

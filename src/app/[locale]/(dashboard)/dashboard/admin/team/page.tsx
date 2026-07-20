@@ -82,6 +82,7 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
     status: doc.status || 'active',
     joinedAt: doc.joinedAt || doc.createdAt || null,
     invitationEmail: doc.invitationDetails?.invitationEmail || null,
+    inviteUrl: doc.invitationDetails?.invitationToken ? `/tenant-invite/${doc.invitationDetails.invitationToken}` : null,
     createdAt: doc.createdAt || null,
   }))
 
