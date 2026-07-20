@@ -1,4 +1,5 @@
 import * as migration_20260720_000000_add_fullscreen_hero_type from './20260720_000000_add_fullscreen_hero_type';
+import * as migration_20260720_010000_add_media_text_block from './20260720_010000_add_media_text_block';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20260720_000000_add_fullscreen_hero_type.up,
     down: migration_20260720_000000_add_fullscreen_hero_type.down,
     name: '20260720_000000_add_fullscreen_hero_type',
+  },
+  {
+    up: migration_20260720_010000_add_media_text_block.up,
+    down: migration_20260720_010000_add_media_text_block.down,
+    name: '20260720_010000_add_media_text_block',
   },
 ];
