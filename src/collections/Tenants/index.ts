@@ -157,6 +157,17 @@ export const Tenants: CollectionConfig = {
           type: 'text',
         },
         {
+          name: 'defaultTheme',
+          type: 'select',
+          defaultValue: 'auto',
+          options: [
+            { label: 'Auto (follow visitor OS)', value: 'auto' },
+            { label: 'Light', value: 'light' },
+            { label: 'Dark', value: 'dark' },
+          ],
+          admin: { description: 'Default color theme for this site. Visitors can still toggle.' },
+        },
+        {
           name: 'primaryColor',
           type: 'text',
           admin: { description: 'Hex (e.g. #10B981)', placeholder: '#10B981' },

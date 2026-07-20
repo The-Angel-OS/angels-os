@@ -127,7 +127,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <InitTheme />
+        <InitTheme tenantDefault={(tenant as any)?.branding?.defaultTheme} />
         <TenantFonts tenant={tenant} />
         <TenantStyles tenant={tenant} />
         {/* Favicon links are emitted by generateMetadata().icons (per-endeavor:

@@ -34,17 +34,22 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [])
 
   useEffect(() => {
-    // Default to the configured theme (light); a saved user choice still wins.
-    // (Reset-to-Auto via setTheme(null) still follows the OS preference.)
-    let themeToSet: Theme = defaultTheme
+    // A saved user choice wins. Otherwise DON'T re-decide — defer to whatever
+    // InitTheme already set on <html> (tenant default → OS → light), so the
+    // per-tenant default from the server isn't clobbered on hydration.
     const preference = window.localStorage.getItem(themeLocalStorageKey)
 
     if (themeIsValid(preference)) {
-      themeToSet = preference
+      document.documentElement.setAttribute('data-theme', preference)
+      setThemeState(preference)
+    } else {
+      const current = document.documentElement.getAttribute('data-theme')
+      if (themeIsValid(current)) setThemeState(current as Theme)
+      else {
+        document.documentElement.setAttribute('data-theme', defaultTheme)
+        setThemeState(defaultTheme)
+      }
     }
-
-    document.documentElement.setAttribute('data-theme', themeToSet)
-    setThemeState(themeToSet)
   }, [])
 
   return <ThemeContext.Provider value={{ setTheme, theme }}>{children}</ThemeContext.Provider>

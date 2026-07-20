@@ -3,7 +3,17 @@ import React from 'react'
 
 import { defaultTheme, themeLocalStorageKey } from '../shared'
 
-export const InitTheme: React.FC = () => {
+/**
+ * Sets the initial `data-theme` before paint (no flash). Resolution order:
+ *   1. the visitor's saved choice (localStorage)
+ *   2. the tenant's configured default (branding.defaultTheme: 'light' | 'dark')
+ *   3. the visitor's OS preference (prefers-color-scheme)
+ *   4. the site default ('light')
+ * So a brand can pin its site light/dark (e.g. NeuroCare Pro = light) while tenants
+ * that leave it unset still follow the visitor's OS.
+ */
+export const InitTheme: React.FC<{ tenantDefault?: string | null }> = ({ tenantDefault }) => {
+  const td = tenantDefault === 'light' || tenantDefault === 'dark' ? tenantDefault : ''
   return (
     // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
     <Script
@@ -11,29 +21,22 @@ export const InitTheme: React.FC = () => {
         __html: `
   (function () {
     function getImplicitPreference() {
-      var mediaQuery = '(prefers-color-scheme: dark)'
-      var mql = window.matchMedia(mediaQuery)
-      var hasImplicitPreference = typeof mql.matches === 'boolean'
-
-      if (hasImplicitPreference) {
-        return mql.matches ? 'dark' : 'light'
-      }
-
-      return null
+      var mql = window.matchMedia('(prefers-color-scheme: dark)')
+      return typeof mql.matches === 'boolean' ? (mql.matches ? 'dark' : 'light') : null
     }
+    function themeIsValid(theme) { return theme === 'light' || theme === 'dark' }
 
-    function themeIsValid(theme) {
-      return theme === 'light' || theme === 'dark'
-    }
-
-    // Default to the site's configured theme (light) rather than the visitor's OS
-    // preference — brand marketing sites read as broken in surprise dark mode. A
-    // saved user choice still wins; the theme toggle remains available.
     var themeToSet = '${defaultTheme}'
     var preference = window.localStorage.getItem('${themeLocalStorageKey}')
+    var tenantDefault = '${td}'
 
     if (themeIsValid(preference)) {
       themeToSet = preference
+    } else if (themeIsValid(tenantDefault)) {
+      themeToSet = tenantDefault
+    } else {
+      var implicitPreference = getImplicitPreference()
+      if (implicitPreference) themeToSet = implicitPreference
     }
 
     document.documentElement.setAttribute('data-theme', themeToSet)
