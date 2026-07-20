@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { MessageCircle, X, Minus, ChevronDown } from 'lucide-react'
+import { MessageCircle, X, Minus, ChevronDown, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import { Backdrop } from '@/components/Backdrop'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
@@ -27,6 +28,15 @@ export function MinimalistChat({
   const [isMinimized, setIsMinimized] = useState(false)
   const isMobile = useIsMobile()
   const { messages, isLoading, sendMessage, activeChannel } = useChat(spaceId, channelSlug)
+
+  // Deep-link to the full-width Spaces view for THIS space+channel. Doubles as a
+  // "which channel am I actually bound to?" readout — resolves the confusion when a
+  // tenant has multiple LEO DM channels (brochure widget vs dashboard #general).
+  const spacesHref = spaceId
+    ? `/dashboard/spaces/${spaceId}${activeChannel ? `/${activeChannel}` : ''}`
+    : null
+  const channelLabel = activeChannel ? `#${activeChannel}` : 'Angel OS'
+  const spacesTitle = `Open in Spaces — space ${spaceId}${activeChannel ? `, #${activeChannel}` : ''}`
 
   // Lock body scroll when mobile sheet is open
   useEffect(() => {
@@ -113,9 +123,14 @@ export function MinimalistChat({
               </div>
               <div>
                 <div className="text-sm font-semibold">LEO</div>
-                <div className="text-[11px] text-muted-foreground">
-                  {activeChannel ? `#${activeChannel}` : 'Angel OS'}
-                </div>
+                {spacesHref ? (
+                  <Link href={spacesHref} title={spacesTitle} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                    {channelLabel} · space {spaceId}
+                    <ExternalLink size={10} />
+                  </Link>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground">{channelLabel}</div>
+                )}
               </div>
             </div>
             <button
@@ -159,9 +174,14 @@ export function MinimalistChat({
             </div>
             <div>
               <div className="text-sm font-semibold">LEO</div>
-              <div className="text-[11px] opacity-60">
-                {activeChannel ? `#${activeChannel}` : 'Angel OS'}
-              </div>
+              {spacesHref ? (
+                <Link href={spacesHref} title={spacesTitle} className="inline-flex items-center gap-1 text-[11px] opacity-60 hover:opacity-100 hover:underline">
+                  {channelLabel} · space {spaceId}
+                  <ExternalLink size={10} />
+                </Link>
+              ) : (
+                <div className="text-[11px] opacity-60">{channelLabel}</div>
+              )}
             </div>
           </div>
 
