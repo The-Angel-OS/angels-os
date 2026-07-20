@@ -41,8 +41,6 @@
 
 ## 🧱 Blocks / UI (P1–P2) — WordPress-parity kit
 
-- **[P1] MediaText block** — two-column text + video/image + caption + side toggle + CTA. Reuse `VideoEmbed`
-  + `computeEmbedUrl`. The single most common marketing layout (David's "Why PLMT" section). *Next:* config + render + scoped migration (pattern: GoogleReviews block). `260720`
 - **[P1] FeatureCards block** — icon-grid row ("Clinical Applications / Photobiomodulation / …"). *Next:* same
   cheap-block pattern. `260720`
 - **[P1] Page `parent` + SubNav block** — self-referential `parent` on Pages (NOT nested-docs plugin —
@@ -60,6 +58,13 @@
 
 ## 🚢 Deploy / ops (P1–P2)
 
+- **[P1] Merlin ↔ Core :3000 port collision (Merlin DOWN / CF 530)** — the self-host Core Docker container now
+  holds host `:3000`, the same port Merlin's interactive scheduled task binds (`next start -p 3000`), so
+  `merlin.payloadnuke.com` hits Core (or a stale node), not Merlin. *Fix:* Core (prod) keeps `:3000`; move Merlin
+  to a free port (e.g. `:3002`) — update `package.json` start, the `Merlin` scheduled task command,
+  `refresh-merlin.ps1`'s `:3000` refs, and the cloudflared ingress for `merlin.payloadnuke.com`. Needs Ken's OK
+  (touches the tunnel + task; may need elevation). `260720`
+
 - **[P1] payloadnuke.com → Railway** — stabilize builds first, then migrate the self-host node to Railway Pro
   (~$20/mo). Pre-deploy checklist + post-restore `db-repair-sequences` documented. *Where:* `docs/DEPLOY_RAILWAY.md`. [[project_railway_migration]]. `260720`
 - **[P2] Merlin node DOWN (CF 530)** — search proxy Merlin-side `/api/search` pending; MerlinControl media-link
@@ -71,6 +76,7 @@
 
 ## ✅ Recently closed (last 7 days)
 
+- **MediaText block** (two-column text + video, WordPress parity) — `ecfbc9e`; live on the NeuroCare Pro home ("Why PLMT Is Different"). `260720`
 - **Full-screen video/image hero** (`fullScreen` hero type, reusable) — `b75416b` + video support. `260720`
 - **NeuroCare Pro prospect portal** stood up on payloadnuke with the live video hero. `260720`
 - **Reachable self-host portal domains** — provisioned portals now land on `<slug>.payloadnuke.com`, not
