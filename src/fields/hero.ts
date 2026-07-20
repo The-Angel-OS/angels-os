@@ -24,6 +24,10 @@ export const hero: Field = {
           value: 'none',
         },
         {
+          label: 'Full Screen (full-bleed background image + overlaid headline)',
+          value: 'fullScreen',
+        },
+        {
           label: 'High Impact',
           value: 'highImpact',
         },
@@ -62,7 +66,7 @@ export const hero: Field = {
       name: 'media',
       type: 'upload',
       admin: {
-        condition: (_, { type } = {}) => ['highImpact', 'mediumImpact'].includes(type),
+        condition: (_, { type } = {}) => ['fullScreen', 'highImpact', 'mediumImpact'].includes(type),
       },
       relationTo: 'media',
       required: true,
