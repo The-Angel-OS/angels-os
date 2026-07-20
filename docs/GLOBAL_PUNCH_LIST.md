@@ -48,6 +48,17 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[P1] Shopping cart leaks across portals** — `carts` (and likely `customers`/`transactions`) are NOT in the
+  multi-tenant plugin's collections list, so a cart has no tenant scope and follows an SSO'd user onto every
+  portal. Cart id is in localStorage (per-subdomain) so the leak is server-side. *Fix:* add `carts` to
+  `multiTenantPlugin` collections → **needs a schema migration** (`tenant_id` column) + verify anonymous-cart
+  tenant resolution (the plugin's frontend cart-create must set tenant from the request host) so add-to-cart
+  doesn't break. Do carefully, own rebuild. `260720`
+- **[P2] Link-editor tenant filter — STAGED, not deployed** — filterOptions on the rich-text LinkFeature + block
+  link field scopes the page picker to the editing doc's tenant; awaiting next Core rebuild. `260720`
+- **[P2] White-label nav hides** — hide root **Learn** + **Works** nav links per-tenant; Ken thinks the toggle
+  belongs on the Endeavor/settings tab. Deferred (not in the pending rebuild batch). `260720`
+
 - **[P1] Login-killing DB jam (idle-in-tx holding a lock)** — a transaction opened, `select`ed media, then sat
   `idle in transaction` ~23min holding a lock; a cascade of `insert into users` (Google login find-or-create,
   retried) blocked behind it and exhausted Core's pg pool → *every* query timed out (`timeout exceeded when
