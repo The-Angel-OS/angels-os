@@ -26,6 +26,7 @@
   default; the header's tenant fetch doesn't hydrate `branding.logo` to an object. *Where:* `src/components/Header/index.client.tsx:261` + its tenant source. *Next:* populate branding.logo (depth) in the header tenant fetch. Surfaced wiring NeuroCare Pro demo. `260720`
 - **[P2] GoogleReviews block renders nothing on a bad/absent Place ID** — no graceful empty state, just a
   blank gap. *Where:* `src/blocks/GoogleReviews/Component.tsx`. *Next:* render a friendly fallback (or hide) when `fetchPlaceReviews` returns empty. `260720`
+- **[P2] Surface pending-invite links in the admin Invitations UI** — the tenant-invite link is stored on the membership (`invitationDetails.invitationToken` → `/tenant-invite/<token>`) but the UI only shows it at send-time. Add a copy-link affordance per pending invite so an admin can re-grab it to text/send. *Where:* `dashboard/admin/invitations/InvitationsAdmin.tsx`. `260720`
 - **[P2] Error nervous system is console-only** — `apiInterceptor` + `ErrorBoundary` are effectively dead;
   17-item punch list already scoped. *Where:* [[project_error_nervous_system_audit]]. *Next:* work that list. `260720`
 
