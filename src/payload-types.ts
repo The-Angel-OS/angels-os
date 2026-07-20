@@ -1112,7 +1112,9 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
-  layout?: (CallToActionBlock | ContentBlock | MediaBlock | CommentsBlock | CalendarBlock)[] | null;
+  layout?:
+    | (CallToActionBlock | ContentBlock | MediaBlock | CommentsBlock | CalendarBlock | GoogleReviewsBlock)[]
+    | null;
   inventory?: number | null;
   enableVariants?: boolean | null;
   variantTypes?: (number | VariantType)[] | null;
@@ -1406,6 +1408,7 @@ export interface Page {
     | FeaturedEndeavorsBlock
     | MerlinControlBlock
     | GalleryBlock
+    | GoogleReviewsBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2435,6 +2438,33 @@ export interface GalleryBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'gallery';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GoogleReviewsBlock".
+ */
+export interface GoogleReviewsBlock {
+  /**
+   * The business Google Place ID (find it at developers.google.com/maps/documentation/places/web-service/place-id). A pasted Google Maps URL with ?place_id= also works.
+   */
+  placeId: string;
+  /**
+   * Optional section heading, e.g. "What our customers say".
+   */
+  heading?: string | null;
+  /**
+   * How many reviews to show (Google returns up to 5).
+   */
+  maxReviews?: number | null;
+  /**
+   * Only show reviews at or above this star rating.
+   */
+  minRating?: number | null;
+  showAggregate?: boolean | null;
+  layout?: ('grid' | 'list') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'googleReviews';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3792,6 +3822,7 @@ export interface Post {
     | FormBlock
     | CommentsBlock
     | CalendarBlock
+    | GoogleReviewsBlock
   )[];
   meta?: {
     title?: string | null;
@@ -8104,6 +8135,7 @@ export interface PagesSelect<T extends boolean = true> {
         featuredEndeavors?: T | FeaturedEndeavorsBlockSelect<T>;
         merlinControl?: T | MerlinControlBlockSelect<T>;
         gallery?: T | GalleryBlockSelect<T>;
+        googleReviews?: T | GoogleReviewsBlockSelect<T>;
       };
   meta?:
     | T
@@ -8332,6 +8364,20 @@ export interface GalleryBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GoogleReviewsBlock_select".
+ */
+export interface GoogleReviewsBlockSelect<T extends boolean = true> {
+  placeId?: T;
+  heading?: T;
+  maxReviews?: T;
+  minRating?: T;
+  showAggregate?: T;
+  layout?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
@@ -8375,6 +8421,7 @@ export interface PostsSelect<T extends boolean = true> {
         formBlock?: T | FormBlockSelect<T>;
         comments?: T | CommentsBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
+        googleReviews?: T | GoogleReviewsBlockSelect<T>;
       };
   meta?:
     | T
@@ -9755,6 +9802,7 @@ export interface ProductsSelect<T extends boolean = true> {
         mediaBlock?: T | MediaBlockSelect<T>;
         comments?: T | CommentsBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
+        googleReviews?: T | GoogleReviewsBlockSelect<T>;
       };
   inventory?: T;
   enableVariants?: T;
