@@ -390,8 +390,39 @@ function buildAssistantConfig(tenant: Record<string, any> | null) {
       maxDurationSeconds: 600,
       endCallFunctionEnabled: true,
       recordingEnabled: true,
+      // Without these the assistant has NO way to reach the platform — it told a
+      // caller "I don't have details on file" because it literally could not look
+      // anything up (no serverMessages subscription, no functions). ask_business
+      // bridges to LEO via the function-call handler, tenant-scoped.
+      serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
+      functions: [ASK_BUSINESS_FUNCTION],
     },
   }
+}
+
+/**
+ * The one function every phone assistant gets: ask the platform about the
+ * business. Routed through `function-call` → leoProcessMessage with the resolved
+ * tenant, so LEO can read that tenant's own site content (query_site_content).
+ */
+const ASK_BUSINESS_FUNCTION = {
+  name: 'ask_business',
+  description:
+    "Look up REAL information about the business — what it does, its services, products, pricing, hours, or anything published on its website. ALWAYS call this before telling a caller you don't have information. Pass the caller's question verbatim.",
+  parameters: {
+    type: 'object',
+    properties: {
+      business: {
+        type: 'string',
+        description: 'The business the caller named, e.g. "NeuroCare Pro"',
+      },
+      question: {
+        type: 'string',
+        description: "The caller's question, in their own words",
+      },
+    },
+    required: ['question'],
+  },
 }
 
 /**
@@ -434,6 +465,8 @@ function buildTenantAssistantConfig(tenant: Record<string, any>) {
       maxDurationSeconds: 600,
       endCallFunctionEnabled: true,
       recordingEnabled: true,
+      serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
+      functions: [ASK_BUSINESS_FUNCTION],
     },
   }
 }
@@ -467,7 +500,23 @@ You're answering a shared phone line. Your FIRST job is to find out which busine
 - Product information and pricing
 - Booking appointments and scheduling
 - General questions about the business
-- Connecting with a human team member
+
+## Answering questions about a business — REQUIRED
+
+Call the \`ask_business\` tool with the caller's question whenever they ask
+anything about a business: what it does, its services, products, pricing, or
+hours. You do NOT know these things on your own — the tool reads that business's
+actual website. NEVER say you "don't have details on file" without calling
+\`ask_business\` first.
+
+## What you CANNOT do — do not offer these
+
+You cannot transfer calls, put anyone on hold, or connect a caller to a human,
+and you do not have direct phone numbers for the businesses. Never say "let me
+connect you", "please hold", or "I'll get someone on the line" — you have no way
+to do it, and promising it and failing is worse than saying no. If you truly
+can't answer, say so plainly and offer to take a message or point them to the
+business's website.
 
 Important: You're representing a cooperative enterprise. Every interaction should reflect dignity, fairness, and genuine care for the caller.`
 }
@@ -490,9 +539,13 @@ You can help callers with:
 - Product information and pricing
 - Booking appointments and scheduling
 - General questions about ${tenantName}
-- Connecting them with a human team member
 
-If you can't help with something, offer to connect them with a human team member.
+Call the \`ask_business\` tool with the caller's question for ANY question about
+${tenantName} — what it does, services, products, pricing, hours. It reads
+${tenantName}'s actual website. Never say you lack information without calling it.
+
+You CANNOT transfer calls, hold, or connect anyone to a human — never offer it.
+If you can't answer, say so plainly and offer to take a message.
 
 Important: You're representing a cooperative enterprise. Every interaction should reflect dignity, fairness, and genuine care for the caller.`
 }
@@ -517,7 +570,18 @@ async function handleFunctionCall(
   const userMessage = buildToolMessage(functionName, parameters)
 
   try {
-    const tenantId = await resolveTenantId(message, payload)
+    // A function-call payload usually carries NO `conversation` array, so
+    // resolveTenantId would fall through to the DEFAULT (platform) tenant and
+    // LEO would search the wrong business. The assistant passes the business it
+    // heard — match on that first.
+    let tenantId: number | undefined
+    const businessParam = typeof parameters.business === 'string' ? parameters.business : ''
+    if (businessParam.trim()) {
+      const tenants = await getActiveTenants(payload)
+      const matched = matchTenantByName(businessParam.toLowerCase(), tenants)
+      if (matched?.id) tenantId = matched.id as number
+    }
+    if (!tenantId) tenantId = await resolveTenantId(message, payload)
 
     const result = await leoProcessMessage({
       message: userMessage,
@@ -544,6 +608,10 @@ async function handleFunctionCall(
  */
 function buildToolMessage(functionName: string, params: Record<string, unknown>): string {
   switch (functionName) {
+    case 'ask_business':
+      // Pass the caller's question through verbatim and point LEO at the site
+      // content tool — this is the "what does this business do?" path.
+      return `A caller on the phone asks: "${params.question}". Use query_site_content to read this business's own website pages and answer from what's actually published there. Answer in 1-3 short spoken sentences. If the site genuinely doesn't cover it, say so plainly — do NOT promise to transfer or call back.`
     case 'check_order_status':
       return `Check the status of order ${params.orderId || 'the order'}`
     case 'search_products':

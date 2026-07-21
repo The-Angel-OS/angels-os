@@ -189,6 +189,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'query_site_content',
+    description:
+      "Search THIS business's own website pages and read their actual text — the About/overview copy, services, product explanations, FAQs, and any long-form documents published as pages. This is how you answer 'what does this business do?', 'what services do you offer?', 'tell me about X'. ALWAYS use this before saying you don't have information about the business — the answer is usually on their site.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        search: {
+          type: 'string',
+          description: 'What to look for, e.g. "services", "about the company", "light therapy"',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max pages to return (default 4, max 8)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'query_bookings',
     description:
       'Look up bookings and appointments. Returns booking details including status, date/time, and type. Use when users ask about appointments, scheduling, or booking status.',
@@ -4225,6 +4244,8 @@ async function executeToolSwitch(
         return await queryProducts(payload, toolInput, tenantId)
       case 'query_posts':
         return await queryPosts(payload, toolInput, tenantId)
+      case 'query_site_content':
+        return await querySiteContent(payload, toolInput, tenantId)
       case 'query_bookings':
         return await queryBookings(payload, toolInput, tenantId)
       case 'query_events':
@@ -4646,6 +4667,83 @@ async function queryProducts(
   })
 
   return `Found ${result.totalDocs} product(s)${result.totalDocs > limit ? ` (showing first ${limit})` : ''}:\n${products.join('\n')}`
+}
+
+/**
+ * Flatten a lexical richText tree to plain text. Pages store their prose inside
+ * layout blocks, so this is the only way to actually READ the site.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lexicalToPlainText(node: any, out: string[] = []): string {
+  if (!node || typeof node !== 'object') return out.join(' ')
+  if (typeof node.text === 'string' && node.text.trim()) out.push(node.text.trim())
+  const kids = node.children ?? node.root?.children
+  if (Array.isArray(kids)) for (const k of kids) lexicalToPlainText(k, out)
+  return out.join(' ')
+}
+
+/** Pull every bit of readable prose out of a page doc (hero + layout blocks). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pageToPlainText(page: any): string {
+  const parts: string[] = []
+  if (page?.hero?.richText) parts.push(lexicalToPlainText(page.hero.richText))
+  for (const block of Array.isArray(page?.layout) ? page.layout : []) {
+    for (const col of Array.isArray(block?.columns) ? block.columns : []) {
+      if (col?.richText) parts.push(lexicalToPlainText(col.richText))
+    }
+    if (block?.richText) parts.push(lexicalToPlainText(block.richText))
+    for (const k of ['heading', 'body', 'eyebrow', 'caption']) {
+      if (typeof block?.[k] === 'string' && block[k].trim()) parts.push(block[k].trim())
+    }
+  }
+  return parts.join('\n').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * query_site_content — read the tenant's OWN website pages so LEO can answer
+ * "what does this business do?" from real copy instead of guessing. Ranks pages
+ * by keyword overlap and returns excerpts. Fail-closed on tenant.
+ */
+async function querySiteContent(
+  payload: Payload,
+  input: Record<string, unknown>,
+  tenantId?: number,
+): Promise<string> {
+  if (!tenantId) return 'No business context — I need to know which business before I can look up its information.'
+  const limit = Math.min(Number(input.limit) || 4, 8)
+  const search = typeof input.search === 'string' ? input.search.trim() : ''
+
+  const result = await payload.find({
+    collection: 'pages',
+    where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] } as Where,
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!result.docs.length) return 'This business has no published website pages yet.'
+
+  // Rank by keyword overlap across title + body; no query → newest pages.
+  const terms = search.toLowerCase().split(/\W+/).filter((t) => t.length > 2)
+  const scored = result.docs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((p: any) => {
+      const text = pageToPlainText(p)
+      const hay = `${p.title ?? ''} ${text}`.toLowerCase()
+      const score = terms.length ? terms.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0) : 1
+      return { title: p.title as string, slug: p.slug as string, text, score }
+    })
+    .filter((p) => p.text.length > 0 && (!terms.length || p.score > 0))
+    .sort((a, b) => b.score - a.score || b.text.length - a.text.length)
+    .slice(0, limit)
+
+  if (!scored.length) {
+    const titles = result.docs.map((p) => (p as { title?: string }).title).filter(Boolean).slice(0, 8)
+    return `Nothing matched "${search}" on the site. Available pages: ${titles.join(', ')}.`
+  }
+
+  return scored
+    .map((p) => `## ${p.title} (/${p.slug})\n${p.text.slice(0, 1200)}${p.text.length > 1200 ? '…' : ''}`)
+    .join('\n\n')
 }
 
 async function queryPosts(

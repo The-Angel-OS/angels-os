@@ -51,7 +51,7 @@ export function selectToolsForUser<T extends { name: string }>(tools: T[], roles
 
 /** Pure-read tools — safe to execute concurrently within one agentic round. */
 export const READ_ONLY_TOOLS = new Set<string>([
-  'query_products', 'query_posts', 'query_bookings', 'query_spaces', 'query_projects',
+  'query_products', 'query_posts', 'query_site_content', 'query_bookings', 'query_spaces', 'query_projects',
   'query_events', 'query_event_registrations', 'query_availability', 'query_orders',
   'query_media', 'query_knowledge', 'query_inventory_history', 'query_federation',
   'query_peer_catalog', 'query_navigation', 'query_form_submissions', 'query_board_members',
@@ -82,7 +82,7 @@ export function allReadOnly(names: string[]): boolean {
  */
 export const CORE_TOOL_NAMES = new Set<string>([
   // Querying (read)
-  'query_products', 'query_posts', 'query_spaces', 'query_bookings',
+  'query_products', 'query_posts', 'query_site_content', 'query_spaces', 'query_bookings',
   'query_events', 'query_orders', 'query_knowledge', 'query_navigation',
   'query_federation', 'lookup_scripture', 'open_passage',
   // Booking
