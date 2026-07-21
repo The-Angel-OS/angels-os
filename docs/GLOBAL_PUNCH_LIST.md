@@ -58,6 +58,22 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[✅ SHIPPED 260720] Phone assistant can now actually answer questions (site-content RAG)** — first live call
+  routed fine but was useless: LEO's bridge **never fired once** (logs: zero `conversation-update`), because the
+  Vapi assistant config had **no `serverMessages` subscription and no `functions`** — it had no way to reach the
+  platform, so it truthfully said "I don't have details on file", then promised a transfer it cannot perform.
+  Root gap: LEO had `query_posts` / `query_knowledge` (MediaMeta only) but **nothing that reads Pages** — where a
+  business's actual copy lives. *Shipped:* new `query_site_content` tool (flattens lexical richText out of layout
+  blocks, keyword-ranked; in READ_ONLY_TOOLS + CORE_TOOL_NAMES so cheap providers get it); `ask_business` function
+  + `serverMessages` on both platform & tenant assistant configs; function-call resolves tenant from the
+  `business` param FIRST (a function-call payload has no `conversation` array, so it was defaulting to the
+  **platform** tenant and searching the wrong business); prompts no longer offer transfers. *Verified:* real PLMT
+  answer in **2.9s**, honest "not on our website" fallback, served by gemini-flash-lite. `260720`
+- **[P2] Proposal pages are publicly readable — and now voice-readable** — `proposal`, `proposal-campaign`,
+  `proposal-research` are Ken→David pitch docs (incl. positioning/pricing) published on tenant 22, so
+  `query_site_content` can recite them to any caller. *Next:* scope pitch docs out of public/RAG surface
+  (unpublish, a `noindex`-style flag, or exclude by slug prefix). `260720`
+
 - **[✅ FIXED 260720] VAPI voice (LEO on the phone) working end-to-end** — was broken by TWO things:
   (1) the Vapi phone number `+1 727-440-8797` (`a20b5a0d-8d79-41f5-9173-5091314ffc4f`) had `serverUrl` pointing
   at the dead `www.spacesangels.com` node → repointed to `https://www.payloadnuke.com/api/vapi/webhook`;
