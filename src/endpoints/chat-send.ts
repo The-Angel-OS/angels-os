@@ -231,6 +231,30 @@ export const chatSendHandler: PayloadHandler = async (req) => {
       }
       const wantedIds = [...new Set(attachmentList.map(attMediaId).filter((v): v is string => v != null))]
 
+      // Optimistic path: link ALL attachments in one update. The web composer
+      // uploads + commits media BEFORE sending, so they exist — linking directly
+      // is reliable and avoids the verify `find` (which, under DB-pool pressure,
+      // used to error → return empty → SILENTLY DROP every image). Only if Payload
+      // actually rejects the array (a not-yet-committed media on a fast client like
+      // Nimue) do we fall back to the verify-and-link-subset path below.
+      let optimisticOk = false
+      try {
+        const withAtt = await req.payload.update({
+          collection: 'messages',
+          id: saved.id,
+          data: { attachments: attachmentList } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+          overrideAccess: true,
+          req,
+          depth: 0,
+        })
+        attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
+          ? (withAtt as { attachments: unknown[] }).attachments.length
+          : 0
+        optimisticOk = true
+      } catch {
+        // Fall through to verify-and-link-subset (handles uncommitted media).
+      }
+
       const findExisting = async (): Promise<Set<string>> => {
         if (!wantedIds.length) return new Set()
         try {
@@ -248,53 +272,57 @@ export const chatSendHandler: PayloadHandler = async (req) => {
         }
       }
 
-      // Poll for commit lag: up to 3 rechecks, ~350ms apart (~1s worst case).
-      let existing = await findExisting()
-      for (let attempt = 0; attempt < 3 && existing.size < wantedIds.length; attempt++) {
-        await new Promise((r) => setTimeout(r, 350))
-        existing = await findExisting()
-      }
+      if (!optimisticOk) {
+        // Fallback: media wasn't committed yet (fast client). Poll for commit lag —
+        // up to 3 rechecks, ~350ms apart (~1s worst case) — then link the subset
+        // that resolved and drop the rest with a warning (never fail the message).
+        let existing = await findExisting()
+        for (let attempt = 0; attempt < 3 && existing.size < wantedIds.length; attempt++) {
+          await new Promise((r) => setTimeout(r, 350))
+          existing = await findExisting()
+        }
 
-      const validAttachments = attachmentList.filter((a) => {
-        const id = attMediaId(a)
-        return id != null && existing.has(id)
-      })
-      const droppedCount = attachmentList.length - validAttachments.length
+        const validAttachments = attachmentList.filter((a) => {
+          const id = attMediaId(a)
+          return id != null && existing.has(id)
+        })
+        const droppedCount = attachmentList.length - validAttachments.length
 
-      if (validAttachments.length > 0) {
-        try {
-          const withAtt = await req.payload.update({
-            collection: 'messages',
-            id: saved.id,
-            data: { attachments: validAttachments } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-            overrideAccess: true,
-            req,
-            depth: 0,
-          })
-          attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
-            ? (withAtt as { attachments: unknown[] }).attachments.length
-            : 0
-        } catch (attErr) {
-          // Non-fatal — message already persisted. Log so the failure is visible.
+        if (validAttachments.length > 0) {
+          try {
+            const withAtt = await req.payload.update({
+              collection: 'messages',
+              id: saved.id,
+              data: { attachments: validAttachments } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+              overrideAccess: true,
+              req,
+              depth: 0,
+            })
+            attachedCount = Array.isArray((withAtt as { attachments?: unknown[] }).attachments)
+              ? (withAtt as { attachments: unknown[] }).attachments.length
+              : 0
+          } catch (attErr) {
+            // Non-fatal — message already persisted. Log so the failure is visible.
+            await logError({
+              source: 'chat-send/attach',
+              message: `Failed to link ${validAttachments.length} attachment(s) to message ${saved.id}`,
+              details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+              tenantId: tenantId != null ? String(tenantId) : undefined,
+            }).catch(() => {})
+          }
+        }
+
+        if (droppedCount > 0) {
+          // Media never resolved (upload failed or still uncommitted after retries).
+          // Warn, don't error — the message + any valid images were saved.
           await logError({
+            level: 'warning',
             source: 'chat-send/attach',
-            message: `Failed to link ${validAttachments.length} attachment(s) to message ${saved.id}`,
-            details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+            message: `Dropped ${droppedCount} attachment(s) on message ${saved.id} — media did not resolve`,
+            details: `wanted media ids: ${wantedIds.join(', ')}; resolved: ${[...existing].join(', ') || 'none'}`,
             tenantId: tenantId != null ? String(tenantId) : undefined,
           }).catch(() => {})
         }
-      }
-
-      if (droppedCount > 0) {
-        // Media never resolved (upload failed or still uncommitted after retries).
-        // Warn, don't error — the message + any valid images were saved.
-        await logError({
-          level: 'warning',
-          source: 'chat-send/attach',
-          message: `Dropped ${droppedCount} attachment(s) on message ${saved.id} — media did not resolve`,
-          details: `wanted media ids: ${wantedIds.join(', ')}; resolved: ${[...existing].join(', ') || 'none'}`,
-          tenantId: tenantId != null ? String(tenantId) : undefined,
-        }).catch(() => {})
       }
     }
     req.payload.logger?.info?.(
