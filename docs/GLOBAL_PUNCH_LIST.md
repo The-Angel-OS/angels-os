@@ -58,7 +58,15 @@
 
 ## 🔧 Debt & hardening (P2)
 
-- **[P1] Ecommerce collections leak across portals (`carts`, `addresses`, `transactions`)** — none are in the
+- **[✅ FIXED 260720] Ecommerce cross-portal leak** — shipped: `tenantScope.ts` override (tenant field +
+  tenant-on-write from request host + tenant-ANDed read, fail-open) wired as carts/addresses/transactions
+  overrides; migration `20260720_030000` added `tenant_id` FK+index. *Verified live:* new cart got
+  `tenant_id=5` on clearwater, add-to-cart + cart read ("Max in cart") + checkout ($40 total) all working.
+  Pre-existing rows stay NULL by design. Original analysis below for reference.
+- **[P2] Shop category filter leaked every tenant's categories — FIX STAGED** — `Categories.tsx:12` did an
+  unfiltered `payload.find`; Clearwater's categories showed on the NeuroCare Pro shop. Now filtered by resolved
+  tenant; awaiting next rebuild. `260720`
+- **[~~P1~~ superseded, see FIXED above] Ecommerce collections leak across portals (`carts`, `addresses`, `transactions`)** — none are in the
   `multiTenantPlugin` map (`payload.config.ts:452-516`); plugin config (`src/plugins/index.ts:104-130`) only
   overrides `orders`+`products`. So they have NO tenant field and follow an SSO'd user across every portal:
   - `carts` — surfaced via Users `cart` join (`Users/index.ts:401-406`); tenant A's cart shows on tenant B. LEO
