@@ -58,12 +58,21 @@
 
 ## 🔧 Debt & hardening (P2)
 
-- **[P1] Shopping cart leaks across portals** — `carts` (and likely `customers`/`transactions`) are NOT in the
-  multi-tenant plugin's collections list, so a cart has no tenant scope and follows an SSO'd user onto every
-  portal. Cart id is in localStorage (per-subdomain) so the leak is server-side. *Fix:* add `carts` to
-  `multiTenantPlugin` collections → **needs a schema migration** (`tenant_id` column) + verify anonymous-cart
-  tenant resolution (the plugin's frontend cart-create must set tenant from the request host) so add-to-cart
-  doesn't break. Do carefully, own rebuild. `260720`
+- **[P1] Ecommerce collections leak across portals (`carts`, `addresses`, `transactions`)** — none are in the
+  `multiTenantPlugin` map (`payload.config.ts:452-516`); plugin config (`src/plugins/index.ts:104-130`) only
+  overrides `orders`+`products`. So they have NO tenant field and follow an SSO'd user across every portal:
+  - `carts` — surfaced via Users `cart` join (`Users/index.ts:401-406`); tenant A's cart shows on tenant B. LEO
+    cart tools read/write `userDoc.cart.items` with no tenant (`leo-data-tools.ts:5388-5437`). HIGH.
+  - `addresses` — Users `addresses` join (`Users/index.ts:411-417`); saved shipping PII identical on every
+    portal. HIGH (PII).
+  - `transactions` — Stripe adapter writes no tenant (`angel-os-stripe-adapter.ts:308-312,364-368`); admin
+    payments page filters by a non-existent `tenant` field (`dashboard/admin/payments/page.tsx:46-49`) so it's
+    silently ineffective. MEDIUM-HIGH (financial).
+  *Fix:* add all three to `multiTenantPlugin` → **schema migration** (`tenant_id` columns) + set tenant on write
+  (cart/address create from request host; transaction from the order's tenant). Own careful build; verify
+  add-to-cart + checkout after. Cart id is localStorage (per-subdomain) so the leak is purely server-side.
+  *Also audit* (tenant field already present, confirm access filters): `services`, `memberships`, `wallets`,
+  `token-ledger`, `signatures`, `agent-transactions`, `works`. `260720`
 - **[P2] Link-editor tenant filter — STAGED, not deployed** — filterOptions on the rich-text LinkFeature + block
   link field scopes the page picker to the editing doc's tenant; awaiting next Core rebuild. `260720`
 - **[P2] White-label nav hides** — hide root **Learn** + **Works** nav links per-tenant; Ken thinks the toggle
