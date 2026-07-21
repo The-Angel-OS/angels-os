@@ -14,6 +14,7 @@ import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 import { ProductsCollection } from '@/collections/Products'
 import { OrdersCollection } from '@/collections/Orders'
+import { tenantScopedEcommerceOverride } from '@/collections/ecommerce/tenantScope'
 import { adminOrPublishedStatus } from '@/access/adminOrPublishedStatus'
 import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { customerOnlyFieldAccess } from '@/access/customerOnlyFieldAccess'
@@ -126,6 +127,18 @@ export const plugins: Plugin[] = [
     },
     products: {
       productsCollectionOverride: ProductsCollection,
+    },
+    // Tenant-scope the plugin's own collections — otherwise a cart/address/
+    // transaction is keyed to the customer only and leaks across every portal an
+    // SSO'd user visits. See tenantScope.ts. (Schema: migration adds tenant_id.)
+    carts: {
+      cartsCollectionOverride: tenantScopedEcommerceOverride,
+    },
+    addresses: {
+      addressesCollectionOverride: tenantScopedEcommerceOverride,
+    },
+    transactions: {
+      transactionsCollectionOverride: tenantScopedEcommerceOverride,
     },
   }),
 ]
