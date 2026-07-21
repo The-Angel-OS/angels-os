@@ -32,6 +32,34 @@ export const vapiSetupHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Super admin access required.' }, { status: 403 })
   }
 
+  // ─── Per-tenant path (preferred) ────────────────────────────
+  // POST { tenantId } syncs THAT portal's own number + failover from
+  // `tenants.vapi.{phoneNumber, fallbackNumber}` — so each portal gets its own
+  // bot and its own fallback without a hardcoded env number. The env path below
+  // stays for the legacy single-number setup.
+  let bodyTenantId: number | undefined
+  try {
+    const body = (await (req as Request).json()) as Record<string, unknown>
+    if (body?.tenantId != null) bodyTenantId = Number(body.tenantId)
+  } catch {
+    // no body → fall through to the env path
+  }
+
+  if (bodyTenantId != null && !Number.isNaN(bodyTenantId)) {
+    const tenant = await req.payload.findByID({
+      collection: 'tenants',
+      id: bodyTenantId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (!tenant) {
+      return Response.json({ error: `Tenant ${bodyTenantId} not found.` }, { status: 404 })
+    }
+    const { syncVapiNumber } = await import('@/utilities/syncVapiNumber')
+    const result = await syncVapiNumber(tenant as unknown as Record<string, unknown>)
+    return Response.json(result, { status: result.ok ? 200 : 400 })
+  }
+
   // ─── Validate env vars ──────────────────────────────────────
   const vapiKey = process.env.VAPI_PRIVATE_KEY
   const phoneNumberId = process.env.VAPI_PHONE_NUMBER_ID

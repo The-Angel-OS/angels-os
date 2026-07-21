@@ -563,6 +563,15 @@ export const Tenants: CollectionConfig = {
           },
         },
         {
+          name: 'fallbackNumber',
+          type: 'text',
+          admin: {
+            description:
+              "Where Vapi forwards the call if the AI can't be reached (E.164, e.g. +17275551234). This is the safety net — a real human line, usually the front desk or owner's mobile. Synced to the Vapi phone number's fallbackDestination.",
+            condition: (_, siblingData) => siblingData?.enabled === true,
+          },
+        },
+        {
           name: 'assistantId',
           type: 'text',
           admin: {

@@ -2,6 +2,7 @@ import * as migration_20260720_000000_add_fullscreen_hero_type from './20260720_
 import * as migration_20260720_010000_add_media_text_block from './20260720_010000_add_media_text_block';
 import * as migration_20260720_020000_add_tenant_default_theme from './20260720_020000_add_tenant_default_theme';
 import * as migration_20260720_030000_tenant_scope_ecommerce from './20260720_030000_tenant_scope_ecommerce';
+import * as migration_20260721_010000_add_vapi_fallback_number from './20260721_010000_add_vapi_fallback_number';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -203,5 +204,10 @@ export const migrations = [
     up: migration_20260720_030000_tenant_scope_ecommerce.up,
     down: migration_20260720_030000_tenant_scope_ecommerce.down,
     name: '20260720_030000_tenant_scope_ecommerce',
+  },
+  {
+    up: migration_20260721_010000_add_vapi_fallback_number.up,
+    down: migration_20260721_010000_add_vapi_fallback_number.down,
+    name: '20260721_010000_add_vapi_fallback_number',
   },
 ];

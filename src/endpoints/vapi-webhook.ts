@@ -451,6 +451,11 @@ const CAPTURE_LEAD_FUNCTION = {
     type: 'object',
     properties: {
       name: { type: 'string', description: "The caller's name" },
+      business: {
+        type: 'string',
+        description:
+          "Only if the caller asked about a DIFFERENT business than the one you answered as — name it so the lead is routed to that business instead. Leave blank otherwise.",
+      },
       phone: { type: 'string', description: "Callback number — confirm the number they're calling from" },
       email: { type: 'string', description: 'Only if they volunteer it — never make them spell it out' },
       leadType: {
@@ -672,6 +677,15 @@ conversation, not a form.
 For anything beyond the overview above — specific pricing, products, details —
 call \`ask_business\` with their question. It reads ${tenantName}'s actual website.
 Never claim you lack information without calling it first.
+
+## If they're calling about a different business
+
+You answer as ${tenantName} by default — lead with that. But this line runs on
+Angel OS, which hosts other businesses too. If a caller names a DIFFERENT
+business, don't turn them away: pass that name as the \`business\` argument to
+\`ask_business\` (and to \`capture_lead\` if you take their details) and you'll be
+answering for that business instead. Don't advertise this — just handle it
+gracefully if it comes up.
 
 ## What you CANNOT do
 
