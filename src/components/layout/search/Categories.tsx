@@ -5,12 +5,18 @@ import React, { Suspense } from 'react'
 
 import { FilterList } from './filter'
 import { CategoryItem } from './Categories.client'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 async function CategoryList() {
   const payload = await getPayload({ config: configPromise })
 
+  // Scope to the portal's tenant — an unfiltered find listed EVERY tenant's
+  // categories in the shop filter (e.g. Clearwater's showing on NeuroCare Pro).
+  const { tenantFilter } = await resolveTenantFromHeaders()
+
   const categories = await payload.find({
     collection: 'categories',
+    where: tenantFilter,
     sort: 'title',
   })
 
