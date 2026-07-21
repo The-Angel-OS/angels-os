@@ -156,11 +156,25 @@ async function resolveTenantFromDedicatedNumber(
   payload: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Record<string, any> | null> {
+  // Vapi puts the DIALED number at message.phoneNumber (top level) on
+  // assistant-request; older/other shapes nest it under call.phoneNumber. Reading
+  // only the nested one silently missed every real call — the trunk line looked
+  // wired but every caller still got the "which business?" routing prompt.
   const call = message.call as Record<string, unknown> | undefined
-  const phoneNumberObj = call?.phoneNumber as Record<string, unknown> | undefined
-  const calledNumber = phoneNumberObj?.number as string | undefined
+  const topLevelPhone = message.phoneNumber as Record<string, unknown> | undefined
+  const nestedPhone = call?.phoneNumber as Record<string, unknown> | undefined
+  const calledNumber =
+    (typeof topLevelPhone?.number === 'string' ? topLevelPhone.number : undefined) ??
+    (typeof nestedPhone?.number === 'string' ? nestedPhone.number : undefined)
 
-  if (!calledNumber) return null
+  if (!calledNumber) {
+    console.log('[Vapi] No dialed number on payload — falling back to platform routing', {
+      hasTopLevelPhone: Boolean(topLevelPhone),
+      hasNestedPhone: Boolean(nestedPhone),
+      messageKeys: Object.keys(message).slice(0, 12),
+    })
+    return null
+  }
 
   const normalized = calledNumber.replace(/[\s-]/g, '')
   const tenants = await getActiveTenants(payload)
@@ -375,6 +389,7 @@ async function buildAssistantConfig(
         model: 'claude-sonnet-4-6',
         systemPrompt: buildPlatformRoutingPrompt(),
         temperature: 0.7,
+        tools: asVapiTools([ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION]),
       },
       voice: {
         provider: '11labs',
@@ -399,7 +414,6 @@ async function buildAssistantConfig(
       // anything up (no serverMessages subscription, no functions). ask_business
       // bridges to LEO via the function-call handler, tenant-scoped.
       serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
-      functions: [ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION],
     },
   }
 }
@@ -409,6 +423,21 @@ async function buildAssistantConfig(
  * business. Routed through `function-call` → leoProcessMessage with the resolved
  * tenant, so LEO can read that tenant's own site content (query_site_content).
  */
+/**
+ * Vapi's CURRENT tool schema lives at `model.tools` as typed function objects.
+ * The legacy top-level `assistant.functions` we shipped first is deprecated —
+ * the model saw no callable tools and narrated "I don't actually have a tool
+ * visible to call in this turn", then stalled until the caller hung up.
+ */
+function asVapiTools(
+  fns: Array<{ name: string; description: string; parameters: unknown }>,
+): Array<Record<string, unknown>> {
+  return fns.map((f) => ({
+    type: 'function',
+    function: { name: f.name, description: f.description, parameters: f.parameters },
+  }))
+}
+
 /**
  * Lead capture — the primary purpose of the line. Phone-first: caller ID is
  * already known, and making someone spell an email aloud is where voice leads
@@ -496,9 +525,13 @@ async function buildTenantAssistantConfig(
     (tenant.branding as Record<string, unknown>)?.siteName || tenant.name || 'Angel OS'
 
   const voiceId = (vapiConfig?.voiceId as string) || 'Xb7hH8MSUJpSbSDYk0k2'
+  // Lead with what the line can actually DO. Callers who are told their options
+  // self-sort into the customer / employment branches immediately, which is what
+  // makes the lead capture work — and it sets expectations so the assistant is
+  // never asked for something it can't deliver.
   const greeting =
     (vapiConfig?.greeting as string) ||
-    `Hello! I'm LEO, the AI assistant for ${tenantName}. How can I help you today?`
+    `Thanks for calling ${tenantName}. I'm LEO, the AI assistant. I can help if you're calling about the product, about employment opportunities, or if you just have general questions. What can I do for you?`
 
   // Pre-load a briefing from the business's own site INTO the system prompt.
   // Without this the very first "so what do you do?" costs a ~3s tool round-trip
@@ -514,6 +547,7 @@ async function buildTenantAssistantConfig(
         model: 'claude-sonnet-4-6',
         systemPrompt: buildTenantVoicePrompt(tenantName, briefing),
         temperature: 0.7,
+        tools: asVapiTools([ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION]),
       },
       voice: {
         provider: '11labs',
@@ -533,7 +567,6 @@ async function buildTenantAssistantConfig(
       endCallFunctionEnabled: true,
       recordingEnabled: true,
       serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
-      functions: [ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION],
     },
   }
 }
