@@ -67,6 +67,14 @@
   and `OLLAMA_BASE_URL: "http://host.docker.internal:11434"` + `extra_hosts: host.docker.internal:host-gateway`
   (closes the long-standing "container Ollama fallback DEAD" note). Verified: assistant-request returns a valid
   LEO config; conversation-update returns a real AI answer. *Remaining:* Ken places a live test call.
+  ⚠️ **Vapi has TWO server fields — `server.url` is authoritative, `serverUrl` is legacy/deprecated.** Patching
+  only `serverUrl` changes nothing for live calls: Vapi read `server.url` (still the dead spacesangels node),
+  timed out at 20s, and forwarded to `fallbackDestination` (+1 727-256-4413). Also cleared a **dangling
+  `assistantId`** (`e9675026-…`) that pointed at a non-existent assistant (account has 0 stored assistants) —
+  with it set, Vapi never sends `assistant-request` to our webhook. Now: `server.url` = payloadnuke webhook,
+  `timeoutSeconds` 20→30, `assistantId` null, fallback preserved. Webhook latency measured **0.17–0.19s**.
+  *Note:* `conversation-update` returning `{ok:true}` is BY DESIGN — Vapi's own assistant handles the
+  greeting/routing turn until the caller names a business; only then does the tenant resolve and LEO take over.
   *Optional:* set `VAPI_PHONE_NUMBER_ID` in compose so `/api/vapi/setup` works (repoint was a direct API PATCH).
   `260720`
 - **[✅ FIXED 260720] LEO now runs on Gemini (~10x cheaper than the metered Anthropic gateway)** — the gateway
