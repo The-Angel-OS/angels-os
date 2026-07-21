@@ -1945,17 +1945,23 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'capture_lead',
     description:
-      "Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone in chat wants to be contacted about a product/listing, leaves their details, or you're taking a message for the seller/operator. name + email are enough; include product/message context when you have it.",
+      "Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone wants to be contacted, leaves their details, or you're taking a message for the operator. Needs a name plus EITHER a phone number OR an email — on a phone call always prefer the phone number (you usually already have it from caller ID); never make a caller spell out an email unless they offer it.",
     input_schema: {
       type: 'object' as const,
       properties: {
         name: { type: 'string', description: "The lead's name." },
-        email: { type: 'string', description: "The lead's email address." },
-        phone: { type: 'string', description: 'Optional phone number.' },
-        message: { type: 'string', description: 'What they want / their message to the seller.' },
+        email: { type: 'string', description: "The lead's email address (optional if you have a phone number)." },
+        phone: { type: 'string', description: 'Phone number — preferred on voice calls; use caller ID if they confirm it.' },
+        leadType: {
+          type: 'string',
+          enum: ['customer', 'opportunity'],
+          description:
+            "'customer' = wants to buy/use the product or service. 'opportunity' = wants to sell, distribute, partner, or work for the business (career/affiliate enquiry).",
+        },
+        message: { type: 'string', description: 'What they want, their situation, and any qualifying detail you gathered.' },
         product: { type: 'string', description: 'Product or listing title this is about, if any.' },
       },
-      required: ['name', 'email'],
+      required: ['name'],
     },
   },
   {
@@ -9861,29 +9867,43 @@ async function handleCaptureLead(
   const message = str(input.message)
   const product = str(input.product)
 
+  const leadType = str(input.leadType)
+
   if (!tenantId) return 'Error: no tenant context — cannot route the lead.'
   if (!name) return 'Error: a name is required to capture the lead.'
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return 'Error: a valid email is required to capture the lead.'
+  // PHONE-FIRST: on a voice call, spelling an email aloud is the most error-prone
+  // thing you can ask for — and we usually already have caller ID. Either channel
+  // is enough; only validate an email if one was actually given.
+  if (!email && !phone) {
+    return 'Error: I need either a phone number or an email address to capture the lead.'
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Error: that email doesn't look valid — re-read it back or take a phone number instead."
   }
 
   try {
     const { deliverLead } = await import('./deliverLead')
     const fields: Record<string, unknown> = {
       name,
-      email,
+      ...(email ? { email } : {}),
       ...(phone ? { phone } : {}),
+      ...(leadType ? { leadType } : {}),
       ...(message ? { message } : {}),
       ...(product ? { product } : {}),
     }
+    // Lead type rides in the title so the operator can triage from the inbox
+    // subject line alone (customer enquiry vs someone wanting to sell for you).
+    const typeLabel =
+      leadType === 'opportunity' ? 'Opportunity/Career Lead' : leadType === 'customer' ? 'Customer Lead' : 'New Lead'
     const result = await deliverLead(payload, {
       tenantId,
-      formTitle: product ? `Contact Seller: ${product}` : 'New Lead',
+      formTitle: product ? `Contact Seller: ${product}` : typeLabel,
       fields,
       source: 'capture_lead',
     })
     if (!result.ok) return `Could not route the lead: ${result.error || 'unknown error'}`
-    return `✅ Lead captured — ${name} (${email})${product ? ` re: ${product}` : ''} landed in the inbox and the operator was notified.`
+    const contact = email || phone
+    return `✅ Lead captured — ${name} (${contact})${product ? ` re: ${product}` : ''} landed in the inbox and the operator was notified.`
   } catch (err) {
     logCaughtError('leo-tools/capture_lead', err).catch(() => {})
     return `Error capturing lead: ${err instanceof Error ? err.message : 'Unknown error'}`

@@ -108,7 +108,7 @@ export const vapiWebhookHandler: PayloadHandler = async (req) => {
       // ─── Assistant Request — initial call setup ─────────────────
       case 'assistant-request': {
         const tenant = await resolveTenantFromDedicatedNumber(messageType, payload)
-        return Response.json(buildAssistantConfig(tenant))
+        return Response.json(await buildAssistantConfig(tenant, payload))
       }
 
       // ─── Function Call — Leo tool invocation via voice ──────────
@@ -356,10 +356,14 @@ async function resolveDefaultSpaceId(
  *   business the caller is looking for. Once they name one, Leo routes.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAssistantConfig(tenant: Record<string, any> | null) {
+async function buildAssistantConfig(
+  tenant: Record<string, any> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any,
+) {
   if (tenant) {
     // ─── Tenant Mode: dedicated number or pre-resolved ──────────
-    return buildTenantAssistantConfig(tenant)
+    return await buildTenantAssistantConfig(tenant, payload)
   }
 
   // ─── Platform Mode: single-number routing ─────────────────────
@@ -395,7 +399,7 @@ function buildAssistantConfig(tenant: Record<string, any> | null) {
       // anything up (no serverMessages subscription, no functions). ask_business
       // bridges to LEO via the function-call handler, tenant-scoped.
       serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
-      functions: [ASK_BUSINESS_FUNCTION],
+      functions: [ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION],
     },
   }
 }
@@ -405,6 +409,59 @@ function buildAssistantConfig(tenant: Record<string, any> | null) {
  * business. Routed through `function-call` → leoProcessMessage with the resolved
  * tenant, so LEO can read that tenant's own site content (query_site_content).
  */
+/**
+ * Lead capture — the primary purpose of the line. Phone-first: caller ID is
+ * already known, and making someone spell an email aloud is where voice leads
+ * die. leadType splits the two audiences (buy from us / sell for us).
+ */
+const CAPTURE_LEAD_FUNCTION = {
+  name: 'capture_lead',
+  description:
+    "Save the caller's details so the business can follow up. Call this as soon as you have a name and a way to reach them — do NOT wait until the end of the call. Prefer the phone number (confirm the one they're calling from); only take an email if they volunteer it. Set leadType to 'customer' if they want to buy/use the product, or 'opportunity' if they want to sell, distribute, partner, or work for the business.",
+  parameters: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: "The caller's name" },
+      phone: { type: 'string', description: "Callback number — confirm the number they're calling from" },
+      email: { type: 'string', description: 'Only if they volunteer it — never make them spell it out' },
+      leadType: {
+        type: 'string',
+        enum: ['customer', 'opportunity'],
+        description: "'customer' = wants to buy/use it. 'opportunity' = wants to sell it / work with the business.",
+      },
+      message: {
+        type: 'string',
+        description:
+          'What they need, in your words — their situation, condition or interest, timeframe, and for opportunity leads their background and territory.',
+      },
+    },
+    required: ['name'],
+  },
+}
+
+/**
+ * Pull a short briefing out of the tenant's own published pages so the assistant
+ * can answer "what do you do?" instantly, without a tool round-trip.
+ */
+async function buildBusinessBriefing(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  tenantId: number,
+): Promise<string> {
+  try {
+    const { executeToolCall } = await import('@/utilities/leo-data-tools')
+    const text = await executeToolCall(
+      'query_site_content',
+      { search: 'about services overview what we do', limit: 3 },
+      { payload, tenantId } as never,
+    )
+    if (typeof text !== 'string' || !text.trim()) return ''
+    return text.slice(0, 3500) // rides in every assistant-request — keep it tight
+  } catch {
+    return ''
+  }
+}
+
 const ASK_BUSINESS_FUNCTION = {
   name: 'ask_business',
   description:
@@ -429,7 +486,11 @@ const ASK_BUSINESS_FUNCTION = {
  * Build assistant config for a specific tenant (dedicated number path).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTenantAssistantConfig(tenant: Record<string, any>) {
+async function buildTenantAssistantConfig(
+  tenant: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any,
+) {
   const vapiConfig = tenant.vapi as Record<string, unknown> | undefined
   const tenantName =
     (tenant.branding as Record<string, unknown>)?.siteName || tenant.name || 'Angel OS'
@@ -439,13 +500,19 @@ function buildTenantAssistantConfig(tenant: Record<string, any>) {
     (vapiConfig?.greeting as string) ||
     `Hello! I'm LEO, the AI assistant for ${tenantName}. How can I help you today?`
 
+  // Pre-load a briefing from the business's own site INTO the system prompt.
+  // Without this the very first "so what do you do?" costs a ~3s tool round-trip
+  // — dead air on a phone call reads as stammering. The tool stays available for
+  // anything deeper; this just makes the opening answer immediate.
+  const briefing = payload ? await buildBusinessBriefing(payload, tenant.id as number) : ''
+
   return {
     assistant: {
       name: 'LEO',
       model: {
         provider: 'anthropic',
         model: 'claude-sonnet-4-6',
-        systemPrompt: buildTenantVoicePrompt(tenantName),
+        systemPrompt: buildTenantVoicePrompt(tenantName, briefing),
         temperature: 0.7,
       },
       voice: {
@@ -466,7 +533,7 @@ function buildTenantAssistantConfig(tenant: Record<string, any>) {
       endCallFunctionEnabled: true,
       recordingEnabled: true,
       serverMessages: ['function-call', 'end-of-call-report', 'status-update'],
-      functions: [ASK_BUSINESS_FUNCTION],
+      functions: [ASK_BUSINESS_FUNCTION, CAPTURE_LEAD_FUNCTION],
     },
   }
 }
@@ -524,28 +591,61 @@ Important: You're representing a cooperative enterprise. Every interaction shoul
 /**
  * Tenant-specific voice prompt (for dedicated number or post-routing).
  */
-function buildTenantVoicePrompt(tenantName: string): string {
+function buildTenantVoicePrompt(tenantName: string, briefing = ''): string {
   return `You are LEO, the AI assistant for ${tenantName} — powered by Angel OS, a cooperative platform for ethical commerce.
 
 You're speaking on the phone. Keep responses SHORT and conversational:
 - 1-2 sentences per response when possible
 - Use natural speech patterns, not bullet points
-- Confirm actions before executing them
 - Spell out numbers and technical terms
 - Be warm, professional, and helpful
+- Never read out URLs, slugs, or markdown — you are being SPOKEN aloud
+${
+  briefing
+    ? `
+## What ${tenantName} does — you already know this
 
-You can help callers with:
-- Checking order status and tracking
-- Product information and pricing
-- Booking appointments and scheduling
-- General questions about ${tenantName}
+Use this to answer overview questions IMMEDIATELY and confidently. Do not call a
+tool just to answer "what do you do?" — summarize from here in 2-3 spoken
+sentences, then invite their question.
 
-Call the \`ask_business\` tool with the caller's question for ANY question about
-${tenantName} — what it does, services, products, pricing, hours. It reads
-${tenantName}'s actual website. Never say you lack information without calling it.
+${briefing}
+`
+    : ''
+}
+## YOUR PRIMARY JOB: capture the lead
 
-You CANNOT transfer calls, hold, or connect anyone to a human — never offer it.
-If you can't answer, say so plainly and offer to take a message.
+Every caller should end up as a captured lead. Get a name and a callback number
+early and naturally — "Who am I speaking with?" then "Is this the best number to
+reach you on?" — and call \`capture_lead\` AS SOON AS you have both. Don't save it
+for the end; calls drop.
+
+Early on, find out which kind of caller this is:
+
+**Customer** (wants to buy or use it) — find out what they're hoping it helps
+with, whether they've tried anything similar, and their timeframe. Then
+\`capture_lead\` with leadType "customer".
+
+**Opportunity** (wants to sell it, distribute, partner, or work with ${tenantName})
+— find out their background, whether they've sold in this space, and their area.
+Then \`capture_lead\` with leadType "opportunity".
+
+If it's unclear, just ask: "Are you calling as a customer, or about the business
+opportunity?" Ask ONE question at a time and let them answer — this is a
+conversation, not a form.
+
+## Answering questions
+
+For anything beyond the overview above — specific pricing, products, details —
+call \`ask_business\` with their question. It reads ${tenantName}'s actual website.
+Never claim you lack information without calling it first.
+
+## What you CANNOT do
+
+You cannot transfer calls, place anyone on hold, or connect them to a human, and
+you have no direct numbers to give out. Never offer any of it. If you can't
+answer, say so plainly, take their details with \`capture_lead\`, and promise a
+callback from the team — that you CAN deliver.
 
 Important: You're representing a cooperative enterprise. Every interaction should reflect dignity, fairness, and genuine care for the caller.`
 }
@@ -565,6 +665,15 @@ async function handleFunctionCall(
 
   const functionName = functionCall.name as string
   const parameters = (functionCall.parameters as Record<string, unknown>) || {}
+
+  // Caller ID — so a voice lead never dies for want of a contact method the
+  // caller would otherwise have to spell out.
+  const call = message.call as Record<string, unknown> | undefined
+  const customer = call?.customer as Record<string, unknown> | undefined
+  const callerNumber = typeof customer?.number === 'string' ? customer.number : ''
+  if (functionName === 'capture_lead' && !parameters.phone && callerNumber) {
+    parameters.phone = callerNumber
+  }
 
   // Route function calls to Leo's conversation engine
   const userMessage = buildToolMessage(functionName, parameters)
@@ -608,6 +717,9 @@ async function handleFunctionCall(
  */
 function buildToolMessage(functionName: string, params: Record<string, unknown>): string {
   switch (functionName) {
+    case 'capture_lead':
+      // Explicit instruction — this is the money path; don't let LEO improvise it.
+      return `Call the capture_lead tool now with exactly these values: name="${params.name ?? ''}", phone="${params.phone ?? ''}", email="${params.email ?? ''}", leadType="${params.leadType ?? 'customer'}", message="${String(params.message ?? '').replace(/"/g, "'")}". This came in over the phone. After it succeeds, reply with one short spoken sentence confirming someone will follow up — do not read back the details.`
     case 'ask_business':
       // Pass the caller's question through verbatim and point LEO at the site
       // content tool — this is the "what does this business do?" path.

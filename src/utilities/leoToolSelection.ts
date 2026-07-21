@@ -90,7 +90,7 @@ export const CORE_TOOL_NAMES = new Set<string>([
   // Content
   'create_post', 'create_post_from_media', 'create_page', 'update_page', 'update_post',
   // Comms + media
-  'send_message', 'list_contacts', 'message_contact', 'save_contact', 'invite_member', 'generate_image',
+  'send_message', 'list_contacts', 'message_contact', 'save_contact', 'capture_lead', 'invite_member', 'generate_image',
   // Context
   'get_enterprise_stage', 'my_place',
 ])
