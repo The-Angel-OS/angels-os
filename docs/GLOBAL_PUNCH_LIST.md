@@ -67,8 +67,17 @@
   and `OLLAMA_BASE_URL: "http://host.docker.internal:11434"` + `extra_hosts: host.docker.internal:host-gateway`
   (closes the long-standing "container Ollama fallback DEAD" note). Verified: assistant-request returns a valid
   LEO config; conversation-update returns a real AI answer. *Remaining:* Ken places a live test call.
-  ⚠️ AI gateway **credit balance $14.00** — top up before the Wed demo. *Optional:* set `VAPI_PHONE_NUMBER_ID`
-  in compose so `/api/vapi/setup` works (the repoint was done via direct API PATCH). `260720`
+  *Optional:* set `VAPI_PHONE_NUMBER_ID` in compose so `/api/vapi/setup` works (repoint was a direct API PATCH).
+  `260720`
+- **[✅ FIXED 260720] LEO now runs on Gemini (~10x cheaper than the metered Anthropic gateway)** — the gateway
+  reads **`GOOGLE_AI_API_KEY`** (NOT `GOOGLE_GENERATIVE_AI_API_KEY` / `GEMINI_API_KEY` — checking the wrong
+  name made it look unset); the key was in `.env.local` and valid all along. The real defect: the default
+  `gemini-flash-latest` is a **THINKING model** — reasoning consumes the whole token budget and returns
+  **EMPTY content**, so LEO emitted its "warming up" fallback (this is the [[project_leo_empty_response]]
+  class of bug). *Fix (compose env, recreate only — no rebuild):* `AI_PROVIDER_ORDER: "google,gateway,openrouter,ollama"`
+  + `GOOGLE_MODEL: "gemini-flash-lite-latest"`. Verified: LEO returns real answers and uses tools; gateway
+  credit balance held at $13.96 (no longer consumed). Note `gemini-2.0-flash` / `2.5-flash` **404 on this key**
+  — flash-lite / flash-latest / 3.5-flash are available. Gateway+openrouter remain paid failover. `260720`
 
 - **[✅ FIXED 260720] Ecommerce cross-portal leak** — shipped: `tenantScope.ts` override (tenant field +
   tenant-on-write from request host + tenant-ANDed read, fail-open) wired as carts/addresses/transactions
