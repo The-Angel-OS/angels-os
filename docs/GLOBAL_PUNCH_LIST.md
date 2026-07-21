@@ -58,6 +58,18 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[✅ FIXED 260720] VAPI voice (LEO on the phone) working end-to-end** — was broken by TWO things:
+  (1) the Vapi phone number `+1 727-440-8797` (`a20b5a0d-8d79-41f5-9173-5091314ffc4f`) had `serverUrl` pointing
+  at the dead `www.spacesangels.com` node → repointed to `https://www.payloadnuke.com/api/vapi/webhook`;
+  (2) LEO returned the "AI capabilities are warming up" canned fallback because the default provider order
+  reached for **google** with no GOOGLE/GEMINI key set, while `AI_GATEWAY_API_KEY` + `OPENROUTER_API_KEY` were
+  set. Fixed in stack compose (NOT a git repo — recorded here): `AI_PROVIDER_ORDER: "gateway,openrouter,ollama"`
+  and `OLLAMA_BASE_URL: "http://host.docker.internal:11434"` + `extra_hosts: host.docker.internal:host-gateway`
+  (closes the long-standing "container Ollama fallback DEAD" note). Verified: assistant-request returns a valid
+  LEO config; conversation-update returns a real AI answer. *Remaining:* Ken places a live test call.
+  ⚠️ AI gateway **credit balance $14.00** — top up before the Wed demo. *Optional:* set `VAPI_PHONE_NUMBER_ID`
+  in compose so `/api/vapi/setup` works (the repoint was done via direct API PATCH). `260720`
+
 - **[✅ FIXED 260720] Ecommerce cross-portal leak** — shipped: `tenantScope.ts` override (tenant field +
   tenant-on-write from request host + tenant-ANDed read, fail-open) wired as carts/addresses/transactions
   overrides; migration `20260720_030000` added `tenant_id` FK+index. *Verified live:* new cart got
