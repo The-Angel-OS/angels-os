@@ -58,6 +58,19 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[✅ SHIPPED 260721] Voice: trunk line, tools, lead capture, per-portal failover** — two defects a live call
+  exposed, plus the per-portal work: (1) dialed-number resolution read only `message.call.phoneNumber`, but Vapi
+  sends it at **`message.phoneNumber`** (top level) on `assistant-request` — every real call missed the trunk
+  line and got the platform "which business?" prompt even though tenant 22 was wired. My earlier verification
+  passed only because I hand-built the payload in the wrong shape — test against the provider's real contract.
+  (2) Tools were passed as legacy top-level `assistant.functions`; Vapi's current schema is **`model.tools`**
+  with `{type:'function', function:{…}}`, so the model had nothing callable and narrated *"I don't actually have
+  a tool visible to call in this turn"* then stalled. *Also shipped:* `tenants.vapi.fallbackNumber` (+ migration
+  `20260721_010000`), `syncVapiNumber()` (writes BOTH `server.url` and legacy `serverUrl`, nulls stale
+  `assistantId`, validates E.164), `/api/vapi/setup { tenantId }` per-portal sync, capability-menu greeting, and
+  portal **pivot** (`business` arg on ask_business + capture_lead). *Verified live:* NCP greeting, both tools,
+  briefing preloaded, fallback `+17272564413`, `assistantId` null. `260721`
+
 - **[P2] Consolidate configuration under `/dashboard/settings`** — audited 260721. There is no
   `dashboard/settings/**`; the hub is at **`/dashboard/admin/settings`** (tabs General/Endeavor/AI/Developer,
   writes `tenants.branding|commerce|aiConfig`). Nav is a single source of truth: **`dashboard/nav-config.ts`**.
