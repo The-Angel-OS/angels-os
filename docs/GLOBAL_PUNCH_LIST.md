@@ -58,6 +58,24 @@
 
 ## 🔧 Debt & hardening (P2)
 
+- **[P2] Consolidate configuration under `/dashboard/settings`** — audited 260721. There is no
+  `dashboard/settings/**`; the hub is at **`/dashboard/admin/settings`** (tabs General/Endeavor/AI/Developer,
+  writes `tenants.branding|commerce|aiConfig`). Nav is a single source of truth: **`dashboard/nav-config.ts`**.
+  *Ranked moves:* (1) `/dashboard/account/integrations` — tenant connector secrets misfiled under a per-USER
+  "Account" section → `/settings/integrations`; (2) `/dashboard/admin/settings` → `/dashboard/settings` (+redirect);
+  (3) `/dashboard/spaces/settings` → `/settings/spaces`; (4) `/dashboard/availability` (booking config in
+  PRODUCTIVITY nav) → `/settings/availability`; (5) split the Stripe-Connect config half out of
+  `/dashboard/admin/payments`, leave charts as ops; (6) fold `/dashboard/account/connections` into `/account`
+  (pure duplicate); (7) `site-settings` global has **no dashboard UI at all** → new tab. *Stay put:* account
+  profile/addresses (per-user), team/invitations/crew (people ops), provision/backups/federation (platform ops),
+  ai-costs/solvency/telemetry (observability). `260721`
+- **[P2] Rename "AI Costs" → "Infrastructure Costs"; "AI Bus" → "System Bus"** — no new substrate needed: the
+  **`cost-events`** collection already has categories `intelligence | telephony | storage | infra | other`, and
+  `AICostsPanel` already renders Storage/Infrastructure labels. *Where:* route `/dashboard/ai-costs`
+  (`ai-costs/page.tsx`, `AICostsPanel.tsx`, `ProviderSwitchboard.tsx`, `BootstrapFeeCard.tsx`) + nav entry in
+  `nav-config.ts`. *"AI Bus" UI strings:* `ConnectorsAdmin.tsx:165,170`, `FederationDashboard.tsx:229`,
+  `VerifyOnboardingButton.tsx:29,30,50`, `CICDashboard.tsx:355` (nav-config:82 is only a comment). `260721`
+
 - **[✅ SHIPPED 260720] Phone assistant can now actually answer questions (site-content RAG)** — first live call
   routed fine but was useless: LEO's bridge **never fired once** (logs: zero `conversation-update`), because the
   Vapi assistant config had **no `serverMessages` subscription and no `functions`** — it had no way to reach the
