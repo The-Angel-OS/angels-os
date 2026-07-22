@@ -56,7 +56,41 @@ export async function resolveSmsSender(
     spaceId: spaceId ?? undefined,
   })
 
-  if (!connector) return null
+  // Platform-wide env fallback: no per-tenant connector configured → use the
+  // node's own Twilio account (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN /
+  // TWILIO_PHONE_NUMBER). Lets SMS work everywhere with one set of creds;
+  // a tenant connector still wins so portals can bring their own number.
+  if (!connector) {
+    const envSid = process.env.TWILIO_ACCOUNT_SID || ''
+    const envToken = process.env.TWILIO_AUTH_TOKEN || ''
+    const envFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_FROM_NUMBER || ''
+    if (!envSid || !envToken || !envFrom) return null
+    const credentials = Buffer.from(`${envSid}:${envToken}`).toString('base64')
+    const sendText = async (to: string, body: string): Promise<void> => {
+      await withRetry(async () => {
+        const response = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${envSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Basic ${credentials}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              To: to.replace(/[^0-9+]/g, ''),
+              From: envFrom,
+              Body: body,
+            }).toString(),
+          },
+        )
+        if (!response.ok) {
+          const errorBody = await response.text().catch(() => '')
+          throw new Error(`Twilio API ${response.status}: ${errorBody}`)
+        }
+      })
+    }
+    return { sendText, fromNumber: envFrom, provider: 'twilio', connectorId: 'env' }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cfg = connector.config as Record<string, any>
