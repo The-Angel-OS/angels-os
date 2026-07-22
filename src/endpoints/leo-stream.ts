@@ -1841,7 +1841,18 @@ async function streamViaGateway(opts: {
 
 [The user also attached file(s) you cannot view directly: ${nonImageAttachments.join(', ')}. Acknowledge receipt naturally — the upload itself succeeded.]`
     : ''
-  const outgoingText = `${userMessage}${attachmentNote}`
+  // Tell the model the media IDs of what was attached — tools like
+  // add_gallery_to_page / analyze_image / create_post_from_media take mediaIds,
+  // and without this the model called them with empty args (the ids existed only
+  // in the pipeline, never in the model's context). Root cause of "LEO couldn't
+  // read that image" masking a tool-arg error (260722).
+  const attachedIds = userImages.map((i) => i.mediaId).filter((id) => id != null)
+  const mediaIdNote = attachedIds.length
+    ? `
+
+[Attached media IDs (already uploaded to this tenant's library): ${attachedIds.join(', ')}. Use these IDs directly in media tools (imageIds/mediaId) — do not re-upload.]`
+    : ''
+  const outgoingText = `${userMessage}${attachmentNote}${mediaIdNote}`
 
   if (!alreadyInHistory) {
     // Build user message (with images if present)
