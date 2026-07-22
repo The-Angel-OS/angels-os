@@ -116,6 +116,15 @@ export const vapiWebhookHandler: PayloadHandler = async (req) => {
         return await handleFunctionCall(messageType, payload)
       }
 
+      // ─── Tool Calls — the MODERN shape for model.tools invocations ─
+      // Tools declared at model.tools arrive as 'tool-calls', NOT the legacy
+      // 'function-call'. Missing this case silently no-op'd every tool on a live
+      // call: ask_business "couldn't pull details" and capture_lead claimed
+      // success while capturing NOTHING (the fabrication failure mode).
+      case 'tool-calls': {
+        return await handleToolCalls(messageType, payload)
+      }
+
       // ─── End of Call Report — log + persist to AI Bus ───────────
       case 'end-of-call-report': {
         return await handleEndOfCallReport(messageType, payload)
@@ -699,6 +708,100 @@ Important: You're representing a cooperative enterprise. Every interaction shoul
 
 // ─── Function Call Handler ──────────────────────────────────────
 
+/**
+ * Shared executor for a single voice tool invocation — used by BOTH the legacy
+ * 'function-call' event and the modern 'tool-calls' event.
+ */
+async function executeVoiceFunction(
+  functionName: string,
+  parameters: Record<string, unknown>,
+  message: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+): Promise<string> {
+  // Caller ID — so a voice lead never dies for want of a contact method the
+  // caller would otherwise have to spell out.
+  const call = message.call as Record<string, unknown> | undefined
+  const customer = (call?.customer ?? message.customer) as Record<string, unknown> | undefined
+  const callerNumber = typeof customer?.number === 'string' ? customer.number : ''
+  if (functionName === 'capture_lead' && !parameters.phone && callerNumber) {
+    parameters.phone = callerNumber
+  }
+
+  const userMessage = buildToolMessage(functionName, parameters)
+
+  // A tool payload usually carries NO `conversation` array, so resolveTenantId
+  // would fall through to the DEFAULT (platform) tenant and LEO would search
+  // the wrong business. Prefer the business the assistant heard, then the
+  // dialed number's tenant (trunk line), then the conversation/default path.
+  let tenantId: number | undefined
+  const businessParam = typeof parameters.business === 'string' ? parameters.business : ''
+  if (businessParam.trim()) {
+    const tenants = await getActiveTenants(payload)
+    const matched = matchTenantByName(businessParam.toLowerCase(), tenants)
+    if (matched?.id) tenantId = matched.id as number
+  }
+  if (!tenantId) {
+    const dialed = await resolveTenantFromDedicatedNumber(message, payload)
+    if (dialed?.id) tenantId = dialed.id as number
+  }
+  if (!tenantId) tenantId = await resolveTenantId(message, payload)
+
+  const result = await leoProcessMessage({
+    message: userMessage,
+    tenantId,
+    payload,
+    userContext: {
+      id: 'vapi-caller',
+      name: 'Phone Caller',
+      roles: ['customer'],
+    },
+  })
+  return result.text
+}
+
+/**
+ * Modern tool invocation event ('tool-calls') — one event can carry SEVERAL
+ * calls; Vapi expects { results: [{ toolCallId, result }] } back.
+ */
+async function handleToolCalls(
+  message: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list = (message.toolCallList ?? message.toolCalls ?? []) as Array<Record<string, any>>
+  if (!Array.isArray(list) || list.length === 0) {
+    return Response.json({ results: [] })
+  }
+
+  const results: Array<{ toolCallId: string; result: string }> = []
+  for (const tc of list) {
+    const fn = (tc.function ?? tc) as Record<string, unknown>
+    const name = String(fn.name ?? tc.name ?? '')
+    let args: Record<string, unknown> = {}
+    const rawArgs = fn.arguments ?? fn.parameters ?? tc.arguments ?? {}
+    if (typeof rawArgs === 'string') {
+      try {
+        args = JSON.parse(rawArgs) as Record<string, unknown>
+      } catch {
+        args = {}
+      }
+    } else if (rawArgs && typeof rawArgs === 'object') {
+      args = rawArgs as Record<string, unknown>
+    }
+    const toolCallId = String(tc.id ?? tc.toolCallId ?? '')
+    try {
+      const text = await executeVoiceFunction(name, args, message, payload)
+      results.push({ toolCallId, result: text })
+    } catch (err) {
+      console.error('[Vapi] tool-calls error for', name, err)
+      results.push({ toolCallId, result: "I'm sorry, I had trouble with that. Could you try again?" })
+    }
+  }
+  return Response.json({ results })
+}
+
 async function handleFunctionCall(
   message: Record<string, unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -713,44 +816,9 @@ async function handleFunctionCall(
   const functionName = functionCall.name as string
   const parameters = (functionCall.parameters as Record<string, unknown>) || {}
 
-  // Caller ID — so a voice lead never dies for want of a contact method the
-  // caller would otherwise have to spell out.
-  const call = message.call as Record<string, unknown> | undefined
-  const customer = call?.customer as Record<string, unknown> | undefined
-  const callerNumber = typeof customer?.number === 'string' ? customer.number : ''
-  if (functionName === 'capture_lead' && !parameters.phone && callerNumber) {
-    parameters.phone = callerNumber
-  }
-
-  // Route function calls to Leo's conversation engine
-  const userMessage = buildToolMessage(functionName, parameters)
-
   try {
-    // A function-call payload usually carries NO `conversation` array, so
-    // resolveTenantId would fall through to the DEFAULT (platform) tenant and
-    // LEO would search the wrong business. The assistant passes the business it
-    // heard — match on that first.
-    let tenantId: number | undefined
-    const businessParam = typeof parameters.business === 'string' ? parameters.business : ''
-    if (businessParam.trim()) {
-      const tenants = await getActiveTenants(payload)
-      const matched = matchTenantByName(businessParam.toLowerCase(), tenants)
-      if (matched?.id) tenantId = matched.id as number
-    }
-    if (!tenantId) tenantId = await resolveTenantId(message, payload)
-
-    const result = await leoProcessMessage({
-      message: userMessage,
-      tenantId,
-      payload,
-      userContext: {
-        id: 'vapi-caller',
-        name: 'Phone Caller',
-        roles: ['customer'],
-      },
-    })
-
-    return Response.json({ result: result.text })
+    const text = await executeVoiceFunction(functionName, parameters, message, payload)
+    return Response.json({ result: text })
   } catch (err) {
     console.error('[Vapi] Function call error:', err)
     return Response.json({
