@@ -117,12 +117,12 @@ export function MediaPicker({
           total = docs.length
           pages = 1
         } else {
-          // Library = the tenant Media collection, server-paginated + filtered.
-          const p = new URLSearchParams({ limit: String(PAGE), page: String(page), sort: '-createdAt', depth: '0' })
-          p.set('where[and][0][mimeType][like]', 'image')
-          if (tenantId != null && tenantId !== '') p.set('where[and][1][tenant][equals]', String(tenantId))
-          if (dq) p.set('where[and][2][filename][like]', dq)
-          const res = await fetch(`/api/media?${p.toString()}`, { credentials: 'include' })
+          // Library = the SAME tenant-scoped query as /dashboard/media — the
+          // server resolves the tenant from the host, so nothing leaks across
+          // portals regardless of what the client passes.
+          const p = new URLSearchParams({ limit: String(PAGE), page: String(page), type: 'image' })
+          if (dq) p.set('q', dq)
+          const res = await fetch(`/api/media-library?${p.toString()}`, { credentials: 'include' })
           const data = await res.json()
           if (!res.ok) throw new Error(data?.errors?.[0]?.message || 'Failed to load media')
           docs = (data?.docs || []).filter((d: MediaDoc) => (d.mimeType || '').startsWith('image/'))

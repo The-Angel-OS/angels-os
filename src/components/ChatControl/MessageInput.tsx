@@ -150,7 +150,9 @@ export function MessageInput({
   const [reused, setReused] = useState<ReusedMedia[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const canReuse = !!(spaceId && channelSlug)
+  // Library reuse works everywhere (server scopes it to the tenant); the
+  // "This channel" tab inside the picker still needs channel context.
+  const canReuse = true
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
