@@ -56,6 +56,13 @@
 - **[P1] Platform Costs (rename + ledger)** — `CostEvents` already discriminates Intelligence/Telephony/
   Storage/Infra/Other; the model is ready. *Where:* `dashboard/ai-costs/*`, `CostEvents`. *Next:* (1) rename ai-costs → platform-costs, (2) group the panel by category, (3) **emit cost events for Storage (R2), Telephony (Vapi/LiveKit), Infra** — currently only AI writes them, (4) per-system update link. Answers "what does our storage cost?". `260720`
 
+- **[P1] Media-anywhere primitive (Ken 260722)** — "specify photos essentially anywhere + generate an image and
+  put it anywhere": one LEO tool family that places existing/attached/AI-generated media into ANY surface —
+  page block, post body/gallery, hero, channel message, tenant branding. Pieces exist (`set_media` primitive,
+  `add_gallery_to_page`, `create_post_from_media`, `imageGeneration.ts`, 16fc811 attached-ids) but each surface
+  is its own bespoke tool. *Next:* one `place_media(target, mediaIds|generatePrompt)` resolver over a target
+  registry; then port to Nimue. [[project_set_media_primitive]] `260722`
+
 ## 🧱 Blocks / UI (P1–P2) — WordPress-parity kit
 
 - **[P1] FeatureCards block** — icon-grid row ("Clinical Applications / Photobiomodulation / …"). *Next:* same
