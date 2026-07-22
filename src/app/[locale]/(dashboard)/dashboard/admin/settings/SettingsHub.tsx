@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import EndeavorSetup from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
+import EndeavorSetup, { ImageField, type MediaValue } from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
 import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
 
 // ---------------------------------------------------------------------------
@@ -14,6 +14,8 @@ type TabId = 'general' | 'endeavor' | 'ai' | 'developer'
 interface BrandingData {
   siteName?: string
   tagline?: string
+  /** Site header logo (tenant.branding.logo) — NOT the Discovery Card badge. */
+  logo?: { id: number | string; url: string } | null
   primaryColor?: string
   secondaryColor?: string
   accentColor?: string
@@ -130,6 +132,7 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
     eventsEnabled: commerce.eventsEnabled ?? false,
     digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
   })
+  const [logo, setLogo] = useState<MediaValue>(branding.logo ?? null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -146,6 +149,7 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branding: {
+            logo: logo ? Number(logo.id) : null,
             siteName: form.siteName,
             tagline: form.tagline,
             primaryColor: form.primaryColor,
@@ -207,6 +211,19 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+        </div>
+        <div className="max-w-sm">
+          <ImageField
+            label="Site Logo (shown in the site header)"
+            value={logo}
+            onChange={setLogo}
+            aspect="square"
+            tenantId={tenantId}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Different from the Discovery Card badge on the Endeavor tab — that one is your
+            federation catalog badge.
+          </p>
         </div>
       </div>
 

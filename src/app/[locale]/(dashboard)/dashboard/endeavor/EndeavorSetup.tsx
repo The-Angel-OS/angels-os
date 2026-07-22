@@ -264,7 +264,8 @@ export default function EndeavorSetup() {
       <Section title="Discovery Card">
         <p className="mb-4 text-sm text-muted-foreground">
           The images shown on your card in the federation network catalog. The banner is
-          your cover image; the badge is your logo.
+          your cover image; the badge is your logo. (This is NOT your site&apos;s header
+          logo — that lives in Settings &rarr; General &rarr; Site Identity.)
         </p>
         <div className="grid gap-4 md:grid-cols-2">
           <ImageField
@@ -485,14 +486,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-type MediaValue = { id: number | string; url: string } | null
+export type MediaValue = { id: number | string; url: string } | null
 
 /**
- * Image picker for a Discovery-card field: shows the current image, uploads a new
+ * Image picker for a media field: shows the current image, uploads a new
  * one to /api/media (tenant-scoped by the x-tenant-id middleware), and clears it.
  * The selected media id is saved when the user clicks Save Changes.
+ * Also reused by Settings → General for the SITE logo (tenant.branding.logo) —
+ * distinct from the Discovery Card badge (endeavor.logo) here.
  */
-function ImageField({
+export function ImageField({
   label,
   value,
   onChange,

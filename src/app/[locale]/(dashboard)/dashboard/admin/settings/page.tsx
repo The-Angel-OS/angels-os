@@ -31,6 +31,11 @@ export default async function DashboardSettingsPage({
       hasAnthropicKey={Boolean(aiConfig.anthropicApiKey)}
       hasOpenRouterKey={Boolean(aiConfig.openrouterApiKey)}
       branding={{
+        // depth-2 tenant fetch hydrates branding.logo to an object
+        logo:
+          branding.logo && typeof branding.logo === 'object' && branding.logo.url
+            ? { id: branding.logo.id, url: branding.logo.url }
+            : null,
         siteName: branding.siteName || '',
         tagline: branding.tagline || '',
         primaryColor: branding.primaryColor || '',
