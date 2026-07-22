@@ -254,8 +254,8 @@ export async function requestOtpSms(
   const env = twilioVerifyEnv()
   if (!env) return { ok: false, error: 'Text sign-in is not configured on this node.' }
 
-  try {
-    const res = await fetch(`https://verify.twilio.com/v2/Services/${env.service}/Verifications`, {
+  const send = async (withBranding: boolean): Promise<Response> =>
+    fetch(`https://verify.twilio.com/v2/Services/${env.service}/Verifications`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(`${env.sid}:${env.token}`).toString('base64')}`,
@@ -266,11 +266,23 @@ export async function requestOtpSms(
         Channel: 'sms',
         // Per-portal branding — the code text names the portal being logged
         // into instead of the account-wide service name.
-        ...(friendlyName ? { CustomFriendlyName: friendlyName.slice(0, 30) } : {}),
+        ...(withBranding && friendlyName ? { CustomFriendlyName: friendlyName.slice(0, 30) } : {}),
       }).toString(),
     })
+
+  try {
+    let res = await send(Boolean(friendlyName))
     if (!res.ok) {
       const body = await res.text().catch(() => '')
+      // 60204: Twilio gates CustomFriendlyName behind an approval process
+      // (anti-phishing). Branding is a nicety — degrade to the service-level
+      // name rather than failing the sign-in. Shipping it un-degraded broke
+      // every portal phone login until this retry existed.
+      if (friendlyName && body.includes('60204')) {
+        payload.logger?.info?.('[otpLogin] CustomFriendlyName not allowed on this Twilio account — sent unbranded')
+        res = await send(false)
+        if (res.ok) return { ok: true }
+      }
       payload.logger?.warn?.(`[otpLogin] Verify send failed ${res.status}: ${body.slice(0, 200)}`)
       return { ok: false, error: 'Could not send a text right now — try email instead.' }
     }
