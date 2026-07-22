@@ -16,6 +16,20 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P1] Anthropic API key OUT OF CREDITS** — direct Anthropic vision/chat 400s ("credit balance too low");
+  providerHealth skips it 30m at a time. Gemini now covers vision (see fix 91ef738) so nothing is down, but
+  the paid failover tier is thinner. *Next:* Ken adds credits at console.anthropic.com — or we accept
+  Gemini-only vision. `260722`
+- **[P1] LEO calls `analyze_image` without `mediaId`** — tool errored "mediaId is required" when Ken attached
+  an image and asked for analysis; LEO should resolve the attached media's id itself. *Where:* leo-stream
+  attachment context → tool-call args; `leo-data-tools.ts` analyze_image. *Next:* inject attached mediaId(s)
+  into the tool call or default the tool to the message's attachment. `260722`
+- **[P2] Merlin still squatting :3000 via logon task** — elevated `Set-ScheduledTask` one-liner (move to
+  :3002) given to Ken, unrun; Docker Desktop "Model Runner" should be disabled (Inference-manager stale-socket
+  crash). *Next:* Ken runs both. `260722`
+- **[P2] Nimue chat-echo fix needs APK build** — network-first post-send reload + server watermark landed in
+  C:\Dev\nimue commit `98ca0df`; not shipped to the phone. *Next:* build + install APK. `260722`
+
 - **[P1] Works system is "hosed"** — the video LMS foundation has known instability. Stabilize before
   layering Quiz/LMS on top. *Where:* Works collection + [[project_works_wip_status]] / [[project_reader_reference_layer]]. *Next:* audit + list the concrete Works breakages, then fix. `260720`
 - **[P1] LEO fabricates tool success** — claims actions done that never persisted (e.g. "saved the post as a
@@ -57,6 +71,23 @@
   [[project_nested_docs_incident]]) + a SubNav block listing siblings/children; gives breadcrumbs free and preserves imported WP site structure (WP API exposes `parent` + `menu_order`). *Next:* field + migration + block. `260720`
 
 ## 🔧 Debt & hardening (P2)
+
+- **[✅ SHIPPED 260722] Live-ops day (demo + MobileMech1)** — one line each, details in HANDOFF_260722.md:
+  (1) **Lead→Contact auto-harvest** (`upsertContactFromLead`, voice + web-form doors, dedupe email→phone,
+  `d34c43d`); (2) **Vapi `tool-calls` events handled** — tools were silently no-oping, capture_lead claimed
+  success while saving nothing (`bbf45a9`); (3) **Passwordless login**: email code + **SMS OTP via Twilio
+  Verify** (no from-number/10DLC needed), `users.phone` E.164 = identity anchor, self-service phone on
+  /dashboard/account, provider-style "Continue with a code" button — see `docs/AUTH_PHONE_SIGNIN.md`
+  (`03a8ecf`); (4) **>10MB uploads fixed** — Next 16 `middlewareClientMaxBodySize` default 10MB was silently
+  truncating; now `150mb`; R2 bucket CORS extended to `*.payloadnuke.com`; MobilMechanic1 intro video (19.4MB,
+  media 406) live; (5) **login light-mode invisible fonts** — `data-theme="dark"` pinned on the glass card;
+  (6) **media library picker tenant-scoped + LEO sidebar full composer** (`508c7ef`); (7) **Redirects engine**
+  — own 5-field `redirects` collection + `resolveRedirect()` in [slug]/[...slug], 227 NCP old-site URLs
+  imported (migration `20260722_030000`); (8) **vision chain fixed** — retired `gemini-2.0-flash` fallback
+  404'd behind LEO's "couldn't read that image"; pinned to `GOOGLE_MODEL`/flash-latest (`91ef738`); MobileMech1
+  **14 bookable services** seeded from the price-sheet flyer; (9) dashboard command-center stats tenant-scoped
+  (`f479c56`); (10) pg `idle_in_transaction_session_timeout` retuned 60s→**300s** (60s was reaping upload
+  transactions). `260722`
 
 - **[✅ SHIPPED 260721] Voice: trunk line, tools, lead capture, per-portal failover** — two defects a live call
   exposed, plus the per-portal work: (1) dialed-number resolution read only `message.call.phoneNumber`, but Vapi
