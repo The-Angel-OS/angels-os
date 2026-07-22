@@ -217,14 +217,6 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
-        key: 'connections',
-        label: 'Connections',
-        icon: 'link-chain',
-        href: (p) => `${p}/dashboard/account/connections`,
-        isActive: active('/dashboard/account/connections'),
-        visible: always,
-      },
-      {
         // Enterprise integrations (Email, WhatsApp, Stripe, Gotify…). Distinct
         // from "Connections" (personal OAuth sign-ins). Owners self-serve their
         // own tenant's integrations; access is enforced on the Connectors
