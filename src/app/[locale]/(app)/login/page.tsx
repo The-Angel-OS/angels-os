@@ -61,8 +61,12 @@ export default async function Login({
           </p>
         </div>
 
-        {/* Login card — glassmorphism */}
+        {/* Login card — glassmorphism. data-theme="dark" pins the theme-token
+            context: this card is ALWAYS dark (rgba(17,17,34)), but the form uses
+            theme-aware tokens (text-primary, foreground) which resolve to dark
+            text under site light mode — labels and links were invisible. */}
         <div
+          data-theme="dark"
           className="rounded-xl border p-6"
           style={{
             background: 'rgba(17, 17, 34, 0.85)',

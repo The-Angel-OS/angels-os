@@ -7,6 +7,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next 16 caps request bodies passing through middleware at 10MB by default —
+  // which silently TRUNCATED >10MB media uploads to /api/media ("Request body
+  // exceeded 10MB" → "Upload timeout") while smaller files worked, so video
+  // uploads looked randomly broken. Self-host has no platform body wall (that
+  // was Vercel's 4.5MB), so allow real video sizes; R2 presigned direct upload
+  // remains the path for anything truly large.
+  middlewareClientMaxBodySize: '150mb',
   images: {
     remotePatterns: [
       // ── Production: all *.spacesangels.com subdomains ──────────────────────
