@@ -55,7 +55,8 @@ async function getAuthenticatedAdmin() {
 // ── sendQuickInvite ──────────────────────────────────────────────────────────
 
 export async function sendQuickInvite(input: {
-  email: string
+  email?: string
+  phone?: string
   role: string
   message?: string
   firstName?: string
@@ -66,12 +67,74 @@ export async function sendQuickInvite(input: {
     return { success: false, error: error || 'Auth failed' }
   }
 
+  const role = input.role || 'tenant_member'
+
+  // ── Phone invite: no outbound SMS yet — create the pending membership keyed
+  // to the E.164 number, hand back the link for the admin to text themselves.
+  // The invitee signs in with a texted code; verifyOtpSms matches the approved
+  // phone to this row, creates their account, and activates the membership.
+  if (input.phone?.trim()) {
+    const { normalizePhone } = await import('@/utilities/otpLogin')
+    const phone = normalizePhone(input.phone)
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      return { success: false, error: 'Please enter a valid mobile number' }
+    }
+
+    const existingPhone = await payload.find({
+      collection: 'tenant-memberships',
+      where: {
+        and: [
+          { tenant: { equals: tenantId } },
+          { 'invitationDetails.invitationPhone': { equals: phone } },
+          { status: { in: ['active', 'pending'] } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existingPhone.totalDocs > 0) {
+      return {
+        success: false,
+        error:
+          (existingPhone.docs[0] as any).status === 'active'
+            ? 'This person is already a member of your Enterprise'
+            : 'An invitation is already pending for this number',
+      }
+    }
+
+    const token = generateInvitationToken()
+    const inviteUrl = `${getServerSideURL()}/tenant-invite/${token}`
+    try {
+      await payload.create({
+        collection: 'tenant-memberships',
+        data: {
+          tenant: tenantId,
+          role,
+          status: 'pending',
+          invitedBy: user.id,
+          invitationDetails: {
+            invitationPhone: phone,
+            invitationToken: token,
+            invitationExpiresAt: calculateExpiration(7).toISOString(),
+            invitationMessage: input.message,
+          },
+        } as any,
+        overrideAccess: true,
+      })
+    } catch (e) {
+      payload.logger.error(
+        `[sendQuickInvite] Failed to create phone invitation for ${phone}: ${e instanceof Error ? e.message : e}`,
+      )
+      return { success: false, error: 'Could not create the invitation. Please try again.' }
+    }
+    return { success: true, inviteUrl, emailSent: false }
+  }
+
   const email = input.email?.trim().toLowerCase()
   if (!email || !isValidEmail(email)) {
     return { success: false, error: 'Please enter a valid email address' }
   }
-
-  const role = input.role || 'tenant_member'
 
   // Check if an active or pending membership already exists for this email
   const existing = await payload.find({

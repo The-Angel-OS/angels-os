@@ -6,6 +6,7 @@ import * as migration_20260721_010000_add_vapi_fallback_number from './20260721_
 import * as migration_20260722_010000_contacts_phone_voice_source from './20260722_010000_contacts_phone_voice_source';
 import * as migration_20260722_020000_users_phone from './20260722_020000_users_phone';
 import * as migration_20260722_030000_add_redirects from './20260722_030000_add_redirects';
+import * as migration_20260722_040000_invitation_phone from './20260722_040000_invitation_phone';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -227,5 +228,10 @@ export const migrations = [
     up: migration_20260722_030000_add_redirects.up,
     down: migration_20260722_030000_add_redirects.down,
     name: '20260722_030000_add_redirects',
+  },
+  {
+    up: migration_20260722_040000_invitation_phone.up,
+    down: migration_20260722_040000_invitation_phone.down,
+    name: '20260722_040000_invitation_phone',
   },
 ];

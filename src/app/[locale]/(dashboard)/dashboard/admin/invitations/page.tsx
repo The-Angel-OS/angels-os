@@ -58,7 +58,10 @@ export default async function DashboardInvitationsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serialized = invitations.docs.map((doc: any) => ({
     id: doc.id,
-    email: doc.invitationDetails?.invitationEmail || 'Unknown',
+    email: doc.invitationDetails?.invitationEmail || doc.invitationDetails?.invitationPhone || 'Unknown',
+    inviteUrl: doc.invitationDetails?.invitationToken
+      ? `/tenant-invite/${doc.invitationDetails.invitationToken}`
+      : null,
     status: doc.status,
     role: doc.role,
     spaceName: typeof doc.tenant === 'object' ? doc.tenant?.name || 'Enterprise' : 'Enterprise',

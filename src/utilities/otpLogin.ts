@@ -327,9 +327,71 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
     limit: 1,
     overrideAccess: true,
   })
-  const user = existing.docs[0]
-  if (!user) return { ok: false, error: GENERIC_FAIL }
+  let user = existing.docs[0]
+  let isNew = false
+
+  // No account carries this phone — but a PENDING tenant invitation keyed to it
+  // is proof an admin vouched for this exact number, and Twilio just proved the
+  // caller holds it. That pair anchors identity well enough to create the
+  // account (mirrors the email-invite growth loop in activatePendingInvites).
+  // Without an invite, unknown phones still get the generic failure — no
+  // account creation from a bare number, no enumeration oracle.
+  if (!user) {
+    const invited = await payload.find({
+      collection: 'tenant-memberships',
+      where: {
+        and: [
+          { 'invitationDetails.invitationPhone': { equals: phone } },
+          { status: { equals: 'pending' } },
+        ],
+      },
+      limit: 5,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const now = new Date()
+    const validInvites = invited.docs.filter((m) => {
+      const exp = (m as { invitationDetails?: { invitationExpiresAt?: string } }).invitationDetails
+        ?.invitationExpiresAt
+      return !exp || new Date(exp) > now
+    })
+    if (validInvites.length === 0) return { ok: false, error: GENERIC_FAIL }
+
+    // Placeholder email (users.email is required+unique): .invalid TLD is
+    // RFC-reserved so nothing ever delivers to it; the user sets a real email
+    // later on /dashboard/account.
+    try {
+      user = await payload.create({
+        collection: 'users',
+        data: {
+          email: `${phone.replace('+', '')}@phone.invalid`,
+          password: crypto.randomUUID() + crypto.randomUUID(),
+          phone,
+          _verified: true,
+        } as never,
+        overrideAccess: true,
+      })
+      isNew = true
+    } catch (e) {
+      payload.logger.error(`[verifyOtpSms] invite-user create failed for ${phone}: ${e instanceof Error ? e.message : e}`)
+      return { ok: false, error: GENERIC_FAIL }
+    }
+
+    // Activate every pending invite on this number (full side-effects: contact
+    // sync + auto-join tenant spaces). Sequential; one bad row doesn't block.
+    const { autoActivatePendingMembership } = await import('@/utilities/autoActivatePendingMembership')
+    for (const m of validInvites) {
+      const doc = m as { id: number | string; tenant?: number | { id: number } }
+      const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
+      if (tenantId == null) continue
+      try {
+        await autoActivatePendingMembership(doc.id, (user as { id: number }).id, tenantId)
+      } catch {
+        /* keep going */
+      }
+    }
+  }
 
   const minted = await mintSessionToken(payload, user as { id: number; email: string; sessions?: unknown[] })
-  return { ok: true, token: minted.token, user, isNew: false }
+  return { ok: true, token: minted.token, user, isNew }
 }

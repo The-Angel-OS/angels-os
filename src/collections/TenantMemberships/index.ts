@@ -127,6 +127,15 @@ export const TenantMemberships: CollectionConfig = {
           type: 'email',
           admin: { description: 'Email of invited user (may not have an account yet)' },
         },
+        {
+          name: 'invitationPhone',
+          type: 'text',
+          index: true,
+          admin: {
+            description:
+              'E.164 mobile of invited user — phone invites: admin copies the link, texts it themselves; invitee signs in with a texted code (account created on first OTP).',
+          },
+        },
       ],
     },
     // ── Propagation Layer (Sprint 42) ─────────────────────────────

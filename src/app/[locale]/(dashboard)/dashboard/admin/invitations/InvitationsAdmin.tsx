@@ -22,6 +22,7 @@ const STATUS_TABS = [
 interface Invitation {
   id: number | string
   email: string
+  inviteUrl?: string | null
   status: string
   role: string
   spaceName: string
@@ -71,8 +72,12 @@ export function InvitationsAdmin({
     setInviteResult(null)
     setToast(null)
 
+    // One field, two doors: '@' = email invite (sends), otherwise phone invite
+    // (no outbound SMS yet — copy the link below and text it yourself; the
+    // invitee signs in with a texted code).
+    const isEmail = inviteEmail.includes('@')
     const result = await sendQuickInvite({
-      email: inviteEmail.trim(),
+      ...(isEmail ? { email: inviteEmail.trim() } : { phone: inviteEmail.trim() }),
       role: inviteRole,
       message: inviteMessage.trim() || undefined,
       firstName: inviteFirstName.trim() || undefined,
@@ -86,7 +91,7 @@ export function InvitationsAdmin({
       setToast({
         message: result.emailSent
           ? `Invitation sent to ${inviteEmail}!`
-          : `Invitation created for ${inviteEmail} (email transport not configured — share the link manually).`,
+          : `Invitation created for ${inviteEmail} — copy the link below and text/send it yourself.`,
         type: 'success',
       })
       setInviteEmail('')
@@ -97,6 +102,17 @@ export function InvitationsAdmin({
       setToast({ message: result.error || 'Failed to send invitation.', type: 'error' })
     }
   }, [inviteEmail, inviteRole, inviteMessage, inviteFirstName, inviteLastName])
+
+  const [copiedRowId, setCopiedRowId] = useState<string | number | null>(null)
+  const handleCopyRowUrl = useCallback(async (id: string | number, path: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`)
+      setCopiedRowId(id)
+      setTimeout(() => setCopiedRowId(null), 2000)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const handleCopyUrl = useCallback(async (url: string) => {
     try {
@@ -158,12 +174,12 @@ export function InvitationsAdmin({
         </div>
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Email Address</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Email or Mobile Number</label>
             <input
-              type="email"
+              type="text"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="colleague@example.com"
+              placeholder="colleague@example.com or 727 555 0123"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               onKeyDown={(e) => e.key === 'Enter' && handleQuickInvite()}
             />
@@ -313,6 +329,14 @@ export function InvitationsAdmin({
                         : '\u2014'}
                     </td>
                     <td className="px-4 py-3">
+                      {inv.status === 'pending' && inv.inviteUrl && (
+                        <button
+                          onClick={() => handleCopyRowUrl(inv.id, inv.inviteUrl!)}
+                          className="mr-2 inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                        >
+                          {copiedRowId === inv.id ? 'Copied!' : 'Copy Link'}
+                        </button>
+                      )}
                       {(inv.status === 'pending') && (
                         <button
                           onClick={() => handleResend(inv.id)}
