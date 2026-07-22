@@ -363,7 +363,11 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
           collection: 'tenants',
           where: {
             or: [
-              { domains: { contains: originHostname } },
+              // `domains` is an ARRAY of {domain} rows — `domains: {contains}` is an
+              // invalid path and threw "Cannot find field for path at undefined",
+              // 500-ing the whole callback for any non-cookie-domain origin.
+              { domain: { equals: originHostname } },
+              { 'domains.domain': { equals: originHostname } },
               { slug: { equals: originHostname.split('.')[0] } },
             ],
           },
