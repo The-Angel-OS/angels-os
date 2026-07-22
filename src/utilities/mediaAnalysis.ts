@@ -230,7 +230,7 @@ Return ONLY the JSON object, no markdown, no commentary.${customSection}`
       }
       try {
         rawText = await analyzeImageWithGemini(imageUrl, systemPrompt, userText, { apiKey: geminiKey, expectJson: true })
-        usedModel = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash'
+        usedModel = process.env.GEMINI_VISION_MODEL || process.env.GOOGLE_MODEL || 'gemini-flash-latest'
         recordSuccess('google')
       } catch (geminiErr) {
         console.error('[mediaAnalysis] Gemini vision failed:', geminiErr)
@@ -430,7 +430,7 @@ Return ONLY the JSON object, no markdown, no commentary.${customSection}`
       }
       try {
         rawText = await analyzeImagesWithGemini(used, systemPrompt, userText, { apiKey: geminiKey, expectJson: true })
-        usedModel = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash'
+        usedModel = process.env.GEMINI_VISION_MODEL || process.env.GOOGLE_MODEL || 'gemini-flash-latest'
         recordSuccess('google')
       } catch (geminiErr) {
         console.error('[mediaAnalysis] Gemini multi-image vision failed:', geminiErr)

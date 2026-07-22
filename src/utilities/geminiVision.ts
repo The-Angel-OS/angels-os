@@ -8,7 +8,11 @@
  * remote URL we fetch + base64 it.
  */
 
-const GEMINI_VISION_MODEL = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash'
+// gemini-2.0-flash was RETIRED (404 "no longer available") — pin to the alias
+// Google keeps current. flash-latest is vision-capable; the thinking-model
+// empty-content issue only bites tiny max_tokens budgets, not vision analysis.
+const GEMINI_VISION_MODEL =
+  process.env.GEMINI_VISION_MODEL || process.env.GOOGLE_MODEL || 'gemini-flash-latest'
 
 async function toInlineImage(imageUrl: string): Promise<{ mimeType: string; data: string }> {
   if (imageUrl.startsWith('data:')) {
