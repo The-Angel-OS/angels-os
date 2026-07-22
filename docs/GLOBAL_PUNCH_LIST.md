@@ -20,10 +20,6 @@
   providerHealth skips it 30m at a time. Gemini now covers vision (see fix 91ef738) so nothing is down, but
   the paid failover tier is thinner. *Next:* Ken adds credits at console.anthropic.com — or we accept
   Gemini-only vision. `260722`
-- **[P1] LEO calls `analyze_image` without `mediaId`** — tool errored "mediaId is required" when Ken attached
-  an image and asked for analysis; LEO should resolve the attached media's id itself. *Where:* leo-stream
-  attachment context → tool-call args; `leo-data-tools.ts` analyze_image. *Next:* inject attached mediaId(s)
-  into the tool call or default the tool to the message's attachment. `260722`
 - **[P2] Merlin still squatting :3000 via logon task** — elevated `Set-ScheduledTask` one-liner (move to
   :3002) given to Ken, unrun; Docker Desktop "Model Runner" should be disabled (Inference-manager stale-socket
   crash). *Next:* Ken runs both. `260722`
@@ -46,8 +42,6 @@
   persists a message+attachment row at all, and why it's not surfaced on reload. `260720`
 - **[P1] Stripe webhook secret unset in Vercel** — `STRIPE_WEBHOOKS_SIGNING_SECRET` not set + webhook
   `/api/stripe/webhooks` unregistered → Clearwater earn loop gated. *Where:* Vercel env + Stripe dash. *Next:* Ken sets it. [[project_earn_loop_clearwater]] `260720`
-- **[P2] Header logo doesn't render tenant `branding.logo`** — set the FK and it still shows the Angel
-  default; the header's tenant fetch doesn't hydrate `branding.logo` to an object. *Where:* `src/components/Header/index.client.tsx:261` + its tenant source. *Next:* populate branding.logo (depth) in the header tenant fetch. Surfaced wiring NeuroCare Pro demo. `260720`
 - **[P2] GoogleReviews block renders nothing on a bad/absent Place ID** — no graceful empty state, just a
   blank gap. *Where:* `src/blocks/GoogleReviews/Component.tsx`. *Next:* render a friendly fallback (or hide) when `fetchPlaceReviews` returns empty. `260720`
 - **[P2] Error nervous system is console-only** — `apiInterceptor` + `ErrorBoundary` are effectively dead;
@@ -70,6 +64,14 @@
   [[project_nested_docs_incident]]) + a SubNav block listing siblings/children; gives breadcrumbs free and preserves imported WP site structure (WP API exposes `parent` + `menu_order`). *Next:* field + migration + block. `260720`
 
 ## 🔧 Debt & hardening (P2)
+
+- **[✅ SHIPPED 260722-pm2] Van post + LEO media-id fix + Start-S branding** — (1) van diagnostic post got its
+  4-photo gallery (media 411-414); (2) **LEO media-tool root cause CLOSED** — "couldn't read that image" was
+  masking `add_gallery_to_page` called with EMPTY imageIds (ids never reached model context); user turns now
+  carry `[Attached media IDs: …]` (`16fc811`) — also closes the analyze_image-without-mediaId P1; (3) start-s
+  services reseeded to Vlad's real 7-item price list; (4) **Start-S SVG logo** (media 415) in the header —
+  which proved the old "header doesn't render branding.logo" P2 stale (NCP + Start-S both render; depth-2
+  hydration works) → removed. `260722`
 
 - **[✅ SHIPPED 260722-pm] Start-S portal + media-picker leak fix** — (1) **start-s.payloadnuke.com** provisioned
   for Vlad's "Start-S" mobile mechanic (tenant 24, 13 services from his flyer, `provision-starts.ts`); (2) **van
