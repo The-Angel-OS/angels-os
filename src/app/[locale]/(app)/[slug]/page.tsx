@@ -16,7 +16,7 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 
 import type { Page } from '@/payload-types'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 // NOTE: generateStaticParams removed — this page uses headers() + draftMode()
 // which makes it dynamic. SSG conflicts with dynamic functions and causes 500s.
@@ -47,6 +47,15 @@ export default async function Page({ params }: Args) {
   }
 
   if (!page) {
+    // Migrated-site safety net: an old-site URL that no longer exists may have a
+    // tenant-configured redirect (seeded from the old sitemap). Check before 404ing.
+    const { tenant, tenantId } = await resolveTenantFromHeaders()
+    void tenant
+    const { getPayload } = await import('payload')
+    const { resolveRedirect } = await import('@/utilities/resolveRedirect')
+    const config = (await import('@payload-config')).default
+    const target = await resolveRedirect(await getPayload({ config }), tenantId, url)
+    if (target) redirect(target)
     return notFound()
   }
 

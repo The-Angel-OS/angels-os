@@ -64,6 +64,7 @@ import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
 import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
+import { Redirects } from '@/collections/Redirects'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
 import { MediaMeta } from '@/collections/MediaMeta'
@@ -370,6 +371,7 @@ export default buildConfig({
     FederationPeers,
     Connectors,
     Contacts,
+    Redirects,
     FederationAuditLog,
     AgentTransactions,
     MediaMeta,
@@ -485,6 +487,7 @@ export default buildConfig({
         'holon-capabilities': {},
         'justice-fund-transactions': {},
         contacts: {},
+        redirects: {},
         header: {},
         footer: {},
         'site-settings': {},
