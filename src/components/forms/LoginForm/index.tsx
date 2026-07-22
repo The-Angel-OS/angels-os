@@ -66,8 +66,11 @@ export const LoginForm: React.FC = () => {
   const requestCode = useCallback(async () => {
     setError(null)
     setOtpInfo(null)
-    if (!otpEmail.trim() || !otpEmail.includes('@')) {
-      setError('Please enter your email address.')
+    const id = otpEmail.trim()
+    const isEmail = id.includes('@')
+    const isPhone = /^[+()0-9 .-]{7,}$/.test(id)
+    if (!id || (!isEmail && !isPhone)) {
+      setError('Enter your email address or mobile number.')
       return
     }
     setOtpBusy(true)
@@ -75,7 +78,7 @@ export const LoginForm: React.FC = () => {
       const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: otpEmail.trim() }),
+        body: JSON.stringify(isEmail ? { email: id } : { phone: id }),
       })
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; devCode?: string }
       if (!res.ok) throw new Error('request failed')
@@ -83,7 +86,9 @@ export const LoginForm: React.FC = () => {
       setOtpInfo(
         data.devCode
           ? `Dev mode — your code is ${data.devCode}`
-          : 'If that address has an account, a 6-digit code is on its way. Check your email.',
+          : isEmail
+            ? 'If that address has an account, a 6-digit code is on its way. Check your email.'
+            : 'If that number has an account, a 6-digit code is on its way by text.',
       )
     } catch {
       setError('Could not send a code right now — please try again in a minute.')
@@ -99,7 +104,11 @@ export const LoginForm: React.FC = () => {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: otpEmail.trim(), code: otpCode.trim() }),
+        body: JSON.stringify(
+          otpEmail.includes('@')
+            ? { email: otpEmail.trim(), code: otpCode.trim() }
+            : { phone: otpEmail.trim(), code: otpCode.trim() },
+        ),
       })
       const data = (await res.json().catch(() => ({}))) as {
         token?: string
@@ -133,12 +142,13 @@ export const LoginForm: React.FC = () => {
         {otpInfo && <p className="mb-4 text-sm text-primary/80">{otpInfo}</p>}
         <div className="flex flex-col gap-8">
           <FormItem>
-            <Label htmlFor="otp-email">Email</Label>
+            <Label htmlFor="otp-email">Email or mobile number</Label>
             <Input
               id="otp-email"
-              type="email"
+              type="text"
               value={otpEmail}
-              autoComplete="email"
+              autoComplete="username"
+              placeholder="you@example.com or +1 727 555 1234"
               disabled={otpStage === 'verify'}
               onChange={(e) => setOtpEmail(e.target.value)}
             />
@@ -178,7 +188,7 @@ export const LoginForm: React.FC = () => {
             </Button>
             {otpStage === 'request' ? (
               <Button className="grow" size="lg" type="button" disabled={otpBusy} onClick={() => void requestCode()}>
-                {otpBusy ? 'Sending…' : 'Email me a code'}
+                {otpBusy ? 'Sending…' : 'Send me a code'}
               </Button>
             ) : (
               <Button
@@ -244,7 +254,7 @@ export const LoginForm: React.FC = () => {
                 setError(null)
               }}
             >
-              email me a sign-in code
+              send me a sign-in code
             </button>{' '}
             — no password needed.
           </p>

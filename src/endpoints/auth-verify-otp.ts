@@ -6,7 +6,7 @@
  * { token, user, isNew }. One generic error for every failure (no oracle).
  */
 import type { PayloadHandler } from 'payload'
-import { verifyOtp } from '@/utilities/otpLogin'
+import { verifyOtp, verifyOtpSms } from '@/utilities/otpLogin'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const authVerifyOtpHandler: PayloadHandler = async (req) => {
@@ -25,8 +25,11 @@ export const authVerifyOtpHandler: PayloadHandler = async (req) => {
   }
 
   const email = typeof body?.email === 'string' ? body.email : ''
+  const phone = typeof body?.phone === 'string' ? body.phone : ''
   const code = typeof body?.code === 'string' ? body.code : String(body?.code ?? '')
-  const result = await verifyOtp(req.payload, email, code)
+  const result = phone
+    ? await verifyOtpSms(req.payload, phone, code)
+    : await verifyOtp(req.payload, email, code)
   if (!result.ok) return Response.json({ message: result.error || 'Invalid code' }, { status: 400 })
 
   return Response.json({

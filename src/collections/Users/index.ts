@@ -48,6 +48,15 @@ export const Users: CollectionConfig = {
       type: 'text',
     },
     {
+      // Mobile number (E.164) — the identity anchor for SMS sign-in (Twilio
+      // Verify texts a code; verifyOtpSms matches the approved phone to this
+      // field). Phone + email are co-equal anchors in the identity graph.
+      name: 'phone',
+      type: 'text',
+      index: true,
+      admin: { description: 'Mobile number in E.164 (e.g. +17275551234) — enables sign-in by text.' },
+    },
+    {
       // Deterministic GLOBAL identity, derived from email — the same person across
       // every federation node. Virtual: computed on read, never stored, so it adds
       // no column and cannot drift across the two databases. See federatedIdentity.ts.

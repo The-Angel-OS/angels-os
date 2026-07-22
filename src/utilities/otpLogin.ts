@@ -215,3 +215,98 @@ export async function verifyOtp(payload: Payload, emailRaw: string, codeRaw: str
 
   return { ok: true, token: minted.token, user, isNew }
 }
+
+// ─── SMS OTP via Twilio Verify ─────────────────────────────────────────────
+// Verify is the OTP-specific Twilio product: it sends from Twilio's own
+// pre-registered sender pool, so there is NO from-number and NO A2P 10DLC
+// campaign wait — unlike the raw Messages API. It also generates and checks
+// the codes itself, so nothing is stored on our side for the SMS path.
+
+export function normalizePhone(raw: string): string {
+  const digits = String(raw || '').replace(/[^0-9+]/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('+')) return digits
+  // Bare 10-digit NANP → assume +1 (the platform's home market).
+  if (/^\d{10}$/.test(digits)) return `+1${digits}`
+  return `+${digits}`
+}
+
+function twilioVerifyEnv(): { sid: string; token: string; service: string } | null {
+  const sid = process.env.TWILIO_ACCOUNT_SID || ''
+  const token = process.env.TWILIO_AUTH_TOKEN || ''
+  const service = process.env.TWILIO_VERIFY_SERVICE_SID || ''
+  if (!sid || !token || !service) return null
+  return { sid, token, service }
+}
+
+/**
+ * Text a login code via Twilio Verify. Generic { ok: true } for any plausible
+ * number — no oracle on which phones have accounts.
+ */
+export async function requestOtpSms(payload: Payload, phoneRaw: string): Promise<RequestOtpResult> {
+  const phone = normalizePhone(phoneRaw)
+  if (!/^\+[1-9]\d{7,14}$/.test(phone)) return { ok: false, error: 'Please enter a valid mobile number.' }
+  const env = twilioVerifyEnv()
+  if (!env) return { ok: false, error: 'Text sign-in is not configured on this node.' }
+
+  try {
+    const res = await fetch(`https://verify.twilio.com/v2/Services/${env.service}/Verifications`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${env.sid}:${env.token}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ To: phone, Channel: 'sms' }).toString(),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      payload.logger?.warn?.(`[otpLogin] Verify send failed ${res.status}: ${body.slice(0, 200)}`)
+      return { ok: false, error: 'Could not send a text right now — try email instead.' }
+    }
+    return { ok: true }
+  } catch (err) {
+    payload.logger?.warn?.(`[otpLogin] Verify send error: ${err instanceof Error ? err.message : err}`)
+    return { ok: false, error: 'Could not send a text right now — try email instead.' }
+  }
+}
+
+/**
+ * Check a texted code via Twilio Verify and mint a session for the user whose
+ * account carries that phone number. Phone sign-in is for EXISTING users only —
+ * we never create an account from a bare phone (no email to anchor identity);
+ * unknown phones get the same generic failure as a wrong code.
+ */
+export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: string): Promise<VerifyOtpResult> {
+  const phone = normalizePhone(phoneRaw)
+  const code = String(codeRaw || '').trim()
+  if (!/^\+[1-9]\d{7,14}$/.test(phone) || !/^\d{4,8}$/.test(code)) return { ok: false, error: GENERIC_FAIL }
+  const env = twilioVerifyEnv()
+  if (!env) return { ok: false, error: GENERIC_FAIL }
+
+  try {
+    const res = await fetch(`https://verify.twilio.com/v2/Services/${env.service}/VerificationCheck`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${env.sid}:${env.token}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ To: phone, Code: code }).toString(),
+    })
+    const data = (await res.json().catch(() => ({}))) as { status?: string }
+    if (!res.ok || data.status !== 'approved') return { ok: false, error: GENERIC_FAIL }
+  } catch {
+    return { ok: false, error: GENERIC_FAIL }
+  }
+
+  const existing = await payload.find({
+    collection: 'users',
+    where: { phone: { equals: phone } },
+    limit: 1,
+    overrideAccess: true,
+  })
+  const user = existing.docs[0]
+  if (!user) return { ok: false, error: GENERIC_FAIL }
+
+  const minted = await mintSessionToken(payload, user as { id: number; email: string; sessions?: unknown[] })
+  return { ok: true, token: minted.token, user, isNew: false }
+}

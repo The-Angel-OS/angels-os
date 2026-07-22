@@ -4,6 +4,7 @@ import * as migration_20260720_020000_add_tenant_default_theme from './20260720_
 import * as migration_20260720_030000_tenant_scope_ecommerce from './20260720_030000_tenant_scope_ecommerce';
 import * as migration_20260721_010000_add_vapi_fallback_number from './20260721_010000_add_vapi_fallback_number';
 import * as migration_20260722_010000_contacts_phone_voice_source from './20260722_010000_contacts_phone_voice_source';
+import * as migration_20260722_020000_users_phone from './20260722_020000_users_phone';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -215,5 +216,10 @@ export const migrations = [
     up: migration_20260722_010000_contacts_phone_voice_source.up,
     down: migration_20260722_010000_contacts_phone_voice_source.down,
     name: '20260722_010000_contacts_phone_voice_source',
+  },
+  {
+    up: migration_20260722_020000_users_phone.up,
+    down: migration_20260722_020000_users_phone.down,
+    name: '20260722_020000_users_phone',
   },
 ];

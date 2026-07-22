@@ -6,7 +6,7 @@
  * with no email provider configured, echoes { devCode } so local sign-in works.
  */
 import type { PayloadHandler } from 'payload'
-import { requestOtp } from '@/utilities/otpLogin'
+import { requestOtp, requestOtpSms } from '@/utilities/otpLogin'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 
 export const authRequestOtpHandler: PayloadHandler = async (req) => {
@@ -25,7 +25,9 @@ export const authRequestOtpHandler: PayloadHandler = async (req) => {
   }
 
   const email = typeof body?.email === 'string' ? body.email : ''
-  const result = await requestOtp(req.payload, email)
+  const phone = typeof body?.phone === 'string' ? body.phone : ''
+  // Phone → text the code via Twilio Verify; email → the original emailed code.
+  const result = phone ? await requestOtpSms(req.payload, phone) : await requestOtp(req.payload, email)
   if (!result.ok) return Response.json({ message: result.error || 'Invalid request' }, { status: 400 })
 
   return Response.json({ ok: true, ...(result.devCode ? { devCode: result.devCode } : {}) })
