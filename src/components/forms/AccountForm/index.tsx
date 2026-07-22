@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 type FormData = {
   email: string
   name: User['name']
+  phone?: string
   password: string
   passwordConfirm: string
 }
@@ -60,6 +61,7 @@ export const AccountForm: React.FC = () => {
             reset({
               name: json.doc.name,
               email: json.doc.email,
+              phone: json.doc.phone,
               password: '',
               passwordConfirm: '',
             })
@@ -88,6 +90,7 @@ export const AccountForm: React.FC = () => {
       reset({
         name: user.name,
         email: user.email,
+        phone: (user as { phone?: string }).phone,
         password: '',
         passwordConfirm: '',
       })
@@ -136,6 +139,16 @@ export const AccountForm: React.FC = () => {
                 type="text"
               />
               {errors.name && <FormError message={errors.name.message} />}
+            </FormItem>
+
+            <FormItem>
+              <Label htmlFor="phone" className="mb-2">
+                Mobile Number
+              </Label>
+              <Input id="phone" {...register('phone')} type="tel" placeholder="+1 727 555 1234" />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enables sign-in by text message — we&apos;ll send a code to this number instead of a password.
+              </p>
             </FormItem>
           </div>
         </Fragment>

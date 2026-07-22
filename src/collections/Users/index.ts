@@ -54,7 +54,19 @@ export const Users: CollectionConfig = {
       name: 'phone',
       type: 'text',
       index: true,
-      admin: { description: 'Mobile number in E.164 (e.g. +17275551234) — enables sign-in by text.' },
+      admin: { description: 'Mobile number — any format; normalized to E.164 on save. Enables sign-in by text.' },
+      hooks: {
+        beforeValidate: [
+          // Login normalizes the typed number to E.164 before matching, so the
+          // STORED value must be E.164 too — "727-256-4413" saved raw would
+          // never match "+17272564413" at sign-in. Same normalizer both sides.
+          async ({ value }) => {
+            if (typeof value !== 'string' || !value.trim()) return value
+            const { normalizePhone } = await import('@/utilities/otpLogin')
+            return normalizePhone(value)
+          },
+        ],
+      },
     },
     {
       // Deterministic GLOBAL identity, derived from email — the same person across

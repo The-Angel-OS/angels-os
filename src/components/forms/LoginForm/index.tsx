@@ -244,19 +244,6 @@ export const LoginForm: React.FC = () => {
           <p>
             Forgot your password?{' '}
             <Link href={`/forgot-password${allParams}`}>Click here to reset it</Link>
-            <br />
-            Or{' '}
-            <button
-              type="button"
-              className="underline"
-              onClick={() => {
-                setOtpMode(true)
-                setError(null)
-              }}
-            >
-              send me a sign-in code
-            </button>{' '}
-            — no password needed.
           </p>
         </div>
       </div>
@@ -281,7 +268,22 @@ export const LoginForm: React.FC = () => {
         </div>
       </div>
 
-      <SocialAuthButtons redirect={redirect?.current} />
+      <div className="flex flex-col gap-3">
+        <SocialAuthButtons redirect={redirect?.current} />
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full"
+          onClick={() => {
+            setOtpMode(true)
+            setError(null)
+          }}
+        >
+          <span className="mr-2">📱</span>
+          Continue with a code (text or email)
+        </Button>
+      </div>
     </form>
   )
 }
