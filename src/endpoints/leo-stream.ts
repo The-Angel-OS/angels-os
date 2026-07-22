@@ -1768,12 +1768,18 @@ async function streamViaGateway(opts: {
   // empty-response handler then reports as the misleading "I couldn't read that
   // image". Sending the small variant is the reliable fix for every upload path.
   const visionImageParts: Array<{ type: 'image'; image: URL | Uint8Array; mediaType?: string }> = []
+  // Non-image attachments (video, PDFs riding the image path) must NEVER become
+  // provider file parts — Gemini's OpenAI-compat surface hard-errors the whole
+  // stream with "'file part media type video/mp4' functionality not supported".
+  // They're acknowledged in TEXT instead so LEO can respond about them.
+  const nonImageAttachments: string[] = []
   if (userImages.length > 0) {
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
     const abs = (u: string) => (u.startsWith('/') ? `${serverUrl}${u}` : u)
     for (const img of userImages) {
       let url = img.url
       let mediaType: string | undefined
+      let filename: string | undefined
       if (img.mediaId != null) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1782,9 +1788,14 @@ async function streamViaGateway(opts: {
           const variant: string | undefined = sizes?.hero?.url || sizes?.card?.url
           if (variant) url = variant
           mediaType = typeof doc?.mimeType === 'string' ? doc.mimeType : undefined
+          filename = typeof doc?.filename === 'string' ? doc.filename : undefined
         } catch {
           /* variant lookup failed — fall back to the original url */
         }
+      }
+      if (mediaType && !mediaType.startsWith('image/')) {
+        nonImageAttachments.push(filename || `attachment (${mediaType})`)
+        continue
       }
       // Fetch the image bytes server-side and pass them INLINE, rather than handing
       // the provider a URL to fetch itself. Passing a URL broke when the platform
@@ -1806,25 +1817,43 @@ async function streamViaGateway(opts: {
       } catch {
         /* download failed — fall through to the URL form below */
       }
+      // URL fallback ONLY when we couldn't determine the type — a KNOWN non-image
+      // content-type from the probe above must not be smuggled in as an image URL.
       try {
-        visionImageParts.push({ type: 'image', image: new URL(absUrl) })
+        const probedCt = await fetch(absUrl, { method: 'HEAD', redirect: 'follow' })
+          .then((r) => r.headers.get('content-type') || '')
+          .catch(() => '')
+        if (probedCt && !probedCt.startsWith('image/')) {
+          nonImageAttachments.push(filename || `attachment (${probedCt})`)
+        } else {
+          visionImageParts.push({ type: 'image', image: new URL(absUrl) })
+        }
       } catch {
         /* skip a malformed url rather than throw the whole turn */
       }
     }
   }
 
+  // Surface skipped non-image files in TEXT so LEO acknowledges them instead of
+  // the stream dying on an unsupported provider part.
+  const attachmentNote = nonImageAttachments.length
+    ? `
+
+[The user also attached file(s) you cannot view directly: ${nonImageAttachments.join(', ')}. Acknowledge receipt naturally — the upload itself succeeded.]`
+    : ''
+  const outgoingText = `${userMessage}${attachmentNote}`
+
   if (!alreadyInHistory) {
     // Build user message (with images if present)
     if (userImages.length > 0) {
-      messages.push({ role: 'user', content: [{ type: 'text', text: userMessage }, ...visionImageParts] })
+      messages.push({ role: 'user', content: [{ type: 'text', text: outgoingText }, ...visionImageParts] })
     } else {
-      messages.push({ role: 'user', content: userMessage })
+      messages.push({ role: 'user', content: outgoingText })
     }
   } else if (userImages.length > 0) {
     // History has the text but not the images — replace the last entry
     // with a multimodal message so the LLM can see both text and images.
-    messages[messages.length - 1] = { role: 'user', content: [{ type: 'text', text: userMessage }, ...visionImageParts] }
+    messages[messages.length - 1] = { role: 'user', content: [{ type: 'text', text: outgoingText }, ...visionImageParts] }
   }
 
   // Per-turn tool-chain audit trail — every executeToolCall records a step.
