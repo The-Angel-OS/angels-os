@@ -50,7 +50,6 @@
   default; the header's tenant fetch doesn't hydrate `branding.logo` to an object. *Where:* `src/components/Header/index.client.tsx:261` + its tenant source. *Next:* populate branding.logo (depth) in the header tenant fetch. Surfaced wiring NeuroCare Pro demo. `260720`
 - **[P2] GoogleReviews block renders nothing on a bad/absent Place ID** — no graceful empty state, just a
   blank gap. *Where:* `src/blocks/GoogleReviews/Component.tsx`. *Next:* render a friendly fallback (or hide) when `fetchPlaceReviews` returns empty. `260720`
-- **[P2] Surface pending-invite links in the admin Invitations UI** — the tenant-invite link is stored on the membership (`invitationDetails.invitationToken` → `/tenant-invite/<token>`) but the UI only shows it at send-time. Add a copy-link affordance per pending invite so an admin can re-grab it to text/send. *Where:* `dashboard/admin/invitations/InvitationsAdmin.tsx`. `260720`
 - **[P2] Error nervous system is console-only** — `apiInterceptor` + `ErrorBoundary` are effectively dead;
   17-item punch list already scoped. *Where:* [[project_error_nervous_system_audit]]. *Next:* work that list. `260720`
 
@@ -71,6 +70,16 @@
   [[project_nested_docs_incident]]) + a SubNav block listing siblings/children; gives breadcrumbs free and preserves imported WP site structure (WP API exposes `parent` + `menu_order`). *Next:* field + migration + block. `260720`
 
 ## 🔧 Debt & hardening (P2)
+
+- **[✅ SHIPPED 260722-pm] Start-S portal + media-picker leak fix** — (1) **start-s.payloadnuke.com** provisioned
+  for Vlad's "Start-S" mobile mechanic (tenant 24, 13 services from his flyer, `provision-starts.ts`); (2) **van
+  diagnostic post** live on his portal (post 67) for the invite loop; (3) **media picker leak CLOSED** — Library
+  tab queried `/api/media` with a client-supplied tenant param (absent → super_admin saw ALL tenants); new
+  `GET /api/media-library` mirrors the /dashboard/media query with server-side tenant resolution, reuse button
+  un-gated so the LEO sidebar composer can submit existing media (`8651f97`); (4) phone-invite Copy Link shipped
+  earlier today (`5048e2e`) closes the old P2 "surface pending-invite links". *Gotchas logged:* `payload run`
+  doesn't await a floating `main()` promise (use top-level await); a provisioning tx killed mid-run leaves pages
+  with rolled-back media refs that validate-fail forever (delete + rerun). `260722`
 
 - **[✅ SHIPPED 260722] Live-ops day (demo + MobileMech1)** — one line each, details in HANDOFF_260722.md:
   (1) **Lead→Contact auto-harvest** (`upsertContactFromLead`, voice + web-form doors, dedupe email→phone,
