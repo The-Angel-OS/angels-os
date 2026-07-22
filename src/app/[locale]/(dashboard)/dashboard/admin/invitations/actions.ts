@@ -114,6 +114,7 @@ export async function sendQuickInvite(input: {
           status: 'pending',
           invitedBy: user.id,
           invitationDetails: {
+            invitationName: [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined,
             invitationPhone: phone,
             invitationToken: token,
             invitationExpiresAt: calculateExpiration(7).toISOString(),

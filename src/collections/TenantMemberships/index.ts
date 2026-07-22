@@ -128,6 +128,14 @@ export const TenantMemberships: CollectionConfig = {
           admin: { description: 'Email of invited user (may not have an account yet)' },
         },
         {
+          name: 'invitationName',
+          type: 'text',
+          admin: {
+            description:
+              'Display name typed by the inviter (e.g. "Vlad") — shown on rosters while pending, applied to the user account created on first OTP sign-in.',
+          },
+        },
+        {
           name: 'invitationPhone',
           type: 'text',
           index: true,

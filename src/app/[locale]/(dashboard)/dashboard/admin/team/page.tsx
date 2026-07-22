@@ -74,8 +74,8 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
     userId: typeof doc.user === 'object' ? String(doc.user?.id || '') : String(doc.user || ''),
     userName:
       typeof doc.user === 'object'
-        ? doc.user?.name || doc.user?.email || nameFromEmail(doc.invitationDetails?.invitationEmail)
-        : nameFromEmail(doc.invitationDetails?.invitationEmail),
+        ? doc.user?.name || doc.user?.email || doc.invitationDetails?.invitationName || nameFromEmail(doc.invitationDetails?.invitationEmail)
+        : doc.invitationDetails?.invitationName || nameFromEmail(doc.invitationDetails?.invitationEmail),
     userEmail: typeof doc.user === 'object' ? doc.user?.email || '' : '',
     role: doc.role || 'tenant_member',
     permissions: doc.permissions || [],

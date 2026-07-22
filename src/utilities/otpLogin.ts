@@ -361,12 +361,15 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
     // RFC-reserved so nothing ever delivers to it; the user sets a real email
     // later on /dashboard/account.
     try {
+      // Carry the inviter-typed name onto the new account ("Vlad", not a digits handle)
+      const invitedName = (validInvites.map((m) => (m as any).invitationDetails?.invitationName).find(Boolean) as string | undefined)?.trim()
       user = await payload.create({
         collection: 'users',
         data: {
           email: `${phone.replace('+', '')}@phone.invalid`,
           password: crypto.randomUUID() + crypto.randomUUID(),
           phone,
+          ...(invitedName ? { name: invitedName } : {}),
           _verified: true,
         } as never,
         overrideAccess: true,
