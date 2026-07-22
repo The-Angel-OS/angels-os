@@ -337,27 +337,30 @@ export const Availability: CollectionConfig = {
     beforeChange: [
       async ({ data }) => {
         if (!data) return
-        // Validate time ranges
-        if (data.weeklySchedule) {
+        // Validate ONLY the schedule group matching availabilityType — the other
+        // groups always ride along in the payload as empty strings, and
+        // '' >= '' is true, which threw "Start time must be before end time"
+        // on every one-time block (260722).
+        if (data.availabilityType === 'weekly' && data.weeklySchedule) {
           const { startTime, endTime } = data.weeklySchedule
-          if (startTime >= endTime) {
+          if (startTime && endTime && startTime >= endTime) {
             throw new Error('Start time must be before end time')
           }
         }
 
-        if (data.dateRange) {
+        if (data.availabilityType === 'date-range' && data.dateRange) {
           const { startDate, endDate, startTime, endTime } = data.dateRange
-          if (new Date(startDate) > new Date(endDate)) {
+          if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
             throw new Error('Start date must be before or equal to end date')
           }
-          if (startTime >= endTime) {
+          if (startTime && endTime && startTime >= endTime) {
             throw new Error('Start time must be before end time')
           }
         }
 
-        if (data.oneTimeBlock) {
+        if (data.availabilityType === 'one-time' && data.oneTimeBlock) {
           const { startDateTime, endDateTime } = data.oneTimeBlock
-          if (new Date(startDateTime) >= new Date(endDateTime)) {
+          if (startDateTime && endDateTime && new Date(startDateTime) >= new Date(endDateTime)) {
             throw new Error('Start datetime must be before end datetime')
           }
         }
