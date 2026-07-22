@@ -23,6 +23,7 @@ import type { ChatControlProps } from './types'
 export function SidebarChat({
   spaceId,
   channelSlug = 'general',
+  tenantId,
   className = '',
 }: ChatControlProps) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -212,10 +213,16 @@ export function SidebarChat({
           {/* Messages */}
           <MessageList messages={messages} isLoading={isLoading} isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={loadMoreMessages} />
 
-          {/* Input */}
+          {/* Input — spaceId/channelSlug unlock the attach + reuse-media controls
+              (canReuse gate); without them the sidebar composer was text-only
+              while the full Spaces chat had the whole surface. tenantId scopes
+              the media library picker to the current portal. */}
           <MessageInput
             onSend={sendMessage}
             disabled={isLoading}
+            spaceId={activeSpaceId}
+            channelSlug={activeChannel}
+            tenantId={tenantId}
             placeholder={`Ask LEO anything...`}
           />
         </div>

@@ -20,10 +20,12 @@ export function SpacesChat({
   liveKitEnabled,
   initialSpaceSlug,
   initialChannel,
+  tenantId,
 }: {
   liveKitEnabled?: boolean
   initialSpaceSlug?: string
   initialChannel?: string
+  tenantId?: string
 }) {
   const { spaces, activeSpaceId, setActiveSpaceId } = useDashboard()
 
@@ -69,6 +71,7 @@ export function SpacesChat({
   return (
     <ChatControl
       mode="multi-channel"
+      tenantId={tenantId}
       spaceId={String(effectiveSpaceId)}
       spaces={chatSpaces.length > 0 ? chatSpaces : undefined}
       channelSlug={initialChannel}

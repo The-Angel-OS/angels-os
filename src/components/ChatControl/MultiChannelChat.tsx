@@ -60,6 +60,7 @@ const CHANNEL_TYPES = [
 export function MultiChannelChat({
   spaceId: initialSpaceId,
   spaces: initialSpaces,
+  tenantId,
   channelSlug,
   onSpaceChange,
   className = '',
@@ -681,6 +682,7 @@ export function MultiChannelChat({
               disabled={isLoading}
               spaceId={activeSpaceId}
               channelSlug={activeChannel}
+              tenantId={tenantId}
               placeholder={
                 activeChannelData?.type === 'dm'
                   ? activeChannelData.slug.endsWith('-leo')
