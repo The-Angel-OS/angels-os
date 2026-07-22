@@ -26,8 +26,25 @@ export const authRequestOtpHandler: PayloadHandler = async (req) => {
 
   const email = typeof body?.email === 'string' ? body.email : ''
   const phone = typeof body?.phone === 'string' ? body.phone : ''
+  // Portal branding for the SMS: resolve the tenant this login page belongs to
+  // from the request host, so the text reads "Your NeuroCare Pro verification
+  // code…" instead of a generic service name.
+  let portalName: string | undefined
+  if (phone) {
+    try {
+      const { resolveTenantIdFromReq } = await import('@/collections/ecommerce/tenantScope')
+      const tid = await resolveTenantIdFromReq(req)
+      if (tid != null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const t = (await req.payload.findByID({ collection: 'tenants', id: tid, depth: 0, overrideAccess: true })) as any
+        portalName = t?.branding?.siteName || t?.name || undefined
+      }
+    } catch {
+      /* branding is a nicety — never block the code send */
+    }
+  }
   // Phone → text the code via Twilio Verify; email → the original emailed code.
-  const result = phone ? await requestOtpSms(req.payload, phone) : await requestOtp(req.payload, email)
+  const result = phone ? await requestOtpSms(req.payload, phone, portalName) : await requestOtp(req.payload, email)
   if (!result.ok) return Response.json({ message: result.error || 'Invalid request' }, { status: 400 })
 
   return Response.json({ ok: true, ...(result.devCode ? { devCode: result.devCode } : {}) })

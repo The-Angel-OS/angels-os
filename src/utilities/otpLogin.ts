@@ -243,7 +243,12 @@ function twilioVerifyEnv(): { sid: string; token: string; service: string } | nu
  * Text a login code via Twilio Verify. Generic { ok: true } for any plausible
  * number — no oracle on which phones have accounts.
  */
-export async function requestOtpSms(payload: Payload, phoneRaw: string): Promise<RequestOtpResult> {
+export async function requestOtpSms(
+  payload: Payload,
+  phoneRaw: string,
+  /** Portal branding for the SMS text: "Your <name> verification code is: …" */
+  friendlyName?: string,
+): Promise<RequestOtpResult> {
   const phone = normalizePhone(phoneRaw)
   if (!/^\+[1-9]\d{7,14}$/.test(phone)) return { ok: false, error: 'Please enter a valid mobile number.' }
   const env = twilioVerifyEnv()
@@ -256,7 +261,13 @@ export async function requestOtpSms(payload: Payload, phoneRaw: string): Promise
         Authorization: `Basic ${Buffer.from(`${env.sid}:${env.token}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({ To: phone, Channel: 'sms' }).toString(),
+      body: new URLSearchParams({
+        To: phone,
+        Channel: 'sms',
+        // Per-portal branding — the code text names the portal being logged
+        // into instead of the account-wide service name.
+        ...(friendlyName ? { CustomFriendlyName: friendlyName.slice(0, 30) } : {}),
+      }).toString(),
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
