@@ -193,6 +193,26 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
       overrideAccess: true,
     })
 
+    // Harvest the CRM contact from the form fields — the contact book fills
+    // itself from web submissions the same way it does from voice leads.
+    // Fail-soft: the message above is the source of truth.
+    try {
+      const { upsertContactFromLead } = await import('@/utilities/upsertContactFromLead')
+      const pick = (k: string) =>
+        (submissionData.find((f) => f.field.toLowerCase().includes(k))?.value as string | undefined) || undefined
+      await upsertContactFromLead(payload, {
+        tenantId: Number(tenantId),
+        name: pick('name'),
+        email: pick('email'),
+        phone: pick('phone'),
+        message: pick('message'),
+        leadType: pick('contacttype') || pick('leadtype'),
+        source: 'web-form',
+      })
+    } catch (err) {
+      console.error('[routeFormToAIBus] contact upsert failed (message still delivered):', err)
+    }
+
     // Escalate to Gotify so the operator's phone lights up on a new lead/contact.
     // Fail-soft and policy-gated per gotify connector (see gotifyEscalation.ts) —
     // dedupeKey is per-form so a burst of one form's submissions is throttled but

@@ -1,6 +1,17 @@
 import type { CollectionConfig } from 'payload'
 import { checkRole } from '@/access/utilities'
 import { enforceUniqueEmailPerTenant } from './hooks/enforceUniqueEmailPerTenant'
+import type { CollectionBeforeValidateHook } from 'payload'
+
+/** A contact must be reachable somehow: email OR phone. */
+const requireEmailOrPhone: CollectionBeforeValidateHook = ({ data, originalDoc }) => {
+  const email = (data?.email ?? originalDoc?.email ?? '') as string
+  const phone = (data?.phone ?? originalDoc?.phone ?? '') as string
+  if (!String(email).trim() && !String(phone).trim()) {
+    throw new Error('A contact needs an email address or a phone number.')
+  }
+  return data
+}
 
 /**
  * CRM Contacts — source of truth for all imported/manual contacts.
@@ -26,15 +37,24 @@ export const Contacts: CollectionConfig = {
       Boolean(user && checkRole(['super_admin', 'admin'], user)),
   },
   hooks: {
-    beforeValidate: [enforceUniqueEmailPerTenant],
+    beforeValidate: [requireEmailOrPhone, enforceUniqueEmailPerTenant],
   },
   fields: [
     {
       name: 'email',
       type: 'email',
-      required: true,
+      // Optional since voice leads: a phone call yields a NAME + PHONE; making
+      // someone spell an email aloud is where voice leads die. A contact needs
+      // email OR phone (enforced in requireEmailOrPhone below).
+      required: false,
       index: true,
-      admin: { description: 'Contact email address' },
+      admin: { description: 'Contact email address (optional if phone present)' },
+    },
+    {
+      name: 'phone',
+      type: 'text',
+      index: true,
+      admin: { description: 'Phone number (E.164 preferred) — primary channel for voice-captured leads' },
     },
     {
       name: 'name',
@@ -54,6 +74,8 @@ export const Contacts: CollectionConfig = {
         { label: 'Signup', value: 'signup' },
         { label: 'Referral', value: 'referral' },
         { label: 'API', value: 'api' },
+        { label: 'Voice Call', value: 'voice' },
+        { label: 'Web Form', value: 'web-form' },
       ],
       index: true,
       admin: { description: 'Where this contact was sourced from' },

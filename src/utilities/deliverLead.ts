@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 import { createFormSubmissionContent } from '@/utilities/messageContent'
 import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
 import { dispatchToGotify } from '@/utilities/gotifyEscalation'
+import { upsertContactFromLead } from '@/utilities/upsertContactFromLead'
 
 /**
  * deliverLead — the one path that lands a lightweight contact/lead into a tenant's
@@ -91,6 +92,26 @@ export async function deliverLead(
       } as never,
       overrideAccess: true,
     })
+
+    // Harvest the CRM contact — every lead becomes (or updates) a Contacts row
+    // automatically, so the contact book fills itself from every door. Fail-soft:
+    // the message + escalation above are the source of truth; a contact hiccup
+    // must never lose the lead.
+    try {
+      const f = (k: string) =>
+        (Object.entries(fields).find(([key]) => key.toLowerCase().includes(k))?.[1] as string | undefined) || undefined
+      await upsertContactFromLead(payload, {
+        tenantId: Number(tenantId),
+        name: f('name'),
+        email: f('email'),
+        phone: f('phone'),
+        message: f('message'),
+        leadType: f('leadtype'),
+        source: source === 'capture_lead' ? 'voice' : 'web-form',
+      })
+    } catch (err) {
+      console.error('[deliverLead] contact upsert failed (lead message still delivered):', err)
+    }
 
     if (escalate) {
       const who =
