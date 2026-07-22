@@ -79,6 +79,9 @@ export default async function DashboardPage({
   // A provisioned node (real tenants or spaces anywhere) must never be offered the
   // destructive global seed, even if the tenant you're viewing happens to be empty.
   let nodeHasData = false
+  // Platform-root view (vs a specific tenant's command center) — drives whether
+  // platform-wide cards (Federation Tenants) render at all.
+  let isPlatformView = false
 
   try {
     const payload = await getPayload({ config })
@@ -140,16 +143,24 @@ export default async function DashboardPage({
       tenantStatus = currentTenant.status || 'active'
     }
 
-    // Tenant-scoped filter: super_admins see everything, others see their tenant only
+    // Tenant-scoped filter. The header names a SPECIFIC tenant, so the cards
+    // must match it — including for super_admins (previously they bypassed the
+    // filter and saw platform-wide numbers under the tenant's branding, e.g.
+    // "NeuroCare Pro — Command Center" showing all 14 tenants' stats). The
+    // global view lives only on the platform-root portal.
+    isPlatformView = !currentTenant || (currentTenant as { type?: string }).type === 'platform'
     const tenantFilter: Where | undefined =
-      isSuperAdmin || !currentTenant
+      isPlatformView && isSuperAdmin
         ? undefined
-        : { tenant: { equals: currentTenant.id } }
+        : currentTenant
+          ? { tenant: { equals: currentTenant.id } }
+          : undefined
 
     // Parallel count queries – catch individually so one failure doesn't kill all
     const [tenants, spaces, users, products, posts, bookings, projects] = await Promise.all([
-      // Tenants count only visible to super_admins
-      isSuperAdmin
+      // Tenants count: platform-root view only — it's a platform-wide number
+      // and has no business on a specific tenant's command center.
+      isSuperAdmin && isPlatformView
         ? payload.count({ collection: 'tenants', overrideAccess: true })
         : Promise.resolve({ totalDocs: 0 }),
       payload.count({
@@ -157,11 +168,20 @@ export default async function DashboardPage({
         where: tenantFilter,
         overrideAccess: true,
       }),
-      payload.count({
-        collection: 'users',
-        where: { isSystemUser: { not_equals: true } },
-        overrideAccess: true,
-      }),
+      // Crew Manifest — users aren't tenant-relational, memberships are. On a
+      // tenant view count that tenant's active members; global users only on the
+      // platform view (previously ALWAYS global, for every role).
+      tenantFilter
+        ? payload.count({
+            collection: 'tenant-memberships',
+            where: { and: [tenantFilter, { status: { equals: 'active' } }] },
+            overrideAccess: true,
+          })
+        : payload.count({
+            collection: 'users',
+            where: { isSystemUser: { not_equals: true } },
+            overrideAccess: true,
+          }),
       payload
         .count({ collection: 'products', where: tenantFilter, overrideAccess: true })
         .catch(() => ({ totalDocs: 0 })),
@@ -355,8 +375,8 @@ export default async function DashboardPage({
       </div>
 
       {/* Stat Cards – LCARS styled, tenant-scoped */}
-      <div className={`grid grid-cols-2 gap-4 ${isSuperAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-        {isSuperAdmin && (
+      <div className={`grid grid-cols-2 gap-4 ${isSuperAdmin && isPlatformView ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        {isSuperAdmin && isPlatformView && (
           <LCARSStatCard
             label="Federation Tenants"
             value={stats.tenants}
