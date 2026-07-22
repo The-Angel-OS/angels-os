@@ -32,6 +32,8 @@ interface MemberData {
   status: string
   joinedAt: string | null
   invitationEmail: string | null
+  invitationPhone: string | null
+  userPhone: string | null
   inviteUrl: string | null
   createdAt: string | null
 }
@@ -234,8 +236,13 @@ export function TeamManager({ members: initialMembers, totalMembers, tenantName 
                     <div>
                       <p className="text-sm font-medium">{member.userName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {member.userEmail || member.invitationEmail || '—'}
+                        {member.userEmail || member.invitationEmail || member.invitationPhone || '—'}
                       </p>
+                      {(member.userPhone || (member.invitationPhone && (member.userEmail || member.invitationEmail))) && (
+                        <p className="text-xs text-muted-foreground">
+                          {member.userPhone || member.invitationPhone}
+                        </p>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -350,6 +357,11 @@ function MemberEditor({
 }) {
   const [editRole, setEditRole] = useState(member.role)
   const [editPerms, setEditPerms] = useState<string[]>(member.permissions)
+  // Contact fields — editable only while the invite is PENDING (correcting your
+  // own vouch). Active members' email/phone are OTP anchors → self-service only.
+  const isPendingInvite = member.status === 'pending'
+  const [editPhone, setEditPhone] = useState(member.invitationPhone || '')
+  const [editEmail, setEditEmail] = useState(member.invitationEmail || '')
   const [isPending, startTransition] = useTransition()
   const [confirmRevoke, setConfirmRevoke] = useState(false)
 
@@ -380,12 +392,19 @@ function MemberEditor({
       const result = await updateMember(member.id, {
         role: editRole !== member.role ? editRole : undefined,
         permissions: editPerms,
+        ...(isPendingInvite && editPhone !== (member.invitationPhone || '') ? { invitationPhone: editPhone } : {}),
+        ...(isPendingInvite && editEmail !== (member.invitationEmail || '') ? { invitationEmail: editEmail } : {}),
       })
       if (!result.success) {
         onError(result.error || 'Failed to update member')
         return
       }
-      onUpdate({ ...member, role: editRole, permissions: editPerms })
+      onUpdate({
+        ...member,
+        role: editRole,
+        permissions: editPerms,
+        ...(isPendingInvite ? { invitationPhone: editPhone || null, invitationEmail: editEmail || null } : {}),
+      })
     })
   }
 
@@ -451,6 +470,32 @@ function MemberEditor({
 
   return (
     <div className="space-y-4">
+      {/* Contact — pending invites only (active members self-serve on /dashboard/account) */}
+      {isPendingInvite && (
+        <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Invite email</label>
+            <input
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              placeholder="them@example.com"
+              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Invite mobile (for code sign-in)</label>
+            <input
+              type="tel"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              placeholder="(727) 555-0123"
+              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Role */}
       <div>
         <label className="block text-xs font-medium text-muted-foreground mb-1">Role</label>

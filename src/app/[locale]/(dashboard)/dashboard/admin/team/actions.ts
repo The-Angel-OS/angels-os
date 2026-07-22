@@ -105,7 +105,7 @@ const VALID_ROLES: TenantRole[] = ['tenant_admin', 'tenant_manager', 'tenant_mem
 
 export async function updateMember(
   membershipId: number | string,
-  data: { role?: string; permissions?: string[] },
+  data: { role?: string; permissions?: string[]; invitationPhone?: string; invitationEmail?: string },
 ): Promise<ActionResult> {
   const { payload, tenantId, error } = await getAuthorizedUser()
   if (error || !tenantId) return { success: false, error: error || 'Auth failed' }
@@ -126,6 +126,36 @@ export async function updateMember(
       updateData.permissions = data.permissions.filter((p) =>
         ALL_PERMISSION_KEYS.includes(p as any),
       )
+    }
+
+    // Contact fields are editable ONLY while the invite is pending — correcting
+    // a typo in your own vouch. Once the member is active those are OTP login
+    // anchors; letting an admin rewrite them would be an account-takeover
+    // primitive (set someone's phone to yours, OTP in as them). Active members
+    // self-serve on /dashboard/account.
+    if (data.invitationPhone !== undefined || data.invitationEmail !== undefined) {
+      const doc = (await payload.findByID({
+        collection: 'tenant-memberships',
+        id: membershipId,
+        depth: 0,
+        overrideAccess: true,
+      })) as any
+      if (doc?.status !== 'pending') {
+        return { success: false, error: 'Contact details can only be edited on pending invites' }
+      }
+      const details: Record<string, unknown> = { ...(doc.invitationDetails || {}) }
+      if (data.invitationPhone !== undefined) {
+        const { normalizePhone } = await import('@/utilities/otpLogin')
+        const phone = data.invitationPhone.trim() ? normalizePhone(data.invitationPhone) : ''
+        if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) {
+          return { success: false, error: 'Please enter a valid mobile number' }
+        }
+        details.invitationPhone = phone || null
+      }
+      if (data.invitationEmail !== undefined) {
+        details.invitationEmail = data.invitationEmail.trim().toLowerCase() || null
+      }
+      updateData.invitationDetails = details
     }
 
     if (Object.keys(updateData).length > 0) {
