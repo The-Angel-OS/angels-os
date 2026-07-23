@@ -920,20 +920,8 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       ? (rawWizardContext as WizardContext)
       : {}
 
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
-  }
-
-  // Enforce message length limit — prevents abuse and keeps within LLM context bounds
-  const MAX_LEO_MESSAGE_LENGTH = 50_000
-  if (message.length > MAX_LEO_MESSAGE_LENGTH) {
-    return Response.json(
-      { message: `Message too long (${message.length} chars). Maximum is ${MAX_LEO_MESSAGE_LENGTH}.` },
-      { status: 400 },
-    )
-  }
-
-  // Parse image attachments
+  // Parse image attachments — done BEFORE the empty-message guard so an
+  // image-only turn (no typed text) is valid: "analyze this" IS the request.
   const userImages: Array<{ url: string; mediaId?: number; alt?: string }> = []
   if (Array.isArray(bodyImages)) {
     for (const img of bodyImages) {
@@ -943,12 +931,29 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     }
   }
 
+  const hasText = typeof message === 'string' && message.trim().length > 0
+  if (!hasText && userImages.length === 0) {
+    return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
+  }
+  // Image-only turn: give the model a default instruction so downstream code that
+  // assumes a non-empty prompt (and the vision call) has something to work with.
+  const effectiveMessage: string = hasText ? (message as string) : 'Please analyze the attached image(s).'
+
+  // Enforce message length limit — prevents abuse and keeps within LLM context bounds
+  const MAX_LEO_MESSAGE_LENGTH = 50_000
+  if (effectiveMessage.length > MAX_LEO_MESSAGE_LENGTH) {
+    return Response.json(
+      { message: `Message too long (${effectiveMessage.length} chars). Maximum is ${MAX_LEO_MESSAGE_LENGTH}.` },
+      { status: 400 },
+    )
+  }
+
   // Resolve conversationId early — needed for slash command SSE responses
   const resolvedConversationId =
     typeof conversationId === 'string' ? conversationId : `conv_${Date.now()}`
 
   // ─── Slash Commands ──────────────────────────────────────────────────────
-  const trimmedMsg = message.trim()
+  const trimmedMsg = effectiveMessage.trim()
   if (trimmedMsg.startsWith('/')) {
     const reqUser = req.user as unknown as Record<string, unknown> | undefined
     const slashRoles = Array.isArray(reqUser?.roles) ? (reqUser.roles as string[]) : undefined
@@ -986,7 +991,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           const result = await brokerNodeChat(req.payload, req.user, {
             endeavor,
             nodeId,
-            message: message.trim(),
+            message: effectiveMessage.trim(),
             conversationId: resolvedConversationId,
           })
 
@@ -1116,7 +1121,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       agent = await routeToAgent(req.payload, {
         tenantId,
         channelSlug: typeof channelSlug === 'string' ? channelSlug : undefined,
-        messageText: message.trim(),
+        messageText: effectiveMessage.trim(),
       })
     } catch {
       // Use defaults
@@ -1294,7 +1299,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               encoder,
               systemPrompt,
               historyMessages,
-              userMessage: message.trim(),
+              userMessage: effectiveMessage.trim(),
               userImages,
               payload: req.payload,
               tenantId,
@@ -1350,7 +1355,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 client: fallbackClient,
                 systemPrompt,
                 historyMessages,
-                userMessage: message.trim(),
+                userMessage: effectiveMessage.trim(),
                 userImages,
                 payload: req.payload,
                 tenantId,
@@ -1378,7 +1383,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
             client: client!,
             systemPrompt,
             historyMessages,
-            userMessage: message.trim(),
+            userMessage: effectiveMessage.trim(),
             userImages,
             payload: req.payload,
             tenantId,
