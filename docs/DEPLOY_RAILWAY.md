@@ -44,12 +44,14 @@ not part of this move. Media stays on **Cloudflare R2** (container is stateless)
 ## 2. Environment variables (on the Core service)
 Map Railway's Postgres var to what Payload expects, then set the rest.
 
-**Required (set on BOTH Core and Core-kendev):**
-- `DATABASE_URI` = route through PgBouncer, not straight at Postgres. Keep each
-  Core's own db name at the end of the path:
-  - Core: `postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{PgBouncer.RAILWAY_PRIVATE_DOMAIN}}:5432/angels`
-  - Core-kendev: same, ending `/kendev`
+**Required (on Core):**
+- `DATABASE_URI` = route through PgBouncer, not straight at Postgres. The managed
+  PG's actual db is `railway` (not `angels`), so keep that at the end of the path:
+  `postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{PgBouncer.RAILWAY_PRIVATE_DOMAIN}}:5432/railway`
   (only host:port differs from `${{Postgres.DATABASE_URL}}`; same creds.)
+  > 260723: Core-kendev deleted (never redirected, not in launch path). If a second
+  > Core is added later, give it its own db and end its `DATABASE_URI` with that name
+  > — the wildcard PgBouncer pool (unset `DB_NAME`) already serves any db.
   > **Migrations exception:** if a boot migration ever fails through the pooler,
   > run the migrate step against the DIRECT url (`${{Postgres.DATABASE_URL}}`) once,
   > then keep app traffic on the pooler. DDL is fine in txn mode, so this is rare.
