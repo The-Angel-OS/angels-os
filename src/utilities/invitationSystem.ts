@@ -208,6 +208,43 @@ export async function createInvitation(opts: CreateInvitationOptions) {
     overrideAccess: true,
   })
 
+  // Close the CRM funnel loop: a matching Contact (harvested by capture_lead /
+  // web forms) moves lead → invited. Fail-soft — funnel bookkeeping must never
+  // block the invite itself.
+  try {
+    const tenantForContact = membershipData.tenant
+    if (tenantForContact != null) {
+      const contacts = await payload.find({
+        collection: 'contacts',
+        where: {
+          and: [
+            { tenant: { equals: tenantForContact } },
+            { email: { equals: email.trim().toLowerCase() } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const contact = contacts.docs[0] as { id: number; inviteCount?: number } | undefined
+      if (contact) {
+        await payload.update({
+          collection: 'contacts',
+          id: contact.id,
+          data: {
+            contactStatus: 'invited',
+            inviteStatus: 'invited',
+            lastInvitedAt: new Date().toISOString(),
+            inviteCount: (contact.inviteCount ?? 0) + 1,
+          } as never,
+          overrideAccess: true,
+        })
+      }
+    }
+  } catch {
+    /* fail-soft */
+  }
+
   return {
     membershipId: membership.id,
     token,
@@ -271,6 +308,32 @@ export async function acceptInvitation(
   // Extract space info
   const space = typeof membership.space === 'object' ? membership.space : null
   const spaceId = space?.id || membership.space
+
+  // Funnel bookkeeping: invited → accepted on the matching Contact. Fail-soft.
+  try {
+    const inviteEmail = membership.invitationDetails?.invitationEmail
+    const tenantId = typeof membership.tenant === 'object' ? membership.tenant?.id : membership.tenant
+    if (inviteEmail && tenantId != null) {
+      const contacts = await payload.find({
+        collection: 'contacts',
+        where: { and: [{ tenant: { equals: tenantId } }, { email: { equals: inviteEmail } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const contact = contacts.docs[0] as { id: number } | undefined
+      if (contact) {
+        await payload.update({
+          collection: 'contacts',
+          id: contact.id,
+          data: { contactStatus: 'accepted', inviteStatus: 'accepted' } as never,
+          overrideAccess: true,
+        })
+      }
+    }
+  } catch {
+    /* fail-soft */
+  }
 
   return {
     membershipId: membership.id,
