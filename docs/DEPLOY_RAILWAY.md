@@ -10,17 +10,44 @@ not part of this move. Media stays on **Cloudflare R2** (container is stateless)
 - The current production DB connection string (to dump from) and R2 creds.
 - Cloudflare in front of the domains (TLS/CDN/DDoS) — you already use CF.
 
-## 1. Create the Railway project (2 services)
+## 1. Create the Railway project (3 services)
 1. **New Project → Deploy from GitHub repo** (`The-Angel-OS/angels-os`). Railway
    detects `railway.json` → builds the `Dockerfile`. Health check is `/api/health`.
 2. **Add a Postgres** service (New → Database → PostgreSQL). It exposes
    `DATABASE_URL` on the Postgres service.
+3. **Add a PgBouncer** service (New → **Docker Image** → `edoburu/pgbouncer:latest`).
+   Transaction pooling so a crashed-mid-tx job or login stampede can't exhaust
+   Postgres (root cause of the 260722 local login-jam; same risk on Railway's
+   connection-capped managed PG). Set these variables on the PgBouncer service —
+   `.RAILWAY_PRIVATE_DOMAIN`/creds come from the Postgres service via references:
+   - `DB_HOST` = `${{Postgres.PGHOST}}`
+   - `DB_PORT` = `${{Postgres.PGPORT}}`
+   - `DB_USER` = `${{Postgres.PGUSER}}`
+   - `DB_PASSWORD` = `${{Postgres.PGPASSWORD}}`
+   - `DB_NAME` = `${{Postgres.PGDATABASE}}`
+   - `POOL_MODE` = `transaction`
+   - `AUTH_TYPE` = `scram-sha-256`
+   - `MAX_CLIENT_CONN` = `1000`
+   - `DEFAULT_POOL_SIZE` = `25`
+   - `MIN_POOL_SIZE` = `5`
+   - `RESERVE_POOL_SIZE` = `5`
+   - `SERVER_RESET_QUERY` = `DISCARD ALL`
+   - `IGNORE_STARTUP_PARAMETERS` = `extra_float_digits,search_path`
+   - `LISTEN_PORT` = `5432` (so the connection string host:port is uniform)
+   > node-postgres uses UNNAMED prepared statements → safe in transaction mode.
+   > Do NOT enable Railway's TCP proxy on PgBouncer unless you need external access;
+   > Core reaches it over the private network.
 
 ## 2. Environment variables (on the Core service)
 Map Railway's Postgres var to what Payload expects, then set the rest.
 
 **Required:**
-- `DATABASE_URI` = `${{Postgres.DATABASE_URL}}`  ← Railway variable reference
+- `DATABASE_URI` = route through PgBouncer, not straight at Postgres:
+  `postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{PgBouncer.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres.PGDATABASE}}`
+  (only the host:port differs from `${{Postgres.DATABASE_URL}}`; same creds/db).
+  > **Migrations exception:** if a boot migration ever fails through the pooler,
+  > run the migrate step against the DIRECT url (`${{Postgres.DATABASE_URL}}`) once,
+  > then keep app traffic on the pooler. DDL is fine in txn mode, so this is rare.
 - `PAYLOAD_SECRET` = (copy the existing prod secret — must match so sessions/JWTs survive)
 - `NEXT_PUBLIC_SERVER_URL` = `https://www.spacesangels.com` (final domain)
 - `PAYLOAD_PUBLIC_SERVER_URL` = same

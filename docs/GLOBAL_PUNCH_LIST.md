@@ -59,10 +59,11 @@
   `src/collections/Media/hooks/mediaToAiBus.ts` (already `Number(mediaId)`; the attachments.media
   filterOptions still rejects in system context). *Next:* bypass filterOptions or match the tenant the
   filter expects. `260723`
-- **[P2] Local stack has NO PgBouncer** — `core` connects directly to `postgres:5432` (compose
-  `DATABASE_URI`), not the `:6432` pooler from the IONOS/self-host runbook. Fine at current load
-  (both containers local, low concurrency), but a crashed-mid-tx script or a login stampede can still
-  exhaust Postgres connections (root cause of the 260722 login-jam). *Where:* `C:\Dev\datacenter\stack\docker-compose.yml`. *Next:* optional — add a pgbouncer service (transaction pooling) + point `DATABASE_URI` at it, OR keep the `idle_in_transaction_session_timeout` guard as the cheap mitigation. `260723`
+- **[P1→LOCAL DONE / RAILWAY RUNBOOK 260723] PgBouncer connection pooling** — local stack now routes
+  Core through an `edoburu/pgbouncer` service (transaction mode, pool 25, `:6432` external) instead of
+  straight at `postgres:5432`; verified live (login/portals 200, zero prepared-stmt errors, pool active).
+  *Railway:* add a 3rd `edoburu/pgbouncer` Docker service + repoint `DATABASE_URI` — exact steps in
+  `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
 
