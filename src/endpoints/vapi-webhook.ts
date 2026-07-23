@@ -940,7 +940,12 @@ async function handleEndOfCallReport(
   const endedReason = report.endedReason as string | undefined
   const summary = report.summary as string | undefined
   const recordingUrl = report.recordingUrl as string | undefined
-  const callId = (report.call as Record<string, unknown>)?.id as string | undefined
+  const call = report.call as Record<string, unknown> | undefined
+  const callId = call?.id as string | undefined
+  const callerNumber = ((call?.customer as Record<string, unknown>)?.number as string | undefined) || undefined
+  const costUsd = typeof report.cost === 'number' ? report.cost : undefined
+  const durationSeconds = typeof report.durationSeconds === 'number' ? report.durationSeconds : undefined
+  const transcript = report.transcript as string | undefined
 
   console.log('[Vapi] Call ended:', {
     reason: endedReason,
@@ -970,6 +975,71 @@ async function handleEndOfCallReport(
         endedReason,
         messageType: 'system',
       })
+    }
+
+    // ── Cost ledger: every call lands in cost-events (telephony) so the AI/System
+    // Costs panel includes voice spend in the tenant's calculus. Fail-soft.
+    if (costUsd !== undefined) {
+      try {
+        const { recordCostEvent } = await import('@/utilities/recordCostEvent')
+        await recordCostEvent(payload, {
+          tenantId,
+          category: 'telephony',
+          source: 'vapi-call',
+          provider: 'vapi',
+          costCents: Math.round(costUsd * 100),
+          quantity: durationSeconds,
+          unit: 'seconds',
+          conversationId: callId,
+          metadata: { endedReason, callerNumber, recordingUrl },
+        })
+      } catch (err) {
+        console.error('[Vapi] cost-event write failed:', err)
+      }
+    }
+
+    // ── CRM: append the call log + metrics to the matching Contact (by caller
+    // phone) so every IVR interaction accumulates on the record. Recordings stay
+    // on Vapi — we store the URL, not the bytes. Fail-soft.
+    if (callerNumber) {
+      try {
+        const digits = callerNumber.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '')
+        const contacts = await payload.find({
+          collection: 'contacts',
+          where: {
+            and: [{ tenant: { equals: tenantId } }, { phone: { like: digits } }],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const contact = contacts.docs[0] as { id: number; notes?: string; tags?: string[] } | undefined
+        if (contact) {
+          const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ')
+          const mins = durationSeconds ? `${Math.round(durationSeconds / 60)}m${Math.round(durationSeconds % 60)}s` : '?'
+          const callLog = [
+            `[${stamp} · IVR call ${callId ?? ''}] duration=${mins} cost=$${costUsd?.toFixed(2) ?? '?'} ended=${endedReason ?? '?'}`,
+            recordingUrl ? `recording: ${recordingUrl}` : undefined,
+            summary ? `summary: ${summary}` : undefined,
+            transcript ? `--- transcript ---\n${transcript}` : undefined,
+          ]
+            .filter(Boolean)
+            .join('\n')
+          const prevTags: string[] = Array.isArray(contact.tags) ? contact.tags : []
+          await payload.update({
+            collection: 'contacts',
+            id: contact.id,
+            data: {
+              notes: [contact.notes, callLog].filter(Boolean).join('\n\n'),
+              tags: [...new Set([...prevTags, 'ivr'])],
+            } as never,
+            overrideAccess: true,
+          })
+          console.log('[Vapi] call log appended to contact', contact.id)
+        }
+      } catch (err) {
+        console.error('[Vapi] contact call-log append failed:', err)
+      }
     }
   }
 
