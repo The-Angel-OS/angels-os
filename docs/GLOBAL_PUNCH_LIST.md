@@ -36,10 +36,10 @@
   when media was selected. *Fixed (staged, awaiting rebuild):* `createPost` now errors clearly + points at the
   media tool so content/layout is always set (`leo-data-tools.ts` ~8280). *Also:* nudge tool-selection toward
   create_post_from_media when media is attached. `260720`
-- **[P1] Channel media upload lost on refresh** — uploading media into channel `general` (NeuroCare Pro
-  portal) did not survive a refresh — never rendered, gone "into the void." *Where:* channel media upload path
-  (`channel-media.ts` / message attachments / MultiChannelChat composer). *Next:* trace whether the upload
-  persists a message+attachment row at all, and why it's not surfaced on reload. `260720`
+- **[P1→FIXED 260723] Image-only channel message failed silently** — an image with no typed text 400'd at
+  the leo-stream empty-message guard ("Missing or empty: message") before attachments were checked → deep-think
+  spinner then no response. Fixed `32a3a89`: parse attachments first; image-only turn is valid. (The earlier
+  "lost on refresh" report was the same root cause — the user message persisted but LEO never responded.) `260723`
 - **[P1] Stripe webhook secret unset in Vercel** — `STRIPE_WEBHOOKS_SIGNING_SECRET` not set + webhook
   `/api/stripe/webhooks` unregistered → Clearwater earn loop gated. *Where:* Vercel env + Stripe dash. *Next:* Ken sets it. [[project_earn_loop_clearwater]] `260720`
 - **[P2] GoogleReviews block renders nothing on a bad/absent Place ID** — no graceful empty state, just a
@@ -47,10 +47,34 @@
 - **[P2] Error nervous system is console-only** — `apiInterceptor` + `ErrorBoundary` are effectively dead;
   17-item punch list already scoped. *Where:* [[project_error_nervous_system_audit]]. *Next:* work that list. `260720`
 
+- **[P2] channels/messages REST read returns 403 (should be empty)** — the Spaces client's
+  `GET /api/channels` and `GET /api/messages` list reads 403 for spaces the user can't fully see
+  (observed spaces 18/32/34/70), spamming the log. A list `read` access returning boolean `false`
+  → Forbidden; it should return a `where` filter → empty set. *Care:* `messages.read` enforces DM
+  privacy via channelRef membership — narrow, don't loosen. *Where:* `Channels`/`Messages` access.
+  *Next:* return a scoping `where` (empty result) instead of `false` for non-members. `260723`
+- **[P2] mediaToAiBus attachment validation fails on new uploads** — `[mediaToAiBus] failed to post
+  media N: field invalid: Attachments 1 > Media`; fire-and-forget so uploads/analysis are fine, but
+  the new asset never streams into the AI Bus `media` channel timeline. *Where:*
+  `src/collections/Media/hooks/mediaToAiBus.ts` (already `Number(mediaId)`; the attachments.media
+  filterOptions still rejects in system context). *Next:* bypass filterOptions or match the tenant the
+  filter expects. `260723`
+- **[P2] Local stack has NO PgBouncer** — `core` connects directly to `postgres:5432` (compose
+  `DATABASE_URI`), not the `:6432` pooler from the IONOS/self-host runbook. Fine at current load
+  (both containers local, low concurrency), but a crashed-mid-tx script or a login stampede can still
+  exhaust Postgres connections (root cause of the 260722 login-jam). *Where:* `C:\Dev\datacenter\stack\docker-compose.yml`. *Next:* optional — add a pgbouncer service (transaction pooling) + point `DATABASE_URI` at it, OR keep the `idle_in_transaction_session_timeout` guard as the cheap mitigation. `260723`
+
 ## 🟡 Gaps — features to build (P1)
 
-- **[P1] Voice response system (Vapi) not wired** — code-complete (webhook, setup, per-tenant phone/assistant
-  config) but `VAPI_API_KEY` missing and no tenant enabled. *Where:* `src/endpoints/vapi-webhook.ts`, Tenants `vapi` group. *Next:* Vapi account + key + assistant + route the number. `260720`
+- **[P1] `send_campaign` tool — the missing third leg of Lead→Invite→Campaign** — capture ✅ (voice +
+  web forms upsert Contacts) and invite ✅ (`invite_member` now advances contact funnel, `dd8675f`),
+  but there's NO campaign sender. Contacts schema is ready (`lastEmailedAt`, `emailCount`,
+  `unsubscribeToken`). *Where:* new LEO tool in `leo-data-tools.ts` + Contacts. *Next:* `send_campaign(tag|status, template)` iterating Contacts with unsubscribe links + CAN-SPAM footer. [[project_earn_loop_clearwater]] `260723`
+
+- **[P1→LIVE 260723] Voice response system (Vapi)** — wired and demoable: LEO assistant answers, captures
+  leads (→ Contacts), and calls now write a `cost-events` telephony row + append call log/metrics to the
+  matching Contact (`5382358`). Recordings stay on Vapi (URL stored, not bytes). *Remaining polish:*
+  `transfer_to_human` refuses (forward number not set on the Vapi assistant). `260723`
 - **[P1] LMS Quiz module** — Works already does video/chapters/progress/TTS; the only missing LMS primitive is
   quizzes. *Do NOT fork a new LMS collection* — add a Quiz block/companion to Works. *Next:* Quiz block (manual now, AI-graded later). `260720`
 - **[P1] Platform Costs (rename + ledger)** — `CostEvents` already discriminates Intelligence/Telephony/
@@ -247,6 +271,12 @@
 
 ## ✅ Recently closed (last 7 days)
 
+- **Image-only channel messages** — parse attachments before the empty-message guard; image with no text now analyzes — `32a3a89`. `260723`
+- **Vapi end-of-call → cost ledger + Contact call log** — telephony cost-events row + call metrics/transcript/recording-URL on the matching Contact — `5382358`. `260723`
+- **CRM funnel loop** — `invite_member`/accept now advance Contact lead → invited → accepted — `dd8675f`. `260723`
+- **Dashboard `ping_received` enum spam** — count real federation-peers instead of a bogus audit action — `ba30db1`. `260723`
+- **Google OAuth 500 on non-cookie-domain origins** — fixed invalid `domains contains` query path — `9c9e3c1`. `260722`
+- **All-Gemini shift** — Anthropic key disabled; vision/chat fall through to Gemini cleanly. `260722`
 - **MediaText block** (two-column text + video, WordPress parity) — `ecfbc9e`; live on the NeuroCare Pro home ("Why PLMT Is Different"). `260720`
 - **Full-screen video/image hero** (`fullScreen` hero type, reusable) — `b75416b` + video support. `260720`
 - **NeuroCare Pro prospect portal** stood up on payloadnuke with the live video hero. `260720`
