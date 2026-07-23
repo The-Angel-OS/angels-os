@@ -244,9 +244,11 @@ export default async function DashboardPage({
           },
           overrideAccess: true,
         }).catch(() => ({ totalDocs: 0 })),
+        // Count actual federation peers. Previously counted a bogus
+        // `ping_received` audit action that isn't in the enum → repeating
+        // "invalid input value for enum" DB errors, always caught to 0.
         payload.count({
-          collection: 'federation-audit-log',
-          where: { action: { equals: 'ping_received' } },
+          collection: 'federation-peers',
           overrideAccess: true,
         }).catch(() => ({ totalDocs: 0 })),
       ])
