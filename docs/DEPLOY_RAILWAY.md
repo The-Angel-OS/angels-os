@@ -24,7 +24,10 @@ not part of this move. Media stays on **Cloudflare R2** (container is stateless)
    - `DB_PORT` = `${{Postgres.PGPORT}}`
    - `DB_USER` = `${{Postgres.PGUSER}}`
    - `DB_PASSWORD` = `${{Postgres.PGPASSWORD}}`
-   - `DB_NAME` = `${{Postgres.PGDATABASE}}`
+   - **Leave `DB_NAME` UNSET** — one Postgres serves BOTH `angels` (Core) and
+     `kendev` (Core-kendev); an unset DB_NAME makes PgBouncer a wildcard pool so
+     each client picks its own db in the connection string. Pinning one db would
+     lock out the other Core.
    - `POOL_MODE` = `transaction`
    - `AUTH_TYPE` = `scram-sha-256`
    - `MAX_CLIENT_CONN` = `1000`
@@ -41,10 +44,12 @@ not part of this move. Media stays on **Cloudflare R2** (container is stateless)
 ## 2. Environment variables (on the Core service)
 Map Railway's Postgres var to what Payload expects, then set the rest.
 
-**Required:**
-- `DATABASE_URI` = route through PgBouncer, not straight at Postgres:
-  `postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{PgBouncer.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres.PGDATABASE}}`
-  (only the host:port differs from `${{Postgres.DATABASE_URL}}`; same creds/db).
+**Required (set on BOTH Core and Core-kendev):**
+- `DATABASE_URI` = route through PgBouncer, not straight at Postgres. Keep each
+  Core's own db name at the end of the path:
+  - Core: `postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{PgBouncer.RAILWAY_PRIVATE_DOMAIN}}:5432/angels`
+  - Core-kendev: same, ending `/kendev`
+  (only host:port differs from `${{Postgres.DATABASE_URL}}`; same creds.)
   > **Migrations exception:** if a boot migration ever fails through the pooler,
   > run the migrate step against the DIRECT url (`${{Postgres.DATABASE_URL}}`) once,
   > then keep app traffic on the pooler. DDL is fine in txn mode, so this is rare.
