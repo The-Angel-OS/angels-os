@@ -107,6 +107,12 @@ services:
       pgbouncer:
         condition: service_healthy
     ports:
+      # Core moved off host :3000 → :3001 so MERLIN can own :3000 (260723).
+      # Both are tunneled out by hostname (see ~/.cloudflared/config.yml), so the
+      # host port is an internal detail. The container still listens on 3000.
+      # 3000 mapping kept temporarily during the flip = zero-downtime cutover;
+      # remove it once cloudflared points the wildcard at 3001.
+      - "3001:3000"
       - "3000:3000"
 
 volumes:
