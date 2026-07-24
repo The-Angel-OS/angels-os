@@ -47,12 +47,10 @@
 - **[P2] Error nervous system is console-only** — `apiInterceptor` + `ErrorBoundary` are effectively dead;
   17-item punch list already scoped. *Where:* [[project_error_nervous_system_audit]]. *Next:* work that list. `260720`
 
-- **[P2] channels/messages REST read returns 403 (should be empty)** — the Spaces client's
-  `GET /api/channels` and `GET /api/messages` list reads 403 for spaces the user can't fully see
-  (observed spaces 18/32/34/70), spamming the log. A list `read` access returning boolean `false`
-  → Forbidden; it should return a `where` filter → empty set. *Care:* `messages.read` enforces DM
-  privacy via channelRef membership — narrow, don't loosen. *Where:* `Channels`/`Messages` access.
-  *Next:* return a scoping `where` (empty result) instead of `false` for non-members. `260723`
+- **[P2→FIXED 260724] channels/messages/spaces REST read returned 403 (now empty-200)** — the three
+  collection read-access fns coerced a boolean `false` (no visible spaces) into a never-match
+  `{id:{exists:false}}` where, so REST *list* reads return an empty 200 instead of 403. Killed the log
+  spam and unblocks the channel image picker. DM/private grants unchanged. `796ae73`. `260724`
 - **[P2] mediaToAiBus attachment validation fails on new uploads** — `[mediaToAiBus] failed to post
   media N: field invalid: Attachments 1 > Media`; fire-and-forget so uploads/analysis are fine, but
   the new asset never streams into the AI Bus `media` channel timeline. *Where:*
@@ -66,6 +64,16 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[P2] Intent pre-classifier in front of `brain.ts` (defer the learned tier)** — leo-brain already IS
+  the "put the LLM last" cascade: `triage.ts` = pure deterministic perception gate, provider-order in
+  `brain.ts` = cheap-model-first. The one unbuilt rung is **intent/tool** classification of a typed
+  message — `/book`, "show inventory" are closed-set labels that ride the full LLM tool-loop today.
+  *Next (when measured):* deterministic `preClassify` verb/`/`-command table in front of the brain's
+  tool loop (free, tiny). **Do NOT add a trained classifier** (his TF-IDF+logreg tier) — your cheapest
+  tier is free local Ollama, so the middle is already cheap; only build it if telemetry shows intent
+  routing is a real cost/latency line. If ever built: keep his loud-silent-regression + token-parity
+  guards, and confidence-below-threshold→fall-through-to-LLM. [[project_three_body_shared_brain]] `260724`
 
 - **[P1] Bookable inventory: forced 3-D Secure may REOPEN the card rail** — the vertical stalled on
   "card KILLS rent" (chargeback exposure) → ACH was the fallback rail. Forcing 3DS makes the issuer
@@ -82,9 +90,8 @@
   - **A. Anonymous chat never harvests a contact** — voice + web forms upsert Contacts; LEO chat on a
     public page captures nothing. *Next:* allow `capture_lead` from an unauthenticated tenant-scoped
     session, `source: 'chat'`. **Highest value — same money path as the phone bot.**
-  - **B. Quick Invite bypasses Contacts** — `sendQuickInvite` writes `tenant-memberships` but no
-    `contacts` row, so the Invitations and Contacts boards show disjoint people. *Next:* upsert a
-    Contact at `invited` from `sendQuickInvite`.
+  - **B. [FIXED 260724] Quick Invite bypasses Contacts** — `sendQuickInvite` now upserts a Contact at
+    `invited` (dedupe email→phone, fail-soft) so the Invitations and Contacts boards reconcile. `796ae73`.
   - **C. No invite-from-Crew** — `/dashboard/admin/crew` can only assign existing members. *Next:*
     invite + pre-stage department/station so they land assigned on accept.
   - **D. Phone-only contacts can't be bulk-invited** — `sendQuickInvite` supports a phone invite;
