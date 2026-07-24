@@ -67,10 +67,21 @@
 
 ## 🟡 Gaps — features to build (P1)
 
-- **[P1] `send_campaign` tool — the missing third leg of Lead→Invite→Campaign** — capture ✅ (voice +
-  web forms upsert Contacts) and invite ✅ (`invite_member` now advances contact funnel, `dd8675f`),
-  but there's NO campaign sender. Contacts schema is ready (`lastEmailedAt`, `emailCount`,
-  `unsubscribeToken`). *Where:* new LEO tool in `leo-data-tools.ts` + Contacts. *Next:* `send_campaign(tag|status, template)` iterating Contacts with unsubscribe links + CAN-SPAM footer. [[project_earn_loop_clearwater]] `260723`
+- **[P1] People-funnel seams (map: `docs/LEAD_TO_CAMPAIGN_FLOW.md`)** — capture/invite/campaign are all
+  BUILT (correction: `sendCampaignChunk` already does chunked+resumable+unsubscribe+idempotent sends).
+  Four seams remain, each small:
+  - **A. Anonymous chat never harvests a contact** — voice + web forms upsert Contacts; LEO chat on a
+    public page captures nothing. *Next:* allow `capture_lead` from an unauthenticated tenant-scoped
+    session, `source: 'chat'`. **Highest value — same money path as the phone bot.**
+  - **B. Quick Invite bypasses Contacts** — `sendQuickInvite` writes `tenant-memberships` but no
+    `contacts` row, so the Invitations and Contacts boards show disjoint people. *Next:* upsert a
+    Contact at `invited` from `sendQuickInvite`.
+  - **C. No invite-from-Crew** — `/dashboard/admin/crew` can only assign existing members. *Next:*
+    invite + pre-stage department/station so they land assigned on accept.
+  - **D. Phone-only contacts can't be bulk-invited** — `sendQuickInvite` supports a phone invite;
+    `bulkInvite` doesn't use it, so voice leads without email dead-end. *Next:* wire it through.
+  - **Drip (after A–D):** `campaignStep` + cron over the existing chunk sender — NOT a new engine.
+  [[project_earn_loop_clearwater]] `260723`
 
 - **[P1→LIVE 260723] Voice response system (Vapi)** — wired and demoable: LEO assistant answers, captures
   leads (→ Contacts), and calls now write a `cost-events` telephony row + append call log/metrics to the
