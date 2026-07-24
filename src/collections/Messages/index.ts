@@ -61,7 +61,10 @@ const readMessages: Access = async ({ req }) => {
   // Space-visible messages PLUS the user's own DM threads via the stable channelRef
   // (channel-model fold: DMs live on the AI Bus, gated by channel membership).
   const { buildMessageReadFilter } = await import('@/services/PermissionService')
-  return buildMessageReadFilter(payload, user)
+  const f = await buildMessageReadFilter(payload, user)
+  // false → REST list 403 (log spam + broke the channel image picker); a
+  // never-match filter returns an empty 200, the correct list semantics.
+  return f === false ? { id: { exists: false } } : f
 }
 
 export const Messages: CollectionConfig = {

@@ -30,7 +30,11 @@ export const Channels: CollectionConfig = {
     // fold: DMs live on the AI Bus but are visible only to their members.
     read: async ({ req: { user, payload } }) => {
       const { buildChannelReadFilter } = await import('@/services/PermissionService')
-      return buildChannelReadFilter(payload, user)
+      const f = await buildChannelReadFilter(payload, user)
+      // A boolean `false` makes a REST *list* read 403 instead of returning an
+      // empty set — which spammed the log and broke the channel image picker.
+      // A never-match filter yields an empty 200, the correct list semantics.
+      return f === false ? { id: { exists: false } } : f
     },
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => Boolean(user),

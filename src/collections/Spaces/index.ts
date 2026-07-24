@@ -29,7 +29,9 @@ export const Spaces: CollectionConfig = {
     // PermissionService.buildSpaceVisibilityFilter.
     read: async ({ req: { user, payload } }) => {
       const { buildSpaceVisibilityFilter } = await import('@/services/PermissionService')
-      return buildSpaceVisibilityFilter(payload, user, 'id')
+      const f = await buildSpaceVisibilityFilter(payload, user, 'id')
+      // false → REST list 403; never-match → empty 200 (correct list semantics).
+      return f === false ? { id: { exists: false } } : f
     },
     update: adminOnly,
     delete: adminOnly,

@@ -129,6 +129,10 @@ export async function sendQuickInvite(input: {
       )
       return { success: false, error: 'Could not create the invitation. Please try again.' }
     }
+    await upsertInvitedContact(payload, tenantId, {
+      phone,
+      name: [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined,
+    })
     return { success: true, inviteUrl, emailSent: false }
   }
 
@@ -214,5 +218,74 @@ export async function sendQuickInvite(input: {
     // Email sending failed — invitation is still created
   }
 
+  await upsertInvitedContact(payload, tenantId, {
+    email,
+    name: [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined,
+  })
   return { success: true, inviteUrl, emailSent }
+}
+
+/**
+ * Gap B fix (260724): Quick Invite wrote a tenant-membership but never a Contact,
+ * so the Invitations board and the Contacts board showed disjoint people. Every
+ * invited person should exist as a Contact at `invited`. Dedupe by (tenant+email)
+ * then (tenant+phone); fill blanks only. Fail-soft — never block the invite.
+ */
+async function upsertInvitedContact(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  tenantId: number | string,
+  who: { email?: string; phone?: string; name?: string },
+): Promise<void> {
+  const email = who.email?.trim().toLowerCase()
+  const phone = who.phone?.trim()
+  if (!email && !phone) return
+  try {
+    const or: Record<string, unknown>[] = []
+    if (email) or.push({ email: { equals: email } })
+    if (phone) or.push({ phone: { equals: phone } })
+    const existing = await payload.find({
+      collection: 'contacts',
+      where: { and: [{ tenant: { equals: tenantId } }, { or }] },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const now = new Date().toISOString()
+    const row = existing.docs[0] as { id: number; name?: string; email?: string; phone?: string } | undefined
+    if (row) {
+      await payload.update({
+        collection: 'contacts',
+        id: row.id,
+        data: {
+          contactStatus: 'invited',
+          inviteStatus: 'pending',
+          lastInvitedAt: now,
+          ...(row.name ? {} : who.name ? { name: who.name } : {}),
+          ...(row.email ? {} : email ? { email } : {}),
+          ...(row.phone ? {} : phone ? { phone } : {}),
+        },
+        overrideAccess: true,
+      })
+    } else {
+      await payload.create({
+        collection: 'contacts',
+        data: {
+          tenant: tenantId,
+          source: 'manual',
+          contactStatus: 'invited',
+          inviteStatus: 'pending',
+          lastInvitedAt: now,
+          ...(who.name ? { name: who.name } : {}),
+          ...(email ? { email } : {}),
+          ...(phone ? { phone } : {}),
+        },
+        overrideAccess: true,
+      })
+    }
+  } catch (err) {
+    payload.logger?.warn?.(
+      `[sendQuickInvite] contact upsert failed: ${err instanceof Error ? err.message : err}`,
+    )
+  }
 }
