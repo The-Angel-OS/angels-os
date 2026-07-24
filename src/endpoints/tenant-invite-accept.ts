@@ -121,6 +121,29 @@ export const tenantInviteAcceptHandler: PayloadHandler = async (req) => {
         }
       }
 
+      // Onboarding floor — same three grants every other door gives (root portal
+      // + own Guardian Angel + this portal). The invite path previously granted
+      // NEITHER the platform membership nor a guardian angel, so an invited user
+      // was strictly poorer than a Google/OTP user. Fail-soft inside.
+      try {
+        const { ensureBaselineMemberships } = await import('@/utilities/ensureBaselineMemberships')
+        const u = await payload.findByID({
+          collection: 'users',
+          id: userId as number,
+          depth: 0,
+          overrideAccess: true,
+        })
+        await ensureBaselineMemberships(
+          payload,
+          { id: userId as number, email: (u as { email?: string })?.email, name: (u as { name?: string })?.name },
+          { joiningTenantId: tenantId ?? undefined },
+        )
+      } catch (baseErr) {
+        payload.logger?.warn?.(
+          `[tenant-invite-accept] baseline memberships failed: ${baseErr instanceof Error ? baseErr.message : baseErr}`,
+        )
+      }
+
       // Auto-join tenant spaces — SEQUENTIAL only (never parallelize on the max=3
       // pool; parallel creates deadlock it). Idempotent via the missing-set diff.
       if (tenantId) {

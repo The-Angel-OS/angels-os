@@ -67,6 +67,15 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[P1] Bookable inventory: forced 3-D Secure may REOPEN the card rail** — the vertical stalled on
+  "card KILLS rent" (chargeback exposure) → ACH was the fallback rail. Forcing 3DS makes the issuer
+  authenticate the buyer before the booking completes, which **shifts chargeback liability off the
+  merchant** — so card may be viable for rentals/deposits after all. It's a flag, not an architecture:
+  `payment_method_options.card.request_three_d_secure: 'any'` on the PaymentIntent. *Where:* the
+  Stripe checkout path + `Listings`/bookingEngine on branch `feat/bookable-inventory`.
+  *Next:* cost it against ACH before committing the vertical to ACH-only. (Idea via Lifted ShipKit,
+  which forces 3DS for exactly this reason.) [[project_bookable_inventory]] `260723`
+
 - **[P1] People-funnel seams (map: `docs/LEAD_TO_CAMPAIGN_FLOW.md`)** — capture/invite/campaign are all
   BUILT (correction: `sendCampaignChunk` already does chunked+resumable+unsubscribe+idempotent sends).
   Four seams remain, each small:

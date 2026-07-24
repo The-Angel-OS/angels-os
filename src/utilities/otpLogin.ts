@@ -207,10 +207,14 @@ export async function verifyOtp(payload: Payload, emailRaw: string, codeRaw: str
   // Onboarding floor: every person gets their guardian-angel portal (idempotent,
   // fail-soft — a provisioning hiccup never blocks sign-in). Same as Google login.
   try {
-    const { ensureGuardianAngel } = await import('@/utilities/ensureGuardianAngel')
-    await ensureGuardianAngel(payload, { id: (user as { id: number }).id, email: (user as { email: string }).email, name: (user as { name?: string }).name })
+    const { ensureBaselineMemberships } = await import('@/utilities/ensureBaselineMemberships')
+    await ensureBaselineMemberships(payload, {
+      id: (user as { id: number }).id,
+      email: (user as { email: string }).email,
+      name: (user as { name?: string }).name,
+    })
   } catch (gaErr) {
-    payload.logger?.warn?.(`[otpLogin] guardian-angel ensure failed: ${gaErr instanceof Error ? gaErr.message : gaErr}`)
+    payload.logger?.warn?.(`[otpLogin] baseline memberships failed: ${gaErr instanceof Error ? gaErr.message : gaErr}`)
   }
 
   return { ok: true, token: minted.token, user, isNew }

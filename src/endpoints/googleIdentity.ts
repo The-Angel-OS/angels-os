@@ -161,10 +161,10 @@ export async function resolveUserFromGoogleClaims(
   // repeat logins are a fast find; awaited so the angel is ready when the client
   // loads My Portals, but fail-soft — a provisioning hiccup never blocks sign-in.
   try {
-    const { ensureGuardianAngel } = await import('@/utilities/ensureGuardianAngel')
-    await ensureGuardianAngel(payload, { id: user.id, email: user.email, name: user.name })
+    const { ensureBaselineMemberships } = await import('@/utilities/ensureBaselineMemberships')
+    await ensureBaselineMemberships(payload, { id: user.id, email: user.email, name: user.name })
   } catch (gaErr) {
-    console.warn('[Google Identity] guardian-angel ensure failed:', gaErr instanceof Error ? gaErr.message : gaErr)
+    console.warn('[Google Identity] baseline memberships failed:', gaErr instanceof Error ? gaErr.message : gaErr)
   }
 
   return { user, token, isNew }
