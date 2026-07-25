@@ -3,6 +3,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// getStripe() throws "STRIPE_SECRET_KEY is not configured" BEFORE it ever
+// constructs Stripe, so the mock below never engaged and every case 500'd. The
+// key is absent in CI (no .env) and absent locally (dotenv loads .env, which
+// does not exist — only .env.local). Set it before the module is imported.
+process.env.STRIPE_SECRET_KEY ||= 'sk_test_fake'
+
 // Mock Stripe
 const mockCreate = vi.fn()
 vi.mock('stripe', () => {

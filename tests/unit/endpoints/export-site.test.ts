@@ -266,12 +266,17 @@ describe('exportSite handler', () => {
 
   // ── Auth tests ──────────────────────────────────────────────────────────
 
+  // ONE gate, TWO acceptable credentials: an admin session OR ?key=CRON_SECRET
+  // (Teleport pulls a tenant's graph node-to-node with no interactive session).
+  // So a non-admin session isn't "forbidden", it's "you haven't presented an
+  // acceptable credential" — every rejection is a 401 naming both options. The
+  // earlier two-tier 401/403 contract no longer exists.
   it('returns 401 when no user is present', async () => {
     const req = makeRequest({ user: null })
     const res = await exportSite(req)
     expect(res.status).toBe(401)
     const body = await res.json()
-    expect(body.message).toBe('Unauthorized')
+    expect(body.message).toContain('requires admin role or ?key=CRON_SECRET')
   })
 
   it('returns 401 when user has no roles array', async () => {
@@ -280,12 +285,12 @@ describe('exportSite handler', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 for non-admin user', async () => {
+  it('rejects a signed-in non-admin — a member session is not a credential here', async () => {
     const req = makeRequest({ user: memberUser, findResults: tenantFindResult })
     const res = await exportSite(req)
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(401)
     const body = await res.json()
-    expect(body.message).toContain('Forbidden')
+    expect(body.message).toContain('requires admin role')
   })
 
   // ── Tenant resolution ───────────────────────────────────────────────────
