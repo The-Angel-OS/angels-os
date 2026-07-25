@@ -1296,16 +1296,22 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'configure_service',
     description:
-      'Create or update a bookable service offering for the current Endeavor. Sets the name, description, price, duration, and whether customers can book it online. Use when adding or editing a service in the booking catalog.',
+      'Create or update a bookable service offering. Sets the name, description, price (flat OR hourly), duration, and whether customers can book it online. Defaults to the current Endeavor; pass tenantSlug to write into a DIFFERENT portal — that is what makes the capture funnel work, i.e. classify_endeavor (read the ad) → provision_tenant (stand up the portal) → configure_service once per service the ad lists, each with the new portal\'s tenantSlug. Only set a price the source actually states; guessing a wrong price onto a live site is worse than leaving it blank.',
     input_schema: {
       type: 'object' as const,
       properties: {
         name: { type: 'string', description: 'Service name, e.g. "Panel Upgrade" or "EV Charger Installation" (required)' },
         description: { type: 'string', description: 'What the service includes' },
-        priceUsd: { type: 'number', description: 'Price in US dollars' },
+        priceUsd: { type: 'number', description: 'Flat price in US dollars. Omit if the source quotes an hourly rate instead.' },
+        hourlyRateUsd: { type: 'number', description: 'Hourly rate in US dollars, for trades quoted "$95/hr". Ignored when priceUsd is given.' },
         durationMinutes: { type: 'number', description: 'How long the service takes in minutes' },
         bookable: { type: 'boolean', description: 'Whether customers can book this online. Default true.' },
         category: { type: 'string', description: 'Optional category, e.g. "residential", "commercial", "specialty"' },
+        tenantSlug: {
+          type: 'string',
+          description:
+            'Write into THIS portal instead of the current Endeavor, e.g. "mobilmech1". Use the slug provision_tenant just returned when seeding a freshly provisioned portal.',
+        },
       },
       required: ['name'],
     },
@@ -17461,17 +17467,31 @@ async function listAvailability(
 }
 
 /**
- * configure_service — create or update a bookable service offering for the
- * current Endeavor. Idempotent by label (case-insensitive exact match).
+ * configure_service — create or update a bookable service offering. Idempotent
+ * by label (case-insensitive exact match).
+ *
+ * `tenantSlug` overrides the ambient Endeavor. Without it this tool could only
+ * ever write to the portal the operator is already standing in, which broke the
+ * capture funnel: provision_tenant mints a NEW portal, and every service that
+ * followed landed on the operator's own site instead of the customer's.
  */
 async function configureService(
   payload: Payload,
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
-  const tenantId = await resolveWriteTenant(payload, ctx)
+  const slug = typeof input.tenantSlug === 'string' ? input.tenantSlug.trim() : ''
+  let tenantId: number | undefined
+  if (slug) {
+    const { fetchTenantBySlug } = await import('@/utilities/fetchTenantBySlug')
+    const t = await fetchTenantBySlug(slug)
+    if (!t) return `Error: no portal with slug "${slug}" on this node.`
+    tenantId = Number(t.id)
+  } else {
+    tenantId = await resolveWriteTenant(payload, ctx)
+  }
   if (!tenantId) {
-    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace."
+    return "Error: I couldn't determine which Endeavor to configure. Open a specific Endeavor's workspace, or pass tenantSlug."
   }
 
   const name = (input.name as string)?.trim()
@@ -17506,6 +17526,11 @@ async function configureService(
   if (typeof input.priceUsd === 'number' && input.priceUsd >= 0) {
     data.priceUsd = input.priceUsd
     data.pricingModel = 'fixed'
+  } else if (typeof input.hourlyRateUsd === 'number' && input.hourlyRateUsd >= 0) {
+    // Trades quote "$95/hr" far more often than a flat number; without this the
+    // rate was silently dropped and the service published with no price at all.
+    data.hourlyRateUsd = input.hourlyRateUsd
+    data.pricingModel = 'hourly'
   }
   if (typeof input.durationMinutes === 'number' && input.durationMinutes > 0) {
     data.durationMinutes = Math.round(input.durationMinutes)
@@ -17536,7 +17561,9 @@ async function configureService(
   const priceLabel =
     typeof input.priceUsd === 'number'
       ? `$${(input.priceUsd as number).toFixed(2)}`
-      : 'price not set'
+      : typeof input.hourlyRateUsd === 'number'
+        ? `$${(input.hourlyRateUsd as number).toFixed(2)}/hr`
+        : 'price not set'
   const durationLabel =
     typeof input.durationMinutes === 'number'
       ? `${input.durationMinutes} min`
@@ -17549,6 +17576,7 @@ async function configureService(
     `- ${bookable ? 'Visible and bookable online.' : 'Hidden from public booking.'}`,
   ]
   if (input.category) lines.push(`- Category: ${input.category}`)
+  if (slug) lines.push(`- Portal: \`${slug}\``)
 
   return lines.join('\n') + navDirective('/dashboard/services', 'View Services')
 }
