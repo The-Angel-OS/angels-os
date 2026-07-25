@@ -40,6 +40,7 @@ export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation
       limit: 100,
       depth: 0,
       overrideAccess: true,
+      req, // same transaction: this hook runs inside the tenant-create tx
     })
 
     if (spaces.totalDocs === 0) return doc
@@ -56,6 +57,7 @@ export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation
           limit: 1,
           depth: 0,
           overrideAccess: true,
+          req,
         })
 
         if (existing.totalDocs > 0) continue // Already a member
@@ -72,6 +74,7 @@ export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation
             tenant: tenantId as number,
           },
           overrideAccess: true,
+          req,
         })
 
         payload.logger.info(

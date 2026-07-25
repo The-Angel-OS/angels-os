@@ -26,11 +26,20 @@ export const syncUserTenants: CollectionAfterChangeHook = async ({ doc, req }) =
     const { payload } = req
 
     // Fetch user's current tenants array
+    // `req` on BOTH calls: this hook runs INSIDE the tenant-create transaction
+    // (tenant → afterChange → membership create → afterChange → here). Without it
+    // the user update lands on a separate pooled connection whose users_tenants
+    // insert FKs to the still-uncommitted tenant row — it blocks on that
+    // transaction while that transaction sits awaiting this call. A distributed
+    // deadlock that stalled every claim for exactly 300s
+    // (idle_in_transaction_session_timeout), then rolled the whole tenant back.
+    // Proven with pg_blocking_pids on the live :3001 container, 260725.
     const user = await payload.findByID({
       collection: 'users',
       id: userId,
       depth: 0,
       overrideAccess: true,
+      req,
     })
 
     const currentTenants = (user.tenants || []) as {
@@ -52,6 +61,7 @@ export const syncUserTenants: CollectionAfterChangeHook = async ({ doc, req }) =
           tenants: [...currentTenants, { tenant: tenantId }],
         },
         overrideAccess: true,
+        req,
       })
 
       payload.logger.info(
