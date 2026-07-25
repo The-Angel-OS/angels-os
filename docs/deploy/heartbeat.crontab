@@ -1,0 +1,35 @@
+# Angel OS heartbeat — the scheduled work that used to run as Vercel Cron.
+#
+# SOURCE OF RECORD: the `crons` block in C:/Dev/angels-os/vercel.json. These
+# schedules mirror it line for line; if you change one, change both. Vercel
+# deploys are disabled (git.deploymentEnabled false), so nothing else runs these.
+#
+# Odd offsets (1-59/2, 2-57/5, 4-59/5) are deliberate — they stagger the jobs so
+# several don't fire on the same minute and stampede the DB pool.
+#
+# Output is redirected to PID 1's stdout so it lands in `docker logs
+# angelos-heartbeat` instead of being swallowed by crond's mailer.
+
+# every 2 min — inbound email → AI Bus thread + LEO reply
+1-59/2 * * * * /usr/local/bin/hit /api/email/poll >> /proc/1/fd/1 2>&1
+
+# every 5 min — federation peer heartbeat
+2-57/5 * * * * /usr/local/bin/hit /api/federation/heartbeat-cron >> /proc/1/fd/1 2>&1
+
+# every 5 min — Gotify inbound
+4-59/5 * * * * /usr/local/bin/hit /api/gotify/poll >> /proc/1/fd/1 2>&1
+
+# twice hourly — connector health / provider breaker
+17,47 * * * * /usr/local/bin/hit /api/connector-ops/health >> /proc/1/fd/1 2>&1
+
+# hourly — YouTube channel poll
+37 * * * * /usr/local/bin/hit /api/youtube/poll >> /proc/1/fd/1 2>&1
+
+# nightly — self-heal partial provisions (the safety net under provisionPortal)
+0 3 * * * /usr/local/bin/hit '/api/provision-ops/verify-onboarding?all=1' >> /proc/1/fd/1 2>&1
+
+# nightly — "Dreams": consolidate + age out logs
+30 3 * * * /usr/local/bin/hit /api/log-ops/consolidate >> /proc/1/fd/1 2>&1
+
+# daily — solvency briefing
+0 13 * * * /usr/local/bin/hit /api/solvency-ops/briefing >> /proc/1/fd/1 2>&1
