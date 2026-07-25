@@ -1,0 +1,143 @@
+# Angel OS — local self-hosted stack (temporary cost-saving bridge; Railway = failover).
+# Postgres + Core now; merlin/gotify/uptime-kuma/ollama + cloudflared added next.
+# Secrets come from ../../angels-os/.env.local via env_file; DATABASE_URI is overridden
+# to the local pg container. Bring up:  docker compose up -d --build
+name: angelos
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: angelos-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASS}
+    ports:
+      - "5432:5432"
+    volumes:
+      - angelos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # Connection pooler — transaction mode. Lets Core hold many app-side connections
+  # while sharing a small pool of real Postgres connections, so a crashed-mid-tx
+  # script or a login stampede can't exhaust Postgres (root cause of the 260722
+  # login-jam). node-postgres uses UNNAMED prepared statements → safe in txn mode.
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: angelos-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${PGUSER}
+      DB_PASSWORD: ${PGPASS}
+      # No DB_NAME → clients pick the db (angels) in their connection string.
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "25"
+      MIN_POOL_SIZE: "5"
+      RESERVE_POOL_SIZE: "5"
+      # PgBouncer must NOT cache prepared statements in transaction mode.
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "6432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${PGUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  core:
+    build:
+      context: C:/Dev/angels-os
+      dockerfile: Dockerfile
+    image: angelos-core:local
+    container_name: angelos-core
+    restart: unless-stopped
+    # Read BOTH env files: base secrets in .env (Stripe, etc.), local overrides in
+    # .env.local. Later files win; the `environment:` block below overrides both
+    # (DATABASE_URI etc.). Fixes checkout: STRIPE_SECRET_KEY lived only in .env,
+    # which the container never read.
+    env_file:
+      # Consolidated to a single .env.local (260719); .env was removed.
+      - C:/Dev/angels-os/.env.local
+    environment:
+      # Route through PgBouncer (transaction pooling) instead of straight to
+      # postgres:5432. Same creds/db — only the host:port changes.
+      DATABASE_URI: "postgresql://${PGUSER}:${PGPASS}@pgbouncer:5432/angels"
+      DATABASE_SSL: "false"
+      NODE_ENV: "production"
+      PORT: "3000"
+      # Canonical front door is www.spacesangels.com (supersedes payloadnuke). This
+      # is the ONE domain the Google OAuth callback funnels through, so its
+      # redirect_uri must be registered in the Google client. Cookie scoped to the
+      # spacesangels apex so sign-in carries across every *.spacesangels.com tenant;
+      # payloadnuke hosts bounce up to spacesangels for auth (single-apex cookie).
+      NEXT_PUBLIC_SERVER_URL: "https://www.spacesangels.com"
+      COOKIE_DOMAIN: ".spacesangels.com"
+      # www / apex / any unmatched host resolves to the platform root portal.
+      DEFAULT_TENANT_SLUG: "platform"
+      # AI provider order: the default order reached for google (no GOOGLE/GEMINI
+      # key is set here), so LEO fell back to the "warming up" canned reply —
+      # which broke the Vapi phone bridge. Prefer the providers that DO have keys
+      # (AI_GATEWAY_API_KEY, OPENROUTER_API_KEY), with local ollama last.
+      # Google FIRST for cost — Gemini is roughly 10x cheaper than the metered
+      # Anthropic gateway, and GOOGLE_AI_API_KEY (in .env.local) is valid. Gateway
+      # + openrouter stay behind it as paid failover; ollama last (free, local).
+      AI_PROVIDER_ORDER: "google,gateway,openrouter,ollama"
+      # gemini-flash-latest is a THINKING model — reasoning can consume the whole
+      # token budget and return EMPTY content (LEO then emits its "warming up"
+      # fallback). flash-lite returns content reliably. 2.0/2.5-flash 404 on this key.
+      GOOGLE_MODEL: "gemini-flash-lite-latest"
+      # Ollama runs on the HOST, not in the container — 127.0.0.1 inside the
+      # container is the container itself, so the local model was unreachable.
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    ports:
+      # Core is on host :3000 → :3001 so MERLIN can own :3000 (260723).
+      # Both ride ONE cloudflared tunnel, split by hostname (~/.cloudflared/
+      # config.yml) — the host port is an internal detail; the container still
+      # listens on 3000. Do NOT re-add a 3000 mapping: it would steal Merlin's port.
+      - "3001:3000"
+
+  # The scheduled work that used to be Vercel Cron. Vercel deploys are off and
+  # nothing in the app schedules itself, so without this the platform has no
+  # heartbeat: no inbound email, no connector health, no nightly self-heal of
+  # partial provisions, no log consolidation. busybox crond, one wget per job.
+  heartbeat:
+    image: alpine:3.20
+    container_name: angelos-heartbeat
+    restart: unless-stopped
+    env_file:
+      - C:/Dev/angels-os/.env.local
+    volumes:
+      - C:/Dev/datacenter/stack/heartbeat.crontab:/etc/crontabs/root:ro
+      - C:/Dev/datacenter/stack/heartbeat.sh:/usr/local/bin/hit:ro
+    depends_on:
+      - core
+    # crond gives jobs a bare environment, so stash the secret where the wrapper
+    # can read it, then hand PID 1 to crond (-f foreground, -l 8 log everything,
+    # -L /dev/stdout so container logs show the schedule firing).
+    command:
+      - /bin/sh
+      - -c
+      - 'printenv CRON_SECRET > /run/cron_secret && chmod 600 /run/cron_secret && exec crond -f -l 8 -L /dev/stdout'
+
+volumes:
+  angelos_pgdata:
+    external: true
