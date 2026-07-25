@@ -1,6 +1,30 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+
+/**
+ * A booking is visible to the two people it is about — the client who booked it
+ * and the provider who has to show up — and to platform admins. Nobody else.
+ *
+ * This matters because customers and vendors share ONE dashboard: a customer
+ * signing in to see their own appointment is `authenticated`, exactly like the
+ * electrician is. The previous `read: authenticated` therefore exposed EVERY
+ * booking on the node — names, phone numbers, addresses, times — to any
+ * customer who ever booked anything, across every tenant. (Ken, 260725.)
+ *
+ * Portal-manager surfaces are unaffected: /dashboard/appointments gates on
+ * requirePortalManager() and queries with overrideAccess + a tenant filter, so
+ * a vendor still sees their whole book. Manager-scoped API reads should do the
+ * same rather than widening this.
+ */
+const ownBookingsOnly: Access = ({ req: { user } }) => {
+  if (!user) return false
+  if (checkRole(ADMIN_ROLES, user)) return true
+  return {
+    or: [{ client: { equals: user.id } }, { provider: { equals: user.id } }],
+  }
+}
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
@@ -12,11 +36,13 @@ export const Bookings: CollectionConfig = {
     description: 'Appointment and service bookings — links providers, clients, and time slots.',
   },
   access: {
+    // Anyone signed in can book. Ownership is enforced on the way back out.
     create: authenticated,
-    // Bookings are private — require authentication to view
-    read: authenticated,
-    update: authenticated,
-    delete: authenticated,
+    read: ownBookingsOnly,
+    // Same filter for writes: `authenticated` let any signed-in customer
+    // reschedule or cancel a stranger's appointment.
+    update: ownBookingsOnly,
+    delete: ownBookingsOnly,
   },
   fields: [
     {
