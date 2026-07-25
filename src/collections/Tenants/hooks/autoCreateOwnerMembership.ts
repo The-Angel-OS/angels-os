@@ -31,7 +31,14 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
   try {
     const { payload } = req
 
-    // Check if membership already exists (idempotent — wizard may have already created it)
+    // Pass `req` so this read+write join the tenant-create transaction. This hook
+    // runs BEFORE the tenant row commits, and tenant_memberships has an FK to
+    // tenants(id); a separate connection (no `req`) can't see the uncommitted
+    // parent, so the insert hit an FK violation and the owner membership was
+    // silently dropped (fail-soft) — leaving the tenant with no admin, invisible
+    // in the switcher. Proven in prod: tenants missing this membership DO have a
+    // main space, which `ensureMainSpace` (below) creates WITH `req` on the same
+    // FK-to-tenant — so `req` is exactly the differentiator, and it's safe.
     const existing = await payload.find({
       collection: 'tenant-memberships',
       where: {
@@ -41,6 +48,7 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
       limit: 1,
       depth: 0,
       overrideAccess: true,
+      req,
     })
 
     if (existing.totalDocs > 0) return doc // Already linked
@@ -56,6 +64,7 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
         joinedAt: new Date().toISOString(),
       },
       overrideAccess: true,
+      req,
     })
 
     payload.logger.info(
@@ -121,8 +130,11 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
           limit: 1,
           depth: 0,
           overrideAccess: true,
+          req,
         })
         if (existing.totalDocs === 0) {
+          // Same FK-visibility reason as the tenant membership above: join the
+          // transaction so the space-membership sees the uncommitted space/tenant.
           await payload.create({
             collection: 'space-memberships',
             data: {
@@ -134,6 +146,7 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
               tenant: doc.id as number,
             } as any,
             overrideAccess: true,
+            req,
           })
         }
         const verb = spaceResult.value.created ? 'Created' : 'Found existing'
