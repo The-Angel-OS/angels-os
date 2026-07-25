@@ -45,12 +45,14 @@ export function detectTenantFromHostname(hostname: string): string | null {
     return subdomain || process.env.DEFAULT_TENANT_SLUG || 'default'
   }
 
-  // Main platform domains return null (no tenant prefix). payloadnuke.com is the
-  // canonical Angel OS platform node (self-host); spacesangels.com/kendev.co are
-  // the legacy/commercial apexes served by the same codebase.
+  // Main platform domains return null (no tenant prefix). spacesangels.com is THE
+  // canonical apex (260725 consolidation — every tenant domain lives there);
+  // payloadnuke.com still resolves (Merlin's tunnel + old links) and kendev.co is
+  // the commercial apex, both served by the same codebase. Tenant lookup is by
+  // SUBDOMAIN SLUG, apex-agnostic — so a tenant is reachable at any of them.
   const mainPlatformDomains = [
-    'payloadnuke.com', 'www.payloadnuke.com', 'platform.payloadnuke.com',
     'spacesangels.com', 'www.spacesangels.com', 'default.spacesangels.com',
+    'payloadnuke.com', 'www.payloadnuke.com', 'platform.payloadnuke.com',
     'kendev.co', 'www.kendev.co', 'discordant.kendev.co',
     'angels-os.kendev.co', 'angel-os.kendev.co', 'angels-os.vercel.app',
   ]

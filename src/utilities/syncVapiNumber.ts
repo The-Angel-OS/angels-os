@@ -55,7 +55,7 @@ export async function syncVapiNumber(
   const base =
     opts.serverUrl ||
     process.env.NEXT_PUBLIC_SERVER_URL ||
-    'https://www.payloadnuke.com'
+    'https://www.spacesangels.com'
   const serverUrl = `${base.replace(/\/$/, '')}/api/vapi/webhook`
 
   try {

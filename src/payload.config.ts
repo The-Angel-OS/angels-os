@@ -270,7 +270,7 @@ export default buildConfig({
   // window.location.origin so calls are same-origin). This is belt-and-suspenders
   // for federation, partner embeds, and any remaining cross-origin fetch paths.
   // Origins are config-driven, not hardcoded — so this same image runs on any
-  // node (payloadnuke.com, kendev.co, spacesangels.com, or a fresh clone) without
+  // node (spacesangels.com = canonical; payloadnuke.com/kendev.co, or a fresh clone) without
   // baking another node's domain into the code. Each node self-allows its own
   // apex + wildcard from NEXT_PUBLIC_SERVER_URL; extra cross-node origins come
   // from CORS_ORIGINS (comma-separated). Native + local-dev origins are the same
