@@ -76,20 +76,30 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
     // write chains here starved the pool, the transaction connection sat idle past
     // PgBouncer's idle-in-transaction timeout, and inserts (including the owner
     // membership) were killed/rolled back mid-provision (260709 guardian incident).
-    const settle = async <T,>(p: Promise<T>): Promise<PromiseSettledResult<T>> => {
+    const settle = async <T>(p: Promise<T>): Promise<PromiseSettledResult<T>> => {
       try {
         return { status: 'fulfilled', value: await p }
       } catch (reason) {
         return { status: 'rejected', reason }
       }
     }
+    // `req` on BOTH: same FK-visibility reason as the memberships above. Without
+    // it these ran on a separate connection whose FK check blocked on the
+    // uncommitted tenant row, while this transaction sat idle awaiting them —
+    // a distributed deadlock that stalled every claim for exactly 300s
+    // (idle_in_transaction_session_timeout) and then rolled the tenant back.
     const pagesResult = await settle(
-      createDefaultTenantPages(payload, doc.id, {
-        siteName: doc.branding?.siteName || doc.name || 'Welcome',
-        tagline: typeof doc.branding?.tagline === 'string' ? doc.branding.tagline : '',
-      }),
+      createDefaultTenantPages(
+        payload,
+        doc.id,
+        {
+          siteName: doc.branding?.siteName || doc.name || 'Welcome',
+          tagline: typeof doc.branding?.tagline === 'string' ? doc.branding.tagline : '',
+        },
+        req,
+      ),
     )
-    const navResult = await settle(createDefaultTenantNavigation(payload, doc.id))
+    const navResult = await settle(createDefaultTenantNavigation(payload, doc.id, req))
     // Pass `req` so ensureMainSpace's writes join this hook's transaction. (The
     // actual empty-Community-space fix is the SYSTEM_ADMIN user sysOpts injects —
     // multi-tenant relationship validation re-reads the target space and needs a
@@ -165,9 +175,7 @@ export const autoCreateOwnerMembership: CollectionAfterChangeHook = async ({
     }
   } catch (err) {
     // Non-fatal — tenant is created regardless
-    req.payload.logger.warn(
-      `[autoCreateOwnerMembership] Failed for tenant ${doc.id}: ${err}`,
-    )
+    req.payload.logger.warn(`[autoCreateOwnerMembership] Failed for tenant ${doc.id}: ${err}`)
   }
 
   return doc

@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import {
   createLexicalContent,
   createHeadingNode,
@@ -19,21 +19,23 @@ export async function createDefaultTenantPages(
   payload: Payload,
   tenantId: number | string,
   opts: { siteName: string; tagline?: string },
+  req?: PayloadRequest,
 ): Promise<void> {
+  // See createDefaultTenantNavigation: pass `req` so these inserts join the
+  // tenant-create transaction instead of deadlocking on its uncommitted FK.
+  const tx = req ? { req } : {}
   const { siteName, tagline = '' } = opts
 
   // Check for existing home page to ensure idempotency
   const existingHome = await payload.find({
     collection: 'pages',
     where: {
-      and: [
-        { slug: { equals: 'home' } },
-        { tenant: { equals: tenantId } },
-      ],
+      and: [{ slug: { equals: 'home' } }, { tenant: { equals: tenantId } }],
     },
     limit: 1,
     depth: 0,
     overrideAccess: true,
+    ...tx,
   })
 
   if (existingHome.docs.length > 0) {
@@ -45,6 +47,7 @@ export async function createDefaultTenantPages(
     collection: 'pages',
     depth: 0,
     overrideAccess: true,
+    ...tx,
     data: {
       slug: 'home',
       title: 'Home',
@@ -111,6 +114,7 @@ export async function createDefaultTenantPages(
     collection: 'pages',
     depth: 0,
     overrideAccess: true,
+    ...tx,
     data: {
       slug: 'contact',
       title: 'Contact',
@@ -120,9 +124,7 @@ export async function createDefaultTenantPages(
         type: 'lowImpact',
         richText: createLexicalContent([
           createHeadingNode('Contact Us', 'h1'),
-          createParagraphNode(
-            `Get in touch with ${siteName}. We'd love to hear from you.`,
-          ),
+          createParagraphNode(`Get in touch with ${siteName}. We'd love to hear from you.`),
         ]),
       },
       layout: [
