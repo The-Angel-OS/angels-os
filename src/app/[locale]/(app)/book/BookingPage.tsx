@@ -27,6 +27,8 @@ interface ServiceOption {
   description: string
   priceUSD: number
   depositPercent: number
+  /** Fixed deposit in USD; wins over depositPercent. See depositUsd(). */
+  depositFlatUsd?: number
   durationMinutes: number
   /** Optional service image — shown on the selection card like a product. */
   imageUrl?: string
@@ -67,6 +69,13 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
     services.length === 1 ? 'date' : 'service',
   )
   const [bookingState, setBookingState] = useState<'idle' | 'loading' | 'deposit' | 'success' | 'requested' | 'error'>('idle')
+
+  // Mirrors depositCents() in config/bookableServices.ts — a flat deposit wins,
+  // so work that is quoted on site can still take money to hold the slot.
+  const depositUsd = (s: { priceUSD: number; depositPercent: number; depositFlatUsd?: number }) =>
+    s.depositFlatUsd && s.depositFlatUsd > 0
+      ? Math.round(s.depositFlatUsd)
+      : Math.round(s.priceUSD * (s.depositPercent / 100))
   const [bookingError, setBookingError] = useState('')
   const [payment, setPayment] = useState<PaymentData | null>(null)
   const [requestInfo, setRequestInfo] = useState<{ bookingId: string; note: string; totalCents: number } | null>(null)
@@ -177,7 +186,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
 
   const depositCents = selectedService
-    ? Math.round(selectedService.priceUSD * (selectedService.depositPercent / 100) * 100)
+    ? depositUsd(selectedService) * 100
     : 0
   const totalCents = selectedService ? Math.round(selectedService.priceUSD * 100) : 0
 
@@ -341,7 +350,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {services.map((s) => {
-                  const dep = Math.round(s.priceUSD * (s.depositPercent / 100))
+                  const dep = depositUsd(s)
                   const active = serviceId === s.id
                   return (
                     <button
@@ -365,7 +374,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                       </div>
                       <p className="mt-1 px-4 text-xs text-muted-foreground">{s.description}</p>
                       <p className="mt-2 px-4 pb-4 text-xs text-muted-foreground">
-                        {s.durationMinutes} min · {dep > 0 ? `$${dep} deposit to reserve` : 'no deposit — request a visit'}
+                        {s.durationMinutes} min · {dep > 0 ? `$${dep} deposit to reserve${s.priceUSD > 0 ? '' : ', credited to your invoice'}` : 'no deposit — request a visit'}
                       </p>
                     </button>
                   )

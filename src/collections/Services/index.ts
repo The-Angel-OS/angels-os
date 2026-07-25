@@ -73,6 +73,11 @@ export const Services: CollectionConfig = {
     // ─── Booking ──────────────────────────────────────────────────────
     { name: 'depositPercent', type: 'number', min: 0, max: 100, defaultValue: 20,
       admin: { description: 'Percent charged up front to reserve; balance due on completion.' } },
+    { name: 'depositFlatUsd', type: 'number', min: 0,
+      admin: {
+        description:
+          'Fixed booking deposit in USD, credited against the final invoice. Takes precedence over depositPercent. This is how a trade takes money for work it cannot price sight-unseen — a percentage of an unknown total is always zero, so a quote-only service could otherwise never hold a slot with a deposit.',
+      } },
     { name: 'durationMinutes', type: 'number', min: 1, defaultValue: 60,
       admin: { description: "Estimated/scheduled time the booking holds on the calendar (actual billed time can differ for hourly)." } },
     { name: 'enabled', type: 'checkbox', defaultValue: true, index: true,

@@ -7,7 +7,8 @@ import * as migration_20260722_010000_contacts_phone_voice_source from './202607
 import * as migration_20260722_020000_users_phone from './20260722_020000_users_phone';
 import * as migration_20260722_030000_add_redirects from './20260722_030000_add_redirects';
 import * as migration_20260722_040000_invitation_phone from './20260722_040000_invitation_phone';
-import * as migration_20260722_050000_invitation_name from './20260722_050000_invitation_name';
+import * as migration_20260722_050000_invitation_name from './20260722_050000_invitation_name'
+import * as migration_20260725_180000_service_deposit_flat from './20260725_180000_service_deposit_flat';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -239,5 +240,10 @@ export const migrations = [
     up: migration_20260722_050000_invitation_name.up,
     down: migration_20260722_050000_invitation_name.down,
     name: '20260722_050000_invitation_name',
+  },
+  {
+    up: migration_20260725_180000_service_deposit_flat.up,
+    down: migration_20260725_180000_service_deposit_flat.down,
+    name: '20260725_180000_service_deposit_flat',
   },
 ];

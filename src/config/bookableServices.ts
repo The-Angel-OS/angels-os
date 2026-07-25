@@ -22,6 +22,13 @@ export interface BookableService {
   priceUSD: number
   /** Percentage charged up front to reserve the slot (balance due on completion). */
   depositPercent: number
+  /**
+   * Fixed deposit in USD, credited against the final invoice. Wins over
+   * depositPercent when set. A trade that quotes on site has no priceUSD, so a
+   * percentage deposit always computes to zero and the job could never hold a
+   * slot with money down.
+   */
+  depositFlatUsd?: number
   /** How long the booking occupies the provider's calendar, in minutes. */
   durationMinutes: number
   // ── Pricing model (optional; static seed is all 'fixed') ──
@@ -98,6 +105,9 @@ export function getBookableService(
 
 /** Deposit amount in whole cents for a given service. */
 export function depositCents(service: BookableService): number {
+  if (typeof service.depositFlatUsd === 'number' && service.depositFlatUsd > 0) {
+    return Math.round(service.depositFlatUsd * 100)
+  }
   return Math.round(service.priceUSD * (service.depositPercent / 100) * 100)
 }
 

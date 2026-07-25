@@ -164,3 +164,50 @@ await call('update_page', {
     AREA,
   ].join('\n'),
 })
+
+// Services with no availability = "Booking Not Set Up Yet" and zero bookings.
+// Ron is the provider; his own account owns the calendar.
+await call('set_availability', {
+  tenantSlug: SLUG,
+  providerEmail: 'billthecat1022@gmail.com',
+  days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+  start_time: '08:00',
+  end_time: '17:00',
+  slot_minutes: 60,
+})
+
+// ── Pricing (inferred 260725; Ron adjusts from the dashboard) ────────────────
+// Only two things a trade can honestly price sight-unseen: the visit, and the
+// deposit that holds the slot. Everything else stays "Quote".
+const DIAGNOSTIC_USD = 95 // 1hr on site, credited toward the work if hired same visit
+const EMERGENCY_USD = 175 // after-hours / urgent premium
+const QUOTE_DEPOSIT_USD = 75 // flat, credited to the invoice
+
+await call('configure_service', {
+  tenantSlug: SLUG,
+  name: 'Service Call / Diagnostic',
+  priceUsd: DIAGNOSTIC_USD,
+  depositPercent: 100, // a trip fee is paid at booking, not on completion
+  durationMinutes: 60,
+  description: `Something not working? Flat $${DIAGNOSTIC_USD} visit to find the fault and quote the fix — credited toward the work if you hire us the same visit.`,
+})
+
+await call('configure_service', {
+  tenantSlug: SLUG,
+  name: 'Emergency Electrical Service',
+  priceUsd: EMERGENCY_USD,
+  // No deposit ON PURPOSE: nobody should hit a card form at 11pm with a
+  // sparking panel. Pay on site.
+  depositPercent: 0,
+  durationMinutes: 120,
+  description: 'No power, burning smell, sparking panel — urgent response. Pay on site.',
+})
+
+// Every quote-only job holds its slot with the same flat deposit.
+const QUOTE_ONLY = services
+  .map((s) => s.name)
+  .filter((n) => n !== 'Service Call / Diagnostic' && n !== 'Emergency Electrical Service')
+
+for (const name of QUOTE_ONLY) {
+  await call('configure_service', { tenantSlug: SLUG, name, depositFlatUsd: QUOTE_DEPOSIT_USD })
+}

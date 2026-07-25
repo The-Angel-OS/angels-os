@@ -108,6 +108,7 @@ export interface Config {
     'federation-peers': FederationPeer;
     connectors: Connector;
     contacts: Contact;
+    redirects: Redirect;
     'federation-audit-log': FederationAuditLog;
     'agent-transactions': AgentTransaction;
     'media-meta': MediaMeta;
@@ -192,6 +193,7 @@ export interface Config {
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
     connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
     'media-meta': MediaMetaSelect<false> | MediaMetaSelect<true>;
@@ -340,6 +342,10 @@ export interface Tenant {
     favicon?: (number | null) | Media;
     siteName?: string | null;
     tagline?: string | null;
+    /**
+     * Default color theme for this site. Visitors can still toggle.
+     */
+    defaultTheme?: ('auto' | 'light' | 'dark') | null;
     /**
      * Hex (e.g. #10B981)
      */
@@ -531,6 +537,10 @@ export interface Tenant {
      * Vapi phone number assigned to this tenant (E.164 format, e.g. +17274408797). Used to route inbound calls to the correct Enterprise.
      */
     phoneNumber?: string | null;
+    /**
+     * Where Vapi forwards the call if the AI can't be reached (E.164, e.g. +17275551234). This is the safety net — a real human line, usually the front desk or owner's mobile. Synced to the Vapi phone number's fallbackDestination.
+     */
+    fallbackNumber?: string | null;
     /**
      * Optional: Vapi Assistant ID override. If blank, the default LEO voice config is used.
      */
@@ -748,6 +758,10 @@ export interface Media {
 export interface User {
   id: number;
   name?: string | null;
+  /**
+   * Mobile number — any format; normalized to E.164 on save. Enables sign-in by text.
+   */
+  phone?: string | null;
   /**
    * Stable global identity (derived from email). Same value on every Angel OS node.
    */
@@ -1113,7 +1127,15 @@ export interface Product {
       }[]
     | null;
   layout?:
-    | (CallToActionBlock | ContentBlock | MediaBlock | CommentsBlock | CalendarBlock | GoogleReviewsBlock)[]
+    | (
+        | CallToActionBlock
+        | ContentBlock
+        | MediaBlock
+        | CommentsBlock
+        | CalendarBlock
+        | GoogleReviewsBlock
+        | MediaTextBlock
+      )[]
     | null;
   inventory?: number | null;
   enableVariants?: boolean | null;
@@ -1352,7 +1374,7 @@ export interface Page {
    */
   navOrder?: number | null;
   hero: {
-    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
       root: {
         type: string;
@@ -1409,6 +1431,7 @@ export interface Page {
     | MerlinControlBlock
     | GalleryBlock
     | GoogleReviewsBlock
+    | MediaTextBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2385,6 +2408,14 @@ export interface TenantMembership {
      * Email of invited user (may not have an account yet)
      */
     invitationEmail?: string | null;
+    /**
+     * Display name typed by the inviter (e.g. "Vlad") — shown on rosters while pending, applied to the user account created on first OTP sign-in.
+     */
+    invitationName?: string | null;
+    /**
+     * E.164 mobile of invited user — phone invites: admin copies the link, texts it themselves; invitee signs in with a texted code (account created on first OTP).
+     */
+    invitationPhone?: string | null;
   };
   /**
    * What caused this membership to be created automatically. Null for manually-created memberships (invitations, admin, seed).
@@ -2461,10 +2492,44 @@ export interface GoogleReviewsBlock {
    */
   minRating?: number | null;
   showAggregate?: boolean | null;
-  layout?: ('grid' | 'list') | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'googleReviews';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock".
+ */
+export interface MediaTextBlock {
+  /**
+   * Small label above the heading (optional).
+   */
+  eyebrow?: string | null;
+  heading: string;
+  /**
+   * Paragraphs of copy. Blank lines separate paragraphs.
+   */
+  body?: string | null;
+  /**
+   * YouTube or Vimeo URL — shown beside the text. e.g. https://youtu.be/…
+   */
+  videoUrl?: string | null;
+  /**
+   * Caption under the video (optional).
+   */
+  caption?: string | null;
+  videoOnRight?: boolean | null;
+  /**
+   * Button text (optional), e.g. "Read More".
+   */
+  ctaLabel?: string | null;
+  /**
+   * Button link (optional).
+   */
+  ctaUrl?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaText';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2538,6 +2603,10 @@ export interface Transaction {
   cart?: (number | null) | Cart;
   amount?: number | null;
   currency?: 'USD' | null;
+  /**
+   * Owning tenant (set from the request host).
+   */
+  tenant?: (number | null) | Tenant;
   updatedAt: string;
   createdAt: string;
 }
@@ -2561,6 +2630,10 @@ export interface Cart {
   status?: ('active' | 'purchased' | 'abandoned') | null;
   subtotal?: number | null;
   currency?: 'USD' | null;
+  /**
+   * Owning tenant (set from the request host).
+   */
+  tenant?: (number | null) | Tenant;
   updatedAt: string;
   createdAt: string;
 }
@@ -2698,6 +2771,10 @@ export interface Address {
     | 'SE'
     | 'CH';
   phone?: string | null;
+  /**
+   * Owning tenant (set from the request host).
+   */
+  tenant?: (number | null) | Tenant;
   updatedAt: string;
   createdAt: string;
 }
@@ -3013,6 +3090,10 @@ export interface Booking {
    * When this booking starts
    */
   startDateTime: string;
+  /**
+   * Deposit-hold expiry. Empty = holds until the owner acts.
+   */
+  holdExpiresAt?: string | null;
   /**
    * When this booking ends
    */
@@ -3769,7 +3850,7 @@ export interface Post {
   title: string;
   publishedOn?: string | null;
   hero: {
-    type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
       root: {
         type: string;
@@ -3823,6 +3904,7 @@ export interface Post {
     | CommentsBlock
     | CalendarBlock
     | GoogleReviewsBlock
+    | MediaTextBlock
   )[];
   meta?: {
     title?: string | null;
@@ -4714,9 +4796,13 @@ export interface Contact {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * Contact email address
+   * Contact email address (optional if phone present)
    */
-  email: string;
+  email?: string | null;
+  /**
+   * Phone number (E.164 preferred) — primary channel for voice-captured leads
+   */
+  phone?: string | null;
   /**
    * Contact display name (optional)
    */
@@ -4724,7 +4810,7 @@ export interface Contact {
   /**
    * Where this contact was sourced from
    */
-  source: 'clerk-lms' | 'manual' | 'csv-import' | 'json-import' | 'signup' | 'referral' | 'api';
+  source: 'clerk-lms' | 'manual' | 'csv-import' | 'json-import' | 'signup' | 'referral' | 'api' | 'voice' | 'web-form';
   /**
    * External ID from source system (Clerk user_xxx, etc.)
    */
@@ -4762,6 +4848,31 @@ export interface Contact {
    * Number of campaign emails sent to this contact
    */
   emailCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Old-site URL → new destination. Applied when a visitor hits a path that no longer exists.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Old path, starting with / (e.g. /product/red-light-panel). Query strings are ignored at match time.
+   */
+  from: string;
+  /**
+   * Destination: a portal path (/shop, /posts/my-post) or a full URL.
+   */
+  to: string;
+  enabled?: boolean | null;
+  /**
+   * Where this mapping came from (e.g. "old sitemap import 260722").
+   */
+  note?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6388,6 +6499,10 @@ export interface PayloadMcpApiKey {
      */
     queryPosts?: boolean | null;
     /**
+     * Search THIS business's own website pages and read their actual text — the About/overview copy, services, product explanations, FAQs, and any long-form documents published as pages. This is how you answer 'what does this business do?', 'what services do you offer?', 'tell me about X'. ALWAYS use this before saying you don't have information about the business — the answer is usually on their site.
+     */
+    querySiteContent?: boolean | null;
+    /**
      * Look up bookings and appointments. Returns booking details including status, date/time, and type. Use when users ask about appointments, scheduling, or booking status.
      */
     queryBookings?: boolean | null;
@@ -6640,6 +6755,10 @@ export interface PayloadMcpApiKey {
      */
     createPage?: boolean | null;
     /**
+     * Create a calendar Event for the current Endeavor (meet-and-greet, market appearance, workshop, livestream, screening, etc.). Use when the user wants to add an event. Requires a title and a startDateTime. Defaults to status "upcoming". If you just generated an image for the event, pass its media id as coverImageMediaId to attach it.
+     */
+    createEvent?: boolean | null;
+    /**
      * Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.
      */
     updatePage?: boolean | null;
@@ -6688,7 +6807,7 @@ export interface PayloadMcpApiKey {
      */
     verifyAddress?: boolean | null;
     /**
-     * Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone in chat wants to be contacted about a product/listing, leaves their details, or you're taking a message for the seller/operator. name + email are enough; include product/message context when you have it.
+     * Capture a contact/lead into the current tenant's inbox — lands it as a form-submission message (same place real form submissions show up) and escalates to the operator's phone. Use when someone wants to be contacted, leaves their details, or you're taking a message for the operator. Needs a name plus EITHER a phone number OR an email — on a phone call always prefer the phone number (you usually already have it from caller ID); never make a caller spell out an email unless they offer it.
      */
     captureLead?: boolean | null;
     /**
@@ -7192,6 +7311,10 @@ export interface PayloadLockedDocument {
         value: number | Contact;
       } | null)
     | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
+      } | null)
+    | ({
         relationTo: 'federation-audit-log';
         value: number | FederationAuditLog;
       } | null)
@@ -7388,6 +7511,7 @@ export interface TenantsSelect<T extends boolean = true> {
         favicon?: T;
         siteName?: T;
         tagline?: T;
+        defaultTheme?: T;
         primaryColor?: T;
         secondaryColor?: T;
         accentColor?: T;
@@ -7463,6 +7587,7 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         enabled?: T;
         phoneNumber?: T;
+        fallbackNumber?: T;
         assistantId?: T;
         voiceId?: T;
         greeting?: T;
@@ -7513,6 +7638,7 @@ export interface TenantsSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  phone?: T;
   federatedIdentityId?: T;
   isSystemUser?: T;
   servesTenant?: T;
@@ -7617,6 +7743,8 @@ export interface TenantMembershipsSelect<T extends boolean = true> {
         invitationExpiresAt?: T;
         invitationMessage?: T;
         invitationEmail?: T;
+        invitationName?: T;
+        invitationPhone?: T;
       };
   propagationTrigger?: T;
   updatedAt?: T;
@@ -7740,6 +7868,7 @@ export interface BookingsSelect<T extends boolean = true> {
   provider?: T;
   client?: T;
   startDateTime?: T;
+  holdExpiresAt?: T;
   endDateTime?: T;
   duration?: T;
   pricing?:
@@ -8136,6 +8265,7 @@ export interface PagesSelect<T extends boolean = true> {
         merlinControl?: T | MerlinControlBlockSelect<T>;
         gallery?: T | GalleryBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
+        mediaText?: T | MediaTextBlockSelect<T>;
       };
   meta?:
     | T
@@ -8372,7 +8502,22 @@ export interface GoogleReviewsBlockSelect<T extends boolean = true> {
   maxReviews?: T;
   minRating?: T;
   showAggregate?: T;
-  layout?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock_select".
+ */
+export interface MediaTextBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  heading?: T;
+  body?: T;
+  videoUrl?: T;
+  caption?: T;
+  videoOnRight?: T;
+  ctaLabel?: T;
+  ctaUrl?: T;
   id?: T;
   blockName?: T;
 }
@@ -8422,6 +8567,7 @@ export interface PostsSelect<T extends boolean = true> {
         comments?: T | CommentsBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
+        mediaText?: T | MediaTextBlockSelect<T>;
       };
   meta?:
     | T
@@ -8968,6 +9114,7 @@ export interface ConnectorsSelect<T extends boolean = true> {
 export interface ContactsSelect<T extends boolean = true> {
   tenant?: T;
   email?: T;
+  phone?: T;
   name?: T;
   source?: T;
   sourceId?: T;
@@ -8980,6 +9127,19 @@ export interface ContactsSelect<T extends boolean = true> {
   unsubscribeToken?: T;
   lastEmailedAt?: T;
   emailCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  tenant?: T;
+  from?: T;
+  to?: T;
+  enabled?: T;
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9735,6 +9895,7 @@ export interface AddressesSelect<T extends boolean = true> {
   postalCode?: T;
   country?: T;
   phone?: T;
+  tenant?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9803,6 +9964,7 @@ export interface ProductsSelect<T extends boolean = true> {
         comments?: T | CommentsBlockSelect<T>;
         calendar?: T | CalendarBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
+        mediaText?: T | MediaTextBlockSelect<T>;
       };
   inventory?: T;
   enableVariants?: T;
@@ -9871,6 +10033,7 @@ export interface CartsSelect<T extends boolean = true> {
   status?: T;
   subtotal?: T;
   currency?: T;
+  tenant?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9985,6 +10148,7 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  tenant?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -10079,6 +10243,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         leoRespond?: T;
         queryProducts?: T;
         queryPosts?: T;
+        querySiteContent?: T;
         queryBookings?: T;
         querySpaces?: T;
         queryProjects?: T;
@@ -10142,6 +10307,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         ingestYoutubeChannel?: T;
         updatePost?: T;
         createPage?: T;
+        createEvent?: T;
         updatePage?: T;
         addCalendarToPage?: T;
         queryMedia?: T;

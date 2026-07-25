@@ -1305,6 +1305,15 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         priceUsd: { type: 'number', description: 'Flat price in US dollars. Omit if the source quotes an hourly rate instead.' },
         hourlyRateUsd: { type: 'number', description: 'Hourly rate in US dollars, for trades quoted "$95/hr". Ignored when priceUsd is given.' },
         durationMinutes: { type: 'number', description: 'How long the service takes in minutes' },
+        depositFlatUsd: {
+          type: 'number',
+          description:
+            'Fixed deposit in USD to reserve the slot, credited against the final invoice. Use this for work that is QUOTED ON SITE — a percentage of an unknown total is always zero, so a quote-only job cannot otherwise take a deposit.',
+        },
+        depositPercent: {
+          type: 'number',
+          description: 'Percent of a KNOWN price charged up front (default 20). Ignored when depositFlatUsd is set.',
+        },
         bookable: { type: 'boolean', description: 'Whether customers can book this online. Default true.' },
         category: { type: 'string', description: 'Optional category, e.g. "residential", "commercial", "specialty"' },
         tenantSlug: {
@@ -2432,10 +2441,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'set_availability',
     description:
-      "Set the signed-in person's recurring weekly availability on their personal scheduler (their 'book time with me' calendar). Use when they say things like 'I'm free weekdays 9 to 5' or 'open Tuesdays 2–5pm'. Sets the given days to the given hours, leaving other days as they are. Self-scoped to the current user's home angel.",
+      "Open a recurring weekly booking schedule. Defaults to the signed-in person's own 'book time with me' calendar — use when they say 'I'm free weekdays 9 to 5'. Pass tenantSlug + providerEmail to open a BUSINESS portal's schedule for its owner instead: a portal with services but no availability shows \"Booking Not Set Up Yet\" and cannot take a single booking, so this is a required step when standing up a trade or practice. Sets the given days, leaving other days as they are.",
     input_schema: {
       type: 'object' as const,
       properties: {
+        tenantSlug: {
+          type: 'string',
+          description: "Open THIS portal's booking schedule instead of the caller's own, e.g. \"harpazo\".",
+        },
+        providerEmail: {
+          type: 'string',
+          description:
+            'Who the bookings belong to — the portal owner, e.g. the electrician themselves. Required with tenantSlug; bookings need a provider.',
+        },
         days: {
           type: 'array',
           items: { type: 'string' },
@@ -17576,6 +17594,11 @@ async function setPortalBranding(
   const data: Record<string, any> = {}
   if (siteName || tagline) {
     data.branding = { ...cur, ...(siteName ? { siteName } : {}), ...(tagline ? { tagline } : {}) }
+    // Keep the tenant's own name in step with the trading name. Built-in surfaces
+    // (the /book header, admin lists) read `name`, not branding.siteName, so
+    // leaving it behind gave "Schedule with Harpazo" under a "Harpazo Electric"
+    // page title.
+    if (siteName) data.name = siteName
   }
   if (contactPhone || contactEmail) {
     data.storefront = {
@@ -17670,6 +17693,12 @@ async function configureService(
   }
   if (typeof input.durationMinutes === 'number' && input.durationMinutes > 0) {
     data.durationMinutes = Math.round(input.durationMinutes)
+  }
+  if (typeof input.depositFlatUsd === 'number' && input.depositFlatUsd >= 0) {
+    data.depositFlatUsd = input.depositFlatUsd
+  }
+  if (typeof input.depositPercent === 'number' && input.depositPercent >= 0 && input.depositPercent <= 100) {
+    data.depositPercent = input.depositPercent
   }
   if (typeof input.category === 'string' && input.category.trim()) {
     data.metadata = { ...(data.metadata ?? {}), category: input.category.trim() }
@@ -18435,9 +18464,40 @@ async function handleSetAvailability(
   toolInput: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
-  if (!ctx.userId) return 'Please sign in to set your availability.'
+  // Targeted mode: open a BUSINESS portal's schedule for its owner. Without this
+  // the tool could only ever open the caller's personal calendar, so a
+  // provisioned trade portal was left with a full service catalog and a /book
+  // page reading "Booking Not Set Up Yet" — services with no availability take
+  // zero bookings.
+  const slug = typeof toolInput.tenantSlug === 'string' ? toolInput.tenantSlug.trim() : ''
+  const providerEmail = typeof toolInput.providerEmail === 'string' ? toolInput.providerEmail.trim().toLowerCase() : ''
+  let home: { id: number | string; domain?: string } | null = null
+  let providerUserId: number | undefined
+
+  if (slug) {
+    if (!providerEmail) return 'Error: providerEmail is required with tenantSlug — bookings need a provider.'
+    const { fetchTenantBySlug } = await import('@/utilities/fetchTenantBySlug')
+    const t = await fetchTenantBySlug(slug)
+    if (!t) return `Error: no portal with slug "${slug}" on this node.`
+    const u = await payload.find({
+      collection: 'users',
+      where: { email: { equals: providerEmail } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const provider = u.docs[0] as { id: number } | undefined
+    if (!provider) return `Error: no user with email "${providerEmail}" — invite them first.`
+    home = { id: Number(t.id), domain: (t as { domain?: string }).domain }
+    providerUserId = Number(provider.id)
+  }
+
+  if (!home && !ctx.userId) return 'Please sign in to set your availability.'
   try {
-    const home = await resolveGuardianTenant(payload, ctx.userId)
+    if (!home) {
+      home = await resolveGuardianTenant(payload, ctx.userId!)
+      providerUserId = ctx.userId
+    }
     if (!home) return 'Claim your guardian angel first — that\'s where your scheduler lives.'
 
     const days = Array.isArray(toolInput.days) ? (toolInput.days as Array<string | number>) : []
@@ -18447,7 +18507,7 @@ async function handleSetAvailability(
 
     const r = await setWeeklyAvailability(payload, {
       tenantId: home.id,
-      providerUserId: ctx.userId,
+      providerUserId: providerUserId!,
       days,
       startTime,
       endTime,

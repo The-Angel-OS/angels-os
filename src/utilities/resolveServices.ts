@@ -20,6 +20,7 @@ function toBookableService(doc: any): BookableService {
     bookingType: doc.bookingType ?? 'service',
     priceUSD: Number(doc.priceUsd ?? 0),
     depositPercent: Number(doc.depositPercent ?? 0),
+    depositFlatUsd: doc.depositFlatUsd != null ? Number(doc.depositFlatUsd) : undefined,
     durationMinutes: Number(doc.durationMinutes ?? 0),
     pricingModel: doc.pricingModel ?? 'fixed',
     hourlyRateUSD: doc.hourlyRateUsd != null ? Number(doc.hourlyRateUsd) : undefined,
