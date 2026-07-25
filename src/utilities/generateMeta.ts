@@ -67,10 +67,19 @@ export const generateMeta = async (args: {
 
   const ogImage = getImageURL(doc?.meta?.image, branding)
 
-  // meta.title → doc title → bare portal name. Suffix with the PORTAL's name so
-  // a shared link is attributed to the endeavor, not the platform.
+  // meta.title → doc title → bare portal name.
+  //
+  // The document title is returned BARE: the (app) layout already declares
+  // `title.template = "%s | <siteName>"`, so Next appends the portal name for
+  // us. Suffixing here too rendered "Electrician in Shepherdstown, WV | Harpazo
+  // Electric | Harpazo Electric" on every CMS page.
+  //
+  // og:title still carries the suffix explicitly — the title template is a Next
+  // metadata mechanism and does not apply to Open Graph, so a shared link would
+  // otherwise lose its attribution to the endeavor.
   const baseTitle = doc?.meta?.title || (doc as { title?: string } | null)?.title
-  const title = baseTitle ? `${baseTitle} | ${branding.siteName}` : branding.siteName
+  const title = baseTitle || branding.siteName
+  const ogTitle = baseTitle ? `${baseTitle} | ${branding.siteName}` : branding.siteName
 
   const slug = Array.isArray(doc?.slug) ? doc?.slug.join('/') : doc?.slug || ''
   const path = slug && slug !== 'home' ? `/${slug}` : '/'
@@ -80,7 +89,7 @@ export const generateMeta = async (args: {
     openGraph: mergeOpenGraph({
       description: doc?.meta?.description || '',
       images: [{ url: ogImage }],
-      title,
+      title: ogTitle,
       url: `${branding.origin}${path}`,
       siteName: branding.siteName,
     }),
@@ -102,12 +111,17 @@ export const generateTenantRouteMeta = async (args: {
   path: string
 }): Promise<Metadata> => {
   const branding = await resolveRequestBranding()
-  const title = `${args.title} | ${branding.siteName}`
+  // Bare for `title` (the (app) layout's title.template appends the portal
+  // name), suffixed for og:title (templates don't apply to Open Graph). Same
+  // split as generateMeta — suffixing both rendered "About | Harpazo Electric |
+  // Harpazo Electric".
+  const title = args.title
+  const ogTitle = `${args.title} | ${branding.siteName}`
   return {
     title,
     description: args.description,
     openGraph: mergeOpenGraph({
-      title,
+      title: ogTitle,
       description: args.description || '',
       images: [{ url: getImageURL(null, branding) }],
       url: `${branding.origin}${args.path}`,

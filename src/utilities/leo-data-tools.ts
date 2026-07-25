@@ -1317,6 +1317,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'set_portal_branding',
+    description:
+      "Set a portal's public name and tagline. The site name is appended to EVERY page title (\"<page> | <site name>\"), so it should be the business's real trading name — \"Harpazo Electric\", not \"Harpazo\". Defaults to the current Endeavor; pass tenantSlug to brand a different portal, e.g. one you just provisioned. Use after provisioning, or whenever a business's name or positioning changes.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        siteName: { type: 'string', description: 'Public trading name, e.g. "Harpazo Electric".' },
+        tagline: { type: 'string', description: 'One line under the name — what they do and where. Shown in the hero and share cards.' },
+        contactPhone: {
+          type: 'string',
+          description:
+            'Public phone number. A trade or practice site without one is broken — this is the whole point of the site for most visitors. A mobile number is fine.',
+        },
+        contactEmail: { type: 'string', description: 'Public contact email.' },
+        tenantSlug: { type: 'string', description: 'Brand THIS portal instead of the current Endeavor, e.g. "harpazo".' },
+      },
+    },
+  },
+  {
     name: 'classify_endeavor',
     description:
       'Read a Craigslist ad, flyer, or existing website and extract its content so you can classify the business. Returns the source text plus the controlled holon-role vocabulary and operational-model options. Provide `url` (LEO fetches it) or `adText` (pasted). After this returns, decide the holon roles + industry capabilities and call set_holon_profile. Use as the first step of onboarding a new service-provider vertical.',
@@ -1662,14 +1681,25 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'update_page',
     description:
-      'Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.',
+      'Update an existing static page. Identify it by `pageSlug` (e.g. "services") — easier and safer than hunting a numeric id — or by `pageId` if you already have it. Defaults to the current Endeavor; pass tenantSlug to edit a DIFFERENT portal, e.g. rewriting a freshly provisioned customer site. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        pageId: { type: 'number', description: 'Numeric ID of the page to update (required)' },
+        pageId: { type: 'number', description: 'Numeric ID of the page to update. Optional when pageSlug is given.' },
+        pageSlug: { type: 'string', description: 'Slug of the page to update, e.g. "services", "home", "about". Resolved within the target portal.' },
+        tenantSlug: {
+          type: 'string',
+          description: 'Edit the page on THIS portal instead of the current Endeavor, e.g. "harpazo".',
+        },
         title: { type: 'string', description: 'New page title (optional)' },
         content: { type: 'string', description: 'New page body text (optional)' },
         slug: { type: 'string', description: 'New URL slug (optional)' },
+        metaTitle: {
+          type: 'string',
+          description:
+            'Search-result title. For a local trade or practice this IS the Google listing — name the service and the town it actually serves. Setting `title` alone does not change it.',
+        },
+        metaDescription: { type: 'string', description: 'Search-result description, ~155 characters.' },
         status: {
           type: 'string',
           enum: ['draft', 'published'],
@@ -4362,6 +4392,8 @@ async function executeToolSwitch(
         return await listAvailability(payload, ctx)
       case 'configure_service':
         return await configureService(payload, toolInput, ctx)
+      case 'set_portal_branding':
+        return await setPortalBranding(payload, toolInput, ctx)
       case 'set_holon_profile':
         return await setHolonProfile(payload, toolInput, ctx)
       case 'classify_endeavor':
@@ -9226,17 +9258,41 @@ async function updatePage(
   input: Record<string, unknown>,
   ctx: ToolExecutorContext,
 ): Promise<string> {
-  const pageId = Number(input.pageId)
-  if (!pageId) return 'Error: pageId is required.'
+  // Which portal are we editing? `tenantSlug` overrides the ambient Endeavor so
+  // LEO can rewrite a customer's site right after provisioning it, instead of
+  // only ever being able to edit the portal the operator is standing in.
+  const targetSlug = typeof input.tenantSlug === 'string' ? input.tenantSlug.trim() : ''
+  let scopeTenantId = ctx.tenantId
+  if (targetSlug) {
+    const { fetchTenantBySlug } = await import('@/utilities/fetchTenantBySlug')
+    const t = await fetchTenantBySlug(targetSlug)
+    if (!t) return `Error: no portal with slug "${targetSlug}" on this node.`
+    scopeTenantId = Number(t.id)
+  }
 
-  // Verify page belongs to current tenant before modifying
-  if (ctx.tenantId) {
+  // Slug is the humane identifier — "the services page", not "#55".
+  let pageId = Number(input.pageId) || 0
+  const pageSlug = typeof input.pageSlug === 'string' ? input.pageSlug.trim().toLowerCase() : ''
+  if (!pageId && pageSlug) {
+    const where: Record<string, unknown> = scopeTenantId
+      ? { and: [{ slug: { equals: pageSlug } }, { tenant: { equals: scopeTenantId } }] }
+      : { slug: { equals: pageSlug } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const found = await (payload.find as any)({ collection: 'pages', where, limit: 1, depth: 0, overrideAccess: true })
+    const hit = found.docs?.[0] as { id: number } | undefined
+    if (!hit) return `Error: no page "${pageSlug}"${targetSlug ? ` on portal "${targetSlug}"` : ''}.`
+    pageId = Number(hit.id)
+  }
+  if (!pageId) return 'Error: pageId or pageSlug is required.'
+
+  // Verify page belongs to the target tenant before modifying
+  if (scopeTenantId) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const existing = await (payload.findByID as any)({ collection: 'pages', id: pageId, depth: 0, overrideAccess: true })
       const docTenant = existing?.tenant
       const tenantVal = typeof docTenant === 'object' ? docTenant?.id : docTenant
-      if (tenantVal && tenantVal !== ctx.tenantId) {
+      if (tenantVal && tenantVal !== scopeTenantId) {
         return 'Error: This page belongs to a different tenant.'
       }
     } catch {
@@ -9256,6 +9312,18 @@ async function updatePage(
     updateData._status = input.status
   }
   if (input.content) updateData.layout = textToContentLayout(input.content as string)
+  // meta is a group — merge so setting one field doesn't blank the other.
+  const metaTitle = typeof input.metaTitle === 'string' ? input.metaTitle.trim() : ''
+  const metaDescription = typeof input.metaDescription === 'string' ? input.metaDescription.trim() : ''
+  if (metaTitle || metaDescription) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cur = (await (payload.findByID as any)({ collection: 'pages', id: pageId, depth: 0, overrideAccess: true }))?.meta ?? {}
+    updateData.meta = {
+      ...cur,
+      ...(metaTitle ? { title: metaTitle } : {}),
+      ...(metaDescription ? { description: metaDescription } : {}),
+    }
+  }
 
   if (Object.keys(updateData).length === 0) {
     return 'Nothing to update — please provide at least one field to change.'
@@ -9281,7 +9349,7 @@ async function updatePage(
     const heroLines = await generateAndAttachHeroImage(
       payload, 'pages', pageId, pageTitle,
       input.heroImagePrompt as string | undefined,
-      ctx.tenantId,
+      scopeTenantId,
     )
     lines.push(...heroLines)
   }
@@ -17464,6 +17532,74 @@ async function listAvailability(
   if (first.maxAdvanceBooking) lines.push(`Maximum advance booking: ${first.maxAdvanceBooking} days`)
 
   return lines.join('\n') + navDirective('/dashboard/availability', 'Manage Availability')
+}
+
+/**
+ * set_portal_branding — public name + tagline for a portal.
+ *
+ * `siteName` is load-bearing beyond the hero: generateMeta suffixes every page
+ * title with it, so a portal branded "Harpazo" renders "Electrician in
+ * Shepherdstown, WV | Harpazo" in Google instead of the trading name.
+ */
+async function setPortalBranding(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const slug = typeof input.tenantSlug === 'string' ? input.tenantSlug.trim() : ''
+  let tenantId: number | undefined
+  if (slug) {
+    const { fetchTenantBySlug } = await import('@/utilities/fetchTenantBySlug')
+    const t = await fetchTenantBySlug(slug)
+    if (!t) return `Error: no portal with slug "${slug}" on this node.`
+    tenantId = Number(t.id)
+  } else {
+    tenantId = await resolveWriteTenant(payload, ctx)
+  }
+  if (!tenantId) return "Error: I couldn't determine which portal to brand. Pass tenantSlug."
+
+  const siteName = typeof input.siteName === 'string' ? input.siteName.trim() : ''
+  const tagline = typeof input.tagline === 'string' ? input.tagline.trim() : ''
+  const contactPhone = typeof input.contactPhone === 'string' ? input.contactPhone.trim() : ''
+  const contactEmail = typeof input.contactEmail === 'string' ? input.contactEmail.trim() : ''
+  if (!siteName && !tagline && !contactPhone && !contactEmail) {
+    return 'Error: pass at least one of siteName, tagline, contactPhone, contactEmail.'
+  }
+
+  // branding is a group — merge, so setting one field doesn't blank the rest
+  // (logo, colors, fonts all live in here too).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = await (payload.findByID as any)({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true })
+  const cur = doc?.branding ?? {}
+  const curStore = doc?.storefront ?? {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {}
+  if (siteName || tagline) {
+    data.branding = { ...cur, ...(siteName ? { siteName } : {}), ...(tagline ? { tagline } : {}) }
+  }
+  if (contactPhone || contactEmail) {
+    data.storefront = {
+      ...curStore,
+      ...(contactPhone ? { contactPhone } : {}),
+      ...(contactEmail ? { contactEmail } : {}),
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (payload.update as any)({ collection: 'tenants', id: tenantId, data, overrideAccess: true })
+
+  // Branding is read through the tenant cache, so a rename would otherwise take
+  // up to 120s to show on the live site.
+  const { tenantBySlugCache, tenantByDomainCache } = await import('@/utilities/tenantCache')
+  tenantBySlugCache.invalidateAll()
+  tenantByDomainCache.invalidateAll()
+
+  const lines = ['Branding updated.']
+  if (siteName) lines.push(`- Site name: ${siteName}`)
+  if (tagline) lines.push(`- Tagline: ${tagline}`)
+  if (contactPhone) lines.push(`- Phone: ${contactPhone}`)
+  if (contactEmail) lines.push(`- Email: ${contactEmail}`)
+  if (siteName) lines.push(`- Page titles now read "<page> | ${siteName}".`)
+  return lines.join('\n')
 }
 
 /**

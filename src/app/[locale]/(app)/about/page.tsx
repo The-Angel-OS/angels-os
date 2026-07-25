@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { tenant } = await resolveTenantFromHeaders()
   const siteName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
   return {
-    title: `About | ${siteName}`,
+    title: 'About', // bare — the (app) layout's title.template appends the portal name
     description: `Learn more about ${siteName} — our mission, our team, and why we exist.`,
   }
 }

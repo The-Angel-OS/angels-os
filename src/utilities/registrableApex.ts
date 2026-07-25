@@ -27,8 +27,17 @@ export function registrableApex(host?: string | null): string {
 export function synthesizeStorefront(slug: string | null | undefined, nodeApex: string): string | null {
   if (!slug || slug === 'default' || slug === 'platform') return null
   const apexLabel = nodeApex.split('.')[0]
-  return slug === apexLabel ? `https://${nodeApex}` : `https://${slug}.${nodeApex}`
+  // Root portal is canonically www.<apex> (bare apex just bounces up); sub-tenants stay slug.<apex>.
+  return slug === apexLabel ? `https://www.${nodeApex}` : `https://${slug}.${nodeApex}`
 }
+
+/**
+ * The node root portal's canonical is www.<apex>. Anything that resolves to the
+ * bare node apex (the root brand, with or without a www.) becomes www.<apex>;
+ * subdomains and BYO client domains pass through unchanged.
+ */
+const rootCanonical = (host: string, nodeApex: string): string =>
+  stripWww(host) === nodeApex ? `https://www.${nodeApex}` : `https://${stripWww(host)}`
 
 /** A real, public domain — not a .local dev alias or localhost. */
 export const isPublicDomain = (d?: string | null): boolean =>
@@ -68,8 +77,8 @@ export function tenantStorefrontUrl(
   const primaryAlias = (tenant?.domains || []).find(
     (a) => a?.isPrimary && isPublicDomain(a?.domain),
   )?.domain
-  if (primaryAlias) return `https://${stripWww(primaryAlias)}`
-  if (isPublicDomain(tenant?.domain)) return `https://${stripWww(tenant!.domain as string)}`
-  if (isPublicDomain(federationDomain)) return `https://${stripWww(federationDomain as string)}`
+  if (primaryAlias) return `https://${stripWww(primaryAlias)}` // BYO custom domain — honor as bound
+  if (isPublicDomain(tenant?.domain)) return rootCanonical(tenant!.domain as string, nodeApex)
+  if (isPublicDomain(federationDomain)) return rootCanonical(federationDomain as string, nodeApex)
   return synthesizeStorefront(tenant?.slug, nodeApex)
 }

@@ -34,9 +34,17 @@ describe('generateMeta', () => {
     expect(meta.title).toBe('Angel OS')
   })
 
-  it('includes doc meta title with site suffix', async () => {
+  // The document title stays BARE — the (app) layout declares
+  // title.template = "%s | <siteName>" and Next appends the portal name. Suffixing
+  // here too rendered the brand twice ("About Us | Angel OS | Angel OS").
+  it('leaves the doc meta title bare for the layout title template', async () => {
     const meta = await generateMeta({ doc: { meta: { title: 'About Us' } } })
-    expect(meta.title).toBe('About Us | Angel OS')
+    expect(meta.title).toBe('About Us')
+  })
+
+  it('still suffixes og:title, which no title template applies to', async () => {
+    const meta = await generateMeta({ doc: { meta: { title: 'About Us' } } })
+    expect((meta.openGraph as any)?.title).toBe('About Us | Angel OS')
   })
 
   it('passes description from doc.meta to result', async () => {
@@ -98,6 +106,7 @@ describe('generateMeta', () => {
 
   it('falls back to doc title when meta.title is missing', async () => {
     const meta = await generateMeta({ doc: { title: 'Donate' } as any })
-    expect(meta.title).toBe('Donate | Angel OS')
+    expect(meta.title).toBe('Donate')
+    expect((meta.openGraph as any)?.title).toBe('Donate | Angel OS')
   })
 })
