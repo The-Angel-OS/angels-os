@@ -17,7 +17,7 @@
 | **spacesangels.com** | ✅ 200 (apex + www + `*`) |
 | **neurocarepro.spacesangels.com** | ✅ 200 (the 1033 is resolved) |
 | **merlin.payloadnuke.com** | ❌ 502 — Merlin's node is **not listening on :3000** |
-| **Git** | branch `main`. **2 unpushed commits**: `a862570`, `2f63363`. |
+| **Git** | branch `main`. **4 unpushed commits**: `a862570`, `2f63363`, `e45adbb`, `bc97a97`. |
 
 ### Access one-liners
 ```bash
@@ -47,45 +47,45 @@ Compose: `C:\Dev\datacenter\stack\docker-compose.yml` (project `angelos`).
 
 ---
 
-## 2. 🔴 THE ACTIVE BUG — provisioning hangs exactly 300s (UNRESOLVED)
+## 2. ✅ THE 300s PROVISIONING HANG — RESOLVED (`bc97a97`, 260725 ~1555)
 
-**Symptom.** `POST /api/provision-ops/claim-guardian-angel` takes **300473ms** then 500s.
-The tenant is rolled back. Measured on the REAL :3001 container, not a test rig.
+**Was.** `POST /api/provision-ops/claim-guardian-angel` = **300364ms → 500**, tenant rolled back.
+**Now.** **2396ms → 200**, full provisioning log, owner membership verified.
 
-**What is proven.**
-- 300s is *exactly* postgres `idle_in_transaction_session_timeout`. Container log at the
-  moment of death: `terminating connection due to idle-in-transaction timeout` (SQLSTATE
-  **25P03**), then every in-flight operation errors in the same millisecond.
-- **Idle** is the key word: the tenant-create transaction is NOT running a slow query. It is
-  sitting open with nothing executing, `await`ing something that isn't the database.
+**It was a distributed deadlock, not a mystery non-DB await.** The previous session's
+"the tx is idle so it must be awaiting something that isn't the database" was right about
+*idle* and wrong about *what*. One `pg_blocking_pids` probe settled it in a single shot:
 
-**Ruled out (do not re-investigate).**
-- pgbouncer — reproduces direct-to-postgres too.
-- Env / container isolation — real prod does it; earlier "only isolated containers hang" was wrong.
-- **FK-visibility of the uncommitted tenant row** — was a genuine bug, fixed in `2f63363`,
-  hang reproduces unchanged after the fix.
-- `revalidatePage` hook — uses `revalidatePath`/`revalidateTag`, purely local, no fetch.
-- No `beginTransaction` anywhere in `src/`; Payload opens/commits a tx per local-API op.
-- No `fetch()` / AI / external call in `provisionPortal.ts` or the Tenants hooks.
+| pid | state | blocked by |
+|---|---|---|
+| 21919 | `idle in transaction` — tenant-create tx, `tenants` row uncommitted | — |
+| 21573 | `active`, `wait_event=transactionid`, `insert into "users" … on conflict (id) do update` | **{21919}** |
 
-**Next move — one probe settles it.** Start a claim, and *while it hangs* run:
+[`syncUserTenants`](../src/collections/TenantMemberships/hooks/syncUserTenants.ts) fires
+*inside* the tenant-create transaction (tenant create → afterChange → tenant-membership
+create → afterChange → here) and did its `findByID` + `update` on `users` **without `req`**.
+That update runs on a separate pooled connection; its `users_tenants` insert FK-references
+the still-uncommitted tenant row, so it blocks on tx A — while tx A sits idle awaiting that
+very call. Postgres breaks the tie at `idle_in_transaction_session_timeout`, which is
+exactly why the number was always precisely 300s.
+
+Third instance of the class fixed in `a862570` and `2f63363`. Its sibling in the same
+afterChange array, `autoJoinSpaces`, had the same three req-less calls — fixed too.
+
+**The probe, for next time** — start a claim and while it hangs:
 ```bash
-docker exec angelos-pg psql -U postgres -d angels -c "select pid, state, wait_event_type, wait_event, now()-xact_start as tx_age, left(query,140) as last_query from pg_stat_activity where datname='angels' order by xact_start nulls last;"
+docker exec angelos-pg psql -U postgres -d angels -x -c "select pid, state, wait_event, pg_blocking_pids(pid) as blockers, query from pg_stat_activity where datname='angels' and (state='idle in transaction' or wait_event='transactionid') order by xact_start;"
 ```
-- `state = 'idle in transaction'` → confirms a non-DB await; **`last_query` is the statement
-  immediately BEFORE the stall**, which brackets the culprit to one call site.
-- `state = 'active'` + a `wait_event` of `Lock` → it's a lock wait after all, and `last_query`
-  names the blocked statement.
-
-Remaining suspects once bracketed: a Media/upload path, a hook making an HTTP call, or
-`ensureMainSpace` / channel seeding awaiting something external.
+`pg_blocking_pids` is the whole trick — it names the holder, so "idle" vs "blocked" stops
+being a guess. Reproduced identically on two consecutive claims.
 
 **Repro harness.** `scratchpad/claimtime.mjs` — creates a user, logs in, claims, prints
 per-step ms. Run: `node <path>/claimtime.mjs` (env `BASE_URL`, default `http://localhost:3001`).
-⚠️ Node's global fetch is undici with a **300s default timeout** — which is why this bug and
-the client abort look identical. Raise it if you need to see past 300s.
+⚠️ Node's global fetch is undici with a **300s default timeout** — coincidentally identical
+to the postgres timeout, which is why this bug and a client abort looked the same.
 
-**Why it matters:** the north star is paste-to-Endeavor. That cannot take five minutes.
+**Test gate:** 80 failed / 5944 passed, vs **83 failed / 5941 passed on clean HEAD** — no new
+failures; the rest are pre-existing and unrelated (book manifest, aiGateway, scripture, souls).
 
 ---
 
@@ -109,9 +109,13 @@ Both commits are **local only — `git push` when ready.**
 
 ## 4. Owed / cleanup
 
-- **Purge loadtest rows from prod `angels`:** users matching `%@loadtest.invalid%` — user
-  **156** (`slowtest-*`) and `claimtime-1785006938983@*` — plus any guardian tenants they
-  spawned. (Tenant 25 "Slow" already rolled itself back.)
+- ~~Purge loadtest rows from prod `angels`~~ **DONE 260725 ~1554** — 5 `%@loadtest.invalid%`
+  users (156–160) + orphan guardian tenant 29, one transaction, verified 0 remaining.
+  ⚠️ Don't try this through the local API: `payload.delete` on a user/tenant trips
+  `23502` because half a dozen FKs are `ON DELETE SET NULL` onto **NOT NULL** columns
+  (`availability.provider_id`, `users_tenants.tenant_id`, `tenant_memberships.tenant_id`, …).
+  Delete dependents first; the generic form is a `DO` block over `pg_constraint` filtered to
+  `confrelid in ('users','tenants') and attnotnull`.
 - **Remediated earlier:** 5 orphaned prod tenants → user 3 (Ken) as `tenant_admin`:
   tomstalcup(10), grace-chapel(12), dunedin-fresh-market(15), arctic-cool(19), mobilmech1(23).
   **Ken's rule: a tenant with no owner defaults to Ken.**
@@ -122,9 +126,11 @@ Both commits are **local only — `git push` when ready.**
   `FEATURES.localPickup` in `src/config/features.ts` + CheckoutPage fulfillment toggle +
   `angel-os-stripe-adapter` `angelOs_fulfillment` metadata. Verified on dev, gated by
   `NEXT_PUBLIC_FEATURE_LOCAL_PICKUP`.
-- **`.env.local`** `DATABASE_URI` still points at the **dead** IONOS box `74.208.87.243`.
-  Repoint to `localhost:6432/angels`. Harmless for the container (compose env wins) but host
-  `pnpm dev` is broken until then.
+- ~~`.env.local` `DATABASE_URI` points at the dead IONOS box~~ **DONE 260725 ~1553** — now
+  `postgresql://postgres:K3nD3v!host@localhost:6432/angels?sslmode=disable`. The
+  `?sslmode=disable` is required: without it pg tries SSL and the local container refuses.
+  Host `pnpm dev` and `payload run` scripts work again. (Not committed — `.env.local` is
+  gitignored.)
 
 ---
 
@@ -187,9 +193,20 @@ That's why §2 is the top of the list.
 ## 8. Durable gotchas (hard-won — don't relearn these)
 
 - Payload `afterChange` hooks that **write** must pass `req`, or the write lands on a separate
-  connection blind to the uncommitted parent → FK failure → silently dropped. **But** a
-  write-with-`req` that throws poisons the parent transaction — audit/log writes must be
-  transaction-isolated (`afterOperation` or a queue).
+  connection blind to the uncommitted parent. Two distinct failure modes, and the second one
+  is the expensive one: (a) FK violation → silently dropped by fail-soft, or (b) the write
+  *blocks* on the uncommitted parent's transaction while that transaction is awaiting the
+  write — a **distributed deadlock** that hangs for exactly
+  `idle_in_transaction_session_timeout` (300s) and then rolls everything back. Any hang that
+  is suspiciously *exactly* 300s is (b). **But** a write-with-`req` that throws poisons the
+  parent transaction — audit/log writes must be transaction-isolated (`afterOperation` or a
+  queue).
+- **`pg_blocking_pids(pid)` is the first probe for any provisioning stall**, not the last.
+  It turns "idle in transaction, must be a non-DB await" (a guess that cost a session) into
+  a named blocker in one query. See §2 for the exact statement.
+- The transaction window is **deeper than the collection you're writing**: tenant create →
+  its afterChange → membership create → *that* collection's afterChange → … Every hook in
+  that chain is inside the tenant's transaction and needs `req` threaded.
 - `payload.create()` **starts immediately** when called. Push **thunks**, not promises, if you
   need sequencing — awaiting an array of already-started promises sequences nothing.
 - Payload has **no explicit `beginTransaction`** in this repo; every local-API op opens and
@@ -211,9 +228,12 @@ That's why §2 is the top of the list.
    elevated service command in §1 to stop thinking about it).
 2. **Ken:** add the Google OAuth redirect URI (§5) — live risk.
 3. **Ken:** `cd C:\Dev\merlin; .\cycle.ps1` to bring Merlin back and deploy its auth gate.
-4. **CITO:** run the `pg_stat_activity` probe during a hung claim (§2) — one shot brackets the
-   300s culprit.
-5. **CITO:** purge the loadtest users (§4).
-6. **CITO:** once provisioning is fast, start `companies` + the `capture_entities` LEO tool (§6).
+4. ~~**CITO:** probe the hung claim~~ **DONE** — §2 resolved, `bc97a97`.
+5. ~~**CITO:** purge the loadtest users~~ **DONE** — §4.
+6. **CITO:** provisioning is fast (2.4s) → start `companies` + the `capture_entities` LEO
+   tool (§6). This is now the head of the queue.
+7. **CITO (small, worth doing):** implement the §4 rule that's still open —
+   `autoCreateOwnerMembership` returns early with no `req.user`, so system/seed-created
+   tenants can still be orphaned. Fall back to super_admin/Ken.
 
 *260725 ~1530 CITO —*
