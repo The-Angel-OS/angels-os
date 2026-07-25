@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { authenticated } from '@/access/authenticated'
+import { adminOnly } from '@/access/adminOnly'
 
 /**
  * Channel workflows – define automations that run when messages match criteria.
@@ -15,10 +15,14 @@ export const Workflows: CollectionConfig = {
     listSearchableFields: ['name', 'slug', 'description'],
   },
   access: {
-    create: authenticated,
-    read: authenticated,
-    update: authenticated,
-    delete: authenticated,
+    // Tenant automation config, NOT user-owned data — no customer has business
+    // reading the triggers and actions wired up for a portal, let alone editing
+    // them. workflowRunner reads via the Local API, which defaults to
+    // overrideAccess, so execution is unaffected.
+    create: adminOnly,
+    read: adminOnly,
+    update: adminOnly,
+    delete: adminOnly,
   },
   fields: [
     {

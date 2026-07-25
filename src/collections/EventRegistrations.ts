@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { ownedBy } from '@/access/isDocumentOwner'
 
 export const EventRegistrations: CollectionConfig = {
   slug: 'event-registrations',
@@ -12,10 +13,13 @@ export const EventRegistrations: CollectionConfig = {
   access: {
     // Public registration — anyone can sign up
     create: () => true,
-    // Authenticated users see own registrations; admins see all
-    read: authenticated,
-    update: authenticated,
-    delete: authenticated,
+    // Authenticated users see own registrations; admins see all. This comment
+    // described the intent for a long time while the code said `authenticated`,
+    // i.e. every signed-in user could read every attendee's name, email and
+    // notes across every event on the node. Now it does what it says.
+    read: ownedBy('attendee'),
+    update: ownedBy('attendee'),
+    delete: ownedBy('attendee'),
   },
   fields: [
     {

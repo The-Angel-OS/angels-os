@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Bookings } from '@/collections/Bookings'
+import { Availability } from '@/collections/Availability'
+import { EventRegistrations } from '@/collections/EventRegistrations'
 
 /**
  * Customers and vendors share ONE dashboard, so a customer is `authenticated`
@@ -37,4 +39,27 @@ describe('Bookings access', () => {
     expect(run(Bookings.access?.create, CLIENT)).toBe(true)
     expect(run(Bookings.access?.create, null)).toBe(false)
   })
+})
+
+/**
+ * The same trap, swept across the other collections a customer can reach.
+ * `authenticated` on any of these leaked every record on the node.
+ */
+describe('ownership-scoped collections', () => {
+  const cases: Array<[string, { access?: Record<string, unknown> }, string]> = [
+    ['availability', Availability as never, 'provider'],
+    ['event-registrations', EventRegistrations as never, 'attendee'],
+  ]
+
+  for (const [name, coll, field] of cases) {
+    it(`${name}: read is filtered by ${field}, never a bare true`, () => {
+      const result = run(coll.access?.read, CLIENT)
+      expect(result).not.toBe(true)
+      expect(result).toEqual({ [field]: { equals: 42 } })
+    })
+
+    it(`${name}: update is filtered too — reads are not the only exposure`, () => {
+      expect(run(coll.access?.update, CLIENT)).not.toBe(true)
+    })
+  }
 })

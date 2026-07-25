@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+import { ownedBy } from '@/access/isDocumentOwner'
 
 export const Availability: CollectionConfig = {
   slug: 'availability',
@@ -12,9 +13,13 @@ export const Availability: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: authenticated,
-    update: authenticated,
-    delete: authenticated,
+    // The provider's own schedule. Public slot lookup runs with overrideAccess
+    // (booking-public-slots, bookingEngine), so the /book flow is unaffected —
+    // but `authenticated` let any customer READ every provider's hours on the
+    // node and, worse, UPDATE them.
+    read: ownedBy('provider'),
+    update: ownedBy('provider'),
+    delete: ownedBy('provider'),
   },
   fields: [
     {

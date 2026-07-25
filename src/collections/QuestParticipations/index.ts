@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
+import { ownedBy } from '@/access/isDocumentOwner'
 import { creditOnApproval } from './hooks/creditOnApproval'
 import { enforceReviewAuthority } from './hooks/enforceReviewAuthority'
 
@@ -15,8 +16,10 @@ export const QuestParticipations: CollectionConfig = {
   },
   access: {
     create: authenticated,
-    read: authenticated,
-    update: authenticated,
+    // A participant's own submissions. Approval/rejection is authorized in the
+    // beforeChange hook below, which is what keeps self-approval out.
+    read: ownedBy('participant'),
+    update: ownedBy('participant'),
     delete: adminOnly,
   },
   hooks: {
