@@ -1245,6 +1245,10 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
           type: 'boolean',
           description: 'Whether the plan is offered publicly. Default true. Set false to keep billing existing members but hide it from new sign-ups.',
         },
+        tenantSlug: {
+          type: 'string',
+          description: 'Add the plan to THIS portal instead of the current Endeavor, e.g. "clearwater-cruisin".',
+        },
       },
       required: ['name', 'amountUsd'],
     },
@@ -8538,9 +8542,18 @@ async function createMembershipPlan(
   const interval = input.interval === 'year' ? 'year' : 'month'
   const active = input.active !== false
 
-  const writeTenant = await resolveWriteTenant(payload, ctx)
+  const slug = typeof input.tenantSlug === 'string' ? input.tenantSlug.trim() : ''
+  let writeTenant: number | undefined
+  if (slug) {
+    const { fetchTenantBySlug } = await import('@/utilities/fetchTenantBySlug')
+    const t = await fetchTenantBySlug(slug)
+    if (!t) return `Error: no portal with slug "${slug}" on this node.`
+    writeTenant = Number(t.id)
+  } else {
+    writeTenant = await resolveWriteTenant(payload, ctx)
+  }
   if (!writeTenant) {
-    return "Error: I couldn't determine which Endeavor to add this plan to. Open a specific Endeavor's workspace (or tell me which Endeavor) and I'll create the plan there."
+    return "Error: I couldn't determine which Endeavor to add this plan to. Open a specific Endeavor's workspace (or pass tenantSlug) and I'll create the plan there."
   }
 
   const plan: MembershipPlan = {

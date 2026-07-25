@@ -11,6 +11,7 @@ import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT }
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 import { getAllSouls } from '@/souls'
 import { getBookableServices } from '@/config/bookableServices'
+import { getMembershipPlans } from '@/utilities/membershipPlans'
 import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 
 import './index.css'
@@ -37,6 +38,47 @@ export async function Header({ tenant }: Props) {
 
   // Hierarchical nav: dynamically hang the tenant's published Pages under Home.
   // Done at render so new pages appear with zero nav maintenance. Non-fatal.
+  /** The join page when this tenant has an active plan — lifted to a primary nav item. */
+  let membership: { url: string; label: string } | null = null
+  if (tenantId) {
+    // Membership is the one recurring-revenue surface, and it was the only one
+    // that could never be promoted: Shop/Book/Donate all have a force-primary
+    // rule, so on Clearwater the join page sat THIRD, nested under Home between
+    // "Contact" and five product listings. The CTA that takes money monthly lost
+    // to a soundbar.
+    //
+    // Found by BLOCK, not by slug: whichever page carries the `membership` block
+    // is the join surface. Nothing to configure and no naming convention to
+    // remember — drop the block on a page and it promotes itself. Gated on there
+    // actually being an active plan, so a half-built join page stays in More
+    // instead of advertising "not configured yet".
+    try {
+      const payload = await getPayload({ config })
+      const plans = await getMembershipPlans(payload, tenantId)
+      if (plans.some((pl) => pl.active !== false)) {
+        const joinPages = await payload.find({
+          collection: 'pages',
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { _status: { equals: 'published' } },
+              { 'layout.blockType': { equals: 'membership' } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const joinPage = joinPages.docs?.[0] as { slug?: string; title?: string; navLabel?: string } | undefined
+        if (joinPage?.slug) {
+          membership = { url: `/${joinPage.slug}`, label: joinPage.navLabel || joinPage.title || 'Join' }
+        }
+      }
+    } catch (err) {
+      console.error('[Header] Failed to resolve the membership join page:', err)
+    }
+  }
+
   if (header && tenantId) {
     try {
       const payload = await getPayload({ config })
@@ -130,7 +172,12 @@ export async function Header({ tenant }: Props) {
       ).map((e) => ({ slug: e.slug, title: e.title, image: thumb(e.coverImage) }))
 
       let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList, {
-        excludeSlugs: [...ALWAYS_PROMOTED_PAGE_SLUGS],
+        // The membership page is lifted to its own primary item below, so keep
+        // it out of the Home dropdown rather than listing it twice.
+        excludeSlugs: [
+          ...ALWAYS_PROMOTED_PAGE_SLUGS,
+          ...(membership ? [membership.url.replace(/^\//, '')] : []),
+        ],
       })
       navItems = injectPostsUnderNav(navItems, postList)
       navItems = injectProductsUnderNav(navItems, productList)
@@ -168,6 +215,7 @@ export async function Header({ tenant }: Props) {
     } catch (err) {
       console.error('[Header] Failed to count products/events/posts/services:', err)
     }
+
   }
 
   // Works (file-based souls, subscription-scoped by tenant slug) — first-class only
@@ -196,5 +244,5 @@ export async function Header({ tenant }: Props) {
     }
   }
 
-  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} />
+  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} />
 }

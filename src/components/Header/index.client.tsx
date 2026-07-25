@@ -48,6 +48,13 @@ type Props = {
    * inference so un-configured community sites don't lose the link.
    */
   showDiscovery?: boolean
+  /**
+   * The join page, when this tenant has an active membership plan. Lifted to a
+   * top-level primary item for the same reason /book and /shop are: it is how
+   * the endeavor earns, so it is never buried in More — or, as it was on
+   * Clearwater, nested three deep under Home behind five product listings.
+   */
+  membership?: { url: string; label: string } | null
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -162,7 +169,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -242,6 +249,15 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // would otherwise have no Home link at all (only the logo). Guarantee it.
     if (!urls.has('/')) items.unshift(HOME_NAV_ITEM)
     // Ensure Posts, Events always present (even if CMS omits them)
+    // Insert right AFTER Home, not appended. forcePrimaryUrls only reorders the
+    // desktop split; the mobile sheet renders `menu` in raw order, so pushing it
+    // to the end moved the join link from 3rd to 16th of 25 — past every product
+    // and post. Position in this array IS the mobile position.
+    if (membership && !urls.has(membership.url)) {
+      const item = { link: { type: 'custom', label: membership.label, url: membership.url } } as never
+      const homeIdx = items.findIndex((i) => i?.link?.url === '/')
+      items.splice(homeIdx >= 0 ? homeIdx + 1 : 0, 0, item)
+    }
     if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
     if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
     if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
@@ -257,7 +273,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
     // Dashboard is always visible — the dashboard layout handles auth redirect.
     if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
     return items
-  }, [navItems, isStorefront, discoveryEnabled, donateItem])
+  }, [navItems, isStorefront, discoveryEnabled, donateItem, membership])
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
@@ -281,6 +297,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (hasBook) forcePrimaryUrls.push('/book')
   if (hasProducts) forcePrimaryUrls.push('/shop')
   if (isGivingOrg) forcePrimaryUrls.push('/donate')
+  if (membership) forcePrimaryUrls.push(membership.url)
   const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
     maxInline: MAX_INLINE_NAV,
     forcePrimaryUrls,
