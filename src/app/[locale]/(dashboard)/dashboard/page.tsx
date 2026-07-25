@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { WelcomeBanner, type UserRole } from '@/components/WelcomeBanner'
+import { FirstRunDriver } from '@/components/dashboard/FirstRunDriver'
 import { FederationPulse } from '@/components/dashboard/widgets/FederationPulse'
 import { PresenceRoster } from '@/components/dashboard/widgets/PresenceRoster'
 import { FederationStar } from '@/components/dashboard/widgets/FederationStar'
@@ -59,6 +60,9 @@ export default async function DashboardPage({
   let isAdmin = false
   let userRole: UserRole = 'user'
   let userName: string | undefined
+  // First-run driver: signed-in person who has a personal portal but no endeavor
+  // of their own yet → offer the conversational Circle creation.
+  let showFirstRun = false
   // Chart data
   let revenueData: Awaited<ReturnType<typeof getRevenueTimeSeries>> = []
   let orderData: Awaited<ReturnType<typeof getOrderVolume>> = []
@@ -130,6 +134,29 @@ export default async function DashboardPage({
         })
         if (memberships.totalDocs === 0) {
           redirect(`${prefix}/dashboard/admin/provision`)
+        }
+
+        // Has a portal but no endeavor of their own yet? A brand-new user's only
+        // tenant_admin membership is their auto-provisioned guardian angel (personal
+        // portal). If none of their owned tenants is a real endeavor (non-guardian),
+        // surface the conversational Circle driver. Cheap, fail-soft.
+        try {
+          const owned = await payload.find({
+            collection: 'tenant-memberships',
+            where: {
+              and: [{ user: { equals: user.id } }, { role: { equals: 'tenant_admin' } }],
+            },
+            depth: 1,
+            limit: 20,
+            overrideAccess: true,
+          })
+          const ownsRealEndeavor = (owned.docs || []).some((m: any) => {
+            const t = m.tenant
+            return t && typeof t === 'object' && !t.isGuardianAngel
+          })
+          showFirstRun = !ownsRealEndeavor
+        } catch {
+          showFirstRun = false
         }
       }
     }
@@ -323,7 +350,14 @@ export default async function DashboardPage({
       {/* The Federation — the five-pointed star (federation viz; off by default) */}
       {showFederation && <FederationStar />}
 
-      {/* Welcome Banner — only on a fresh/unseeded node, never a populated tenant */}
+      {/* First-run driver — new user with no endeavor yet: conversational Circle
+          creation via LEO (the day-one job is the pull). Shown above the generic
+          welcome so it's the clear next action. */}
+      {showFirstRun && <FirstRunDriver userName={userName} />}
+
+      {/* Welcome Banner — only on a fresh/unseeded node, never a populated tenant.
+          Main's gate is kept deliberately: the branch showed this unconditionally,
+          which re-nags established tenants every visit. */}
       {!isSeeded && <WelcomeBanner isSeeded={isSeeded} userRole={userRole} userName={userName} />}
 
       {/* Ready to Earn — the earn-loop gate, so owners never fly blind on monetization */}

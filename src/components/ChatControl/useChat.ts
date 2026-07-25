@@ -667,7 +667,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
 
                     // LEO Navigation Bridge — navigate on tool-driven data mutations
                     if (data.navigateTo && typeof data.navigateTo === 'object') {
-                      const nav = data.navigateTo as { path: string; label?: string }
+                      const nav = data.navigateTo as { path: string; label?: string; activateEndeavor?: number | string }
                       if (nav.path && typeof window !== 'undefined') {
                         window.dispatchEvent(
                           new CustomEvent('leo:navigate', { detail: nav }),

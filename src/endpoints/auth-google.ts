@@ -111,6 +111,24 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     statePayload.origin = currentOrigin
   }
 
+  // Contacts import: `?contacts=1` is an ON-DEMAND consent for the People API,
+  // NOT part of sign-in. It requires an already-signed-in user (like link mode)
+  // and requests the contacts.readonly scope so the callback can pull the user's
+  // Google contacts into their CRM. Reuses this same registered redirect URI —
+  // no Google Console change needed. @see src/utilities/googleContactsImport.ts
+  const wantContacts = url.searchParams.get('contacts') === '1'
+  if (wantContacts) {
+    if (!req.user) {
+      return Response.json(
+        { error: 'Sign in first to import your Google contacts.' },
+        { status: 401 },
+      )
+    }
+    statePayload.mode = 'contacts'
+    statePayload.userId = req.user.id
+    if (!statePayload.redirect) statePayload.redirect = '/dashboard'
+  }
+
   // Account switching: `?switch=1` forces Google's account chooser so a signed-in
   // Google user can pick a DIFFERENT account (Nimue's "Switch account" flow — clearing
   // our Payload token alone doesn't clear Google's own browser session). Normal login
@@ -120,7 +138,10 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'openid email profile',
+    // Contacts import needs the People API scope; sign-in keeps the minimal scope.
+    scope: wantContacts
+      ? 'openid email https://www.googleapis.com/auth/contacts.readonly'
+      : 'openid email profile',
     access_type: 'offline',
     prompt: forceChooser ? 'select_account consent' : 'consent',
   })
@@ -195,7 +216,61 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    const tokenData = (await tokenRes.json()) as { id_token?: string }
+    const tokenData = (await tokenRes.json()) as { id_token?: string; access_token?: string }
+
+    // ----- Contacts-import mode (NOT sign-in) -----
+    // The user is already signed in and just granted contacts.readonly. Use the
+    // access token to import their Google contacts into their home portal's CRM,
+    // then redirect back with a result. Handled up front so none of the sign-in
+    // machinery below runs for this flow.
+    {
+      let contactsState: { mode?: string; userId?: string | number; redirect?: string } = {}
+      if (stateRaw) {
+        try {
+          contactsState = JSON.parse(decodeURIComponent(stateRaw))
+        } catch {
+          /* not JSON — ignore */
+        }
+      }
+      if (contactsState.mode === 'contacts') {
+        const returnPath =
+          contactsState.redirect && contactsState.redirect.startsWith('/')
+            ? contactsState.redirect
+            : '/dashboard'
+        const back = (q: Record<string, string>) => {
+          const u = new URL(returnPath, canonicalUrl)
+          for (const [k, v] of Object.entries(q)) u.searchParams.set(k, v)
+          return new Response(null, { status: 302, headers: { Location: u.toString() } })
+        }
+        if (!tokenData.access_token || !contactsState.userId) {
+          return back({ contactsImport: 'error' })
+        }
+        try {
+          const { importGoogleContacts, resolveUserHomeTenant } = await import(
+            '@/utilities/googleContactsImport'
+          )
+          const tenantId = await resolveUserHomeTenant(req.payload, contactsState.userId)
+          if (!tenantId) return back({ contactsImport: 'error' })
+          const result = await importGoogleContacts(req.payload, {
+            tenantId,
+            accessToken: tokenData.access_token,
+          })
+          return back({
+            contactsImport: 'ok',
+            imported: String(result.imported),
+            updated: String(result.updated),
+            total: String(result.total),
+          })
+        } catch (e) {
+          void logError({
+            level: 'warning',
+            source: 'oauth/google-contacts',
+            message: `Google contacts import failed: ${e instanceof Error ? e.message : String(e)}`,
+          })
+          return back({ contactsImport: 'error' })
+        }
+      }
+    }
 
     if (!tokenData.id_token) {
       return Response.json(

@@ -1,5 +1,6 @@
 import { AccountForm } from '@/components/forms/AccountForm'
 import { SocialProvidersPanel } from '@/components/forms/SocialProvidersPanel'
+import { ContactsImportPanel } from '@/components/dashboard/ContactsImportPanel'
 
 /**
  * Dashboard Account — Profile page.
@@ -23,6 +24,10 @@ export default function DashboardAccountPage() {
       <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
         <h2 className="text-lg font-medium mb-6">Connected Accounts</h2>
         <SocialProvidersPanel />
+        {/* Contacts import rides with the Google connection that authorizes it —
+            it arrived on /dashboard/account/connections, which main had already
+            folded into this page. */}
+        <ContactsImportPanel />
       </div>
     </div>
   )

@@ -282,7 +282,9 @@ function sseEvent(event: string, data: Record<string, unknown>): string {
 // LEO Navigation Bridge — extract/strip nav directives from tool responses
 // ---------------------------------------------------------------------------
 
-function extractNavDirective(text: string): { path: string; label?: string } | null {
+function extractNavDirective(
+  text: string,
+): { path: string; label?: string; activateEndeavor?: number | string } | null {
   const match = text.match(/<!--nav:(.*?)-->/)
   if (!match) return null
   try { return JSON.parse(match[1]) } catch { return null }
@@ -1086,6 +1088,25 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       })
       const tenantDoc = tenants.docs?.[0] as any
       tenantId = tenantDoc?.id
+
+      // Honour the active-endeavor switch. Without this LEO resolved its tenant
+      // from the x-tenant-id header alone, so switching portals in the dashboard
+      // changed what you SAW but not what LEO WROTE TO — ask it to add a service
+      // while standing in your customer's portal and the service landed on your
+      // own. That mismatch is why five separate tools grew a `tenantSlug`
+      // parameter; with the switch honoured here, those become explicit
+      // overrides rather than the only way to aim a tool.
+      try {
+        const { resolveActiveTenantFromCookieHeader } = await import('@/utilities/resolveActiveTenant')
+        const active = await resolveActiveTenantFromCookieHeader(
+          req.headers.get('cookie'),
+          (req as { user?: { id: number | string; roles?: unknown } }).user ?? null,
+          tenantId,
+        )
+        if (active != null) tenantId = active
+      } catch {
+        /* never fail a chat turn over a context switch — stay on the host tenant */
+      }
       // Sprint 44: extract AI config for multi-provider routing
       if (tenantDoc?.aiConfig) {
         const ac = tenantDoc.aiConfig

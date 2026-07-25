@@ -24,8 +24,22 @@ export function useLeoNavigation() {
     function handleNav(e: Event) {
       const detail = (e as CustomEvent).detail
       if (detail?.path && typeof detail.path === 'string') {
+        // When the directive carries an endeavor to activate (e.g. commission_endeavor
+        // just stood one up), set the validated active-endeavor cookie FIRST so the
+        // destination resolves to the new endeavor in-app — the user lands standing
+        // inside it, no cross-origin subdomain reload. The cookie is authorized
+        // server-side against the user's membership (resolveActiveTenant).
+        if (detail.activateEndeavor != null) {
+          const maxAge = 60 * 60 * 24 * 365 // 1 year
+          document.cookie = `active-endeavor=${encodeURIComponent(String(detail.activateEndeavor))}; max-age=${maxAge}; path=/; samesite=lax`
+        }
         // Delay so user sees LEO's response before navigation
-        setTimeout(() => router.push(detail.path), 1200)
+        setTimeout(() => {
+          router.push(detail.path)
+          // refresh() forces the server layout to re-resolve the (now-active) tenant
+          // even when path === current route.
+          if (detail.activateEndeavor != null) router.refresh()
+        }, 1200)
       }
     }
 
