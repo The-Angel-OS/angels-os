@@ -5,7 +5,7 @@
  * The tenant admin initiates this to connect their bank account.
  *
  * @see src/lib/stripe-connect-config.ts — fee configuration
- * @see src/lib/ultimate-fair-split.ts — 70/20/4/1/5 split (Toward-53)
+ * @see src/utilities/platformFee.ts — the configured platform rate (95/5 default)
  */
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'

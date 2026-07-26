@@ -133,7 +133,7 @@ export const Bookings: CollectionConfig = {
         description: 'Duration in minutes',
         step: 15,
       },
-      defaultValue: 60,
+      defaultValue: 95,
     },
     {
       name: 'pricing',
@@ -167,16 +167,16 @@ export const Bookings: CollectionConfig = {
           name: 'splitConfiguration',
           type: 'group',
           admin: {
-            description: 'Ultimate Fair payment distribution',
+            description: 'DEPRECATED — nothing applies these. The live rate is the configured platform fee (95/5 by default); see src/utilities/platformFee.ts.',
           },
           fields: [
             {
               name: 'providerShare',
               type: 'number',
               required: true,
-              defaultValue: 60,
+              defaultValue: 95,
               admin: {
-                description: 'Provider percentage (default: 60%)',
+                description: 'Provider percentage (deprecated field).',
                 step: 0.1,
               },
             },
@@ -184,9 +184,9 @@ export const Bookings: CollectionConfig = {
               name: 'platformShare',
               type: 'number',
               required: true,
-              defaultValue: 20,
+              defaultValue: 5,
               admin: {
-                description: 'Platform percentage (default: 20%)',
+                description: 'Platform percentage (deprecated field).',
                 step: 0.1,
               },
             },
@@ -194,9 +194,9 @@ export const Bookings: CollectionConfig = {
               name: 'operationsShare',
               type: 'number',
               required: true,
-              defaultValue: 15,
+              defaultValue: 0,
               admin: {
-                description: 'Operations percentage (default: 15%)',
+                description: 'Operations percentage (deprecated field).',
                 step: 0.1,
               },
             },
@@ -206,7 +206,7 @@ export const Bookings: CollectionConfig = {
               required: true,
               defaultValue: 5,
               admin: {
-                description: 'Justice Fund percentage (default: 5%)',
+                description: 'Justice Fund percentage (deprecated field).',
                 step: 0.1,
               },
             },

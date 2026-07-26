@@ -200,7 +200,7 @@ export const Events: CollectionConfig = {
     {
       name: 'duration',
       type: 'number',
-      defaultValue: 60,
+      defaultValue: 95,
       admin: {
         description: 'Duration in minutes',
         step: 15,
@@ -372,32 +372,32 @@ export const Events: CollectionConfig = {
           type: 'group',
           admin: {
             condition: (data) => !data.pricing?.isFree,
-            description: 'Ultimate Fair payment distribution',
+            description: 'DEPRECATED — nothing applies these. The live rate is the configured platform fee (95/5 by default); see src/utilities/platformFee.ts.',
           },
           fields: [
             {
               name: 'providerShare',
               type: 'number',
-              defaultValue: 60,
+              defaultValue: 95,
               admin: { description: 'Host percentage (default: 60%)', step: 0.1 },
             },
             {
               name: 'platformShare',
               type: 'number',
-              defaultValue: 20,
-              admin: { description: 'Platform percentage (default: 20%)', step: 0.1 },
+              defaultValue: 5,
+              admin: { description: 'Platform percentage (deprecated field).', step: 0.1 },
             },
             {
               name: 'operationsShare',
               type: 'number',
-              defaultValue: 15,
-              admin: { description: 'Operations percentage (default: 15%)', step: 0.1 },
+              defaultValue: 0,
+              admin: { description: 'Operations percentage (deprecated field).', step: 0.1 },
             },
             {
               name: 'justiceShare',
               type: 'number',
               defaultValue: 5,
-              admin: { description: 'Justice Fund percentage (default: 5%)', step: 0.1 },
+              admin: { description: 'Justice Fund percentage (deprecated field).', step: 0.1 },
             },
           ],
         },

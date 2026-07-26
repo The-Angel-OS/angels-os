@@ -167,7 +167,7 @@ export default async function FederationPage({
           <h2 className="mb-6 text-xl font-bold">Constitutional Commerce</h2>
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <h3 className="mb-2 font-semibold">The Ultimate Fair Split</h3>
+              <h3 className="mb-2 font-semibold">You Keep 95%</h3>
               <p className="text-sm text-muted-foreground">
                 Every transaction in the Angel OS Federation follows a constitutional revenue split.
                 60% goes directly to the seller, 20% sustains the platform, 15% rewards the Guardian

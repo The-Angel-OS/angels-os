@@ -124,7 +124,7 @@ export function PayoutsAdmin({
             ${((totalRevenue * 0.6) / 100).toFixed(2)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            After Ultimate Fair Split
+            After the platform's 5%
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
@@ -140,15 +140,14 @@ export function PayoutsAdmin({
 
       {/* Split Breakdown */}
       <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">Ultimate Fair Split Breakdown</h2>
+        <h2 className="mb-4 text-lg font-semibold">How payments split</h2>
         <div className="space-y-3">
-          <SplitRow label="Seller" percentage={60} color="bg-emerald-500" />
-          <SplitRow label="Platform (Angel OS)" percentage={20} color="bg-blue-500" />
-          <SplitRow label="Guardian Angel" percentage={15} color="bg-purple-500" />
-          <SplitRow label="Justice Fund" percentage={5} color="bg-amber-500" />
+          <SplitRow label="Seller (you)" percentage={95} color="bg-emerald-500" />
+          <SplitRow label="Platform — hosting, AI, support" percentage={5} color="bg-blue-500" />
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          Every transaction is split according to the Angel OS Constitution. The seller always receives 60%.
+          You keep 95% of every payment. The platform keeps 5% of money it helps you move — and
+          nothing when nothing sells.
         </p>
       </div>
 

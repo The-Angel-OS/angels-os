@@ -1,7 +1,14 @@
 /**
- * Sprint 8 — Checkout Split Payment Tests
+ * The 95/5 split.
  *
- * Tests the Ultimate Fair Split calculation and Stripe Connect fee computation.
+ * This file previously asserted 60/20/15/5 and a 40% platform application fee —
+ * and those assertions PASSED, because the code really did take 40% off Stripe
+ * direct charges. A tradesperson's $75 deposit sent $30 to the platform. The
+ * tests were faithfully protecting the wrong number, which is why "the tests
+ * pass" is not the same as "the behaviour is right".
+ *
+ * The applied rate now lives in src/utilities/platformFee.ts as a runtime
+ * setting; what remains here is the DEFAULT and the arithmetic.
  */
 import { describe, it, expect } from 'vitest'
 import {
@@ -9,81 +16,53 @@ import {
   ULTIMATE_FAIR_SPLIT,
   getPlatformApplicationFeePercent,
 } from '@/lib/ultimate-fair-split'
-import { getStripeApplicationFeeCents } from '@/lib/stripe-connect-config'
+import { DEFAULT_PLATFORM_FEE_BPS } from '@/utilities/platformFee'
 
-describe('Ultimate Fair Split', () => {
-  it('splits sum to original amount (within rounding)', () => {
-    const amount = 10000 // $100.00
-    const splits = calculateUltimateFairSplit(amount)
-    const total = splits.reduce((sum, s) => sum + s.amount, 0)
-    // Rounding may cause 1 cent variance
-    expect(Math.abs(total - amount)).toBeLessThanOrEqual(1)
-  })
+const sum = (splits: { amount: number }[]) => splits.reduce((t, s) => t + s.amount, 0)
+const share = (splits: { recipient: string; amount: number }[], who: string) =>
+  splits.find((s) => s.recipient === who)!.amount
 
-  it('calculates 60/20/15/5 split correctly', () => {
-    const amount = 10000
-    const splits = calculateUltimateFairSplit(amount)
-
-    const provider = splits.find((s) => s.recipient === 'PROVIDER')
-    const platform = splits.find((s) => s.recipient === 'PLATFORM_PARTNER')
-    const ops = splits.find((s) => s.recipient === 'OPERATIONAL_OVERHEAD')
-    const justice = splits.find((s) => s.recipient === 'JUSTICE_FUND')
-
-    expect(provider?.amount).toBe(6000)
-    expect(platform?.amount).toBe(2000)
-    expect(ops?.amount).toBe(1500)
-    expect(justice?.amount).toBe(500)
-  })
-
-  it('handles zero-dollar amount', () => {
-    const splits = calculateUltimateFairSplit(0)
-    for (const split of splits) {
-      expect(split.amount).toBe(0)
+describe('95/5 split', () => {
+  it('never loses or invents a cent — the parts equal the whole', () => {
+    for (const amount of [10000, 7500, 1, 333, 999999]) {
+      expect(sum(calculateUltimateFairSplit(amount))).toBe(amount)
     }
   })
 
-  it('handles small amounts with rounding', () => {
-    const splits = calculateUltimateFairSplit(1) // 1 cent
-    // All should be 0 or 1 cent
-    for (const split of splits) {
-      expect(split.amount).toBeLessThanOrEqual(1)
-      expect(split.amount).toBeGreaterThanOrEqual(0)
-    }
+  it('gives the provider 95% and the platform 5%', () => {
+    const splits = calculateUltimateFairSplit(10000) // $100
+    expect(share(splits, 'PROVIDER')).toBe(9500)
+    expect(share(splits, 'PLATFORM')).toBe(500)
   })
 
-  it('split constants sum to 1.0', () => {
-    const total =
-      ULTIMATE_FAIR_SPLIT.PROVIDER +
-      ULTIMATE_FAIR_SPLIT.PLATFORM_PARTNER +
-      ULTIMATE_FAIR_SPLIT.OPERATIONAL_OVERHEAD +
-      ULTIMATE_FAIR_SPLIT.JUSTICE_FUND
-    expect(total).toBe(1.0)
+  it("takes $3.75 from Ron's $75 deposit — not the $30 the old model took", () => {
+    const splits = calculateUltimateFairSplit(7500)
+    expect(share(splits, 'PLATFORM')).toBe(375)
+    expect(share(splits, 'PROVIDER')).toBe(7125)
+  })
+
+  it('honours an explicitly passed rate, so a fee change needs no deploy', () => {
+    const splits = calculateUltimateFairSplit(10000, 250) // 2.5%
+    expect(share(splits, 'PLATFORM')).toBe(250)
+    expect(share(splits, 'PROVIDER')).toBe(9750)
+  })
+
+  it('handles zero and sub-cent amounts without going negative', () => {
+    expect(sum(calculateUltimateFairSplit(0))).toBe(0)
+    const one = calculateUltimateFairSplit(1)
+    expect(sum(one)).toBe(1)
+    expect(share(one, 'PROVIDER')).toBe(1) // 5% of 1 cent rounds to 0
+    expect(share(one, 'PLATFORM')).toBe(0)
+  })
+
+  it('constants sum to 1.0 and match the default fee', () => {
+    expect(ULTIMATE_FAIR_SPLIT.PROVIDER + ULTIMATE_FAIR_SPLIT.PLATFORM).toBeCloseTo(1, 10)
+    expect(ULTIMATE_FAIR_SPLIT.PLATFORM).toBeCloseTo(DEFAULT_PLATFORM_FEE_BPS / 10000, 10)
   })
 })
 
-describe('Platform Application Fee', () => {
-  it('returns 40% as platform fee percentage', () => {
-    const percent = getPlatformApplicationFeePercent()
-    expect(percent).toBeCloseTo(0.4, 10)
-  })
-
-  it('calculates application fee correctly for $100', () => {
-    const fee = getStripeApplicationFeeCents(10000)
-    expect(fee).toBe(4000) // 40% of $100
-  })
-
-  it('calculates application fee correctly for $1', () => {
-    const fee = getStripeApplicationFeeCents(100)
-    expect(fee).toBe(40) // 40% of $1
-  })
-
-  it('returns 0 for zero amount', () => {
-    const fee = getStripeApplicationFeeCents(0)
-    expect(fee).toBe(0)
-  })
-
-  it('rounds correctly for odd amounts', () => {
-    const fee = getStripeApplicationFeeCents(333) // $3.33
-    expect(fee).toBe(133) // Math.round(333 * 0.4) = Math.round(133.2) = 133
+describe('getPlatformApplicationFeePercent (deprecated)', () => {
+  it('reports 5%, not the 40% it used to feed into Stripe', () => {
+    expect(getPlatformApplicationFeePercent()).toBeCloseTo(0.05, 10)
   })
 })

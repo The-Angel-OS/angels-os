@@ -385,9 +385,12 @@ export function checkSuitcaseCompatibility(
   }
 
   // Constitutional compatibility
-  if (manifest.constitutional.revenueModel !== '70/20/4/1/5') {
+  // A peer still declaring the old 70/20/4/1/5 (or the older 60/20/15/5) is
+  // running a model where the owner keeps LESS. Article V is directional — the
+  // owner's share only ever goes up — so those normalize toward 95/5.
+  if (manifest.constitutional.revenueModel !== '95/5') {
     warnings.push(
-      `Non-standard revenue model: ${manifest.constitutional.revenueModel}. Will be normalized to 70/20/4/1/5 (Toward-53).`,
+      `Non-standard revenue model: ${manifest.constitutional.revenueModel}. Will be normalized to 95/5.`,
     )
   }
 

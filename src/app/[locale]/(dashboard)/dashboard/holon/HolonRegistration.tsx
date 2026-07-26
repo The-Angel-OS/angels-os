@@ -355,7 +355,7 @@ export function HolonRegistration({ tenantId, existingRegistration }: HolonRegis
               <div>
                 <p className="text-sm font-medium">Constitutional Compliance</p>
                 <p className="text-xs text-muted-foreground">
-                  I agree to operate under the Angel OS constitution: 70/20/4/1/5 Ultimate Fair Split
+                  I agree to operate under the Angel OS constitution: the 95/5 split — you keep 95%
                   (Toward-53), Answer 53 principles, and network governance. The constitution is the reputation system.
                 </p>
               </div>

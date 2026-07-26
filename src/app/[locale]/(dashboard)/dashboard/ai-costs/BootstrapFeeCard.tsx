@@ -56,7 +56,7 @@ export function BootstrapFeeCard({
       bg: 'bg-blue-50 dark:bg-blue-900/10',
       dot: 'bg-blue-500',
       label: 'Standard',
-      description: 'UltimateFairSplit active (60/20/15/5)',
+      description: 'Standard platform rate — you keep 95%',
     },
   }
 

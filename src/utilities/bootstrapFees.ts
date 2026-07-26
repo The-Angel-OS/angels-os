@@ -12,7 +12,7 @@
  *      Every cent is tracked and committed for FULL REFUND when the bootstrap
  *      phase ends. This is a binding promise, not a marketing claim.
  *
- *   3. STANDARD — post-bootstrap, the normal UltimateFairSplit (60/20/15/5)
+ *   3. STANDARD — post-bootstrap, the normal platform rate (95/5)
  *      applies. No additional bootstrap fee.
  *
  * The refund promise is the constitutional difference between Angel OS and

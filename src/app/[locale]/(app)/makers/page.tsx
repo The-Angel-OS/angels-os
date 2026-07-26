@@ -118,7 +118,7 @@ export default async function MakersPage() {
       <div className="rounded-lg border border-border bg-card p-6 mb-12">
         <h2 className="font-semibold mb-3">The Constitutional Fair Split</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Every transaction follows the Ultimate Fair Split — transparent, immutable, fair from day one.
+          Every transaction follows the same rule — you keep 95%, the platform keeps 5% of what it helps you move, and nothing when nothing sells.
         </p>
         <div className="grid grid-cols-4 gap-3 text-center">
           <div>

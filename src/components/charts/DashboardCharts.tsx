@@ -10,7 +10,7 @@
  *   - RevenueChart: Area chart showing revenue over time
  *   - OrderVolumeChart: Bar chart showing orders per day
  *   - FederationActivityChart: Line chart of federation actions
- *   - SplitDonutChart: Donut/pie showing the 60/20/15/5 split
+ *   - SplitDonutChart: Donut/pie showing the 95/5 split
  *   - JusticeFundChart: Area chart of cumulative justice fund growth
  */
 
@@ -196,16 +196,14 @@ export function FederationActivityChart({ data }: { data: FederationActivityPoin
 // ── Split Breakdown (Donut Chart) ───────────────────────────────────────
 
 const SPLIT_DATA = [
-  { name: 'Provider (60%)', value: 60, color: COLORS.emerald },
-  { name: 'Platform Partner (20%)', value: 20, color: COLORS.blue },
-  { name: 'Operations (15%)', value: 15, color: COLORS.purple },
-  { name: 'Justice Fund (5%)', value: 5, color: COLORS.amber },
+  { name: 'You (95%)', value: 95, color: COLORS.emerald },
+  { name: 'Platform (5%)', value: 5, color: COLORS.blue },
 ]
 
 export function SplitDonutChart() {
   return (
     <div className="rounded-lg border border-border bg-card p-6">
-      <h3 className="mb-4 text-lg font-semibold">Ultimate Fair Split</h3>
+      <h3 className="mb-4 text-lg font-semibold">How payments split</h3>
       <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Pie

@@ -12479,8 +12479,9 @@ async function handleGenerateInvoice(
 
     // Calculate fair split
     if (subtotalCents > 0) {
-      const split = calculateUltimateFairSplit(subtotalCents)
-      lines.push('', `### Ultimate Fair Split`)
+      const { getPlatformFeeBps } = await import('@/utilities/platformFee')
+      const split = calculateUltimateFairSplit(subtotalCents, await getPlatformFeeBps(payload))
+      lines.push('', `### How this splits`)
       for (const s of split) {
         lines.push(`- ${s.recipient}: $${(s.amount / 100).toFixed(2)} (${(s.percentage * 100).toFixed(0)}%)`)
       }

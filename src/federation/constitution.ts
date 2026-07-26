@@ -77,8 +77,8 @@ const ARTICLES_V1_1: ConstitutionArticle[] = [
     number: 'V',
     title: 'Economic Model — The Toward-53 Principle',
     principles: [
-      'The constitutional revenue split is 70/20/4/1/5: Endeavor owner / Enterprise operator / Angel OS protocol / Flagship / Justice Fund.',
-      'This split is constitutionally directional. It always evolves toward the Endeavor owner keeping more.',
+      'The constitutional revenue split is 95/5: the Endeavor owner keeps 95%, the platform keeps 5% of money it helps move — and nothing when nothing sells.',
+      'This split is constitutionally directional. It always evolves toward the Endeavor owner keeping more — which is why it moved from 70% to 95% (260725), never the other way.',
       'The asymptotic target is 53% as a floor. This direction is unalterable even as specific numbers evolve.',
       'Not charity. Architecture. — Article V.4',
     ],

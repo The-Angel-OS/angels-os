@@ -27,80 +27,59 @@ import {
 import { getStripeApplicationFeeCents } from '@/lib/stripe-connect-config'
 
 describe('Stripe Connect Fee Calculation', () => {
-  describe('getStripeApplicationFeeCents', () => {
-    it('calculates 40% application fee for $100 (10000 cents)', () => {
-      const fee = getStripeApplicationFeeCents(10000)
-      expect(fee).toBe(4000) // 40% of 10000
-    })
-
-    it('calculates fee for $1 (100 cents)', () => {
-      const fee = getStripeApplicationFeeCents(100)
-      expect(fee).toBe(40) // 40% of 100
+  describe('getStripeApplicationFeeCents (deprecated path)', () => {
+    // These once asserted 40% and PASSED, while the code fed that 40% straight
+    // into Stripe application_fee_amount on real deposits. Live callers now read
+    // the configured rate; this helper is kept only so stragglers are findable.
+    it('reports the default 5%, not the 40% it used to charge', () => {
+      expect(getStripeApplicationFeeCents(10000)).toBe(500)
+      expect(getStripeApplicationFeeCents(100)).toBe(5)
     })
 
     it('returns 0 for $0', () => {
-      const fee = getStripeApplicationFeeCents(0)
-      expect(fee).toBe(0)
+      expect(getStripeApplicationFeeCents(0)).toBe(0)
     })
 
-    it('rounds to nearest cent', () => {
-      const fee = getStripeApplicationFeeCents(333) // 333 * 0.4 = 133.2
-      expect(fee).toBe(133)
+    it('rounds to the nearest cent', () => {
+      expect(getStripeApplicationFeeCents(333)).toBe(17) // 5% of 333 = 16.65
     })
 
-    it('uses getPlatformApplicationFeePercent internally', () => {
-      const percent = getPlatformApplicationFeePercent()
-      expect(percent).toBeCloseTo(0.40, 10) // 20% + 15% + 5%
+    it('agrees with getPlatformApplicationFeePercent', () => {
+      expect(getPlatformApplicationFeePercent()).toBeCloseTo(0.05, 10)
     })
   })
 
   describe('calculateUltimateFairSplit', () => {
-    it('splits $100 (10000 cents) into 4 recipients', () => {
+    it('splits $100 between the provider and the platform', () => {
       const splits = calculateUltimateFairSplit(10000)
-      expect(splits).toHaveLength(4)
-
-      const provider = splits.find((s) => s.recipient === 'PROVIDER')
-      const platform = splits.find((s) => s.recipient === 'PLATFORM_PARTNER')
-      const ops = splits.find((s) => s.recipient === 'OPERATIONAL_OVERHEAD')
-      const justice = splits.find((s) => s.recipient === 'JUSTICE_FUND')
-
-      expect(provider?.amount).toBe(6000) // 60%
-      expect(platform?.amount).toBe(2000) // 20%
-      expect(ops?.amount).toBe(1500) // 15%
-      expect(justice?.amount).toBe(500) // 5%
+      expect(splits).toHaveLength(2)
+      expect(splits.find((s) => s.recipient === 'PROVIDER')?.amount).toBe(9500)
+      expect(splits.find((s) => s.recipient === 'PLATFORM')?.amount).toBe(500)
     })
 
-    it('all splits sum to original amount', () => {
+    it('all splits sum to the original amount exactly', () => {
       const amount = 9999
       const splits = calculateUltimateFairSplit(amount)
-      const sum = splits.reduce((acc, s) => acc + s.amount, 0)
-      // Allow ±1 cent rounding difference
-      expect(Math.abs(sum - amount)).toBeLessThanOrEqual(1)
+      expect(splits.reduce((acc, s) => acc + s.amount, 0)).toBe(amount)
     })
 
     it('includes percentage metadata', () => {
       const splits = calculateUltimateFairSplit(10000)
-      const justice = splits.find((s) => s.recipient === 'JUSTICE_FUND')
-      expect(justice?.percentage).toBe(0.05)
+      expect(splits.find((s) => s.recipient === 'PLATFORM')?.percentage).toBe(0.05)
     })
   })
 
   describe('ULTIMATE_FAIR_SPLIT constants', () => {
     it('sums to 100%', () => {
-      const total =
-        ULTIMATE_FAIR_SPLIT.PROVIDER +
-        ULTIMATE_FAIR_SPLIT.PLATFORM_PARTNER +
-        ULTIMATE_FAIR_SPLIT.OPERATIONAL_OVERHEAD +
-        ULTIMATE_FAIR_SPLIT.JUSTICE_FUND
-      expect(total).toBe(1.0)
+      expect(ULTIMATE_FAIR_SPLIT.PROVIDER + ULTIMATE_FAIR_SPLIT.PLATFORM).toBeCloseTo(1, 10)
     })
 
-    it('provider gets 60%', () => {
-      expect(ULTIMATE_FAIR_SPLIT.PROVIDER).toBe(0.6)
+    it('provider gets 95%', () => {
+      expect(ULTIMATE_FAIR_SPLIT.PROVIDER).toBeCloseTo(0.95, 10)
     })
 
-    it('justice fund gets 5%', () => {
-      expect(ULTIMATE_FAIR_SPLIT.JUSTICE_FUND).toBe(0.05)
+    it('platform gets 5%', () => {
+      expect(ULTIMATE_FAIR_SPLIT.PLATFORM).toBeCloseTo(0.05, 10)
     })
   })
 })
