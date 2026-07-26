@@ -1296,11 +1296,38 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       // the persisted assistant message so generated images land in the gallery.
       let streamGeneratedMediaIds: number[] = []
 
+      /**
+       * Streaming to a client that has gone away must never destroy the turn.
+       *
+       * Once the controller closes — the client navigated off, the tab slept, a
+       * proxy dropped the connection — every later enqueue throws "Invalid state:
+       * Controller is already closed". That throw propagated out of the turn and
+       * killed it BEFORE it persisted the assistant message, so the reply
+       * vanished entirely rather than simply not being watched. Observed 260726:
+       * the gateway logged a primary-model failure and the fallback died on a
+       * closed controller, leaving no message at all.
+       *
+       * The SSE frame is a nice-to-have; the saved message is the product. The
+       * heartbeat below keeps its own raw enqueue on purpose — it USES the throw
+       * to notice closure and clear its interval.
+       */
+      let streamClosed = false
+      const safeEnqueue = (chunk: Uint8Array): void => {
+        if (streamClosed) return
+        try {
+          controller.enqueue(chunk)
+        } catch {
+          // Client gone. Remember it so we stop trying, and keep working so the
+          // message still persists.
+          streamClosed = true
+        }
+      }
+
       // SSE heartbeat — keeps connection alive through proxies (Cloudflare, Vercel, ALBs)
       // Sends a comment line every 15s, which SSE clients silently ignore.
       const heartbeat = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(': heartbeat\n\n'))
+          safeEnqueue(encoder.encode(': heartbeat\n\n'))
         } catch {
           // Stream already closed — clean up
           clearInterval(heartbeat)
@@ -1308,7 +1335,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
       }, 15_000)
 
       try {
-        controller.enqueue(encoder.encode(sseEvent('start', {
+        safeEnqueue(encoder.encode(sseEvent('start', {
           conversationId: resolvedConversationId,
           ...(preCreatedMsgId ? { messageId: preCreatedMsgId } : {}),
         })))
@@ -1344,7 +1371,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
         }
 
         // Emit escalation tier in start event so UI can show "Deep thinking..."
-        controller.enqueue(encoder.encode(sseEvent('tier', {
+        safeEnqueue(encoder.encode(sseEvent('tier', {
           tier: escalatedTier,
           isDeepThink: isEscalationRound,
           turnNumber: userTurnCount,
@@ -1465,7 +1492,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
         const errMsg = error instanceof Error ? error.message : 'Unknown error'
         streamErrorDetail = errMsg
         console.error('[LEO Stream] Error (all providers exhausted):', errMsg)
-        controller.enqueue(encoder.encode(sseEvent('error', {
+        safeEnqueue(encoder.encode(sseEvent('error', {
           message: `LEO encountered an error: ${errMsg}. Please try again.`,
           provider: 'gateway+fallback',
         })))
@@ -1644,7 +1671,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
           }).catch(() => {/* best-effort — never block SSE */})
         }
 
-        controller.enqueue(
+        safeEnqueue(
           encoder.encode(
             sseEvent('done', {
               text: cleanText,
@@ -1709,6 +1736,21 @@ async function streamViaGateway(opts: {
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
     tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel, userRoles,
   } = opts
+
+  // Same guard as the caller's: once the client is gone, enqueueing throws
+  // "Invalid state: Controller is already closed", and that throw used to
+  // propagate out of the gateway stream and kill the turn before it persisted
+  // anything — the reply vanished instead of merely going unwatched. The SSE
+  // frame is a nice-to-have; the saved message is the product.
+  let gatewayStreamClosed = false
+  const safeEnqueue = (chunk: Uint8Array): void => {
+    if (gatewayStreamClosed) return
+    try {
+      controller.enqueue(chunk)
+    } catch {
+      gatewayStreamClosed = true
+    }
+  }
 
   // Budget/BYOK enforcement (env-gated; OFF by default). When a tenant is over
   // its monthly AI budget AND has its own provider key, serve via that key — the
@@ -2005,13 +2047,13 @@ async function streamViaGateway(opts: {
       if (part.type === 'text-delta') {
         if (ttftMs === undefined) ttftMs = Date.now() - streamStart
         fullText += part.text
-        controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+        safeEnqueue(encoder.encode(sseEvent('delta', { text: part.text })))
       } else if (part.type === 'tool-call') {
-        controller.enqueue(
+        safeEnqueue(
           encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'calling' })),
         )
       } else if (part.type === 'tool-result') {
-        controller.enqueue(
+        safeEnqueue(
           encoder.encode(sseEvent('tool_call', { name: part.toolName, status: 'executed' })),
         )
       } else if (part.type === 'error') {
@@ -2025,7 +2067,7 @@ async function streamViaGateway(opts: {
               ? errDetail
               : (errDetail?.message ?? JSON.stringify(errDetail)?.slice(0, 400) ?? 'stream error')
         // Notify client so they can display a meaningful error
-        controller.enqueue(
+        safeEnqueue(
           encoder.encode(
             sseEvent('error', {
               message: streamErrorDetail || 'An error occurred during processing',
@@ -2040,7 +2082,7 @@ async function streamViaGateway(opts: {
     streamErrorDetail = streamErr instanceof Error ? streamErr.message : String(streamErr)
     if (fullText.trim()) {
       // Return partial text instead of losing it — but notify client of the interruption
-      controller.enqueue(
+      safeEnqueue(
         encoder.encode(sseEvent('error', { message: 'Stream interrupted — partial response returned' })),
       )
       return { text: fullText, hadStreamError: true, errorMessage: streamErrorDetail }
@@ -2056,7 +2098,7 @@ async function streamViaGateway(opts: {
     if (retrySmart) {
       servedProviderKind = retrySmart.providerKind
       console.warn(`[LEO Stream] Retrying with ${retrySmart.modelId} (was ${servedModelId})`)
-      controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
+      safeEnqueue(encoder.encode(sseEvent('delta', { text: '' })))
       const retryResult = streamText({
         model: retrySmart.model,
         system: systemPrompt,
@@ -2069,7 +2111,7 @@ async function streamViaGateway(opts: {
       for await (const part of retryResult.fullStream) {
         if (part.type === 'text-delta') {
           fullText += part.text
-          controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+          safeEnqueue(encoder.encode(sseEvent('delta', { text: part.text })))
         }
       }
       if (fullText.trim()) return { text: fullText, hadStreamError: true, errorMessage: streamErrorDetail }
@@ -2089,7 +2131,7 @@ async function streamViaGateway(opts: {
       if (retrySmart) {
         servedProviderKind = retrySmart.providerKind
         console.warn(`[LEO Stream] Error part with no text — retrying with ${retrySmart.modelId} (was ${servedModelId})`)
-        controller.enqueue(encoder.encode(sseEvent('delta', { text: '' })))
+        safeEnqueue(encoder.encode(sseEvent('delta', { text: '' })))
         const retryResult = streamText({
           model: retrySmart.model,
           system: systemPrompt,
@@ -2102,7 +2144,7 @@ async function streamViaGateway(opts: {
         for await (const part of retryResult.fullStream) {
           if (part.type === 'text-delta') {
             fullText += part.text
-            controller.enqueue(encoder.encode(sseEvent('delta', { text: part.text })))
+            safeEnqueue(encoder.encode(sseEvent('delta', { text: part.text })))
           }
         }
         if (fullText.trim()) {
@@ -2126,7 +2168,7 @@ async function streamViaGateway(opts: {
   if (validImageUrls.length > 0) {
     // Re-emit done with images — the main handler will send its own done event too,
     // but we include images here for the client to pick up
-    controller.enqueue(
+    safeEnqueue(
       encoder.encode(sseEvent('images', { images: validImageUrls })),
     )
   }
@@ -2134,7 +2176,7 @@ async function streamViaGateway(opts: {
   // Visual echo — surfaces a content mutation changed, for the client to snapshot.
   const affectedUrls = extractAffectedUrls(allToolResults)
   if (affectedUrls.length > 0) {
-    controller.enqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
+    safeEnqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
   }
 
   // ── Telemetry (fail-soft) — tokens, finish reason, latency, cost ──────────
@@ -2226,6 +2268,19 @@ async function streamViaAnthropic(opts: {
     isWizardMode, wizardStep, tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel, userRoles,
   } = opts
 
+  // Third and last stream writer needing the guard — see streamViaGateway. A
+  // closed controller must degrade to "nobody is watching", never to "the turn
+  // dies before it saves".
+  let anthropicStreamClosed = false
+  const safeEnqueue = (chunk: Uint8Array): void => {
+    if (anthropicStreamClosed) return
+    try {
+      controller.enqueue(chunk)
+    } catch {
+      anthropicStreamClosed = true
+    }
+  }
+
   // Build user content (with images if present)
   const userContent: Anthropic.ContentBlockParam[] = [
     { type: 'text', text: userMessage },
@@ -2304,7 +2359,7 @@ async function streamViaAnthropic(opts: {
           currentToolUseId = event.content_block.id
           currentToolName = event.content_block.name
           currentToolInputJson = ''
-          controller.enqueue(
+          safeEnqueue(
             encoder.encode(sseEvent('tool_call', { name: currentToolName, status: 'calling' })),
           )
         }
@@ -2312,7 +2367,7 @@ async function streamViaAnthropic(opts: {
         if (event.delta.type === 'text_delta') {
           const chunk = event.delta.text
           fullText += chunk
-          controller.enqueue(encoder.encode(sseEvent('delta', { text: chunk })))
+          safeEnqueue(encoder.encode(sseEvent('delta', { text: chunk })))
         } else if (event.delta.type === 'input_json_delta') {
           currentToolInputJson += event.delta.partial_json
         }
@@ -2365,7 +2420,7 @@ async function streamViaAnthropic(opts: {
       // preserved regardless of whether we ran sequentially or concurrently.
       const orderedResults: Anthropic.ToolResultBlockParam[] = new Array(toolUseBlocks.length)
       const runTool = async (tool: { id: string; name: string; input: Record<string, unknown> }, idx: number) => {
-        controller.enqueue(
+        safeEnqueue(
           encoder.encode(sseEvent('tool_call', { name: tool.name, status: 'executing' })),
         )
         // Stop hammering a tool that already failed repeatedly this request.
@@ -2420,7 +2475,7 @@ async function streamViaAnthropic(opts: {
   // Extract image URLs from tool results
   const validImageUrls = extractImageUrls(messages)
   if (validImageUrls.length > 0) {
-    controller.enqueue(
+    safeEnqueue(
       encoder.encode(sseEvent('images', { images: validImageUrls })),
     )
   }
@@ -2428,7 +2483,7 @@ async function streamViaAnthropic(opts: {
   // Visual echo — surfaces a content mutation changed, for the client to snapshot.
   const affectedUrls = extractAffectedUrls(collectToolResultTexts(messages))
   if (affectedUrls.length > 0) {
-    controller.enqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
+    safeEnqueue(encoder.encode(sseEvent('affectedUrl', { urls: affectedUrls })))
   }
 
   await emitToolChainTrace(toolTrace, tenantId)
