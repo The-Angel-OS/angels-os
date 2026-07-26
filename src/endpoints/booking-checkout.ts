@@ -25,7 +25,7 @@
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 
-import { getStripeApplicationFeeCents } from '@/lib/stripe-connect-config'
+import { getPlatformFeeBps, feeCents } from '@/utilities/platformFee'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { depositCents, totalCents } from '@/config/bookableServices'
 import { resolveServices } from '@/utilities/resolveServices'
@@ -269,8 +269,14 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       )
     }
 
-    // Application fee (platform share) is calculated on the DEPOSIT being charged
-    const applicationFee = getStripeApplicationFeeCents(deposit)
+    // Application fee (platform share) on the DEPOSIT being charged.
+    //
+    // This used to call getStripeApplicationFeeCents, which returns FORTY PERCENT
+    // (ULTIMATE_FAIR_SPLIT's 20+15+5). Live, on a tradesperson's deposit: $75 in
+    // would have sent $30 to the platform and $45 to the electrician. Nobody chose
+    // that out loud — it was a constant nobody had re-read. Now the configured
+    // platform rate, 5% by default, changeable without a deploy.
+    const applicationFee = feeCents(deposit, await getPlatformFeeBps(payload))
 
     // Create PaymentIntent on the connected account (Direct Charges) — DEPOSIT only
     const paymentIntent = await stripe.paymentIntents.create(

@@ -22,7 +22,7 @@
 
 import type { PayloadRequest } from 'payload'
 import Stripe from 'stripe'
-import { getStripeApplicationFeeCents } from './stripe-connect-config'
+import { getPlatformFeeBps, feeCents } from '@/utilities/platformFee'
 import { calculateBootstrapFee } from '@/utilities/bootstrapFees'
 
 // Re-export the client adapter as-is (no changes needed on the client side)
@@ -257,8 +257,9 @@ export function angelOsStripeAdapter(
             )
           }
 
-          // Calculate platform application fee
-          const applicationFee = getStripeApplicationFeeCents(amount)
+          // Platform application fee — the CONFIGURED rate (5% default), not
+          // ULTIMATE_FAIR_SPLIT's 40%. See src/utilities/platformFee.ts.
+          const applicationFee = feeCents(amount, await getPlatformFeeBps(payload))
 
           // Calculate bootstrap fee (may be 0 if in free tier or standard)
           let bootstrapFeeCents = 0

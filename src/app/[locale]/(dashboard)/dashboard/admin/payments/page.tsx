@@ -19,6 +19,10 @@ export default async function DashboardPaymentsPage({
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
+  // The rate shown to an owner must be the rate actually charged — read it, do
+  // not restate it. This panel used to hardcode 60/20/15/5.
+  const { getPlatformFeeBps } = await import('@/utilities/platformFee')
+  const platformFeePercent = (await getPlatformFeeBps(payload)) / 100
   // Resolve tenant (cached, React.cache deduped)
   const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
@@ -71,6 +75,7 @@ export default async function DashboardPaymentsPage({
   return (
     <div className="space-y-8">
       <PaymentsAdmin
+        platformFeePercent={platformFeePercent}
         tenantId={tenantId || 0}
         tenantName={tenant?.name || 'Unknown'}
         stripeAccountId={stripeConnect.stripeAccountId || null}

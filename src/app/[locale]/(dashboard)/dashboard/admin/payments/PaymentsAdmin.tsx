@@ -6,7 +6,8 @@ import React, { useState } from 'react'
  * PaymentsAdmin — Stripe Connect management dashboard.
  *
  * Shows connection status, onboarding flow, and Justice Fund stats.
- * The 60/20/15/5 Ultimate Fair split is displayed for transparency.
+ * The applied platform rate is displayed for transparency — read from the
+ * configured fee, never hardcoded, so it cannot disagree with what is charged.
  */
 
 interface RecentTransaction {
@@ -30,6 +31,8 @@ interface PaymentsAdminProps {
   justiceFundTotalCents: number
   justiceFundTransactionCount: number
   recentTransactions?: RecentTransaction[]
+  /** The CONFIGURED platform rate as a percent, e.g. 5. Never hardcode it here. */
+  platformFeePercent: number
 }
 
 export function PaymentsAdmin({
@@ -43,6 +46,7 @@ export function PaymentsAdmin({
   justiceFundTotalCents,
   justiceFundTransactionCount,
   recentTransactions = [],
+  platformFeePercent,
 }: PaymentsAdminProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -120,7 +124,7 @@ export function PaymentsAdmin({
       <div>
         <h1 className="text-2xl font-bold">Payments</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your payment processing and view the Ultimate Fair split.
+          Manage your payment processing and see exactly what the platform keeps.
         </p>
       </div>
 
@@ -220,7 +224,7 @@ export function PaymentsAdmin({
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your Stripe account to receive payments. Money flows through the Ultimate Fair
+              Connect your Stripe account to receive payments. Money goes to you directly, less the platform
               split: you receive 60% of every transaction automatically.
             </p>
             {stripeAccountId && !onboardingComplete && (
@@ -245,21 +249,24 @@ export function PaymentsAdmin({
         )}
       </div>
 
-      {/* Ultimate Fair Split */}
+      {/* How the split works. This panel used to display a hardcoded
+          60/20/15/5 — telling a tradesperson the platform kept 40% of their
+          money. The applied rate is now one configured number (5% by default),
+          so the figures shown here come from `platformFeePercent` and cannot
+          drift from what is actually charged. */}
       <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Ultimate Fair Split</h2>
+        <h2 className="text-lg font-semibold">How payments split</h2>
         <p className="text-sm text-muted-foreground">
-          Every transaction is transparently split to ensure fairness.
+          You keep {(100 - platformFeePercent).toFixed(2)}% of every payment. The platform keeps{' '}
+          {platformFeePercent.toFixed(2)}% of money it helps you move — nothing when nothing sells.
         </p>
         <div className="space-y-3">
           {[
-            { label: 'Provider (You)', pct: 60, color: 'bg-emerald-500' },
-            { label: 'Platform Partner', pct: 20, color: 'bg-blue-500' },
-            { label: 'Operations & Hosting', pct: 15, color: 'bg-purple-500' },
-            { label: 'Justice Fund', pct: 5, color: 'bg-amber-500' },
+            { label: 'You (the provider)', pct: 100 - platformFeePercent, color: 'bg-emerald-500' },
+            { label: 'Platform — hosting, AI, support', pct: platformFeePercent, color: 'bg-blue-500' },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
-              <div className="w-24 text-right text-sm font-medium">{item.pct}%</div>
+              <div className="w-24 text-right text-sm font-medium">{item.pct.toFixed(2)}%</div>
               <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
                 <div
                   className={`h-full rounded-full ${item.color}`}
