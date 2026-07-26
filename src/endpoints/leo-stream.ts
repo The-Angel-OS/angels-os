@@ -1218,6 +1218,45 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
         }
       }
 
+      // Self-heal any placeholder a previous turn abandoned. If a turn stalls
+      // before its error path runs — a provider that never answers, an image
+      // fetch with no timeout, a container restart mid-stream — the "..." it
+      // posted stays in the channel forever, because the only code that clears
+      // it lives at the end of the turn that died. Nothing else ever revisits
+      // it. Clearing stale ones here means the next message in the channel
+      // repairs the last failure, with no cron and no new endpoint.
+      try {
+        const stale = await req.payload.find({
+          collection: 'messages',
+          where: {
+            and: [
+              { channel: { equals: resolvedChannel } },
+              { 'metadata.streaming': { equals: true } },
+              { createdAt: { less_than: new Date(Date.now() - 5 * 60 * 1000).toISOString() } },
+            ],
+          },
+          limit: 10,
+          depth: 0,
+          overrideAccess: true,
+        })
+        for (const m of stale.docs as Array<{ id: number }>) {
+          await req.payload.update({
+            collection: 'messages',
+            id: m.id,
+            data: {
+              content: wrapTextContent(
+                "⚠️ LEO didn't finish answering that one — the request stalled before it could reply. Ask again and it will retry.",
+              ),
+              metadata: { streaming: false, error: true, abandoned: true },
+            } as any,
+            overrideAccess: true,
+            context: { skipMessageVersioning: true },
+          }).catch(() => {})
+        }
+      } catch {
+        /* never block a new turn on cleaning up an old one */
+      }
+
       const placeholder = await req.payload.create({
         collection: 'messages',
         data: {

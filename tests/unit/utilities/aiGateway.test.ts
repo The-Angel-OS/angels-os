@@ -162,7 +162,11 @@ describe('AI Gateway', () => {
 
   describe('DEFAULT_MODEL', () => {
     it('uses Gemini Flash (cheapest capable model)', () => {
-      expect(DEFAULT_MODEL).toBe('google/gemini-2.5-flash')
+      // LITE, deliberately. `gemini-2.5-flash` is RETIRED (Google 404s it), and
+      // `gemini-flash-latest` is a THINKING model that returns empty content on a
+      // small max_tokens — both produce the same symptom on this lane: a stuck
+      // "..." that never resolves. Verified against the live key 260726.
+      expect(DEFAULT_MODEL).toBe('google/gemini-flash-lite-latest')
     })
   })
 
@@ -185,18 +189,21 @@ describe('AI Gateway', () => {
     })
 
     it('low tier uses cheapest model (Gemini Flash)', () => {
-      expect(TASK_MODEL_MAP.low.primary).toBe('google/gemini-2.5-flash')
+      expect(TASK_MODEL_MAP.low.primary).toBe('google/gemini-flash-lite-latest')
     })
 
-    it('medium tier uses Gemini Flash with Pro + Sonnet fallbacks', () => {
-      expect(TASK_MODEL_MAP.medium.primary).toBe('google/gemini-2.5-flash')
+    // The 4-tier map is now a view over TWO LANES (TIER_TO_LANE): only `low` is
+    // mechanical; medium/high/critical are all user-facing and route agentic.
+    // These assertions described the older per-tier model list and had been
+    // failing against the lane design.
+    it('medium tier routes the agentic lane', () => {
+      expect(TASK_MODEL_MAP.medium.primary).toBe('anthropic/claude-sonnet-4-6')
       expect(TASK_MODEL_MAP.medium.fallbacks).toContain('google/gemini-3.1-pro')
-      expect(TASK_MODEL_MAP.medium.fallbacks).toContain('anthropic/claude-sonnet-4-6')
     })
 
-    it('high tier uses Gemini Pro with Sonnet fallback', () => {
-      expect(TASK_MODEL_MAP.high.primary).toBe('google/gemini-3.1-pro')
-      expect(TASK_MODEL_MAP.high.fallbacks).toContain('anthropic/claude-sonnet-4-6')
+    it('high tier routes the agentic lane, same as medium and critical', () => {
+      expect(TASK_MODEL_MAP.high.primary).toBe('anthropic/claude-sonnet-4-6')
+      expect(TASK_MODEL_MAP.high.fallbacks).toContain('google/gemini-3.1-pro')
     })
 
     it('critical tier uses Claude Sonnet with Opus + Pro fallbacks', () => {
@@ -210,11 +217,12 @@ describe('AI Gateway', () => {
       }
     })
 
-    it('cost increases with complexity (primary models)', () => {
-      // Low and medium share Flash, high uses Pro, critical uses Sonnet
-      expect(TASK_MODEL_MAP.low.primary).toBe(TASK_MODEL_MAP.medium.primary)
-      expect(TASK_MODEL_MAP.high.primary).not.toBe(TASK_MODEL_MAP.low.primary)
-      expect(TASK_MODEL_MAP.critical.primary).not.toBe(TASK_MODEL_MAP.high.primary)
+    it('separates the cheap mechanical lane from the user-facing ones', () => {
+      // TWO lanes, not four price points: `low` is the cheap mechanical model,
+      // everything a person actually talks to shares the agentic one.
+      expect(TASK_MODEL_MAP.low.primary).not.toBe(TASK_MODEL_MAP.medium.primary)
+      expect(TASK_MODEL_MAP.medium.primary).toBe(TASK_MODEL_MAP.high.primary)
+      expect(TASK_MODEL_MAP.high.primary).toBe(TASK_MODEL_MAP.critical.primary)
     })
   })
 
@@ -312,7 +320,7 @@ describe('AI Gateway', () => {
 
     it('resolves alias to full gateway ID', () => {
       expect(resolveModelId('claude-sonnet')).toBe('anthropic/claude-sonnet-4-6')
-      expect(resolveModelId('gemini-flash')).toBe('google/gemini-2.5-flash')
+      expect(resolveModelId('gemini-flash')).toBe('google/gemini-flash-lite-latest')
       expect(resolveModelId('gpt-4o')).toBe('openai/gpt-4o')
     })
 
@@ -320,7 +328,7 @@ describe('AI Gateway', () => {
       expect(resolveModelId('anthropic/claude-sonnet-4-6')).toBe(
         'anthropic/claude-sonnet-4-6',
       )
-      expect(resolveModelId('google/gemini-2.5-flash')).toBe('google/gemini-2.5-flash')
+      expect(resolveModelId('google/gemini-flash-lite-latest')).toBe('google/gemini-flash-lite-latest')
     })
 
     it('returns DEFAULT_MODEL when no argument given', () => {

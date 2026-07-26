@@ -128,7 +128,14 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 async function toBase64ImageUrl(imageUrl: string): Promise<string> {
   if (typeof imageUrl !== 'string' || !/^https?:\/\//i.test(imageUrl)) return imageUrl
   try {
-    const res = await fetch(imageUrl)
+    // BOUNDED. An unbounded fetch here inherits undici's 300s default, and this
+    // runs INSIDE the leo-stream turn: the placeholder "..." message is already
+    // posted, so a stall leaves a permanent "..." in the channel that no error
+    // path ever reaches — the stream never gets far enough to write its failure
+    // message. (260726: an image in a Spaces channel hung exactly this way.)
+    // The image is usually served through the same public host we are answering
+    // on, so a tunnel hiccup is a real way for this to never return.
+    const res = await fetch(imageUrl, { signal: AbortSignal.timeout(20_000) })
     if (!res.ok) return imageUrl
     const ct = (res.headers.get('content-type') || '').split(';')[0].trim() || 'image/jpeg'
     if (!ct.startsWith('image/')) return imageUrl

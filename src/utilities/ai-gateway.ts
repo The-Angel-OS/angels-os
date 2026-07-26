@@ -35,7 +35,7 @@ export const MODEL_CATALOG = {
 
   // Google Gemini
   'gemini-pro': 'google/gemini-3.1-pro',
-  'gemini-flash': 'google/gemini-2.5-flash',
+  'gemini-flash': 'google/gemini-flash-lite-latest',
 
   // OpenAI
   'gpt-4o': 'openai/gpt-4o',
@@ -45,7 +45,13 @@ export const MODEL_CATALOG = {
 export type ModelAlias = keyof typeof MODEL_CATALOG
 
 /** Default model — Gemini Flash (6x cheaper than Sonnet, capable for 90% of tasks) */
-export const DEFAULT_MODEL = 'google/gemini-2.5-flash'
+// LITE, not `gemini-flash-latest`. Both answer, but flash-latest is a THINKING
+// model: on a small max_tokens the reasoning consumes the whole budget and it
+// returns finish_reason=length with EMPTY content. This is the default/mechanical
+// lane — small budgets, high volume — so an empty completion here reproduces the
+// exact "..." that never resolves. Verified 260726 against the live key: at
+// max_tokens=20 flash-latest returns nothing usable, lite answers.
+export const DEFAULT_MODEL = 'google/gemini-flash-lite-latest'
 
 /** Fallback model when primary is unavailable */
 export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-6'
@@ -81,7 +87,7 @@ export type TaskComplexity = 'low' | 'medium' | 'high' | 'critical'
 // Tunable by ENV with zero code (audit/retune from the dashboard later):
 //   LEO_AGENTIC_MODEL      (default anthropic/claude-sonnet-4-6)
 //   LEO_AGENTIC_FALLBACKS  (CSV; default opus-4-6, gemini-3.1-pro)
-//   LEO_MECHANICAL_MODEL   (default google/gemini-2.5-flash)
+//   LEO_MECHANICAL_MODEL   (default google/gemini-flash-lite-latest)
 //   LEO_MECHANICAL_FALLBACKS (CSV; default gemini-3.1-pro)
 //
 // Failover redundancy is layered ON TOP by AI_PROVIDER_ORDER
@@ -100,7 +106,7 @@ const csvList = (v: string | undefined): string[] | undefined =>
 export function getLaneConfig(lane: Lane): { primary: string; fallbacks: string[] } {
   if (lane === 'mechanical') {
     return {
-      primary: process.env.LEO_MECHANICAL_MODEL || 'google/gemini-2.5-flash',
+      primary: process.env.LEO_MECHANICAL_MODEL || 'google/gemini-flash-lite-latest',
       fallbacks: csvList(process.env.LEO_MECHANICAL_FALLBACKS) || ['google/gemini-3.1-pro'],
     }
   }
@@ -564,9 +570,13 @@ const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
  *  API; we re-prefix on the telemetry modelId. Override with GOOGLE_MODEL to pin one
  *  model for every tier. ⚠️ An AI Studio (free) key may be used to improve Google's
  *  products — google is excluded from the `sensitive` pipe (see PROVIDER_LOGS_DATA). */
-// Use the stable `-latest` alias for Flash: on some paid projects the pinned
-// version id (gemini-2.5-flash) 404s on the OpenAI-compat endpoint while the alias
-// resolves fine. Pro's pinned id works everywhere. Override per-node with GOOGLE_MODEL.
+// Use the stable `-latest` alias for Flash. The pinned version id
+// `gemini-2.5-flash` is now RETIRED — Google returns 404 "This model
+// models/gemini-2.5-flash is no longer available" — while `gemini-flash-latest`
+// resolves fine. The tier map already used the alias; DEFAULT_MODEL and the
+// mechanical-lane default did not, so any path that took those hit a dead model
+// (260726: an image analysis in a Spaces channel stuck on "..." forever).
+// Pro's pinned id still works. Override per-node with GOOGLE_MODEL.
 const GOOGLE_TIER_MAP: Record<TaskComplexity, string> = {
   low: 'gemini-flash-latest',
   medium: 'gemini-flash-latest',
@@ -948,7 +958,7 @@ export function getConfiguredModelId(): string {
 
 /** Image models available through the AI Gateway */
 export const IMAGE_MODEL_CATALOG = {
-  'gemini-flash-image': 'google/gemini-2.5-flash',
+  'gemini-flash-image': 'google/gemini-flash-lite-latest',
   'gemini-pro-image': 'google/gemini-3.1-pro',
   'gpt-image': 'openai/gpt-5-image',
   'gpt-image-mini': 'openai/gpt-5-image-mini',
@@ -957,7 +967,7 @@ export const IMAGE_MODEL_CATALOG = {
 export type ImageModelAlias = keyof typeof IMAGE_MODEL_CATALOG
 
 /** Default image model */
-export const DEFAULT_IMAGE_MODEL = 'google/gemini-2.5-flash'
+export const DEFAULT_IMAGE_MODEL = 'google/gemini-flash-lite-latest'
 
 /**
  * Creates an AI SDK ImageModel routed through Vercel AI Gateway.
