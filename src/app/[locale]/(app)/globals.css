@@ -403,3 +403,53 @@ button {
 .lcars-docs ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--lcars-amber), transparent 40%);
 }
+
+/* ── Auth cards ──────────────────────────────────────────────────────────────
+   The login and create-account cards are PERMANENTLY dark glass
+   (rgba(17,17,34,0.85) ≈ oklch 14%), whatever theme the site is in. So their
+   contents must not follow the site theme at all:
+
+     • Site LIGHT + theme tokens → dark text on a dark card. Labels invisible.
+       (The login page worked around this with data-theme="dark" on the card.)
+     • Site DARK + theme tokens → --input is oklch(22%) on a ~14% card, eight
+       points of lightness apart. Fields read as black holes — Ken, 260725.
+
+   Pinning data-theme="dark" only fixed the first case and CAUSED the second.
+   This class fixes both by lifting the input/border/text surfaces to values
+   chosen against the card, not against a page background. Only contrast
+   surfaces are overridden — brand colours (primary, LCARS accents) are left
+   alone so the buttons keep their identity. */
+.auth-card {
+  --background: oklch(22% 0.01 260deg);
+  --foreground: oklch(96% 0 0deg);
+  --card: oklch(22% 0.01 260deg);
+  --card-foreground: oklch(96% 0 0deg);
+  --popover: oklch(24% 0.01 260deg);
+  --popover-foreground: oklch(96% 0 0deg);
+  /* The load-bearing pair: a field must be clearly lighter than the card. */
+  --input: oklch(34% 0.012 260deg);
+  --border: oklch(42% 0.014 260deg);
+  --muted: oklch(30% 0.01 260deg);
+  --muted-foreground: oklch(80% 0.01 260deg);
+  --secondary: oklch(32% 0.01 260deg);
+  --secondary-foreground: oklch(96% 0 0deg);
+  --accent: oklch(36% 0.014 260deg);
+  --accent-foreground: oklch(96% 0 0deg);
+  --ring: oklch(72% 0.1 85deg);
+}
+
+/* Inputs inside an auth card get an explicit surface — several field styles
+   render transparent and would otherwise show the card straight through. */
+.auth-card input,
+.auth-card textarea,
+.auth-card select {
+  background-color: var(--input);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.auth-card input::placeholder,
+.auth-card textarea::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}

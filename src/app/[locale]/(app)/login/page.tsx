@@ -61,13 +61,13 @@ export default async function Login({
           </p>
         </div>
 
-        {/* Login card — glassmorphism. data-theme="dark" pins the theme-token
-            context: this card is ALWAYS dark (rgba(17,17,34)), but the form uses
-            theme-aware tokens (text-primary, foreground) which resolve to dark
-            text under site light mode — labels and links were invisible. */}
+        {/* Login card — permanently dark glass. `auth-card` pins the contrast
+            surfaces to values chosen against THIS card rather than a page
+            background, so the fields read in site light AND dark mode. It
+            replaces a data-theme="dark" pin that fixed light mode and caused
+            the dark-mode black-on-black. Same class on create-account. */}
         <div
-          data-theme="dark"
-          className="rounded-xl border p-6"
+          className="auth-card rounded-xl border p-6"
           style={{
             background: 'rgba(17, 17, 34, 0.85)',
             backdropFilter: 'blur(16px)',

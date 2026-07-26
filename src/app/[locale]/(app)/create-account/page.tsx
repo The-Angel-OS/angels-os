@@ -211,7 +211,7 @@ export default async function CreateAccount({
             </div>
 
             <div
-              className="rounded-xl border p-6 sm:p-8"
+              className="auth-card rounded-xl border p-6 sm:p-8"
               style={{
                 background: 'rgba(17, 17, 34, 0.85)',
                 backdropFilter: 'blur(16px)',
