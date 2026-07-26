@@ -1,4 +1,4 @@
-import type { Page, Product } from '@/payload-types'
+import type { Event, Page, Post, Product } from '@/payload-types'
 
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { cn } from '@/utilities/cn'
@@ -11,9 +11,13 @@ type CMSLinkType = {
   className?: string
   label?: string | null
   newTab?: boolean | null
+  // `value` must cover every collection in `relationTo`. It listed only Page and
+  // Product, so a link resolved to a Post or an Event didn't typecheck — masked
+  // until payload-types was regenerated after the relationTo widening.
+  // @see docs/FOOTGUNS.md §2.4
   reference?: {
     relationTo: 'pages' | 'posts' | 'products' | 'events'
-    value: Page | Product | string | number
+    value: Event | Page | Post | Product | string | number
   } | null
   size?: ButtonProps['size'] | null
   type?: 'custom' | 'reference' | null

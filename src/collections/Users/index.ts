@@ -363,6 +363,44 @@ export const Users: CollectionConfig = {
         },
       ],
     },
+    // ─── Google Calendar (on-demand, per provider) ──────────
+    // A provider's real calendar is the ground truth for whether they are free.
+    // Without this, /book only knows about bookings made THROUGH us — so an
+    // appointment they took by phone, or their kid's recital, is invisible and
+    // we happily double-book them. Connected per user via
+    // /api/auth/google?calendar=1 (its own consent, never part of sign-in).
+    {
+      name: 'googleCalendar',
+      type: 'group',
+      admin: { description: 'Connected Google Calendar — read busy times, write confirmed bookings.' },
+      fields: [
+        {
+          name: 'connected',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { readOnly: true, description: 'Set by the OAuth callback.' },
+        },
+        {
+          // Encrypted at rest — this token grants standing access to a person's
+          // calendar, which is more than any BYOAI key in this system.
+          name: 'refreshToken',
+          type: 'text',
+          access: { read: () => false },
+          admin: { hidden: true },
+        },
+        {
+          name: 'calendarId',
+          type: 'text',
+          defaultValue: 'primary',
+          admin: { description: 'Which calendar to read/write. "primary" unless they keep work elsewhere.' },
+        },
+        {
+          name: 'connectedAt',
+          type: 'date',
+          admin: { readOnly: true },
+        },
+      ],
+    },
     // ─── Social Auth Providers (multi-provider linking) ──────
     {
       name: 'socialProviders',

@@ -902,6 +902,21 @@ export interface User {
   };
   roles?: ('super_admin' | 'archangel' | 'admin' | 'producer' | 'customer')[] | null;
   /**
+   * Connected Google Calendar — read busy times, write confirmed bookings.
+   */
+  googleCalendar?: {
+    /**
+     * Set by the OAuth callback.
+     */
+    connected?: boolean | null;
+    refreshToken?: string | null;
+    /**
+     * Which calendar to read/write. "primary" unless they keep work elsewhere.
+     */
+    calendarId?: string | null;
+    connectedAt?: string | null;
+  };
+  /**
    * Linked social login providers (Google, GitHub, etc.). Affects suitcase portability.
    */
   socialProviders?:
@@ -1330,10 +1345,23 @@ export interface CallToActionBlock {
         link: {
           type?: ('reference' | 'custom') | null;
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'posts';
+                value: number | Post;
+              } | null)
+            | ({
+                relationTo: 'products';
+                value: number | Product;
+              } | null)
+            | ({
+                relationTo: 'events';
+                value: number | Event;
+              } | null);
           url?: string | null;
           label: string;
           /**
@@ -1395,10 +1423,23 @@ export interface Page {
           link: {
             type?: ('reference' | 'custom') | null;
             newTab?: boolean | null;
-            reference?: {
-              relationTo: 'pages';
-              value: number | Page;
-            } | null;
+            reference?:
+              | ({
+                  relationTo: 'pages';
+                  value: number | Page;
+                } | null)
+              | ({
+                  relationTo: 'posts';
+                  value: number | Post;
+                } | null)
+              | ({
+                  relationTo: 'products';
+                  value: number | Product;
+                } | null)
+              | ({
+                  relationTo: 'events';
+                  value: number | Event;
+                } | null);
             url?: string | null;
             label: string;
             /**
@@ -1451,6 +1492,358 @@ export interface Page {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Blog posts and articles with rich content and categorization
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  publishedOn?: string | null;
+  hero: {
+    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    richText?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    links?:
+      | {
+          link: {
+            type?: ('reference' | 'custom') | null;
+            newTab?: boolean | null;
+            reference?:
+              | ({
+                  relationTo: 'pages';
+                  value: number | Page;
+                } | null)
+              | ({
+                  relationTo: 'posts';
+                  value: number | Post;
+                } | null)
+              | ({
+                  relationTo: 'products';
+                  value: number | Product;
+                } | null)
+              | ({
+                  relationTo: 'events';
+                  value: number | Event;
+                } | null);
+            url?: string | null;
+            label: string;
+            /**
+             * Choose how the link should be rendered.
+             */
+            appearance?: ('default' | 'outline') | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+    media?: (number | null) | Media;
+    /**
+     * How the hero image fills its frame. Fill is best for pre-cropped banners.
+     */
+    mediaFit?: ('cover' | 'contain' | 'fill') | null;
+  };
+  layout: (
+    | CallToActionBlock
+    | ContentBlock
+    | MediaBlock
+    | GalleryBlock
+    | ArchiveBlock
+    | CarouselBlock
+    | ThreeItemGridBlock
+    | BannerBlock
+    | FormBlock
+    | CommentsBlock
+    | CalendarBlock
+    | GoogleReviewsBlock
+    | MediaTextBlock
+  )[];
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  categories?: (number | Category)[] | null;
+  /**
+   * Related posts for internal linking
+   */
+  relatedPosts?: (number | Post)[] | null;
+  /**
+   * Original URL if ingested from external source (YouTube, etc.)
+   */
+  sourceUrl?: string | null;
+  /**
+   * Where this post was sourced from
+   */
+  sourceType?: ('youtube' | 'vimeo' | 'rss' | 'manual') | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Event name (e.g., "Dovydas Fan Meetup")
+   */
+  title: string;
+  /**
+   * URL slug — auto-generated from title if not set
+   */
+  slug?: string | null;
+  /**
+   * Full event description
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  eventType: 'market_appearance' | 'meetup' | 'workshop' | 'livestream' | 'conference' | 'screening' | 'custom';
+  status: 'draft' | 'upcoming' | 'live' | 'completed' | 'cancelled';
+  /**
+   * Hero/cover image for the event
+   */
+  coverImage?: (number | null) | Media;
+  /**
+   * Embed a video recording or livestream
+   */
+  videoEmbed?: {
+    /**
+     * Video platform (auto-detected from URL)
+     */
+    provider?: ('youtube' | 'vimeo' | 'twitch' | 'custom') | null;
+    /**
+     * Paste the video URL (e.g., YouTube, Vimeo, Twitch)
+     */
+    videoUrl?: string | null;
+    /**
+     * Auto-computed embeddable URL — do not edit
+     */
+    embedUrl?: string | null;
+  };
+  /**
+   * Event photos — venue, speakers, promos, recaps
+   */
+  gallery?:
+    | {
+        image: number | Media;
+        /**
+         * Optional caption for the image
+         */
+        caption?: string | null;
+        category?: ('venue' | 'speaker' | 'promo' | 'recap' | 'sponsor') | null;
+        /**
+         * Feature this image prominently
+         */
+        isFeatured?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Event organizer
+   */
+  host: number | User;
+  /**
+   * When the event starts
+   */
+  startDateTime: string;
+  /**
+   * When the event ends (auto-calculated from start + duration if not set)
+   */
+  endDateTime?: string | null;
+  /**
+   * Duration in minutes
+   */
+  duration?: number | null;
+  /**
+   * Timezone (e.g., "America/New_York")
+   */
+  timezone?: string | null;
+  location: {
+    type: 'in-person' | 'virtual' | 'hybrid';
+    /**
+     * Venue name
+     */
+    venueName?: string | null;
+    /**
+     * Physical address
+     */
+    address?: string | null;
+    /**
+     * Virtual meeting link
+     */
+    remoteLink?: string | null;
+    remotePlatform?: ('zoom' | 'google-meet' | 'angelos-live' | 'youtube-live' | 'twitch' | 'custom') | null;
+  };
+  capacity?: {
+    /**
+     * Maximum attendees (0 = unlimited)
+     */
+    maxAttendees?: number | null;
+    /**
+     * Allow waitlist when capacity is reached
+     */
+    waitlistEnabled?: boolean | null;
+  };
+  registration?: {
+    /**
+     * Registration is currently open
+     */
+    isOpen?: boolean | null;
+    /**
+     * Registrations require host approval
+     */
+    requiresApproval?: boolean | null;
+    /**
+     * Registration closes at this time (optional)
+     */
+    registrationDeadline?: string | null;
+    /**
+     * Allow registration after event completes (for "stay in the loop" / future updates)
+     */
+    allowLateRegistration?: boolean | null;
+  };
+  pricing?: {
+    /**
+     * This is a free event
+     */
+    isFree?: boolean | null;
+    /**
+     * Ticket price
+     */
+    amount?: number | null;
+    currency?: ('usd' | 'eur') | null;
+    /**
+     * DEPRECATED — nothing applies these. The live rate is the configured platform fee (95/5 by default); see src/utilities/platformFee.ts.
+     */
+    splitConfiguration?: {
+      /**
+       * Host percentage (default: 60%)
+       */
+      providerShare?: number | null;
+      /**
+       * Platform percentage (deprecated field).
+       */
+      platformShare?: number | null;
+      /**
+       * Operations percentage (deprecated field).
+       */
+      operationsShare?: number | null;
+      /**
+       * Justice Fund percentage (deprecated field).
+       */
+      justiceShare?: number | null;
+    };
+  };
+  /**
+   * Post announcements to AI Bus when event status changes (e.g., goes live). Disable for quiet/private events.
+   */
+  announceToAIBus?: boolean | null;
+  /**
+   * Tags for filtering and discovery
+   */
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Associated space for AI Bus announcements
+   */
+  space?: (number | null) | Space;
+  /**
+   * Additional event-specific data
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spaces".
+ */
+export interface Space {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
+  /**
+   * 'Community' is the town square: readable AND postable by ANY authenticated user across the whole node, no membership or invite needed (distinct from 'Public', which is only visible within its own tenant). 'Private' hides the space except from explicit members.
+   */
+  visibility?: ('community' | 'public' | 'invite_only' | 'private') | null;
+  /**
+   * Primary community space for this tenant. Auto-joined by all new members on onboarding.
+   */
+  isMain?: boolean | null;
+  /**
+   * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
+   */
+  enabledApplets?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ContentBlock".
  */
@@ -1477,10 +1870,23 @@ export interface ContentBlock {
         link?: {
           type?: ('reference' | 'custom') | null;
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'posts';
+                value: number | Post;
+              } | null)
+            | ({
+                relationTo: 'products';
+                value: number | Product;
+              } | null)
+            | ({
+                relationTo: 'events';
+                value: number | Event;
+              } | null);
           url?: string | null;
           label: string;
           /**
@@ -1504,6 +1910,29 @@ export interface MediaBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'mediaBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GalleryBlock".
+ */
+export interface GalleryBlock {
+  /**
+   * Optional heading above the grid.
+   */
+  heading?: string | null;
+  /**
+   * Columns on desktop (always 1–2 on mobile).
+   */
+  columns?: ('2' | '3' | '4') | null;
+  images?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'gallery';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1840,6 +2269,19 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CommentsBlock".
+ */
+export interface CommentsBlock {
+  blockName?: string | null;
+  /**
+   * Heading displayed above the comments section
+   */
+  heading?: string | null;
+  id?: string | null;
+  blockType: 'comments';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "CalendarBlock".
  */
 export interface CalendarBlock {
@@ -1936,6 +2378,67 @@ export interface CalendarBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'calendar';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GoogleReviewsBlock".
+ */
+export interface GoogleReviewsBlock {
+  /**
+   * The business Google Place ID (find it at developers.google.com/maps/documentation/places/web-service/place-id). A pasted Google Maps URL with ?place_id= also works.
+   */
+  placeId: string;
+  /**
+   * Optional section heading, e.g. "What our customers say".
+   */
+  heading?: string | null;
+  /**
+   * How many reviews to show (Google returns up to 5).
+   */
+  maxReviews?: number | null;
+  /**
+   * Only show reviews at or above this star rating.
+   */
+  minRating?: number | null;
+  showAggregate?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'googleReviews';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock".
+ */
+export interface MediaTextBlock {
+  /**
+   * Small label above the heading (optional).
+   */
+  eyebrow?: string | null;
+  heading: string;
+  /**
+   * Paragraphs of copy. Blank lines separate paragraphs.
+   */
+  body?: string | null;
+  /**
+   * YouTube or Vimeo URL — shown beside the text. e.g. https://youtu.be/…
+   */
+  videoUrl?: string | null;
+  /**
+   * Caption under the video (optional).
+   */
+  caption?: string | null;
+  videoOnRight?: boolean | null;
+  /**
+   * Button text (optional), e.g. "Read More".
+   */
+  ctaLabel?: string | null;
+  /**
+   * Button link (optional).
+   */
+  ctaUrl?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaText';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2253,45 +2756,6 @@ export interface Endeavor {
   createdAt: string;
 }
 /**
- * Workspaces per tenant (Discord-style) — containers for channels, conversations, and invites.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "spaces".
- */
-export interface Space {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  name: string;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  description?: string | null;
-  /**
-   * 'Community' is the town square: readable AND postable by ANY authenticated user across the whole node, no membership or invite needed (distinct from 'Public', which is only visible within its own tenant). 'Private' hides the space except from explicit members.
-   */
-  visibility?: ('community' | 'public' | 'invite_only' | 'private') | null;
-  /**
-   * Primary community space for this tenant. Auto-joined by all new members on onboarding.
-   */
-  isMain?: boolean | null;
-  /**
-   * Array of applet IDs enabled for this space (e.g. ["chat", "files", "tasks"]). Chat is always available.
-   */
-  enabledApplets?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * Naval crew assignments — maps members to departments, stations, and watches within an Endeavor.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2446,103 +2910,6 @@ export interface MerlinControlBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'merlinControl';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "GalleryBlock".
- */
-export interface GalleryBlock {
-  /**
-   * Optional heading above the grid.
-   */
-  heading?: string | null;
-  /**
-   * Columns on desktop (always 1–2 on mobile).
-   */
-  columns?: ('2' | '3' | '4') | null;
-  images?:
-    | {
-        image: number | Media;
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'gallery';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "GoogleReviewsBlock".
- */
-export interface GoogleReviewsBlock {
-  /**
-   * The business Google Place ID (find it at developers.google.com/maps/documentation/places/web-service/place-id). A pasted Google Maps URL with ?place_id= also works.
-   */
-  placeId: string;
-  /**
-   * Optional section heading, e.g. "What our customers say".
-   */
-  heading?: string | null;
-  /**
-   * How many reviews to show (Google returns up to 5).
-   */
-  maxReviews?: number | null;
-  /**
-   * Only show reviews at or above this star rating.
-   */
-  minRating?: number | null;
-  showAggregate?: boolean | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'googleReviews';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MediaTextBlock".
- */
-export interface MediaTextBlock {
-  /**
-   * Small label above the heading (optional).
-   */
-  eyebrow?: string | null;
-  heading: string;
-  /**
-   * Paragraphs of copy. Blank lines separate paragraphs.
-   */
-  body?: string | null;
-  /**
-   * YouTube or Vimeo URL — shown beside the text. e.g. https://youtu.be/…
-   */
-  videoUrl?: string | null;
-  /**
-   * Caption under the video (optional).
-   */
-  caption?: string | null;
-  videoOnRight?: boolean | null;
-  /**
-   * Button text (optional), e.g. "Read More".
-   */
-  ctaLabel?: string | null;
-  /**
-   * Button link (optional).
-   */
-  ctaUrl?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'mediaText';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "CommentsBlock".
- */
-export interface CommentsBlock {
-  blockName?: string | null;
-  /**
-   * Heading displayed above the comments section
-   */
-  heading?: string | null;
-  id?: string | null;
-  blockType: 'comments';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2707,7 +3074,7 @@ export interface HolonCapability {
    */
   acceptingOrders?: boolean | null;
   /**
-   * I agree to operate under the Angel OS constitution: 70/20/4/1/5 Ultimate Fair Split (Toward-53), Answer 53 principles, and network governance.
+   * I agree to operate under the Angel OS constitution: the 95/5 split (you keep 95%), Answer 53 principles, and network governance.
    */
   constitutionalCompliance: boolean;
   updatedAt: string;
@@ -3109,23 +3476,23 @@ export interface Booking {
     amount: number;
     currency: 'usd' | 'eur';
     /**
-     * Ultimate Fair payment distribution
+     * DEPRECATED — nothing applies these. The live rate is the configured platform fee (95/5 by default); see src/utilities/platformFee.ts.
      */
     splitConfiguration: {
       /**
-       * Provider percentage (default: 60%)
+       * Provider percentage (deprecated field).
        */
       providerShare: number;
       /**
-       * Platform percentage (default: 20%)
+       * Platform percentage (deprecated field).
        */
       platformShare: number;
       /**
-       * Operations percentage (default: 15%)
+       * Operations percentage (deprecated field).
        */
       operationsShare: number;
       /**
-       * Justice Fund percentage (default: 5%)
+       * Justice Fund percentage (deprecated field).
        */
       justiceShare: number;
     };
@@ -3271,208 +3638,7 @@ export interface Booking {
     | number
     | boolean
     | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "events".
- */
-export interface Event {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  /**
-   * Event name (e.g., "Dovydas Fan Meetup")
-   */
-  title: string;
-  /**
-   * URL slug — auto-generated from title if not set
-   */
-  slug?: string | null;
-  /**
-   * Full event description
-   */
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  eventType: 'market_appearance' | 'meetup' | 'workshop' | 'livestream' | 'conference' | 'screening' | 'custom';
-  status: 'draft' | 'upcoming' | 'live' | 'completed' | 'cancelled';
-  /**
-   * Hero/cover image for the event
-   */
-  coverImage?: (number | null) | Media;
-  /**
-   * Embed a video recording or livestream
-   */
-  videoEmbed?: {
-    /**
-     * Video platform (auto-detected from URL)
-     */
-    provider?: ('youtube' | 'vimeo' | 'twitch' | 'custom') | null;
-    /**
-     * Paste the video URL (e.g., YouTube, Vimeo, Twitch)
-     */
-    videoUrl?: string | null;
-    /**
-     * Auto-computed embeddable URL — do not edit
-     */
-    embedUrl?: string | null;
-  };
-  /**
-   * Event photos — venue, speakers, promos, recaps
-   */
-  gallery?:
-    | {
-        image: number | Media;
-        /**
-         * Optional caption for the image
-         */
-        caption?: string | null;
-        category?: ('venue' | 'speaker' | 'promo' | 'recap' | 'sponsor') | null;
-        /**
-         * Feature this image prominently
-         */
-        isFeatured?: boolean | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Event organizer
-   */
-  host: number | User;
-  /**
-   * When the event starts
-   */
-  startDateTime: string;
-  /**
-   * When the event ends (auto-calculated from start + duration if not set)
-   */
-  endDateTime?: string | null;
-  /**
-   * Duration in minutes
-   */
-  duration?: number | null;
-  /**
-   * Timezone (e.g., "America/New_York")
-   */
-  timezone?: string | null;
-  location: {
-    type: 'in-person' | 'virtual' | 'hybrid';
-    /**
-     * Venue name
-     */
-    venueName?: string | null;
-    /**
-     * Physical address
-     */
-    address?: string | null;
-    /**
-     * Virtual meeting link
-     */
-    remoteLink?: string | null;
-    remotePlatform?: ('zoom' | 'google-meet' | 'angelos-live' | 'youtube-live' | 'twitch' | 'custom') | null;
-  };
-  capacity?: {
-    /**
-     * Maximum attendees (0 = unlimited)
-     */
-    maxAttendees?: number | null;
-    /**
-     * Allow waitlist when capacity is reached
-     */
-    waitlistEnabled?: boolean | null;
-  };
-  registration?: {
-    /**
-     * Registration is currently open
-     */
-    isOpen?: boolean | null;
-    /**
-     * Registrations require host approval
-     */
-    requiresApproval?: boolean | null;
-    /**
-     * Registration closes at this time (optional)
-     */
-    registrationDeadline?: string | null;
-    /**
-     * Allow registration after event completes (for "stay in the loop" / future updates)
-     */
-    allowLateRegistration?: boolean | null;
-  };
-  pricing?: {
-    /**
-     * This is a free event
-     */
-    isFree?: boolean | null;
-    /**
-     * Ticket price
-     */
-    amount?: number | null;
-    currency?: ('usd' | 'eur') | null;
-    /**
-     * Ultimate Fair payment distribution
-     */
-    splitConfiguration?: {
-      /**
-       * Host percentage (default: 60%)
-       */
-      providerShare?: number | null;
-      /**
-       * Platform percentage (default: 20%)
-       */
-      platformShare?: number | null;
-      /**
-       * Operations percentage (default: 15%)
-       */
-      operationsShare?: number | null;
-      /**
-       * Justice Fund percentage (default: 5%)
-       */
-      justiceShare?: number | null;
-    };
-  };
-  /**
-   * Post announcements to AI Bus when event status changes (e.g., goes live). Disable for quiet/private events.
-   */
-  announceToAIBus?: boolean | null;
-  /**
-   * Tags for filtering and discovery
-   */
-  tags?:
-    | {
-        tag: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Associated space for AI Bus announcements
-   */
-  space?: (number | null) | Space;
-  /**
-   * Additional event-specific data
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  googleEventId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3668,10 +3834,23 @@ export interface Header {
         link: {
           type?: ('reference' | 'custom') | null;
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'posts';
+                value: number | Post;
+              } | null)
+            | ({
+                relationTo: 'products';
+                value: number | Product;
+              } | null)
+            | ({
+                relationTo: 'events';
+                value: number | Event;
+              } | null);
           url?: string | null;
           label: string;
         };
@@ -3683,10 +3862,23 @@ export interface Header {
               link: {
                 type?: ('reference' | 'custom') | null;
                 newTab?: boolean | null;
-                reference?: {
-                  relationTo: 'pages';
-                  value: number | Page;
-                } | null;
+                reference?:
+                  | ({
+                      relationTo: 'pages';
+                      value: number | Page;
+                    } | null)
+                  | ({
+                      relationTo: 'posts';
+                      value: number | Post;
+                    } | null)
+                  | ({
+                      relationTo: 'products';
+                      value: number | Product;
+                    } | null)
+                  | ({
+                      relationTo: 'events';
+                      value: number | Event;
+                    } | null);
                 url?: string | null;
                 label: string;
               };
@@ -3720,10 +3912,23 @@ export interface Footer {
         link: {
           type?: ('reference' | 'custom') | null;
           newTab?: boolean | null;
-          reference?: {
-            relationTo: 'pages';
-            value: number | Page;
-          } | null;
+          reference?:
+            | ({
+                relationTo: 'pages';
+                value: number | Page;
+              } | null)
+            | ({
+                relationTo: 'posts';
+                value: number | Post;
+              } | null)
+            | ({
+                relationTo: 'products';
+                value: number | Product;
+              } | null)
+            | ({
+                relationTo: 'events';
+                value: number | Event;
+              } | null);
           url?: string | null;
           label: string;
         };
@@ -3744,10 +3949,23 @@ export interface Footer {
               link: {
                 type?: ('reference' | 'custom') | null;
                 newTab?: boolean | null;
-                reference?: {
-                  relationTo: 'pages';
-                  value: number | Page;
-                } | null;
+                reference?:
+                  | ({
+                      relationTo: 'pages';
+                      value: number | Page;
+                    } | null)
+                  | ({
+                      relationTo: 'posts';
+                      value: number | Post;
+                    } | null)
+                  | ({
+                      relationTo: 'products';
+                      value: number | Product;
+                    } | null)
+                  | ({
+                      relationTo: 'events';
+                      value: number | Event;
+                    } | null);
                 url?: string | null;
                 label: string;
               };
@@ -3837,104 +4055,6 @@ export interface SiteSetting {
   };
   updatedAt: string;
   createdAt: string;
-}
-/**
- * Blog posts and articles with rich content and categorization
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "posts".
- */
-export interface Post {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  title: string;
-  publishedOn?: string | null;
-  hero: {
-    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
-    richText?: {
-      root: {
-        type: string;
-        children: {
-          type: any;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    } | null;
-    links?:
-      | {
-          link: {
-            type?: ('reference' | 'custom') | null;
-            newTab?: boolean | null;
-            reference?: {
-              relationTo: 'pages';
-              value: number | Page;
-            } | null;
-            url?: string | null;
-            label: string;
-            /**
-             * Choose how the link should be rendered.
-             */
-            appearance?: ('default' | 'outline') | null;
-          };
-          id?: string | null;
-        }[]
-      | null;
-    media?: (number | null) | Media;
-    /**
-     * How the hero image fills its frame. Fill is best for pre-cropped banners.
-     */
-    mediaFit?: ('cover' | 'contain' | 'fill') | null;
-  };
-  layout: (
-    | CallToActionBlock
-    | ContentBlock
-    | MediaBlock
-    | GalleryBlock
-    | ArchiveBlock
-    | CarouselBlock
-    | ThreeItemGridBlock
-    | BannerBlock
-    | FormBlock
-    | CommentsBlock
-    | CalendarBlock
-    | GoogleReviewsBlock
-    | MediaTextBlock
-  )[];
-  meta?: {
-    title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (number | null) | Media;
-    description?: string | null;
-  };
-  categories?: (number | Category)[] | null;
-  /**
-   * Related posts for internal linking
-   */
-  relatedPosts?: (number | Post)[] | null;
-  /**
-   * Original URL if ingested from external source (YouTube, etc.)
-   */
-  sourceUrl?: string | null;
-  /**
-   * Where this post was sourced from
-   */
-  sourceType?: ('youtube' | 'vimeo' | 'rss' | 'manual') | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * Portfolio showcase — completed projects, case studies, and client work.
@@ -5672,6 +5792,10 @@ export interface Service {
    */
   depositPercent?: number | null;
   /**
+   * Fixed booking deposit in USD, credited against the final invoice. Takes precedence over depositPercent. This is how a trade takes money for work it cannot price sight-unseen — a percentage of an unknown total is always zero, so a quote-only service could otherwise never hold a slot with a deposit.
+   */
+  depositFlatUsd?: number | null;
+  /**
    * Estimated/scheduled time the booking holds on the calendar (actual billed time can differ for hourly).
    */
   durationMinutes?: number | null;
@@ -6691,9 +6815,21 @@ export interface PayloadMcpApiKey {
      */
     listAvailability?: boolean | null;
     /**
-     * Create or update a bookable service offering for the current Endeavor. Sets the name, description, price, duration, and whether customers can book it online. Use when adding or editing a service in the booking catalog.
+     * Create or update a bookable service offering. Sets the name, description, price (flat OR hourly), duration, and whether customers can book it online. Defaults to the current Endeavor; pass tenantSlug to write into a DIFFERENT portal — that is what makes the capture funnel work, i.e. classify_endeavor (read the ad) → provision_tenant (stand up the portal) → configure_service once per service the ad lists, each with the new portal's tenantSlug. Only set a price the source actually states; guessing a wrong price onto a live site is worse than leaving it blank.
      */
     configureService?: boolean | null;
+    /**
+     * The one number the operator has to keep positive: does what the platform KEEPS from payments exceed what it costs to run? Revenue is real allocation rows written by successful Stripe charges; cost is metered intelligence/telephony/storage, excluding BYOK (a tenant's own API key costs the platform nothing). Use whenever asked "are we positive", "can we afford this", "what does the platform cost", or before any spending decision. super_admin only — this is platform-wide finance, not one endeavor's revenue.
+     */
+    platformSolvency?: boolean | null;
+    /**
+     * Set the platform's cut of payments it helps move, in PERCENT (e.g. 5 or 2.5). Applies to every Connect sale from the moment it is set — it is read live by the Stripe webhook, so there is no deploy. Call with no percent to just report the current rate. Capped at 20% as a fat-finger guard. super_admin only. Use when the operator wants to change pricing, run an experiment, or check what they currently charge.
+     */
+    setPlatformFee?: boolean | null;
+    /**
+     * Set a portal's public name and tagline. The site name is appended to EVERY page title ("<page> | <site name>"), so it should be the business's real trading name — "Harpazo Electric", not "Harpazo". Defaults to the current Endeavor; pass tenantSlug to brand a different portal, e.g. one you just provisioned. Use after provisioning, or whenever a business's name or positioning changes.
+     */
+    setPortalBranding?: boolean | null;
     /**
      * Read a Craigslist ad, flyer, or existing website and extract its content so you can classify the business. Returns the source text plus the controlled holon-role vocabulary and operational-model options. Provide `url` (LEO fetches it) or `adText` (pasted). After this returns, decide the holon roles + industry capabilities and call set_holon_profile. Use as the first step of onboarding a new service-provider vertical.
      */
@@ -6759,7 +6895,7 @@ export interface PayloadMcpApiKey {
      */
     createEvent?: boolean | null;
     /**
-     * Update an existing static page. You need the page ID — search the admin or ask the user. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.
+     * Update an existing static page. Identify it by `pageSlug` (e.g. "services") — easier and safer than hunting a numeric id — or by `pageId` if you already have it. Defaults to the current Endeavor; pass tenantSlug to edit a DIFFERENT portal, e.g. rewriting a freshly provisioned customer site. Always confirm before updating. Set generateHeroImage=true to auto-generate a new hero image.
      */
     updatePage?: boolean | null;
     /**
@@ -6875,7 +7011,7 @@ export interface PayloadMcpApiKey {
      */
     webSearch?: boolean | null;
     /**
-     * Set the signed-in person's recurring weekly availability on their personal scheduler (their 'book time with me' calendar). Use when they say things like 'I'm free weekdays 9 to 5' or 'open Tuesdays 2–5pm'. Sets the given days to the given hours, leaving other days as they are. Self-scoped to the current user's home angel.
+     * Open a recurring weekly booking schedule. Defaults to the signed-in person's own 'book time with me' calendar — use when they say 'I'm free weekdays 9 to 5'. Pass tenantSlug + providerEmail to open a BUSINESS portal's schedule for its owner instead: a portal with services but no availability shows "Booking Not Set Up Yet" and cannot take a single booking, so this is a required step when standing up a trade or practice. Sets the given days, leaving other days as they are.
      */
     setAvailability?: boolean | null;
     /**
@@ -6898,6 +7034,10 @@ export interface PayloadMcpApiKey {
      * Save a person to the user's address book (CRM contacts) so they autocomplete later and can be invited. Use when the user says 'save my brother's email', 'add a contact', 'remember alice@example.com', or gives you someone's details to keep. Idempotent — saving an email that already exists updates the name instead of duplicating. Pair with invite_member to then send them an invite.
      */
     saveContact?: boolean | null;
+    /**
+     * Bring in the user's Google contacts in bulk so they don't have to type addresses. Use when the user wants to import/sync/pull in their contacts, or when you're setting up a Circle/endeavor and helping them invite people and they'd rather pull from Google than name people one by one. Returns a consent link the user clicks (they approve in Google's own screen); contacts import into their own address book only. For a single person the user names in chat, use save_contact instead — this is the bulk path.
+     */
+    importGoogleContacts?: boolean | null;
     /**
      * Create a platform-wide announcement that appears in the announcements channel of one or more spaces. Use for important updates, milestones, or notices. Confirm with user before sending.
      */
@@ -7686,6 +7826,14 @@ export interface UsersSelect<T extends boolean = true> {
             };
       };
   roles?: T;
+  googleCalendar?:
+    | T
+    | {
+        connected?: T;
+        refreshToken?: T;
+        calendarId?: T;
+        connectedAt?: T;
+      };
   socialProviders?:
     | T
     | {
@@ -7934,6 +8082,7 @@ export interface BookingsSelect<T extends boolean = true> {
         leoConversationId?: T;
       };
   metadata?: T;
+  googleEventId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9447,6 +9596,7 @@ export interface ServicesSelect<T extends boolean = true> {
   unitRateUsd?: T;
   allowsExtraCosts?: T;
   depositPercent?: T;
+  depositFlatUsd?: T;
   durationMinutes?: T;
   enabled?: T;
   serviceAgreement?: T;
@@ -10292,6 +10442,9 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         configureAvailability?: T;
         listAvailability?: T;
         configureService?: T;
+        platformSolvency?: T;
+        setPlatformFee?: T;
+        setPortalBranding?: T;
         classifyEndeavor?: T;
         addGalleryToPage?: T;
         decommissionTenant?: T;
@@ -10343,6 +10496,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         listContacts?: T;
         messageContact?: T;
         saveContact?: T;
+        importGoogleContacts?: T;
         createAnnouncement?: T;
         moderateContent?: T;
         updateInventory?: T;

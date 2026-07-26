@@ -468,6 +468,15 @@ export const Bookings: CollectionConfig = {
         description: 'Additional booking-specific data',
       },
     },
+    {
+      // The mirrored event on the provider's Google Calendar. Stored so a
+      // reschedule MOVES that event and a cancel REMOVES it — writing without
+      // keeping the id would leave orphans on their calendar, which is worse
+      // than never writing at all.
+      name: 'googleEventId',
+      type: 'text',
+      admin: { readOnly: true, hidden: true },
+    },
   ],
   timestamps: true,
   hooks: {
@@ -499,6 +508,81 @@ export const Bookings: CollectionConfig = {
       },
     ],
     afterChange: [
+      // Mirror the booking onto the provider's own Google Calendar, if they
+      // connected one. Entirely fail-soft: the booking is already saved (and
+      // possibly paid) before this runs, so a Google outage must never surface
+      // here. Every write passes `req` — a hook that writes on its own
+      // connection is the 300s deadlock. @see docs/FOOTGUNS.md §2.1
+      async ({ doc, req, operation, previousDoc, context }) => {
+        // Our own googleEventId write-back re-enters this hook; without the flag
+        // it runs a second, pointless pass on every booking.
+        if (context?.skipCalendarSync) return doc
+        const providerId = typeof doc.provider === 'object' ? doc.provider?.id : doc.provider
+        if (!providerId) return doc
+
+        const cancelled = doc.status === 'cancelled'
+        const wasCancelled = previousDoc?.status === 'cancelled'
+        const timeMoved =
+          operation === 'update' &&
+          (previousDoc?.startDateTime !== doc.startDateTime ||
+            previousDoc?.endDateTime !== doc.endDateTime)
+
+        try {
+          const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = await import(
+            '@/utilities/googleCalendar'
+          )
+
+          if (cancelled && doc.googleEventId) {
+            await deleteCalendarEvent(req.payload, providerId, doc.googleEventId)
+            await req.payload.update({
+              collection: 'bookings',
+              id: doc.id,
+              data: { googleEventId: null } as Record<string, unknown>,
+              depth: 0,
+              overrideAccess: true,
+              req,
+              context: { skipCalendarSync: true },
+            })
+            return doc
+          }
+
+          if (cancelled || wasCancelled) return doc
+
+          if (doc.googleEventId) {
+            if (timeMoved) {
+              await updateCalendarEvent(req.payload, providerId, doc.googleEventId, {
+                start: new Date(doc.startDateTime),
+                end: new Date(doc.endDateTime),
+                summary: doc.title,
+              })
+            }
+            return doc
+          }
+
+          if (operation === 'create') {
+            const eventId = await createCalendarEvent(req.payload, providerId, {
+              summary: doc.title,
+              description: `Booked through The Angel OS.`,
+              start: new Date(doc.startDateTime),
+              end: new Date(doc.endDateTime),
+            })
+            if (eventId) {
+              await req.payload.update({
+                collection: 'bookings',
+                id: doc.id,
+                data: { googleEventId: eventId } as Record<string, unknown>,
+                depth: 0,
+                overrideAccess: true,
+                req,
+                context: { skipCalendarSync: true },
+              })
+            }
+          }
+        } catch {
+          // Never let a calendar problem touch the booking.
+        }
+        return doc
+      },
       async ({ doc, req, operation, previousDoc }) => {
         // Booking creation notifications (email+ICS, WhatsApp, SMS, LEO thread)
         // are handled by sendBookingConfirmation() in bookingEngine.ts (Sprint 35).

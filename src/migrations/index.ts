@@ -10,6 +10,7 @@ import * as migration_20260722_040000_invitation_phone from './20260722_040000_i
 import * as migration_20260722_050000_invitation_name from './20260722_050000_invitation_name'
 import * as migration_20260725_180000_service_deposit_flat from './20260725_180000_service_deposit_flat'
 import * as migration_20260725_210000_link_field_collections from './20260725_210000_link_field_collections';
+import * as migration_20260726_120000_users_google_calendar from './20260726_120000_users_google_calendar';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -251,5 +252,10 @@ export const migrations = [
     up: migration_20260725_210000_link_field_collections.up,
     down: migration_20260725_210000_link_field_collections.down,
     name: '20260725_210000_link_field_collections',
+  },
+  {
+    up: migration_20260726_120000_users_google_calendar.up,
+    down: migration_20260726_120000_users_google_calendar.down,
+    name: '20260726_120000_users_google_calendar',
   },
 ];

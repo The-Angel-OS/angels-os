@@ -21,6 +21,7 @@ import type { PayloadHandler } from 'payload'
 import { getServerSideURL } from '@/utilities/getURL'
 import { logError } from '@/utilities/logError'
 import { resolveUserFromGoogleClaims } from '@/endpoints/googleIdentity'
+import { GOOGLE_CALENDAR_SCOPES } from '@/utilities/googleCalendar'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -129,6 +130,24 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     if (!statePayload.redirect) statePayload.redirect = '/dashboard'
   }
 
+  // Calendar connect: `?calendar=1` is on-demand consent for Calendar, NOT part
+  // of sign-in — same shape as contacts above. The difference is that this one
+  // needs STANDING access (we read busy times on every /book request, long after
+  // this callback), so the callback stores the refresh token encrypted on the
+  // user. @see src/utilities/googleCalendar.ts
+  const wantCalendar = url.searchParams.get('calendar') === '1'
+  if (wantCalendar) {
+    if (!req.user) {
+      return Response.json(
+        { error: 'Sign in first to connect your Google Calendar.' },
+        { status: 401 },
+      )
+    }
+    statePayload.mode = 'calendar'
+    statePayload.userId = req.user.id
+    if (!statePayload.redirect) statePayload.redirect = '/dashboard'
+  }
+
   // Account switching: `?switch=1` forces Google's account chooser so a signed-in
   // Google user can pick a DIFFERENT account (Nimue's "Switch account" flow — clearing
   // our Payload token alone doesn't clear Google's own browser session). Normal login
@@ -138,10 +157,14 @@ export const authGoogleInitHandler: PayloadHandler = async (req) => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    // Contacts import needs the People API scope; sign-in keeps the minimal scope.
+    // Each on-demand integration asks for ONLY its own scope; sign-in keeps the
+    // minimal one. Never bundle — a person declining calendar access must still
+    // be able to log in.
     scope: wantContacts
       ? 'openid email https://www.googleapis.com/auth/contacts.readonly'
-      : 'openid email profile',
+      : wantCalendar
+        ? `openid email ${GOOGLE_CALENDAR_SCOPES}`
+        : 'openid email profile',
     access_type: 'offline',
     prompt: forceChooser ? 'select_account consent' : 'consent',
   })
@@ -216,7 +239,11 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
       )
     }
 
-    const tokenData = (await tokenRes.json()) as { id_token?: string; access_token?: string }
+    const tokenData = (await tokenRes.json()) as {
+      id_token?: string
+      access_token?: string
+      refresh_token?: string
+    }
 
     // ----- Contacts-import mode (NOT sign-in) -----
     // The user is already signed in and just granted contacts.readonly. Use the
@@ -268,6 +295,54 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
             message: `Google contacts import failed: ${e instanceof Error ? e.message : String(e)}`,
           })
           return back({ contactsImport: 'error' })
+        }
+      }
+
+      // ----- Calendar-connect mode (NOT sign-in) -----
+      // Unlike contacts, this needs STANDING access: busy times are read on
+      // every /book request, long after this callback returns. So we store the
+      // REFRESH token, encrypted. Google only returns one on the first consent
+      // for a scope — hence prompt=consent above; without it a reconnect comes
+      // back with an access token only and silently stores nothing.
+      if (contactsState.mode === 'calendar') {
+        const returnPath =
+          contactsState.redirect && contactsState.redirect.startsWith('/')
+            ? contactsState.redirect
+            : '/dashboard'
+        const back = (q: Record<string, string>) => {
+          const u = new URL(returnPath, canonicalUrl)
+          for (const [k, v] of Object.entries(q)) u.searchParams.set(k, v)
+          return new Response(null, { status: 302, headers: { Location: u.toString() } })
+        }
+        if (!tokenData.refresh_token || !contactsState.userId) {
+          return back({ calendarConnect: 'error' })
+        }
+        try {
+          const { encrypt } = await import('@/utilities/encryption')
+          await req.payload.update({
+            collection: 'users',
+            id: contactsState.userId,
+            data: {
+              googleCalendar: {
+                connected: true,
+                refreshToken: encrypt(tokenData.refresh_token),
+                calendarId: 'primary',
+                connectedAt: new Date().toISOString(),
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any,
+            depth: 0,
+            overrideAccess: true,
+            req,
+          })
+          return back({ calendarConnect: 'ok' })
+        } catch (e) {
+          void logError({
+            level: 'warning',
+            source: 'oauth/google-calendar',
+            message: `Google Calendar connect failed for user ${contactsState.userId}: ${e instanceof Error ? e.message : String(e)}`,
+          })
+          return back({ calendarConnect: 'error' })
         }
       }
     }

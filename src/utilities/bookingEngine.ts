@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 import type { User } from '@/payload-types'
 import { sendBookingConfirmation } from '@/utilities/bookingNotifications'
+import { fetchBusyBlocks } from '@/utilities/googleCalendar'
 
 export interface TimeSlot {
   startTime: Date
@@ -251,6 +252,21 @@ export class BookingEngine {
       },
     })
 
+    // The provider's OWN calendar, if they connected one. Without this we only
+    // know about bookings made THROUGH us — an appointment they took by phone,
+    // or anything personal, was invisible and we would double-book them.
+    // Returns [] for anyone not connected, and [] if Google is unreachable, so
+    // this degrades to the previous behaviour rather than breaking /book.
+    const busyBlocks = await fetchBusyBlocks(this.payload, providerId, startDate, endDate)
+    const blockedTimes = [
+      ...existingBookings.docs,
+      ...busyBlocks.map((b, i) => ({
+        id: `gcal-${i}`,
+        startDateTime: b.start.toISOString(),
+        endDateTime: b.end.toISOString(),
+      })),
+    ]
+
     const slots: TimeSlot[] = []
     const currentDate = new Date(startDate)
 
@@ -258,7 +274,7 @@ export class BookingEngine {
       const dailySlots = await this.generateDailySlots(
         currentDate,
         availabilityRules.docs,
-        existingBookings.docs,
+        blockedTimes,
         slotDuration,
         serviceType
       )
