@@ -240,7 +240,10 @@ export const EventRegistrations: CollectionConfig = {
             : (event as any)?.tenant
           if (attendeeId && eventTenantId) {
             const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
-            await ensureTenantMembership(attendeeId, eventTenantId)
+            // `req` is not optional in a HOOK: without it this write lands on a
+            // second pooled connection and deadlocks against the registration's
+            // own uncommitted transaction. @see docs/FOOTGUNS.md §2.1
+            await ensureTenantMembership(attendeeId, eventTenantId, req)
           }
         } catch {
           // Non-critical: registration is already saved

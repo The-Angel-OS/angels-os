@@ -111,7 +111,9 @@ describe('spaceInviteHandler', () => {
     const res = await spaceInviteHandler(req)
     expect(res.status).toBe(403)
     const body = await res.json()
-    expect(body.error).toMatch(/admin or moderator/i)
+    // Wording widened to "admin of this space or its portal" — portal managers
+    // can invite too. Match the permission, not the sentence.
+    expect(body.error).toMatch(/must be an admin/i)
   })
 
   it('returns 200 on success with invitation token and inviteUrl', async () => {

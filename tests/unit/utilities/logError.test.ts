@@ -98,7 +98,10 @@ describe('logError', () => {
   it('sets resolved=false on all new log entries', async () => {
     const payload = makePayload()
     mockGetPayload.mockResolvedValue(payload)
-    await logError({ source: 'Test', message: 'err' })
+    // Distinct message per test: logError carries an in-process flood guard
+    // (same level+source+message within 30s is DROPPED), so tests that reuse a
+    // message silently assert against a suppressed call.
+    await logError({ source: 'Test', message: 'resolved-flag-case' })
     expect(payload.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ resolved: false }),
@@ -130,7 +133,7 @@ describe('logError', () => {
   it('does not emit to AI Bus when the AI Bus space is not found', async () => {
     const payload = makePayload() // no AI Bus space
     mockGetPayload.mockResolvedValue(payload)
-    await logError({ source: 'Test', message: 'err', tenantId: 1 })
+    await logError({ source: 'Test', message: 'no-ai-bus-space-case', tenantId: 1 })
     expect(payload.create).toHaveBeenCalledTimes(1) // only app-logs
   })
 

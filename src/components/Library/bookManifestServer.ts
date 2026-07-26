@@ -47,8 +47,12 @@ function firstLine(text?: string): string {
   )
 }
 
-/** Build the slug/title-augmented LoadedBook from a manifest + base-language text. */
-function buildLoadedBook(manifest: BookManifest, baseText: Record<string, unknown>): LoadedBook {
+/**
+ * Build the slug/title-augmented LoadedBook from a manifest + base-language text.
+ * Exported for tests: the slug inference is the interesting logic, and it should
+ * not be testable only through whichever books happen to be on disk.
+ */
+export function buildLoadedBook(manifest: BookManifest, baseText: Record<string, unknown>): LoadedBook {
   const baseLanguage = manifest.defaultLanguage || 'en'
   const pages = manifest.pages || []
   // Prefer the manifest's explicit page title (scripture: "John 3"); else infer

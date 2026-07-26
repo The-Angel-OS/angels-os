@@ -167,7 +167,10 @@ describe('bookingCheckoutHandler', () => {
     expect(body.error).toMatch(/tenant not found/i)
   })
 
-  it('returns 400 when tenant has no Stripe Connect setup', async () => {
+  // Stripe Connect is OPTIONAL now — a trade that takes cash on completion, or
+  // any $0/no-deposit service, books as a REQUEST rather than being refused.
+  // These two used to assert a hard 400, i.e. "no card, no service".
+  it('takes the booking as a request when the tenant has no Stripe Connect', async () => {
     const tenantNoStripe = { ...FAKE_TENANT, stripeConnect: null }
     const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
       find: vi.fn().mockImplementation(({ collection }: any) => {
@@ -176,12 +179,14 @@ describe('bookingCheckoutHandler', () => {
       }),
     })
     const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.error).toMatch(/not set up payments/i)
+    expect(body.requested).toBe(true)
+    expect(body.depositCents).toBe(0)
+    expect(body.clientSecret).toBeUndefined() // nothing to pay online
   })
 
-  it('returns 400 when Stripe charges are not enabled', async () => {
+  it('takes the booking as a request when Stripe charges are not enabled', async () => {
     const tenantChargesDisabled = { ...FAKE_TENANT, stripeConnect: { stripeAccountId: 'acct_test', stripeChargesEnabled: false } }
     const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
       find: vi.fn().mockImplementation(({ collection }: any) => {
@@ -190,7 +195,9 @@ describe('bookingCheckoutHandler', () => {
       }),
     })
     const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.requested).toBe(true)
   })
 
   it('returns 400 when serviceId is missing', async () => {

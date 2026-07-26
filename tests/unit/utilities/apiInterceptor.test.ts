@@ -24,10 +24,16 @@ describe('createApiInterceptor', () => {
   beforeEach(() => {
     originalFetch = window.fetch
     vi.clearAllMocks()
+    // createApiInterceptor is deliberately idempotent — it latches
+    // window.__apiInterceptorInstalled so strict-mode double-effects and HMR
+    // can't stack interceptors. The latch survives between tests, so every
+    // test after the first was silently exercising a no-op.
+    delete (window as unknown as { __apiInterceptorInstalled?: boolean }).__apiInterceptorInstalled
   })
 
   afterEach(() => {
     window.fetch = originalFetch
+    delete (window as unknown as { __apiInterceptorInstalled?: boolean }).__apiInterceptorInstalled
   })
 
   it('does not throw when called in window environment', () => {

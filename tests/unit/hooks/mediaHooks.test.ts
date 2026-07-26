@@ -41,13 +41,27 @@ describe('setTenantFromHeader', () => {
     expect(args.req.payload.find).not.toHaveBeenCalled()
   })
 
-  it('leaves an explicit tenant untouched and strips the space hint', async () => {
-    const args = makeArgs({ data: { alt: 'x', tenant: 5, _tenantSpace: 9 } })
+  // The space hint is AUTHORITATIVE and deliberately outranks an explicit
+  // tenant: a chat attachment must live in its space's tenant, or the message's
+  // attachments[].media relationship is rejected as "invalid: Attachments >
+  // Media" and the upload appears to fail. This test used to assert the
+  // opposite order, from before that fix.
+  it('lets a resolvable space hint override an explicit tenant', async () => {
+    const args = makeArgs({
+      data: { alt: 'x', tenant: 5, _tenantSpace: 9 },
+      space: { id: 9, tenant: 20 },
+    })
+    const result = await setTenantFromHeader(args as any)
+    expect((result as any).tenant).toBe(20)
+    expect('_tenantSpace' in (result as any)).toBe(false)
+  })
+
+  it('keeps an explicit tenant when the space hint resolves to nothing', async () => {
+    const args = makeArgs({ data: { alt: 'x', tenant: 5, _tenantSpace: 9 } }) // space = null
     const result = await setTenantFromHeader(args as any)
     expect((result as any).tenant).toBe(5)
     expect('_tenantSpace' in (result as any)).toBe(false)
-    expect(args.req.payload.findByID).not.toHaveBeenCalled()
-    expect(args.req.payload.find).not.toHaveBeenCalled()
+    expect(args.req.payload.find).not.toHaveBeenCalled() // no header fallback needed
   })
 
   it('resolves tenant from the _tenantSpace hint (numeric)', async () => {
