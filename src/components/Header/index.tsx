@@ -12,6 +12,7 @@ import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } f
 import { getAllSouls } from '@/souls'
 import { getBookableServices } from '@/config/bookableServices'
 import { getMembershipPlans } from '@/utilities/membershipPlans'
+import { getNavOverrides, EMPTY_NAV_OVERRIDES, type NavOverrides } from '@/utilities/navOverrides'
 import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 
 import './index.css'
@@ -38,6 +39,12 @@ export async function Header({ tenant }: Props) {
 
   // Hierarchical nav: dynamically hang the tenant's published Pages under Home.
   // Done at render so new pages appear with zero nav maintenance. Non-fatal.
+  /**
+   * The owner's intent layer over the derived menu — hide what they have but
+   * don't want advertised, pin what must stay up front, cap the inline count.
+   * Everything else the menu works out from what the endeavor actually has.
+   */
+  let navOverrides: NavOverrides = EMPTY_NAV_OVERRIDES
   /** The join page when this tenant has an active plan — lifted to a primary nav item. */
   let membership: { url: string; label: string } | null = null
   if (tenantId) {
@@ -246,5 +253,14 @@ export async function Header({ tenant }: Props) {
     }
   }
 
-  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} />
+  if (tenantId) {
+    try {
+      const payload = await getPayload({ config })
+      navOverrides = await getNavOverrides(payload, tenantId)
+    } catch (err) {
+      console.error('[Header] Failed to read nav overrides:', err)
+    }
+  }
+
+  return <HeaderClient header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />
 }

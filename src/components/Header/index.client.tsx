@@ -55,6 +55,8 @@ type Props = {
    * Clearwater, nested three deep under Home behind five product listings.
    */
   membership?: { url: string; label: string } | null
+  /** Owner overrides on the derived menu: hide, pin, inline cap. */
+  navOverrides?: { hidden: string[]; pinned: string[]; maxInline?: number }
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -169,7 +171,7 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership }: Props) {
+export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
   const { user } = useAuth()
 
   // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
@@ -298,8 +300,26 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
   if (hasProducts) forcePrimaryUrls.push('/shop')
   if (isGivingOrg) forcePrimaryUrls.push('/donate')
   if (membership) forcePrimaryUrls.push(membership.url)
-  const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(menu, {
-    maxInline: MAX_INLINE_NAV,
+  // The menu above is DERIVED from what the endeavor actually has. These three
+  // are the only things derivation can't know, because they're the owner's
+  // intent rather than a fact about their content:
+  //   hidden    — "I have this, but don't advertise it"
+  //   pinned    — "keep this up front regardless of the cap"
+  //   maxInline — how many ride the top bar
+  // Hidden wins over pinned: an owner who says don't show it means it, even if
+  // they pinned it earlier and forgot.
+  const hiddenUrls = new Set(navOverrides?.hidden ?? [])
+  const visibleMenu = useMemo(
+    () => menu.filter((i) => !hiddenUrls.has(i?.link?.url ?? '')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [menu, navOverrides?.hidden],
+  )
+  for (const u of navOverrides?.pinned ?? []) {
+    if (!hiddenUrls.has(u) && !forcePrimaryUrls.includes(u)) forcePrimaryUrls.push(u)
+  }
+
+  const { primary: primaryItems, overflow: overflowItems } = partitionNavItems(visibleMenu, {
+    maxInline: navOverrides?.maxInline ?? MAX_INLINE_NAV,
     forcePrimaryUrls,
     forceOverflowUrls: ['/dashboard'],
     demoteUrls,
@@ -317,7 +337,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
       <nav className="flex items-center md:items-end justify-between container pt-2">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
-            <MobileMenu menu={menu} siteName={tenant?.branding?.siteName || tenant?.name || undefined} />
+            <MobileMenu menu={visibleMenu} siteName={tenant?.branding?.siteName || tenant?.name || undefined} />
           </Suspense>
         </div>
         <div className="flex w-full items-end justify-between">
