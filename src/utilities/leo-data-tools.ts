@@ -1338,6 +1338,31 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'platform_solvency',
+    description:
+      "The one number the operator has to keep positive: does what the platform KEEPS from payments exceed what it costs to run? Revenue is real allocation rows written by successful Stripe charges; cost is metered intelligence/telephony/storage, excluding BYOK (a tenant's own API key costs the platform nothing). Use whenever asked \"are we positive\", \"can we afford this\", \"what does the platform cost\", or before any spending decision. super_admin only — this is platform-wide finance, not one endeavor's revenue.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        windowDays: { type: 'number', description: 'Rolling window for the recent leg. Default 30, max 365.' },
+      },
+    },
+  },
+  {
+    name: 'set_platform_fee',
+    description:
+      "Set the platform's cut of payments it helps move, in PERCENT (e.g. 5 or 2.5). Applies to every Connect sale from the moment it is set — it is read live by the Stripe webhook, so there is no deploy. Call with no percent to just report the current rate. Capped at 20% as a fat-finger guard. super_admin only. Use when the operator wants to change pricing, run an experiment, or check what they currently charge.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        percent: {
+          type: 'number',
+          description: 'The new rate as a percentage, e.g. 5 for 5%. Omit to read the current rate without changing it.',
+        },
+      },
+    },
+  },
+  {
     name: 'set_portal_branding',
     description:
       "Set a portal's public name and tagline. The site name is appended to EVERY page title (\"<page> | <site name>\"), so it should be the business's real trading name — \"Harpazo Electric\", not \"Harpazo\". Defaults to the current Endeavor; pass tenantSlug to brand a different portal, e.g. one you just provisioned. Use after provisioning, or whenever a business's name or positioning changes.",
@@ -4431,6 +4456,10 @@ async function executeToolSwitch(
         return await listAvailability(payload, ctx)
       case 'configure_service':
         return await configureService(payload, toolInput, ctx)
+      case 'platform_solvency':
+        return await handlePlatformSolvency(payload, toolInput, ctx)
+      case 'set_platform_fee':
+        return await handleSetPlatformFee(payload, toolInput, ctx)
       case 'set_portal_branding':
         return await setPortalBranding(payload, toolInput, ctx)
       case 'set_holon_profile':
@@ -17608,6 +17637,87 @@ async function listAvailability(
   if (first.maxAdvanceBooking) lines.push(`Maximum advance booking: ${first.maxAdvanceBooking} days`)
 
   return lines.join('\n') + navDirective('/dashboard/availability', 'Manage Availability')
+}
+
+
+/**
+ * platform_solvency — surface solvency.ts to LEO.
+ *
+ * The module computes the operator's single go/no-go number and NOTHING exposed
+ * it: not a tool, not an endpoint LEO could reach. So the one figure the whole
+ * self-funding doctrine rests on could only be read by opening a dashboard.
+ */
+async function handlePlatformSolvency(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'read platform solvency')
+  if (denied) return denied
+
+  const { getSolvencySnapshot } = await import('@/utilities/solvency')
+  const windowDays = typeof input.windowDays === 'number' ? input.windowDays : 30
+  const snap = await getSolvencySnapshot(payload, { windowDays })
+  const usd = (c: number) => `$${(c / 100).toFixed(2)}`
+  const leg = (label: string, l: typeof snap.window) =>
+    `- **${label}** — kept ${usd(l.platformRetainedCents)} from ${usd(l.grossProcessedCents)} processed (${l.revenueEvents} charges); cost ${usd(l.infraCostCents)} (${l.costEvents} events) → net **${usd(l.operationalNetCents)}**`
+
+  const lines = [
+    `**${snap.verdict}**`,
+    '',
+    leg(`Last ${snap.windowDays} days`, snap.window),
+    leg('Lifetime', snap.lifetime),
+  ]
+  if (!snap.available.revenue || !snap.available.cost) {
+    lines.push('', `⚠️ Incomplete: revenue ${snap.available.revenue ? 'ok' : 'unavailable'}, cost ${snap.available.cost ? 'ok' : 'unavailable'}.`)
+  }
+  if (snap.lifetime.revenueEvents === 0) {
+    lines.push(
+      '',
+      'No charge has ever been recorded — the revenue rail exists but has never fired. Any cost figure here is therefore a pure outflow, not a margin.',
+    )
+  }
+  return lines.join('\n')
+}
+
+/**
+ * set_platform_fee — the platform's cut as a runtime setting.
+ *
+ * Pricing you cannot change without a deploy is pricing you cannot experiment
+ * with. Read-only when called without a percent, so "what do we charge?" doesn't
+ * risk changing it.
+ */
+async function handleSetPlatformFee(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  const denied = ensureToolSuperAdmin(ctx, 'change the platform fee')
+  if (denied) return denied
+
+  const { getPlatformFeeBps, setPlatformFeeBps, bpsToPercent, MAX_PLATFORM_FEE_BPS } = await import(
+    '@/utilities/platformFee'
+  )
+  const current = await getPlatformFeeBps(payload)
+
+  if (input.percent == null) {
+    return `The platform currently keeps **${bpsToPercent(current)}%** of payments it moves. Pass a percent to change it.`
+  }
+
+  const pct = Number(input.percent)
+  if (!Number.isFinite(pct) || pct < 0) return 'Error: percent must be a non-negative number, e.g. 5 for 5%.'
+  const requested = Math.round(pct * 100)
+  const applied = await setPlatformFeeBps(payload, requested)
+
+  const lines = [
+    `Platform fee set to **${bpsToPercent(applied)}%** (was ${bpsToPercent(current)}%).`,
+    '- Applies to every Connect sale from now — the Stripe webhook reads it live, no deploy.',
+    `- On a $100 charge the platform keeps $${(applied / 100).toFixed(2)}.`,
+  ]
+  if (requested > MAX_PLATFORM_FEE_BPS) {
+    lines.push(`- ⚠️ Requested ${pct}% was capped at ${MAX_PLATFORM_FEE_BPS / 100}%.`)
+  }
+  return lines.join('\n')
 }
 
 /**

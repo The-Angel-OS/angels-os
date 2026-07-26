@@ -27,7 +27,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
-import { calculateUltimateFairSplit, ULTIMATE_FAIR_SPLIT } from '@/lib/ultimate-fair-split'
+import { getPlatformFeeBps, feeCents, bpsToPercent } from '@/utilities/platformFee'
 import { sendOrderConfirmationEmail } from '@/utilities/sendOrderConfirmationEmail'
 import { logError } from '@/utilities/logError'
 
@@ -286,8 +286,13 @@ async function handlePaymentIntentSucceeded(
   // The connected account received (amount - application_fee).
   // The platform received the application_fee.
   // We still need to record the Justice Fund allocation for our internal accounting.
-  const splits = calculateUltimateFairSplit(amountCents)
-  const justiceFundAmount = splits.find((s) => s.recipient === 'JUSTICE_FUND')?.amount || 0
+  // The applied rate is DATA, not ULTIMATE_FAIR_SPLIT's constant. That constant
+  // declares a 40% platform take (60/20/15/5) which was never actually applied —
+  // only the 5% Justice Fund slice was ever recorded. Reading the configured rate
+  // makes the real number visible and changeable without a deploy.
+  // @see src/utilities/platformFee.ts
+  const feeBps = await getPlatformFeeBps(payload)
+  const justiceFundAmount = feeCents(amountCents, feeBps)
 
   // Record Justice Fund allocation
   if (justiceFundAmount > 0) {
@@ -300,8 +305,8 @@ async function handlePaymentIntentSucceeded(
           amountCents: justiceFundAmount,
           sourcePaymentIntentId: paymentIntent.id,
           sourceTotalCents: amountCents,
-          percentage: ULTIMATE_FAIR_SPLIT.JUSTICE_FUND * 100,
-          description: `5% allocation from ${chargeModel} charge ${paymentIntent.id}${connectedAccountId ? ` (seller: ${connectedAccountId})` : ''}`,
+          percentage: feeBps / 100,
+          description: `${bpsToPercent(feeBps)}% allocation from ${chargeModel} charge ${paymentIntent.id}${connectedAccountId ? ` (seller: ${connectedAccountId})` : ''}`,
           status: 'completed',
           processedAt: new Date().toISOString(),
         },
