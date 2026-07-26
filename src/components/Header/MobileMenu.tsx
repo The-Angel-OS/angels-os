@@ -21,6 +21,10 @@ import React, { useEffect, useState } from 'react'
 
 interface Props {
   menu: Header['navItems']
+  /** URLs the desktop bar pins to the front — /book, /shop, /donate, Join.
+   *  Mobile must honour the same order or the endeavor's revenue links end up
+   *  buried in a 25-item list. */
+  pinnedUrls?: string[]
   siteName?: string
 }
 
@@ -34,7 +38,7 @@ const GUARANTEED_MOBILE_LINKS = [
   { id: 'm-works', link: { type: 'custom' as const, label: 'Works', url: '/works', newTab: false } },
 ]
 
-export function MobileMenu({ menu, siteName }: Props) {
+export function MobileMenu({ menu, pinnedUrls = [], siteName }: Props) {
   const { user } = useAuth()
 
   const pathname = usePathname()
@@ -49,8 +53,28 @@ export function MobileMenu({ menu, siteName }: Props) {
     for (const extra of GUARANTEED_MOBILE_LINKS) {
       if (!urls.has(extra.link.url)) base.push(extra)
     }
-    return base
-  }, [menu])
+
+    // Hoist the pinned links to the top, in the order the desktop pins them.
+    // A phone shows ~6 items without scrolling; whatever is 16th does not exist.
+    if (!pinnedUrls.length) return base
+    const rank = new Map(pinnedUrls.map((u, i) => [u, i]))
+    const pinned: typeof base = []
+    const rest: typeof base = []
+    for (const item of base) {
+      const u = (item as { link?: { url?: string | null } }).link?.url ?? ''
+      if (rank.has(u)) pinned.push(item)
+      else rest.push(item)
+    }
+    pinned.sort(
+      (a, b) =>
+        (rank.get((a as { link?: { url?: string | null } }).link?.url ?? '') ?? 0) -
+        (rank.get((b as { link?: { url?: string | null } }).link?.url ?? '') ?? 0),
+    )
+    return [...pinned, ...rest]
+  }, [menu, pinnedUrls])
+
+  const isActive = (url?: string | null) =>
+    url && url !== '/' ? pathname?.includes(url) : pathname === '/'
 
   const closeMobileMenu = () => setIsOpen(false)
 
@@ -62,7 +86,9 @@ export function MobileMenu({ menu, siteName }: Props) {
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [isOpen])
+    // Subscribe once — this listener does not depend on `isOpen`, and listing it
+    // tore down and re-added the handler on every open and close.
+  }, [])
 
   useEffect(() => {
     setIsOpen(false)
@@ -95,7 +121,18 @@ export function MobileMenu({ menu, siteName }: Props) {
                 const children: any[] = Array.isArray((item as any).children) ? (item as any).children : []
                 return (
                   <li className="py-2" key={item.id}>
-                    <CMSLink {...item.link} appearance="link" />
+                    <span
+                      className={
+                        isActive(item.link?.url)
+                          ? 'font-semibold text-foreground [&_a]:text-foreground'
+                          : ''
+                      }
+                      // Tells assistive tech which page you're on — the sheet
+                      // gave no indication at all before.
+                      aria-current={isActive(item.link?.url) ? 'page' : undefined}
+                    >
+                      <CMSLink {...item.link} appearance="link" />
+                    </span>
                     {children.length > 0 && (
                       <ul className="mt-1 ml-3 flex flex-col border-l border-border pl-3">
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

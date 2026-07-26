@@ -337,7 +337,15 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
       <nav className="flex items-center md:items-end justify-between container pt-2">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
-            <MobileMenu menu={visibleMenu} siteName={tenant?.branding?.siteName || tenant?.name || undefined} />
+            {/* The SAME pins the desktop bar honours. Mobile used to render the
+                raw array, so /book, /shop, /donate and Join — the links the
+                endeavor actually earns from — landed wherever they happened to
+                sit (the Join link was 16th of 25). @see docs/FOOTGUNS.md §2.7 */}
+            <MobileMenu
+              menu={visibleMenu}
+              pinnedUrls={forcePrimaryUrls}
+              siteName={tenant?.branding?.siteName || tenant?.name || undefined}
+            />
           </Suspense>
         </div>
         <div className="flex w-full items-end justify-between">
