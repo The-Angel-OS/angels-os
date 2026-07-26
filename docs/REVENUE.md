@@ -2,6 +2,20 @@
 
 *The economic covenant of the federation.*
 
+> ⚠️ **This document is DOCTRINE, not the live rate.** The split below is where
+> the federation intends to go. It is **not** what the code charges today.
+>
+> The live platform fee is **data**, read from `src/utilities/platformFee.ts`
+> (5% by default) and changeable without a deploy. Read that file — never this
+> document — to answer "what does the platform take?"
+>
+> This matters: a constant declaring a 40% platform take was fed straight into
+> Stripe `application_fee_amount` on live booking deposits until `260725`, taking
+> $30 off a $75 deposit on a charge with the provider's name on the receipt. Four
+> different splits were claimed across the codebase at once. If you are about to
+> quote a number to a customer or write one into code, get it from
+> `platformFee.ts`. — `260726`
+
 ---
 
 ## The Constitutional Split

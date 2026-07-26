@@ -8,6 +8,8 @@
 
 | Document | Description |
 |----------|-------------|
+| [RUNBOOK_CONTINUITY.md](./RUNBOOK_CONTINUITY.md) | **If Ken isn't here** — how a competent stranger keeps the platform running |
+| [FOOTGUNS.md](./FOOTGUNS.md) | **Read before changing anything** — the traps, what each one cost, and the rule |
 | [ENGINEERING_HANDBOOK.md](./ENGINEERING_HANDBOOK.md) | **Scotty's Manual** — Essential gotchas, architecture, patterns |
 | [STATUS.md](./STATUS.md) | Current sprint state and next steps |
 | [README.md](./README.md) | Project overview and quick start |
@@ -20,7 +22,7 @@
 | [DATA_MODEL.md](./DATA_MODEL.md) | All 42 collections with schemas and relationships |
 | [AGENTIC_FRAMEWORK.md](./AGENTIC_FRAMEWORK.md) | **Canonical** — LEO's 119 tools, the AI bus & channels, connectors, VAPI, crew |
 | [LEO_TOOLS_REFERENCE.md](./LEO_TOOLS_REFERENCE.md) | All 119 LEO tools organized by phase |
-| [REVENUE.md](./REVENUE.md) | Revenue model, bootstrap fees, UltimateFairSplit |
+| [REVENUE.md](./REVENUE.md) | Revenue **doctrine** — ⚠️ not the live rate; that is `src/utilities/platformFee.ts` |
 | [LEO_SHOWCASE.md](./LEO_SHOWCASE.md) | LEO capabilities demonstration |
 
 ## Architecture Deep Dives
