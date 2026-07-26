@@ -6,6 +6,8 @@ import type { Metadata } from 'next'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 import Link from 'next/link'
+import { CollectionHero } from '@/components/CollectionHero'
+import { tenantHeroImage } from '@/utilities/tenantHeroImage'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { tenant } = await resolveTenantFromHeaders()
@@ -36,7 +38,12 @@ const PRODUCTS_PER_PAGE = 12
 export default async function ShopPage({ searchParams }: Props) {
   const { q: searchValue, sort, category, page: pageParam } = await searchParams
   const payload = await getPayload({ config: configPromise })
-  const { tenantFilter } = await resolveTenantFromHeaders()
+  const { tenant, tenantFilter } = await resolveTenantFromHeaders()
+  // storefront.shopHeroImage existed in the admin — described there as the
+  // "Header image for the Shop list page" — but nothing ever read it, so setting
+  // it did nothing. Posts and Events both render CollectionHero; Shop was the
+  // one list page that didn't, which made the setting a promise the UI couldn't keep.
+  const heroImage = tenantHeroImage(tenant, 'shop')
 
   const pageRaw = Array.isArray(pageParam) ? pageParam[0] : pageParam
   const page = Math.max(1, Number.parseInt(pageRaw || '1', 10) || 1)
@@ -85,6 +92,13 @@ export default async function ShopPage({ searchParams }: Props) {
 
   return (
     <div>
+      <CollectionHero
+        title="Shop"
+        subtitle="Handcrafted goods and gear"
+        icon="🛍️"
+        image={heroImage}
+      />
+
       {searchValue ? (
         <p className="mb-4">
           {products.docs?.length === 0
