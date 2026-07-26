@@ -86,6 +86,23 @@ export const Contacts: CollectionConfig = {
       admin: { description: 'External ID from source system (Clerk user_xxx, etc.)' },
     },
     {
+      // FIRST-touch attribution, captured by the embed widget. First rather than
+      // last on purpose: the ad that earned the visit is the one worth crediting,
+      // and by the time someone converts they have usually arrived again
+      // directly. Without this, "which channel sold it" is unanswerable — which
+      // is the only number a campaign is judged on.
+      name: 'attribution',
+      type: 'group',
+      admin: { description: 'Where this contact originally came from (first touch).' },
+      fields: [
+        { name: 'source', type: 'text', index: true, admin: { description: 'utm_source — e.g. youtube, meta, newsletter' } },
+        { name: 'medium', type: 'text', admin: { description: 'utm_medium — e.g. cpc, organic, email' } },
+        { name: 'campaign', type: 'text', index: true, admin: { description: 'utm_campaign — e.g. kessela-clearout' } },
+        { name: 'landingPage', type: 'text', admin: { description: 'The page they first arrived on' } },
+        { name: 'referrer', type: 'text', admin: { description: 'document.referrer at first touch' } },
+      ],
+    },
+    {
       name: 'tags',
       type: 'text',
       hasMany: true,

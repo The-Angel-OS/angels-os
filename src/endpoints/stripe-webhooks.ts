@@ -392,6 +392,24 @@ async function handlePaymentIntentSucceeded(
         (typeof order?.orderedBy === 'object' ? order.orderedBy?.email : null)
 
       if (customerEmail) {
+        // Join the till back to the CRM so campaign sequences can exclude
+        // buyers. Fire-and-forget and fail-soft — the order is already
+        // recorded, and a tagging failure must never affect a payment.
+        void (async () => {
+          const { markContactPurchased } = await import('@/utilities/markContactPurchased')
+          const orderTenant = order?.tenant
+            ? typeof order.tenant === 'object'
+              ? order.tenant.id
+              : order.tenant
+            : metadata.tenantId
+          if (orderTenant) {
+            await markContactPurchased(payload, {
+              tenantId: orderTenant as number | string,
+              email: customerEmail,
+            })
+          }
+        })()
+
         // Build order items from the order data
         const orderItems: Array<{ title: string; quantity: number; priceInUSD: number }> = []
         const items = order?.items || []

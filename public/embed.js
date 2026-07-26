@@ -23,6 +23,40 @@
   var cta = script.getAttribute('data-cta') || 'Send it to me'
   var origin = new URL(script.src).origin
 
+  /**
+   * First-touch attribution, stashed on first arrival and reused thereafter.
+   *
+   * Last-touch would credit whatever page they happened to convert on, which is
+   * almost always a direct visit — so the ad that actually earned the lead gets
+   * no credit and looks like it failed. Stored in localStorage; if that's
+   * unavailable (private mode, blocked storage) we fall back to the current URL
+   * rather than losing the lead.
+   */
+  var ATTR_KEY = 'angel_attr'
+
+  function firstTouch() {
+    var p = new URLSearchParams(location.search)
+    var current = {
+      utmSource: p.get('utm_source') || '',
+      utmMedium: p.get('utm_medium') || '',
+      utmCampaign: p.get('utm_campaign') || '',
+      landingPage: location.pathname + location.search,
+      referrer: document.referrer || '',
+    }
+    try {
+      var saved = localStorage.getItem(ATTR_KEY)
+      if (saved) return JSON.parse(saved)
+      // Only persist an arrival that actually carries a source; otherwise a
+      // direct visit would permanently claim credit for a later ad click.
+      if (current.utmSource || current.referrer) {
+        localStorage.setItem(ATTR_KEY, JSON.stringify(current))
+      }
+    } catch (e) {
+      /* storage blocked — current touch is the best we have */
+    }
+    return current
+  }
+
   function el(tag, style, props) {
     var n = document.createElement(tag)
     if (style) n.style.cssText = style
@@ -71,12 +105,17 @@
       headers: { 'Content-Type': 'application/json' },
       // No cookies, deliberately — this is why the endpoint can allow any origin.
       credentials: 'omit',
-      body: JSON.stringify({
-        tenant: tenant,
-        campaign: campaign,
-        email: email.value,
-        company: pot.value,
-      }),
+      body: JSON.stringify(
+        Object.assign(
+          {
+            tenant: tenant,
+            campaign: campaign,
+            email: email.value,
+            company: pot.value,
+          },
+          firstTouch(),
+        ),
+      ),
     })
       .then(function (r) {
         return r.json().catch(function () {

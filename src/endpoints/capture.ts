@@ -64,6 +64,17 @@ export const captureHandler: PayloadHandler = async (req) => {
   const name = clean(body.name)
   const campaign = clean(body.campaign)
 
+  // First-touch attribution, sent by the widget. Recorded once, on CREATE only —
+  // overwriting it on a later submit would silently rewrite the ad that earned
+  // the visit into whatever page they happened to convert on.
+  const attribution = {
+    source: clean(body.utmSource),
+    medium: clean(body.utmMedium),
+    campaign: clean(body.utmCampaign) ?? campaign,
+    landingPage: clean(body.landingPage),
+    referrer: clean(body.referrer),
+  }
+
   if (!tenantSlug) return json({ error: 'Missing tenant.' }, 400)
   if (!email && !phone) return json({ error: 'An email or phone is required.' }, 400)
   if (email && !EMAIL_RE.test(email)) return json({ error: 'That email looks wrong.' }, 400)
@@ -115,6 +126,7 @@ export const captureHandler: PayloadHandler = async (req) => {
         name,
         source: 'web-form',
         sourceId: campaign,
+        attribution,
         tags,
         contactStatus: 'active',
       } as any,
