@@ -99,7 +99,10 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const currency = 'usd'
     const total = totalCents(service)
     const deposit = depositCents(service)
-    const balanceCents = total - deposit
+    // A flat-deposit service with no list price is QUOTED on completion, not
+    // negative. `total - deposit` wrote -7500 onto the booking and into the
+    // Stripe metadata for a $75 flat deposit on a $0-listed job.
+    const balanceCents = Math.max(0, total - deposit)
 
     // Does this booking need an up-front online payment? Only when there's a real
     // deposit AND the endeavor can take card AND it isn't explicitly COD. A $0 / no-

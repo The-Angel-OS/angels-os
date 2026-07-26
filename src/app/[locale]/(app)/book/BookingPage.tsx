@@ -505,12 +505,24 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                   {depositCents > 0 ? (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Deposit due now ({selectedService.depositPercent}%)</span>
+                        {/* A FLAT deposit has no percentage — printing one showed
+                            "Deposit due now (20%)" on a $75 flat fee. */}
+                        <span className="text-muted-foreground">
+                          Deposit due now
+                          {totalCents > 0 && selectedService.depositPercent
+                            ? ` (${selectedService.depositPercent}%)`
+                            : ''}
+                        </span>
                         <span className="font-semibold">{money(depositCents)}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Balance on completion</span>
-                        <span className="font-medium">{money(totalCents - depositCents)}</span>
+                        {/* No service total means the job is QUOTED, not free —
+                            subtracting gave "-$75.00", which reads as the customer
+                            being owed money at the exact moment they're asked to pay. */}
+                        <span className="font-medium">
+                          {totalCents > depositCents ? money(totalCents - depositCents) : 'Quoted on completion'}
+                        </span>
                       </div>
                     </>
                   ) : (

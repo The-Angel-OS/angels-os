@@ -5335,12 +5335,6 @@ async function createBooking(
       pricing: {
         amount: 0,
         currency: 'usd',
-        splitConfiguration: {
-          providerShare: 60,
-          platformShare: 20,
-          operationsShare: 15,
-          justiceShare: 5,
-        },
       },
     })
 

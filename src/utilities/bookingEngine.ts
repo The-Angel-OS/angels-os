@@ -448,13 +448,9 @@ export class BookingEngine {
 
     const endDateTime = new Date(request.startDateTime.getTime() + request.duration * 60 * 1000)
 
-    // Apply Ultimate Fair split if not provided
-    const splitConfiguration = request.pricing.splitConfiguration || {
-      providerShare: 60,
-      platformShare: 20,
-      operationsShare: 15,
-      justiceShare: 5
-    }
+    // splitConfiguration is DEPRECATED and no longer written. The applied rate
+    // is data (src/utilities/platformFee.ts); writing a second, different set of
+    // numbers onto every booking is how four conflicting splits came to exist.
 
     const tenantIdNum = typeof request.tenantId === 'number' ? request.tenantId : parseInt(String(request.tenantId), 10)
     if (Number.isNaN(tenantIdNum)) throw new Error('Invalid tenantId')
@@ -476,7 +472,6 @@ export class BookingEngine {
         duration: request.duration,
         pricing: {
           ...request.pricing,
-          splitConfiguration
         },
         location: request.location,
         status: 'pending',

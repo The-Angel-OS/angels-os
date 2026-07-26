@@ -652,12 +652,6 @@ Be excellent to each other. Party on, dudes.`,
         pricing: {
           amount: b.amount,
           currency: 'usd',
-          splitConfiguration: {
-            providerShare: 60,
-            platformShare: 20,
-            operationsShare: 15,
-            justiceShare: 5,
-          },
         },
         status: 'confirmed',
         location: {

@@ -107,6 +107,7 @@ import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
+import { captureHandler, captureOptionsHandler } from '@/endpoints/capture'
 import { presencePingHandler } from '@/endpoints/presence-ping'
 import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
@@ -643,6 +644,18 @@ export default buildConfig({
       path: '/chat/send',
       method: 'post',
       handler: chatSendHandler,
+    },
+    // Public lead capture for sites we don't host (the embed.js widget).
+    // Unauthenticated by design — see src/endpoints/capture.ts.
+    {
+      path: '/capture',
+      method: 'post',
+      handler: captureHandler,
+    },
+    {
+      path: '/capture',
+      method: 'options',
+      handler: captureOptionsHandler,
     },
     {
       path: '/presence-ops/ping',

@@ -489,20 +489,16 @@ export const Bookings: CollectionConfig = {
           data.endDateTime = endTime.toISOString()
         }
 
-        // Validate Ultimate Fair percentages sum to 100
-        if (data.pricing?.splitConfiguration) {
-          const {
-            providerShare = 60,
-            platformShare = 20,
-            operationsShare = 15,
-            justiceShare = 5,
-          } = data.pricing.splitConfiguration
-
-          const total = providerShare + platformShare + operationsShare + justiceShare
-          if (Math.abs(total - 100) > 0.01) {
-            throw new Error(`Payment split percentages must sum to 100%. Current total: ${total}%`)
-          }
-        }
+        // The splitConfiguration validator lived here and BLOCKED CHECKOUT.
+        // The field is deprecated — nothing applies it; the live rate is data in
+        // src/utilities/platformFee.ts. But its own defaults (95/5/0/5) sum to
+        // 105, so any booking created without an explicit split — which is every
+        // booking from /book — threw "percentages must sum to 100%" and the
+        // deposit could not be paid. A validator guarding a value nothing reads
+        // took the money path down with it. @see docs/FOOTGUNS.md §2.3
+        //
+        // Deleted rather than corrected: making 105 into 100 would keep a rule
+        // enforcing a number that has no effect on what anyone is charged.
 
         return data
       },

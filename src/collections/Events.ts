@@ -478,22 +478,10 @@ export const Events: CollectionConfig = {
           data.endDateTime = new Date(start.getTime() + data.duration * 60000).toISOString()
         }
 
-        // Validate Ultimate Fair percentages
-        if (data.pricing?.splitConfiguration && !data.pricing?.isFree) {
-          const {
-            providerShare = 60,
-            platformShare = 20,
-            operationsShare = 15,
-            justiceShare = 5,
-          } = data.pricing.splitConfiguration
-
-          const total = providerShare + platformShare + operationsShare + justiceShare
-          if (Math.abs(total - 100) > 0.01) {
-            throw new Error(
-              `Payment split percentages must sum to 100%. Current total: ${total}%`,
-            )
-          }
-        }
+        // The same deprecated-split validator that blocked booking deposits was
+        // here too, and would have blocked saving any PAID event: its own
+        // defaults (95/5/0/5) sum to 105. Removed for the same reason — it
+        // enforced a number nothing charges. @see src/collections/Bookings.ts
 
         return data
       },
