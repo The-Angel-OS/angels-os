@@ -7,7 +7,15 @@ node_modules
 .env
 .env.*
 !.env.example
-docs
+# docs/ WAS excluded wholesale, which is why /dashboard/docs reported "0
+# documents across 0 categories" — the endpoint reads docs/ off disk and the
+# directory was not in the image. The 78MB that justified excluding it is
+# entirely binaries: transcripts 31MB, presentations 25MB, images 20MB. The 281
+# markdown files the Documentation Center actually serves are 2.5MB, so ship
+# those and keep the heavy folders out.
+docs/transcripts
+docs/presentations
+docs/images
 *.log
 build-out.log
 coverage
