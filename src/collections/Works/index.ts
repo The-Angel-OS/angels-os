@@ -30,7 +30,13 @@ export const Works: CollectionConfig = {
     // The Library is read-freely; writes are gated (owner-tenant rules come in Phase 4).
     read: () => true,
     create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
+    // Works carry tenant SLUGS rather than a tenant relationship, so there is
+    // nothing to scope a filter against yet (owner-tenant rules are Phase 4).
+    // Until then admin-only: `Boolean(user)` let any signed-in account rewrite
+    // the Library's text. Importers/LEO tools use overrideAccess and are
+    // unaffected.
+    update: ({ req: { user } }) =>
+      Boolean(user && ((user as { roles?: string[] }).roles ?? []).some((r) => ['super_admin', 'admin', 'archangel'].includes(r))),
     delete: ({ req: { user } }) => {
       const roles = (user as { roles?: string[] } | null)?.roles ?? []
       return roles.includes('super_admin') || roles.includes('admin')

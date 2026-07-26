@@ -26,8 +26,11 @@ export const Presence: CollectionConfig = {
   access: {
     read: ({ req: { user } }) => Boolean(user),
     create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    // Presence is deliberately global (not tenant-scoped), so `Boolean(user)`
+    // on update/delete meant anyone could rewrite or clear anyone else's
+    // presence. Own row only.
+    update: ({ req: { user } }) => (user ? { user: { equals: user.id } } : false),
+    delete: ({ req: { user } }) => (user ? { user: { equals: user.id } } : false),
   },
   fields: [
     {

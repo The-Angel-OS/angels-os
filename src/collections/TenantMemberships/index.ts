@@ -1,6 +1,6 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig, Where } from 'payload'
 
-import { checkRole } from '@/access/utilities'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { syncUserTenants } from './hooks/syncUserTenants'
 import { autoJoinSpaces } from './hooks/autoJoinSpaces'
 
@@ -12,7 +12,47 @@ import { autoJoinSpaces } from './hooks/autoJoinSpaces'
  *
  * The syncUserTenants afterChange hook syncs active memberships to the User's
  * `tenants` array so the multi-tenant admin plugin shows the correct tenant data.
+ *
+ * ACCESS IS SECURITY-CRITICAL HERE. This collection IS the authorization graph:
+ * a row saying (user X, tenant Y, role tenant_admin) grants X administrative
+ * control of Y. It is also NOT registered with the multi-tenant plugin, so
+ * nothing ANDs a tenant filter onto it — unlike contacts/orders/etc.
+ *
+ * It previously had `create` and `update` open to any signed-in user, with no
+ * field-level guard on `role`. That let anyone POST themselves a tenant_admin
+ * row on ANY tenant on the node, at which point autoJoinSpaces enrolled them in
+ * that tenant's spaces. Every legitimate writer — provisioning,
+ * ensureTenantMembership, invite acceptance — goes through the Local API with
+ * overrideAccess, so none of them are affected by locking this down.
  */
+const isPlatformAdmin: Access = ({ req: { user } }) =>
+  Boolean(user && checkRole(ADMIN_ROLES, user))
+
+/** Own rows, plus the rosters of tenants you're actually a member of. */
+const membershipReadAccess: Access = async ({ req }) => {
+  const user = req.user
+  if (!user?.id) return false
+  if (checkRole(ADMIN_ROLES, user)) return true
+
+  const mine = await req.payload.find({
+    collection: 'tenant-memberships',
+    where: { user: { equals: user.id } },
+    limit: 500,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  })
+  const tenantIds = (mine.docs || [])
+    .map((m) => {
+      const t = (m as { tenant?: unknown }).tenant
+      return typeof t === 'object' && t !== null ? (t as { id?: number | string }).id : t
+    })
+    .filter((v): v is number | string => v != null)
+
+  if (!tenantIds.length) return { user: { equals: user.id } } as Where
+  return { or: [{ user: { equals: user.id } }, { tenant: { in: tenantIds } }] } as Where
+}
+
 export const TenantMemberships: CollectionConfig = {
   slug: 'tenant-memberships',
   hooks: {
@@ -27,11 +67,15 @@ export const TenantMemberships: CollectionConfig = {
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },
   access: {
-    create: ({ req: { user } }) => Boolean(user),
+    // Writes are admin-only over the API. Server flows use overrideAccess.
+    create: isPlatformAdmin,
+    update: isPlatformAdmin,
     delete: ({ req: { user } }) =>
       Boolean(user && checkRole(['super_admin', 'admin'], user)),
-    read: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
+    // Reads are scoped to what you can legitimately see: your own memberships,
+    // plus the roster of any tenant you actually belong to (the dashboard's
+    // member list depends on this). Not the whole node's membership graph.
+    read: membershipReadAccess,
   },
   fields: [
     {

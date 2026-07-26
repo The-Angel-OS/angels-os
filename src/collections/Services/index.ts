@@ -14,6 +14,7 @@
  * @see src/utilities/resolveServices.ts  @see src/config/bookableServices.ts
  */
 import type { CollectionConfig } from 'payload'
+import { isTenantMember } from '@/access/isTenantMember'
 
 export const Services: CollectionConfig = {
   slug: 'services',
@@ -27,8 +28,11 @@ export const Services: CollectionConfig = {
   access: {
     // Public read of enabled services drives the booking page; writes are gated.
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
+    create: isTenantMember,
+    // NOT `Boolean(user)`: this collection is not multi-tenant-plugin wrapped,
+    // so that let any signed-in customer rewrite ANOTHER endeavor's service —
+    // including its price and deposit, which is what /book charges.
+    update: isTenantMember,
     delete: ({ req: { user } }) => {
       const roles = (user as { roles?: string[] } | null)?.roles ?? []
       return roles.includes('super_admin') || roles.includes('admin')
