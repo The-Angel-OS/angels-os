@@ -143,11 +143,17 @@ describe('stripeWebhooksHandler', () => {
     const req = makeReq('{}', { 'stripe-signature': 'sig_valid' }, { create: createMock })
     const res = await stripeWebhooksHandler(req)
     expect(res.status).toBe(200)
-    expect(mockCalculateSplit).toHaveBeenCalledWith(10000)
-    // justice-fund-transactions create was called
+    // The handler no longer calls calculateUltimateFairSplit — the rate is DATA
+    // now (getPlatformFeeBps). The invariant worth protecting is that the amount
+    // we BANK equals the percentage we CLAIM on the same row; asserting a literal
+    // is how a 40% take stayed green for weeks. @see src/utilities/platformFee.ts
     const createCalls = createMock.mock.calls
     const jfCall = createCalls.find((c: any) => c[0].collection === 'justice-fund-transactions')
     expect(jfCall).toBeDefined()
+    const jf = jfCall![0].data
+    expect(jf.sourceTotalCents).toBe(10000)
+    expect(jf.amountCents).toBe(Math.round((10000 * jf.percentage) / 100))
+    expect(jf.percentage).toBeLessThanOrEqual(10) // a platform fee, not a split
   })
 
   it('processes account.updated and syncs tenant Stripe status', async () => {

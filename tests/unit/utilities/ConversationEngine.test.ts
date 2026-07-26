@@ -106,7 +106,11 @@ describe('ConversationEngine', () => {
       })
       expect(response).not.toBeNull()
       expect(response!.text).toContain('LEO')
-      expect(response!.text).toContain('try again')
+      // Footgun 2.8: a fallback must not promise a follow-up that never comes.
+      // There is no background job and no later turn — if it can't answer, it
+      // says so and names what a human has to do.
+      expect(response!.text).not.toMatch(/shortly|warming up|in a moment|give me a (second|moment)/i)
+      expect(response!.text).toMatch(/admin/i)
     })
 
     it('tracks intent from incoming message', async () => {

@@ -37,7 +37,9 @@ describe('mergeOpenGraph', () => {
     const images = (og as any).images
     expect(Array.isArray(images)).toBe(true)
     expect(images.length).toBeGreaterThan(0)
-    expect(images[0].url).toContain('website-template-OG.webp')
+    // The asset name churns (website-template-OG.webp → og-fallback.jpg). What
+    // must hold is that it is an ABSOLUTE url — scrapers won't resolve a path.
+    expect(images[0].url).toMatch(/^https?:\/\/.+\/og-fallback\.jpg$/)
   })
 
   it('preserves default siteName when not overridden', () => {

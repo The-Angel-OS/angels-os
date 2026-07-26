@@ -18,7 +18,9 @@ export const Quests: CollectionConfig = {
     // Quests with networkListing=true are intentionally cross-tenant
     // (handled by federation catalog, not collection-level access).
     read: publicWithTenantScope,
-    update: authenticated,
+    // Not `authenticated`: a quest's payout amount is money, and that let any
+    // signed-in user edit any quest on the node. Delete was already adminOnly.
+    update: adminOnly,
     delete: adminOnly,
   },
   fields: [

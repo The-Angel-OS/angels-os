@@ -733,9 +733,13 @@ You are responding on behalf of your Enterprise to a peer in the federation netw
     errorDetail?: string,
   ): MessageContent {
     const agentName = this.context.agent?.displayName || 'LEO'
+    // Footgun 2.8: never promise something that will not happen. "warming up …
+    // I'll be fully online shortly" described a background process that does not
+    // exist — nothing retries, so the person waited for nothing. Name only
+    // actions that are real, and say plainly when a human has to act.
     const userFacingMsg = errorDetail
-      ? `${agentName}: I wasn't able to process that — the AI service returned an error. Our team has been notified and this has been logged. Please try again in a moment.`
-      : `${agentName}: I'm here to help! My AI capabilities are currently warming up. In the meantime, feel free to explore the platform — I'll be fully online shortly.`
+      ? `${agentName}: That didn't go through — the AI service returned an error, and I've logged it. Sending your message again often works; if it keeps failing, it needs an admin.`
+      : `${agentName}: I can't answer that right now — no AI provider is configured here, and that won't fix itself. An admin can connect one in Settings. Everything else on the platform still works.`
     return {
       type: 'text',
       text: userFacingMsg,

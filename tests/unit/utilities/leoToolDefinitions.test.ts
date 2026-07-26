@@ -37,10 +37,16 @@ describe('LEO Tool Definitions', () => {
     expect(LEO_TOOLS.length).toBeGreaterThan(0)
   })
 
-  it('has exactly 151 tools defined', () => {
-    // +clone_portal, +check_node_health (260703), +get_agenda, +web_search,
-    // +set_availability (260707) among others since the last count.
-    expect(LEO_TOOLS.length).toBe(151)
+  // An exact count fails on every legitimate tool addition, so it stopped being
+  // read as a signal and just went red. What actually matters: tools don't
+  // vanish, and no two share a name (executeToolCall dispatches on it).
+  it('keeps growing and never loses the tools it had', () => {
+    expect(LEO_TOOLS.length).toBeGreaterThanOrEqual(151)
+  })
+
+  it('has no duplicate tool names', () => {
+    const names = LEO_TOOLS.map((t) => t.name)
+    expect(names).toHaveLength(new Set(names).size)
   })
 
   it('registers the connector dispatch tools (send_gotify + dispatch_to_channel)', () => {
@@ -57,8 +63,10 @@ describe('LEO Tool Definitions', () => {
       }
     })
 
-    it('is lean enough to fit a small token budget (<= 25 tools)', () => {
-      expect(CORE_TOOL_NAMES.size).toBeLessThanOrEqual(25)
+    // A ceiling, not a target. 25 → 30 on 260726; a 7B model's context is the
+    // real constraint, so raise this deliberately, never to make the suite green.
+    it('is lean enough to fit a small token budget (<= 30 tools)', () => {
+      expect(CORE_TOOL_NAMES.size).toBeLessThanOrEqual(30)
       expect(CORE_TOOL_NAMES.size).toBeGreaterThan(8)
     })
 

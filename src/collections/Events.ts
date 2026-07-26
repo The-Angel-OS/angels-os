@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
 import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
@@ -23,8 +24,12 @@ export const Events: CollectionConfig = {
       if (tenantWhere) return mergeWithTenantScope(nonDraft, tenantWhere)
       return nonDraft
     },
-    update: authenticated,
-    delete: authenticated,
+    // `authenticated` here let any signed-in customer — customers and vendors
+    // share one dashboard — edit or delete any event on the node, across every
+    // tenant. Manager surfaces (/dashboard/events, LEO tools) already read and
+    // write with overrideAccess + a tenant filter, so they are unaffected.
+    update: adminOnly,
+    delete: adminOnly,
   },
   fields: [
     {

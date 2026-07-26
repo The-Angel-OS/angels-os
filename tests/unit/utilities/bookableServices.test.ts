@@ -11,14 +11,17 @@ import {
 
 describe('bookableServices', () => {
   describe('getBookableServices', () => {
-    it('returns the Clearwater Cruisin catalog (3 services)', () => {
+    it('returns the Clearwater Cruisin catalog', () => {
       const svcs = getBookableServices('clearwater-cruisin')
-      expect(svcs).toHaveLength(3)
-      expect(svcs.map((s) => s.id)).toEqual([
-        'pressure-washing-driveway',
-        'pressure-washing-house',
-        'pet-sitting-visit',
-      ])
+      // A catalog is DATA — it grows. Assert the ones the booking flow and its
+      // fixtures depend on, not the exact length.
+      expect(svcs.map((s) => s.id)).toEqual(
+        expect.arrayContaining([
+          'pressure-washing-driveway',
+          'pressure-washing-house',
+          'pet-sitting-visit',
+        ]),
+      )
     })
 
     it('returns [] for unknown or missing tenant', () => {

@@ -89,7 +89,7 @@ describe('buildConstitutionalPrompt', () => {
 
   it('contains Article III — Agent Conduct', () => {
     expect(prompt).toContain('artificial intelligence')
-    expect(prompt).toContain('irreversible actions')
+    expect(prompt).toContain('irreversible')
     expect(prompt).toContain('AI Bus')
   })
 

@@ -365,15 +365,11 @@ describe('Image Generation Availability', () => {
     expect(typeof available).toBe('boolean')
   })
 
-  it('returns false when OPENROUTER_API_KEY is not set', () => {
-    const orig = process.env.OPENROUTER_API_KEY
-    delete process.env.OPENROUTER_API_KEY
-    try {
-      const available = isImageGenerationAvailable()
-      expect(available).toBe(false)
-    } finally {
-      if (orig !== undefined) process.env.OPENROUTER_API_KEY = orig
-    }
+  // OpenRouter is one link in a chain (gateway → openrouter → openai → google
+  // → cloudflare), so removing its key no longer means "unavailable". The
+  // contract that survives: a tenant's own key stands alone.
+  it('is available when a tenant brings its own key', () => {
+    expect(isImageGenerationAvailable('sk-tenant-key')).toBe(true)
   })
 })
 

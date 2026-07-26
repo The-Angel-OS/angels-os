@@ -8,7 +8,9 @@ import { SOULS, getSoul, getAllSouls } from '@/souls'
 describe('souls registry', () => {
   it('registers the expected works including answer53 and wdeg', () => {
     const ids = Object.keys(SOULS)
-    expect(ids).toEqual(expect.arrayContaining(['rainmaker', 'wdeg', 'answer53', 'ready-player-everyone']))
+    // 'rainmaker' was deliberately unpublished on 260710 (active legal matter) —
+    // removed from the registry, not lost. Re-add it here if it is ever restored.
+    expect(ids).toEqual(expect.arrayContaining(['wdeg', 'answer53', 'ready-player-everyone']))
   })
 
   it('getSoul returns a manifest by id and null for unknown', () => {

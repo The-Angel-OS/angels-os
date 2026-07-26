@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
 import { publicWithTenantScope } from '@/access/publicWithTenantScope'
 import { logError } from '@/utilities/logError'
@@ -16,8 +17,10 @@ export const Projects: CollectionConfig = {
     create: authenticated,
     // Projects are portfolio items — publicly readable, scoped to current tenant.
     read: publicWithTenantScope,
-    update: authenticated,
-    delete: authenticated,
+    // Not `authenticated`: that let any signed-in customer rewrite or delete a
+    // vendor's portfolio, on any tenant. See Events.ts for the same fix.
+    update: adminOnly,
+    delete: adminOnly,
   },
   fields: [
     {
