@@ -15,7 +15,7 @@
  *
  * Returns the resolved user and a bearer-usable Payload token.
  */
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { SignJWT } from 'jose'
 import crypto from 'crypto'
 
@@ -43,6 +43,9 @@ const TOKEN_TTL_SECONDS = 14 * 24 * 60 * 60 // 14 days
 export async function resolveUserFromGoogleClaims(
   payload: Payload,
   claims: GoogleClaims,
+  /** Pass the request's own `req` — downstream writes must JOIN this connection
+   *  rather than open a second one. @see docs/FOOTGUNS.md §2.1 */
+  req?: PayloadRequest,
 ): Promise<ResolvedGoogleUser> {
   const { email, name, sub, picture } = claims
 
@@ -162,7 +165,7 @@ export async function resolveUserFromGoogleClaims(
   // loads My Portals, but fail-soft — a provisioning hiccup never blocks sign-in.
   try {
     const { ensureBaselineMemberships } = await import('@/utilities/ensureBaselineMemberships')
-    await ensureBaselineMemberships(payload, { id: user.id, email: user.email, name: user.name })
+    await ensureBaselineMemberships(payload, { id: user.id, email: user.email, name: user.name }, { req })
   } catch (gaErr) {
     console.warn('[Google Identity] baseline memberships failed:', gaErr instanceof Error ? gaErr.message : gaErr)
   }

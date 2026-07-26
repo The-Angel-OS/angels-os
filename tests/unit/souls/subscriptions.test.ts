@@ -12,7 +12,8 @@ describe('converged Work ownership (manifest = source of truth)', () => {
     expect(homeForWork('wdeg')).toBe('wheredideveryonego')
     // Resolved divergence: manifest canonical is authoritative (was 'platform' in
     // the old subscriptions map — that was the bug convergence fixes).
-    expect(homeForWork('rainmaker')).toBe('clearwater-cruisin')
+    // 'rainmaker' was unpublished 260710 (active legal matter): with no manifest
+    // it falls back to 'platform', which is correct, not a regression.
     expect(homeForWork('answer53')).toBe('clearwater-cruisin')
     expect(homeForWork('gpt-psychosis')).toBe('clearwater-cruisin')
   })
@@ -28,7 +29,7 @@ describe('converged Work ownership (manifest = source of truth)', () => {
 
 describe('the platform-index rule', () => {
   it('the flagship carries EVERY Work', () => {
-    for (const id of ['holy-bible', 'wdeg', 'rainmaker', 'answer53', 'gpt-psychosis', 'ready-player-everyone']) {
+    for (const id of ['holy-bible', 'wdeg', 'answer53', 'gpt-psychosis', 'ready-player-everyone']) {
       expect(isWorkAvailable(id, 'platform')).toBe(true)
     }
   })
@@ -60,10 +61,11 @@ describe('publish state (version-controlled working copies)', () => {
     expect(isWorkPublished('holy-bible')).toBe(true)
     expect(isWorkPublished('angel-os-handbook')).toBe(true)
   })
-  it('unfinished working copies are NOT published (opt-in default)', () => {
-    expect(isWorkPublished('rainmaker')).toBe(false)
-    expect(isWorkPublished('gpt-psychosis')).toBe(false)
-    expect(isWorkPublished('ready-player-everyone')).toBe(false)
-    expect(isWorkPublished('answer53')).toBe(false)
+  // Every Work in the registry has since been published, so this can no longer
+  // be pinned to a specific id — naming one just means the test goes red the day
+  // someone publishes it. The rule itself still holds: publishing is OPT-IN, so
+  // anything without an explicit `published: true` stays off the public lists.
+  it('publishing is opt-in — anything without the flag is not published', () => {
+    expect(isWorkPublished('no-such-work')).toBe(false)
   })
 })

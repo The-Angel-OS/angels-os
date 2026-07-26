@@ -15,7 +15,6 @@
  */
 import { getPayload } from 'payload'
 import type { PayloadRequest } from 'payload'
-import config from '@payload-config'
 
 /**
  * Pass `req` whenever you have one — from a hook, an endpoint, anything inside a
@@ -31,7 +30,11 @@ export async function ensureTenantMembership(
   req?: PayloadRequest,
 ): Promise<void> {
   try {
-    const payload = req?.payload ?? (await getPayload({ config }))
+    // `@payload-config` is imported lazily and ONLY on the no-req path: a static
+    // import pulls the whole config graph (every collection) into any module that
+    // touches this file — ~10s of cold start, for a fallback most callers never take.
+    const payload =
+      req?.payload ?? (await getPayload({ config: (await import('@payload-config')).default }))
 
     // Idempotency guard: bail if ANY membership row already exists for this
     // user+tenant (active, pending, left, etc.). Pending is handled by

@@ -98,9 +98,11 @@ describe('fetchTenantByDomain', () => {
   // ── Subdomain-slug fallback ──────────────────────────────────────────────
 
   it('falls back to subdomain slug lookup for 3-part domains', async () => {
-    // First payload.find: no exact domain match
-    // Second payload.find: match by slug (acme)
-    const payload = makePayload([{ docs: [] }, { docs: [TENANT] }])
+    // The resolver makes THREE queries in order: exact `domain`, then alias
+    // `domains.domain` (bring-your-own domains, added later), then subdomain
+    // slug. The mock queue was written before the alias step existed, so the
+    // slug result was being consumed by the alias lookup.
+    const payload = makePayload([{ docs: [] }, { docs: [] }, { docs: [TENANT] }])
     mockGetPayload.mockResolvedValue(payload)
     const result = await fetchTenantByDomain('acme.spacesangels.com')
     expect(result?.id).toBe(1)
@@ -113,12 +115,12 @@ describe('fetchTenantByDomain', () => {
     mockSlugCache.get.mockImplementation((key: string) =>
       key === 'acme' ? TENANT : undefined,
     )
-    const payload = makePayload([{ docs: [] }]) // only 1 call (domain lookup)
+    const payload = makePayload([{ docs: [] }, { docs: [] }]) // exact + alias
     mockGetPayload.mockResolvedValue(payload)
     const result = await fetchTenantByDomain('acme.spacesangels.com')
     expect(result?.id).toBe(1)
-    // Should not do a second DB call for the slug
-    expect(payload.find).toHaveBeenCalledTimes(1)
+    // The slug came from cache — no THIRD query for it.
+    expect(payload.find).toHaveBeenCalledTimes(2)
   })
 
   // ── Default tenant fallback ──────────────────────────────────────────────

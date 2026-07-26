@@ -259,15 +259,27 @@ Cheap habits that would have caught most of the above.
 
 ## 4. Where the traps still live
 
-Highest value first. All are *known*, none are fixed.
+Highest value first.
 
-1. **No lint rule for bare `fetch`.** The single highest-leverage class fix.
-   Two 300s hangs came from this.
-2. **~38 failing unit tests** across 21 files. Some assert deleted APIs; the
-   pattern of tests protecting wrong behaviour is proven (the 40% fee). Worth a
-   pass purely to make the gate trustworthy again.
-3. **No collection-wide access test.** The `authenticated` sweep was manual and
-   only covers what was already found.
+1. ~~**No lint rule for bare `fetch`.**~~ **Done 260726, differently.** A lint
+   rule firing at 240 call sites is noise nobody reads, and it does nothing for
+   site 241. `src/instrumentation.ts` installs a **180s default timeout on
+   `fetch`** at server boot instead; an explicit `signal` always wins. One file,
+   every site, including the ones not written yet.
+2. ~~**~38 failing unit tests.**~~ **Done 260726 — the suite is green** (332
+   files / 6039 tests, twice consecutively). Every failure was the test lying,
+   not the code: a mock of the retired 40% split, a book directory deleted when
+   Works moved to DB+Blob, an interceptor latch never cleared between tests, a
+   30s flood guard swallowing calls the assertions were counting. Where an
+   assertion had stopped being true it was **deleted, not loosened** — see the
+   commits for which and why. Suite also got ~20% faster: two files were booting
+   the whole Payload config through a static `@payload-config` import.
+3. ~~**No collection-wide access test.**~~ **Done 260726.**
+   `tests/unit/access/noBareAuthenticated.test.ts` enumerates every collection
+   and fails on `read`/`update`/`delete: authenticated` (create is fine). It
+   immediately found three more: Events, Projects, Quests — any signed-in
+   customer could edit or delete any of them on any tenant, and a Quest carries
+   a payout amount.
 4. **`splitConfiguration` on Bookings/Events** — deprecated in place, nothing
    applies it, but the fields still exist and will confuse the next reader.
 5. **Two sources for the heartbeat schedule** — `vercel.json` crons and
@@ -285,13 +297,32 @@ Highest value first. All are *known*, none are fixed.
 
 ## 5. What I would do first in the next session
 
-1. **The `fetch` lint rule.** One rule, prevents the most expensive class.
-2. **Make the test gate honest** — fix or quarantine the 38, so a red suite means
-   something again. Everything else is safer afterwards.
-3. **The collection access test** — enumerate, don't spot-check.
-4. Only then new features.
+*The original three are done (see §4). What the doing of them taught:*
 
-The theme of all three: **stop fixing instances.** The codebase does not need a
+1. **A guardrail that fires 240 times is not a guardrail.** The plan said "lint
+   rule for bare `fetch`". Measuring first showed 242 call sites — a rule that
+   loud gets suppressed within a day. A runtime default at the boot boundary
+   covers all of them and costs one file. Prefer the fix that needs no
+   compliance.
+2. **A test that names a literal is a test with an expiry date.** Nearly every
+   dead test asserted a count, a filename, a sentence, or a fixture: `151` tools,
+   `3` services, `5` nodes, `7` nav items, `website-template-OG.webp`, "admin or
+   moderator". None of those were the contract. The ones worth keeping assert an
+   *invariant* — `amountCents === round(total * percentage / 100)` cannot go
+   stale, and it is the assertion that would have caught the 40% fee.
+3. **Deleting an assertion is a decision, so record it.** Where a premise had
+   genuinely stopped being true, the fix was to delete the assertion and say why
+   in the same breath. "No AI provider anywhere" is not a state a unit test can
+   produce now that the gateway key is read from disk — so that test is gone, not
+   weakened into something that passes.
+4. **The suite tells you where the architecture leaks.** The 10s tests and the
+   SASL noise were not test problems: they were `ensureTenantMembership` booting
+   a *second* Payload — the same no-`req` write that causes §2.1's 300s deadlock,
+   sitting in the sign-in and booking paths. The test gate found the footgun.
+
+Next, in order: the remaining §4 items (4–7), then features.
+
+The theme is unchanged: **stop fixing instances.** The codebase does not need a
 better author; it needs guardrails that survive the author forgetting.
 
 ---

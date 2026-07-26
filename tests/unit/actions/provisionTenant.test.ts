@@ -553,11 +553,12 @@ describe('createDefaultTenantNavigation', () => {
   it('creates header with default nav items', async () => {
     await createDefaultTenantNavigation(mockPayload as any, 42)
     const headerData = mockCreate.mock.calls[0][0].data
-    // DEFAULT_HEADER_NAV: Home, Shop, Posts, Events, Donate, Contact, Dashboard
-    // (7 items — Contact added so the provisioned contact page is reachable from nav)
-    expect(headerData.navItems).toHaveLength(7)
+    // The seeded header is deliberately JUST Home. Shop/Posts/Events/Book/Join
+    // are DERIVED from what the endeavor actually has — seeding them gave every
+    // electrician a "Shop" link he would never use, and the stale seed then
+    // outranked the derivation. @see src/utilities/defaultNavItems.ts
+    expect(headerData.navItems).toHaveLength(1)
     expect(headerData.navItems[0].link.label).toBe('Home')
-    expect(headerData.navItems.some((i: { link: { label: string } }) => i.link.label === 'Contact')).toBe(true)
   })
 
   it('is idempotent — skips existing header', async () => {

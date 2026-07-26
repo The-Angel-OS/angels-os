@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { EmergentNetwork, type SimNodeConfig } from '@/simulation/emergentNetwork'
-import { buildFirstFederation, narrateCentral } from '@/simulation/central'
+import { buildFirstFederation, narrateCentral, FIRST_FEDERATION } from '@/simulation/central'
 import { DEFAULT_RETRY_POLICY, type WorkUnit, type WorkType, type ComputeClass, type TrustLevel } from '@/utilities/workload-engine'
 
 const CLOCK = new Date('2026-06-05T00:00:00.000Z')
@@ -126,12 +126,15 @@ describe('emergentNetwork — pheromone learning (real pheromone signal)', () =>
 describe('emergentNetwork — Central overview + voice', () => {
   it('produces a real network snapshot (visualization engine)', () => {
     const snap = buildFirstFederation({ clock: CLOCK, rng: seeded(6) }).snapshot()
-    // 5 nodes: the two sovereign nodes (angel-os, kendev) + clearwater, wdeg, holon.
-    expect(snap.stats.totalNodes).toBe(5)
-    expect(snap.stats.activeNodes).toBe(5)
+    // The preset is hand-kept to mirror the live directory, so it GROWS (5 → 8).
+    // Derive the count; what must hold is that every preset node is present,
+    // active, mock, and connected.
+    const N = FIRST_FEDERATION.length
+    expect(snap.stats.totalNodes).toBe(N)
+    expect(snap.stats.activeNodes).toBe(N)
     expect(snap.edges.length).toBeGreaterThan(0)
     expect(snap.stats.isolatedNodes).toBe(0)
-    expect(snap.mock).toBe(5)
+    expect(snap.mock).toBe(N)
     expect(snap.live).toBe(0)
   })
 

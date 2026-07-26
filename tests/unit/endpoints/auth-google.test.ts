@@ -20,6 +20,15 @@ const mockSignJWT = vi.hoisted(() =>
 
 vi.mock('@/utilities/getURL', () => ({ getServerSideURL: mockGetServerSideURL }))
 vi.mock('jose', () => ({ SignJWT: mockSignJWT }))
+// Sign-in AWAITS guardian-angel provisioning (deliberate: the portal must exist
+// by the time the client loads My Portals). Against these mocks that whole
+// provisionPortal chain runs for ~10s and intermittently blew the 30s timeout
+// under full-suite load. It has its own tests; this file is about the callback.
+vi.mock('@/utilities/ensureBaselineMemberships', () => ({
+  ensureBaselineMemberships: vi
+    .fn()
+    .mockResolvedValue({ platformJoined: true, guardianProvisioned: false, joiningTenantJoined: false }),
+}))
 
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 

@@ -319,6 +319,7 @@ export const authGoogleCallbackHandler: PayloadHandler = async (req) => {
     const { user, token: payloadToken } = await resolveUserFromGoogleClaims(
       req.payload,
       { email, name, sub, picture },
+      req,
     )
 
     // ----- Parse state to determine redirect + origin domain + link mode -----

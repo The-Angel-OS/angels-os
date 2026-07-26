@@ -117,7 +117,7 @@ export const authFederatedHandler: PayloadHandler = async (req) => {
       name: claims.name,
       sub: claims.sub,
       picture: claims.picture,
-    })
+    }, req)
 
     console.log('[Federated Auth] Minted session:', { userId: user.id, isNew })
 

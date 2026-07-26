@@ -57,7 +57,7 @@ export async function ensureBaselineMemberships(
     })
     const platformId = (platform.docs[0] as { id: number | string } | undefined)?.id
     if (platformId != null) {
-      await ensureTenantMembership(user.id, platformId)
+      await ensureTenantMembership(user.id, platformId, opts.req)
       result.platformJoined = true
     }
   } catch (err) {
@@ -83,7 +83,7 @@ export async function ensureBaselineMemberships(
   // 3. The portal they're actually joining (skip if it IS the platform — step 1).
   if (opts.joiningTenantId != null) {
     try {
-      await ensureTenantMembership(user.id, opts.joiningTenantId)
+      await ensureTenantMembership(user.id, opts.joiningTenantId, opts.req)
       result.joiningTenantJoined = true
     } catch (err) {
       payload.logger?.warn?.(
