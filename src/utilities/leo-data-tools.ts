@@ -6290,7 +6290,18 @@ async function handleGenerateImage(
       if (result.modelText) {
         errorParts.push(`\nModel response: ${result.modelText.slice(0, 200)}`)
       }
-      errorParts.push('\n💡 Tips: Try a simpler prompt, specify a different category (signs, decor, woodwork, art), or try again — AI image models can be intermittent.')
+      // What the model is told HERE decides what it says next. "Try again" with
+      // no timeframe reads as permission to promise a LATER attempt, and LEO did
+      // exactly that — "Give me just a second to spin up the canvas again!" —
+      // and then the turn ended. There is no background job and no follow-up
+      // turn, so that second never arrives and the user waits for nothing
+      // (260726). Name the only two options that actually exist.
+      errorParts.push(
+        '\n💡 Image models are intermittent. You have exactly TWO options, and both happen RIGHT NOW in this turn:' +
+          '\n  1. Call generate_image again immediately — simpler prompt, or a different category (signs, decor, woodwork, art).' +
+          '\n  2. Tell the user plainly that it failed, and ask if they want you to retry.' +
+          '\n\n⚠️ NEVER promise a later attempt. You cannot do background work and there is no follow-up turn: "give me a second", "trying again shortly", "I\'ll have that for you in a moment" all leave the user waiting for something that will never come. If you are not calling the tool again in THIS turn, say it failed.',
+      )
       return errorParts.join('\n')
     }
 

@@ -9,7 +9,13 @@ import { ImageLightbox } from './ImageLightbox'
 import { InlineChatForm } from './InlineChatForm'
 
 // ---------------------------------------------------------------------------
-// Message action buttons (copy, speak, vote, share, dispute)
+// Message action buttons (copy, speak, vote, share, dispute).
+//
+// Visible by DEFAULT, hover-revealed only from `md` up. These were gated purely
+// on group-hover, which means that on a phone — where there is no hover — they
+// were permanently invisible. Reported as "the icons are the same colour as the
+// background"; they were actually at opacity 0. The muted/50 tint compounded it,
+// so the icons are now full muted-foreground.
 // ---------------------------------------------------------------------------
 
 /** TTS speak/pause toggle using Web Speech API */
@@ -99,11 +105,11 @@ function MessageActions({
   }
 
   return (
-    <div className="mt-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/msg:opacity-100">
+    <div className="mt-1 flex items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover/msg:opacity-100">
       {/* Copy */}
       <button
         onClick={handleCopy}
-        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         title={copied ? 'Copied!' : 'Copy response'}
       >
         {copied ? (
@@ -122,7 +128,7 @@ function MessageActions({
       <button
         onClick={() => toggleSpeak(message.content)}
         className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
-          speaking ? 'text-primary' : 'text-muted-foreground/50'
+          speaking ? 'text-primary' : 'text-muted-foreground'
         }`}
         title={speaking ? 'Stop speaking' : 'Read aloud'}
       >
@@ -144,7 +150,7 @@ function MessageActions({
       <button
         onClick={() => handleVote('up')}
         className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
-          voted === 'up' ? 'text-green-500' : 'text-muted-foreground/50'
+          voted === 'up' ? 'text-green-500' : 'text-muted-foreground'
         }`}
         title="Helpful"
       >
@@ -157,7 +163,7 @@ function MessageActions({
       <button
         onClick={() => handleVote('down')}
         className={`rounded-md p-1 transition-colors hover:bg-muted hover:text-foreground ${
-          voted === 'down' ? 'text-red-500' : 'text-muted-foreground/50'
+          voted === 'down' ? 'text-red-500' : 'text-muted-foreground'
         }`}
         title="Not helpful"
       >
@@ -178,7 +184,7 @@ function MessageActions({
             : '/dashboard/spaces'
           navigator.clipboard.writeText(`${window.location.origin}${base}?msg=${message.id}`)
         }}
-        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         title="Copy link to this message"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
@@ -189,7 +195,7 @@ function MessageActions({
       {/* Dispute / Community Vote */}
       <button
         onClick={handleDispute}
-        className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         title="Dispute — request community vote"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
