@@ -76,7 +76,12 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       },
       label: 'Document to link to',
       maxDepth: 1,
-      relationTo: ['pages'],
+      // Every collection with a /<collection>/<slug> route. CMSLink already
+      // builds the href generically, so a link to a post or product resolves
+      // with no extra mapping — the picker was simply never told they existed,
+      // which forced editors to hand-type /posts/... as a custom URL and lose
+      // the broken-link safety a reference gives you.
+      relationTo: ['pages', 'posts', 'products', 'events'],
       required: true,
       // Scope the picker to the editing document's tenant — the multi-tenant
       // plugin doesn't auto-filter this nested block relationship, so it would

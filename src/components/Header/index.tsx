@@ -71,7 +71,9 @@ export async function Header({ tenant }: Props) {
         })
         const joinPage = joinPages.docs?.[0] as { slug?: string; title?: string; navLabel?: string } | undefined
         if (joinPage?.slug) {
-          membership = { url: `/${joinPage.slug}`, label: joinPage.navLabel || joinPage.title || 'Join' }
+          membership = { url: `/${joinPage.slug}`, // The title is a headline ("Join The Angel OS Today"), never a nav label —
+            // default to "Join" and let navLabel override it.
+            label: joinPage.navLabel || 'Join' }
         }
       }
     } catch (err) {

@@ -538,7 +538,7 @@ export default buildConfig({
         OrderedListFeature(),
         UnorderedListFeature(),
         LinkFeature({
-          enabledCollections: ['pages', 'posts'],
+          enabledCollections: ['pages', 'posts', 'products', 'events'],
           fields: ((args: { defaultFields: { name?: string }[] }) => {
             const { defaultFields } = args
             const defaultFieldsWithoutUrl = defaultFields.filter(
