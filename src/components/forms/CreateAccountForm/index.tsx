@@ -3,6 +3,7 @@
 import { FormError } from '@/components/forms/FormError'
 import { FormItem } from '@/components/forms/FormItem'
 import { SocialAuthButtons } from '@/components/forms/SocialAuthButtons'
+import { PasswordlessAuth } from '@/components/forms/PasswordlessAuth'
 import { Message } from '@/components/Message'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,7 @@ export const CreateAccountForm: React.FC = () => {
     watch,
   } = useForm<FormData>()
 
+  const [usePassword, setUsePassword] = React.useState(false)
   const password = useRef({})
   password.current = watch('password', '')
 
@@ -98,11 +100,28 @@ export const CreateAccountForm: React.FC = () => {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or with email</span>
+          <span className="bg-card px-2 text-muted-foreground">
+            {usePassword ? 'Or with a password' : 'Or with a code'}
+          </span>
         </div>
       </div>
 
+      {/* Passwordless is the DEFAULT path, not a third option below the form.
+          verifyOtp find-or-creates the account, so with a code "sign up" and
+          "sign in" are the same act — no password to choose, no password to
+          forget, and nothing to reset later. The password form is still here for
+          anyone who wants it, one tap away. */}
+      {!usePassword && (
+        <PasswordlessAuth
+          redirectTo={searchParams.get('redirect')}
+          submitLabel="Continue with a code"
+          onCancel={() => setUsePassword(true)}
+          cancelLabel="Create a password instead"
+        />
+      )}
+
       {/* ─── Email/Password Form ──────────────────────────────── */}
+      {usePassword && (
       <form onSubmit={handleSubmit(onSubmit)}>
         <Message error={error} />
 
@@ -160,6 +179,7 @@ export const CreateAccountForm: React.FC = () => {
           {loading ? 'Creating account...' : 'Create Account'}
         </Button>
       </form>
+      )}
 
       {/* ─── Login Link ───────────────────────────────────────── */}
       <p className="text-sm text-center text-muted-foreground mt-6">

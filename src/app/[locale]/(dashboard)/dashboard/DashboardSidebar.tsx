@@ -1,5 +1,7 @@
 'use client'
 
+import { ThemeToggle } from '@/providers/Theme/ThemeToggle'
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -295,6 +297,13 @@ export function DashboardSidebar({
           </svg>
           {!isCollapsed && <span className="text-xs font-medium">Collapse</span>}
         </button>
+      </div>
+
+      {/* Theme — the dashboard renders no site footer, which is where the only
+          theme control used to live, so there was no way to change it from here
+          at all. Sits directly above the account row (bottom-left). */}
+      <div className={`shrink-0 border-t border-border px-2 py-2 ${isCollapsed ? 'flex justify-center' : ''}`}>
+        <ThemeToggle compact={isCollapsed} />
       </div>
 
       {/* User footer */}

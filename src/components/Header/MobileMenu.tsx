@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sheet'
 import { useAuth } from '@/providers/Auth'
 import { MenuIcon } from 'lucide-react'
+import { ThemeToggle } from '@/providers/Theme/ThemeToggle'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -110,6 +111,12 @@ export function MobileMenu({ menu, siteName }: Props) {
               })}
             </ul>
           ) : null}
+        </div>
+
+        {/* Theme lived ONLY in the site footer, so on a phone changing it meant
+            scrolling a whole page. Signed out or in, it belongs in the menu. */}
+        <div className="mt-2 border-t border-border pt-3">
+          <ThemeToggle />
         </div>
 
         {user ? (

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { ChevronDown, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { ThemeToggle } from '@/providers/Theme/ThemeToggle'
 
 import { cn } from '@/utilities/cn'
 import { useClickOutside } from '@/hooks/useClickOutside'
@@ -91,6 +92,8 @@ export function AccountMenu({
             <UserRound className="h-4 w-4" />
             Account
           </Link>
+          <div className="my-1 border-t border-border" />
+          <ThemeToggle />
           <div className="my-1 border-t border-border" />
           <Link href="/logout" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
             <LogOut className="h-4 w-4" />
