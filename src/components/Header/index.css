@@ -1,3 +1,21 @@
+/* The nav link's own colour.
+   Measured on Kessela in dark mode: rgb(10,10,10) text on an rgb(11,13,17) bar —
+   1.02:1. "Buy Now", the link that earns, was invisible. Every ancestor including
+   the <li> was correctly light and `--foreground` ON the anchor was light too;
+   the anchor still computed a literal near-black that NO stylesheet rule and no
+   inline style accounted for. That is a Tailwind colour utility compiled to a
+   static light-palette value instead of a var() reference, so it cannot follow
+   the theme and no token fix reaches it.
+
+   Only visible in dark mode, which is why a light-mode screenshot looked fine —
+   and why this had to be measured on the rendered page rather than reasoned about.
+   `a.navLink` (0,1,1) deliberately outranks any single utility class (0,1,0).
+   var(--foreground) is correct in BOTH schemes: dark text on white, light on dark. */
+a.navLink,
+button.navLink {
+  color: var(--foreground);
+}
+
 .navLink {
   overflow: hidden;
   border-radius: unset;
@@ -26,4 +44,24 @@
       transform: translateY(-2px);
     }
   }
+}
+
+/* Login / Sign Up in the right rail — same class of fault as .navLink above.
+   Measured dark-mode: Login 4.1:1 (under the 4.5 floor) and Sign Up 1.08:1,
+   because `text-primary` had likewise compiled to a light-palette literal
+   instead of following the tenant's brand colour. */
+a.headerAuthLink {
+  color: var(--muted-foreground);
+}
+
+a.headerAuthLink:hover {
+  color: var(--foreground);
+}
+
+a.headerSignUpLink {
+  color: var(--primary);
+}
+
+a.headerSignUpLink:hover {
+  opacity: 0.8;
 }

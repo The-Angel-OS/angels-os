@@ -453,3 +453,38 @@ button {
   color: var(--muted-foreground);
   opacity: 1;
 }
+
+/* Field labels and helper copy must NOT ride on --primary.
+   The markup asks for `text-primary/70`, which is fine against a white page and
+   fails against this permanently-dark card whenever a tenant's brand colour is
+   mid-tone. Measured on Kessela (sage green #6A9B8A at 70%): rgb(78,113,106) on
+   rgb(15,15,32) = 3.51:1, under the 4.5:1 floor — "Email", "Password" and the
+   reset link were the least readable things on the sign-in page, which is the
+   first page a customer ever sees.
+
+   The buttons are left alone: they carry their own surfaces and measure 14:1
+   and 6.2:1. Only the text that inherits from the page is corrected, so brand
+   identity survives. A container with a fixed background owns its own contrast
+   — FOOTGUNS §2.7. */
+.auth-card label {
+  color: var(--foreground);
+}
+
+.auth-card p,
+.auth-card .prose,
+.auth-card .prose p {
+  color: var(--muted-foreground);
+}
+
+/* Inline links (reset password, terms) — the amber already used by --ring,
+   lifted to a text-safe lightness. Brand-neutral on purpose: every tenant's
+   primary is a different distance from this card. */
+.auth-card a:not([class*='inline-flex']):not([class*='items-center']) {
+  color: oklch(86% 0.09 85deg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-card a:not([class*='inline-flex']):not([class*='items-center']):hover {
+  color: oklch(94% 0.06 85deg);
+}

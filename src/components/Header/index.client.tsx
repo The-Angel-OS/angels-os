@@ -518,10 +518,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
               </>
             ) : (
               <>
-                <Link href="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition">
+                <Link href="/login" className="headerAuthLink hidden md:inline text-sm transition">
                   Login
                 </Link>
-                <Link href="/create-account" className="hidden md:inline text-sm font-medium text-primary hover:text-primary/80 transition">
+                <Link href="/create-account" className="headerSignUpLink hidden md:inline text-sm font-medium transition">
                   Sign Up
                 </Link>
               </>
