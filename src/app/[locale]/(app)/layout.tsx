@@ -131,9 +131,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <TenantFonts tenant={tenant} />
         <TenantStyles tenant={tenant} />
         {/* Favicon links are emitted by generateMetadata().icons (per-endeavor:
-            branding.favicon → logo → /favicon.png). The 512px icon is kept here
-            as a static PWA hint. */}
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+            branding.favicon → logo → /favicon.png). The 512px icon is a static
+            PWA hint — but it is the ANGEL OS mark, and on a client's own
+            storefront a browser is free to pick it for the tab over the
+            tenant's untagged favicon. So it yields whenever an Endeavor has
+            brought its own: a white-labelled site should be white-labelled all
+            the way down to the tab. */}
+        {!(tenant?.branding as { favicon?: unknown } | undefined)?.favicon && (
+          <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+        )}
         <GoogleAnalytics />
       </head>
       <body>
