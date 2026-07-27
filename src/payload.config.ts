@@ -167,6 +167,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
+import { ticketSubmitHandler } from '@/endpoints/tickets-ops'
 import { nodeRegisterHandler, nodeListHandler, nodeTelemetryHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler, nodeUsageHandler, nodeDispatchHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
@@ -663,6 +664,7 @@ export default buildConfig({
     // Daily Bread — deterministic N-verses-a-day reading plan over a book Work.
     { path: '/works-ops/daily', method: 'get', handler: worksDailyHandler },
     // Hippocampus — nightly log consolidation (keep unresolved pain, forget the rest).
+    { path: '/tickets-ops/submit', method: 'post', handler: ticketSubmitHandler },
     { path: '/log-ops/consolidate', method: 'get', handler: logConsolidateHandler },
     { path: '/log-ops/consolidate', method: 'post', handler: logConsolidateHandler },
     { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },

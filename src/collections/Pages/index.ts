@@ -14,6 +14,7 @@ import { Calendar } from '@/blocks/Calendar/config'
 import { Donation } from '@/blocks/Donation/config'
 import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { MediaText } from '@/blocks/MediaText/config'
+import { TicketForm } from '@/blocks/TicketForm/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
@@ -178,6 +179,7 @@ export const Pages: CollectionConfig = {
                 Gallery,
                 GoogleReviews,
                 MediaText,
+                TicketForm,
               ],
               required: true,
             },

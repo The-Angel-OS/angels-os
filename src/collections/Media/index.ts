@@ -43,6 +43,27 @@ export const Media: CollectionConfig = {
   },
   fields: [
     {
+      // Who uploaded it. Set from the session, never from the request body.
+      //
+      // Media is tenant-scoped, which stops a CROSS-tenant read — but a public
+      // upload surface (a customer's warranty photos) also needs to stop a
+      // WITHIN-tenant one: without an owner, any signed-in customer could quote
+      // another customer's media id back at a form and have it rendered to them
+      // on their own ticket. Tenant scope alone cannot tell those two customers
+      // apart. @see src/endpoints/tickets-ops.ts
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      admin: { readOnly: true, position: 'sidebar' },
+      hooks: {
+        beforeChange: [
+          ({ req, operation, value }) =>
+            operation === 'create' ? (req?.user?.id ?? value ?? null) : value,
+        ],
+      },
+    },
+    {
       name: 'alt',
       type: 'text',
       required: true,

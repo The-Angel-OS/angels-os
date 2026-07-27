@@ -707,6 +707,7 @@ export interface Tenant {
 export interface Media {
   id: number;
   tenant?: (number | null) | Tenant;
+  createdBy?: (number | null) | User;
   alt: string;
   caption?: {
     root: {
@@ -1483,6 +1484,7 @@ export interface Page {
     | GalleryBlock
     | GoogleReviewsBlock
     | MediaTextBlock
+    | TicketFormBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2924,6 +2926,35 @@ export interface MerlinControlBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'merlinControl';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TicketFormBlock".
+ */
+export interface TicketFormBlock {
+  /**
+   * Which kind of ticket this form files.
+   */
+  type: 'warranty' | 'return' | 'support' | 'question';
+  /**
+   * Defaults to a sensible title for the type.
+   */
+  heading?: string | null;
+  /**
+   * One or two lines above the form. What they should have to hand.
+   */
+  intro?: string | null;
+  /**
+   * Order number, purchase date and where they bought it. Off for a general question.
+   */
+  showOrderFields?: boolean | null;
+  /**
+   * Shown after a successful submission. Defaults to a plain acknowledgement.
+   */
+  confirmation?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'ticketForm';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8602,6 +8633,7 @@ export interface PagesSelect<T extends boolean = true> {
         gallery?: T | GalleryBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
         mediaText?: T | MediaTextBlockSelect<T>;
+        ticketForm?: T | TicketFormBlockSelect<T>;
       };
   meta?:
     | T
@@ -8855,6 +8887,19 @@ export interface MediaTextBlockSelect<T extends boolean = true> {
   videoOnRight?: T;
   ctaLabel?: T;
   ctaUrl?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TicketFormBlock_select".
+ */
+export interface TicketFormBlockSelect<T extends boolean = true> {
+  type?: T;
+  heading?: T;
+  intro?: T;
+  showOrderFields?: T;
+  confirmation?: T;
   id?: T;
   blockName?: T;
 }
@@ -9119,6 +9164,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
+  createdBy?: T;
   alt?: T;
   caption?: T;
   updatedAt?: T;
