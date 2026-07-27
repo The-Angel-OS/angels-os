@@ -1400,6 +1400,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
               availableTools,
               resolvedChannel,
               userRoles,
+              imageOnlyTurn: userImages.length > 0 && !hasText,
             })
             fullText = gwResult.text
             streamTelemetry = gwResult.telemetry
@@ -1729,12 +1730,15 @@ async function streamViaGateway(opts: {
   resolvedChannel?: string
   /** Acting user's roles — threaded into the tool context for privileged-tool gates. */
   userRoles?: string[]
+  /** True when the user attached image(s) and typed nothing. See the tool-subset filter. */
+  imageOnlyTurn?: boolean
 }): Promise<{ text: string; hadStreamError: boolean; errorMessage?: string; telemetry?: AiResponseTelemetry; billedToTenantKey?: boolean; generatedMediaIds?: number[] }> {
   const {
     controller, encoder, systemPrompt, historyMessages, userMessage,
     userImages, payload, tenantId, resolvedSpaceId, userId,
     isWizardMode, wizardStep, complexity = 'medium', isEscalationRound = false,
     tenantAiConfig, availableTools = LEO_TOOLS, resolvedChannel, userRoles,
+    imageOnlyTurn = false,
   } = opts
 
   // Same guard as the caller's: once the client is gone, enqueueing throws
@@ -1849,6 +1853,22 @@ async function streamViaGateway(opts: {
     effectiveTools = selectToolsForContext(effectiveTools, `${userMessage}${imgHint}`, { cap: 40 })
     if (effectiveTools.length < before) {
       console.log(`[leo-stream] tool subset ${before}→${effectiveTools.length} (model=${smartModelId})`)
+    }
+  }
+
+  // An image with NO typed text means "look at this" — never "make me one".
+  // Ken uploaded a Kessela banner with an empty message; the imgHint above pulled
+  // the *generation* tools in on the word "image", and a small model with nothing
+  // else to go on resumed an image-generation request from earlier in the channel,
+  // announced it was painting a "Peter F. Hamilton cosmic vista", and failed.
+  // Removing the option beats instructing against it — a prompt can be reasoned
+  // past, an absent tool cannot. Type a request and generation is back on the table.
+  if (imageOnlyTurn) {
+    const GENERATIVE = new Set(['generate_image', 'generate_theme_aware_image'])
+    const kept = effectiveTools.filter((t) => !GENERATIVE.has((t as { name: string }).name))
+    if (kept.length < effectiveTools.length) {
+      console.log(`[leo-stream] image-only turn — dropped generation tools`)
+      effectiveTools = kept
     }
   }
 

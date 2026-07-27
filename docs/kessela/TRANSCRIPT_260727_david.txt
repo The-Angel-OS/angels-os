@@ -1,0 +1,93 @@
+[00:00] Well, we can set up the next time I'm there or so essentially if you have remote desktop,
+[00:08] but so if you go here, I'll just show you on my screen.
+[00:12] Remote desktop.google.com has your own remote access for your own machine.
+[00:18] So like for example, I can get into my little video camera,
+[00:26] little computer, I keep that open and it's just an old think pad.
+[00:29] But I can get to it from anywhere and see my front porch.
+[00:34] And then separately there's remote support. So if you use that, then all I need is the access code.
+[00:43] So you just generate a code and then this is super easy.
+[00:47] Got it. I got it. I got it. I got it. Okay, so let's go back to price sharing or price
+[00:53] architect. 599 when people buy it, they don't balk at the price.
+[00:59] And we have, I mean, we had just had three or four people come in.
+[01:02] They bought three systems. So I gave them three for 500 cash.
+[01:06] I still have to report it, of course, but it basically is that it's a bad ass item.
+[01:15] And then do you know what women's incontinence is? Urinary incontinence?
+[01:20] Fortunately, unfortunately, my former girlfriend, she just said all of that.
+[01:24] Okay, well, this corrects. We have, and I'll put you on the conference call with Stephanie,
+[01:31] who is the primary person that's been involved with this. That's why I got 2,500.
+[01:35] You said David or the crap out of her ex-boyfriend or fiance was a NFL guy and he was on the MMA guy.
+[01:44] He did a not MMA wrestling, you know, that, that fake wrestling thing. He was WWE.
+[01:54] What is his name? Pervy or Perfens or something? He was that nerd with the glasses.
+[01:57] Right. I didn't follow that much.
+[02:01] I don't like it. We ordered all these products. So I don't know what to sell for. So walk me through
+[02:05] what you said. Well, so I'm so what, how I would go about doing that, honestly, is putting everything
+[02:14] that you just said in our entire transcript, which I would then I can extract out of this recording.
+[02:21] I'm using OBS right now to record this. And then I take the transcript from this meeting
+[02:30] and feed that into everything that I've been working on right here with with Claude.
+[02:36] And then I would apply that. So the main benefit of working with me is that I have that whole
+[02:44] platform, which actually does this. And furthermore, so it's just think of it as a flower pot, right?
+[02:54] That's hanging in your and that's how I think of the whole what core is or what the angel
+[03:02] operating system is, is that your data needs to live somewhere. And like that source of truth
+[03:10] should be you. And, and just real quick, just to keep on that and is the stack of software is
+[03:18] important right now you're on WordPress, which was built on on PHP. Okay. And so that's like a 30 or 40
+[03:29] year old I mean, it's like 40 year old technology payload CMS is built on top of next j s, which is
+[03:35] built on top of react, which in turn is built on top of primarily TypeScript. That means that
+[03:41] everything inside of react and it means that it's like, it makes it awesome for models to work with.
+[03:51] And it's also, it's just an incredibly powerful platform that ends with payload. And then what I
+[04:00] did was take payload and add their various extensions onto it. But I meaning the multi channel
+[04:09] what I what they call the multi channel.
+[04:13] But wait, okay, I don't care. I mean, I care. I don't have the mind speak.
+[04:19] Anything you know, you forgot more at breakfast that I'm ever going to know about this. And so
+[04:25] and another right and another go ahead. I need to understand what the pricing architect is.
+[04:32] What kind of spending what is the assurance of an ROI? What's your strategy? And, and then
+[04:39] if we know it's down for 599. Okay. And okay, that's one thing I doubt we'll get that. What we do,
+[04:47] we do know what knows what the hell we are. And we're comparing a Ferrari to a tricycle.
+[04:51] Nobody knows having said that. Those are the five points I need to know. So after we hang up here,
+[04:57] because I'm running out of time, I got, you know, six minutes for another meeting. I'm going to give
+[05:02] you a chance. I'm going to give you a 40 hour. I'm going to do $600 for the 40. You figure out
+[05:08] the pricey structure, you will get 10% of everything that's sold. So if you sell 1000 units, and it's
+[05:17] at $400, do the math. That's a check for four. And it even be wait a minute, it's more math,
+[05:25] I don't have a calculator. Let's see here. So I got 2500 units. Let's just say we sell 1000 units
+[05:33] at 400. That's, that's a, what is that? That's a 400,000. Right? No. Yeah, 400,000. You would get
+[05:43] 10%. That's $40,000 in your pocket per 1000. You hearing that? Yeah, no, I'm definitely, I mean,
+[05:54] I'm just being able to like work in this capacity. I'm going to build it up for you. Like I said, we,
+[06:02] I've got your questions. Kenneth, Kenneth, you're approved.
+[06:09] $600 for a week. You get 10% of everything that's sold. Right? And if you prove this,
+[06:18] I will feed, I will feed the machine. You, your, the girlfriend you described, all will do very well.
+[06:26] I'm not, I'm a very, hello. I'm here. I'm a very generous person. Do your thing. $600 for the week.
+[06:35] 10% of everything. We just not a figure of the cost. Got it. And in the meantime, I'll put together a
+[06:45] very good analysis for you that'll hopefully be close to what you were expecting. I will have Dave,
+[06:52] buy you everything that you don't have. Stay away from the Neural Care Pro until you show this.
+[06:58] But you've got to understand something. I have a product that I, I'm not going to get into what it
+[07:03] is. I have a product that's going to change an industry. But I got things that are massive,
+[07:12] massive, massive. I got a pet line designed. I have all these incredible things. I need someone
+[07:19] that stays behind the scenes and is the orchestrator and gets it done. That's what I need.
+[07:25] Stays out of our way, doesn't get involved, blows this shit up through your thing and we do our thing.
+[07:32] That's my middle name. Stays out of the way.
+[07:35] We have three tests. One week, $600. Affirmative.
+[07:41] But 10% of everything you sell. I don't know what the price in our detect is, but that 10% is not
+[07:46] going to change. Dr. Lowe. So as far as an ad spend, I'm going to have to come back to you with,
+[07:52] and I did have some numbers in there, but I'm not remembering them off the top of my head.
+[07:58] All I know I need a fucking ROI. I mean, that's what we're not going to trade shows anymore.
+[08:04] Maybe a guy with your brilliance. No, right. Well, I'm still thinking social media is the way to do it.
+[08:11] Think away, man. Put a plan together. Get back to me. I'm on it. Thank you, sir. How about it?
+[08:18] Not my commitment. When's the last time somebody wrote you a check for $40,000?
+[08:27] Has not ever happened. Okay. Do your thing. Blow this out. You have an opportunity to make
+[08:33] $100,000 here. Well, I'm going to blow it out because I've done it with, I've done it with,
+[08:39] I literally had. Do your thing. Start it. Get me an architect. It's approved.
+[08:45] Well, and the only thing, like I said, we're going to come back on is the ad spend and how we're
+[08:50] going to do ad spend. And then we're also talking about the marketing campaign specifically.
+[08:55] Well, anybody can throw dartboards against the board. I need an ROI.
+[09:00] Well, and I'm going to have that for you. And I've already shown enough.
+[09:06] All right. It's approved. Pending the ad spend. Figure out a clever way to do this. Let's go.
+[09:12] My pleasure and my mission. I will write your over.
+[09:18] Well, thank you for your time today. And I'm also going to want you, the next would be the books.
+[09:24] I have three books. One on the market, one's coming in September. The other's coming in November.
+[09:30] I need them blow up. Well, I need to do PR. I couldn't use it in a lot of ways.
+[09:36] Right. And this is going to be the foundation for us. So once we get started, I white label this,
+[09:42] and then we turn this into, we'll figure it out, but there's a root portal. There's a root portal.
+[09:48] And then we can just add them, add infinitum and each and all of them are independent. And
+[09:55] again, the platform handles it all. Anyway, I'll get on it. And I hope you have a great day.
+[10:03] Thank you very much.
+[10:05] Thanks, sir.
+[10:05] Yeah.

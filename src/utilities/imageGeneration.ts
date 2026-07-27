@@ -645,7 +645,12 @@ async function generateViaCloudflare(
   options: ImageGenerationOptions,
   payload?: Payload,
 ): Promise<ImageGenerationResult> {
-  const model = options.model || '@cf/black-forest-labs/FLUX.1-schnell'
+  // LOWERCASE, and no dot. `@cf/black-forest-labs/FLUX.1-schnell` — the id in
+  // Cloudflare's own docs page title — returns 7000 "No route for that URI",
+  // which reads like a broken account or a dead token rather than a typo.
+  // `…/ai/models/search?task=Text-to-Image` lists what the account can actually
+  // reach; check there before believing any model id. FOOTGUNS §2.5.
+  const model = options.model || '@cf/black-forest-labs/flux-1-schnell'
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`
 
   try {
@@ -665,13 +670,33 @@ async function generateViaCloudflare(
     if (!response.ok) {
       const errorBody = await response.text()
       console.error('[ImageGeneration] Cloudflare AI error:', response.status, errorBody)
-      return { success: false, error: `Cloudflare Workers AI failed (HTTP ${response.status}).` }
+      // Carry Cloudflare's own words through. A bare "HTTP 400" tells the model
+      // nothing, so it invents a cause — "rate limit" for what was actually
+      // 7000 "No route for that URI", i.e. a model id that no longer exists.
+      return {
+        success: false,
+        error: `Cloudflare Workers AI failed (HTTP ${response.status}): ${errorBody.slice(0, 300)}`,
+      }
     }
 
-    // Cloudflare returns raw PNG bytes
-    const arrayBuffer = await response.arrayBuffer()
-    const base64 = Buffer.from(arrayBuffer).toString('base64')
-    const imageDataUrl = `data:image/png;base64,${base64}`
+    // Flux answers `{"result":{"image":"<base64 JPEG>"}}` — NOT the raw PNG bytes
+    // this used to assume. Reading it as an arrayBuffer base64-encodes the JSON
+    // envelope and labels it image/png, so the fix for the model id above would
+    // have produced a corrupt data URL and looked like a second, unrelated bug.
+    // Branch on what the response says it is; Cloudflare has changed this once.
+    const contentType = response.headers.get('content-type') || ''
+    let imageDataUrl: string
+    if (contentType.includes('application/json')) {
+      const body = (await response.json()) as { result?: { image?: string } }
+      const b64 = body?.result?.image
+      if (!b64) return { success: false, error: 'Cloudflare Workers AI returned no image.' }
+      // JPEG magic in base64 is "/9j/"; anything else from this endpoint is PNG.
+      const mime = b64.startsWith('/9j/') ? 'image/jpeg' : 'image/png'
+      imageDataUrl = `data:${mime};base64,${b64}`
+    } else {
+      const arrayBuffer = await response.arrayBuffer()
+      imageDataUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`
+    }
 
     const result: ImageGenerationResult = {
       success: true,
