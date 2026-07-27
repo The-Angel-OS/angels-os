@@ -33,14 +33,18 @@ export function MembersOnlyGate({
         <div className="flex flex-wrap justify-center gap-3">
           {!isAuthenticated && (
             <Link
-              href={`/login?next=${encodeURIComponent(path)}`}
+              href={`/login?redirect=${encodeURIComponent(path)}`}
               className="rounded-md bg-primary px-5 py-2.5 font-medium text-primary-foreground hover:opacity-90"
             >
               Log in
             </Link>
           )}
           <Link
-            href="/my"
+            // A signed-OUT visitor cannot "become a member" at /my — that route
+            // needs the session they haven't got, so the one button meant to
+            // convert them bounced them straight back out. Send them to sign up,
+            // and carry the page they wanted so they land back on it afterwards.
+            href={isAuthenticated ? '/my' : `/create-account?redirect=${encodeURIComponent(path)}`}
             className="rounded-md border border-border px-5 py-2.5 font-medium hover:bg-accent"
           >
             {isAuthenticated ? 'Manage membership' : 'Become a member'}
