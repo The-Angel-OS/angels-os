@@ -14,6 +14,13 @@
  * Run:
  *   pnpm payload run src/scripts/_local/import-site.ts -- --tenant=kessela --base=https://kessela.com
  *
+ * `--collection=posts` writes the same blocks into Posts instead — article-shaped
+ * source paths (the 8 Kessela studies) belong in a blog engine, not as Pages.
+ *
+ * ⚠️ Git Bash rewrites a LEADING "/" in an argument to a Windows path, so the
+ * first entry of `--paths=/a/,/b/` silently becomes "C:/Program Files/Git/a/".
+ * Prefix the command with `MSYS_NO_PATHCONV=1`, or run it from PowerShell.
+ *
  * Idempotent: pages are matched by slug and updated, images by source URL.
  * `payload run` will not await a floating main(), so this uses top-level await.
  * @see docs/FOOTGUNS.md
@@ -31,6 +38,12 @@ const arg = (name: string, fallback = ''): string => {
 
 const TENANT_SLUG = arg('tenant')
 const BASE = arg('base').replace(/\/+$/, '')
+/** 'pages' (default) or 'posts'. Both carry the same layout blocks. */
+const COLLECTION = arg('collection', 'pages') as 'pages' | 'posts'
+if (COLLECTION !== 'pages' && COLLECTION !== 'posts') {
+  console.error(`--collection must be "pages" or "posts", got "${COLLECTION}"`)
+  process.exit(1)
+}
 /** Comma-separated paths; defaults to the routes a WP brochure site usually has. */
 const PATHS = arg(
   'paths',
@@ -71,12 +84,33 @@ const slugOf = (path: string): string => {
  *  header doesn't become nine copies in Media. */
 const mediaBySource = new Map<string, number | string>()
 
+/**
+ * WordPress derives filenames from post titles, so a title with a typographic dash
+ * ships as `…cellulite-%E2%80%93-Yes-it-works.jpg` in the markup. Taken straight
+ * off the URL that percent-escape is stored LITERALLY as part of the filename, R2
+ * escapes the `%` again on the way out, and the object 404s at its own url — one
+ * silently broken thumbnail out of eight, with a Media row that looks healthy.
+ * Decode first, then flatten to ASCII.
+ */
+const asciiName = (raw: string): string => {
+  let name = raw
+  try {
+    name = decodeURIComponent(raw)
+  } catch {
+    /* malformed escape — keep the raw form */
+  }
+  return name
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '-')
+    .replace(/-{2,}/g, '-')
+}
+
 async function importImage(src: string, alt: string): Promise<number | string | null> {
   if (mediaBySource.has(src)) return mediaBySource.get(src)!
 
   // The in-memory map only dedupes WITHIN a run. Without this lookup a second
   // import re-uploads every image again — 14 duplicates, then 28.
-  const filename = (src.split('/').pop() || '').split('?')[0]
+  const filename = asciiName((src.split('/').pop() || '').split('?')[0] || '')
   if (filename) {
     const prior = await payload.find({
       collection: 'media',
@@ -103,7 +137,7 @@ async function importImage(src: string, alt: string): Promise<number | string | 
     // rendered as an empty box on a white page.
     if (buf.length < 8192) return null
 
-    const name = (src.split('/').pop() || 'image.jpg').split('?')[0]!
+    const name = asciiName((src.split('/').pop() || 'image.jpg').split('?')[0]!)
     const created = await (payload.create as never as (a: unknown) => Promise<{ id: number | string }>)({
       collection: 'media',
       data: { alt: alt || name, tenant: tenantId },
@@ -254,7 +288,7 @@ for (const path of PATHS) {
   if (!layout.length && heroId) layout.push({ blockType: 'mediaBlock', media: heroId })
 
   const existing = await payload.find({
-    collection: 'pages',
+    collection: COLLECTION,
     where: { and: [{ tenant: { equals: tenantId } }, { slug: { equals: slug } }] },
     limit: 1,
     depth: 0,
@@ -272,29 +306,45 @@ for (const path of PATHS) {
     // isn't a script's call. But a re-import must NOT un-publish a live page.
     _status: alreadyPublished ? 'published' : 'draft',
     layout,
+    // Posts carry provenance; Pages have no such field. `meta` is not optional
+    // polish here: the archive card and every social share read meta.image and
+    // meta.description, and eight "No image" cards is what a blog looks like
+    // when it's broken.
+    ...(COLLECTION === 'posts'
+      ? {
+          sourceUrl: url,
+          sourceType: 'manual',
+          meta: {
+            title,
+            image: heroId ?? undefined,
+            description: (usable.flatMap((s) => s.paras)[0] || '').slice(0, 155),
+          },
+        }
+      : {}),
   } as Record<string, unknown>
 
+  const label = COLLECTION === 'posts' ? 'post' : 'page'
   if (existing.docs?.[0]) {
     await (payload.update as never as (a: unknown) => Promise<unknown>)({
-      collection: 'pages',
+      collection: COLLECTION,
       id: (existing.docs[0] as { id: number | string }).id,
       data,
       overrideAccess: true,
     })
-    console.log(`  page   updated "${title}" (/${slug})`)
+    console.log(`  ${label}   updated "${title}" (/${slug})`)
   } else {
     await (payload.create as never as (a: unknown) => Promise<unknown>)({
-      collection: 'pages',
+      collection: COLLECTION,
       data,
       overrideAccess: true,
     })
-    console.log(`  page   created "${title}" (/${slug})`)
+    console.log(`  ${label}   created "${title}" (/${slug})`)
   }
   pagesWritten++
 }
 
 console.log(
-  `\nDone. ${pagesWritten} page(s), ${mediaBySource.size} image(s) into tenant "${TENANT_SLUG}".` +
-    `\nAll pages are DRAFTS — review, then publish.`,
+  `\nDone. ${pagesWritten} ${COLLECTION}, ${mediaBySource.size} image(s) into tenant "${TENANT_SLUG}".` +
+    `\nNew documents are DRAFTS — review, then publish.`,
 )
 process.exit(0)

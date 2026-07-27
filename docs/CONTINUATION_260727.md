@@ -43,16 +43,34 @@ heartbeat, Google Calendar two-way booking, and a batch of access fixes.
 
 ## 3. The tightening work, ranked
 
-### 3.1 Studies should be POSTS, not pages — Ken asked for this by name
+### 3.1 Studies are POSTS — SHIPPED 260727
 
-The 8 study articles came in as Pages because their source paths are
-page-shaped (`/hydration-101-extremely-important-for-pbm/` etc.). Their site
-never had a blog engine; **ours should.**
+`import-site.ts` takes `--collection=posts`. All 8 studies are live and
+published at `/posts` and `/posts/<slug>`; nav "Studies" points at `/posts`;
+the duplicate Pages are **unpublished, not deleted** (reversible while David is
+still being shown the site — delete them once the posts have bedded in).
+`kessela-studies.ts` does the publish + retire and is idempotent.
 
-`src/scripts/_local/import-site.ts` needs a `--collection=posts` flag: same
-scrape, write to `posts` instead of `pages`. Then re-import the 8 study URLs
-(listed in §5) and remove the page versions. Watch for slug collision — a post
-and a page with the same slug will both want the route.
+Posts get `meta.title/image/description` on import — the archive card and every
+social share read those, and eight "No image" cards is what a blog looks like
+when it's broken. Provenance lands in `sourceUrl`.
+
+Two traps found doing it, both now fixed in the script:
+
+- **Git Bash rewrites a leading `/` in an argument to a Windows path**, so the
+  first entry of `--paths=/a/,/b/` silently became `C:/Program Files/Git/a/` and
+  7 of 8 imported. Prefix `MSYS_NO_PATHCONV=1`.
+- **A percent-escape in a source filename is stored literally.** WordPress named
+  one file `…cellulite-%E2%80%93-Yes-it-works.jpg`; taken off the URL the `%E2`
+  became part of the filename, R2 re-escaped the `%`, and the object 404'd at its
+  own `url` — a Media row that looked completely healthy with no blob behind it.
+  `importImage` now decodes then flattens to ASCII. Worth knowing: a HEAD over
+  every media row's own `url` finds this class in one pass, and found exactly one
+  across all 21 of Kessela's.
+
+**Open, minor:** `/posts` shows the platform's rainbow gradient banner because
+`storefront.postsHeroImage` is unset — off-brand on a coral/dark site. It's one
+upload in the editor; nobody should pick David's banner image for him.
 
 ### 3.2 Portrait video — DECISION NEEDED BEFORE BUILDING
 
@@ -187,6 +205,7 @@ All in `src/scripts/_local/`, all idempotent, all `pnpm payload run <path>`:
 | `provision-kessela.ts` | tenant + default pages/nav |
 | `import-site.ts` | `-- --tenant=kessela --base=https://kessela.com [--paths=…]` |
 | `kessela-store.ts` | form, product, buy CTA, per-page heroes |
+| `kessela-studies.ts` | publish the 8 study Posts, retire the duplicate Pages |
 | `kessela-nav.ts` | their nav + overrides |
 | `kessela-brand.ts` | logo, dark theme, coral |
 | `kessela-hero-favicon.ts` | hero still + favicon |

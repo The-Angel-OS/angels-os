@@ -51,7 +51,9 @@ const NAV = [
   navLink('Home', '/'),
   navLink('How to Use', '/how-to-use-belt'),
   navLink('Results', '/results-testimonials'),
-  navLink('Studies', '/studies-blog'),
+  // Their studies-blog page was a static index. The 8 articles are Posts now
+  // (kessela-studies.ts), so this points at the engine that lists them.
+  navLink('Studies', '/posts'),
   navLink('Buy Now', '/buy-kessela-now'),
 ]
 
