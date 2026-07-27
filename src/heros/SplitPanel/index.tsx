@@ -27,8 +27,13 @@ export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText 
       : null
   const isVideo = !!mediaObj?.mimeType?.startsWith('video/')
 
+  // z-0 + isolate on the root: the header is `relative z-20` and its dropdown
+  // is absolute INSIDE that context, so without an explicit z here the hero's
+  // positioned children painted over the open menu. Pinning the hero into its
+  // own stacking context below the header fixes it without raising the header
+  // globally — which would risk covering modals on every other portal.
   return (
-    <div className="relative w-full" data-theme="dark">
+    <div className="relative isolate z-0 w-full" data-theme="dark">
       <div className="grid min-h-[70vh] grid-cols-1 md:grid-cols-2">
         {/* ── Content panel ────────────────────────────────────────────── */}
         <div className="flex items-center bg-[#111214] px-8 py-16 text-white md:px-14 lg:px-20">

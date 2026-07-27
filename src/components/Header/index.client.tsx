@@ -357,16 +357,14 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                 <AngelIcon className="h-7 w-7 text-[#f5a623]" />
               )}
             </Link>
-            {/* min-w-0 + overflow-hidden below: the right-hand controls are
-                flex-shrink-0, so without it the nav list (which does not wrap)
-                painted straight over the tenant switcher, avatar and cart at
-                ~1000px — "BUY KESSELA NOW!" sat underneath the avatar. It now
-                clips instead of colliding. */}
+            {/* min-w-0 only — NOT overflow-hidden. The clip was added to stop
+                the nav painting over the tenant switcher at ~1000px, and it
+                clipped the DROPDOWN PANELS too, because they are children of
+                this root: Home and More opened onto nothing, on every portal.
+                A cosmetic overlap is never worth breaking navigation. Overlap
+                is handled by short labels and a sane inline cap instead. */}
             {menu.length ? (
-              <NavigationMenu
-                viewport={false}
-                className="hidden md:flex justify-start min-w-0 flex-1 overflow-hidden"
-              >
+              <NavigationMenu viewport={false} className="hidden md:flex justify-start min-w-0">
                 {/* justify-start (not the shadcn default justify-center) = left-aligned,
                     and direction-aware: it flips to the right under dir="rtl" (Arabic). */}
                 <NavigationMenuList className="gap-5 justify-start flex-nowrap">
