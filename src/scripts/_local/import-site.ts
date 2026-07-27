@@ -73,6 +73,25 @@ const mediaBySource = new Map<string, number | string>()
 
 async function importImage(src: string, alt: string): Promise<number | string | null> {
   if (mediaBySource.has(src)) return mediaBySource.get(src)!
+
+  // The in-memory map only dedupes WITHIN a run. Without this lookup a second
+  // import re-uploads every image again — 14 duplicates, then 28.
+  const filename = (src.split('/').pop() || '').split('?')[0]
+  if (filename) {
+    const prior = await payload.find({
+      collection: 'media',
+      where: { and: [{ tenant: { equals: tenantId } }, { filename: { equals: filename } }] },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const hit = prior.docs?.[0] as { id: number | string } | undefined
+    if (hit) {
+      mediaBySource.set(src, hit.id)
+      return hit.id
+    }
+  }
+
   try {
     const res = await fetch(src, { signal: AbortSignal.timeout(30_000) })
     if (!res.ok) return null
@@ -128,11 +147,32 @@ for (const path of PATHS) {
   // the cookie banner and the footer as body copy.
   doc.querySelectorAll('script,style,nav,header,footer,noscript,form').forEach((n) => n.remove())
 
-  const paragraphs = Array.from(doc.querySelectorAll('p,h2,h3,li'))
-    .map((n) => n.textContent?.replace(/\s+/g, ' ').trim() || '')
-    .filter((t) => t.length > 30)
+  // Walk the document IN ORDER and cut it into sections at each heading, so the
+  // page keeps the source's rhythm instead of becoming one wall of text. A flat
+  // paragraph dump is what made the first import look "blah".
+  type Section = { heading?: string; paras: string[] }
+  const sections: Section[] = []
+  let current: Section = { paras: [] }
   const seen = new Set<string>()
-  const unique = paragraphs.filter((t) => (seen.has(t) ? false : (seen.add(t), true)))
+
+  for (const node of Array.from(doc.querySelectorAll('h1,h2,h3,p,li'))) {
+    const text = node.textContent?.replace(/\s+/g, ' ').trim() || ''
+    if (!text) continue
+    const tag = node.tagName.toLowerCase()
+
+    if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+      if (current.heading || current.paras.length) sections.push(current)
+      current = { heading: text.slice(0, 120), paras: [] }
+      continue
+    }
+    if (text.length < 30) continue // nav crumbs and one-word list items
+    if (seen.has(text)) continue
+    seen.add(text)
+    current.paras.push(text)
+  }
+  if (current.heading || current.paras.length) sections.push(current)
+
+  const usable = sections.filter((s) => s.paras.length || s.heading).slice(0, 12)
 
   const imgs = Array.from(doc.querySelectorAll('img'))
     .map((n) => ({
@@ -142,14 +182,59 @@ for (const path of PATHS) {
     .filter((i) => /^https?:/.test(i.src))
     .slice(0, 12) // a WP page can carry dozens of theme sprites
 
-  const heroId = imgs.length ? await importImage(imgs[0]!.src, imgs[0]!.alt || title) : null
-  for (const img of imgs.slice(1, 6)) await importImage(img.src, img.alt || title)
+  const imageIds: Array<number | string> = []
+  for (const img of imgs) {
+    const id = await importImage(img.src, img.alt || title)
+    if (id) imageIds.push(id)
+  }
+  const heroId = imageIds[0] ?? null
 
   const slug = slugOf(path)
-  const layout: Array<Record<string, unknown>> = [
-    { blockType: 'content', columns: [{ size: 'full', richText: buildRichText(unique.slice(0, 40)) }] },
-  ]
-  if (heroId) layout.push({ blockType: 'mediaBlock', media: heroId })
+
+  // Interleave: copy, picture, copy, picture. Long sections split into two
+  // half-width columns so a dense block reads as a magazine spread rather than
+  // a paragraph wall.
+  const layout: Array<Record<string, unknown>> = []
+  let imageCursor = 1 // 0 is the hero
+
+  for (const section of usable) {
+    // The hero already shows the page title, so repeating it as the first
+    // heading printed it twice on every page.
+    const heading =
+      section.heading && section.heading.trim() !== title.trim() ? section.heading : undefined
+    const lines = heading ? [heading, ...section.paras] : section.paras
+    if (!lines.length) continue
+
+    if (lines.length > 6) {
+      const mid = Math.ceil(lines.length / 2)
+      layout.push({
+        blockType: 'content',
+        columns: [
+          { size: 'half', richText: buildRichText(lines.slice(0, mid)) },
+          { size: 'half', richText: buildRichText(lines.slice(mid)) },
+        ],
+      })
+    } else {
+      layout.push({
+        blockType: 'content',
+        columns: [{ size: 'full', richText: buildRichText(lines) }],
+      })
+    }
+
+    // A picture after each section, while we still have pictures.
+    const next = imageIds[imageCursor]
+    if (next) {
+      layout.push({ blockType: 'mediaBlock', media: next })
+      imageCursor++
+    }
+  }
+
+  // Anything left over becomes a closing strip rather than being thrown away.
+  for (const leftover of imageIds.slice(imageCursor, imageCursor + 2)) {
+    layout.push({ blockType: 'mediaBlock', media: leftover })
+  }
+
+  if (!layout.length && heroId) layout.push({ blockType: 'mediaBlock', media: heroId })
 
   const existing = await payload.find({
     collection: 'pages',
@@ -159,11 +244,16 @@ for (const path of PATHS) {
     overrideAccess: true,
   })
 
+  const alreadyPublished =
+    (existing.docs?.[0] as { _status?: string } | undefined)?._status === 'published'
+
   const data = {
     title,
     slug,
     tenant: tenantId,
-    _status: 'draft', // never publish someone's mirrored copy automatically
+    // New pages arrive as drafts — mirroring someone's site and publishing it
+    // isn't a script's call. But a re-import must NOT un-publish a live page.
+    _status: alreadyPublished ? 'published' : 'draft',
     layout,
   } as Record<string, unknown>
 
