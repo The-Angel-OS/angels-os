@@ -16,6 +16,13 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P2] mediaToAiBus fails for uploads created OUTSIDE a request** — every image imported by
+  `src/scripts/_local/import-site.ts` logged `[mediaToAiBus] failed to post media N: The following field
+  is invalid: Attachments 1 > Media`. The media row is created fine; only the AI-Bus mirror fails. Suspected
+  cause: the multi-tenant plugin's relationship filterOptions have no tenant context inside the detached
+  `setImmediate`, so the attachment can't validate. Normal user uploads (inside a request) appear unaffected —
+  **verify that before fixing**. *Where:* `src/collections/Media/hooks/mediaToAiBus.ts`. `260726`
+
 - **[P1] Anthropic API key OUT OF CREDITS** — direct Anthropic vision/chat 400s ("credit balance too low");
   providerHealth skips it 30m at a time. Gemini now covers vision (see fix 91ef738) so nothing is down, but
   the paid failover tier is thinner. *Next:* Ken adds credits at console.anthropic.com — or we accept
