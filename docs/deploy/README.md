@@ -14,6 +14,7 @@ can be rebuilt from the repo alone.
 | `docker-compose.yml` | the whole stack — `postgres` 17, `pgbouncer` (transaction mode), `core`, `heartbeat`. Project name `angelos`. |
 | `heartbeat.crontab` | the 8 scheduled jobs that used to run as Vercel Cron. **`angels-os/vercel.json` is the schedule of record** — change both. |
 | `heartbeat.sh` | `hit <path>` — one wget per job with `Authorization: Bearer $CRON_SECRET`. |
+| `cloudflared-config.yml` | **the ingress map** — which hostname goes to which local port. Lives at `~/.cloudflared/config.yml`, which is on one disk and in no repo. Specific hostnames MUST sit above the wildcards. |
 | `tunnel.cmd` / `run-tunnel.cmd` | cloudflared with a crash-restart loop. Config: `~/.cloudflared/config.yml`, one tunnel split by hostname. |
 | `register-tunnel-task.ps1` | registers the tunnel as a scheduled task (needs elevation). |
 | `rebuild.cmd` | rebuild + redeploy `core`. |

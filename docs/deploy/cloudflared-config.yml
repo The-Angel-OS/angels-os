@@ -1,0 +1,34 @@
+# Angel OS local self-host — cloudflared ingress.
+# Wildcard tenant traffic + apex → local Core (:3000). Cloudflare edge terminates
+# TLS, so no local certs/nginx needed. Host header is preserved, so Core resolves
+# each tenant by subdomain-slug. (gotify/uptimekuma add here once their containers run.)
+tunnel: 21d122ac-84b0-4cd4-be5b-7fddbf8d8458
+credentials-file: C:\Users\kenne\.cloudflared\21d122ac-84b0-4cd4-be5b-7fddbf8d8458.json
+
+ingress:
+  # ORDER MATTERS — specific hostnames MUST sit above the wildcard, or the
+  # wildcard swallows them. This is what was broken: merlin.payloadnuke.com
+  # resolved to Core's platform portal instead of the Merlin node (260723).
+  #
+  # PORT MAP (260723): Merlin owns host :3000; Core moved to host :3001.
+  # Both ride THIS one tunnel, split by hostname — so Merlin's media links can
+  # be absolute at https://merlin.payloadnuke.com/... with no second tunnel.
+  - hostname: merlin.payloadnuke.com
+    service: http://localhost:3000
+  # Same node, second brand. MUST sit above "*.spacesangels.com" or the wildcard
+  # swallows it and serves Core's platform portal instead of Merlin (260726).
+  - hostname: merlin.spacesangels.com
+    service: http://localhost:3000
+  # spacesangels.com — new primary root + wildcard endeavors, on THIS tunnel → Core (:3001).
+  # Specific hostnames above the wildcards (order matters, same as payloadnuke).
+  - hostname: www.spacesangels.com
+    service: http://localhost:3001
+  - hostname: spacesangels.com
+    service: http://localhost:3001
+  - hostname: "*.spacesangels.com"
+    service: http://localhost:3001
+  - hostname: "*.payloadnuke.com"
+    service: http://localhost:3001
+  - hostname: payloadnuke.com
+    service: http://localhost:3001
+  - service: http_status:404
