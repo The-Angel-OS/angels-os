@@ -38,13 +38,21 @@ if (!tenantId) {
   process.exit(1)
 }
 
-/** Their bar, in their order. */
+/**
+ * Their bar, in their order — but SHORTER labels.
+ *
+ * Their header carries only a logo and five links. Ours also carries a tenant
+ * switcher, a presence pill, an avatar and a cart, so the full-length labels
+ * ("Results & Testimonials") overran the space and clipped mid-word at 938px.
+ * Trimming the labels keeps all five links visible, including Buy — which is
+ * the one that earns, and must never be the one that collapses into "More".
+ */
 const NAV = [
   navLink('Home', '/'),
-  navLink('How to Use the Belt', '/how-to-use-belt'),
-  navLink('Results & Testimonials', '/results-testimonials'),
-  navLink('Studies & Blog', '/studies-blog'),
-  navLink('Buy Kessela Now!', '/buy-kessela-now'),
+  navLink('How to Use', '/how-to-use-belt'),
+  navLink('Results', '/results-testimonials'),
+  navLink('Studies', '/studies-blog'),
+  navLink('Buy Now', '/buy-kessela-now'),
 ]
 
 // ── The header document ─────────────────────────────────────────────────────

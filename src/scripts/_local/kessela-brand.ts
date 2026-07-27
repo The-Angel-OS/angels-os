@@ -63,13 +63,26 @@ if (!logoId) {
   console.log(`logo: reused media ${logoId}`)
 }
 
-// Merge, so siteName/tagline/colours already set are preserved.
+// Merge, so anything already set is preserved.
+//
+// defaultTheme 'dark' is the load-bearing part. Their logo is white on
+// transparent and their real site has a dark chrome — on our light header the
+// logo was present in the DOM and invisible on the page. Switching the tenant
+// to dark makes the logo work AND lands much closer to their look than any
+// amount of per-element styling would.
 await update({
   collection: 'tenants',
   id: tenant.id,
-  data: { branding: { ...(tenant.branding || {}), logo: logoId } },
+  data: {
+    branding: {
+      ...(tenant.branding || {}),
+      logo: logoId,
+      defaultTheme: 'dark',
+      primaryColor: '#F0524A', // the coral their CTAs use
+    },
+  },
   overrideAccess: true,
 })
 
-console.log('branding: header logo set')
+console.log('branding: logo set, theme dark, primary #F0524A')
 process.exit(0)
