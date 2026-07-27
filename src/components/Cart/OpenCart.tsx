@@ -23,7 +23,10 @@ export function OpenCartButton({
       <ShoppingCart className="h-5 w-5" />
 
       {quantity ? (
-        <span className="absolute -right-2 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+        // -right-1/-top-1, not -2: at -2 the badge sits far enough outside the
+        // button that the header's top edge clipped it in half. Tucked closer,
+        // it stays inside the row at every viewport.
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
           {quantity}
         </span>
       ) : null}

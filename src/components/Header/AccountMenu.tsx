@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { ChevronDown, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
 import { ThemeToggle } from '@/providers/Theme/ThemeToggle'
+import { PortalSwitcher, type PortalInfo } from '@/components/PortalSwitcher'
 
 import { cn } from '@/utilities/cn'
 import { useClickOutside } from '@/hooks/useClickOutside'
@@ -26,11 +27,24 @@ export function AccountMenu({
   name,
   email,
   online = false,
+  portals = [],
+  currentTenantId,
+  canEditContent = false,
 }: {
   name?: string | null
   email?: string | null
   /** Presence — shows a green status dot on the avatar when true. */
   online?: boolean
+  /**
+   * Portal switching and the "edit this page" shortcut live IN here rather than
+   * as separate header controls. Three controls competing for the right rail is
+   * what cut "MORE" off the nav, the chooser is something ordinary members need
+   * (not just admins, who get the top bar), and nesting it here is what finally
+   * gives it a home on mobile.
+   */
+  portals?: PortalInfo[]
+  currentTenantId?: number | string
+  canEditContent?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -73,7 +87,7 @@ export function AccountMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-background py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 max-h-[80vh] w-64 overflow-y-auto rounded-lg border border-border bg-background py-1 shadow-lg"
         >
           <div className="border-b border-border px-3 py-2.5">
             <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
@@ -92,6 +106,18 @@ export function AccountMenu({
             <UserRound className="h-4 w-4" />
             Account
           </Link>
+          {(portals.length > 1 || canEditContent) && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <PortalSwitcher
+                portals={portals}
+                currentTenantId={currentTenantId}
+                targetPath="/"
+                showEditLink={canEditContent}
+                inline
+              />
+            </>
+          )}
           <div className="my-1 border-t border-border" />
           <ThemeToggle />
           <div className="my-1 border-t border-border" />

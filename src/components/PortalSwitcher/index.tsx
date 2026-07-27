@@ -29,6 +29,7 @@ export function PortalSwitcher({
   compact = false,
   targetPath,
   showEditLink = false,
+  inline = false,
 }: {
   portals: PortalInfo[]
   currentTenantId?: number | string
@@ -42,6 +43,13 @@ export function PortalSwitcher({
    * Resolution runs the first time the menu opens — zero cost until then.
    */
   showEditLink?: boolean
+  /**
+   * Render the LIST only, with no trigger and no absolute panel — for nesting
+   * inside another menu (the account dropdown). A dropdown inside a dropdown
+   * fights over click-outside and gets clipped by the parent's overflow; this
+   * sidesteps both.
+   */
+  inline?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -58,11 +66,14 @@ export function PortalSwitcher({
     }
   }, [])
 
-  // Lazy "Edit this page" resolution — only fires the first time the menu opens.
+  // Lazy "Edit this page" resolution — fires the first time the menu opens, or
+  // immediately when rendered INLINE inside another menu, where `open` never
+  // becomes true. Missing that condition silently dropped "Edit this Page" from
+  // the account menu, which is the one control Ken called critical.
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [editResolved, setEditResolved] = useState(false)
   React.useEffect(() => {
-    if (!open || !showEditLink || editResolved) return
+    if ((!open && !inline) || !showEditLink || editResolved) return
     setEditResolved(true)
     const path = window.location.pathname
     const tid = currentTenantId != null ? `&tenantId=${encodeURIComponent(String(currentTenantId))}` : ''
@@ -72,7 +83,7 @@ export function PortalSwitcher({
         if (d?.editable && d.adminUrl) setEditTarget({ adminUrl: d.adminUrl, label: d.label || 'Edit this page' })
       })
       .catch(() => {})
-  }, [open, showEditLink, editResolved, currentTenantId])
+  }, [open, inline, showEditLink, editResolved, currentTenantId])
 
   // Close on click outside
   React.useEffect(() => {
@@ -190,7 +201,8 @@ export function PortalSwitcher({
   )
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={inline ? '' : 'relative'} ref={ref}>
+      {!inline && (
       <button
         onClick={() => setOpen(!open)}
         className={
@@ -224,9 +236,16 @@ export function PortalSwitcher({
           </>
         )}
       </button>
+      )}
 
-      {open && (
-        <div className={`absolute ${compact ? 'right-0' : 'left-0'} top-full z-50 mt-1 w-56 rounded-lg border border-border bg-background py-1 shadow-lg`}>
+      {(open || inline) && (
+        <div
+          className={
+            inline
+              ? 'w-full py-1'
+              : `absolute ${compact ? 'right-0' : 'left-0'} top-full z-50 mt-1 w-56 rounded-lg border border-border bg-background py-1 shadow-lg`
+          }
+        >
           {/* Editor shortcut: jump straight to this page's Payload editor. */}
           {editTarget && (
             <>

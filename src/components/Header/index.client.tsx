@@ -334,7 +334,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
 
   return (
     <div className="relative z-20 border-b">
-      <nav className="flex items-center md:items-end justify-between container pt-2">
+      {/* pb-2 as well as pt-2: with `md:items-end` the right-rail controls were
+          pushed flush against the bottom border, and the cart icon rendered
+          visibly clipped. Padding both sides gives every control room. */}
+      <nav className="flex items-center md:items-end justify-between container pt-2 pb-2">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
             {/* The SAME pins the desktop bar honours. Mobile used to render the
@@ -472,20 +475,14 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
             ) : null}
           </div>
 
-          <div className="flex justify-end flex-shrink-0 gap-4 items-center">
+          <div className="flex shrink-0 items-center justify-end gap-4 py-1">
             {user ? (
               <>
-                {(userPortals.length > 1 || canEditContent) && (
-                  <div className="hidden md:block">
-                    <PortalSwitcher
-                      portals={userPortals}
-                      currentTenantId={tenant?.id}
-                      compact
-                      targetPath="/"
-                      showEditLink={canEditContent}
-                    />
-                  </div>
-                )}
+                {/* The portal chooser and "edit this page" used to sit here as
+                    their own control. They're inside the account menu now: three
+                    controls competing for the right rail is what pushed "MORE"
+                    off the nav, and members who aren't admins never had the top
+                    bar to switch from. */}
                 {onlineCount > 0 && (
                   <span
                     className="hidden items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground lg:inline-flex"
@@ -500,6 +497,22 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                     name={(user as { name?: string | null }).name}
                     email={(user as { email?: string | null }).email}
                     online={isOnline}
+                    portals={userPortals}
+                    currentTenantId={tenant?.id}
+                    canEditContent={canEditContent}
+                  />
+                </div>
+                {/* Mobile: the same control, which previously had NO mobile
+                    equivalent at all — switching portals on a phone was
+                    impossible. */}
+                <div className="md:hidden">
+                  <AccountMenu
+                    name={(user as { name?: string | null }).name}
+                    email={(user as { email?: string | null }).email}
+                    online={isOnline}
+                    portals={userPortals}
+                    currentTenantId={tenant?.id}
+                    canEditContent={canEditContent}
                   />
                 </div>
               </>
