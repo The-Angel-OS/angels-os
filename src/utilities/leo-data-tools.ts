@@ -6240,7 +6240,7 @@ async function handleGenerateImage(
 
   const prompt = input.prompt as string
   if (!prompt) {
-    return 'Error: A prompt describing the image is required.'
+    return 'Error: A prompt describing the image is required. This is NOT a rate limit, a quota, or an outage — nothing is throttled. Ask the human what they want the image to show, in one short question, and call this tool again with their answer as the prompt.'
   }
 
   const autoSave = input.autoSave !== false // Default true
@@ -11089,7 +11089,7 @@ async function handleGenerateThemeAwareImage(
 
   const userPrompt = input.prompt as string
   if (!userPrompt) {
-    return 'Error: A prompt describing the image is required.'
+    return 'Error: A prompt describing the image is required. This is NOT a rate limit, a quota, or an outage — nothing is throttled. Ask the human what they want the image to show, in one short question, and call this tool again with their answer as the prompt.'
   }
 
   const placement = input.placement as string | undefined
