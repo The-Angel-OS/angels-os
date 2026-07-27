@@ -347,6 +347,10 @@ export interface Tenant {
     siteName?: string | null;
     tagline?: string | null;
     /**
+     * Hide the "Powered by The Angel OS · Payload · Next.js · LiveKit" line in the footer.
+     */
+    hidePoweredBy?: boolean | null;
+    /**
      * Default color theme for this site. Visitors can still toggle.
      */
     defaultTheme?: ('auto' | 'light' | 'dark') | null;
@@ -7761,6 +7765,7 @@ export interface TenantsSelect<T extends boolean = true> {
         favicon?: T;
         siteName?: T;
         tagline?: T;
+        hidePoweredBy?: T;
         defaultTheme?: T;
         primaryColor?: T;
         secondaryColor?: T;

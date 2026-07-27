@@ -13,6 +13,7 @@ import * as migration_20260725_210000_link_field_collections from './20260725_21
 import * as migration_20260726_120000_users_google_calendar from './20260726_120000_users_google_calendar';
 import * as migration_20260726_200000_contacts_attribution from './20260726_200000_contacts_attribution';
 import * as migration_20260726_210000_sequences from './20260726_210000_sequences';
+import * as migration_20260726_233000_tenant_hide_powered_by from './20260726_233000_tenant_hide_powered_by';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -269,5 +270,10 @@ export const migrations = [
     up: migration_20260726_210000_sequences.up,
     down: migration_20260726_210000_sequences.down,
     name: '20260726_210000_sequences',
+  },
+  {
+    up: migration_20260726_233000_tenant_hide_powered_by.up,
+    down: migration_20260726_233000_tenant_hide_powered_by.down,
+    name: '20260726_233000_tenant_hide_powered_by',
   },
 ];

@@ -157,6 +157,19 @@ export const Tenants: CollectionConfig = {
           type: 'text',
         },
         {
+          // A client paying to run their own storefront shouldn't be advertising
+          // our stack in their footer. Off by default: the credit stays for
+          // community and platform portals, and a commercial Endeavor turns it
+          // off. @see src/components/Footer/index.tsx
+          name: 'hidePoweredBy',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description:
+              'Hide the "Powered by The Angel OS · Payload · Next.js · LiveKit" line in the footer.',
+          },
+        },
+        {
           name: 'defaultTheme',
           type: 'select',
           defaultValue: 'auto',

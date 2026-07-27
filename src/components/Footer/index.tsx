@@ -13,7 +13,10 @@ const { COMPANY_NAME, SITE_NAME } = process.env
 // Per-release build tag so we always know which version is live. Vercel injects
 // VERCEL_GIT_COMMIT_SHA at build time; falls back to "dev" locally.
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7)
-const BUILD_TAG = `v${pkg.version}${COMMIT_SHA ? ` · ${COMMIT_SHA}` : ' · dev'}`
+// `· dev` was printing on the LIVE site: COMMIT_SHA comes from a Vercel env var
+// that self-hosting never sets, so production advertised itself as a dev build.
+// No sha → just the version.
+const BUILD_TAG = `v${pkg.version}${COMMIT_SHA ? ` · ${COMMIT_SHA}` : ''}`
 
 type Props = {
   tenant: Tenant | null
@@ -21,6 +24,9 @@ type Props = {
 
 export async function Footer({ tenant }: Props) {
   const tenantId = tenant?.id ?? null
+  const hidePoweredBy = Boolean(
+    (tenant?.branding as { hidePoweredBy?: boolean } | undefined)?.hidePoweredBy,
+  )
   let footer: Footer | null = null
   try {
     footer = tenantId
@@ -135,6 +141,7 @@ export async function Footer({ tenant }: Props) {
               </p>
             </>
           )}
+          {!hidePoweredBy && (
           <p className="md:ml-auto flex items-center gap-2">
             <span>Powered by</span>
             <a className="text-black dark:text-white hover:underline" href="https://github.com/The-Angel-OS" target="_blank" rel="noopener noreferrer">
@@ -160,6 +167,7 @@ export async function Footer({ tenant }: Props) {
               {BUILD_TAG}
             </span>
           </p>
+          )}
         </div>
       </div>
     </footer>
