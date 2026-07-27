@@ -342,6 +342,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'tickets',
+        label: 'Tickets',
+        icon: 'calendar',
+        href: (p) => `${p}/dashboard/tickets`,
+        isActive: active('/dashboard/tickets'),
+        visible: always,
+      },
+      {
         key: 'holon',
         label: 'Holon Node',
         icon: 'holon',

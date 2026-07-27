@@ -16,6 +16,7 @@ import * as migration_20260726_210000_sequences from './20260726_210000_sequence
 import * as migration_20260726_233000_tenant_hide_powered_by from './20260726_233000_tenant_hide_powered_by';
 import * as migration_20260727_000500_hero_split_panel from './20260727_000500_hero_split_panel';
 import * as migration_20260727_030000_media_text_media from './20260727_030000_media_text_media';
+import * as migration_20260727_234500_tickets from './20260727_234500_tickets';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -287,5 +288,10 @@ export const migrations = [
     up: migration_20260727_030000_media_text_media.up,
     down: migration_20260727_030000_media_text_media.down,
     name: '20260727_030000_media_text_media',
+  },
+  {
+    up: migration_20260727_234500_tickets.up,
+    down: migration_20260727_234500_tickets.down,
+    name: '20260727_234500_tickets',
   },
 ];

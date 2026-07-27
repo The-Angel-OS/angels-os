@@ -64,6 +64,7 @@ import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
 import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
+import { Tickets } from '@/collections/Tickets'
 import { Sequences } from '@/collections/Sequences'
 import { SequenceEnrollments } from '@/collections/SequenceEnrollments'
 import { Redirects } from '@/collections/Redirects'
@@ -375,6 +376,7 @@ export default buildConfig({
     FederationPeers,
     Connectors,
     Contacts,
+    Tickets,
     Sequences,
     SequenceEnrollments,
     Redirects,
@@ -493,6 +495,7 @@ export default buildConfig({
         'holon-capabilities': {},
         'justice-fund-transactions': {},
         contacts: {},
+        tickets: {},
         sequences: {},
         'sequence-enrollments': {},
         redirects: {},
@@ -586,8 +589,23 @@ export default buildConfig({
                 // is the honest expression of "required, unless internal".
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 validate: (value: unknown, { siblingData, data }: any) => {
-                  const linkType = siblingData?.linkType ?? data?.linkType
+                  // Lexical nests link fields, so `linkType` shows up in several
+                  // shapes depending on where validation runs. The first attempt
+                  // at this only checked two of them, couldn't see the type on an
+                  // INTERNAL link, and rejected it — which blocked page saves
+                  // exactly like the `required: true` it replaced.
+                  const linkType =
+                    siblingData?.linkType ??
+                    siblingData?.fields?.linkType ??
+                    data?.linkType ??
+                    data?.fields?.linkType
+
                   if (linkType === 'internal') return true
+                  // Can't tell what kind of link this is — do NOT block the save.
+                  // A missing url on a custom link is visible in the editor; an
+                  // undiagnosable validation failure is not.
+                  if (linkType === undefined) return true
+
                   return typeof value === 'string' && value.trim().length > 0
                     ? true
                     : 'Enter a URL, or switch the link to Internal link.'

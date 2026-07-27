@@ -108,6 +108,7 @@ export interface Config {
     'federation-peers': FederationPeer;
     connectors: Connector;
     contacts: Contact;
+    tickets: Ticket;
     sequences: Sequence;
     'sequence-enrollments': SequenceEnrollment;
     redirects: Redirect;
@@ -195,6 +196,7 @@ export interface Config {
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
     connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
+    tickets: TicketsSelect<false> | TicketsSelect<true>;
     sequences: SequencesSelect<false> | SequencesSelect<true>;
     'sequence-enrollments': SequenceEnrollmentsSelect<false> | SequenceEnrollmentsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
@@ -5009,6 +5011,68 @@ export interface Contact {
   createdAt: string;
 }
 /**
+ * Warranty claims, support requests and returns — one queue.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tickets".
+ */
+export interface Ticket {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Adding a new kind of request is an option here, not a new collection.
+   */
+  type: 'warranty' | 'support' | 'return' | 'question';
+  subject: string;
+  /**
+   * What happened, in the requester's own words.
+   */
+  description: string;
+  /**
+   * Images or video showing the issue.
+   */
+  attachments?:
+    | {
+        file: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  status: 'submitted' | 'reviewing' | 'approved' | 'denied' | 'resolved';
+  priority?: ('low' | 'normal' | 'high' | 'urgent') | null;
+  /**
+   * Who raised it. Set from the session, never from the form body.
+   */
+  requester: number | User;
+  /**
+   * Who owns it now. Empty means unclaimed.
+   */
+  assignee?: (number | null) | User;
+  /**
+   * Which product. A relationship, not a static list — it fills itself from the catalog.
+   */
+  product?: (number | null) | Product;
+  purchaseDate?: string | null;
+  orderNumber?: string | null;
+  /**
+   * Where they bought it, if not direct (Amazon, a clinic, a distributor).
+   */
+  sellerName?: string | null;
+  /**
+   * What was done. Visible to the requester.
+   */
+  resolution?: string | null;
+  /**
+   * Never shown to the requester.
+   */
+  internalNotes?: string | null;
+  /**
+   * The channel carrying this ticket's conversation. Replies live there, not here.
+   */
+  channelRef?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Timed follow-up sequences — "day 1, 3, 7", stopping on purchase.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7561,6 +7625,10 @@ export interface PayloadLockedDocument {
         value: number | Contact;
       } | null)
     | ({
+        relationTo: 'tickets';
+        value: number | Ticket;
+      } | null)
+    | ({
         relationTo: 'sequences';
         value: number | Sequence;
       } | null)
@@ -9405,6 +9473,35 @@ export interface ContactsSelect<T extends boolean = true> {
   unsubscribeToken?: T;
   lastEmailedAt?: T;
   emailCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tickets_select".
+ */
+export interface TicketsSelect<T extends boolean = true> {
+  tenant?: T;
+  type?: T;
+  subject?: T;
+  description?: T;
+  attachments?:
+    | T
+    | {
+        file?: T;
+        id?: T;
+      };
+  status?: T;
+  priority?: T;
+  requester?: T;
+  assignee?: T;
+  product?: T;
+  purchaseDate?: T;
+  orderNumber?: T;
+  sellerName?: T;
+  resolution?: T;
+  internalNotes?: T;
+  channelRef?: T;
   updatedAt?: T;
   createdAt?: T;
 }
