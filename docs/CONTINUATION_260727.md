@@ -18,7 +18,21 @@ see `docs/FOOTGUNS.md` and the git log from 260726.
 
 ## The three asks still open
 
-### 1. Header consolidation (Ken, 260727 0043)
+### 1. Header consolidation — ✅ DONE 260727 0110 (30c2f4f)
+
+Portal switch + "Edit this page" now live inside the account avatar, which
+reclaimed the space that was cutting off MORE and gave portal switching its
+first mobile home. Cart badge un-clipped. PortalSwitcher gained an `inline`
+mode (list only, no trigger) so it can nest without dropdown-in-dropdown pain.
+
+⚠️ If you touch `inline`: the "Edit this page" resolver is lazy and was keyed
+on the menu OPENING. Inline never opens, so it silently stopped resolving —
+it now checks `open || inline`. Any other lazy work in that component needs
+the same treatment.
+
+Original ask, kept for context:
+
+### 1b. Header consolidation (Ken, 260727 0043) — original wording
 
 Current state and what he wants:
 
