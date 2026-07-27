@@ -102,8 +102,12 @@ export default async function ProductPage({ params }: Args) {
     offers: {
       '@type': 'AggregateOffer',
       availability: hasStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      price: price,
-      priceCurrency: 'usd',
+      // schema.org wants the MAJOR unit; `price` is stored in cents. Emitting
+      // it raw published "$599.00" on the page and price=59900 in the structured
+      // data — so a rich result would have quoted $59,900. Currency uppercase
+      // per ISO 4217, which Google requires.
+      price: typeof price === 'number' ? (price / 100).toFixed(2) : price,
+      priceCurrency: 'USD',
     },
   }
 
