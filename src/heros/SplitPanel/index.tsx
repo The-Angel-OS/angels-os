@@ -9,16 +9,16 @@ import { Media } from '@/components/Media'
 import { RichText } from '@/components/RichText'
 
 /**
- * Split-panel hero — a solid colour panel beside a full-bleed photograph.
+ * Content-left hero — ONE full-bleed image with the copy over a dark gradient.
  *
- * Built to match the corporate-product pattern Kessela and most Avada/Divi
- * product sites use: content left on a dark slab, imagery right, a coloured
- * accent rule under the headline. It reads as "a company" in a way a centred
- * headline over a washed-out photo does not — which matters when the person
- * evaluating you is judging on appearance in the first three seconds.
+ * The first cut of this was a hard 50/50 split: solid slab left, photo right.
+ * Looking at Kessela's actual page, that's not what they do — they run a single
+ * full-bleed photograph and fade it to near-black on the left, with the copy
+ * sitting on the dark part. Same corporate read, and crucially it needs no
+ * second asset: the image you already have does both jobs.
  *
- * Stacks on mobile: panel first, image beneath, so the headline is never
- * competing with a face for the top of a phone screen.
+ * On mobile the gradient goes vertical so the text has a dark bed underneath it
+ * rather than competing with whatever happens to be on the left of the photo.
  */
 export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
   const mediaObj =
@@ -34,9 +34,35 @@ export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText 
   // globally — which would risk covering modals on every other portal.
   return (
     <div className="relative isolate z-0 w-full" data-theme="dark">
-      <div className="grid min-h-[70vh] grid-cols-1 md:grid-cols-2">
-        {/* ── Content panel ────────────────────────────────────────────── */}
-        <div className="flex items-center bg-[#111214] px-8 py-16 text-white md:px-14 lg:px-20">
+      {/* ── Full-bleed imagery ──────────────────────────────────────────── */}
+      <div className="absolute inset-0">
+        {mediaObj && isVideo && mediaObj.url ? (
+          <video
+            className="h-full w-full object-cover"
+            src={mediaObj.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          media &&
+          typeof media === 'object' && (
+            <Media fill imgClassName="object-cover" priority resource={media} size="100vw" />
+          )
+        )}
+      </div>
+
+      {/* Fade to near-black where the copy sits. Vertical on mobile (dark bed
+          under the text), horizontal from md up (dark left third). */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_60%,rgba(10,11,13,0.85)_100%)] md:bg-[linear-gradient(90deg,rgba(10,11,13,0.96)_0%,rgba(10,11,13,0.85)_38%,rgba(10,11,13,0.25)_65%,rgba(10,11,13,0.05)_100%)]"
+      />
+
+      <div className="relative grid min-h-[70vh] grid-cols-1 md:grid-cols-2">
+        {/* ── Content ──────────────────────────────────────────────────── */}
+        <div className="flex items-center px-8 py-16 text-white md:px-14 lg:px-20">
           <div className="w-full max-w-xl">
             {richText && (
               <RichText
@@ -89,25 +115,9 @@ export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText 
           </div>
         </div>
 
-        {/* ── Imagery ──────────────────────────────────────────────────── */}
-        <div className="relative min-h-[45vh] md:min-h-full">
-          {mediaObj && isVideo && mediaObj.url ? (
-            <video
-              className="absolute inset-0 h-full w-full object-cover"
-              src={mediaObj.url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-            />
-          ) : (
-            media &&
-            typeof media === 'object' && (
-              <Media fill imgClassName="object-cover" priority resource={media} size="50vw" />
-            )
-          )}
-        </div>
+        {/* Right column is intentionally empty — it's the breathing room that
+            lets the photograph read, and it collapses on mobile. */}
+        <div aria-hidden="true" />
       </div>
     </div>
   )

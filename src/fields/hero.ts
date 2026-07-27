@@ -28,6 +28,13 @@ export const hero: Field = {
           value: 'fullScreen',
         },
         {
+          // Same single full-bleed image as fullScreen — the difference is the
+          // content sits LEFT over a dark gradient instead of centred, which is
+          // the corporate product-page look. No second asset needed.
+          label: 'Split Panel (image with content on the left)',
+          value: 'splitPanel',
+        },
+        {
           label: 'High Impact',
           value: 'highImpact',
         },
@@ -66,7 +73,7 @@ export const hero: Field = {
       name: 'media',
       type: 'upload',
       admin: {
-        condition: (_, { type } = {}) => ['fullScreen', 'highImpact', 'mediumImpact'].includes(type),
+        condition: (_, { type } = {}) => ['fullScreen', 'splitPanel', 'highImpact', 'mediumImpact'].includes(type),
       },
       relationTo: 'media',
       required: true,
