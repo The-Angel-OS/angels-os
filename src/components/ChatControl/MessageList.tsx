@@ -641,7 +641,11 @@ function TruncatedMessage({
   const shouldTruncate = !isStreaming && !isNewest && content.length > TRUNCATE_THRESHOLD
 
   const body = useMarkdown ? (
-    <div className={`prose prose-sm prose-invert max-w-none break-words ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
+    // `dark:prose-invert`, not bare `prose-invert`. prose-invert is the DARK
+    // variant; applied unconditionally it rendered light-grey body text on the
+    // light-grey assistant bubble, so LEO's replies were nearly unreadable in
+    // light theme. @see docs/FOOTGUNS.md §2.7
+    <div className={`prose prose-sm dark:prose-invert max-w-none break-words ${shouldTruncate && !expanded ? 'line-clamp-4' : ''}`}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
