@@ -476,6 +476,27 @@ button {
   color: var(--muted-foreground);
 }
 
+/* Button labels inside the card.
+   Ken sees "Create an account" and "Continue with a code" as dark-on-dark while
+   the same build measures 14.1:1 in a clean browser — so the utility that colours
+   them resolves differently in his environment than in mine, and I could not
+   reproduce it to find out why. Rather than keep chasing that, pin it: every
+   button in the card takes the card's own foreground, and the one button with a
+   filled brand background is excepted by its OWN class so it keeps dark-on-sage.
+
+   `text-primary-foreground` is the discriminator rather than `bg-primary`,
+   because the outline buttons carry `bg-primary-foreground` and a substring
+   match on "bg-primary" catches both. */
+.auth-card button,
+.auth-card a[class*='inline-flex'] {
+  color: var(--foreground);
+}
+
+.auth-card button[class*='text-primary-foreground'],
+.auth-card a[class*='text-primary-foreground'] {
+  color: var(--primary-foreground);
+}
+
 /* Inline links (reset password, terms) — the amber already used by --ring,
    lifted to a text-safe lightness. Brand-neutral on purpose: every tenant's
    primary is a different distance from this card. */
