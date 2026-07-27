@@ -1410,7 +1410,7 @@ export interface Page {
    */
   navOrder?: number | null;
   hero: {
-    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    type: 'none' | 'fullScreen' | 'splitPanel' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
       root: {
         type: string;
@@ -1511,7 +1511,7 @@ export interface Post {
   title: string;
   publishedOn?: string | null;
   hero: {
-    type: 'none' | 'fullScreen' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    type: 'none' | 'fullScreen' | 'splitPanel' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
       root: {
         type: string;

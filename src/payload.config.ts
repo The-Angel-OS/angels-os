@@ -578,7 +578,20 @@ export default buildConfig({
                   condition: (ctx: { linkType?: string }) => ctx.linkType !== 'internal',
                 },
                 label: (ctx: { t: (k: string) => string }) => ctx.t('fields:enterURL'),
-                required: true,
+                // NOT `required: true`. `admin.condition` only HIDES a field in
+                // the UI — it does not exempt it from validation. So an INTERNAL
+                // link, which legitimately has no url, failed required-validation
+                // on save and blocked the whole document: the page could not be
+                // saved until the link was deleted again. Conditional validation
+                // is the honest expression of "required, unless internal".
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                validate: (value: unknown, { siblingData, data }: any) => {
+                  const linkType = siblingData?.linkType ?? data?.linkType
+                  if (linkType === 'internal') return true
+                  return typeof value === 'string' && value.trim().length > 0
+                    ? true
+                    : 'Enter a URL, or switch the link to Internal link.'
+                },
               },
             ]
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- LinkFeature fields type is complex
