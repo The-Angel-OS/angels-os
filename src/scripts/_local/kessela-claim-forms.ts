@@ -73,7 +73,12 @@ for (const { slug, block } of FORMS) {
     depth: 0,
     overrideAccess: true,
   })
-  const page = res.docs?.[0] as { id: number; layout?: Array<Record<string, unknown>> } | undefined
+  // Cast the RESULT, and via `unknown` — once generate:types knows about
+  // TicketFormBlock the layout union is no longer assignable to
+  // Record<string, unknown> ("index signature is missing").
+  const page = res.docs?.[0] as unknown as
+    | { id: number; layout?: Array<Record<string, unknown>> }
+    | undefined
   if (!page) {
     console.log(`  SKIP /${slug} — no such page on kessela`)
     continue
