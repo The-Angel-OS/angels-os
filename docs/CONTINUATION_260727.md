@@ -113,6 +113,36 @@ Button variants, for the same reason.
 
 ---
 
+## 3b. Tickets / warranty engine — slice 1 SHIPPED (5404467)
+
+`tickets` collection: ONE primitive, `type` discriminates warranty / support /
+return / question. Signed-in only. `product` is a relationship (fills itself
+from the catalog). Read access is an OR — a customer isn't a member of the
+seller's tenant, so ownership is separate from tenant scope. `internalNotes`
+uses field-level read access, not `admin.hidden`.
+
+Conversation is NOT a field: `channelRef` points at a channel so threads reuse
+Messages/attachments/presence/LEO. The row owns lifecycle, the channel owns
+discussion.
+
+Dashboard: `/dashboard/tickets` (queue, type+status filters, open above closed)
+and `/dashboard/tickets/[id]` (attachments rendered large, video as a real
+player, inline status/priority). Detail page re-checks the tenant because
+`requirePortalManager` proves you manage A portal, not THIS one.
+
+**Explicitly NOT built** (in the collection's doc comment — don't add by drift):
+SLA timers, business-hours calendars, escalation matrices, queue/view builders,
+CSAT surveys, automation builders, multi-brand form schemas.
+
+**NEXT SLICE — the public claim form.** Ken's constraint: the customer upload
+control must allow UPLOAD but NOT "use existing", because a customer must never
+browse the tenant's media library. Reuse the endeavor-settings upload control
+minus that affordance. Also still to do: `query_tickets` / `update_ticket_status`
+LEO tools, and wiring `channelRef` to an actual channel on create.
+
+Note: the `escalateNewTicket` afterChange hook posts to AI Bus + Gotify, but
+hooks DO NOT fire on raw SQL inserts — test through the API.
+
 ## 4. Traps — every one cost real time. Don't re-learn them.
 
 - **TWO hero configs existed.** `src/fields/hero.ts` is the live one (Pages and
