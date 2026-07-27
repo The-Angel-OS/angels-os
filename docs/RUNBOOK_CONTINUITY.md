@@ -38,7 +38,7 @@
 | Postgres 17 | `angelos-pg`, host `:5432`, volume `angelos_pgdata` | `docker exec -it angelos-pg psql -U postgres -d angels` |
 | PgBouncer | `angelos-pgbouncer`, host `:6432` (transaction mode) | `docker ps` — fronts Postgres, stops login stampedes |
 | Heartbeat (cron) | `angelos-heartbeat` — runs the 8 scheduled jobs | `docker logs angelos-heartbeat` |
-| Public HTTPS | Cloudflare tunnel `merlin` → `*.payloadnuke.com` → Core | Scheduled Task `AngelOS-Tunnel`; `cloudflared tunnel info merlin` |
+| Public HTTPS | Cloudflare tunnel `21d122ac…` — ALL hostnames, split by ingress rule | `Get-Process cloudflared`. **Nothing auto-starts it** — see §2b |
 | Stack files | `C:\Dev\datacenter\stack` — **not a git repo** | reference copies in [`docs/deploy/`](deploy/) |
 | App code | `C:\Dev\angels-os` (this repo) | |
 | Secrets | `C:\Dev\angels-os\.env.local` — the ONE env file the container reads | never commit it, never paste it into a ticket |
@@ -81,6 +81,112 @@ anything else, take a fresh dump.**
 
 ---
 
+## 2b. Cloudflare — the only thing between the world and this laptop
+
+There is no public IP, no nginx and no TLS certificate anywhere in this stack.
+Cloudflare terminates HTTPS at its edge and `cloudflared` holds an outbound
+tunnel open from the laptop. Nothing inbound is ever opened on the router, which
+is why a laptop behind a domestic NAT can serve production at all.
+
+### The facts
+
+| | |
+|---|---|
+| Tunnel ID | `21d122ac-84b0-4cd4-be5b-7fddbf8d8458` |
+| Config | `C:\Users\kenne\.cloudflared\config.yml` |
+| Credentials | `C:\Users\kenne\.cloudflared\21d122ac-....json` — **the tunnel's private key. Lose it and the tunnel cannot be recreated under the same ID.** |
+| Login cert | `C:\Users\kenne\.cloudflared\cert.pem` — authorises creating/deleting tunnels on the account |
+| Binary | `C:\Program Files (x86)\cloudflared\cloudflared.exe` |
+
+**One tunnel serves everything**, split by hostname in `config.yml`:
+
+- `merlin.payloadnuke.com`, `merlin.spacesangels.com` -> `localhost:3000` (Merlin)
+- `spacesangels.com`, `www`, `*.spacesangels.com` -> `localhost:3001` (Core)
+- `payloadnuke.com`, `*.payloadnuke.com` -> `localhost:3001` (Core)
+- everything else -> `http_status:404`
+
+> **ORDER MATTERS.** Ingress rules are evaluated top-down and the first match
+> wins, so every specific hostname must sit ABOVE the wildcard. A wildcard placed
+> too high silently swallows `merlin.*` and serves Core's platform portal
+> instead. This has broken twice (260723, 260726).
+
+### Starting it
+
+```powershell
+Start-Process "C:\Program Files (x86)\cloudflared\cloudflared.exe" `
+  -ArgumentList 'tunnel --config "C:\Users\kenne\.cloudflared\config.yml" run 21d122ac-84b0-4cd4-be5b-7fddbf8d8458' `
+  -WindowStyle Hidden
+```
+
+Confirm: `Get-Process cloudflared`, then `curl -s -o /dev/null -w "%{http_code}" https://spacesangels.com`.
+
+### ⚠️ Nothing starts it automatically — verified 260727
+
+The Windows service `Cloudflared` exists but is **Stopped and Disabled**. There
+is no scheduled task, no Run-key entry and no Startup shortcut. An earlier
+version of this runbook told you to check `schtasks /tn "AngelOS-Tunnel"`; that
+task does not exist.
+
+**Consequence: if the laptop reboots, every site stays down until a human runs
+the command above.** Docker Desktop restarts itself; the tunnel does not. This
+is the single largest continuity gap in the stack — a power cut at 3am is an
+outage until Ken wakes up.
+
+Fix it once, with an elevated shell:
+
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" service install
+Set-Service Cloudflared -StartupType Automatic
+Start-Service Cloudflared
+```
+
+The service reads `C:\Windows\System32\config\systemprofile\.cloudflared\` —
+copy `config.yml` and the credentials JSON there, or pass `--config`.
+
+### An established tunnel does not move between networks
+
+`cloudflared` holds four long-lived QUIC connections to the edge. They stay on
+whichever interface they were built on. Plugging in Ethernet after the fact
+changes the routing table for *new* connections only — the tunnel keeps using
+Wi-Fi until cloudflared restarts. If the wired path matters, restart it.
+
+### ⚠️ Watch for stray quick tunnels
+
+On 260727 a second cloudflared process was found running:
+
+```
+cloudflared tunnel --url http://localhost:3000
+```
+
+That is a **quick tunnel** — it publishes `localhost:3000` (Merlin) on a random
+`*.trycloudflare.com` URL with **no authentication and no Access policy**, and it
+does not appear in `config.yml`, so nothing in this runbook would have mentioned
+it. `Get-CimInstance Win32_Process -Filter "Name='cloudflared.exe'" |
+Select CommandLine` lists what is actually running. Kill any process whose
+command line contains `--url`.
+
+### On a Linux server (the Ubuntu box)
+
+Same tunnel, better host. Cloudflared ships a real systemd unit:
+
+```bash
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+sudo dpkg -i cf.deb
+sudo mkdir -p /etc/cloudflared
+# copy config.yml + the credentials JSON to /etc/cloudflared/
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
+```
+
+`systemctl enable` is the whole reason to move: the autostart problem above
+stops existing. Point `service:` at the container ports the same way.
+
+**Do not run two tunnels with the same ID in two places** — Cloudflare will
+load-balance across them and requests will land on whichever host answers,
+including the one without the current database. Move the tunnel, don't fork it.
+
+---
+
 ## 3. The failures you will actually see
 
 ### "Everything is down"
@@ -89,7 +195,10 @@ The laptop rebooted, or Docker Desktop didn't start. Start Docker Desktop, then:
 cd C:/Dev/datacenter/stack
 docker compose up -d
 ```
-Then check the tunnel task is running (`schtasks /query /tn "AngelOS-Tunnel"`).
+Then start the tunnel — **it does not start itself** (§2b):
+```powershell
+Start-Process "C:\Program Files (x86)\cloudflared\cloudflared.exe" -ArgumentList 'tunnel --config "C:\Users\kenne\.cloudflared\config.yml" run 21d122ac-84b0-4cd4-be5b-7fddbf8d8458' -WindowStyle Hidden
+```
 
 ### "The site loads but nobody can log in"
 Almost always connection-pool exhaustion from a session stuck idle-in-transaction.
