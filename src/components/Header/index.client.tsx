@@ -357,11 +357,19 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                 <AngelIcon className="h-7 w-7 text-[#f5a623]" />
               )}
             </Link>
+            {/* min-w-0 + overflow-hidden below: the right-hand controls are
+                flex-shrink-0, so without it the nav list (which does not wrap)
+                painted straight over the tenant switcher, avatar and cart at
+                ~1000px — "BUY KESSELA NOW!" sat underneath the avatar. It now
+                clips instead of colliding. */}
             {menu.length ? (
-              <NavigationMenu viewport={false} className="hidden md:flex justify-start">
+              <NavigationMenu
+                viewport={false}
+                className="hidden md:flex justify-start min-w-0 flex-1 overflow-hidden"
+              >
                 {/* justify-start (not the shadcn default justify-center) = left-aligned,
                     and direction-aware: it flips to the right under dir="rtl" (Arabic). */}
-                <NavigationMenuList className="gap-5 justify-start">
+                <NavigationMenuList className="gap-5 justify-start flex-nowrap">
                   {primaryItems.map((item) => {
                     // Hierarchical: any item with children renders as a dropdown
                     // (the parent stays reachable as the first entry), so Pages

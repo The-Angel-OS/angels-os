@@ -99,8 +99,9 @@ async function importImage(src: string, alt: string): Promise<number | string | 
     if (!type.startsWith('image/')) return null
 
     const buf = Buffer.from(await res.arrayBuffer())
-    // Skip tracking pixels and spacer gifs — they are never worth a Media row.
-    if (buf.length < 2048) return null
+    // 8KB, not 2KB: at 2KB the white Affirm badge (9KB) still got through and
+    // rendered as an empty box on a white page.
+    if (buf.length < 8192) return null
 
     const name = (src.split('/').pop() || 'image.jpg').split('?')[0]!
     const created = await (payload.create as never as (a: unknown) => Promise<{ id: number | string }>)({
@@ -161,6 +162,9 @@ for (const path of PATHS) {
     const tag = node.tagName.toLowerCase()
 
     if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+      // Themes number their feature cards with <h2>1</h2>. A bare digit is a
+      // list marker, not a heading, and printed a stray "1" mid-page.
+      if (/^\W*\d+\W*$/.test(text) || text.length < 3) continue
       if (current.heading || current.paras.length) sections.push(current)
       current = { heading: text.slice(0, 120), paras: [] }
       continue
@@ -174,12 +178,25 @@ for (const path of PATHS) {
 
   const usable = sections.filter((s) => s.paras.length || s.heading).slice(0, 12)
 
+  // Chrome (correctly) rendered the first import as a page of EMPTY BOXES: the
+  // logos, the white Affirm badge and the BBB seal had been pulled in as body
+  // content. Avada doesn't use semantic <header>/<footer>, so stripping those
+  // tags doesn't remove site furniture. Three filters, because no single one
+  // catches it: the name, the shape, and the byte size.
+  const JUNK_NAME = /logo|affirm|bbb|badge|icon|seal|sprite|payment|arrow|spacer|avatar/i
+
   const imgs = Array.from(doc.querySelectorAll('img'))
     .map((n) => ({
       src: new URL(n.getAttribute('src') || '', url).toString(),
       alt: n.getAttribute('alt') || '',
+      w: Number(n.getAttribute('width')) || 0,
+      h: Number(n.getAttribute('height')) || 0,
     }))
     .filter((i) => /^https?:/.test(i.src))
+    .filter((i) => !JUNK_NAME.test(i.src))
+    // Logos and badges are wide-and-short; photographs are not. Only judge when
+    // the source actually declares dimensions.
+    .filter((i) => !(i.w && i.h && (i.h < 200 || i.w / i.h > 3)))
     .slice(0, 12) // a WP page can carry dozens of theme sprites
 
   const imageIds: Array<number | string> = []
