@@ -64,6 +64,8 @@ import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
 import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
+import { Sequences } from '@/collections/Sequences'
+import { SequenceEnrollments } from '@/collections/SequenceEnrollments'
 import { Redirects } from '@/collections/Redirects'
 import { FederationAuditLog } from '@/collections/FederationAuditLog'
 import { AgentTransactions } from '@/collections/AgentTransactions'
@@ -108,6 +110,7 @@ import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
 import { captureHandler, captureOptionsHandler } from '@/endpoints/capture'
+import { sequenceTickHandler } from '@/endpoints/sequence-tick'
 import { presencePingHandler } from '@/endpoints/presence-ping'
 import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
@@ -372,6 +375,8 @@ export default buildConfig({
     FederationPeers,
     Connectors,
     Contacts,
+    Sequences,
+    SequenceEnrollments,
     Redirects,
     FederationAuditLog,
     AgentTransactions,
@@ -488,6 +493,8 @@ export default buildConfig({
         'holon-capabilities': {},
         'justice-fund-transactions': {},
         contacts: {},
+        sequences: {},
+        'sequence-enrollments': {},
         redirects: {},
         header: {},
         footer: {},
@@ -652,6 +659,9 @@ export default buildConfig({
       method: 'post',
       handler: captureHandler,
     },
+    // Drip sends run off the heartbeat, not off a browser tab left open.
+    { path: '/sequence-ops/tick', method: 'get', handler: sequenceTickHandler },
+    { path: '/sequence-ops/tick', method: 'post', handler: sequenceTickHandler },
     {
       path: '/capture',
       method: 'options',

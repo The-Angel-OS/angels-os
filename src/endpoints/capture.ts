@@ -116,7 +116,7 @@ export const captureHandler: PayloadHandler = async (req) => {
       return json({ ok: true, existing: true })
     }
 
-    await req.payload.create({
+    const created = await req.payload.create({
       collection: 'contacts',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: {
@@ -128,10 +128,23 @@ export const captureHandler: PayloadHandler = async (req) => {
         sourceId: campaign,
         attribution,
         tags,
-        contactStatus: 'active',
+        // 'lead' — the valid lifecycle value. This said 'active', which is not
+        // an option, so every real capture 500'd with "The following field is
+        // invalid: Contact Status". The unit tests could not catch it: a mocked
+        // payload does not validate a select.
+        contactStatus: 'lead',
       } as any,
       depth: 0,
       overrideAccess: true,
+      req,
+    })
+
+    // Enrol in any listening sequence. After the contact exists, and fail-soft:
+    // a sequence problem must not cost the lead we just captured.
+    const { enrollInSequences } = await import('@/utilities/enrollInSequences')
+    await enrollInSequences(req.payload, {
+      tenantId: tenant.id,
+      contactId: (created as { id: number | string }).id,
       req,
     })
 

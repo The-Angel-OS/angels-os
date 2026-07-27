@@ -8,10 +8,21 @@ import { markContactPurchased, PURCHASED_TAG } from '@/utilities/markContactPurc
 
 function makePayload(docs: unknown[] = []) {
   return {
-    find: vi.fn().mockResolvedValue({ docs }),
+    // `contacts` gets the docs under test; anything else (sequence-enrollments,
+    // queried by stopSequencesForContact) resolves empty.
+    find: vi.fn().mockImplementation(({ collection }: { collection: string }) =>
+      Promise.resolve({ docs: collection === 'contacts' ? docs : [] }),
+    ),
     update: vi.fn().mockResolvedValue({ id: 1 }),
   } as never
 }
+
+/** The contacts update specifically — marking a purchase also stops sequences,
+ *  so this is no longer simply the first update call. */
+const contactUpdate = (payload: unknown) =>
+  (payload as { update: { mock: { calls: Array<[{ collection: string }]> } } }).update.mock.calls
+    .map((c) => c[0])
+    .find((a) => a.collection === 'contacts') as { data: Record<string, unknown>; req?: unknown } | undefined
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -21,8 +32,11 @@ describe('markContactPurchased', () => {
     const ok = await markContactPurchased(payload, { tenantId: 42, email: 'Buyer@Example.com' })
 
     expect(ok).toBe(true)
-    const call = (payload as unknown as { update: ReturnType<typeof vi.fn> }).update.mock.calls[0]![0]
-    expect(call.data.tags).toEqual(['web-capture', 'campaign:clearout', PURCHASED_TAG])
+    expect(contactUpdate(payload)!.data.tags).toEqual([
+      'web-capture',
+      'campaign:clearout',
+      PURCHASED_TAG,
+    ])
   })
 
   it('matches on a lowercased email — capture normalises, Stripe does not', async () => {
@@ -32,11 +46,13 @@ describe('markContactPurchased', () => {
     expect(JSON.stringify(where)).toContain('buyer@example.com')
   })
 
-  it('is idempotent — a second webhook does not write again', async () => {
+  it('is idempotent — a second webhook does not re-tag the contact', async () => {
     const payload = makePayload([{ id: 7, tags: [PURCHASED_TAG] }])
     const ok = await markContactPurchased(payload, { tenantId: 42, email: 'b@example.com' })
     expect(ok).toBe(true)
-    expect((payload as unknown as { update: ReturnType<typeof vi.fn> }).update).not.toHaveBeenCalled()
+    // No SECOND tag write. (Sequence stopping still runs — a repeat webhook
+    // should halt anything that somehow restarted.)
+    expect(contactUpdate(payload)).toBeUndefined()
   })
 
   it('is silent when the buyer never came through capture — that is normal', async () => {
@@ -68,6 +84,6 @@ describe('markContactPurchased', () => {
     const req = { id: 'req-1' } as never
     await markContactPurchased(payload, { tenantId: 42, email: 'a@b.com', req })
     expect((payload as unknown as { find: ReturnType<typeof vi.fn> }).find.mock.calls[0]![0].req).toBe(req)
-    expect((payload as unknown as { update: ReturnType<typeof vi.fn> }).update.mock.calls[0]![0].req).toBe(req)
+    expect(contactUpdate(payload)!.req).toBe(req)
   })
 })

@@ -12,6 +12,7 @@ import * as migration_20260725_180000_service_deposit_flat from './20260725_1800
 import * as migration_20260725_210000_link_field_collections from './20260725_210000_link_field_collections';
 import * as migration_20260726_120000_users_google_calendar from './20260726_120000_users_google_calendar';
 import * as migration_20260726_200000_contacts_attribution from './20260726_200000_contacts_attribution';
+import * as migration_20260726_210000_sequences from './20260726_210000_sequences';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -263,5 +264,10 @@ export const migrations = [
     up: migration_20260726_200000_contacts_attribution.up,
     down: migration_20260726_200000_contacts_attribution.down,
     name: '20260726_200000_contacts_attribution',
+  },
+  {
+    up: migration_20260726_210000_sequences.up,
+    down: migration_20260726_210000_sequences.down,
+    name: '20260726_210000_sequences',
   },
 ];

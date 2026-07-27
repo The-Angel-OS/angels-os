@@ -108,6 +108,8 @@ export interface Config {
     'federation-peers': FederationPeer;
     connectors: Connector;
     contacts: Contact;
+    sequences: Sequence;
+    'sequence-enrollments': SequenceEnrollment;
     redirects: Redirect;
     'federation-audit-log': FederationAuditLog;
     'agent-transactions': AgentTransaction;
@@ -193,6 +195,8 @@ export interface Config {
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
     connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
+    sequences: SequencesSelect<false> | SequencesSelect<true>;
+    'sequence-enrollments': SequenceEnrollmentsSelect<false> | SequenceEnrollmentsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'federation-audit-log': FederationAuditLogSelect<false> | FederationAuditLogSelect<true>;
     'agent-transactions': AgentTransactionsSelect<false> | AgentTransactionsSelect<true>;
@@ -4936,6 +4940,31 @@ export interface Contact {
    */
   sourceId?: string | null;
   /**
+   * Where this contact originally came from (first touch).
+   */
+  attribution?: {
+    /**
+     * utm_source — e.g. youtube, meta, newsletter
+     */
+    source?: string | null;
+    /**
+     * utm_medium — e.g. cpc, organic, email
+     */
+    medium?: string | null;
+    /**
+     * utm_campaign — e.g. kessela-clearout
+     */
+    campaign?: string | null;
+    /**
+     * The page they first arrived on
+     */
+    landingPage?: string | null;
+    /**
+     * document.referrer at first touch
+     */
+    referrer?: string | null;
+  };
+  /**
    * Tags for segmentation (e.g. "lms-student", "beta-tester")
    */
   tags?: string[] | null;
@@ -4968,6 +4997,79 @@ export interface Contact {
    * Number of campaign emails sent to this contact
    */
   emailCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Timed follow-up sequences — "day 1, 3, 7", stopping on purchase.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sequences".
+ */
+export interface Sequence {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  name: string;
+  /**
+   * What enrols someone. Manual = enrolled by a tool or by hand.
+   */
+  trigger: 'captured' | 'manual';
+  /**
+   * Off by default — a half-written sequence must not start emailing the moment it is saved.
+   */
+  isActive?: boolean | null;
+  /**
+   * End a person's enrolment as soon as they buy.
+   */
+  stopOnPurchase?: boolean | null;
+  /**
+   * Sent in order. Delay is measured from ENROLMENT, not from the previous step.
+   */
+  steps: {
+    /**
+     * Hours after enrolment. Absolute, not cumulative — 0 / 24 / 72 / 168 is day 0, 1, 3, 7.
+     */
+    delayHours: number;
+    subject: string;
+    /**
+     * HTML. {{name}} and {{email}} are substituted.
+     */
+    body: string;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Who is in which sequence, and what is due next.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sequence-enrollments".
+ */
+export interface SequenceEnrollment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  sequence: number | Sequence;
+  contact: number | Contact;
+  status: 'active' | 'completed' | 'stopped';
+  /**
+   * Why it ended. "purchased" is the one you want to see a lot of.
+   */
+  stoppedReason?: ('purchased' | 'unsubscribed' | 'manual' | 'failed') | null;
+  /**
+   * Index of the NEXT step to send.
+   */
+  currentStep: number;
+  /**
+   * When the next step is due. Empty once finished.
+   */
+  nextSendAt?: string | null;
+  enrolledAt: string;
+  lastSentAt?: string | null;
+  /**
+   * Consecutive failures. A permanently failing address stops rather than retrying forever.
+   */
+  sendFailures?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7451,6 +7553,14 @@ export interface PayloadLockedDocument {
         value: number | Contact;
       } | null)
     | ({
+        relationTo: 'sequences';
+        value: number | Sequence;
+      } | null)
+    | ({
+        relationTo: 'sequence-enrollments';
+        value: number | SequenceEnrollment;
+      } | null)
+    | ({
         relationTo: 'redirects';
         value: number | Redirect;
       } | null)
@@ -9267,6 +9377,15 @@ export interface ContactsSelect<T extends boolean = true> {
   name?: T;
   source?: T;
   sourceId?: T;
+  attribution?:
+    | T
+    | {
+        source?: T;
+        medium?: T;
+        campaign?: T;
+        landingPage?: T;
+        referrer?: T;
+      };
   tags?: T;
   contactStatus?: T;
   inviteStatus?: T;
@@ -9276,6 +9395,45 @@ export interface ContactsSelect<T extends boolean = true> {
   unsubscribeToken?: T;
   lastEmailedAt?: T;
   emailCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sequences_select".
+ */
+export interface SequencesSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  trigger?: T;
+  isActive?: T;
+  stopOnPurchase?: T;
+  steps?:
+    | T
+    | {
+        delayHours?: T;
+        subject?: T;
+        body?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sequence-enrollments_select".
+ */
+export interface SequenceEnrollmentsSelect<T extends boolean = true> {
+  tenant?: T;
+  sequence?: T;
+  contact?: T;
+  status?: T;
+  stoppedReason?: T;
+  currentStep?: T;
+  nextSendAt?: T;
+  enrolledAt?: T;
+  lastSentAt?: T;
+  sendFailures?: T;
   updatedAt?: T;
   createdAt?: T;
 }

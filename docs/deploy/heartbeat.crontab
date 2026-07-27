@@ -19,6 +19,10 @@
 # every 5 min — Gotify inbound
 4-59/5 * * * * /usr/local/bin/hit /api/gotify/poll >> /proc/1/fd/1 2>&1
 
+# every 5 min — send whatever sequence steps are due (the drip engine).
+# Offset 3 so it doesn't collide with the federation (2) or Gotify (4) jobs.
+3-58/5 * * * * /usr/local/bin/hit /api/sequence-ops/tick >> /proc/1/fd/1 2>&1
+
 # twice hourly — connector health / provider breaker
 17,47 * * * * /usr/local/bin/hit /api/connector-ops/health >> /proc/1/fd/1 2>&1
 

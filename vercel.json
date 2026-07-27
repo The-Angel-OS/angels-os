@@ -25,6 +25,10 @@
       "schedule": "4-59/5 * * * *"
     },
     {
+      "path": "/api/sequence-ops/tick",
+      "schedule": "3-58/5 * * * *"
+    },
+    {
       "path": "/api/connector-ops/health",
       "schedule": "17,47 * * * *"
     },

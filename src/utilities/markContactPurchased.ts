@@ -47,6 +47,16 @@ export async function markContactPurchased(
     const contact = found.docs?.[0] as { id: number | string; tags?: string[] | null } | undefined
     if (!contact) return false
 
+    // Stop any running sequence FIRST, before the idempotency short-circuit —
+    // a repeat webhook for an already-tagged contact should still halt a
+    // sequence that somehow restarted.
+    const { stopSequencesForContact } = await import('@/utilities/enrollInSequences')
+    await stopSequencesForContact(payload, {
+      contactId: contact.id,
+      reason: 'purchased',
+      req: opts.req,
+    })
+
     const tags = contact.tags || []
     if (tags.includes(PURCHASED_TAG)) return true // already tagged — nothing to do
 
