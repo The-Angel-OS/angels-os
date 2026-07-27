@@ -14,6 +14,7 @@ import * as migration_20260726_120000_users_google_calendar from './20260726_120
 import * as migration_20260726_200000_contacts_attribution from './20260726_200000_contacts_attribution';
 import * as migration_20260726_210000_sequences from './20260726_210000_sequences';
 import * as migration_20260726_233000_tenant_hide_powered_by from './20260726_233000_tenant_hide_powered_by';
+import * as migration_20260727_000500_hero_split_panel from './20260727_000500_hero_split_panel';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -275,5 +276,10 @@ export const migrations = [
     up: migration_20260726_233000_tenant_hide_powered_by.up,
     down: migration_20260726_233000_tenant_hide_powered_by.down,
     name: '20260726_233000_tenant_hide_powered_by',
+  },
+  {
+    up: migration_20260727_000500_hero_split_panel.up,
+    down: migration_20260727_000500_hero_split_panel.down,
+    name: '20260727_000500_hero_split_panel',
   },
 ];

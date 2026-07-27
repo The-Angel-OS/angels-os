@@ -43,6 +43,12 @@ export const hero: Field = {
           label: 'Full Screen (image or video)',
           value: 'fullScreen',
         },
+        {
+          // The corporate product-page pattern: dark content slab beside the
+          // photograph, accent rule under the headline.
+          label: 'Split Panel (content beside image)',
+          value: 'splitPanel',
+        },
       ],
       required: true,
     },
@@ -70,7 +76,8 @@ export const hero: Field = {
       name: 'media',
       type: 'upload',
       admin: {
-        condition: (_, { type } = {}) => ['highImpact', 'mediumImpact', 'fullScreen'].includes(type),
+        condition: (_, { type } = {}) =>
+          ['highImpact', 'mediumImpact', 'fullScreen', 'splitPanel'].includes(type),
       },
       relationTo: 'media',
       required: true,
