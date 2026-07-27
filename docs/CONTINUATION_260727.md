@@ -80,6 +80,21 @@ variants, for the same reason.
 - The mirrored pages still carry their copy verbatim. Ken wants the language
   changed — nothing has been rewritten yet.
 
+### 4. LEO — one open bug, needs a repro (260727 0110)
+
+**Stuck "..." on a describe-image turn.** Kessela space 85, message 7145: user
+asked "Describe the image?" at 05:08:31, the placeholder posted at 05:08:33 and
+never resolved. The turn died ~2s in. The container has restarted since, so
+those logs are gone — **reproduce it with `docker logs -f angelos-core` running
+before touching anything.** This is the FOOTGUNS §2.6 class (a turn that dies
+before clearing its own placeholder), and there is supposed to be self-healing
+where a NEW turn clears stale placeholders — verify whether that fired.
+
+Fixed in the same session (8c8c9c1): LEO fabricating a "rate limit" when
+generate_image actually returned "a prompt is required", and LEO's voice
+(no more "As your Guardian Angel", no federation/Birth-Stage jargon unless
+asked).
+
 ## Scripts, and the order they must run in
 
 All in `src/scripts/_local/`, all idempotent, all `pnpm payload run <path>`:
