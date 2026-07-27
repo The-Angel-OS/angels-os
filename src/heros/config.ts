@@ -35,6 +35,14 @@ export const hero: Field = {
           label: 'Low Impact',
           value: 'lowImpact',
         },
+        {
+          // The renderer (RenderHero) and the DB enum have had `fullScreen`
+          // since 260720, but it was never added here — so a hero type that
+          // fully works could not be CHOSEN. It takes a video as happily as an
+          // image: FullScreen autoplays a video/* upload muted and looped.
+          label: 'Full Screen (image or video)',
+          value: 'fullScreen',
+        },
       ],
       required: true,
     },
@@ -62,7 +70,7 @@ export const hero: Field = {
       name: 'media',
       type: 'upload',
       admin: {
-        condition: (_, { type } = {}) => ['highImpact', 'mediumImpact'].includes(type),
+        condition: (_, { type } = {}) => ['highImpact', 'mediumImpact', 'fullScreen'].includes(type),
       },
       relationTo: 'media',
       required: true,
