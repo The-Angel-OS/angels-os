@@ -15,16 +15,31 @@ export const MediaText: Block = {
     { name: 'heading', type: 'text', required: true },
     { name: 'body', type: 'textarea', admin: { description: 'Paragraphs of copy. Blank lines separate paragraphs.' } },
     {
+      // Uploads first: this is the one people actually reach for, and pasting a
+      // Media URL into `videoUrl` only ever worked by accident (it rendered as a
+      // raw <video src> and autoplayed). Image or video is decided by mimeType,
+      // the same way the FullScreen and SplitPanel heroes do it.
+      name: 'media',
+      type: 'upload',
+      relationTo: 'media',
+      admin: { description: 'Image or video from your Media library. Takes precedence over the external URL below.' },
+    },
+    {
       name: 'videoUrl',
       type: 'text',
-      admin: { description: 'YouTube or Vimeo URL — shown beside the text. e.g. https://youtu.be/…' },
+      admin: {
+        description:
+          'External video (YouTube or Vimeo). Used only when no Media is selected above.',
+      },
     },
-    { name: 'caption', type: 'text', admin: { description: 'Caption under the video (optional).' } },
+    { name: 'caption', type: 'text', admin: { description: 'Caption under the media (optional).' } },
     {
       name: 'videoOnRight',
       type: 'checkbox',
       defaultValue: true,
-      label: 'Video on the right (uncheck to put it on the left)',
+      // Column kept as `videoOnRight` — it's about which SIDE, not about video,
+      // but renaming the column costs a migration for zero user-visible gain.
+      label: 'Media on the right (uncheck to put it on the left)',
     },
     { name: 'ctaLabel', type: 'text', admin: { description: 'Button text (optional), e.g. "Read More".' } },
     { name: 'ctaUrl', type: 'text', admin: { description: 'Button link (optional).' } },

@@ -2428,11 +2428,15 @@ export interface MediaTextBlock {
    */
   body?: string | null;
   /**
-   * YouTube or Vimeo URL — shown beside the text. e.g. https://youtu.be/…
+   * Image or video from your Media library. Takes precedence over the external URL below.
+   */
+  media?: (number | null) | Media;
+  /**
+   * External video (YouTube or Vimeo). Used only when no Media is selected above.
    */
   videoUrl?: string | null;
   /**
-   * Caption under the video (optional).
+   * Caption under the media (optional).
    */
   caption?: string | null;
   videoOnRight?: boolean | null;
@@ -8777,6 +8781,7 @@ export interface MediaTextBlockSelect<T extends boolean = true> {
   eyebrow?: T;
   heading?: T;
   body?: T;
+  media?: T;
   videoUrl?: T;
   caption?: T;
   videoOnRight?: T;
