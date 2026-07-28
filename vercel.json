@@ -29,6 +29,10 @@
       "schedule": "3-58/5 * * * *"
     },
     {
+      "path": "/api/message-ops/heal-stalled",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/connector-ops/health",
       "schedule": "17,47 * * * *"
     },

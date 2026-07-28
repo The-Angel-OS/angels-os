@@ -142,6 +142,7 @@ import { ensureTokenTablesHandler } from '@/endpoints/ensure-token-tables'
 import { ensureServicesTableHandler } from '@/endpoints/ensure-services-table'
 import { ensurePresenceTableHandler } from '@/endpoints/ensure-presence-table'
 import { reportMessageHandler } from '@/endpoints/report-message'
+import { healStalledMessagesHandler } from '@/endpoints/heal-stalled-messages'
 import { accountDeletionRequestHandler } from '@/endpoints/account-deletion-request'
 import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
 import { toolMetricsHandler } from '@/endpoints/tool-metrics'
@@ -665,6 +666,9 @@ export default buildConfig({
     { path: '/works-ops/daily', method: 'get', handler: worksDailyHandler },
     // Hippocampus — nightly log consolidation (keep unresolved pain, forget the rest).
     { path: '/tickets-ops/submit', method: 'post', handler: ticketSubmitHandler },
+    // Watchdog: a LEO placeholder whose turn died becomes a message that says so.
+    { path: '/message-ops/heal-stalled', method: 'get', handler: healStalledMessagesHandler },
+    { path: '/message-ops/heal-stalled', method: 'post', handler: healStalledMessagesHandler },
     { path: '/log-ops/consolidate', method: 'get', handler: logConsolidateHandler },
     { path: '/log-ops/consolidate', method: 'post', handler: logConsolidateHandler },
     { path: '/metrics-ops/tools', method: 'get', handler: toolMetricsHandler },
