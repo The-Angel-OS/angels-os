@@ -19,6 +19,7 @@ import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
 import { TrustRowBlock } from '@/blocks/TrustRow/Component'
 import { FaqBlock } from '@/blocks/Faq/Component'
 import { VideoBlockComponent } from '@/blocks/Video/Component'
+import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -48,6 +49,7 @@ const blockComponents = {
   trustRow: TrustRowBlock,
   faq: FaqBlock,
   video: VideoBlockComponent,
+  showcase: ShowcaseBlock,
 }
 
 export const RenderBlocks: React.FC<{
