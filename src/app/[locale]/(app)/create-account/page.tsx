@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 import { RenderParams } from '@/components/RenderParams'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
@@ -31,6 +32,19 @@ export default async function CreateAccount({
   const inviteToken = typeof searchParams.invite === 'string' ? searchParams.invite : null
   const inviteType = typeof searchParams.inviteType === 'string' ? searchParams.inviteType : null
   let inviteContext: { spaceName?: string; tenantName?: string; inviterName?: string; role?: string } | null = null
+
+  /**
+   * The portal's own name. A customer creating an account to file a warranty
+   * claim on kessela.spacesangels.com was being told about "Angel OS", a
+   * platform they have never heard of, at the exact moment they are deciding
+   * whether this page is trustworthy enough to hand an email address to.
+   */
+  const { tenant } = await resolveTenantFromHeaders()
+  const portalName =
+    (tenant as { branding?: { siteName?: string }; name?: string } | null)?.branding?.siteName ||
+    (tenant as { name?: string } | null)?.name ||
+    'Angel OS'
+  const isPlatform = portalName === 'Angel OS'
 
   if (inviteToken && inviteType) {
     try {
@@ -109,7 +123,7 @@ export default async function CreateAccount({
                   ? `You're invited to ${inviteContext.spaceName}`
                   : inviteContext?.tenantName
                     ? `Join ${inviteContext.tenantName}`
-                    : 'Join the Federation'}
+                    : `Join ${portalName}`}
               </p>
               {inviteContext?.inviterName ? (
                 <p className="text-lg" style={{ color: 'var(--lcars-text-muted)' }}>
@@ -118,7 +132,9 @@ export default async function CreateAccount({
                 </p>
               ) : (
                 <p className="text-lg" style={{ color: 'var(--lcars-text-muted)' }}>
-                  Angel OS is the platform for creators, makers, and communities building the future together.
+                  {isPlatform
+                    ? 'Angel OS is the platform for creators, makers, and communities building the future together.'
+                    : `Create an account to track your orders, claims and returns with ${portalName}.`}
                 </p>
               )}
             </div>
@@ -181,9 +197,9 @@ export default async function CreateAccount({
 
             <div className="mt-10 pt-8" style={{ borderTop: '1px solid rgba(245, 166, 35, 0.1)' }}>
               <p className="text-xs" style={{ color: 'var(--lcars-text-muted)' }}>
-                Trusted by creators, makers, and communities worldwide.
-                <br />
-                Angel OS is open source. Your data belongs to you.
+                {isPlatform
+                  ? 'Trusted by creators, makers, and communities worldwide. Angel OS is open source. Your data belongs to you.'
+                  : 'Your data belongs to you.'}
               </p>
             </div>
           </div>
@@ -231,7 +247,7 @@ export default async function CreateAccount({
             </div>
 
             <p className="text-xs text-center mt-6" style={{ color: 'var(--lcars-text-muted)' }}>
-              By creating an account, you agree to Angel OS&apos;s{' '}
+              By creating an account, you agree to {portalName}&apos;s{' '}
               <Link href="/terms" className="underline" style={{ color: 'var(--lcars-blue)' }}>Terms of Service</Link>
               {' '}and{' '}
               <Link href="/privacy" className="underline" style={{ color: 'var(--lcars-blue)' }}>Privacy Policy</Link>.
@@ -243,11 +259,27 @@ export default async function CreateAccount({
   )
 }
 
-export const metadata: Metadata = {
-  description: 'Join the Federation — Angel OS is the platform for creators, makers, and communities building the future together.',
-  openGraph: mergeOpenGraph({
-    title: 'Join the Federation',
-    url: '/create-account',
-  }),
-  title: 'Join the Federation',
+/**
+ * Metadata has to resolve the tenant too. The BODY was branded correctly while
+ * the <title> and the Open Graph card still said "Join the Federation — Angel OS
+ * is the platform for creators…" — so the browser tab, and every link preview
+ * anyone pasted into a message, still advertised the platform on a white-label
+ * portal. Fixing the visible copy and leaving the metadata is only half a fix.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { tenant } = await resolveTenantFromHeaders()
+  const portalName =
+    (tenant as { branding?: { siteName?: string }; name?: string } | null)?.branding?.siteName ||
+    (tenant as { name?: string } | null)?.name ||
+    'Angel OS'
+  const isPlatform = portalName === 'Angel OS'
+
+  const title = isPlatform ? 'Join the Federation' : `Create your ${portalName} account`
+  return {
+    title,
+    description: isPlatform
+      ? 'Join the Federation — Angel OS is the platform for creators, makers, and communities building the future together.'
+      : `Create an account to track your orders, claims and returns with ${portalName}.`,
+    openGraph: mergeOpenGraph({ title, url: '/create-account' }),
+  }
 }

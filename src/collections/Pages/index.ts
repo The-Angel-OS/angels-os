@@ -19,6 +19,7 @@ import { TrustRow } from '@/blocks/TrustRow/config'
 import { Faq } from '@/blocks/Faq/config'
 import { Video } from '@/blocks/Video/config'
 import { Showcase } from '@/blocks/Showcase/config'
+import { ProductPanel } from '@/blocks/ProductPanel/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
@@ -188,6 +189,7 @@ export const Pages: CollectionConfig = {
                 Faq,
                 Video,
                 Showcase,
+                ProductPanel,
               ],
               required: true,
             },

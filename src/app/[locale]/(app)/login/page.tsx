@@ -9,6 +9,7 @@ import { getPayload } from 'payload'
 import { LoginForm } from '@/components/forms/LoginForm'
 import { redirect } from 'next/navigation'
 import { StarfleetSacredSVG } from '@/components/StarfleetSacredSVG'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 export default async function Login({
   searchParams,
@@ -18,6 +19,21 @@ export default async function Login({
   const headers = await getHeaders()
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
+
+  /**
+   * The portal's own name, not the platform's.
+   *
+   * This page said "ANGEL OS / Welcome back, Officer" on EVERY tenant. A Kessela
+   * customer signing in to check a warranty claim was told they had arrived
+   * somewhere they had never heard of — and on a white-label portal that reads
+   * as either a phishing page or a mistake. An endeavor gets its branding
+   * everywhere, including the pages the platform happens to own.
+   */
+  const { tenant } = await resolveTenantFromHeaders()
+  const portalName =
+    (tenant as { branding?: { siteName?: string }; name?: string } | null)?.branding?.siteName ||
+    (tenant as { name?: string } | null)?.name ||
+    'Angel OS'
 
   if (user) {
     const params = await searchParams
@@ -54,10 +70,10 @@ export default async function Login({
             className="text-2xl font-mono tracking-[0.2em] uppercase mb-1"
             style={{ color: 'var(--lcars-amber)' }}
           >
-            Angel OS
+            {portalName}
           </h1>
           <p className="text-sm font-mono" style={{ color: 'var(--lcars-text-muted)' }}>
-            Welcome back, Officer
+            Welcome back
           </p>
         </div>
 
