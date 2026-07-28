@@ -18,6 +18,8 @@ type Props = {
   videoUrl?: string
   caption?: string
   videoOnRight?: boolean
+  /** Frame shape. Portrait exists because phone testimonials are 9:16. */
+  aspect?: '16/9' | '9/16' | '1/1' | '4/3' | null
   ctaLabel?: string
   ctaUrl?: string
 }
@@ -43,6 +45,7 @@ export function MediaTextBlock({
   videoUrl,
   caption,
   videoOnRight = true,
+  aspect,
   ctaLabel,
   ctaUrl,
 }: Props) {
@@ -75,14 +78,20 @@ export function MediaTextBlock({
     </div>
   )
 
-  const frame = 'relative w-full overflow-hidden rounded-xl bg-black'
+  // A 9:16 frame at full column width is a skyscraper — cap it so a portrait
+  // clip sits at a sane height instead of pushing the copy off the screen.
+  const ratio = (aspect || '16/9').replace('/', ' / ')
+  const portrait = aspect === '9/16'
+  const frame =
+    'relative w-full overflow-hidden rounded-xl bg-black' +
+    (portrait ? ' mx-auto max-w-[360px]' : '')
 
   let MediaSide: React.ReactNode = null
 
   if (mediaDoc && isVideo && mediaDoc.url) {
     MediaSide = (
       <div className="flex flex-col justify-center">
-        <div className={frame} style={{ aspectRatio: '16 / 9' }}>
+        <div className={frame} style={{ aspectRatio: ratio }}>
           <video
             className="absolute inset-0 h-full w-full object-cover"
             src={mediaDoc.url}
@@ -113,7 +122,7 @@ export function MediaTextBlock({
   } else if (embed?.embedUrl) {
     MediaSide = (
       <div className="flex flex-col justify-center">
-        <div className={frame} style={{ aspectRatio: '16 / 9' }}>
+        <div className={frame} style={{ aspectRatio: ratio }}>
           <iframe
             src={embed.embedUrl}
             title={heading || 'Video'}

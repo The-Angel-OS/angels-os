@@ -32,6 +32,21 @@ export const MediaText: Block = {
           'External video (YouTube or Vimeo). Used only when no Media is selected above.',
       },
     },
+    {
+      // A phone-shot testimonial is PORTRAIT. Forcing it into a 16:9 frame either
+      // crops the person's head off or pillarboxes them into a stripe — which is
+      // exactly the footage that matters most here.
+      name: 'aspect',
+      type: 'select',
+      defaultValue: '16/9',
+      options: [
+        { label: 'Landscape 16:9', value: '16/9' },
+        { label: 'Portrait 9:16 (phone video)', value: '9/16' },
+        { label: 'Square 1:1', value: '1/1' },
+        { label: 'Classic 4:3', value: '4/3' },
+      ],
+      admin: { description: 'Frame shape for the image or video.' },
+    },
     { name: 'caption', type: 'text', admin: { description: 'Caption under the media (optional).' } },
     {
       name: 'videoOnRight',

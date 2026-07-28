@@ -17,6 +17,7 @@ import { MediaText } from '@/blocks/MediaText/config'
 import { TicketForm } from '@/blocks/TicketForm/config'
 import { TrustRow } from '@/blocks/TrustRow/config'
 import { Faq } from '@/blocks/Faq/config'
+import { Video } from '@/blocks/Video/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
@@ -184,6 +185,7 @@ export const Pages: CollectionConfig = {
                 TicketForm,
                 TrustRow,
                 Faq,
+                Video,
               ],
               required: true,
             },
