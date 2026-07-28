@@ -56,13 +56,17 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
   const activeImage = active && typeof active.image === 'object' ? active.image : null
 
   return (
-    <div>
-      <div className="relative w-full overflow-hidden mb-8">
+    <div className="flex h-full flex-col">
+      {/* A fixed FRAME, not a fixed image: the image is centered and contained
+          inside whatever height the column has, so portrait and landscape both
+          fit without resizing the frame. min-h on small screens because a
+          stacked column has no height to inherit. */}
+      <div className="relative mb-6 flex min-h-[18rem] w-full flex-1 items-center justify-center overflow-hidden lg:min-h-0">
         {activeImage && (
           <Media
             resource={activeImage}
-            className="w-full"
-            imgClassName="w-full rounded-lg"
+            className="flex h-full w-full items-center justify-center"
+            imgClassName="max-h-full w-auto max-w-full rounded-lg object-contain"
           />
         )}
       </div>

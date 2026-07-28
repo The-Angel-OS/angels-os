@@ -144,7 +144,13 @@ export default async function ProductPage({ params }: Args) {
           </Button>
         )}
         <div className="flex flex-col gap-12 rounded-lg border p-8 md:py-12 lg:flex-row lg:gap-8 bg-primary-foreground">
-          <div className="h-full w-full basis-full lg:basis-1/2">
+          {/* The gallery column STRETCHES to the description beside it (flex rows
+              stretch by default), and the gallery fills that height — so the
+              page geometry is set by the copy, which doesn't change, instead of
+              by whichever image is showing. Half this catalog is portrait and
+              half landscape; without this the whole page grew and shrank on
+              every thumbnail tap. */}
+          <div className="flex w-full basis-full flex-col lg:basis-1/2">
             <Suspense
               fallback={
                 <div className="relative aspect-square h-full max-h-[550px] w-full overflow-hidden" />
