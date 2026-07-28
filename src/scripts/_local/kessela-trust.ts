@@ -16,6 +16,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 
 const payload = await getPayload({ config })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,7 +77,7 @@ for (const slug of SLUGS) {
     console.log(`  added trust row to /${slug}`)
   }
 
-  await update({ collection: 'pages', id: page.id, data: { layout }, overrideAccess: true })
+  await updatePageLayout(payload, page as never, layout, 'pages')
 }
 
 console.log('\nhttps://kessela.spacesangels.com/buy-kessela-now')

@@ -5,6 +5,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 import { provisionPortal } from '@/utilities/provisionPortal'
 import { fetchPlaceReviews } from '@/utilities/googlePlacesReviews'
 
@@ -56,12 +57,7 @@ if (!page) {
       minRating: 4,
       showAggregate: true,
     })
-    await payload.update({
-      collection: 'pages',
-      id: page.id,
-      data: { layout } as any,
-      overrideAccess: true,
-    })
+    await updatePageLayout(payload, page as never, layout, 'pages')
     console.log('REVIEWS_BLOCK added to home page', page.id)
   }
 }

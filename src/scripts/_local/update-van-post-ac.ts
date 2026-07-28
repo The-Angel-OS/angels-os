@@ -1,6 +1,7 @@
 /** One-off: add the A/C symptom to the van post (67) — rebuilds the content block, keeps the gallery. */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 
 const POST = 67
 
@@ -40,6 +41,6 @@ const post = (await payload.findByID({ collection: 'posts', id: POST, depth: 0, 
 const layout: any[] = (post.layout || []).map((b: any) =>
   b.blockType === 'content' ? { ...b, columns: [{ ...(b.columns?.[0] || { size: 'full' }), richText: textToLexical(BODY) }] } : b,
 )
-await (payload.update as any)({ collection: 'posts', id: POST, data: { layout }, overrideAccess: true })
+await updatePageLayout(payload, POST as never, layout, 'posts')
 console.log('OK — AC symptom added to post', POST)
 process.exit(0)

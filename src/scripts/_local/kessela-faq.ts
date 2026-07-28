@@ -15,6 +15,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 
 const payload = await getPayload({ config })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,7 +102,7 @@ for (const slug of ['frequently-asked-questions', 'buy-kessela-now']) {
   if (at >= 0) layout[at] = { ...layout[at], ...FAQ }
   else layout.push(FAQ)
   console.log(`  ${at >= 0 ? 'updated' : 'added'} FAQ on /${slug}`)
-  await update({ collection: 'pages', id: page.id, data: { layout }, overrideAccess: true })
+  await updatePageLayout(payload, page as never, layout, 'pages')
 }
 
 // Retitle the trust row wherever it already sits.
@@ -121,7 +122,7 @@ for (const slug of ['home', 'buy-kessela-now']) {
   const at = layout.findIndex((b) => b?.blockType === 'trustRow')
   if (at < 0) continue
   layout[at] = { ...layout[at], ...TRUST }
-  await update({ collection: 'pages', id: page.id, data: { layout }, overrideAccess: true })
+  await updatePageLayout(payload, page as never, layout, 'pages')
   console.log(`  trust row reworded on /${slug}`)
 }
 

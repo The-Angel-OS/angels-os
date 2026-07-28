@@ -24,9 +24,11 @@ export const TrustRow: Block = {
     {
       name: 'items',
       type: 'array',
-      minRows: 2,
       maxRows: 6,
-      admin: { description: 'Four is the number that reads as a row rather than a list.' },
+      admin: {
+        description:
+          'LEAVE EMPTY to use the tenant-wide badges (Tenants → Trust Badges). Only fill these in when THIS page needs something different.',
+      },
       fields: [
         {
           name: 'icon',

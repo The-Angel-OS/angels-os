@@ -1,25 +1,27 @@
 import React from 'react'
 
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+
+export type TrustRowItem = {
+  icon?: string | null
+  label?: string | null
+  detail?: string | null
+  id?: string | null
+}
+
 export type TrustRowProps = {
   heading?: string | null
   footnote?: string | null
-  items?:
-    | {
-        icon?: string | null
-        label?: string | null
-        detail?: string | null
-        id?: string | null
-      }[]
-    | null
+  items?: TrustRowItem[] | null
 }
 
 /**
  * Inline SVG, not an icon dependency and not uploaded images.
  *
  * ponytail: seven glyphs cover every trust row anyone has ever asked for. A
- * lucide import for this would add a package and a client boundary; an upload
- * field would make the tenant go and find artwork before the row renders at all.
- * `currentColor` means the whole set inherits the tenant's brand colour for free.
+ * lucide import would add a package and a client boundary; an upload field would
+ * make the tenant go and find artwork before the row renders at all.
+ * `currentColor` means the whole set inherits the brand colour for free.
  */
 const ICONS: Record<string, React.ReactNode> = {
   shield: <path d="M12 2 4 5.5v6c0 5 3.4 9 8 10.5 4.6-1.5 8-5.5 8-10.5v-6L12 2Zm-1 13-3.5-3.5 1.4-1.4L11 12.2l4.1-4.1 1.4 1.4L11 15Z" />,
@@ -31,8 +33,33 @@ const ICONS: Record<string, React.ReactNode> = {
   star: <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21l1.2-6.9-5-4.9 6.9-1L12 2Z" />,
 }
 
-export const TrustRowBlock: React.FC<TrustRowProps> = ({ heading, footnote, items }) => {
-  const list = (items || []).filter((i) => i?.label)
+/**
+ * TrustRow — reads the TENANT's badges unless this instance overrides them.
+ *
+ * The same four claims belong on every page of a storefront, so storing them on
+ * the block meant retyping them per page and having as many chances to drift.
+ * Here the block carries no content by default: drop it on a page and it renders
+ * whatever the tenant has configured once, in one place.
+ *
+ * `resolveTenantFromHeaders` is React-`cache`d for the request, so a page with
+ * this block on it costs no extra query however many times it appears.
+ */
+export const TrustRowBlock: React.FC<TrustRowProps> = async ({ heading, footnote, items }) => {
+  const own = (items || []).filter((i) => i?.label)
+
+  let list: TrustRowItem[] = own
+  let note = footnote
+
+  if (!own.length) {
+    const { tenant } = await resolveTenantFromHeaders()
+    const badges = (tenant as unknown as { trustBadges?: { items?: TrustRowItem[]; footnote?: string } } | null)
+      ?.trustBadges
+    list = (badges?.items || []).filter((i) => i?.label)
+    // Only inherit the footnote when the content was inherited too — a block that
+    // overrides the badges should not silently keep someone else's small print.
+    if (!note) note = badges?.footnote || null
+  }
+
   if (!list.length) return null
 
   return (
@@ -46,8 +73,6 @@ export const TrustRowBlock: React.FC<TrustRowProps> = ({ heading, footnote, item
               viewBox="0 0 24 24"
               aria-hidden="true"
               className="mb-3 h-9 w-9"
-              // The tenant's brand colour, emitted by TenantStyles. The same block
-              // on another portal comes out that portal's colour with no edit.
               style={{ color: 'var(--tenant-primary, var(--primary))' }}
               fill="currentColor"
             >
@@ -61,9 +86,7 @@ export const TrustRowBlock: React.FC<TrustRowProps> = ({ heading, footnote, item
         ))}
       </ul>
 
-      {footnote && (
-        <p className="mt-8 text-center text-xs text-muted-foreground">{footnote}</p>
-      )}
+      {note && <p className="mt-8 text-center text-xs text-muted-foreground">{note}</p>}
     </section>
   )
 }

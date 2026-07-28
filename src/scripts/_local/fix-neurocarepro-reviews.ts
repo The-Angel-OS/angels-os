@@ -5,6 +5,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 import { fetchPlaceReviews } from '@/utilities/googlePlacesReviews'
 
 const TENANT = 22
@@ -44,7 +45,7 @@ if (page) {
   let changed = false
   for (const b of layout) { if (b?.blockType === 'googleReviews') { b.placeId = placeId; changed = true } }
   if (changed) {
-    await payload.update({ collection: 'pages', id: page.id, data: { layout } as any, overrideAccess: true })
+    await updatePageLayout(payload, page as never, layout, 'pages')
     console.log('REVIEWS_BLOCK placeId set to', placeId, '— reviews available:', test.reviews.length)
   } else {
     console.log('NO googleReviews block on home page')

@@ -128,6 +128,50 @@ export const Tenants: CollectionConfig = {
       ],
     },
     {
+      /**
+       * Trust badges, ONCE per tenant.
+       *
+       * These are the same four claims on every page of a storefront — warranty,
+       * returns, certification. Configuring them per block meant retyping them
+       * on 25 pages and having 25 chances to disagree with each other. The
+       * TrustRow block reads these when its own items are empty, so placing it
+       * is a drag with no settings. If a feature requires config, it isn't done.
+       */
+      name: 'trustBadges',
+      type: 'group',
+      admin: { description: 'Site-wide trust badges. The Trust Row block uses these unless it overrides them.' },
+      fields: [
+        {
+          name: 'items',
+          type: 'array',
+          maxRows: 6,
+          fields: [
+            {
+              name: 'icon',
+              type: 'select',
+              defaultValue: 'shield',
+              options: [
+                { label: 'Shield — registered / certified', value: 'shield' },
+                { label: 'Rosette — warranty / guarantee', value: 'rosette' },
+                { label: 'Arrow round — returns / money back', value: 'return' },
+                { label: 'Truck — shipping', value: 'truck' },
+                { label: 'Lock — secure payment', value: 'lock' },
+                { label: 'Headset — support', value: 'support' },
+                { label: 'Star — rating / reputation', value: 'star' },
+              ],
+            },
+            { name: 'label', type: 'text' },
+            { name: 'detail', type: 'text' },
+          ],
+        },
+        {
+          name: 'footnote',
+          type: 'text',
+          admin: { description: 'Small print under the row — the qualifier a claim needs.' },
+        },
+      ],
+    },
+    {
       name: 'branding',
       type: 'group',
       admin: {

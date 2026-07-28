@@ -20,7 +20,8 @@ import * as migration_20260727_234500_tickets from './20260727_234500_tickets'
 import * as migration_20260727_190000_media_created_by from './20260727_190000_media_created_by'
 import * as migration_20260727_191500_ticket_form_block from './20260727_191500_ticket_form_block'
 import * as migration_20260727_201500_trust_row_block from './20260727_201500_trust_row_block'
-import * as migration_20260727_204500_faq_block from './20260727_204500_faq_block';
+import * as migration_20260727_204500_faq_block from './20260727_204500_faq_block'
+import * as migration_20260727_212000_tenant_trust_badges from './20260727_212000_tenant_trust_badges';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -317,5 +318,10 @@ export const migrations = [
     up: migration_20260727_204500_faq_block.up,
     down: migration_20260727_204500_faq_block.down,
     name: '20260727_204500_faq_block',
+  },
+  {
+    up: migration_20260727_212000_tenant_trust_badges.up,
+    down: migration_20260727_212000_tenant_trust_badges.down,
+    name: '20260727_212000_tenant_trust_badges',
   },
 ];

@@ -217,6 +217,32 @@ Fixed by having a NEW turn clear stale placeholders — self-healing, no cron.
 3. **Radix renders dropdown/sheet content only when opened.** Grepping served HTML
    for it proves nothing — open it in a real viewport.
 
+### 2.7b A layout update that omits `_status` UNPUBLISHES the page
+
+`Pages` has `versions.drafts`. So `payload.update({ data: { layout } })` with no
+`_status` writes a **draft** — the live URL starts returning 404, the script
+prints "updated", and nothing anywhere errors.
+
+It took `/buy-kessela-now` — the only link on that site that takes money —
+offline for roughly four hours, and later `/how-to-use-belt`. Both were found by
+accident while checking something else. The site was being shown to the client
+that evening.
+
+Thirteen call sites across the `_local` scripts had the same shape. That is the
+signature of a class, not an incident: the first author of each script had no
+reason to know, and neither did the second.
+
+**Rules.**
+1. Carry `_status` through on every versioned-collection update. Not `'published'`
+   — the doc's OWN status, or a deliberate draft becomes a surprise publish.
+2. Use `src/scripts/_local/_updatePageLayout.ts`, which does exactly that.
+3. **Curl the money path after any content script**, not the pages you touched.
+   The page that breaks is rarely the page you edited.
+
+**Class fix in place:** `tests/unit/scripts/pageLayoutStatus.test.ts` scans every
+`_local` script for a bare `data: { layout }` and fails on the pattern, so it
+catches the script nobody has written yet.
+
 ### 2.8 Prompts are code
 
 LEO told Ken *"Give me just a second to spin up the canvas again!"* after an image

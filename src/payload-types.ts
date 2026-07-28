@@ -338,6 +338,23 @@ export interface Tenant {
     | null;
   status?: ('active' | 'inactive' | 'provisioning') | null;
   /**
+   * Site-wide trust badges. The Trust Row block uses these unless it overrides them.
+   */
+  trustBadges?: {
+    items?:
+      | {
+          icon?: ('shield' | 'rosette' | 'return' | 'truck' | 'lock' | 'support' | 'star') | null;
+          label?: string | null;
+          detail?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Small print under the row — the qualifier a claim needs.
+     */
+    footnote?: string | null;
+  };
+  /**
    * Site branding (Zubricks-style)
    */
   branding?: {
@@ -1485,6 +1502,8 @@ export interface Page {
     | GoogleReviewsBlock
     | MediaTextBlock
     | TicketFormBlock
+    | TrustRowBlock
+    | FaqBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2955,6 +2974,64 @@ export interface TicketFormBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'ticketForm';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrustRowBlock".
+ */
+export interface TrustRowBlock {
+  /**
+   * Optional. Most trust rows read better with no heading at all.
+   */
+  heading?: string | null;
+  /**
+   * LEAVE EMPTY to use the tenant-wide badges (Tenants → Trust Badges). Only fill these in when THIS page needs something different.
+   */
+  items?:
+    | {
+        icon: 'shield' | 'rosette' | 'return' | 'truck' | 'lock' | 'support' | 'star';
+        /**
+         * Two or three words. "FDA Registered".
+         */
+        label: string;
+        /**
+         * One short line. Not a sentence.
+         */
+        detail?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Small print under the row. Use it for the qualifier a claim needs — e.g. that registered is not the same as cleared.
+   */
+  footnote?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'trustRow';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FaqBlock".
+ */
+export interface FaqBlock {
+  heading?: string | null;
+  items?:
+    | {
+        question: string;
+        /**
+         * Plain text. Blank lines become paragraphs.
+         */
+        answer: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Show the first answer expanded. A wall of closed rows reads as a menu; one open answer shows there is something worth opening.
+   */
+  openFirst?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'faq';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7861,6 +7938,19 @@ export interface TenantsSelect<T extends boolean = true> {
         id?: T;
       };
   status?: T;
+  trustBadges?:
+    | T
+    | {
+        items?:
+          | T
+          | {
+              icon?: T;
+              label?: T;
+              detail?: T;
+              id?: T;
+            };
+        footnote?: T;
+      };
   branding?:
     | T
     | {
@@ -8634,6 +8724,8 @@ export interface PagesSelect<T extends boolean = true> {
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
         mediaText?: T | MediaTextBlockSelect<T>;
         ticketForm?: T | TicketFormBlockSelect<T>;
+        trustRow?: T | TrustRowBlockSelect<T>;
+        faq?: T | FaqBlockSelect<T>;
       };
   meta?:
     | T
@@ -8900,6 +8992,41 @@ export interface TicketFormBlockSelect<T extends boolean = true> {
   intro?: T;
   showOrderFields?: T;
   confirmation?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrustRowBlock_select".
+ */
+export interface TrustRowBlockSelect<T extends boolean = true> {
+  heading?: T;
+  items?:
+    | T
+    | {
+        icon?: T;
+        label?: T;
+        detail?: T;
+        id?: T;
+      };
+  footnote?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FaqBlock_select".
+ */
+export interface FaqBlockSelect<T extends boolean = true> {
+  heading?: T;
+  items?:
+    | T
+    | {
+        question?: T;
+        answer?: T;
+        id?: T;
+      };
+  openFirst?: T;
   id?: T;
   blockName?: T;
 }

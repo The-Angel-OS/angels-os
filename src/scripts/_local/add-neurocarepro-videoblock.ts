@@ -6,6 +6,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 
 const TENANT = 22
 
@@ -40,12 +41,7 @@ if (layout.some((b) => b?.blockType === 'mediaText')) {
   // Insert after the first block (the welcome content) so it sits high on the page.
   const insertAt = Math.min(1, layout.length)
   layout.splice(insertAt, 0, BLOCK)
-  await payload.update({
-    collection: 'pages',
-    id: page.id,
-    data: { layout } as any,
-    overrideAccess: true,
-  })
+  await updatePageLayout(payload, page as never, layout, 'pages')
   console.log('MEDIATEXT added to home page', page.id, 'at index', insertAt)
 }
 process.exit(0)

@@ -7,6 +7,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 import { createLexicalContent, createHeadingNode } from '@/utilities/lexicalHelpers'
 
 const TENANT = 22
@@ -82,7 +83,7 @@ if (already) {
   // Insert before the final CTA (keep the closing call-to-action last).
   const insertAt = Math.max(0, layout.length - 1)
   layout.splice(insertAt, 0, block)
-  await payload.update({ collection: 'pages', id: page.id, data: { layout } as any, overrideAccess: true })
+  await updatePageLayout(payload, page as never, layout, 'pages')
   console.log('DOCS_LINKS added to /proposal —', links.length, 'documents')
 }
 process.exit(0)

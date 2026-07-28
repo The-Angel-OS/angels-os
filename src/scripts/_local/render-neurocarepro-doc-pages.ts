@@ -8,6 +8,7 @@
  */
 import { getPayload } from 'payload'
 import config from '@payload-config'
+import { updatePageLayout } from './_updatePageLayout'
 import { convertMarkdownToLexical, editorConfigFactory } from '@payloadcms/richtext-lexical'
 import { createLexicalContent, createHeadingNode } from '@/utilities/lexicalHelpers'
 
@@ -100,6 +101,6 @@ const docsBlock = {
 const idx = layout.findIndex((b) => JSON.stringify(b).includes('Proposal documents'))
 if (idx >= 0) layout[idx] = docsBlock
 else layout.splice(Math.max(0, layout.length - 1), 0, docsBlock)
-await payload.update({ collection: 'pages', id: page.id, data: { layout } as any, overrideAccess: true })
+await updatePageLayout(payload, page as never, layout, 'pages')
 console.log('DOCS_LINKS repointed →', links.map((l) => l.url).join(', '))
 process.exit(0)
