@@ -34,6 +34,9 @@ import {
   List,
   Star,
   Clock,
+  Briefcase,
+  Server,
+  Target,
 } from 'lucide-react'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
@@ -166,6 +169,70 @@ const CATEGORY_CONFIG: Record<
     color: LCARS_COLORS.blue,
     label: 'Angel OS Arch',
     priority: 10,
+  },
+  // Every folder below was rendering as a SEPARATE section all called "General",
+  // because an unmapped directory falls through to `_root`. Eight identical
+  // labels is not a navigation tree, it is a shell game — you cannot tell which
+  // "General" holds the Kessela plan without opening all of them.
+  kessela: {
+    icon: <Briefcase className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.orange,
+    label: 'Kessela',
+    priority: 3,
+  },
+  runbooks: {
+    icon: <BookOpen className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.blue,
+    label: 'Runbooks',
+    priority: 4,
+  },
+  deploy: {
+    icon: <Server className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.blue,
+    label: 'Deploy',
+    priority: 5,
+  },
+  strategy: {
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.purple,
+    label: 'Strategy',
+    priority: 11,
+  },
+  decisions: {
+    icon: <FileText className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.purple,
+    label: 'Decisions',
+    priority: 12,
+  },
+  integrations: {
+    icon: <Globe className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.blue,
+    label: 'Integrations',
+    priority: 13,
+  },
+  infra: {
+    icon: <Server className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.blue,
+    label: 'Infrastructure',
+    priority: 14,
+  },
+  articles: {
+    icon: <FileText className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.amber,
+    label: 'Articles',
+    priority: 15,
+  },
+  design: {
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.purple,
+    label: 'Design',
+    priority: 16,
+  },
+  presentations: {
+    icon: <FileText className="w-3.5 h-3.5" />,
+    color: LCARS_COLORS.amber,
+    label: 'Presentations',
+    priority: 17,
   },
   _root: {
     icon: <FileText className="w-3.5 h-3.5" />,

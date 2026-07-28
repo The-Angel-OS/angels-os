@@ -52,6 +52,35 @@ const FORMS: Array<{ slug: string; block: Record<string, unknown> }> = [
     },
   },
   {
+    // Their site had pages NAMED "form" that contained no form — just mirrored
+    // prose, with other pages linking to them. A dead end at exactly the moment
+    // someone is trying to give you a reason not to charge back.
+    slug: 'return-refund-request',
+    block: {
+      blockType: 'ticketForm',
+      type: 'return',
+      heading: 'Request a return or refund',
+      intro:
+        'Tell us the order number and what is going back. If the belt is faulty rather than unwanted, use the warranty page instead — that route is quicker.',
+      showOrderFields: true,
+      confirmation:
+        'Thanks — your request is logged. We will confirm the next step and any return address from your account.',
+    },
+  },
+  {
+    slug: 'cancel-order-form',
+    block: {
+      blockType: 'ticketForm',
+      type: 'support',
+      heading: 'Cancel an order',
+      intro:
+        'If it has not shipped yet we can usually stop it. Give us the order number and we will confirm either way.',
+      showOrderFields: true,
+      confirmation:
+        'Thanks — we have your cancellation request. We will confirm from your account whether it was in time.',
+    },
+  },
+  {
     slug: 'refund-returns',
     block: {
       blockType: 'ticketForm',

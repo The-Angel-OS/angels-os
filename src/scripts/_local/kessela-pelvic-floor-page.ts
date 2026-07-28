@@ -152,10 +152,43 @@ const existing = await payload.find({
 })
 const prior = existing.docs?.[0] as { id: number; _status?: string } | undefined
 
+/**
+ * splitPanel — the same hero the rest of the site uses: one full-bleed image,
+ * dark gradient, content left. A landing page that opens with a paragraph reads
+ * like a document; this reads like a product. Same block, no new component.
+ */
+const HERO_MEDIA = 448 // Belt-around-waist.jpg — the product ON a person, not a box shot
+
 const data = {
   title: 'Pelvic floor — Kessela',
   slug: SLUG,
   tenant: tenantId,
+  hero: {
+    type: 'splitPanel',
+    media: HERO_MEDIA,
+    richText: buildRichText([
+      'Ten minutes a day, at home',
+      'Red and near-infrared light with electrical muscle stimulation. Registered Class II device, one-year warranty, and fourteen days to change your mind.',
+    ]),
+    links: [
+      {
+        link: {
+          type: 'custom',
+          url: '/buy-kessela-now',
+          label: 'Get the belt — $599',
+          appearance: 'default',
+        },
+      },
+      {
+        link: {
+          type: 'custom',
+          url: '#what-the-research-says',
+          label: 'Read the research first',
+          appearance: 'outline',
+        },
+      },
+    ],
+  },
   // Not a menu item. This is a destination for a link someone was given.
   showInNav: false,
   // Stays a draft until the claims list exists and a human decides to publish.
