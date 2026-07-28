@@ -103,10 +103,14 @@ export default async function Page({ params }: Args) {
   // 64px of white above it. That padding is there for pages that open on text,
   // where copy running into the nav would read as broken. Deciding by what the
   // page actually opens with means neither case needs a setting.
+  // Every hero that paints its own full-bleed background. splitPanel belongs
+  // here and was the one I missed — it's what Kessela's home page actually uses,
+  // so the fix shipped without changing the page it was written for.
+  // mediumImpact is NOT here: it opens with a `container` text block, and copy
+  // running into the nav is exactly what the padding exists to prevent.
+  const BLEED_HEROES = new Set(['fullScreen', 'highImpact', 'splitPanel'])
   const bleedsToTop =
-    Boolean(homeSplash) ||
-    (hero as { type?: string } | undefined)?.type === 'fullScreen' ||
-    (hero as { type?: string } | undefined)?.type === 'highImpact'
+    Boolean(homeSplash) || BLEED_HEROES.has((hero as { type?: string } | undefined)?.type ?? '')
 
   return (
     <article className={bleedsToTop ? 'pb-24' : 'pt-16 pb-24'}>
