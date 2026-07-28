@@ -5,7 +5,7 @@
  * (whatsapp/sms/webhook/livekit/discord/telegram/slack/gotify/x_twitter); only the
  * dispatcher was Gotify-shaped. This registry maps a connector `type` → a transport
  * that knows how to push a short escalation message through that medium, reading
- * its own keys off the connector's `config`. dispatchEscalation (gotifyEscalation.ts)
+ * its own keys off the connector's `config`. dispatchEscalation (escalation.ts)
  * fans an event out to every escalation-enabled connector for the tenant and routes
  * each through `getTransport(connector.type)`.
  *
@@ -16,9 +16,9 @@
  * Every transport is FAIL-SOFT — returns { ok, error? }, never throws. Escalation
  * must never break the path that triggered it.
  *
- * @see src/utilities/gotifyEscalation.ts  @see src/utilities/gotifyNotify.ts
+ * @see src/utilities/escalation.ts  @see src/utilities/pushNotify.ts
  */
-import { gotifyNotify } from '@/utilities/gotifyNotify'
+import { pushNotify } from '@/utilities/pushNotify'
 
 export interface EscalationMessage {
   title: string
@@ -50,7 +50,7 @@ const gotifyTransport: ConnectorTransport = {
   send: async (config, msg) => {
     const serverUrl = str(config.serverUrl || process.env.GOTIFY_SERVER_URL)
     const appToken = str(config.appToken || process.env.GOTIFY_APP_TOKEN)
-    const res = await gotifyNotify(
+    const res = await pushNotify(
       { title: msg.title, message: msg.message, priority: msg.priority, extras: msg.extras },
       { serverUrl, appToken },
     )

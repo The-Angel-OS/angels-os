@@ -21,7 +21,7 @@
       "schedule": "2-57/5 * * * *"
     },
     {
-      "path": "/api/gotify/poll",
+      "path": "/api/notifications/poll",
       "schedule": "4-59/5 * * * *"
     },
     {

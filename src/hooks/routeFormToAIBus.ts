@@ -1,6 +1,6 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { createFormSubmissionContent } from '@/utilities/messageContent'
-import { dispatchToGotify } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 /**
  * Route form submissions to the AI Bus (Messages collection).
@@ -214,7 +214,7 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
     }
 
     // Escalate to Gotify so the operator's phone lights up on a new lead/contact.
-    // Fail-soft and policy-gated per gotify connector (see gotifyEscalation.ts) —
+    // Fail-soft and policy-gated per gotify connector (see escalation.ts) —
     // dedupeKey is per-form so a burst of one form's submissions is throttled but
     // different forms still each get through.
     const firstValue = (name: string) => {
@@ -224,7 +224,7 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
       return hit?.value
     }
     const who = firstValue('name') || firstValue('email') || 'someone'
-    void dispatchToGotify(payload, {
+    void dispatchEscalation(payload, {
       tenantId,
       eventType: 'form_submission',
       title: `📋 ${formTitle}`,

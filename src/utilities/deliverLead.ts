@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 import { createFormSubmissionContent } from '@/utilities/messageContent'
 import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
-import { dispatchToGotify } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 import { upsertContactFromLead } from '@/utilities/upsertContactFromLead'
 
 /**
@@ -118,7 +118,7 @@ export async function deliverLead(
         (Object.entries(fields).find(([k]) => k.toLowerCase().includes('name'))?.[1] as string) ||
         (Object.entries(fields).find(([k]) => k.toLowerCase().includes('email'))?.[1] as string) ||
         'someone'
-      void dispatchToGotify(payload, {
+      void dispatchEscalation(payload, {
         tenantId: Number(tenantId),
         eventType: 'form_submission',
         title: `📋 ${formTitle}`,

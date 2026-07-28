@@ -40,9 +40,9 @@ Source: [`src/endpoints/gotify-poll.ts`](../../src/endpoints/gotify-poll.ts).
 
 ## Transmit
 
-`gotifyNotify({ title, message, priority?, extras? }, { payload, tenantId })` —
+`pushNotify({ title, message, priority?, extras? }, { payload, tenantId })` —
 fail-soft `POST /message`. Resolution: explicit opts → connector `config` → env.
-Source: [`src/utilities/gotifyNotify.ts`](../../src/utilities/gotifyNotify.ts).
+Source: [`src/utilities/pushNotify.ts`](../../src/utilities/pushNotify.ts).
 
 ## Escalation
 
@@ -62,7 +62,7 @@ Policy in `config.escalation`:
 }
 ```
 
-`dispatchToGotify(payload, event)` fans an event out to **every** matching
+`dispatchEscalation(payload, event)` fans an event out to **every** matching
 connector for the tenant, each using its own token, gated by the policy +
 rate-limit + cooldown. **Wired today:** `error` / `warning` (via the `logError`
 tap), `user_registered` (Users afterChange — the operator's pulse on a quiet
@@ -71,9 +71,9 @@ contact/lead-capture submission lights up the operator's phone; deduped per
 form via `dedupeKey: form:<id>`). **Seam (stored, not yet emitted):**
 `conversation_started`, `budget_exceeded`, `provider_failover`, `vercel_spend`,
 `federation`, `order`, `donation`, `booking`, `itsm_incident` — enable one by
-calling `dispatchToGotify` at its source (see the backlog in the comms-layer
+calling `dispatchEscalation` at its source (see the backlog in the comms-layer
 memory note).
-Source: [`src/utilities/gotifyEscalation.ts`](../../src/utilities/gotifyEscalation.ts).
+Source: [`src/utilities/escalation.ts`](../../src/utilities/escalation.ts).
 
 ## Health / Test
 

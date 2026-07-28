@@ -91,8 +91,8 @@ export const connectorTestHandler: PayloadHandler = async (req) => {
   // runProbe directly) so the */30 health check never spams notifications.
   if (type === 'gotify' && cfg.appToken) {
     try {
-      const { gotifyNotify } = await import('@/utilities/gotifyNotify')
-      const sent = await gotifyNotify(
+      const { pushNotify } = await import('@/utilities/pushNotify')
+      const sent = await pushNotify(
         {
           title: '🔔 Angel OS connector test',
           message: `Test from "${(connector as { name?: string }).name || 'Angel OS'}" — if you see this, send works.`,

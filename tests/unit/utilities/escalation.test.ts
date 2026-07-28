@@ -4,18 +4,18 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// The gotify transport calls gotifyNotify under the hood — mock it.
-vi.mock('@/utilities/gotifyNotify', () => ({
-  gotifyNotify: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+// The gotify transport calls pushNotify under the hood — mock it.
+vi.mock('@/utilities/pushNotify', () => ({
+  pushNotify: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
 }))
 
 import {
   policyAdmits,
   dispatchEscalation,
-  dispatchToGotify,
+  dispatchEscalation,
   __resetEscalationState,
-} from '@/utilities/gotifyEscalation'
-import { gotifyNotify } from '@/utilities/gotifyNotify'
+} from '@/utilities/escalation'
+import { pushNotify } from '@/utilities/pushNotify'
 
 const onPolicy = (extra: Record<string, unknown> = {}) => ({
   enabled: true,
@@ -60,7 +60,7 @@ describe('dispatchEscalation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     __resetEscalationState()
-    ;(gotifyNotify as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 })
+    ;(pushNotify as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 200 })
   })
 
   it('fans out to every matching connector using its own token', async () => {
@@ -71,8 +71,8 @@ describe('dispatchEscalation', () => {
     const r = await dispatchEscalation(payload, { tenantId: 5, eventType: 'error', title: 't', message: 'm' }, 1000)
     expect(r.matched).toBe(2)
     expect(r.sent).toBe(2)
-    expect(gotifyNotify).toHaveBeenCalledTimes(2)
-    const tokensUsed = (gotifyNotify as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[1].appToken).sort()
+    expect(pushNotify).toHaveBeenCalledTimes(2)
+    const tokensUsed = (pushNotify as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[1].appToken).sort()
     expect(tokensUsed).toEqual(['A1', 'A2'])
   })
 
@@ -80,7 +80,7 @@ describe('dispatchEscalation', () => {
     const payload = payloadWith([gotifyConn('c1', 'A1', { enabled: true, events: { warning: { enabled: true } } })])
     const r = await dispatchEscalation(payload, { tenantId: 5, eventType: 'error', title: 't', message: 'm' }, 1000)
     expect(r.matched).toBe(0)
-    expect(gotifyNotify).not.toHaveBeenCalled()
+    expect(pushNotify).not.toHaveBeenCalled()
   })
 
   it('skips connector types with no transport (unsupported medium)', async () => {
@@ -100,7 +100,7 @@ describe('dispatchEscalation', () => {
     const r2 = await dispatchEscalation(payload, ev, 1000 + 60_000)
     expect(r1.sent).toBe(1)
     expect(r2.suppressed).toBe(1)
-    expect(gotifyNotify).toHaveBeenCalledTimes(1)
+    expect(pushNotify).toHaveBeenCalledTimes(1)
   })
 
   it('rate-limits per connector within a rolling minute', async () => {
@@ -115,7 +115,7 @@ describe('dispatchEscalation', () => {
   })
 
   it('counts a send failure as failed, not sent', async () => {
-    ;(gotifyNotify as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500, error: 'boom' })
+    ;(pushNotify as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500, error: 'boom' })
     const payload = payloadWith([gotifyConn('c1', 'A1', onPolicy())])
     const r = await dispatchEscalation(payload, { tenantId: 5, eventType: 'error', title: 't', message: 'm' }, 1000)
     expect(r.sent).toBe(0)
@@ -128,7 +128,7 @@ describe('dispatchEscalation', () => {
     expect(r).toEqual({ matched: 0, sent: 0, suppressed: 0, failed: 0 })
   })
 
-  it('dispatchToGotify remains a back-compat alias for dispatchEscalation', () => {
-    expect(dispatchToGotify).toBe(dispatchEscalation)
+  it('dispatchEscalation remains a back-compat alias for dispatchEscalation', () => {
+    expect(dispatchEscalation).toBe(dispatchEscalation)
   })
 })

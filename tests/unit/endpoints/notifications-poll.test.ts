@@ -1,5 +1,5 @@
 /**
- * gotify-poll — inbound poll: auth, fetch+filter, dedupe, persist, high-water mark.
+ * notifications-poll — inbound poll: auth, fetch+filter, dedupe, persist, high-water mark.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
@@ -11,14 +11,14 @@ vi.mock('@/utilities/bridgeHelpers', () => ({
 }))
 vi.mock('@/utilities/logError', () => ({ logCaughtError: vi.fn().mockResolvedValue(undefined) }))
 
-import { gotifyPollHandler } from '@/endpoints/gotify-poll'
+import { notificationsPollHandler } from '@/endpoints/notifications-poll'
 import { findAllConnectors } from '@/utilities/resolveConnector'
 import { markConnectorActive } from '@/utilities/bridgeHelpers'
 
 const realFetch = global.fetch
 
 function makeReq(payload: Record<string, unknown>, auth = 'Bearer test-secret') {
-  const req = new Request('http://localhost/api/gotify/poll', { headers: { authorization: auth } })
+  const req = new Request('http://localhost/api/notifications/poll', { headers: { authorization: auth } })
   return Object.assign(req, { payload }) as never
 }
 
@@ -32,7 +32,7 @@ function makePayload(over: Record<string, unknown> = {}) {
   }
 }
 
-describe('gotifyPollHandler', () => {
+describe('notificationsPollHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.CRON_SECRET = 'test-secret'
@@ -42,13 +42,13 @@ describe('gotifyPollHandler', () => {
   })
 
   it('401s on bad cron secret', async () => {
-    const res = await gotifyPollHandler(makeReq(makePayload(), 'Bearer wrong'))
+    const res = await notificationsPollHandler(makeReq(makePayload(), 'Bearer wrong'))
     expect(res.status).toBe(401)
   })
 
   it('no connectors → message, no fetch', async () => {
     ;(findAllConnectors as ReturnType<typeof vi.fn>).mockResolvedValue([])
-    const res = await gotifyPollHandler(makeReq(makePayload()))
+    const res = await notificationsPollHandler(makeReq(makePayload()))
     const body = await res.json()
     expect(body.results).toEqual([])
   })
@@ -69,7 +69,7 @@ describe('gotifyPollHandler', () => {
     }) as never
 
     const payload = makePayload()
-    const res = await gotifyPollHandler(makeReq(payload))
+    const res = await notificationsPollHandler(makeReq(payload))
     const body = await res.json()
 
     expect(body.totalCreated).toBe(2)
@@ -96,7 +96,7 @@ describe('gotifyPollHandler', () => {
     }) as never
     // Batch dedup matches on metadata.gotifyMessageId — return an existing doc for id 5.
     const payload = makePayload({ find: vi.fn().mockResolvedValue({ docs: [{ id: 999, metadata: { gotifyMessageId: 5 } }] }) })
-    const res = await gotifyPollHandler(makeReq(payload))
+    const res = await notificationsPollHandler(makeReq(payload))
     const body = await res.json()
     expect(body.totalCreated).toBe(0)
     expect(payload.create).not.toHaveBeenCalled()
@@ -106,7 +106,7 @@ describe('gotifyPollHandler', () => {
     ;(findAllConnectors as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'c1', tenantId: '5', config: { serverUrl: 'https://g' } },
     ])
-    const res = await gotifyPollHandler(makeReq(makePayload()))
+    const res = await notificationsPollHandler(makeReq(makePayload()))
     const body = await res.json()
     expect(body.results[0].error).toMatch(/clientToken/i)
   })

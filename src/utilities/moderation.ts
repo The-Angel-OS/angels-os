@@ -22,7 +22,7 @@
  *   - Fail-soft: malformed input → `ok`, never throws.
  *
  * @see src/collections/Messages/hooks/moderateMessage.ts — where it's applied
- * @see src/utilities/gotifyEscalation.ts — the escalation it feeds (content_flagged)
+ * @see src/utilities/escalation.ts — the escalation it feeds (content_flagged)
  */
 
 export type ModerationStatus = 'ok' | 'review' | 'block'

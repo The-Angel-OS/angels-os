@@ -212,7 +212,7 @@ import { connectorTestHandler } from '@/endpoints/connector-test'
 import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import { youtubePollHandler } from '@/endpoints/youtube-poll'
-import { gotifyPollHandler } from '@/endpoints/gotify-poll'
+import { notificationsPollHandler } from '@/endpoints/notifications-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
@@ -1528,13 +1528,22 @@ export default buildConfig({
       method: 'get',
       handler: youtubePollHandler,
     },
-    // ─── Gotify Inbound Poll (Vercel Cron: */5 * * * *) ──────────
-    // Mirrors Gotify server messages (Uptime-Kuma, system alerts) onto the
-    // AI Bus for all enabled gotify connectors; dedupes by Gotify message id.
+    // ─── Inbound notifications poll (heartbeat: */5 * * * *) ─────
+    // Mirrors inbound push messages (Uptime-Kuma, system alerts) onto the AI
+    // Bus, deduped by source message id. The ROUTE is named for what it does;
+    // Gotify is the transport that currently carries it, the same way /email/poll
+    // isn't called /ionos/poll.
+    {
+      path: '/notifications/poll',
+      method: 'get',
+      handler: notificationsPollHandler,
+    },
+    // The old vendor-named path, kept alive so a cron that fires mid-deploy —
+    // or any external caller — doesn't 404 into silence.
     {
       path: '/gotify/poll',
       method: 'get',
-      handler: gotifyPollHandler,
+      handler: notificationsPollHandler,
     },
     // ─── Documentation Endpoint ──────────────────────────────────
     {

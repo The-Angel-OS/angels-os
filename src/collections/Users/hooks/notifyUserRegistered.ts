@@ -32,10 +32,10 @@ export const notifyUserRegistered: CollectionAfterChangeHook<User> = async ({
   if (tenantId == null) return doc
 
   try {
-    const { dispatchToGotify } = await import('@/utilities/gotifyEscalation')
+    const { dispatchEscalation } = await import('@/utilities/escalation')
     const who = doc.name || doc.email || 'Someone'
     const roles = Array.isArray(doc.roles) && doc.roles.length ? ` (${doc.roles.join(', ')})` : ''
-    await dispatchToGotify(req.payload as never, {
+    await dispatchEscalation(req.payload as never, {
       tenantId,
       eventType: 'user_registered',
       title: '🙋 New user registered',

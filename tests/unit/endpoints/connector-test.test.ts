@@ -141,7 +141,7 @@ describe('connectorTestHandler', () => {
 
     // 1) probe: GET /message?limit=1 (receive validation)
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ messages: [] }) })
-    // 2) send: POST /message via gotifyNotify (validates app token + visible push)
+    // 2) send: POST /message via pushNotify (validates app token + visible push)
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve('') })
 
     const res = await connectorTestHandler(req)

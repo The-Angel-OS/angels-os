@@ -18,12 +18,12 @@
  * nor marks the message "(edited)".
  *
  * @see src/utilities/moderation.ts        — the classifier (cerebellum)
- * @see src/utilities/gotifyEscalation.ts  — dispatchEscalation (content_flagged)
+ * @see src/utilities/escalation.ts  — dispatchEscalation (content_flagged)
  */
 import type { CollectionAfterChangeHook } from 'payload'
 import { extractTextFromContent } from '@/utilities/messageContent'
 import { moderateText } from '@/utilities/moderation'
-import { dispatchEscalation } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 export const moderateMessage: CollectionAfterChangeHook = async ({ doc, operation, req, context }) => {
   if (operation !== 'create') return doc

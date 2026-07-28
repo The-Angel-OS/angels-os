@@ -18,7 +18,7 @@
  * Everything here is FAIL-SOFT — escalation must never break the path that
  * triggered the event.
  *
- * @see src/utilities/gotifyNotify.ts  @see src/utilities/logError.ts
+ * @see src/utilities/pushNotify.ts  @see src/utilities/logError.ts
  */
 import type { Payload } from 'payload'
 import { getTransport } from '@/utilities/connectorTransports'
@@ -37,7 +37,7 @@ import { postEscalationToAiBus } from '@/utilities/escalationToAiBus'
  * SEAM (stored in policy, not yet emitted): `conversation_started`,
  * `budget_exceeded`, `provider_failover`, `vercel_spend`, `federation`, `order`,
  * `donation`, `booking`, `itsm_incident`. To enable one, call
- * `dispatchToGotify(payload, { eventType, … })` at that event's source (e.g. the
+ * `dispatchEscalation(payload, { eventType, … })` at that event's source (e.g. the
  * over-budget branch in leo-stream, the Orders paid transition). No changes here.
  */
 export type EscalationEventType =
@@ -242,9 +242,3 @@ export async function dispatchEscalation(
   return result
 }
 
-/**
- * @deprecated Back-compat alias — escalation is no longer Gotify-specific.
- * Prefer `dispatchEscalation`. Kept so existing callers (logError, form-submission,
- * user-registered) keep working and now fan out across every configured medium.
- */
-export const dispatchToGotify = dispatchEscalation

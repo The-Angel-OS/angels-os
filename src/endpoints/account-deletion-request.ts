@@ -20,14 +20,14 @@
  * request must carry the account email so an admin can locate it.
  * Fail-soft: the durable log is the artifact; messaging/escalation are best-effort.
  *
- * @see src/utilities/gotifyEscalation.ts        — dispatchEscalation
+ * @see src/utilities/escalation.ts        — dispatchEscalation
  * @see src/utilities/resolveEmailSender.ts       — per-tenant configurable email
  * @see src/utilities/leo-data-tools.ts            — log_maintenance_note (same rails)
  */
 import type { PayloadHandler } from 'payload'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { wrapTextContent } from '@/utilities/messageContent'
-import { dispatchEscalation } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 const MAX_REASON = 1000
 

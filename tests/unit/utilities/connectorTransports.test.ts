@@ -3,12 +3,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/utilities/gotifyNotify', () => ({
-  gotifyNotify: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+vi.mock('@/utilities/pushNotify', () => ({
+  pushNotify: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
 }))
 
 import { getTransport, ESCALATION_TRANSPORT_TYPES } from '@/utilities/connectorTransports'
-import { gotifyNotify } from '@/utilities/gotifyNotify'
+import { pushNotify } from '@/utilities/pushNotify'
 
 const msg = { title: 'T', message: 'M', priority: 8 }
 
@@ -20,13 +20,13 @@ describe('connectorTransports', () => {
     expect(getTransport('whatsapp')).toBeUndefined()
   })
 
-  it('gotify: ready needs server+token, send delegates to gotifyNotify', async () => {
+  it('gotify: ready needs server+token, send delegates to pushNotify', async () => {
     const t = getTransport('gotify')!
     expect(t.ready({})).toBe(false)
     expect(t.ready({ serverUrl: 'https://g', appToken: 'A' })).toBe(true)
     const r = await t.send({ serverUrl: 'https://g', appToken: 'A' }, msg)
     expect(r.ok).toBe(true)
-    expect(gotifyNotify).toHaveBeenCalledWith(
+    expect(pushNotify).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'T', message: 'M', priority: 8 }),
       { serverUrl: 'https://g', appToken: 'A' },
     )

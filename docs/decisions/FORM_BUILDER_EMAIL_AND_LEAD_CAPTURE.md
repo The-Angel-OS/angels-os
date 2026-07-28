@@ -21,8 +21,8 @@ phone. (1)–(4) are now in place except where noted.
 - **AI-Bus routing (pre-existing).** `routeFormToAIBus` (formSubmissionOverrides
   afterChange) posts a `form_submission` Message into the tenant's space for LEO.
 - **Gotify escalation.** `form_submission` added to `EscalationEventType`
-  (`src/utilities/gotifyEscalation.ts`); `routeFormToAIBus` now calls
-  `dispatchToGotify` (fail-soft, policy-gated per connector, deduped per form via
+  (`src/utilities/escalation.ts`); `routeFormToAIBus` now calls
+  `dispatchEscalation` (fail-soft, policy-gated per connector, deduped per form via
   `dedupeKey: form:<id>`). Enable per gotify connector in `config.escalation` — see
   [GOTIFY.md](../integrations/GOTIFY.md).
 

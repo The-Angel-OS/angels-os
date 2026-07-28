@@ -1,10 +1,10 @@
 /**
- * gotifyNotify — unit tests (fail-soft + payload mapping + resolution order).
+ * pushNotify — unit tests (fail-soft + payload mapping + resolution order).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { gotifyNotify, resolveGotifyTarget } from '@/utilities/gotifyNotify'
+import { pushNotify, resolveGotifyTarget } from '@/utilities/pushNotify'
 
-describe('gotifyNotify', () => {
+describe('pushNotify', () => {
   const realFetch = global.fetch
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -19,7 +19,7 @@ describe('gotifyNotify', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     global.fetch = fetchMock as never
 
-    const res = await gotifyNotify(
+    const res = await pushNotify(
       { title: 'Hi', message: 'body', priority: 99 },
       { serverUrl: 'https://gotify.example.com/', appToken: 'A-token' },
     )
@@ -37,7 +37,7 @@ describe('gotifyNotify', () => {
   it('includes extras only when present', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     global.fetch = fetchMock as never
-    await gotifyNotify(
+    await pushNotify(
       { title: 't', message: 'm', extras: { 'client::display': { contentType: 'text/markdown' } } },
       { serverUrl: 'https://g', appToken: 'A' },
     )
@@ -47,7 +47,7 @@ describe('gotifyNotify', () => {
 
   it('returns ok:false (not throw) on non-2xx', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401, text: async () => 'bad token' }) as never
-    const res = await gotifyNotify({ title: 't', message: 'm' }, { serverUrl: 'https://g', appToken: 'A' })
+    const res = await pushNotify({ title: 't', message: 'm' }, { serverUrl: 'https://g', appToken: 'A' })
     expect(res.ok).toBe(false)
     expect(res.status).toBe(401)
     expect(res.error).toContain('401')
@@ -55,19 +55,19 @@ describe('gotifyNotify', () => {
 
   it('never throws on network error', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('ECONNRESET')) as never
-    const res = await gotifyNotify({ title: 't', message: 'm' }, { serverUrl: 'https://g', appToken: 'A' })
+    const res = await pushNotify({ title: 't', message: 'm' }, { serverUrl: 'https://g', appToken: 'A' })
     expect(res.ok).toBe(false)
     expect(res.error).toContain('ECONNRESET')
   })
 
   it('no-ops (ok:false) when nothing configured', async () => {
-    const res = await gotifyNotify({ title: 't', message: 'm' }, {})
+    const res = await pushNotify({ title: 't', message: 'm' }, {})
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/no gotify server/i)
   })
 
   it('empty notification is rejected', async () => {
-    const res = await gotifyNotify({ title: '', message: '' }, { serverUrl: 'https://g', appToken: 'A' })
+    const res = await pushNotify({ title: '', message: '' }, { serverUrl: 'https://g', appToken: 'A' })
     expect(res.ok).toBe(false)
   })
 })

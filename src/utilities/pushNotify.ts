@@ -1,5 +1,5 @@
 /**
- * gotifyNotify — fail-soft outbound push to a Gotify server.
+ * pushNotify — fail-soft outbound push to a Gotify server.
  *
  * Gotify SEND uses an **app token** (`A…`): `POST {server}/message` with header
  * `X-Gotify-Key: <appToken>`, body `{ title, message, priority, extras }`.
@@ -92,7 +92,7 @@ export async function resolveGotifyTarget(
 /**
  * Send a Gotify notification. Fail-soft.
  */
-export async function gotifyNotify(
+export async function pushNotify(
   msg: GotifyMessageInput,
   opts: {
     payload?: Payload | null

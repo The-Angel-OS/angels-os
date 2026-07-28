@@ -1,7 +1,7 @@
 /**
  * Durable AI-Bus escalation sink.
  *
- * `dispatchEscalation` (gotifyEscalation.ts) fans out to CONFIGURED connectors
+ * `dispatchEscalation` (escalation.ts) fans out to CONFIGURED connectors
  * (Gotify/Telegram/…). If a tenant has none — or the connector is down — the
  * escalation vanished: fire-and-forget push with no record. That's the gap that
  * left the AI Bus `errors` channel empty despite "LEO monitors this channel."
@@ -14,7 +14,7 @@
  * FAIL-SOFT: escalation must never break the path that triggered the event.
  */
 import type { Payload } from 'payload'
-import type { EscalationEvent, EscalationEventType } from '@/utilities/gotifyEscalation'
+import type { EscalationEvent, EscalationEventType } from '@/utilities/escalation'
 import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
 import { wrapTextContent } from '@/utilities/messageContent'
 
@@ -63,7 +63,7 @@ const CHANNEL_EMOJI: Record<string, string> = {
 
 // ─── In-memory throttle (best-effort, per lambda instance) ───────────────────
 // Keeps a burst of identical escalations from flooding the channel while still
-// recording distinct ones. Mirrors gotifyEscalation's rails, tuned looser.
+// recording distinct ones. Mirrors escalation's rails, tuned looser.
 const DEFAULT_COOLDOWN_MS = 120_000 // identical (tenant,eventType,dedupeKey)
 const MAX_POSTS_PER_MIN = 30 // per tenant
 

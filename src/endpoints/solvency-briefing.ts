@@ -16,11 +16,11 @@
  * that own an enabled connector (i.e. someone set up notifications there). Pass
  * ?tenant=N to force one. ?dry=true previews without dispatching.
  *
- * @see src/utilities/solvency.ts  @see src/utilities/gotifyEscalation.ts
+ * @see src/utilities/solvency.ts  @see src/utilities/escalation.ts
  */
 import type { PayloadHandler } from 'payload'
 import { getSolvencySnapshot } from '@/utilities/solvency'
-import { dispatchEscalation } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`
 

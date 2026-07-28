@@ -1,13 +1,13 @@
 import type { CollectionAfterChangeHook } from 'payload'
 
-import { dispatchToGotify } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 /**
  * Tell somebody a ticket arrived.
  *
  * A claims queue nobody is notified about is a mailbox — and the whole reason
  * to build this as a record rather than a form was that forms end in a void.
- * dispatchToGotify posts a durable AI Bus message FIRST (config-free, so it
+ * dispatchEscalation posts a durable AI Bus message FIRST (config-free, so it
  * works on a tenant with no connectors at all) and then fans out to whatever
  * connectors exist. That means LEO can answer "any warranty claims today?"
  * whether or not the owner ever set up a phone push.
@@ -48,7 +48,7 @@ export const escalateNewTicket: CollectionAfterChangeHook = async ({ doc, operat
       const attachmentCount = Array.isArray(doc.attachments) ? doc.attachments.length : 0
       if (attachmentCount) parts.push(`${attachmentCount} attachment(s)`)
 
-      await dispatchToGotify(req.payload, {
+      await dispatchEscalation(req.payload, {
         tenantId: tenantId as number | string,
         eventType: 'itsm_incident',
         title: `${label}: ${doc.subject}`,

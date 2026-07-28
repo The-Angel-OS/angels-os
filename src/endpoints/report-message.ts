@@ -13,11 +13,11 @@
  * Fail-soft on escalation; the report itself is the durable record.
  *
  * @see src/collections/Messages/hooks/moderateMessage.ts — the reflex (system) half
- * @see src/utilities/gotifyEscalation.ts — dispatchEscalation (content_reported)
+ * @see src/utilities/escalation.ts — dispatchEscalation (content_reported)
  */
 import type { PayloadHandler } from 'payload'
 import { extractTextFromContent } from '@/utilities/messageContent'
-import { dispatchEscalation } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 const MAX_REASON = 500
 

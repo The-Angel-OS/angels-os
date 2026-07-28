@@ -83,7 +83,7 @@ import {
   extractChannelId,
 } from './youtubeMetadata'
 import { createWidgetContent, wrapTextContent } from './messageContent'
-import { dispatchToGotify } from './gotifyEscalation'
+import { dispatchEscalation } from './escalation'
 import { runProbe } from './connectorProbes'
 import { GENESIS_BREATH } from './genesis-breath'
 import { buildConstitutionalPrompt, validateConstitutionalResponse } from './constitutional-prompt'
@@ -13453,8 +13453,8 @@ async function handleSendGotify(
   const title = (input.title as string)?.trim() || 'Angel OS'
   const priority = typeof input.priority === 'number' ? input.priority : undefined
 
-  const { gotifyNotify } = await import('./gotifyNotify')
-  const res = await gotifyNotify(
+  const { pushNotify } = await import('./pushNotify')
+  const res = await pushNotify(
     { title, message, priority },
     { payload, tenantId: ctx.tenantId, spaceId: ctx.spaceId },
   )
@@ -13609,8 +13609,8 @@ async function handleDispatchToChannel(
     const { resolveConnectorByChannel } = await import('./resolveConnector')
     const conn = await resolveConnectorByChannel(payload, { channelSlug: channel, tenantId, spaceId })
     if (conn?.type === 'gotify') {
-      const { gotifyNotify } = await import('./gotifyNotify')
-      const r = await gotifyNotify(
+      const { pushNotify } = await import('./pushNotify')
+      const r = await pushNotify(
         { title: title || `#${channel}`, message: content },
         { payload, tenantId, spaceId },
       )
@@ -14717,7 +14717,7 @@ async function handleLogMaintenanceNote(
           })
           posted = true
 
-          void dispatchToGotify(payload, {
+          void dispatchEscalation(payload, {
             tenantId: noteTenant,
             eventType: 'maintenance_note',
             title: `🔧 Maintenance: ${noteTitle}`,

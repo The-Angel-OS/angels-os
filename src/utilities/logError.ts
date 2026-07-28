@@ -114,8 +114,8 @@ export async function logError(options: LogErrorOptions): Promise<void> {
       const level = options.level ?? 'error'
       if (level === 'error' || level === 'warning') {
         try {
-          const { dispatchToGotify } = await import('@/utilities/gotifyEscalation')
-          await dispatchToGotify(payload as never, {
+          const { dispatchEscalation } = await import('@/utilities/escalation')
+          await dispatchEscalation(payload as never, {
             tenantId: options.tenantId,
             eventType: level,
             title: `${level === 'error' ? '⛔' : '⚠️'} ${options.source}`,

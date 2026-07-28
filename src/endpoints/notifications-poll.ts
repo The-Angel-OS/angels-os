@@ -1,5 +1,5 @@
 /**
- * Gotify Poll Endpoint — GET /api/gotify/poll
+ * Gotify Poll Endpoint — GET /api/notifications/poll  (alias: /api/gotify/poll)
  *
  * Vercel Cron target (every 5 min): for each enabled `gotify` connector, fetch
  * recent messages from its Gotify server with that connector's CLIENT token
@@ -47,7 +47,7 @@ interface ConnectorPollResult {
   error?: string
 }
 
-export const gotifyPollHandler: PayloadHandler = async (req) => {
+export const notificationsPollHandler: PayloadHandler = async (req) => {
   const { payload } = req
 
   // ── Cron auth ────────────────────────────────────────────────

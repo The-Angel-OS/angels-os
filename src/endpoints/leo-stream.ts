@@ -57,7 +57,7 @@ import { markDown as markProviderDown, isFatalProviderError } from '@/utilities/
 import { isBudgetEnforcementEnabled, getTenantAiBudgetStatusCached } from '@/utilities/aiBudget'
 import { brokerNodeChat } from '@/endpoints/node-ops'
 import { parseNodeChannelSlug } from '@/utilities/nodeBus'
-import { dispatchEscalation } from '@/utilities/gotifyEscalation'
+import { dispatchEscalation } from '@/utilities/escalation'
 
 // ---------------------------------------------------------------------------
 // Constants (mirrored from ConversationEngine for consistency)
