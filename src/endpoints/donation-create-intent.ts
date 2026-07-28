@@ -104,6 +104,15 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
       connectedAccountId = recipient.connectedAccountId
       recipientName = recipient.recipientName
       chargeModel = 'destination'
+      // DELIBERATELY NOT the platform fee, and not per-tenant negotiable.
+      //
+      // Every other checkout now resolves through getPlatformFeeBps, so this
+      // looks like the one that was missed. It wasn't. A donation is not a sale:
+      // this slice is the Justice Fund, it is a fixed and publishable share of
+      // money someone gave away, and it must not move because a tenant negotiated
+      // a better commercial rate on their product sales. A platform that quietly
+      // takes a larger cut of charity than it discloses is the exact thing the
+      // constitution exists to prevent.
       applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
     }
   } catch (err) {

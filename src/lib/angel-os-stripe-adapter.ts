@@ -259,7 +259,12 @@ export function angelOsStripeAdapter(
 
           // Platform application fee — the CONFIGURED rate (5% default), not
           // ULTIMATE_FAIR_SPLIT's 40%. See src/utilities/platformFee.ts.
-          const applicationFee = feeCents(amount, await getPlatformFeeBps(payload))
+          // Scoped to the SELLING tenant — `connectAccount.tenantId` is whose
+          // storefront took the money, which is whose negotiated rate applies.
+          const applicationFee = feeCents(
+            amount,
+            await getPlatformFeeBps(payload, connectAccount.tenantId),
+          )
 
           // Calculate bootstrap fee (may be 0 if in free tier or standard)
           let bootstrapFeeCents = 0

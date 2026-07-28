@@ -279,7 +279,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     // would have sent $30 to the platform and $45 to the electrician. Nobody chose
     // that out loud — it was a constant nobody had re-read. Now the configured
     // platform rate, 5% by default, changeable without a deploy.
-    const applicationFee = feeCents(deposit, await getPlatformFeeBps(payload))
+    // Scoped to the SELLING tenant, so a negotiated rate applies to that portal
+    // and only that portal.
+    const applicationFee = feeCents(deposit, await getPlatformFeeBps(payload, tenant.id))
 
     // Create PaymentIntent on the connected account (Direct Charges) — DEPOSIT only
     const paymentIntent = await stripe.paymentIntents.create(

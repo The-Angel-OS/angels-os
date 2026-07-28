@@ -20,6 +20,7 @@
  * @see src/utilities/membershipPlans.ts  @see src/collections/Memberships
  */
 import type { PayloadHandler } from 'payload'
+import { getPlatformFeeBps } from '@/utilities/platformFee'
 import Stripe from 'stripe'
 import { getMembershipPlan } from '@/utilities/membershipPlans'
 import { getBillingMode } from '@/utilities/billingMode'
@@ -35,8 +36,13 @@ function getStripe(): Stripe {
   return _stripe
 }
 
-/** Platform fee on membership dues (percent). Honest/small per the constitution. */
-const PLATFORM_FEE_PERCENT = Number(process.env.MEMBERSHIP_PLATFORM_FEE_PERCENT || 2)
+/**
+ * Legacy fallback ONLY. The rate now comes from the same resolver every other
+ * checkout uses, so a negotiated tenant rate applies here too instead of dues
+ * quietly charging a different percentage from that tenant's product sales.
+ * Kept because an env var already set on a live node should keep working.
+ */
+const LEGACY_MEMBERSHIP_FEE_PERCENT = process.env.MEMBERSHIP_PLATFORM_FEE_PERCENT
 
 export const membershipCheckoutHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -88,7 +94,14 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     const memberEmail = typeof body.memberEmail === 'string' ? body.memberEmail.trim() : ((user as { email?: string } | null)?.email || '')
     const memberName = typeof body.memberName === 'string' ? body.memberName.trim() : ((user as { name?: string } | null)?.name || '')
     const baseUrl = getServerSideURL()
-    const applicationFeePercent = Math.max(0, Math.min(PLATFORM_FEE_PERCENT, 100))
+    // Subscriptions take a PERCENT, not an amount — so convert basis points
+    // rather than keeping a second, differently-shaped fee number in the codebase.
+    // Three rates for one node (5% products, 5% bookings, 2% dues) is how a
+    // pricing conversation ends up depending on which button someone pressed.
+    const feeBps = await getPlatformFeeBps(payload, tenant.id)
+    const applicationFeePercent = LEGACY_MEMBERSHIP_FEE_PERCENT
+      ? Math.max(0, Math.min(Number(LEGACY_MEMBERSHIP_FEE_PERCENT), 100))
+      : Math.max(0, Math.min(feeBps / 100, 100))
 
     const subMetadata = {
       angelOs_type: 'membership',

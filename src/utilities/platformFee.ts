@@ -54,9 +54,40 @@ export function normalizeFeeBps(raw: unknown): number {
   return Math.min(Math.round(n), MAX_PLATFORM_FEE_BPS)
 }
 
-/** The applied rate in basis points. Falls back to the default, never to zero. */
-export async function getPlatformFeeBps(payload: Payload): Promise<number> {
+/**
+ * The applied rate in basis points. Falls back to the default, never to zero.
+ *
+ * Pass `forTenantId` to honour a PER-TENANT override. This was called out in the
+ * header as "a deliberate future decision, not something to fall into" — this is
+ * that decision, made for a concrete reason rather than a hypothetical one:
+ *
+ * Kenneth's arrangement with Kessela is 10% of everything sold, and he is the
+ * platform, so his cut and the platform fee are one pocket. Collecting it as
+ * `application_fee_amount` means Stripe deducts it at checkout and the money
+ * arrives without an invoice or a monthly conversation. But the node-wide rate
+ * cannot express "10% here, 5% everywhere else" — raising it would silently
+ * charge Clearwater and every other tenant 10% as well.
+ *
+ * Resolution is deliberately narrow: a tenant override if one exists, otherwise
+ * the node rate, otherwise the default. An override is never inherited and never
+ * partially applied.
+ */
+export async function getPlatformFeeBps(
+  payload: Payload,
+  forTenantId?: number | string | null,
+): Promise<number> {
   try {
+    if (forTenantId != null) {
+      const own = await getJsonSetting<number>(
+        payload,
+        { entityName: ENTITY, entityId: ENTITY_ID, tenantId: Number(forTenantId) },
+        SETTING,
+      )
+      // Only an explicitly stored value counts. Absent means "no opinion, use the
+      // node rate" — NOT zero, or a tenant with no row would ride free.
+      if (own != null) return normalizeFeeBps(own)
+    }
+
     const tenantId = await platformTenantId(payload)
     const raw = await getJsonSetting<number>(
       payload,
@@ -69,6 +100,25 @@ export async function getPlatformFeeBps(payload: Payload): Promise<number> {
   } catch {
     return DEFAULT_PLATFORM_FEE_BPS
   }
+}
+
+/**
+ * Store a per-tenant override. Pass `null` to remove it and fall back to the
+ * node rate — which is why this cannot simply write 0.
+ */
+export async function setTenantPlatformFeeBps(
+  payload: Payload,
+  tenantId: number | string,
+  bps: number | null,
+): Promise<number | null> {
+  const value = bps == null ? null : normalizeFeeBps(bps)
+  await setJsonSetting(
+    payload,
+    { entityName: ENTITY, entityId: ENTITY_ID, tenantId: Number(tenantId) },
+    SETTING,
+    value,
+  )
+  return value
 }
 
 export async function setPlatformFeeBps(payload: Payload, bps: number): Promise<number> {
