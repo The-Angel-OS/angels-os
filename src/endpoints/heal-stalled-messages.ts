@@ -20,8 +20,16 @@
  */
 import type { PayloadHandler } from 'payload'
 
-/** Older than this with `streaming: true` = the turn that wrote it is gone. */
-const STALL_MS = 3 * 60 * 1000
+/**
+ * Older than this with `streaming: true` = the turn that wrote it is gone.
+ *
+ * Ten minutes, not three. The turn that prompted this watchdog took FIVE — a
+ * single analyze_image tool call sat for 302 seconds and then answered
+ * correctly. A three-minute sweep would have told Ken it failed while it was
+ * still working, and then the real reply would have overwritten the apology.
+ * The threshold has to sit above the slowest turn that still succeeds.
+ */
+const STALL_MS = 10 * 60 * 1000
 
 /** Never rewrite more than this in one pass — a backlog is a bug, not a sweep. */
 const MAX_PER_RUN = 50

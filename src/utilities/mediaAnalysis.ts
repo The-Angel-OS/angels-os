@@ -611,6 +611,13 @@ export async function buildMediaMeta(
   const metaIds: (number | string)[] = []
 
   // ── Check for existing analysis ────────────────────────────────────
+  // `processing` means another run has it — but only while that run is alive.
+  // A record whose run died mid-analysis stays 'processing' forever, and this
+  // early return then reports success for an image that was never analyzed:
+  // media 470 has sat that way since 260728, so every later analyze_image on it
+  // returns a 100-byte "already in progress" and the RAG index never happens.
+  // Anything older than this is a corpse, not a peer.
+  const PROCESSING_STALE_MS = 15 * 60 * 1000
   const existing = await payload.find({
     collection: 'media-meta' as any,
     where: {
@@ -619,16 +626,36 @@ export async function buildMediaMeta(
     },
     limit: 1,
     depth: 0,
+    sort: '-createdAt',
     overrideAccess: true,
   })
 
-  if (existing.docs.length > 0) {
-    // Already analyzed or in progress
+  const found = existing.docs[0] as { id: number | string; status?: string; createdAt?: string } | undefined
+  const isStaleProcessing =
+    found?.status === 'processing' &&
+    Date.now() - new Date(found.createdAt || 0).getTime() > PROCESSING_STALE_MS
+
+  if (found && !isStaleProcessing) {
+    // Already analyzed, or genuinely in progress right now.
     return {
       success: true,
-      metaIds: existing.docs.map((d) => d.id),
+      metaIds: [found.id],
       error: undefined,
     }
+  }
+
+  if (found && isStaleProcessing) {
+    // Retire the abandoned attempt so this run's record is the only live one.
+    await payload
+      .update({
+        collection: 'media-meta' as any,
+        id: found.id,
+        data: { status: 'error', processingError: 'Abandoned — analysis run died mid-flight' } as any,
+        overrideAccess: true,
+      })
+      .catch(() => {
+        /* best effort — a failed cleanup must not block the retry */
+      })
   }
 
   // ── Route by type ──────────────────────────────────────────────────
