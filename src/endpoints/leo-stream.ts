@@ -1156,6 +1156,36 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
   const resolvedChannel = typeof channelSlug === 'string' ? channelSlug : 'general'
   const resolvedSpaceId = spaceId ? Number(spaceId) : undefined
 
+  // The SPACE owns which tenant a message belongs to — not the portal the
+  // request came in on. A DM thread is deliberately tenant-transcendent (see
+  // the multi-tenant plugin notes in payload.config.ts: one thread per
+  // conversation, across portals), so asking Nimue a question from the Kessela
+  // portal writes into a space that belongs to a different tenant.
+  //
+  // Stamping the REQUEST's tenant on that message made the plugin's relationship
+  // filters reject the doc — "The following fields are invalid: Space, Channel
+  // Ref" — and the whole reply was lost. 260728: Ken asked for a joke from the
+  // Kessela portal, got one on the card, and the thread showed his question with
+  // no answer under it. 925 characters, silently dropped.
+  let persistTenantId = tenantId
+  if (resolvedSpaceId) {
+    try {
+      const space = await req.payload.findByID({
+        collection: 'spaces',
+        id: resolvedSpaceId,
+        depth: 0,
+        select: { tenant: true },
+        overrideAccess: true,
+      })
+      const owner = (space as { tenant?: number | { id?: number } } | null)?.tenant
+      const ownerId = typeof owner === 'object' && owner ? owner.id : owner
+      if (typeof ownerId === 'number') persistTenantId = ownerId
+    } catch {
+      // Fall back to the request's tenant — the beforeChange hook still derives
+      // one from the space, and a wrong guess here is no worse than before.
+    }
+  }
+
   // Build system prompt
   const phase = isWizardMode ? 'enterprise-setup-wizard' : 'general'
   const baseSystemPrompt = buildStreamingSystemPrompt({
@@ -1268,7 +1298,7 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
           // depends on the setTenantFromSpace hook's space lookup — when that lookup
           // fails, the required-tenant validator throws and the reply is silently
           // lost ("LEO reply vanishes on refresh"). Hook stays as the fallback.
-          ...(tenantId ? { tenant: tenantId } : {}),
+          ...(persistTenantId ? { tenant: persistTenantId } : {}),
           ...(leoUserId ? { author: leoUserId } : {}),
           metadata: { streaming: true, model: resolveModelId() },
         } as any,
@@ -1547,7 +1577,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
                 // Pass tenant explicitly — see the placeholder-create note above.
-                ...(tenantId ? { tenant: tenantId } : {}),
+                ...(persistTenantId ? { tenant: persistTenantId } : {}),
                 metadata: { streaming: false, ...(streamTelemetry ?? {}) },
                 ...(leoUserId ? { author: leoUserId } : {}),
                 ...(generatedAttachments ? { attachments: generatedAttachments } : {}),
@@ -1629,7 +1659,7 @@ After this turn, you'll return to the faster model for responsive day-to-day int
                 channel: resolvedChannel,
                 messageType: 'ai_agent',
                 // Pass tenant explicitly — see the placeholder-create note above.
-                ...(tenantId ? { tenant: tenantId } : {}),
+                ...(persistTenantId ? { tenant: persistTenantId } : {}),
                 ...(leoUserId ? { author: leoUserId } : {}),
                 metadata: errMeta,
               } as any,
