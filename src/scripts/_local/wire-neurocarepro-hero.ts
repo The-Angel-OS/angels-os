@@ -66,6 +66,9 @@ if (!page) {
           { link: { type: 'custom', label: 'Get the Book', url: '/posts', appearance: 'outline' } },
         ],
       },
+      // The page's OWN status, not a literal — omit it and this write lands as
+      // a draft and takes the live home page down. @see docs/FOOTGUNS.md 2.7b
+      _status: page._status,
     } as any,
     overrideAccess: true,
   })

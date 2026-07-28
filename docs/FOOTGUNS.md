@@ -240,8 +240,25 @@ reason to know, and neither did the second.
    The page that breaks is rarely the page you edited.
 
 **Class fix in place:** `tests/unit/scripts/pageLayoutStatus.test.ts` scans every
-`_local` script for a bare `data: { layout }` and fails on the pattern, so it
-catches the script nobody has written yet.
+`_local` script for an update to a versioned collection that omits `_status`.
+
+**It happened again the next day** — 260728, to `/products/kessela-elite-belt`,
+the Kessela money page, while adding one block to its layout. The guard above
+was already in place and did not fire, for two reasons worth more than the
+incident: it matched only the exact shape `data: { layout }` (the repeat was
+`data: { gallery, layout }`), and it scanned only `src/scripts/_local` while the
+new script lived in `scripts/_local`. Both directories exist and both are used.
+
+A guard that recognises only the incident it was written for is a guard for one
+incident. It now asserts the rule — any `payload.update` naming pages, posts or
+products carries `_status` — across both directories, and has a second test that
+fails if it is ever scanning nothing. Widening it immediately turned up five
+more scripts that would have unpublished a live page on their next run.
+
+**Also true of any partial update here:** `payload.update` revalidates the whole
+document, and `products.gallery[].image` is a REQUIRED upload. Send `layout`
+alone and validation fails with `Content > Gallery 1 > Image` — an error about a
+field you never touched. Re-send the array you are not changing.
 
 ### 2.8 Prompts are code
 
