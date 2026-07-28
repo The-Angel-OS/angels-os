@@ -5,14 +5,19 @@
  * NOT in the nav — it is where Stephanie's link points, and later where an ad
  * lands. Same product, same cart, same warranty desk, same inventory.
  *
- * ⚠️ EVERY CLAIM IS A PLACEHOLDER. An incontinence landing page IS the claim —
- * it is not a design that happens to mention one. Nothing here asserts what the
- * device does, because David has not sent the claims list. What IS written is
- * either already on kessela.com in his own words (specs, warranty, returns, the
- * FAQ) or is structural.
+ * ⚠️ THE COPY HERE IS PROPOSED, NOT APPROVED. Every line maps to a lettered item
+ * in docs/kessela/CLAIMS_SIGNOFF.md that David initials or strikes.
  *
- * When the claims list arrives, replacing the [CLAIM: ...] lines is a paste, not
- * a build.
+ * Asking him for "a list of claims you'll stand behind" is homework he has not
+ * done in two days — an open-ended task with no obvious first line. Proposing the
+ * words inverts it into thirty seconds of yes/no. That is why this page carries
+ * careful language rather than blanks.
+ *
+ * The discipline is unchanged: nothing here says the device treats, cures or
+ * corrects anything. Registration is a listing, not clearance. What is written is
+ * mechanism (EMS contracts muscle), audience-by-their-own-reason, price context
+ * from true market facts, Stephanie's ACTION rather than her outcome, and the
+ * guarantee. Only [SPECS:, [VIDEO:, [LINK:, [FACT: and [CTA: remain blank.
  *
  * Deliberately `_status: 'draft'` — it 404s publicly until someone decides
  * otherwise, which is the correct default for a page like this.
@@ -51,43 +56,50 @@ const section = (lines: string[]) => ({
 })
 
 const layout: Array<Record<string, unknown>> = [
-  // 1. The proposition. Blank until the claims list lands.
+  // 1. The proposition. Every line is §B of CLAIMS_SIGNOFF.md — proposed, careful,
+  //    and awaiting David's initials rather than invented here.
   section([
-    '[CLAIM: headline — what this is for, in her words, once David has said what he will stand behind]',
-    '[CLAIM: one sentence under the headline. Who it is for and what changes. Nothing here yet.]',
+    // B1 — mechanism, no condition named, no outcome promised.
+    'What it is',
+    'Electrical muscle stimulation causes muscles to contract. The Kessela Physique applies EMS across the lower abdomen and core, alongside red and near-infrared light.',
+    // B2 — names the audience by their own reason for arriving, and declines the
+    //      claim out loud, which is safer AND more credible than dancing round it.
+    'Some people use it as part of a daily core routine. Others came to it for pelvic-floor reasons. We are not going to tell you which you are.',
     'Registered Class II medical device. One-year warranty. 14-day money-back guarantee.',
   ]),
 
   // 2. Trust — inherits the tenant badges, no configuration.
   { blockType: 'trustRow' },
 
-  // 3. Price framing — the §3.4 argument, and it needs no medical claim at all.
+  // 3. B4 — price context. Every number is a true market fact and no equivalence
+  //    is asserted. The strongest commercial line on the page and the one
+  //    carrying the most inference; David approves it knowingly or not at all.
   section([
-    'What it costs, and what it replaces',
-    'A course of pelvic-floor physiotherapy typically runs $100–$200 a session, and is usually a course rather than one visit. The Kessela Physique is $599 once, used at home, for as long as you own it.',
-    'With Klarna or Affirm at checkout, that is a monthly figure rather than a single decision — often less than the cost of one session a month.',
-    '[CLAIM: if David will stand behind a usage expectation — e.g. "most people use it daily for ten minutes" — it goes here. Otherwise this line is deleted.]',
+    'What it costs, and what people compare it to',
+    'A session with a pelvic-floor physiotherapist typically costs $100–200, and it is usually a course rather than one visit.',
+    'The Kessela Physique is $599 once, at home, for as long as you own it. With Klarna or Affirm at checkout that is often less per month than a single session.',
   ]),
 
-  // 4. Stephanie. The single most valuable asset on this page.
+  // 4. B3 — Stephanie as an ACTION, not an outcome. A person staking themselves
+  //    on something is evidence; it is not a medical claim.
   section([
     'Why we are doing this',
-    '[STEPHANIE: her story, in her own words. NOT a results claim — the story of why she went and found 2,500 of these. A person staking themselves on something is evidence in a way a bullet point is not, and it is not a medical claim.]',
-    '[VIDEO: replace this section with a MediaText block once there is footage. Portrait is fine — the aspect control is on the roadmap.]',
+    'Stephanie believed in this enough that we brought in 2,500 units. She will tell you her story in her own words — what it did for her is hers to say, not ours to print.',
+    '[VIDEO: swap this for a Video block once there is footage. Portrait 9:16 is supported now.]',
   ]),
 
-  // 5. What it actually is. Specs are facts, not claims — but we do not have them.
+  // 5. Facts. The specs are the one genuinely blocked item — see §6.3 of the plan.
   section([
     'What you are buying',
-    'A belt combining red and near-infrared light with electrical muscle stimulation (EMS), fitting waists from 26 to 45 inches (66cm to 114cm). Nine intensity levels. Ten minutes a day.',
-    '[SPECS: wavelengths in nm, irradiance in mW/cm², treatment area, LED count, EMS channels and frequency, battery and session length, certifications. Blocked on David — this is the table that separates a $599 belt from a $99 one, and it is the direct answer to his own "Ferrari to a tricycle" complaint.]',
+    'A belt combining red and near-infrared light with electrical muscle stimulation, fitting waists from 26 to 45 inches (66cm to 114cm). Nine intensity levels. Around ten minutes a day.',
+    '[SPECS: wavelengths (nm), irradiance (mW/cm²), treatment area, LED count, EMS channels and frequency, battery, certifications. Blocked on David — this is the table that separates a $599 belt from a $99 one.]',
   ]),
 
-  // 6. Evidence, stated honestly. The differentiator.
+  // 6. B5 — honesty as the differentiator. Zero exposure, and it is the strategy.
   section([
     'What the research actually says',
-    'We publish the studies with their limits attached — what each one measured, how many people took part, and what it does not show. Everyone in this category overstates. We would rather be the one source you can check.',
-    '[LINK: the eight studies at /posts once they have been rewritten to that standard — real citation, what they did, what they found, what it does NOT show.]',
+    'We publish the research with its limits attached — what each study measured, how many people took part, and what it does not show. Everyone in this category overstates. We would rather be the one you can check.',
+    '[LINK: the studies at /posts, once rewritten to that standard.]',
   ]),
 
   // 7. The objections that actually stop a purchase.
@@ -112,23 +124,22 @@ const layout: Array<Record<string, unknown>> = [
           'Users may experience a gentle warmth, which is emitted by the therapeutic LEDs, as well as a slight tingling and tightness from the EMS electrodes. Increasing the intensity will increase the EMS power levels and at higher levels, users may consider this an unusual sensation while the muscles are contracting and working out.',
       },
       {
-        question: 'What if it does not work for me?',
+        question: 'What if it is not for me?',
         answer:
-          'There is a 14-day money-back guarantee, and a one-year warranty on the device. If something goes wrong you can file a claim on this site with a photo, and it goes straight to the team rather than into a phone queue.',
+          'Try it for 14 days. If it is not for you, send it back. One-year warranty either way, and claims are filed on this site with a photo rather than a phone queue.',
       },
       {
         question: 'How discreet is the delivery?',
-        answer:
-          '[CLAIM/FACT: confirm packaging with David. For this audience it is a genuine purchase objection and a cheap one to answer well.]',
+        answer: '[FACT: confirm packaging with David — §B7 of CLAIMS_SIGNOFF.md.]',
       },
     ],
   },
 
-  // 8. The ask.
+  // 8. B6 — the guarantee IS the close. It removes the risk his claims cannot.
   section([
     'Ready when you are',
-    '$599, shipped, with a 14-day money-back guarantee and a one-year warranty. Klarna and Affirm available at checkout.',
-    '[CTA: Buy — wire to the product once this page is being published rather than drafted.]',
+    '$599, shipped. Try it for 14 days — if it is not for you, send it back. One-year warranty either way. Klarna and Affirm available at checkout.',
+    '[CTA: wire to the product when this page goes from draft to published.]',
   ]),
 ]
 
