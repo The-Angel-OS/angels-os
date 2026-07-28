@@ -288,7 +288,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       {
         amount: deposit,
         application_fee_amount: applicationFee,
-        payment_method_types: ['card'],
+        // Dashboard-controlled, so which methods a deposit accepts is a
+        // business decision rather than a code change.
+        automatic_payment_methods: { enabled: true },
         currency,
         customer: customer.id,
         metadata: {

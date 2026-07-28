@@ -284,7 +284,15 @@ export function angelOsStripeAdapter(
           const intentParams: Stripe.PaymentIntentCreateParams = {
             amount,
             application_fee_amount: totalApplicationFee,
-            payment_method_types: ['card'],
+            // Whatever the Stripe Dashboard has enabled — Klarna, Affirm, Link,
+            // Cash App — not a hardcoded list. `['card']` was silently switching
+            // OFF every buy-now-pay-later method: PaymentElement can only render
+            // what the PaymentIntent permits, so the client was never the
+            // blocker. On a $599 device financing is not a nice-to-have, it is
+            // the difference between one decision and a monthly one.
+            // Redirect-based methods work because CheckoutForm already passes
+            // return_url with redirect: 'if_required'.
+            automatic_payment_methods: { enabled: true },
             currency,
             customer: customer.id,
             metadata: {
@@ -348,7 +356,8 @@ export function angelOsStripeAdapter(
 
         const intentParams: Stripe.PaymentIntentCreateParams = {
           amount,
-          payment_method_types: ['card'],
+          // Same as the direct-charge path above: Dashboard decides, not code.
+          automatic_payment_methods: { enabled: true },
           currency,
           customer: customer.id,
           metadata: {
