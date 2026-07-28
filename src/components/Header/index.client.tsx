@@ -337,7 +337,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
       {/* pb-2 as well as pt-2: with `md:items-end` the right-rail controls were
           pushed flush against the bottom border, and the cart icon rendered
           visibly clipped. Padding both sides gives every control room. */}
-      <nav className="flex items-center md:items-end justify-between container pt-2 pb-2">
+      <nav className="flex items-center md:items-end justify-between container pt-1 pb-1">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
             {/* The SAME pins the desktop bar honours. Mobile used to render the
@@ -353,7 +353,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
         </div>
         <div className="flex w-full items-end justify-between">
           <div className="flex w-full items-end gap-6 md:w-auto md:flex-1 min-w-0">
-            <Link className="flex items-center justify-center pt-4 pb-4 flex-shrink-0" href="/">
+            <Link className="flex items-center justify-center py-2 flex-shrink-0" href="/">
               {tenantLogoUrl ? (
                 /* h-6 rendered a wordmark at 24px — legible, but visually a
                    footnote next to 12px uppercase nav links. h-8/h-10 fills the

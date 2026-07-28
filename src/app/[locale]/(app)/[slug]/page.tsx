@@ -99,8 +99,17 @@ export default async function Page({ params }: Args) {
     }
   }
 
+  // A full-bleed hero IS the top of the page — it wants the header's edge, not
+  // 64px of white above it. That padding is there for pages that open on text,
+  // where copy running into the nav would read as broken. Deciding by what the
+  // page actually opens with means neither case needs a setting.
+  const bleedsToTop =
+    Boolean(homeSplash) ||
+    (hero as { type?: string } | undefined)?.type === 'fullScreen' ||
+    (hero as { type?: string } | undefined)?.type === 'highImpact'
+
   return (
-    <article className="pt-16 pb-24">
+    <article className={bleedsToTop ? 'pb-24' : 'pt-16 pb-24'}>
       {homeSplash ?? <RenderHero {...hero} />}
       <RenderBlocks blocks={layout} tenantSlug={tenantSlug} />
     </article>

@@ -54,6 +54,14 @@ const blockComponents = {
   productPanel: ProductPanelBlock,
 }
 
+/**
+ * Blocks that paint their own full-width band (their component carries the
+ * background and its own py-*). These get NO wrapper margin, so a band butts
+ * directly against the hero above it and the copy below — which is what makes
+ * a page read as one surface instead of a column of floating cards.
+ */
+const FULL_BLEED_BLOCKS = new Set(['showcase', 'threeItemGrid', 'featuredEndeavors'])
+
 export const RenderBlocks: React.FC<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   blocks: any[]
@@ -92,7 +100,7 @@ export const RenderBlocks: React.FC<{
                    page of short Content blocks read as a column of islands. The
                    inner margins are gone; blocks that need their own band still
                    carry py-* internally, which butts them right up against this. */
-                <div className="my-8" key={index}>
+                <div className={FULL_BLEED_BLOCKS.has(blockType) ? undefined : 'my-8'} key={index}>
                   <Block id={toKebabCase(blockName!)} {...blockProps} />
                 </div>
               )

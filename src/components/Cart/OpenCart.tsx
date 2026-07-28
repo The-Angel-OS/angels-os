@@ -17,10 +17,18 @@ export function OpenCartButton({
       variant="nav"
       size="clear"
       aria-label={quantity ? `Open cart, ${quantity} item${quantity === 1 ? '' : 's'}` : 'Open cart'}
-      className={cn('navLink relative hover:cursor-pointer', className)}
+      // The `nav` variant is built for TEXT links: pt-2/pb-6, so the label sits
+      // high and the underline has room. An icon inherits that as a 48px-tall box
+      // with the glyph jammed against the top — and a badge pinned to the glyph's
+      // corner then rides the header's edge and gets clipped. An icon button wants
+      // a square, centered box of its own.
+      className={cn(
+        'navLink relative hover:cursor-pointer h-9 w-9 self-center items-center justify-center p-0 pt-0 pb-0',
+        className,
+      )}
       {...rest}
     >
-      <ShoppingCart className="h-5 w-5" />
+      <ShoppingCart className="size-5" />
 
       {quantity ? (
         // -right-1/-top-1, not -2: at -2 the badge sits far enough outside the
