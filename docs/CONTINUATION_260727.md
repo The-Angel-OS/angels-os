@@ -1,5 +1,9 @@
 # Continuation — tightening Kessela
 
+> **⚠️ SUPERSEDED by [`CONTINUATION_260729.md`](CONTINUATION_260729.md)**, written
+> 260728 after two days of work and two meetings with David. Kept for the record;
+> the newer document wins where they disagree.
+
 > Rewritten 260727 ~10:45, replacing the 00:50 version. Everything here is
 > committed and deployed unless it says otherwise. **The focus is Kessela.**
 > Read `docs/FOOTGUNS.md` first; this doc assumes it.
