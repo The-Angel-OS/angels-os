@@ -47,14 +47,24 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
     }
   }, [searchParams, api, gallery])
 
+  // The map below already guards `typeof item.image !== 'object'` — the author
+  // knew an image can come back as a bare ID. The main image did NOT, so an
+  // unpopulated relation crashed the whole page during hydration: the server
+  // HTML painted, then React threw and the error boundary replaced it. That is
+  // exactly the "renders briefly, then breaks" report.
+  const active = gallery[current] ?? gallery[0]
+  const activeImage = active && typeof active.image === 'object' ? active.image : null
+
   return (
     <div>
       <div className="relative w-full overflow-hidden mb-8">
-        <Media
-          resource={gallery[current].image}
-          className="w-full"
-          imgClassName="w-full rounded-lg"
-        />
+        {activeImage && (
+          <Media
+            resource={activeImage}
+            className="w-full"
+            imgClassName="w-full rounded-lg"
+          />
+        )}
       </div>
 
       <Carousel setApi={setApi} className="w-full" opts={{ align: 'start', loop: false }}>

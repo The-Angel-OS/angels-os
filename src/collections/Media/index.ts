@@ -55,6 +55,15 @@ export const Media: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       index: true,
+      // maxDepth 0 — return the id, never populate the user.
+      //
+      // Every media relation in the app is fetched at some depth, and a nested
+      // relationship SPENDS that budget. Adding this field pushed deeply-nested
+      // media (a product's gallery at depth 3) past the limit, so `gallery[].image`
+      // started coming back as a bare ID instead of a document — and the product
+      // page's Gallery renders `gallery[current].image` straight into <Media>.
+      // Nothing here ever needs the populated user; ownership checks compare ids.
+      maxDepth: 0,
       admin: { readOnly: true, position: 'sidebar' },
       hooks: {
         beforeChange: [
