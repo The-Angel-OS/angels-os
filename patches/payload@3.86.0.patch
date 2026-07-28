@@ -1,0 +1,11 @@
+diff --git a/dist/uploads/fetchAPI-multipart/isEligibleRequest.js b/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
+index 874d38008d413356cb12b15a06b1b1f4cf7c1a68..ce05ba4430a1c99385537275812d2726b7d3acab 100644
+--- a/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
++++ b/dist/uploads/fetchAPI-multipart/isEligibleRequest.js
+@@ -1,5 +1,5 @@
+ // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-obscure-range
+-const ACCEPTABLE_CONTENT_TYPE = /multipart\/['"()+-_]+(?:; ?['"()+-_]*)+$/i;
++const ACCEPTABLE_CONTENT_TYPE = /multipart\/[-a-zA-Z0-9]+(?:; ?[-a-zA-Z0-9=._]+)+$/i;
+ const UNACCEPTABLE_METHODS = new Set([
+     'CONNECT',
+     'DELETE',
