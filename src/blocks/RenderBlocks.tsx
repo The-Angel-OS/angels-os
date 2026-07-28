@@ -16,6 +16,7 @@ import { MerlinControlBlock } from '@/blocks/MerlinControl/Component'
 import { GoogleReviewsBlock } from '@/blocks/GoogleReviews/Component'
 import { MediaTextBlock } from '@/blocks/MediaText/Component'
 import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
+import { TrustRowBlock } from '@/blocks/TrustRow/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -42,6 +43,7 @@ const blockComponents = {
   googleReviews: GoogleReviewsBlock,
   mediaText: MediaTextBlock,
   ticketForm: TicketFormBlockComponent,
+  trustRow: TrustRowBlock,
 }
 
 export const RenderBlocks: React.FC<{

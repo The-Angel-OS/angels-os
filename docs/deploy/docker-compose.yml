@@ -138,6 +138,35 @@ services:
       - -c
       - 'printenv CRON_SECRET > /run/cron_secret && chmod 600 /run/cron_secret && exec crond -f -l 8 -L /dev/stdout'
 
+
+  # ── Gotify ────────────────────────────────────────────────────────────────
+  # Push notifications. The AI Bus and the lead-capture path already post here;
+  # restoring the old gotify.db keeps every app token, so nothing needs
+  # reconfiguring on the sending side.
+  gotify:
+    image: gotify/server:latest
+    container_name: angelos-gotify
+    restart: unless-stopped
+    ports:
+      - '8070:80'
+    volumes:
+      - C:/Dev/datacenter/services/gotify:/app/data
+
+  # ── Uptime Kuma ───────────────────────────────────────────────────────────
+  # ⚠️ READ THIS BEFORE RELYING ON IT.
+  # Kuma running HERE cannot tell you this laptop died — it dies with it. On this
+  # host it is only good for watching things OUTSIDE the laptop (the IONOS
+  # Postgres, Cloudflare, Stripe) and for a dashboard. The "is Angel OS up?"
+  # check has to live somewhere else. See docs/RUNBOOK_CONTINUITY.md §2c.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: angelos-kuma
+    restart: unless-stopped
+    ports:
+      - '8071:3001'
+    volumes:
+      - C:/Dev/datacenter/services/uptime-kuma:/app/data
+
 volumes:
   angelos_pgdata:
     external: true

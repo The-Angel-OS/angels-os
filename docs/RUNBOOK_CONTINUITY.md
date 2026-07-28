@@ -187,6 +187,64 @@ including the one without the current database. Move the tunnel, don't fork it.
 
 ---
 
+## 2c. Monitoring — Gotify and Uptime Kuma
+
+Both are back, restored from `C:\Dev\datacenter\backups\20260712-000738`, running
+as containers in the same compose file:
+
+| | | |
+|---|---|---|
+| Gotify | http://localhost:8070 | push notifications — the AI Bus and lead capture already post here |
+| Uptime Kuma | http://localhost:8071 | uptime checks + history |
+
+Data lives at `C:\Dev\datacenter\services\{gotify,uptime-kuma}`. Both apps are a
+single SQLite file, so "restore" is genuinely just copying the data directory in
+before the container starts — every monitor, app token and year of history came
+back untouched.
+
+17 monitors restored. The 10 pointing at `*.kendev.co` were paused: that IONOS
+VPS is gone and returns HTTP 402, so they were alerting about a machine that no
+longer exists. The 7 pointing at `*.spacesangels.com` came straight back green.
+
+**Kessela is not yet monitored** — add it at http://localhost:8071 (30 seconds),
+or it will be the one site nobody is watching.
+
+### ⚠️ Kuma on this laptop CANNOT tell you this laptop died
+
+This is the whole point and it is worth being blunt about. Uptime Kuma running
+in Docker on the same machine it monitors goes down *with* the thing it is
+watching. It will never send the alert that matters most, and its silence looks
+exactly like everything being fine.
+
+That gap is bigger than it looks, because **nothing auto-starts cloudflared**
+(§2b). A reboot at 3am takes every site offline, and the only thing that would
+have told you is the thing that also went offline.
+
+**So the real monitor has to live somewhere else.** In order of effort:
+
+1. **Now, free, five minutes** — an external checker (UptimeRobot or Better Stack
+   free tier) hitting `https://spacesangels.com` every 5 minutes with SMS or
+   email alerts. No server, no container, and it is genuinely off-site. **Do this
+   before anything else; it is the single highest-value five minutes in this
+   document.**
+2. **When the Ubuntu box exists** — move Kuma and Gotify there. Then they are
+   external to the laptop, and Kuma can watch the laptop properly.
+3. **Keep (1) even then**, pointed at the Ubuntu box. Two layers: the external
+   service watches the server, the server watches the laptop. Whoever is left
+   standing can still tell you.
+
+What Kuma on the laptop IS good for: watching things *outside* the laptop —
+Cloudflare, Stripe, the tenants' own sites — and giving you one dashboard.
+
+### Not exposed publicly
+
+Neither has a `cloudflared` ingress rule, so both are localhost-only. That is the
+safe default. If they should be reachable from outside, add hostnames to
+`config.yml` ABOVE the wildcards (§2b) — and put Cloudflare Access in front of
+them, because Gotify holds the tokens that can push notifications to every user.
+
+---
+
 ## 3. The failures you will actually see
 
 ### "Everything is down"
