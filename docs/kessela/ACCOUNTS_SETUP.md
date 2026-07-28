@@ -62,3 +62,31 @@ disappear tomorrow.
 Do **1 (IONOS)** first — the server takes a few minutes to provision and can
 build in the background while we do the rest. Do **5 (Cloudflare)** second, so
 DNS has time to propagate. The other four are five minutes each.
+
+---
+
+## Do these two FIRST — they are not optional
+
+**1. Stripe Connect for Kessela.** Right now the tenant has no connected account,
+so every sale on the site lands in Kenneth's Stripe rather than David's. Ten
+minutes in the dashboard, and until it is done the 10% cannot be collected
+automatically and David's name is not on the receipt.
+
+**2. Start Meta business verification.** It can take days and nothing else can
+proceed without it. Create the account and submit verification on day one even
+if no ad runs for two weeks.
+
+## Ad accounts — a separate half-day, not part of the hour above
+
+Google *Ads* is NOT the Google API key. Different account, different billing.
+
+| Account | Time | Gate |
+|---|---|---|
+| Meta Business Suite + ad account | ~1 hr | verification takes days |
+| Meta domain verification | ~15 min | one DNS TXT record |
+| Meta Pixel / Conversions API | ~1 hr | must fire on purchase |
+| Google Ads | ~1 hr | medical device = restricted category, expect review |
+| Google Merchant Center | ~1 hr | optional; needs product feed + returns policy |
+
+Do not spend a dollar until the claims list exists — an ad that cannot state a
+benefit returns nothing, and a rejected ad account is slow to un-reject.
