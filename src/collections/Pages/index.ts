@@ -16,6 +16,7 @@ import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { MediaText } from '@/blocks/MediaText/config'
 import { TicketForm } from '@/blocks/TicketForm/config'
 import { TrustRow } from '@/blocks/TrustRow/config'
+import { Faq } from '@/blocks/Faq/config'
 import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
@@ -182,6 +183,7 @@ export const Pages: CollectionConfig = {
                 MediaText,
                 TicketForm,
                 TrustRow,
+                Faq,
               ],
               required: true,
             },

@@ -17,6 +17,7 @@ import { GoogleReviewsBlock } from '@/blocks/GoogleReviews/Component'
 import { MediaTextBlock } from '@/blocks/MediaText/Component'
 import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
 import { TrustRowBlock } from '@/blocks/TrustRow/Component'
+import { FaqBlock } from '@/blocks/Faq/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -44,6 +45,7 @@ const blockComponents = {
   mediaText: MediaTextBlock,
   ticketForm: TicketFormBlockComponent,
   trustRow: TrustRowBlock,
+  faq: FaqBlock,
 }
 
 export const RenderBlocks: React.FC<{
