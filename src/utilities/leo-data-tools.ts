@@ -5551,6 +5551,53 @@ async function rescheduleBookingHandler(
 // Shopping Cart Handlers (LEO-powered e-commerce)
 // ---------------------------------------------------------------------------
 
+/**
+ * The user's live cart for THIS tenant — the one the storefront and checkout use.
+ *
+ * Both cart tools used to read and write `users.cart.items`. `users.cart` is a
+ * JOIN field (read-only, shaped `{ docs: [...] }`), so the read always found
+ * `undefined` → "your cart is empty", and the write was silently dropped as an
+ * unknown field → "Added to cart!" every time, for a cart that never changed.
+ * LEO has been confidently reporting both halves of that contradiction to
+ * customers. The cart actually lives in the `carts` collection.
+ */
+async function findActiveCart(
+  payload: Payload,
+  ctx: ToolExecutorContext,
+): Promise<Record<string, unknown> | null> {
+  const carts = await payload.find({
+    collection: 'carts',
+    where: {
+      and: [
+        { customer: { equals: ctx.userId } },
+        // A purchased cart is an order's history, not a shopping basket.
+        { purchasedAt: { exists: false } },
+        ...(ctx.tenantId ? [{ tenant: { equals: ctx.tenantId } }] : []),
+      ],
+    },
+    sort: '-updatedAt',
+    limit: 1,
+    depth: 2, // resolve items[].product so we can name and price them
+    overrideAccess: true,
+  })
+  return (carts.docs[0] as unknown as Record<string, unknown> | undefined) ?? null
+}
+
+/** Newline for joined tool output (kept as a constant so edits can't maul it). */
+const NL = String.fromCharCode(10)
+
+/** items[] in the shape the collection stores — ids, not populated documents. */
+function cartItemsForWrite(cart: Record<string, unknown> | null): Array<Record<string, unknown>> {
+  const raw = (cart?.items as Array<Record<string, unknown>> | undefined) ?? []
+  return raw.map((item) => ({
+    product: typeof item.product === 'object' && item.product ? (item.product as { id: number }).id : item.product,
+    ...(item.variant
+      ? { variant: typeof item.variant === 'object' ? (item.variant as { id: number }).id : item.variant }
+      : {}),
+    quantity: Number(item.quantity) || 1,
+  }))
+}
+
 async function addToCart(
   payload: Payload,
   input: Record<string, unknown>,
@@ -5568,11 +5615,10 @@ async function addToCart(
   }
 
   try {
-    // Fetch the product to get details + validate it exists
     const product = await payload.findByID({
       collection: 'products',
       id: productId,
-      depth: 1,
+      depth: 0,
       overrideAccess: true,
     })
 
@@ -5585,109 +5631,69 @@ async function addToCart(
     const priceStr = priceCents != null ? `$${(priceCents / 100).toFixed(2)}` : 'Price not set'
     const slug = str(product, 'slug')
 
-    // Use Payload's ecommerce plugin cart API
-    // The cart is managed by @payloadcms/plugin-ecommerce
-    // We add items via the cart update endpoint
-    try {
-      // Fetch current cart for the user
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userDoc = await payload.findByID({
-        collection: 'users',
-        id: ctx.userId,
-        depth: 2,
-        overrideAccess: true,
-      })
+    const cart = await findActiveCart(payload, ctx)
+    const items = cartItemsForWrite(cart)
+    const existing = items.find((item) => Number(item.product) === productId)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentCart = (userDoc as any)?.cart?.items || []
-
-      // Check if product already in cart
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const existingItemIndex = currentCart.findIndex((item: any) => {
-        const itemProduct = typeof item.product === 'object' ? item.product?.id : item.product
-        return itemProduct === productId
-      })
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let updatedItems: any[]
-
-      if (existingItemIndex >= 0) {
-        // Update existing quantity
-        updatedItems = [...currentCart]
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: (updatedItems[existingItemIndex].quantity || 1) + quantity,
-        }
-      } else {
-        // Add new item
-        updatedItems = [
-          ...currentCart,
-          {
-            product: productId,
-            quantity,
-          },
-        ]
-      }
-
-      // Update the user's cart
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (payload.update as any)({
-        collection: 'users',
-        id: ctx.userId,
-        data: {
-          cart: {
-            items: updatedItems,
-          },
-        },
-        overrideAccess: true,
-      })
-
-      const totalItems = updatedItems.reduce(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (sum: number, item: any) => sum + (item.quantity || 1),
-        0,
-      )
-
-      return `Added to cart!\n- **${title}** × ${quantity} (${priceStr} each)\n- Cart now has ${totalItems} item(s)\n${slug ? `- View product: /products/${slug}` : ''}\n\nSay "show my cart" to see everything, or "checkout" when you're ready!`
-    } catch (cartErr) {
-      logCaughtError('leo-tools', cartErr).catch(() => {})
-      return `I found the product **${title}** (${priceStr}), but had trouble adding it to your cart. The cart system may need to be initialized. You can add it manually at /products/${slug}.`
+    if (existing) {
+      existing.quantity = (Number(existing.quantity) || 1) + quantity
+    } else {
+      items.push({ product: productId, quantity })
     }
+
+    if (cart) {
+      await payload.update({
+        collection: 'carts',
+        id: cart.id as number,
+        data: { items } as never,
+        overrideAccess: true,
+      })
+    } else {
+      await payload.create({
+        collection: 'carts',
+        data: {
+          customer: ctx.userId,
+          items,
+          ...(ctx.tenantId ? { tenant: ctx.tenantId } : {}),
+        } as never,
+        overrideAccess: true,
+      })
+    }
+
+    const totalItems = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+
+    return [
+      'Added to cart!',
+      `- **${title}** × ${quantity} (${priceStr} each)`,
+      `- Cart now has ${totalItems} item(s)`,
+      ...(slug ? [`- View product: /products/${slug}`] : []),
+      '',
+      'Say "show my cart" to see everything, or "checkout" when you are ready!',
+    ].join(NL)
   } catch (err) {
-    logCaughtError('leo-tools', err).catch(() => {})
-    return `Error finding product: ${err instanceof Error ? err.message : 'Unknown error'}`
+    logCaughtError('leo-tools/add_to_cart', err).catch(() => {})
+    return `I couldn't add that to your cart: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
-async function viewCart(
-  payload: Payload,
-  ctx: ToolExecutorContext,
-): Promise<string> {
+async function viewCart(payload: Payload, ctx: ToolExecutorContext): Promise<string> {
   if (!ctx.userId) {
     return 'You need to be logged in to view your cart. Please log in first.'
   }
 
   try {
-    const userDoc = await payload.findByID({
-      collection: 'users',
-      id: ctx.userId,
-      depth: 2,
-      overrideAccess: true,
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cartItems = (userDoc as any)?.cart?.items || []
+    const cart = await findActiveCart(payload, ctx)
+    const cartItems = (cart?.items as Array<Record<string, unknown>> | undefined) ?? []
 
     if (cartItems.length === 0) {
-      return 'Your cart is empty. Say "show me products" to browse, or tell me what you\'re looking for!'
+      return 'Your cart is empty. Say "show me products" to browse, or tell me what you are looking for!'
     }
 
     let totalCents = 0
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = cartItems.map((item: any) => {
-      const product = typeof item.product === 'object' ? item.product : null
-      const qty = item.quantity || 1
-      const title = product ? str(product, 'title', 'Unknown product') : `Product #${item.product}`
+    const items = cartItems.map((item) => {
+      const product = typeof item.product === 'object' ? (item.product as Record<string, unknown>) : null
+      const qty = Number(item.quantity) || 1
+      const title = product ? str(product, 'title', 'Unknown product') : `Product #${String(item.product)}`
       const priceCents = product ? num(product, 'priceInUSD') : undefined
       const subtotalCents = priceCents != null ? priceCents * qty : 0
       totalCents += subtotalCents
@@ -5695,10 +5701,17 @@ async function viewCart(
       return `- **${title}** × ${qty} — ${priceStr} each${subtotalCents ? ` ($${(subtotalCents / 100).toFixed(2)})` : ''}`
     })
 
-    return `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):\n${items.join('\n')}\n\n**Subtotal: $${(totalCents / 100).toFixed(2)}**\n\nReady to check out? Head to /checkout or say "remove [item]" to update your cart.`
+    return [
+      `Your Cart (${cartItems.length} item${cartItems.length === 1 ? '' : 's'}):`,
+      ...items,
+      '',
+      `**Subtotal: $${(totalCents / 100).toFixed(2)}**`,
+      '',
+      'Ready to check out? Head to /checkout or say "remove [item]" to update your cart.',
+    ].join(NL)
   } catch (err) {
-    logCaughtError('leo-tools', err).catch(() => {})
-    return `Error loading cart: ${err instanceof Error ? err.message : 'Unknown error'}`
+    logCaughtError('leo-tools/view_cart', err).catch(() => {})
+    return `I couldn't read your cart: ${err instanceof Error ? err.message : 'Unknown error'}`
   }
 }
 
