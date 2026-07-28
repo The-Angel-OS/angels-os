@@ -11,12 +11,15 @@ export type CollectionArchiveProps = {
   posts: PostCardData[]
   showCategories?: boolean
   columns?: 3 | 4
+  /** Card link prefix — '/posts' for posts, '/products' for products. */
+  basePath?: string
 }
 
 export const CollectionArchive: React.FC<CollectionArchiveProps> = ({
   posts,
   showCategories = true,
   columns = 4,
+  basePath,
 }) => {
   const gridCols = columns === 4 ? 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'
 
@@ -28,6 +31,7 @@ export const CollectionArchive: React.FC<CollectionArchiveProps> = ({
             key={post.id ?? post.slug ?? index}
             post={post}
             showCategories={showCategories}
+            basePath={basePath}
           />
         ))}
       </div>

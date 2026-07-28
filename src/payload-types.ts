@@ -1178,6 +1178,12 @@ export interface Product {
         | CalendarBlock
         | GoogleReviewsBlock
         | MediaTextBlock
+        | ArchiveBlock
+        | FaqBlock
+        | ShowcaseBlock
+        | TicketFormBlock
+        | TrustRowBlock
+        | VideoBlock
       )[]
     | null;
   inventory?: number | null;
@@ -1504,6 +1510,9 @@ export interface Page {
     | TicketFormBlock
     | TrustRowBlock
     | FaqBlock
+    | VideoBlock
+    | ShowcaseBlock
+    | ProductPanelBlock
   )[];
   meta?: {
     title?: string | null;
@@ -1986,14 +1995,20 @@ export interface ArchiveBlock {
     [k: string]: unknown;
   } | null;
   populateBy?: ('collection' | 'selection') | null;
-  relationTo?: 'products' | null;
+  relationTo?: ('products' | 'posts') | null;
   categories?: (number | Category)[] | null;
   limit?: number | null;
   selectedDocs?:
-    | {
-        relationTo: 'products';
-        value: number | Product;
-      }[]
+    | (
+        | {
+            relationTo: 'products';
+            value: number | Product;
+          }
+        | {
+            relationTo: 'posts';
+            value: number | Post;
+          }
+      )[]
     | null;
   id?: string | null;
   blockName?: string | null;
@@ -2458,6 +2473,10 @@ export interface MediaTextBlock {
    * External video (YouTube or Vimeo). Used only when no Media is selected above.
    */
   videoUrl?: string | null;
+  /**
+   * Frame shape for the image or video.
+   */
+  aspect?: ('16/9' | '9/16' | '1/1' | '4/3') | null;
   /**
    * Caption under the media (optional).
    */
@@ -3032,6 +3051,124 @@ export interface FaqBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'faq';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VideoBlock".
+ */
+export interface VideoBlock {
+  /**
+   * Optional title above the video.
+   */
+  heading?: string | null;
+  /**
+   * Uploaded video file. Takes precedence over a URL.
+   */
+  media?: (number | null) | Media;
+  /**
+   * YouTube or Vimeo URL — used only when no file is uploaded.
+   */
+  videoUrl?: string | null;
+  /**
+   * Still shown before play. Without one a video is a black rectangle, which nobody clicks.
+   */
+  poster?: (number | null) | Media;
+  aspect?: ('16/9' | '9/16' | '1/1') | null;
+  /**
+   * Line under the video (optional).
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'video';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ShowcaseBlock".
+ */
+export interface ShowcaseBlock {
+  /**
+   * Optional title above the cards.
+   */
+  heading?: string | null;
+  /**
+   * Three is the number their design uses and the number that reads as a row.
+   */
+  items?:
+    | {
+        image: number | Media;
+        /**
+         * Three or four words over the image.
+         */
+        caption: string;
+        /**
+         * Optional — makes the whole card a link.
+         */
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Large centred sentence under the cards, on the gradient. The one line someone remembers.
+   */
+  statement?: string | null;
+  /**
+   * Brand is the default so a new portal looks like itself, not like Kessela.
+   */
+  background?: ('brand' | 'aurora' | 'dark' | 'none') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'showcase';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductPanelBlock".
+ */
+export interface ProductPanelBlock {
+  /**
+   * First is the one shown. The rest become thumbnails.
+   */
+  images?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  heading: string;
+  /**
+   * Shown as written — e.g. "PRICE: $599.00". Free text so it can match theirs exactly.
+   */
+  price?: string | null;
+  /**
+   * Bold what they bold. This is where the typography match happens.
+   */
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  ctaLabel?: string | null;
+  /**
+   * Usually the product page.
+   */
+  ctaUrl?: string | null;
+  /**
+   * Small line under the button — financing, shipping, guarantee.
+   */
+  footnote?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'productPanel';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8726,6 +8863,9 @@ export interface PagesSelect<T extends boolean = true> {
         ticketForm?: T | TicketFormBlockSelect<T>;
         trustRow?: T | TrustRowBlockSelect<T>;
         faq?: T | FaqBlockSelect<T>;
+        video?: T | VideoBlockSelect<T>;
+        showcase?: T | ShowcaseBlockSelect<T>;
+        productPanel?: T | ProductPanelBlockSelect<T>;
       };
   meta?:
     | T
@@ -8975,6 +9115,7 @@ export interface MediaTextBlockSelect<T extends boolean = true> {
   body?: T;
   media?: T;
   videoUrl?: T;
+  aspect?: T;
   caption?: T;
   videoOnRight?: T;
   ctaLabel?: T;
@@ -9027,6 +9168,59 @@ export interface FaqBlockSelect<T extends boolean = true> {
         id?: T;
       };
   openFirst?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VideoBlock_select".
+ */
+export interface VideoBlockSelect<T extends boolean = true> {
+  heading?: T;
+  media?: T;
+  videoUrl?: T;
+  poster?: T;
+  aspect?: T;
+  caption?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ShowcaseBlock_select".
+ */
+export interface ShowcaseBlockSelect<T extends boolean = true> {
+  heading?: T;
+  items?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        url?: T;
+        id?: T;
+      };
+  statement?: T;
+  background?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductPanelBlock_select".
+ */
+export interface ProductPanelBlockSelect<T extends boolean = true> {
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  heading?: T;
+  price?: T;
+  body?: T;
+  ctaLabel?: T;
+  ctaUrl?: T;
+  footnote?: T;
   id?: T;
   blockName?: T;
 }
@@ -10553,6 +10747,12 @@ export interface ProductsSelect<T extends boolean = true> {
         calendar?: T | CalendarBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
         mediaText?: T | MediaTextBlockSelect<T>;
+        archive?: T | ArchiveBlockSelect<T>;
+        faq?: T | FaqBlockSelect<T>;
+        showcase?: T | ShowcaseBlockSelect<T>;
+        ticketForm?: T | TicketFormBlockSelect<T>;
+        trustRow?: T | TrustRowBlockSelect<T>;
+        video?: T | VideoBlockSelect<T>;
       };
   inventory?: T;
   enableVariants?: T;

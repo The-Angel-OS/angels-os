@@ -46,6 +46,15 @@ describe('applyNavOverrides', () => {
     expect(applyNavOverrides(MENU, { hidden: [], pinned: [], maxInline: 3 }).maxInline).toBe(3)
   })
 
+  it('carries hideMore through only when the owner set it', () => {
+    expect(applyNavOverrides(MENU, { hidden: [], pinned: [] }).hideMore).toBeUndefined()
+    expect(applyNavOverrides(MENU, { hidden: [], pinned: [], hideMore: true }).hideMore).toBe(true)
+    // Hand-edited settings are the input here, so anything truthy normalizes to
+    // the flag and anything else disappears rather than rendering "false".
+    expect(normalizeNavOverrides({ hideMore: 'yes' }).hideMore).toBe(true)
+    expect(normalizeNavOverrides({ hideMore: false }).hideMore).toBeUndefined()
+  })
+
   it('is a no-op with empty overrides — the derived menu is the default', () => {
     expect(applyNavOverrides(MENU, EMPTY_NAV_OVERRIDES).items).toHaveLength(MENU.length)
   })

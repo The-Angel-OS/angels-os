@@ -67,6 +67,10 @@ export default async function ProductPage({ params }: Args) {
 
   if (!product) return notFound()
 
+  // A single-product endeavor has no catalog to go back to — "All products"
+  // would land the visitor on a grid of one, which reads as a dead end.
+  const hasCatalog = await countPublishedProducts()
+
   // `typeof null === 'object'`, so the old filter passed a null image straight
   // into Gallery's thumbnail map and `item.image.id` threw during hydration.
   // The nulls come from React Flight: these Media objects are reachable from
@@ -131,12 +135,14 @@ export default async function ProductPage({ params }: Args) {
         type="application/ld+json"
       />
       <div className="container pt-8 pb-8">
-        <Button asChild variant="ghost" className="mb-4">
-          <Link href="/shop">
-            <ChevronLeftIcon />
-            All products
-          </Link>
-        </Button>
+        {hasCatalog && (
+          <Button asChild variant="ghost" className="mb-4">
+            <Link href="/shop">
+              <ChevronLeftIcon />
+              All products
+            </Link>
+          </Button>
+        )}
         <div className="flex flex-col gap-12 rounded-lg border p-8 md:py-12 lg:flex-row lg:gap-8 bg-primary-foreground">
           <div className="h-full w-full basis-full lg:basis-1/2">
             <Suspense
@@ -197,6 +203,23 @@ function RelatedProducts({ products }: { products: Product[] }) {
       </ul>
     </div>
   )
+}
+
+/** True when this tenant sells more than the product being viewed. */
+const countPublishedProducts = async (): Promise<boolean> => {
+  try {
+    const { tenantFilter } = await resolveTenantFromHeaders()
+    const payload = await getPayload({ config: configPromise })
+    const { totalDocs } = await payload.count({
+      collection: 'products',
+      where: { and: [{ _status: { equals: 'published' } }, tenantFilter] },
+      overrideAccess: true,
+    })
+    return totalDocs > 1
+  } catch {
+    // A count that fails shouldn't cost the visitor their way back to the shop.
+    return true
+  }
 }
 
 const queryProductBySlug = async ({ slug }: { slug: string }) => {

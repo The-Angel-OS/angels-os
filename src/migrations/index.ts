@@ -26,6 +26,7 @@ import * as migration_20260728_091500_video_block_and_aspect from './20260728_09
 import * as migration_20260728_093000_media_text_aspect_all_tables from './20260728_093000_media_text_aspect_all_tables'
 import * as migration_20260728_113000_showcase_block from './20260728_113000_showcase_block'
 import * as migration_20260728_120000_product_panel_block from './20260728_120000_product_panel_block';
+import * as migration_20260728_151500_products_marketing_blocks from './20260728_151500_products_marketing_blocks';
 import * as migration_20260201_025229 from './20260201_025229';
 import * as migration_20260201_025611 from './20260201_025611';
 import * as migration_20260201_065943_add_header_footer_collections from './20260201_065943_add_header_footer_collections';
@@ -347,5 +348,10 @@ export const migrations = [
     up: migration_20260728_120000_product_panel_block.up,
     down: migration_20260728_120000_product_panel_block.down,
     name: '20260728_120000_product_panel_block',
+  },
+  {
+    up: migration_20260728_151500_products_marketing_blocks.up,
+    down: migration_20260728_151500_products_marketing_blocks.down,
+    name: '20260728_151500_products_marketing_blocks',
   },
 ];

@@ -41,7 +41,7 @@ export const ProductPanelBlock: React.FC<ProductPanelProps> = ({
   if (!heading && !pics.length) return null
 
   return (
-    <section className="container my-16">
+    <section className="container">
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
         {pics.length > 0 && <ProductGallery images={pics} alt={heading || 'Product'} />}
 

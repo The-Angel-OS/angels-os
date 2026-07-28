@@ -28,7 +28,7 @@ export const FaqBlock: React.FC<FaqProps> = ({ heading, openFirst, items }) => {
   }
 
   return (
-    <section className="container my-16">
+    <section className="container">
       {heading && <h2 className="mb-8 text-center text-2xl font-bold">{heading}</h2>}
 
       <div className="mx-auto max-w-3xl divide-y divide-border rounded-lg border border-border">

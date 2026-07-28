@@ -43,7 +43,7 @@ export const VideoBlockComponent: React.FC<VideoBlockProps> = ({
   const cap = aspect === '9/16' ? 'max-w-[380px]' : aspect === '1/1' ? 'max-w-[640px]' : 'max-w-4xl'
 
   return (
-    <section className="container my-12">
+    <section className="container">
       {heading && <h2 className="mb-6 text-center text-2xl font-bold">{heading}</h2>}
 
       <div className={`mx-auto ${cap}`}>

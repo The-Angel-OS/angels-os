@@ -3,6 +3,7 @@
 import { Media } from '@/components/Media'
 import { Message } from '@/components/Message'
 import { Price } from '@/components/Price'
+import { EditItemQuantityButton } from '@/components/Cart/EditItemQuantityButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -561,9 +562,13 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
                             .join(', ')}
                         </p>
                       )}
-                      <div>
-                        {'x'}
-                        {quantity}
+                      {/* Was a static "x2". A shopper who picked the wrong count
+                          had to leave checkout, reopen the cart drawer, fix it,
+                          and come back — so fix it here, where they noticed. */}
+                      <div className="flex h-8 w-fit flex-row items-center rounded-lg border">
+                        <EditItemQuantityButton item={item} type="minus" />
+                        <p className="w-6 text-center text-sm">{quantity}</p>
+                        <EditItemQuantityButton item={item} type="plus" />
                       </div>
                     </div>
 

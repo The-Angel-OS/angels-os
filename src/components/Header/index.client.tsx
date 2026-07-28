@@ -56,7 +56,7 @@ type Props = {
    */
   membership?: { url: string; label: string } | null
   /** Owner overrides on the derived menu: hide, pin, inline cap. */
-  navOverrides?: { hidden: string[]; pinned: string[]; maxInline?: number }
+  navOverrides?: { hidden: string[]; pinned: string[]; maxInline?: number; hideMore?: boolean }
 }
 
 const defaultLogoUrl = '/logo.svg'
@@ -355,7 +355,10 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
           <div className="flex w-full items-end gap-6 md:w-auto md:flex-1 min-w-0">
             <Link className="flex items-center justify-center pt-4 pb-4 flex-shrink-0" href="/">
               {tenantLogoUrl ? (
-                <img src={tenantLogoUrl} alt={tenant?.branding?.siteName || tenant?.name || 'Home'} className="h-6 w-auto object-contain" />
+                /* h-6 rendered a wordmark at 24px — legible, but visually a
+                   footnote next to 12px uppercase nav links. h-8/h-10 fills the
+                   bar's existing padding without changing its height. */
+                <img src={tenantLogoUrl} alt={tenant?.branding?.siteName || tenant?.name || 'Home'} className="h-8 w-auto object-contain md:h-10" />
               ) : (
                 <AngelIcon className="h-7 w-7 text-[#f5a623]" />
               )}
@@ -443,7 +446,7 @@ export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = t
                     )
                   })}
 
-                  {overflowItems.length > 0 && (
+                  {!navOverrides?.hideMore && overflowItems.length > 0 && (
                     <NavigationMenuItem>
                       <NavigationMenuTrigger className={cn(navigationMenuTriggerStyle(), navItemClass)}>
                         More

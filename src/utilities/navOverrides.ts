@@ -27,6 +27,11 @@ export interface NavOverrides {
   pinned: string[]
   /** Items inline before the rest collapse into "More". */
   maxInline?: number
+  /** Drop the "More" overflow entirely — a single-product storefront has no
+   *  Events to advertise, Book is empty, and Dashboard already lives in the
+   *  user menu, so "More" opens onto things the visitor doesn't need. Desktop
+   *  only: the mobile drawer still lists everything. */
+  hideMore?: boolean
 }
 
 const ENTITY = 'nav-overrides'
@@ -45,6 +50,7 @@ export function normalizeNavOverrides(raw: unknown): NavOverrides {
     hidden: list(o.hidden),
     pinned: list(o.pinned),
     ...(Number.isFinite(max) && max > 0 ? { maxInline: Math.floor(max) } : {}),
+    ...(o.hideMore ? { hideMore: true } : {}),
   }
 }
 
@@ -77,12 +83,13 @@ export async function setNavOverrides(
 export function applyNavOverrides<T extends { link?: { url?: string | null } | null }>(
   items: T[],
   overrides: NavOverrides,
-): { items: T[]; pinned: string[]; maxInline?: number } {
+): { items: T[]; pinned: string[]; maxInline?: number; hideMore?: boolean } {
   const hidden = new Set(overrides.hidden)
   const kept = items.filter((i) => !hidden.has(i?.link?.url ?? ''))
   return {
     items: kept,
     pinned: overrides.pinned.filter((u) => !hidden.has(u)),
     ...(overrides.maxInline ? { maxInline: overrides.maxInline } : {}),
+    ...(overrides.hideMore ? { hideMore: true } : {}),
   }
 }

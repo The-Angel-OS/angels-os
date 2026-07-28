@@ -16,7 +16,10 @@ export const PostCard: React.FC<{
   className?: string
   post: PostCardData
   showCategories?: boolean
-}> = ({ className, post, showCategories = true }) => {
+  /** Where the card links. The Archive block renders products through this same
+   *  card, and every one of them linked to /posts/<slug> — a 404. */
+  basePath?: string
+}> = ({ className, post, showCategories = true, basePath = '/posts' }) => {
   const { slug, title, categories, meta, publishedOn, hero } = post
   const metaImage = typeof meta?.image === 'object' ? meta.image : null
   const heroMedia = typeof hero?.media === 'object' ? hero.media : null
@@ -32,7 +35,7 @@ export const PostCard: React.FC<{
         className,
       )}
     >
-      <Link href={`/posts/${slug}`} className="block">
+      <Link href={`${basePath}/${slug}`} className="block">
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
           {thumbnail && typeof thumbnail === 'object' ? (
             <Media fill imgClassName="object-cover" resource={thumbnail} size="33vw" />
@@ -55,7 +58,7 @@ export const PostCard: React.FC<{
           </div>
         )}
         <h3 className="text-lg font-semibold">
-          <Link href={`/posts/${slug}`} className="hover:underline">
+          <Link href={`${basePath}/${slug}`} className="hover:underline">
             {title}
           </Link>
         </h3>

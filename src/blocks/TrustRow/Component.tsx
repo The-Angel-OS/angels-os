@@ -63,7 +63,7 @@ export const TrustRowBlock: React.FC<TrustRowProps> = async ({ heading, footnote
   if (!list.length) return null
 
   return (
-    <section className="container my-12">
+    <section className="container">
       {heading && <h2 className="mb-8 text-center text-2xl font-bold">{heading}</h2>}
 
       <ul className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4">

@@ -138,7 +138,7 @@ export function MediaTextBlock({
   }
 
   return (
-    <section className="container my-12">
+    <section className="container">
       <div className="grid items-center gap-10 md:grid-cols-2">
         {videoOnRight ? (
           <>

@@ -5,6 +5,12 @@ import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { Calendar } from '@/blocks/Calendar/config'
 import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { MediaText } from '@/blocks/MediaText/config'
+import { Archive } from '@/blocks/ArchiveBlock/config'
+import { Faq } from '@/blocks/Faq/config'
+import { Showcase } from '@/blocks/Showcase/config'
+import { TicketForm } from '@/blocks/TicketForm/config'
+import { TrustRow } from '@/blocks/TrustRow/config'
+import { Video } from '@/blocks/Video/config'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
@@ -184,7 +190,26 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock, Comments, Calendar, GoogleReviews, MediaText],
+              // A product page is a landing page that happens to sell something —
+              // it earns the same band vocabulary the Pages collection has. Trust
+              // row, showcase, FAQ and a related-posts Archive all belong under a
+              // product; keeping them Pages-only forced a second page to say the
+              // same things (which is the redundant "Buy Now" page we just retired).
+              blocks: [
+                CallToAction,
+                Content,
+                MediaBlock,
+                Comments,
+                Calendar,
+                GoogleReviews,
+                MediaText,
+                Archive,
+                Faq,
+                Showcase,
+                TicketForm,
+                TrustRow,
+                Video,
+              ],
             },
           ],
           label: 'Content',

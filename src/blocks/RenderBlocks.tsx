@@ -86,7 +86,13 @@ export const RenderBlocks: React.FC<{
                     ? { ...block, endeavor: block.endeavor || tenantSlug }
                     : block
               return (
-                <div className="my-16" key={index}>
+                /* One place decides the rhythm between blocks. It used to be two:
+                   this wrapper said my-16 and half the blocks said my-16 again
+                   inside it, so a 32px line of copy sat in 64px of air and a
+                   page of short Content blocks read as a column of islands. The
+                   inner margins are gone; blocks that need their own band still
+                   carry py-* internally, which butts them right up against this. */
+                <div className="my-8" key={index}>
                   <Block id={toKebabCase(blockName!)} {...blockProps} />
                 </div>
               )
