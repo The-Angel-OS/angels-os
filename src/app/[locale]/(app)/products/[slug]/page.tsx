@@ -27,7 +27,8 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 
   if (!product) return notFound()
 
-  const gallery = product.gallery?.filter((item) => typeof item.image === 'object') || []
+  const gallery =
+    product.gallery?.filter((item) => item.image && typeof item.image === 'object') || []
 
   const metaImage = typeof product.meta?.image === 'object' ? product.meta?.image : undefined
   const canIndex = product._status === 'published'
@@ -66,12 +67,19 @@ export default async function ProductPage({ params }: Args) {
 
   if (!product) return notFound()
 
+  // `typeof null === 'object'`, so the old filter passed a null image straight
+  // into Gallery's thumbnail map and `item.image.id` threw during hydration.
+  // The nulls come from React Flight: these Media objects are reachable from
+  // both this prop and `product` (ProductDescription), so the serializer emits
+  // the second copy as a back-reference into a row that no longer exists once
+  // the Suspense boundary resolves. Cloning each image gives the serializer a
+  // distinct object, so it writes the value instead of a pointer.
   const gallery =
     product.gallery
-      ?.filter((item) => typeof item.image === 'object')
+      ?.filter((item) => item.image && typeof item.image === 'object')
       .map((item) => ({
         ...item,
-        image: item.image as Media,
+        image: { ...(item.image as Media) },
       })) || []
 
   const metaImage = typeof product.meta?.image === 'object' ? product.meta?.image : undefined

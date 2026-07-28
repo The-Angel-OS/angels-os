@@ -34,7 +34,7 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
 
         let variantID: DefaultDocumentIDType
 
-        if (typeof item.variantOption === 'object') {
+        if (item.variantOption && typeof item.variantOption === 'object') {
           variantID = item.variantOption.id
         } else variantID = item.variantOption
 
@@ -70,7 +70,9 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
       <Carousel setApi={setApi} className="w-full" opts={{ align: 'start', loop: false }}>
         <CarouselContent>
           {gallery.map((item, i) => {
-            if (typeof item.image !== 'object') return null
+            // `typeof null === 'object'` — a null image passed this guard and
+            // `item.image.id` below threw. Yesterday's fix, one line over.
+            if (!item.image || typeof item.image !== 'object') return null
 
             return (
               <CarouselItem

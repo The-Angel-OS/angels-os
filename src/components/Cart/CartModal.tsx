@@ -133,7 +133,8 @@ export function CartModal() {
 
                         const hasMatch = variant?.options?.some(
                           (option: { id?: number } | number) => {
-                            if (typeof option === 'object') return option.id === variantOptionID
+                            if (option && typeof option === 'object')
+                              return option.id === variantOptionID
                             else return option === variantOptionID
                           },
                         )
