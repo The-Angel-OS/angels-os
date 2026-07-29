@@ -260,6 +260,43 @@ document, and `products.gallery[].image` is a REQUIRED upload. Send `layout`
 alone and validation fails with `Content > Gallery 1 > Image` — an error about a
 field you never touched. Re-send the array you are not changing.
 
+### 2.7c Editing a container's config from Windows silently CRLFs it
+
+`io.open(path, 'w')` on Windows translates every `
+` to `
+`. Do that to a file a
+LINUX container reads — a crontab, a shell script, an nginx conf — and every line now
+ends in a carriage return that the container's shell treats as part of the last token.
+
+On 260728 that turned
+
+    * * * * * hit /api/message-ops/heal-stalled >> /proc/1/fd/1 2>&1
+
+into a redirect to `/proc/1/fd/1`, which does not exist. busybox `sh` printed
+`redir error` and **never ran the command** — so crond faithfully spawned a job every
+minute that did nothing at all.
+
+**Every heartbeat cron was dead for twenty hours**: the email poll, the federation
+heartbeat, the notifications poll, the sequence drip engine (the CRM feature), the
+nightly Dreams consolidation, the provisioning self-heal, the solvency briefing — and,
+with some irony, the stalled-message watchdog added in the very edit that broke it. A
+platform advertised as self-healing sat inert while its owner was told it had a new
+watchdog.
+
+**Nothing errored where anyone would look.** `docker ps` showed the container Up. crond
+logged `USER root pid NNNN cmd ...` every minute, which reads exactly like success. The
+only tell was `/bin/sh: redir error` interleaved into the log, and the total absence of
+the `ok /api/...` lines the wrapper prints when a job actually runs.
+
+**Rules.**
+1. Writing a file a container consumes? `io.open(p, 'w', encoding='utf-8', newline='')`.
+   `newline=''` means no translation — the bytes you wrote are the bytes on disk.
+2. `file <path>` says `with CRLF line terminators` when you've done it. Check after
+   editing anything under a stack/ or deploy/ directory.
+3. **Absence of output is not success.** A cron whose jobs never run looks identical to
+   a cron with nothing to report. Assert on the positive signal — count the `ok` lines —
+   not on the absence of errors.
+
 ### 2.8 Prompts are code
 
 LEO told Ken *"Give me just a second to spin up the canvas again!"* after an image
