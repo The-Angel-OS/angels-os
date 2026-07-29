@@ -933,6 +933,51 @@ export const leoStreamHandler: PayloadHandler = async (req) => {
     }
   }
 
+  // An image can arrive with a URL but no media id, and then LEO can SEE the
+  // picture while having nothing to hand a tool that takes a mediaId — the
+  // model calls analyze_image with empty args and the turn dies on
+  // "mediaId is required". The dashboard chat only learns an id when the
+  // message TEXT happens to contain "Media ID: 123", which normal attachments
+  // never do. Rather than teach every client to send it, recover it here from
+  // the filename in the URL: one indexed lookup, and every client benefits.
+  const needsId = userImages
+    .filter((img) => img.mediaId == null)
+    .map((img) => {
+      let filename = ''
+      try {
+        filename = decodeURIComponent(
+          new URL(img.url, 'https://x.invalid').pathname.split('/').pop() || '',
+        )
+      } catch {
+        /* an unparseable url simply stays without an id */
+      }
+      return { img, filename }
+    })
+    .filter((pair) => pair.filename)
+
+  if (needsId.length > 0) {
+    try {
+      const found = await req.payload.find({
+        collection: 'media',
+        where: { filename: { in: needsId.map((p) => p.filename) } },
+        limit: needsId.length,
+        depth: 0,
+        select: { filename: true },
+        overrideAccess: true,
+      })
+      const byName = new Map(
+        (found.docs as Array<{ id: number; filename?: string }>).map((d) => [d.filename, d.id]),
+      )
+      for (const { img, filename } of needsId) {
+        const id = byName.get(filename)
+        if (typeof id === 'number') img.mediaId = id
+      }
+    } catch {
+      // Non-fatal: vision still works off the URL; only the media TOOLS stay
+      // unavailable for this turn — which is exactly where we already were.
+    }
+  }
+
   const hasText = typeof message === 'string' && message.trim().length > 0
   if (!hasText && userImages.length === 0) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
