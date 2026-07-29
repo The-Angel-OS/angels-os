@@ -1677,11 +1677,26 @@ After this turn, you'll return to the faster model for responsive day-to-day int
           // Attach the real provider error so it's readable in-chat (not a black
           // box). The detail also lives in the AI Bus errors channel via logError.
           const detail = streamErrorDetail ? `\n\n> ${streamErrorDetail.slice(0, 500)}` : ''
+          // A turn that burned itself on tool calls and then said nothing is NOT
+          // a vision failure — but that is what we told Ken on 260729, because an
+          // attached image was the only thing this branch considered. The model
+          // had ignored the image entirely and spent five calls on update_post
+          // with empty arguments. Blaming the image sends the next person to
+          // debug the wrong subsystem, so name the real shape first.
+          // The turn's tool calls, from the telemetry the stream already recorded
+          // (allToolNames lives inside streamViaGateway and isn't in scope here).
+          const calledTools = (streamTelemetry as { toolCalls?: string[] } | undefined)?.toolCalls ?? []
+          const toolNames = [...new Set(calledTools)]
+          const spunOnTools = calledTools.length >= 3
           const errContent = hadError
-            ? `⚠️ LEO couldn't complete this request.${detail}\n\n_Try a shorter message — this often means the request was too large or a provider hit a rate limit. It will route to a larger model on the next try._`
-            : userImages.length
-              ? `⚠️ I couldn't read that image — my current model may not support vision, or the image was too large. Try a smaller image, or tell me what's in it.`
-              : 'LEO was unable to generate a response.'
+            ? `⚠️ LEO couldn't complete this request.${detail}
+
+_Try a shorter message — this often means the request was too large or a provider hit a rate limit. It will route to a larger model on the next try._`
+            : spunOnTools
+              ? `⚠️ LEO got stuck using its tools (${toolNames.join(', ')}) and never finished a reply. Ask again — this escalates to a stronger model.`
+              : userImages.length
+                ? `⚠️ I couldn't read that image — my current model may not support vision, or the image was too large. Try a smaller image, or tell me what's in it.`
+                : 'LEO was unable to generate a response.'
           const errMeta = { streaming: false, error: true, model: resolveModelId(), errorDetail: streamErrorDetail, ...(streamTelemetry ?? {}) }
           if (preCreatedMsgId) {
             await req.payload.update({

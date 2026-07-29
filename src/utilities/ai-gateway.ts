@@ -717,7 +717,26 @@ function attemptNvidia(ctx: ProviderAttemptCtx): SmartModelResult | null {
 function attemptGoogle(ctx: ProviderAttemptCtx): SmartModelResult | null {
   const key = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
   if (!key) return null
-  const modelId = process.env.GOOGLE_MODEL || GOOGLE_TIER_MAP[ctx.tier]
+  // GOOGLE_MODEL pins the FAST lanes only.
+  //
+  // It used to override every tier, which quietly disabled the whole escalation
+  // system: a turn could be resolved as tier "high" and still be served
+  // flash-lite. That is exactly what happened on 260728-29 — LEO called
+  // update_post FIVE times, four of them with `{}` for arguments, then finished
+  // with no text at all ("LEO was unable to generate a response"). Same signature
+  // on analyze_image (no mediaId) and create_post_from_media (no title). A small
+  // fast model cannot reliably populate tool arguments across a 40-tool schema
+  // set, and we were routing every deep-think round to it by configuration.
+  //
+  // The pin exists for a good reason — gemini-flash-latest thinks, and returned
+  // empty responses in ordinary chat — so it stays where it earns its keep: the
+  // low and medium lanes, which is most turns and where the speed is felt.
+  // High and critical go back to the tier map (Pro), which is the point of having
+  // tiers. GOOGLE_MODEL_HEAVY overrides the heavy lane if Pro ever misbehaves.
+  const isHeavyLane = ctx.tier === 'high' || ctx.tier === 'critical'
+  const modelId = isHeavyLane
+    ? process.env.GOOGLE_MODEL_HEAVY || GOOGLE_TIER_MAP[ctx.tier]
+    : process.env.GOOGLE_MODEL || GOOGLE_TIER_MAP[ctx.tier]
   const provider = createOpenAICompatible({
     name: 'google',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
