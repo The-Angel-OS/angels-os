@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import { useSearchParams } from 'next/navigation'
 import React, { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
+import { trackAddToCart } from '@/utilities/gtagEcommerce'
 type Props = {
   product: Product
 }
@@ -47,6 +48,24 @@ export function AddToCart({ product }: Props) {
       })
         .then(() => {
           toast.success('Item added to cart.')
+          // add_to_cart is the mid-funnel event ad platforms can actually
+          // optimize toward at a considered-purchase price point — purchases are
+          // too rare to train on. It was the ONE step of the funnel with no
+          // caller: view_item, begin_checkout, add_payment_info and purchase all
+          // fired, and the step between the first two did not.
+          const price = selectedVariant?.priceInUSD ?? product.priceInUSD ?? 0
+          trackAddToCart(
+            [
+              {
+                item_id: String(product.id),
+                item_name: product.title,
+                price,
+                currency: 'USD',
+                ...(selectedVariant ? { item_variant: String(selectedVariant.id) } : {}),
+              },
+            ],
+            price,
+          )
           // Reveal the drawer so the add is visibly confirmed (CartModal listens).
           window.dispatchEvent(new Event('cart:open'))
         })
