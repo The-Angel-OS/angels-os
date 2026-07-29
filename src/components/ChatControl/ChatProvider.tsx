@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useChat } from './useChat'
+import { usePathname } from 'next/navigation'
 import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
 import { parseSpacesDeepLink } from './deepLink'
 import type { ChatMessage, ChatChannel, ChatSpace } from './types'
@@ -283,6 +284,47 @@ export function ChatProvider({
     },
     [chat.switchChannel],
   )
+
+  // The URL is a NAVIGATION source, not just an initial one.
+  //
+  // `initialDeepLink` is read once, at mount. But moving between spaces in the
+  // dashboard is client-side routing — the provider never unmounts, so after the
+  // first navigation the URL said one thing and this state said another. Open the
+  // LEO sidebar on /dashboard/spaces/6/17 and the selector showed whatever the
+  // persisted surface last held (usually the LEO DM), not the channel you were
+  // looking at. Both views were, in fact, in lock-step — with each other, and
+  // wrong.
+  //
+  // Re-reading on every pathname change closes it, and publishing through
+  // setActiveSpace/switchChannel means the twin view follows for free: the
+  // surface subscriber below is already the sync mechanism. Guarded on "differs
+  // from current" so this never loops with the URL-writing the chat does itself.
+  const pathname = usePathname()
+  useEffect(() => {
+    const link = parseSpacesDeepLink(pathname)
+    if (!link) return
+
+    if (link.spaceId && link.spaceId !== activeSpaceRef.current) {
+      activeSpaceRef.current = link.spaceId
+      setActiveSpaceId(link.spaceId)
+      setSurface({ spaceId: link.spaceId })
+    }
+
+    if (!link.channelToken) return
+    // The URL carries a channel ID; state carries a slug. Match on either, so a
+    // link built from an id and a link built from a slug both resolve.
+    const known = [...chat.channels, ...dmChannels]
+    const match = known.find(
+      (c) => c.id === link.channelToken || c.slug === link.channelToken,
+    )
+    if (match && match.slug !== activeChannelRef.current) {
+      activeChannelRef.current = match.slug
+      setActiveChannelSlugLocal(match.slug)
+      chat.switchChannel(match.slug)
+      setSurface({ channelSlug: match.slug })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, chat.channels, dmChannels])
 
   // Subscribe to the shared Surface: when ANOTHER mount (the side viewer, another
   // tab) changes the space/channel, mirror it here so both views stay in lock-step.

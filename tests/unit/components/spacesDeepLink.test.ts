@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { parseSpacesDeepLink } from '@/components/ChatControl/deepLink'
 
+/**
+ * 260728: this parser is now read on EVERY pathname change, not just at mount.
+ * ChatProvider used to capture the deep link once — but moving between spaces is
+ * client-side routing, so the provider never unmounts and the URL and the
+ * selector drifted apart (the sidebar showed the persisted LEO DM instead of the
+ * channel on screen). The pathname effect keys on exactly these return values.
+ */
 describe('parseSpacesDeepLink', () => {
   it('parses space + channel id from the canonical deep link', () => {
     expect(parseSpacesDeepLink('/dashboard/spaces/5/247')).toEqual({
