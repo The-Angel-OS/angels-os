@@ -297,6 +297,32 @@ the `ok /api/...` lines the wrapper prints when a job actually runs.
    a cron with nothing to report. Assert on the positive signal — count the `ok` lines —
    not on the absence of errors.
 
+### 2.7d cloudflared keeps the config it had at START — and verifying the wrong host hides it
+
+`cloudflared` reads its ingress file once, at process start. Edit the file and the running
+tunnel keeps the old rules with no warning, no reload, and a perfectly healthy log.
+
+260728: the config was written at **17:18:14**; the running process had started at
+**17:17:17**. Fifty-seven seconds, and the last block of rules — the kendev.co apex, www
+and wildcard — was never loaded. For a day and a half `www.kendev.co` fell through to a
+stale Vercel record and 404'd while the file on disk said otherwise.
+
+**The part worth learning is how it survived a restart AND a verification.** A `taskkill`
+was issued, the auto-restart loop spawned a fresh process, and then a second `taskkill`
+hit a different pid — leaving the 17:17 process alive. The check that followed tested
+`uptimekuma.payloadnuke.com`, `kessela.spacesangels.com` and `merlin.payloadnuke.com`,
+all of which were already working before the edit. Four green results, none of which
+touched the new rules. **Verifying the hostnames that already worked proved the tunnel
+was up, not that the change had landed.**
+
+**Rules.**
+1. Compare `(Get-Process cloudflared).StartTime` against the config's `LastWriteTime`.
+   If the process is older, it is running rules you cannot see in the file.
+2. After an ingress edit, curl the hostname the edit ADDED — never one that already
+   worked. `probe-test.<zone>` against a new wildcard is the whole test.
+3. `cloudflared tunnel ingress validate` parses the FILE. It says nothing about what the
+   running process holds.
+
 ### 2.8 Prompts are code
 
 LEO told Ken *"Give me just a second to spin up the canvas again!"* after an image
