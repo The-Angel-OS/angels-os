@@ -216,6 +216,7 @@ import { notificationsPollHandler } from '@/endpoints/notifications-poll'
 import { federationPingHandler } from '@/endpoints/federation-ping'
 import { federationHeartbeatHandler } from '@/endpoints/federation-heartbeat'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
+import { CRON_QUEUE, cronTasks } from '@/jobs/cronTasks'
 import { federationCatalogHandler } from '@/endpoints/federation-catalog'
 import { federationHolonsHandler } from '@/endpoints/federation-holons'
 import { federationSkillsListHandler, federationSkillsInvokeHandler } from '@/endpoints/federation-skills'
@@ -1829,6 +1830,33 @@ export default buildConfig({
     },
   ],
   globals: [],
+  /**
+   * Scheduled work. See src/jobs/cronTasks.ts for what runs and why.
+   *
+   * `autoRun` needs a long-lived process — a Railway container qualifies,
+   * serverless does not.
+   */
+  jobs: {
+    access: {
+      // Do NOT leave the run endpoint open. Session super_admin, or the same
+      // bearer the tasks themselves use.
+      run: ({ req }) => {
+        const roles = (req.user as { roles?: string[] } | undefined)?.roles || []
+        if (roles.includes('super_admin')) return true
+        const secret = process.env.CRON_SECRET
+        return Boolean(secret && req.headers?.get('authorization') === `Bearer ${secret}`)
+      },
+    },
+    // Opt-in, not opt-out. The local stack is a restore of production, so a
+    // laptop that woke up with this on would poll the same mailboxes and send
+    // the same notifications a second time. Railway sets JOBS_AUTORUN=true.
+    autoRun: [{ cron: '* * * * *', queue: CRON_QUEUE }],
+    // Left at the default `true` on purpose: 4 tasks every 5 minutes is ~1,200
+    // completed rows a day. Failed jobs are kept regardless — so the table holds
+    // exactly the runs worth looking at.
+    shouldAutoRun: () => process.env.JOBS_AUTORUN === 'true',
+    tasks: cronTasks,
+  },
   secret: (() => {
     const s = process.env.PAYLOAD_SECRET
     if (!s || s.length < 32) {
