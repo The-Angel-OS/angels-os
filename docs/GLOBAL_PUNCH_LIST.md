@@ -16,6 +16,22 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0] NOTHING SCHEDULED IS RUNNING ANYWHERE** — the crond container was retired and the Payload jobs
+  queue that replaces it is built but opt-in. *Where:* `src/jobs/cronTasks.ts`, commit `cf35d34`.
+  *Next:* set **`JOBS_AUTORUN=true`** (and confirm `CRON_SECRET`) on the Railway **Core** service, deploy,
+  then check `payload-jobs` after 5 minutes. Until then: no stalled-LEO sweep, no drip ticks, no
+  federation heartbeat, no notifications, no nightly self-heal, no solvency briefing.
+  See [docs/PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md](PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md) §2. `260731`
+- **[P1] `/api/email/poll` returns 500** — inbound email → AI Bus has been down longer than anyone noticed;
+  it broke *before* the crontab did, so nobody saw it stop. Deliberately NOT scheduled in the new jobs queue
+  (a broken task would just manufacture a failed row every 2 minutes). *Where:* `src/endpoints/email-poll.ts`
+  — `imapflow` against `imap.ionos.com`, config from a connector record, not env. *Next:* reproduce, fix,
+  then add it back to `cronTasks.ts`. `260731`
+- **[P2] cloudflared still has the old spacesangels rules loaded** — they are deleted from
+  `C:\Users\kenne\.cloudflared\config.yml` (validated OK, LF) but cloudflared reads its config once at
+  start. *Next:* Ken restarts the cloudflared service from an elevated shell, then verifies by curling a
+  hostname the edit **changed**, never one that already worked. `260731`
+
 - **[P2] mediaToAiBus fails for uploads created OUTSIDE a request** — every image imported by
   `src/scripts/_local/import-site.ts` logged `[mediaToAiBus] failed to post media N: The following field
   is invalid: Attachments 1 > Media`. The media row is created fine; only the AI-Bus mirror fails. Suspected

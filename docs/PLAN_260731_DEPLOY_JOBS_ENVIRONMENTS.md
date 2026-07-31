@@ -88,7 +88,33 @@ Redeploy. Under a minute. Test this **once**, deliberately, before relying on it
 
 ## Gap 2 — Scheduled work: move it into Payload's jobs queue
 
-`jobs` is not configured at all today — no tasks, no workflows, no `autoRun`.
+> **Status 260731 ~0810 — BUILT, not yet running.** `cf35d34`. Nine tasks in
+> [`src/jobs/cronTasks.ts`](../src/jobs/cronTasks.ts), wired in
+> `payload.config.ts`, migration `20260731_080000_jobs_queue`. What is left is
+> operational, and all of it is on Railway:
+>
+> 1. Set **`JOBS_AUTORUN=true`** on the Core service. Nothing is scheduled until
+>    you do — it is opt-in on purpose (see below).
+> 2. Confirm **`CRON_SECRET`** is set there. Without it every task fails loudly
+>    on its first run rather than three of them 403ing quietly.
+> 3. Deploy, wait 5 minutes, then check `payload-jobs` (§2.4).
+> 4. Only then delete the `angelos-heartbeat` service and the `vercel.json`
+>    crons.
+>
+> Two deliberate departures from what is written below:
+>
+> - **The tasks call the endpoint handlers in-process** instead of §2.3's
+>   extract-a-shared-function-per-endpoint. Every one of these handlers only
+>   reads `req.payload`, `req.headers` and `req.url`, so a synthetic req over the
+>   job's real one gets the same result — no HTTP, no duplicated logic — for
+>   ~40 lines instead of ten refactors. Extract the day a handler grows a real
+>   dependency on the HTTP layer.
+> - **`autoRun` is opt-in** (`shouldAutoRun: () => process.env.JOBS_AUTORUN ===
+>   'true'`), not a local-dev kill switch. The laptop's database is a restore of
+>   production: a laptop that woke up with this on would poll the same mailboxes
+>   and send the same notifications a second time.
+
+`jobs` was not configured at all before this — no tasks, no workflows, no `autoRun`.
 Scheduled work was an Alpine container running `crond`, hitting HTTP endpoints
 with a shared secret. That design failed three ways in two days:
 
@@ -196,6 +222,15 @@ neither is right and nobody can tell which.
 - `merlin.payloadnuke.com`, `merlin.spacesangels.com` → Merlin (`:3000`)
 
 ### 3.3 Clean the tunnel config — do this first
+
+> **Status 260731 ~0815 — edited, NOT yet live.** The three `spacesangels.com`
+> rules are gone from `C:\Users\kenne\.cloudflared\config.yml` (backup:
+> `config.yml.bak-260731`), the file is LF, and
+> `cloudflared --config … tunnel ingress validate` says OK.
+> `merlin.spacesangels.com` deliberately stays — that hostname does live here.
+> **Restarting cloudflared needs an elevated shell, so Ken has to do it**; until
+> then the old rules are still loaded in the running process. They are dormant
+> either way, so there is no rush and no risk.
 
 `C:\Users\kenne\.cloudflared\config.yml` still contains rules for
 `spacesangels.com`, `www.spacesangels.com` and `*.spacesangels.com` pointing at
