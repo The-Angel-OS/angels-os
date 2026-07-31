@@ -339,7 +339,10 @@ export default buildConfig({
       beforeLogin: ['@/components/BeforeLogin#BeforeLogin'],
       beforeDashboard: ['@/components/BeforeDashboard#BeforeDashboard'],
       afterNavLinks: ['@/components/PayloadAdminLEO#PayloadAdminLEO'],
-      beforeNav: ['@/components/TenantAutoSelector#TenantAutoSelector'],
+      beforeNav: [
+        '@/components/EnvBanner#EnvBanner',
+        '@/components/TenantAutoSelector#TenantAutoSelector',
+      ],
     },
     user: Users.slug,
   },
