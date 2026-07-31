@@ -4777,7 +4777,11 @@ async function queryProducts(
     const priceCents = num(p, 'priceInUSD')
     const priceStr = priceCents != null ? `$${(priceCents / 100).toFixed(2)}` : 'Price not set'
     const slug = str(p, 'slug')
-    return `- **${title}** (${priceStr})${slug ? ` — /products/${slug}` : ''}`
+    // Drafts come back from this query too. Unlabelled, LEO offers an
+    // unpublished product to a customer who then can't find it — the same
+    // draft-blindness that made page 113 "not exist", pointed the other way.
+    const draft = str(p, '_status', 'published') !== 'published' ? ' — ⚠️ DRAFT, not live' : ''
+    return `- **${title}** (${priceStr})${slug ? ` — /products/${slug}` : ''}${draft}`
   })
 
   return `Found ${result.totalDocs} product(s)${result.totalDocs > limit ? ` (showing first ${limit})` : ''}:\n${products.join('\n')}`
@@ -4829,16 +4833,52 @@ async function querySiteContent(
 
   const result = await payload.find({
     collection: 'pages',
-    where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] } as Where,
+    where: { and: [{ tenant: { equals: tenantId } }] } as Where,
     limit: 50,
     depth: 0,
     overrideAccess: true,
   })
-  if (!result.docs.length) return 'This business has no published website pages yet.'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isPublished = (p: any) => p?._status === 'published'
+  const published = result.docs.filter(isPublished)
+  const drafts = result.docs.filter((p) => !isPublished(p))
 
   // Rank by keyword overlap across title + body; no query → newest pages.
   const terms = search.toLowerCase().split(/\W+/).filter((t) => t.length > 2)
-  const scored = result.docs
+
+  /**
+   * "It exists, it just isn't live."
+   *
+   * Every one of this week's four content incidents was the same conversation:
+   * LEO says a page doesn't exist, Ken can see it in the admin, and twenty
+   * minutes go into looking for a bug that was a Publish button all along.
+   * Page 113 (`pelvic-floor`) was the clearest one. A draft is not an absence,
+   * and LEO must never report it as one.
+   */
+  const draftNote = (listAllWhenNoSearch = false): string => {
+    // With no search terms every draft "matches", which would bolt a list of
+    // unpublished pages onto every ordinary answer. Only the dead ends want that.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hits = (terms.length
+      ? drafts.filter((p: any) =>
+          terms.some((t) => `${p.title ?? ''} ${pageToPlainText(p)}`.toLowerCase().includes(t)),
+        )
+      : listAllWhenNoSearch
+        ? drafts
+        : []) as Array<{ slug?: string; title?: string }>
+    if (!hits.length) return ''
+    const names = hits
+      .slice(0, 8)
+      .map((p) => `"${p.title || p.slug || 'untitled'}"${p.slug ? ` (/${p.slug})` : ''}`)
+      .join(', ')
+    return `\n\n⚠️ ${hits.length} page(s) EXIST BUT ARE UNPUBLISHED (draft), so they are not on the live site: ${names}. They are not missing — they need publishing.`
+  }
+
+  if (!published.length) {
+    return `This business has no published website pages yet.${draftNote(true)}`
+  }
+
+  const scored = published
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((p: any) => {
       const text = pageToPlainText(p)
@@ -4851,13 +4891,15 @@ async function querySiteContent(
     .slice(0, limit)
 
   if (!scored.length) {
-    const titles = result.docs.map((p) => (p as { title?: string }).title).filter(Boolean).slice(0, 8)
-    return `Nothing matched "${search}" on the site. Available pages: ${titles.join(', ')}.`
+    const titles = published.map((p) => (p as { title?: string }).title).filter(Boolean).slice(0, 8)
+    return `Nothing matched "${search}" on the published site. Available pages: ${titles.join(', ')}.${draftNote()}`
   }
 
-  return scored
-    .map((p) => `## ${p.title} (/${p.slug})\n${p.text.slice(0, 1200)}${p.text.length > 1200 ? '…' : ''}`)
-    .join('\n\n')
+  return (
+    scored
+      .map((p) => `## ${p.title} (/${p.slug})\n${p.text.slice(0, 1200)}${p.text.length > 1200 ? '…' : ''}`)
+      .join('\n\n') + draftNote()
+  )
 }
 
 async function queryPosts(
