@@ -22,11 +22,13 @@
   then check `payload-jobs` after 5 minutes. Until then: no stalled-LEO sweep, no drip ticks, no
   federation heartbeat, no notifications, no nightly self-heal, no solvency briefing.
   See [docs/PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md](PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md) §2. `260731`
-- **[P1] `/api/email/poll` returns 500** — inbound email → AI Bus has been down longer than anyone noticed;
-  it broke *before* the crontab did, so nobody saw it stop. Deliberately NOT scheduled in the new jobs queue
-  (a broken task would just manufacture a failed row every 2 minutes). *Where:* `src/endpoints/email-poll.ts`
-  — `imapflow` against `imap.ionos.com`, config from a connector record, not env. *Next:* reproduce, fix,
-  then add it back to `cronTasks.ts`. `260731`
+- **[P1] Inbound email is not configured at all** — `/api/email/poll`'s 500 was never a crash: there is no
+  `email_inbound` connector in the database and `SYSTEM_EMAIL_PASSWORD` is unset, and the endpoint dressed
+  that up as a server error. It now answers 200 + `configured: false`, so "unconfigured" and "broken" are
+  finally different observations. Still NOT in the jobs queue: the first poll after a mailbox IS configured
+  would auto-reply, as LEO, to every unseen message in a mailbox nobody has read in weeks.
+  *Where:* `src/endpoints/email-poll.ts`. *Next:* Ken decides whether hello@spacesangels.com should answer
+  itself; if yes, add the connector, run the endpoint by hand once with the inbox open, then schedule it. `260731`
 - **[P2] cloudflared still has the old spacesangels rules loaded** — they are deleted from
   `C:\Users\kenne\.cloudflared\config.yml` (validated OK, LF) but cloudflared reads its config once at
   start. *Next:* Ken restarts the cloudflared service from an elevated shell, then verifies by curling a

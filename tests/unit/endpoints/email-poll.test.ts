@@ -108,14 +108,17 @@ describe('emailPollHandler', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 500 when no email sources configured', async () => {
+  it('reports unconfigured as 200 + configured:false, not as a server error', async () => {
     // No CRON_SECRET → auth skipped
     // No env vars + findAllConnectors returns [] → no email sources
     const payload = makePayload()
     const req = makeReq(payload)
 
     const res = await emailPollHandler(req)
-    expect(res.status).toBe(500)
+    // It used to 500 here, which is why "inbound email is broken" and "nobody
+    // ever configured inbound email" were the same observation for weeks.
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ configured: false, processed: 0, sources: 0 })
   })
 
   it('returns 404 when no default tenant found', async () => {

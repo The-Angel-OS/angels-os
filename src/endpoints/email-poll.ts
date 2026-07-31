@@ -114,6 +114,7 @@ export const emailPollHandler: PayloadHandler = async (req) => {
   }
 
   const emailSources: EmailSource[] = []
+  let connectorLookupError: string | undefined
 
   // Check for Connectors-based email_inbound configs
   try {
@@ -132,8 +133,11 @@ export const emailPollHandler: PayloadHandler = async (req) => {
         })
       }
     }
-  } catch {
-    // Connectors collection may not exist yet (pre-migration) — continue to env fallback
+  } catch (err) {
+    // Connectors collection may not exist yet (pre-migration) — continue to env
+    // fallback, but SAY so. Swallowing this silently is how a broken lookup
+    // becomes indistinguishable from an empty inbox.
+    connectorLookupError = err instanceof Error ? err.message : String(err)
   }
 
   // Fallback: environment variables (legacy path)
@@ -143,10 +147,17 @@ export const emailPollHandler: PayloadHandler = async (req) => {
     const emailName = process.env.SYSTEM_EMAIL_NAME || 'Angel OS'
 
     if (!emailAddress || !emailPassword) {
-      return Response.json(
-        { message: 'No email connectors configured and SYSTEM_EMAIL_ADDRESS not set' },
-        { status: 500 },
-      )
+      // NOT a 500. Nobody has configured inbound email — that is a state, not a
+      // failure, and dressing it as a server error is why this endpoint looked
+      // broken for weeks while it was only unconfigured. (260731)
+      return Response.json({
+        processed: 0,
+        sources: 0,
+        configured: false,
+        message:
+          'Inbound email is not configured: no email_inbound connector, and SYSTEM_EMAIL_ADDRESS/SYSTEM_EMAIL_PASSWORD are not both set.',
+        ...(connectorLookupError && { connectorLookupError }),
+      })
     }
 
     // Resolve platform tenant for legacy path
@@ -376,8 +387,10 @@ export const emailPollHandler: PayloadHandler = async (req) => {
   return Response.json({
     processed: allProcessed.length,
     sources: emailSources.length,
+    configured: true,
     emails: allProcessed,
     ...(allErrors.length > 0 && { errors: allErrors }),
+    ...(connectorLookupError && { connectorLookupError }),
   })
 }
 

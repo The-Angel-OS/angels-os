@@ -147,10 +147,15 @@ const SPECS: CronSpec[] = [
     slug: 'solvency-briefing',
   },
 
-  // NOT scheduled: `/api/email/poll` (every 2 min in the crontab). It has
-  // returned 500 since before the crontab broke — inbound email → AI Bus has
-  // been down longer than anyone noticed. Scheduling it would just manufacture
-  // a failed job row every two minutes. Fix it, then add it back here.
+  // NOT scheduled: `/api/email/poll` (every 2 min in the crontab).
+  //
+  // Its 500 turned out to be "nobody configured inbound email" wearing a server
+  // error's clothes — fixed, it now answers 200 with `configured: false`. It
+  // still stays out of the queue, for a different reason: the moment a mailbox
+  // IS configured, this endpoint replies to every unseen message in it. Inbound
+  // email has been dark long enough that the first poll would answer a backlog,
+  // as LEO, to real people. Run it by hand once, with the inbox in front of you,
+  // and add it here when the first run is boring.
 ]
 
 export const cronTasks: TaskConfig<any>[] = SPECS.map((spec) => ({
