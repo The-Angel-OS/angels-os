@@ -1852,12 +1852,18 @@ export default buildConfig({
     },
     // Opt-in, not opt-out. The local stack is a restore of production, so a
     // laptop that woke up with this on would poll the same mailboxes and send
-    // the same notifications a second time. Railway sets JOBS_AUTORUN=true.
-    autoRun: [{ cron: '* * * * *', queue: CRON_QUEUE }],
-    // Left at the default `true` on purpose: 4 tasks every 5 minutes is ~1,200
-    // completed rows a day. Failed jobs are kept regardless — so the table holds
-    // exactly the runs worth looking at.
-    shouldAutoRun: () => process.env.JOBS_AUTORUN === 'true',
+    // the same drips a second time. Railway sets JOBS_AUTORUN=true.
+    //
+    // The gate is HERE and not in `shouldAutoRun` because Payload's cron
+    // schedules due jobs BEFORE it consults `shouldAutoRun` (payload/dist/
+    // index.js `_initializeCrons`) — with only that hook the laptop still queued
+    // nine rows on boot and then stopped its own cron. No cron, no rows.
+    // Verified 260731 by watching exactly that happen.
+    autoRun: () =>
+      process.env.JOBS_AUTORUN === 'true' ? [{ cron: '* * * * *', queue: CRON_QUEUE }] : [],
+    // `deleteJobOnComplete` left at its default `true` on purpose: 4 tasks every
+    // 5 minutes is ~1,200 completed rows a day. Failed jobs are kept regardless —
+    // so the table holds exactly the runs worth looking at.
     tasks: cronTasks,
   },
   secret: (() => {
