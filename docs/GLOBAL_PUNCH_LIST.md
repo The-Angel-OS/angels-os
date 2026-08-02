@@ -16,12 +16,12 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
-- **[P0] NOTHING SCHEDULED IS RUNNING ANYWHERE** — the crond container was retired and the Payload jobs
-  queue that replaces it is built but opt-in. *Where:* `src/jobs/cronTasks.ts`, commit `cf35d34`.
-  *Next:* set **`JOBS_AUTORUN=true`** (and confirm `CRON_SECRET`) on the Railway **Core** service, deploy,
-  then check `payload-jobs` after 5 minutes. Until then: no stalled-LEO sweep, no drip ticks, no
-  federation heartbeat, no notifications, no nightly self-heal, no solvency briefing.
-  See [docs/PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md](PLAN_260731_DEPLOY_JOBS_ENVIRONMENTS.md) §2. `260731`
+- **[P0→FIXED 260731] Scheduled work is running again** — the Payload jobs queue replaced the retired crond
+  container (`cf35d34`), `JOBS_AUTORUN=true` set on Railway Core, deployed and verified: nine tasks scheduled,
+  the first runs completed and cleaned themselves up, `connector-health` re-scheduling itself every 30 min,
+  zero errors. Production had been running a 47-hour-old image — a variable change alone would have
+  redeployed the OLD one. *Still open:* delete the `angelos-heartbeat` service and the `vercel.json` crons
+  so there is exactly one source of schedule. [[project_scheduled_work_payload_jobs]] `260731`
 - **[P1] Inbound email is not configured at all** — `/api/email/poll`'s 500 was never a crash: there is no
   `email_inbound` connector in the database and `SYSTEM_EMAIL_PASSWORD` is unset, and the endpoint dressed
   that up as a server error. It now answers 200 + `configured: false`, so "unconfigured" and "broken" are
