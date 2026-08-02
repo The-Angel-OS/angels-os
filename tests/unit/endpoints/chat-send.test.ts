@@ -213,6 +213,36 @@ describe('chatSendHandler', () => {
     expect(updateArgs.data.attachments[0].media).toBe(5)
   })
 
+  it('coerces a string media id to a number — Payload rejects "5" outright', async () => {
+    // isValidID(value, 'number') is a bare `typeof value === 'number'`, so a
+    // JSON-encoded string id fails as "invalid: Attachments 1 > Media" even
+    // though the row exists. Nimue sends strings; the web composer sends numbers,
+    // which is why only one of them ever showed the bug. (260801)
+    const createMock = vi.fn().mockResolvedValue(SAVED_MESSAGE)
+    const updateMock = vi.fn().mockResolvedValue({ ...SAVED_MESSAGE, attachments: [{ media: 5 }] })
+    const req = makeReq(
+      { id: 1, roles: ['admin'] },
+      { ...VALID_BODY, attachments: [{ media: '5', caption: 'From Nimue' }] },
+      { create: createMock, update: updateMock },
+    )
+    await chatSendHandler(req)
+    const sent = updateMock.mock.calls[0][0].data.attachments[0]
+    expect(sent.media).toBe(5)
+    expect(sent.caption).toBe('From Nimue')
+  })
+
+  it('unwraps a populated media object to its numeric id', async () => {
+    const createMock = vi.fn().mockResolvedValue(SAVED_MESSAGE)
+    const updateMock = vi.fn().mockResolvedValue({ ...SAVED_MESSAGE, attachments: [{ media: 7 }] })
+    const req = makeReq(
+      { id: 1, roles: ['admin'] },
+      { ...VALID_BODY, attachments: [{ media: { id: '7', filename: 'a.jpg' } }] },
+      { create: createMock, update: updateMock },
+    )
+    await chatSendHandler(req)
+    expect(updateMock.mock.calls[0][0].data.attachments[0].media).toBe(7)
+  })
+
   it('returns 500 when message creation fails', async () => {
     const req = makeReq({ id: 1, roles: ['admin'] }, VALID_BODY, {
       create: vi.fn().mockRejectedValue(new Error('DB write failed')),

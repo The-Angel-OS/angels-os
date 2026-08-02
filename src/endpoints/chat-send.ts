@@ -183,11 +183,32 @@ export const chatSendHandler: PayloadHandler = async (req) => {
 
     // Validated attachments array (media IDs + optional captions) — NOT included
     // in the initial create. See the two-phase note below.
+    //
+    // The media id is COERCED TO A NUMBER here. Payload validates a relationship
+    // with `isValidID(value, 'number')`, which is a bare `typeof value ===
+    // 'number'` — so the string "490" is rejected as "The following field is
+    // invalid: Attachments 1 > Media" even though the row exists and the user can
+    // read it. The web composer posts a number and has always worked; a client
+    // that JSON-encodes ids as strings (Nimue) failed every time, and the
+    // retry-and-link-subset path below could never rescue it because the value
+    // was wrong, not missing.
     const attachmentList =
       Array.isArray(attachments) && attachments.length > 0
-        ? attachments.filter(
-            (a: unknown) => a && typeof a === 'object' && 'media' in (a as Record<string, unknown>),
-          )
+        ? attachments
+            .filter(
+              (a: unknown) =>
+                a && typeof a === 'object' && 'media' in (a as Record<string, unknown>),
+            )
+            .map((a: unknown) => {
+              const att = a as Record<string, unknown>
+              const raw = att.media
+              const id =
+                typeof raw === 'object' && raw !== null
+                  ? (raw as { id?: unknown }).id
+                  : raw
+              const n = Number(id)
+              return Number.isFinite(n) ? { ...att, media: n } : att
+            })
         : []
 
     // ─── Two-phase write ─────────────────────────────────────────────────────
@@ -306,7 +327,12 @@ export const chatSendHandler: PayloadHandler = async (req) => {
             await logError({
               source: 'chat-send/attach',
               message: `Failed to link ${validAttachments.length} attachment(s) to message ${saved.id}`,
-              details: attErr instanceof Error ? attErr.stack || attErr.message : String(attErr),
+              // The media ids belong in the log. Without them this said only
+              // "one attachment failed" and finding out WHICH one meant guessing
+              // from timestamps against the media table. (260801)
+              details: `media ids: ${wantedIds.join(', ') || 'none'}\n${
+                attErr instanceof Error ? attErr.stack || attErr.message : String(attErr)
+              }`,
               tenantId: tenantId != null ? String(tenantId) : undefined,
             }).catch(() => {})
           }

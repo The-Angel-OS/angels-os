@@ -92,6 +92,26 @@ export interface MediaAnalysisOptions {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
+/**
+ * Relationship ids must reach Payload as NUMBERS.
+ *
+ * Payload validates a relationship value with `isValidID(value, 'number')`,
+ * which is a bare `typeof value === 'number'` — the string `"1"` fails it and
+ * the write dies as "The following field is invalid: <Field>". `mediaId` below
+ * was already coerced for exactly this reason; `tenant` and `sourceMessage`
+ * were not, which is why every `analyze_image` from Nimue on 260801 came back
+ * "The following field is invalid: Assigned Tenant" while the image itself
+ * uploaded fine.
+ *
+ * Returns undefined for anything non-numeric, so a bad id drops the optional
+ * field instead of failing the whole record.
+ */
+const numericId = (v: unknown): number | undefined => {
+  if (typeof v === 'number') return Number.isNaN(v) ? undefined : v
+  if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) return Number(v)
+  return undefined
+}
+
 const VISION_MODEL = 'claude-sonnet-4-6'
 
 /** Image MIME types we can analyze with Vision */
@@ -674,8 +694,8 @@ export async function buildMediaMeta(
         media: mediaId,
         status: 'processing',
         extractionType: 'image_vision',
-        ...(sourceMessageId ? { sourceMessage: sourceMessageId } : {}),
-        ...(tenantId ? { tenant: tenantId } : {}),
+        ...(numericId(sourceMessageId) ? { sourceMessage: numericId(sourceMessageId) } : {}),
+        ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
       } as any,
       overrideAccess: true,
     })
@@ -723,8 +743,8 @@ export async function buildMediaMeta(
           status: 'error',
           extractionType: 'pdf_page',
           processingError: `PDF extraction failed: ${message}`,
-          ...(sourceMessageId ? { sourceMessage: sourceMessageId } : {}),
-          ...(tenantId ? { tenant: tenantId } : {}),
+          ...(numericId(sourceMessageId) ? { sourceMessage: numericId(sourceMessageId) } : {}),
+          ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
         } as any,
         overrideAccess: true,
       })
@@ -741,8 +761,8 @@ export async function buildMediaMeta(
         extractionType: 'manual',
         summary: `${mime} file: ${mediaDoc.filename || 'unknown'}`,
         tags: [mime.split('/')[0], mime.split('/')[1]],
-        ...(sourceMessageId ? { sourceMessage: sourceMessageId } : {}),
-        ...(tenantId ? { tenant: tenantId } : {}),
+        ...(numericId(sourceMessageId) ? { sourceMessage: numericId(sourceMessageId) } : {}),
+        ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
         processedAt: new Date().toISOString(),
         processedBy: 'system',
       } as any,
@@ -948,8 +968,8 @@ Return ONLY the JSON array. No markdown, no commentary.`
               : `${docTitle} — page ${pageNum}/${totalPages}`,
             processedAt: new Date().toISOString(),
             processedBy: VISION_MODEL,
-            ...(sourceMessageId ? { sourceMessage: sourceMessageId } : {}),
-            ...(tenantId ? { tenant: tenantId } : {}),
+            ...(numericId(sourceMessageId) ? { sourceMessage: numericId(sourceMessageId) } : {}),
+            ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
           } as any,
           overrideAccess: true,
         })
@@ -972,8 +992,8 @@ Return ONLY the JSON array. No markdown, no commentary.`
           pageNumber: batchStart,
           totalPages,
           processingError: `Failed to analyze pages ${pageRange}: ${batchErr instanceof Error ? batchErr.message : 'Unknown'}`,
-          ...(sourceMessageId ? { sourceMessage: sourceMessageId } : {}),
-          ...(tenantId ? { tenant: tenantId } : {}),
+          ...(numericId(sourceMessageId) ? { sourceMessage: numericId(sourceMessageId) } : {}),
+          ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
         } as any,
         overrideAccess: true,
       })
