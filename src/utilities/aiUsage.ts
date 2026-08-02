@@ -16,6 +16,18 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'anthropic/claude-opus-4-6': { input: 15, output: 75 },
   'google/gemini-2.5-flash': { input: 0.075, output: 0.3 },
   'google/gemini-3.1-pro': { input: 1.25, output: 10 },
+  // The models that ACTUALLY serve LEO were all missing here, so every Google
+  // turn recorded `costCents: undefined` — 30 days of Gemini traffic priced at
+  // nothing, which reads on a dashboard as "AI costs us nothing" rather than
+  // "AI cost is unmeasured". Found 260801 while checking exactly that claim.
+  //
+  // These are list-price ESTIMATES, and the `-latest` aliases move under us when
+  // Google promotes a generation — treat them as order-of-magnitude, which is
+  // what `costEstimated` already says they are.
+  'google/gemini-2.5-pro': { input: 1.25, output: 10 },
+  'google/gemini-pro-latest': { input: 1.25, output: 10 },
+  'google/gemini-flash-latest': { input: 0.3, output: 2.5 },
+  'google/gemini-flash-lite-latest': { input: 0.1, output: 0.4 },
   'groq/openai/gpt-oss-20b': { input: 0.075, output: 0.3 },
   'groq/openai/gpt-oss-120b': { input: 0.15, output: 0.6 },
 }

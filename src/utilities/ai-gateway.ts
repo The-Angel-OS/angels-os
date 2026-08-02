@@ -577,11 +577,23 @@ const NVIDIA_TIER_MAP: Record<TaskComplexity, string> = {
 // mechanical-lane default did not, so any path that took those hit a dead model
 // (260726: an image analysis in a Spaces channel stuck on "..." forever).
 // Pro's pinned id still works. Override per-node with GOOGLE_MODEL.
+//
+// The heavy lanes moved from the pinned `gemini-2.5-pro` to the `-latest` alias
+// for the same reason Flash did: pinned generation ids get retired out from under
+// us. `gemini-2.5-flash` is ALREADY dead on Ken's key — a probe on 260801 got a
+// flat 404 for it, and 9 production turns had used it. `gemini-2.5-pro` still
+// answers today; the alias means the day it stops is not an outage.
+//
+// Probed 260801 against a 43-tool schema, 3 trials each: flash-lite, flash-latest,
+// 3.5-flash, 3.6-flash, 2.5-pro, pro-latest and 3.1-pro-preview ALL populate tool
+// arguments correctly, 3/3. No model in the slate is the reason a tool call comes
+// back with `{}` — that was the configuration bug fixed on 260729, where the
+// GOOGLE_MODEL pin overrode every tier and sent deep-think rounds to flash-lite.
 const GOOGLE_TIER_MAP: Record<TaskComplexity, string> = {
   low: 'gemini-flash-latest',
   medium: 'gemini-flash-latest',
-  high: 'gemini-2.5-pro',
-  critical: 'gemini-2.5-pro',
+  high: 'gemini-pro-latest',
+  critical: 'gemini-pro-latest',
 }
 
 // ---------------------------------------------------------------------------
