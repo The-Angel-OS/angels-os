@@ -29,10 +29,17 @@
   would auto-reply, as LEO, to every unseen message in a mailbox nobody has read in weeks.
   *Where:* `src/endpoints/email-poll.ts`. *Next:* Ken decides whether hello@spacesangels.com should answer
   itself; if yes, add the connector, run the endpoint by hand once with the inbox open, then schedule it. `260731`
-- **[P2] cloudflared still has the old spacesangels rules loaded** — they are deleted from
-  `C:\Users\kenne\.cloudflared\config.yml` (validated OK, LF) but cloudflared reads its config once at
-  start. *Next:* Ken restarts the cloudflared service from an elevated shell, then verifies by curling a
-  hostname the edit **changed**, never one that already worked. `260731`
+- **[P1] Nothing auto-starts the cloudflared tunnel** — after the 260801 move the edge stayed dark because
+  no process was launching it: the `cloudflared` Windows *service* is STOPPED (last exit 1067) and there is
+  no scheduled task. Restarted by hand as a user process, so `payloadnuke.com` / `kendev.co` / gotify / kuma
+  are serving again — but it dies with the session. *Next (needs an ELEVATED shell, Ken):*
+  `schtasks /Create /TN AngelOS-Tunnel /TR "C:\Dev\datacenter\stack\run-tunnel.cmd" /SC ONLOGON /F`
+  — or fix and start the real service. The stale spacesangels rules are gone and the new config is live
+  (verified by curling hostnames the edit changed). `260801`
+- **[P2] Merlin's port and the tunnel disagreed** — the autostart task launches Merlin on **:3002** while the
+  tunnel routed `merlin.*` at **:3000**, so merlin hostnames 502'd against an empty port. The tunnel now
+  points at :3002 (where Merlin actually is) since changing the task needs elevation. Nothing listens on
+  :3000 at all. *Next:* pick ONE port and make the task and the tunnel config agree. `260801`
 
 - **[P2] mediaToAiBus fails for uploads created OUTSIDE a request** — every image imported by
   `src/scripts/_local/import-site.ts` logged `[mediaToAiBus] failed to post media N: The following field
