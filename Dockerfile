@@ -27,8 +27,13 @@ RUN pnpm install --frozen-lockfile
 # ── build: next build only (no migrate). Payload's build needs PAYLOAD_SECRET +
 #    DATABASE_URI to be PRESENT but does not query the DB — so we use PLACEHOLDER
 #    FALLBACKS inline (the host's real values, e.g. Railway's injected service env,
-#    win when set). NEXT_PUBLIC_* are NOT shadowed here — they must bake from the
-#    host env at build time, so set them as service vars before the first deploy. ──
+#    win when set).
+#
+#    NEXT_PUBLIC_* CANNOT be set from the host here, and setting them as service
+#    vars does nothing: a Docker build sees only ARGs that this file declares, not
+#    the platform's environment. Anything the server must know at runtime therefore
+#    belongs in a plain (non-NEXT_PUBLIC_) var — see SERVER_URL in getURL.ts. Add an
+#    explicit ARG below only for a value the CLIENT bundle genuinely must inline. ──
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

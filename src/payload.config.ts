@@ -230,6 +230,7 @@ import { federationElectionHandler } from '@/endpoints/federation-election'
 import { federationSuitcaseExportHandler, federationSuitcaseImportHandler } from '@/endpoints/federation-suitcase'
 import { authGoogleInitHandler, authGoogleCallbackHandler } from '@/endpoints/auth-google'
 import { authTokenRelayHandler } from '@/endpoints/auth-token-relay'
+import { getServerSideURL } from '@/utilities/getURL'
 import { authFederatedHandler } from '@/endpoints/auth-federated'
 import { addressBookListHandler, addressBookAllHandler } from '@/endpoints/address-book'
 import { channelMediaHandler } from '@/endpoints/channel-media'
@@ -292,8 +293,13 @@ export default buildConfig({
     // This node's own domain, derived from its server URL (apex + subdomains).
     const selfOrigins: string[] = (() => {
       try {
-        const host = new URL(process.env.NEXT_PUBLIC_SERVER_URL || '').hostname
-        if (!host) return []
+        // getServerSideURL, not NEXT_PUBLIC_SERVER_URL directly: this image is
+        // built by Docker, and a Docker build sees only declared ARGs — never the
+        // host's service vars. So NEXT_PUBLIC_SERVER_URL can never bake here no
+        // matter what the operator sets, and this node would silently allow no
+        // origins of its own. SERVER_URL is read at runtime and does work.
+        const host = new URL(getServerSideURL()).hostname
+        if (!host || host === 'localhost') return []
         const apex = host.split('.').slice(-2).join('.')
         return [`https://${apex}`, `https://*.${apex}`]
       } catch {
