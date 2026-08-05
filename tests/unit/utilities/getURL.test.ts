@@ -16,6 +16,7 @@ const ENV_KEYS = [
   'PAYLOAD_PUBLIC_SERVER_URL',
   'VERCEL_PROJECT_PRODUCTION_URL',
   'VERCEL_URL',
+  'SERVER_URL',
 ]
 
 describe('getServerSideURL', () => {
@@ -45,6 +46,17 @@ describe('getServerSideURL', () => {
   it('returns https://VERCEL_URL for preview deployments', () => {
     process.env.VERCEL_URL = 'myapp-abc123.vercel.app'
     expect(getServerSideURL()).toBe('https://myapp-abc123.vercel.app')
+  })
+
+  it('falls back to SERVER_URL when the build-time NEXT_PUBLIC_ var was never baked in', () => {
+    process.env.SERVER_URL = 'https://www.spacesangels.com'
+    expect(getServerSideURL()).toBe('https://www.spacesangels.com')
+  })
+
+  it('NEXT_PUBLIC_SERVER_URL takes priority over SERVER_URL', () => {
+    process.env.NEXT_PUBLIC_SERVER_URL = 'https://baked.example'
+    process.env.SERVER_URL = 'https://runtime.example'
+    expect(getServerSideURL()).toBe('https://baked.example')
   })
 
   it('falls back to http://localhost:3000 when no env vars set', () => {

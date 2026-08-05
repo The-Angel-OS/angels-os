@@ -45,6 +45,15 @@ export const getServerSideURL = () => {
     return `https://${process.env.VERCEL_URL}`
   }
 
+  // NEXT_PUBLIC_* is INLINED AT BUILD TIME. If it wasn't set when the image was
+  // built, it is permanently `undefined` at runtime and no amount of setting it in
+  // the host's dashboard helps — which is how OAuth ended up handing Google
+  // `http://localhost:3000/api/auth/google/callback` in production. SERVER_URL is
+  // read at runtime, so a restart is enough to fix it.
+  if (!url && process.env.SERVER_URL) {
+    return process.env.SERVER_URL
+  }
+
   // Fallback: localhost for local development
   if (!url) {
     url = 'http://localhost:3000'
