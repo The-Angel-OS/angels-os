@@ -277,4 +277,50 @@ describe('authGoogleCallbackHandler', () => {
     expect(res.status).toBe(302)
     expect(createMock).not.toHaveBeenCalled()
   })
+
+  // Google only ever redirects to the ONE canonical callback registered in the
+  // console. Everything below is how the session still lands on whichever of this
+  // node's many hostnames the person actually started from — that is the property
+  // that must survive, since registering each new tenant subdomain with Google
+  // by hand is exactly the config we refuse to require.
+  describe('lands the session back on the originating host', () => {
+    function successReq(origin: string) {
+      const idToken = makeGoogleIdToken({ email: 'existing@test.com', sub: 'sub-x' })
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ id_token: idToken }) }),
+      )
+      const state = encodeURIComponent(JSON.stringify({ origin }))
+      return makeReq(`${BASE_URL}?code=valid_code&state=${state}`, null, {
+        // Doubles as the tenants lookup that authorises a custom-domain relay.
+        find: vi.fn().mockResolvedValue({
+          docs: [{ id: 20, email: 'existing@test.com', socialProviders: [], sessions: [] }],
+          totalDocs: 1,
+        }),
+        update: vi.fn().mockResolvedValue({}),
+      })
+    }
+
+    afterEach(() => {
+      delete process.env.COOKIE_DOMAIN
+    })
+
+    it('completes on the tenant subdomain when COOKIE_DOMAIN covers it', async () => {
+      process.env.COOKIE_DOMAIN = '.spacesangels.com'
+      const res = await authGoogleCallbackHandler(successReq('https://kessela.spacesangels.com'))
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location') ?? '').toContain(
+        'https://kessela.spacesangels.com/api/auth/complete',
+      )
+    })
+
+    it('relays the token to a known custom domain COOKIE_DOMAIN does not cover', async () => {
+      process.env.COOKIE_DOMAIN = '.spacesangels.com'
+      const res = await authGoogleCallbackHandler(successReq('https://kendev.co'))
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location') ?? '').toContain(
+        'https://kendev.co/api/auth/token-relay',
+      )
+    })
+  })
 })
