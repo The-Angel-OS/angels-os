@@ -361,27 +361,73 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
     })
     if (validInvites.length === 0) return { ok: false, error: GENERIC_FAIL }
 
-    // Placeholder email (users.email is required+unique): .invalid TLD is
-    // RFC-reserved so nothing ever delivers to it; the user sets a real email
-    // later on /dashboard/account.
-    try {
-      // Carry the inviter-typed name onto the new account ("Vlad", not a digits handle)
-      const invitedName = (validInvites.map((m) => (m as any).invitationDetails?.invitationName).find(Boolean) as string | undefined)?.trim()
-      user = await payload.create({
+    // The invite usually carries the email the admin typed. USE IT — it is the
+    // same anchor Google and email-OTP match on, so inventing a placeholder here
+    // hands the same human two accounts the first time they click "Sign in with
+    // Google". (260805: David C signed in by text and got
+    // "19497350665@phone.invalid" while davidc@neurocarepro.com sat on the very
+    // invite row being read.) Placeholder stays only for invites with no email:
+    // .invalid is RFC-reserved so nothing ever delivers to it.
+    const invitedName = (
+      validInvites.map((m) => (m as any).invitationDetails?.invitationName).find(Boolean) as
+        | string
+        | undefined
+    )?.trim()
+    const invitedEmail = normalizeEmail(
+      (validInvites.map((m) => (m as any).invitationDetails?.invitationEmail).find(Boolean) as
+        | string
+        | undefined) || '',
+    )
+
+    // An account may already exist under that email (invited by email first, or
+    // signed in with Google earlier). Attach the phone to THAT person instead of
+    // creating a rival record — link-on-confirm: Twilio just proved they hold the
+    // number, and an admin vouched the number belongs with this email.
+    if (invitedEmail && isValidEmail(invitedEmail)) {
+      const byEmail = await payload.find({
         collection: 'users',
-        data: {
-          email: `${phone.replace('+', '')}@phone.invalid`,
-          password: crypto.randomUUID() + crypto.randomUUID(),
-          phone,
-          ...(invitedName ? { name: invitedName } : {}),
-          _verified: true,
-        } as never,
+        where: { email: { equals: invitedEmail } },
+        limit: 1,
         overrideAccess: true,
       })
-      isNew = true
-    } catch (e) {
-      payload.logger.error(`[verifyOtpSms] invite-user create failed for ${phone}: ${e instanceof Error ? e.message : e}`)
-      return { ok: false, error: GENERIC_FAIL }
+      if (byEmail.docs[0]) {
+        user = byEmail.docs[0]
+        try {
+          user = await payload.update({
+            collection: 'users',
+            id: (user as { id: number }).id,
+            data: { phone } as never,
+            overrideAccess: true,
+          })
+        } catch (e) {
+          payload.logger.warn(
+            `[verifyOtpSms] could not attach phone to existing user: ${e instanceof Error ? e.message : e}`,
+          )
+        }
+      }
+    }
+
+    if (!user) {
+      try {
+        user = await payload.create({
+          collection: 'users',
+          data: {
+            email:
+              invitedEmail && isValidEmail(invitedEmail)
+                ? invitedEmail
+                : `${phone.replace('+', '')}@phone.invalid`,
+            password: crypto.randomUUID() + crypto.randomUUID(),
+            phone,
+            ...(invitedName ? { name: invitedName } : {}),
+            _verified: true,
+          } as never,
+          overrideAccess: true,
+        })
+        isNew = true
+      } catch (e) {
+        payload.logger.error(`[verifyOtpSms] invite-user create failed for ${phone}: ${e instanceof Error ? e.message : e}`)
+        return { ok: false, error: GENERIC_FAIL }
+      }
     }
 
     // Activate every pending invite on this number (full side-effects: contact
@@ -400,5 +446,22 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
   }
 
   const minted = await mintSessionToken(payload, user as { id: number; email: string; sessions?: unknown[] })
+
+  // Onboarding floor — the SMS path was the one door that skipped it, so nobody
+  // who signed in by text ever got their Angel portal. Same idempotent, fail-soft
+  // call as the email path above and as Google login.
+  try {
+    const { ensureBaselineMemberships } = await import('@/utilities/ensureBaselineMemberships')
+    await ensureBaselineMemberships(payload, {
+      id: (user as { id: number }).id,
+      email: (user as { email: string }).email,
+      name: (user as { name?: string }).name,
+    })
+  } catch (gaErr) {
+    payload.logger?.warn?.(
+      `[verifyOtpSms] baseline memberships failed: ${gaErr instanceof Error ? gaErr.message : gaErr}`,
+    )
+  }
+
   return { ok: true, token: minted.token, user, isNew }
 }
