@@ -9,12 +9,15 @@ import { checkRole } from '@/access/utilities'
 import { computeFederatedIdentityId } from '@/utilities/federatedIdentity'
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
 import { autoJoinTenantSpaces } from './hooks/autoJoinTenantSpaces'
+import { baselineMemberships } from './hooks/baselineMemberships'
 import { notifyUserRegistered } from './hooks/notifyUserRegistered'
 
 export const Users: CollectionConfig = {
   slug: 'users',
   hooks: {
-    afterChange: [autoJoinTenantSpaces, notifyUserRegistered],
+    // Order matters: baselineMemberships creates the tenant memberships that
+    // autoJoinTenantSpaces then reads to find spaces.
+    afterChange: [baselineMemberships, autoJoinTenantSpaces, notifyUserRegistered],
   },
   access: {
     // super_admin: full platform access
