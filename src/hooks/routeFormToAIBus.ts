@@ -190,6 +190,7 @@ export const routeFormToAIBus: CollectionAfterChangeHook = async ({
         tenant: tenantId,
         visibility: 'tenant',
       } as any,
+      req,
       overrideAccess: true,
     })
 

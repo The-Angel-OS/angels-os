@@ -119,6 +119,7 @@ export const createFormSignatures: CollectionAfterChangeHook = async ({ doc, ope
             metadata: { formId, submissionId: doc.id, field: s.field },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any,
+          req,
           overrideAccess: true,
         })
       } catch (e) {

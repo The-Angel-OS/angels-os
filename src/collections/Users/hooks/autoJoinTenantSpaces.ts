@@ -90,6 +90,7 @@ export const autoJoinTenantSpaces: CollectionAfterChangeHook<User> = async ({
               joinedAt: new Date().toISOString(),
               tenant: tenantId,
             },
+            req,
             overrideAccess: true,
           })
 

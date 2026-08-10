@@ -17,7 +17,7 @@
  * @see src/utilities/escalationToAiBus.ts — the sibling "post a system message" pattern
  * @see src/collections/Media/hooks/autoAnalyzeUpload.ts — the analysis twin
  */
-import type { CollectionAfterChangeHook, Payload } from 'payload'
+import type { CollectionAfterChangeHook, Payload, PayloadRequest } from 'payload'
 import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
 import { wrapTextContent } from '@/utilities/messageContent'
 
@@ -34,6 +34,7 @@ export function __resetMediaToAiBusState(): void {
 /** Find-or-create the `media` channel on a space; cached after first success. */
 async function ensureMediaChannel(
   payload: Payload,
+  req: PayloadRequest,
   spaceId: number | string,
   tenantId: number | string,
 ): Promise<boolean> {
@@ -60,6 +61,7 @@ async function ensureMediaChannel(
           isDefault: false,
           tenant: tenantId,
         } as never,
+        req,
         overrideAccess: true,
       })
     }
@@ -104,7 +106,7 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
     try {
       const spaceId = await resolveAiBusSpaceId(payload as never, tenantId)
       if (!spaceId) return
-      if (!(await ensureMediaChannel(payload, spaceId, tenantId))) return
+      if (!(await ensureMediaChannel(payload, req, spaceId, tenantId))) return
 
       const author = await resolveAuthor(payload, tenantId)
       const filename = (doc.filename as string) || (doc.alt as string) || `media #${mediaId}`
@@ -131,6 +133,7 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
             filename,
           },
         } as never,
+        req,
         overrideAccess: true,
       })
     } catch (err) {

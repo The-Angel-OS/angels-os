@@ -216,6 +216,7 @@ export const ragIndexHook: CollectionAfterChangeHook = async ({
         ragChunks: chunks,
         ragIndexed: true,
       } as any,
+      req,
       overrideAccess: true,
       // Don't re-trigger this hook
       context: { skipRagIndex: true },

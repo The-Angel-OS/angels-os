@@ -143,6 +143,7 @@ export const afterHolonChange: CollectionAfterChangeHook = async ({
           collection: 'orders',
           id: order.id,
           data: { fulfillment } as any,
+          req,
           overrideAccess: true,
         })
 
