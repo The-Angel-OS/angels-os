@@ -24,6 +24,7 @@ export default async function DashboardSettingsPage({
   const aiConfig = tenant?.aiConfig || {}
   const branding = tenant?.branding || {}
   const commerce = tenant?.commerce || {}
+  const storefront = tenant?.storefront || {}
 
   return (
     <SettingsHub
@@ -54,6 +55,15 @@ export default async function DashboardSettingsPage({
         bookingsEnabled: commerce.bookingsEnabled ?? false,
         eventsEnabled: commerce.eventsEnabled ?? false,
         digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
+      }}
+      storefront={{
+        // Same depth-2 hydration as branding.logo above.
+        coverImage:
+          storefront.coverImage &&
+          typeof storefront.coverImage === 'object' &&
+          storefront.coverImage.url
+            ? { id: storefront.coverImage.id, url: storefront.coverImage.url }
+            : null,
       }}
     />
   )

@@ -35,12 +35,22 @@ interface CommerceData {
   digitalProductsEnabled?: boolean
 }
 
+interface StorefrontData {
+  /**
+   * tenant.storefront.coverImage — the hero behind Shop, Posts and Events.
+   * Per-section overrides (postsHeroImage / eventsHeroImage / shopHeroImage)
+   * stay in Payload admin: they are the exception, this is the setting.
+   */
+  coverImage?: { id: number | string; url: string } | null
+}
+
 export interface SettingsHubProps {
   tenantId: number
   hasAnthropicKey: boolean
   hasOpenRouterKey: boolean
   branding: BrandingData
   commerce: CommerceData
+  storefront?: StorefrontData
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +123,7 @@ function Toast({ message }: { message: { type: 'success' | 'error'; text: string
 // GeneralTab
 // ---------------------------------------------------------------------------
 
-function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; branding: BrandingData; commerce: CommerceData }) {
+function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData }) {
   const [form, setForm] = useState({
     siteName: branding.siteName || '',
     tagline: branding.tagline || '',
@@ -133,6 +143,7 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
     digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
   })
   const [logo, setLogo] = useState<MediaValue>(branding.logo ?? null)
+  const [coverImage, setCoverImage] = useState<MediaValue>(storefront?.coverImage ?? null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -160,6 +171,12 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
             borderColor: form.borderColor,
             headingFont: form.headingFont,
             bodyFont: form.bodyFont,
+          },
+          // Only the one subfield: a 260809 probe on a spare tenant confirmed
+          // Payload MERGES partial group writes, so description/contactEmail and
+          // the per-section overrides all survive this.
+          storefront: {
+            coverImage: coverImage ? Number(coverImage.id) : null,
           },
           commerce: {
             currency: form.currency,
@@ -223,6 +240,20 @@ function GeneralTab({ tenantId, branding, commerce }: { tenantId: number; brandi
           <p className="mt-1 text-xs text-muted-foreground">
             Different from the Discovery Card badge on the Endeavor tab — that one is your
             federation catalog badge.
+          </p>
+        </div>
+        <div className="max-w-sm">
+          <ImageField
+            label="Cover Image (Shop, Posts and Events)"
+            value={coverImage}
+            onChange={setCoverImage}
+            aspect="banner"
+            tenantId={tenantId}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            The banner behind your listing pages. Leave empty for the brand gradient built from
+            your colours. To give one section its own image, set a per-section override in
+            Admin → Tenants → Storefront.
           </p>
         </div>
       </div>
@@ -622,6 +653,7 @@ export function SettingsHub({
   hasOpenRouterKey,
   branding,
   commerce,
+  storefront,
 }: SettingsHubProps) {
   // Deep-linkable: /dashboard/admin/settings?tab=endeavor lands on the Endeavor
   // tab. Legacy /dashboard/endeavor redirects here with that param, so LEO's
@@ -670,7 +702,7 @@ export function SettingsHub({
       {/* Tab content */}
       <div>
         {activeTab === 'general' && (
-          <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} />
+          <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} storefront={storefront} />
         )}
         {activeTab === 'endeavor' && <EndeavorSetup />}
         {activeTab === 'ai' && (
