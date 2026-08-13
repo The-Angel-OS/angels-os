@@ -1,5 +1,20 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { liftComplexity, complexityFloorForRoles, getEscalatedComplexity } from '@/utilities/ai-gateway'
+import { liftComplexity, capComplexity, complexityFloorForRoles, getEscalatedComplexity } from '@/utilities/ai-gateway'
+
+describe('capComplexity', () => {
+  it('holds a tier at the ceiling, never above', () => {
+    expect(capComplexity('critical', 'medium')).toBe('medium')
+    expect(capComplexity('high', 'medium')).toBe('medium')
+    expect(capComplexity('low', 'medium')).toBe('low') // already lower — unchanged
+  })
+
+  // The 260812 regression: a super_admin posting a photo got lifted to `critical`
+  // → gemini-pro-latest → an empty turn. Image turns cap at 'medium'.
+  it('an image turn from a super_admin lands on medium, not critical', () => {
+    const lifted = liftComplexity('critical', complexityFloorForRoles(['super_admin']))
+    expect(capComplexity(lifted, 'medium')).toBe('medium')
+  })
+})
 
 describe('liftComplexity', () => {
   it('lifts up to the floor, never below', () => {

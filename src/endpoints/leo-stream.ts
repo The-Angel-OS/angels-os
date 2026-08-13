@@ -46,7 +46,7 @@ import { extractTextFromContent, wrapTextContent } from '@/utilities/messageCont
 import { logError } from '@/utilities/logError'
 import { buildWizardSystemPromptSuffix } from '@/utilities/wizardPrompt'
 import type { WizardContext } from '@/utilities/wizardPrompt'
-import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, complexityFloorForRoles } from '@/utilities/ai-gateway'
+import { getModel, getFallbackModel, isGatewayAvailable, convertToolsForAISDK, MODEL_CATALOG, DEFAULT_MODEL, FALLBACK_MODEL, resolveModelId, getSmartModel, TASK_MODEL_MAP, checkCredits, getEscalatedComplexity, parseAgentEscalation, DEFAULT_ESCALATION, liftComplexity, capComplexity, complexityFloorForRoles } from '@/utilities/ai-gateway'
 import type { TaskComplexity, EscalationStrategy } from '@/utilities/ai-gateway'
 import { trimToTokenBudget } from '@/utilities/contextWindow'
 import { selectToolsForUser, allReadOnly, selectToolsForModel, selectToolsForContext } from '@/utilities/leoToolSelection'
@@ -1889,7 +1889,16 @@ async function streamViaGateway(opts: {
   // operator's stakes demand (a super_admin steering LEO is doing admin/agentic
   // work → strong tier). Credit pressure still downshifts inside getSmartModel.
   if (!smart) {
-    const effectiveComplexity = liftComplexity(complexity, complexityFloorForRoles(userRoles))
+    let effectiveComplexity = liftComplexity(complexity, complexityFloorForRoles(userRoles))
+    // A turn carrying an image is capped at the tier that DEMONSTRABLY answers
+    // images. 260812: Tyler posted a photo, the super_admin floor plus a deep-think
+    // round lifted the turn to `critical` → gemini-pro-latest, and it returned
+    // nothing at all — the placeholder sat in the channel until heal-stalled swept
+    // it 17 minutes later. The four photos before it were served by flash-lite and
+    // all answered well. A vision answer from the small model beats silence from
+    // the big one, and silence is what the big one gives on an image-only turn.
+    // ponytail: ceiling is 'medium'; raise it per-model once one is proven on vision.
+    if (userImages.length > 0) effectiveComplexity = capComplexity(effectiveComplexity, 'medium')
     smart = await getSmartModel(effectiveComplexity, {
       tenantId,
       userId,

@@ -250,6 +250,11 @@ export function liftComplexity(tier: TaskComplexity, floor: TaskComplexity): Tas
   return TIER_RANK[tier] >= TIER_RANK[floor] ? tier : floor
 }
 
+/** The inverse of liftComplexity — hold a tier at or below a ceiling. */
+export function capComplexity(tier: TaskComplexity, ceiling: TaskComplexity): TaskComplexity {
+  return TIER_RANK[tier] <= TIER_RANK[ceiling] ? tier : ceiling
+}
+
 /**
  * The minimum tier a session's STAKES demand, independent of the message text.
  *
