@@ -703,11 +703,22 @@ export async function buildMediaMeta(
     // Run analysis
     const result = await analyzeImage(url, options)
 
-    // Update with results
+    // Update with results.
+    //
+    // `media` and `tenant` are re-sent even though neither changes. The
+    // multi-tenant plugin validates the `media` relationship against
+    // `data.tenant ?? the request's selected tenant`, so an update that omits
+    // tenant is judged against whatever tenant the UPLOADER had selected — not
+    // the one that owns the file. That is why every image since 260728 created
+    // its media-meta row and then died on the completing update with "The
+    // following field is invalid: Media", leaving 84 rows stuck at `processing`
+    // and nothing in the RAG index. Saying who owns the row removes the guess.
     await payload.update({
       collection: 'media-meta' as any,
       id: meta.id,
       data: {
+        media: mediaId,
+        ...(numericId(tenantId) ? { tenant: numericId(tenantId) } : {}),
         status: result.success ? 'complete' : 'error',
         visionAnalysis: result.vision || undefined,
         ocrText: result.ocrText || undefined,

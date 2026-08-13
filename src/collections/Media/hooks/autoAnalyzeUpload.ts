@@ -29,6 +29,9 @@ export const autoAnalyzeUpload: CollectionAfterChangeHook = async ({ doc, operat
   setImmediate(async () => {
     try {
       const { buildMediaMeta } = await import('@/utilities/mediaAnalysis')
+      // buildMediaMeta writes on the payload instance with no req of its own, so
+      // there is no request tenant to leak in — the tenant it stamps comes from
+      // the media doc. @see detachedReq for the sibling case in mediaToAiBus.
       await buildMediaMeta(req.payload, {
         mediaDoc: doc as Record<string, unknown>,
         tenantId: tenantId ? Number(tenantId) : undefined,

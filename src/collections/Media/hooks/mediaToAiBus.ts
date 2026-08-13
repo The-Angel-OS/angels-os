@@ -20,6 +20,7 @@
 import type { CollectionAfterChangeHook, Payload, PayloadRequest } from 'payload'
 import { resolveAiBusSpaceId } from '@/utilities/ensureSystemSpace'
 import { wrapTextContent } from '@/utilities/messageContent'
+import { detachedReq } from '@/utilities/detachedReq'
 
 const MEDIA_CHANNEL_SLUG = 'media'
 
@@ -104,9 +105,12 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
 
   setImmediate(async () => {
     try {
+      // Past the response and past the commit — see detachedReq for why the
+      // original req's transaction and tenant cookie must not come along.
+      const bgReq = detachedReq(req)
       const spaceId = await resolveAiBusSpaceId(payload as never, tenantId)
       if (!spaceId) return
-      if (!(await ensureMediaChannel(payload, req, spaceId, tenantId))) return
+      if (!(await ensureMediaChannel(payload, bgReq, spaceId, tenantId))) return
 
       const author = await resolveAuthor(payload, tenantId)
       const filename = (doc.filename as string) || (doc.alt as string) || `media #${mediaId}`
@@ -123,8 +127,10 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
           author,
           tenant: Number(tenantId),
           visibility: 'tenant',
-          // Number() — the attachments `media` relationship's filterOptions compares
-          // in JS, so a string id fails "invalid: Attachments 1 > Media".
+          // Number() — the attachments `media` relationship's filterOptions
+          // compares in JS, so a string id fails "invalid: Attachments 1 > Media".
+          // That coercion alone did NOT fix it; the tenant the filter compares
+          // against came from the uploader's cookie, hence bgReq above.
           attachments: [{ media: Number(mediaId) }],
           metadata: {
             kind: 'media_created',
@@ -133,7 +139,7 @@ export const mediaToAiBus: CollectionAfterChangeHook = async ({ doc, operation, 
             filename,
           },
         } as never,
-        req,
+        req: bgReq,
         overrideAccess: true,
       })
     } catch (err) {
