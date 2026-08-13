@@ -68,7 +68,7 @@ export async function Footer({ tenant }: Props) {
               </div>
             }
           >
-            <FooterMenu menu={menu} />
+            <FooterMenu menu={menu} groups={footer?.navGroups ?? []} />
           </Suspense>
           <div className="md:ml-auto flex flex-col gap-4 items-end">
             <ThemeSelector />
@@ -120,9 +120,17 @@ export async function Footer({ tenant }: Props) {
       )}
       <div className="border-t border-neutral-200 pt-6 pb-20 md:pb-6 text-sm dark:border-neutral-700">
         <div className="container mx-auto flex w-full flex-col items-center gap-1 md:flex-row md:gap-0">
+          {/* Per-site override: COMPANY_NAME is a node-wide env var, so every
+              tenant on the node claimed the same copyright holder. `bottomText`
+              already existed on the Footer doc and was rendered nowhere. */}
           <p>
-            &copy; {copyrightDate} {copyrightName}
-            {copyrightName.length && !copyrightName.endsWith('.') ? '.' : ''} All rights reserved.
+            {footer?.bottomText || (
+              <>
+                &copy; {copyrightDate} {copyrightName}
+                {copyrightName.length && !copyrightName.endsWith('.') ? '.' : ''} All rights
+                reserved.
+              </>
+            )}
           </p>
           {(!tenant || (tenant as any).type === 'platform') && (
             <>
