@@ -20,6 +20,7 @@
 
 import type { Payload } from 'payload'
 import { isDown, markDown, recordSuccess, isFatalProviderError } from './providerHealth'
+import { isProviderEnabled } from './ai-gateway'
 import { analyzeImageWithGemini, analyzeImagesWithGemini } from './geminiVision'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -175,7 +176,10 @@ export async function analyzeImage(
   // Vision reads bytes, not a (rate-limited r2.dev) URL — fetch server-side once.
   imageUrl = await toBase64ImageUrl(imageUrl)
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  // A key that is present but switched off in AI_PROVIDER_ORDER is not a usable
+  // provider. 260813: ANTHROPIC_API_KEY was set with no credit behind it, so
+  // every image spent a 400 before falling to Gemini — for weeks, unattended.
+  const anthropicKey = isProviderEnabled('anthropic') ? process.env.ANTHROPIC_API_KEY : undefined
   const geminiKey = process.env.GOOGLE_AI_API_KEY
   if (!anthropicKey && !geminiKey) {
     return {
@@ -381,7 +385,10 @@ export async function analyzeImages(
     return { ...single, imageCount: 1, droppedForCap }
   }
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  // A key that is present but switched off in AI_PROVIDER_ORDER is not a usable
+  // provider. 260813: ANTHROPIC_API_KEY was set with no credit behind it, so
+  // every image spent a 400 before falling to Gemini — for weeks, unattended.
+  const anthropicKey = isProviderEnabled('anthropic') ? process.env.ANTHROPIC_API_KEY : undefined
   const geminiKey = process.env.GOOGLE_AI_API_KEY
   if (!anthropicKey && !geminiKey) {
     return { success: false, error: 'No vision provider configured (ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY).' }

@@ -641,6 +641,30 @@ const INTENT_PREFERENCE: Record<ModelIntent, ProviderKind[]> = {
 
 import { isDown as providerIsDown } from './providerHealth'
 
+/**
+ * Is a provider switched on for this node?
+ *
+ * `AI_PROVIDER_ORDER` is the one list that says which providers a node uses, so
+ * it should govern the ones reached DIRECTLY too — not just the ones routed
+ * through the gateway. Vision calls Anthropic by name (it is not a ProviderKind;
+ * it is a separate stack used only for images), and it kept calling a key with
+ * no credit behind it: a 400 on every image, a provider marked down, and the
+ * same thing again half an hour later, forever. Removing `anthropic` from the
+ * list now actually stops it.
+ *
+ * No list set → everything is allowed, which is what a fresh node expects.
+ * Names not in ProviderKind (like `anthropic`) are simply honoured here and
+ * ignored by the router, so one list stays the whole story.
+ */
+export function isProviderEnabled(name: string): boolean {
+  const raw = process.env.AI_PROVIDER_ORDER
+  if (!raw?.trim()) return true
+  return raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .includes(name.trim().toLowerCase())
+}
+
 export function resolveProviderOrder(intent: ModelIntent = 'default'): ProviderKind[] {
   const raw = process.env.AI_PROVIDER_ORDER
   const valid = new Set<ProviderKind>(['ollama', 'google', 'groq', 'nvidia', 'gateway', 'openrouter'])

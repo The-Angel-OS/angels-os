@@ -20,7 +20,12 @@ import type { CollectionAfterChangeHook } from 'payload'
 
 export const autoAnalyzeUpload: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (operation !== 'create') return doc
-  if (!process.env.ANTHROPIC_API_KEY) return doc
+  // Gated on ANY vision provider, not on Anthropic specifically. Gemini has been
+  // a first-class vision path since geminiVision landed, so keying the whole
+  // pipeline off ANTHROPIC_API_KEY meant a node running Gemini-only analyzed
+  // nothing at all — and once Anthropic is switched off in AI_PROVIDER_ORDER,
+  // that is every node. @see utilities/mediaAnalysis.ts
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.GOOGLE_AI_API_KEY) return doc
 
   const tenantId =
     typeof doc.tenant === 'object' && doc.tenant ? (doc.tenant as { id?: unknown }).id : doc.tenant

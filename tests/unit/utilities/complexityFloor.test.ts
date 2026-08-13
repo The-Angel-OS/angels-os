@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { liftComplexity, capComplexity, complexityFloorForRoles, getEscalatedComplexity } from '@/utilities/ai-gateway'
+import { liftComplexity, capComplexity, complexityFloorForRoles, getEscalatedComplexity, isProviderEnabled } from '@/utilities/ai-gateway'
 
 describe('capComplexity', () => {
   it('holds a tier at the ceiling, never above', () => {
@@ -72,5 +72,36 @@ describe('floor composes with the escalation rhythm', () => {
     const floor = complexityFloorForRoles(['customer']) // 'low'
     expect(liftComplexity(getEscalatedComplexity(1), floor)).toBe(getEscalatedComplexity(1))
     expect(liftComplexity(getEscalatedComplexity(5), floor)).toBe(getEscalatedComplexity(5))
+  })
+})
+
+describe('isProviderEnabled', () => {
+  afterEach(() => {
+    delete process.env.AI_PROVIDER_ORDER
+  })
+
+  it('allows everything when no order is configured', () => {
+    expect(isProviderEnabled('anthropic')).toBe(true)
+    expect(isProviderEnabled('google')).toBe(true)
+  })
+
+  // The 260813 case: the key was set with no credit behind it, so every image
+  // burned a 400 before falling to Gemini. Dropping it from the list stops the call.
+  it('honours a name that is not a routed ProviderKind, like anthropic', () => {
+    process.env.AI_PROVIDER_ORDER = 'google,groq,nvidia,ollama,openrouter'
+    expect(isProviderEnabled('anthropic')).toBe(false)
+    expect(isProviderEnabled('google')).toBe(true)
+  })
+
+  it('is whitespace and case tolerant', () => {
+    process.env.AI_PROVIDER_ORDER = ' Google , Anthropic '
+    expect(isProviderEnabled('anthropic')).toBe(true)
+    expect(isProviderEnabled('GOOGLE')).toBe(true)
+    expect(isProviderEnabled('groq')).toBe(false)
+  })
+
+  it('treats an empty list as unset rather than as "nothing allowed"', () => {
+    process.env.AI_PROVIDER_ORDER = '   '
+    expect(isProviderEnabled('anthropic')).toBe(true)
   })
 })
