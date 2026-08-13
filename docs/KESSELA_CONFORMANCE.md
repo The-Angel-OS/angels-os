@@ -107,3 +107,7 @@ practice — the words are migrated, the structure mostly isn't.
 4. Verify `trust_row` on home carries all four badges.
 5. Ask about the six drafts and the two extra pages.
 6. Sweep the remaining pages for the same content-block-flattening.
+
+Agent handing this off: [RUNBOOK_OPENCODE.md](RUNBOOK_OPENCODE.md) is the how —
+ops endpoints, the idempotent script skeleton, and what to escalate rather than
+guess (the six drafts above are an escalation, not a task).
