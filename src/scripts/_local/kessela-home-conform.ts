@@ -22,36 +22,12 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { updatePageLayout, type LayoutBlock } from './_updatePageLayout'
+import { h, p, bullets, rich, column } from './_lexical'
 
 const HOW_IT_WORKS_VIDEO = 450 // kessela-ht2.mp4, R2
 const TESTIMONIAL_IMAGES = [440, 441, 442] // Heather K · Michele K · Va
 
 const payload = await getPayload({ config })
-
-// ── lexical helpers ────────────────────────────────────────────────────────
-const t = (text: string) => ({
-  mode: 'normal', text, type: 'text', style: '', detail: 0, format: 0, version: 1,
-})
-const h = (tag: 'h2' | 'h3' | 'h4', text: string) => ({
-  tag, type: 'heading', format: '', indent: 0, version: 1, children: [t(text)], direction: 'ltr',
-})
-const p = (text: string) => ({
-  type: 'paragraph', format: '', indent: 0, version: 1, children: [t(text)], direction: 'ltr',
-})
-const bullets = (items: string[]) => ({
-  tag: 'ul', type: 'list', listType: 'bullet', start: 1, format: '', indent: 0, version: 1,
-  direction: 'ltr',
-  children: items.map((item, i) => ({
-    type: 'listitem', value: i + 1, format: '', indent: 0, version: 1,
-    children: [t(item)], direction: 'ltr',
-  })),
-})
-const rich = (children: unknown[]) => ({
-  root: { type: 'root', format: '', indent: 0, version: 1, children, direction: 'ltr' },
-})
-const column = (size: 'half' | 'full', children: unknown[]) => ({
-  size, richText: rich(children), enableLink: false,
-})
 
 // ── the page ───────────────────────────────────────────────────────────────
 const tenants = await payload.find({

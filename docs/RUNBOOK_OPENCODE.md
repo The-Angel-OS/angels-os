@@ -233,6 +233,12 @@ curl -s https://kessela.spacesangels.com/ | grep -c "Lighten Your Workout Load"
 A `0` from that grep with a `200` from the status check is the single most common
 false "done". Report the grep, always.
 
+**Header and footer edits take up to 5 minutes to show.** They're read through
+`unstable_cache` and busted by an `afterChange` tag — but `revalidateTag` is a no-op
+outside a request scope, so a `payload run` script can't bust it. The entry carries a
+300s TTL, so it self-heals. Wait it out and re-grep; don't "fix" it by editing again.
+Page layouts don't have this problem.
+
 Then, in your report, in this order:
 - The exact commands you ran.
 - The verification output (curl / tenant-doctor), pasted, not summarised.
