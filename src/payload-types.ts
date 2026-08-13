@@ -1884,6 +1884,10 @@ export interface Space {
   slug: string;
   description?: string | null;
   /**
+   * System space — provisioned infrastructure (AI Bus, Direct Messages). Cannot be deleted and is skipped when picking a default space.
+   */
+  isSystem?: boolean | null;
+  /**
    * 'Community' is the town square: readable AND postable by ANY authenticated user across the whole node, no membership or invite needed (distinct from 'Public', which is only visible within its own tenant). 'Private' hides the space except from explicit members.
    */
   visibility?: ('community' | 'public' | 'invite_only' | 'private') | null;
@@ -3442,9 +3446,17 @@ export interface SpaceMembership {
     invitationExpiresAt?: string | null;
     invitationMessage?: string | null;
     /**
-     * Email of invited user (may not exist yet)
+     * Email the invitation was addressed to
      */
     invitationEmail?: string | null;
+    /**
+     * E.164 mobile the invitation was addressed to
+     */
+    invitationPhone?: string | null;
+    /**
+     * Display name the inviting admin typed, if any
+     */
+    invitationName?: string | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -8491,6 +8503,7 @@ export interface SpacesSelect<T extends boolean = true> {
   generateSlug?: T;
   slug?: T;
   description?: T;
+  isSystem?: T;
   visibility?: T;
   isMain?: T;
   enabledApplets?: T;
@@ -8516,6 +8529,8 @@ export interface SpaceMembershipsSelect<T extends boolean = true> {
         invitationExpiresAt?: T;
         invitationMessage?: T;
         invitationEmail?: T;
+        invitationPhone?: T;
+        invitationName?: T;
       };
   updatedAt?: T;
   createdAt?: T;
