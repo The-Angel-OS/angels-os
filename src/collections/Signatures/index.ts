@@ -53,6 +53,12 @@ const computeContentHash: CollectionBeforeChangeHook = ({ data, operation, origi
 
 export const Signatures: CollectionConfig = {
   slug: 'signatures',
+  // Our custom Form Builder `signature` block (src/plugins/index.ts) also
+  // generates a GraphQL type named "Signature", and a duplicate type name fails
+  // the WHOLE schema build, not just the offending type. Same shape as the
+  // `messages` collision: a form-builder block slug and a collection singular
+  // are one namespace. Rename ours — nothing consumes the GraphQL API.
+  graphQL: { singularName: 'SignatureRecord', pluralName: 'SignatureRecords' },
   admin: {
     group: 'Trust',
     useAsTitle: 'signerName',
