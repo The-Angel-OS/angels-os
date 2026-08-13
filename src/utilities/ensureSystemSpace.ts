@@ -71,6 +71,10 @@ export async function ensureSystemSpace(
           slug: AI_BUS_SPACE_SLUG,
           description: 'System space for AI agent activity and monitoring. All Angel actions are visible here.',
           visibility: 'private',
+          // Infrastructure: skipped when picking a default space, and refused by
+          // the delete endpoint. Set at provisioning so new portals never rely on
+          // the slug backfill. @see collections/Spaces isSystem
+          isSystem: true,
           tenant: tenantId as number,
         },
         overrideAccess: true,

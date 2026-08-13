@@ -15,7 +15,7 @@ type Membership = { id: number; user: number; space: number }
 
 /** Payload stand-in over fixed channel/message/membership tables. */
 function fakePayload(opts: {
-  spaces: Array<{ id: number; name: string; slug?: string; tenant?: number }>
+  spaces: Array<{ id: number; name: string; slug?: string; tenant?: number; isSystem?: boolean }>
   channels: Channel[]
   /** channelId → message count */
   messages?: Record<number, number>
@@ -142,7 +142,17 @@ describe('buildDeletePlan', () => {
     await expect(buildDeletePlan(payload, 33, 99)).rejects.toThrow(/different portal/i)
   })
 
-  it('refuses to delete the AI Bus', async () => {
+  it('refuses to delete a space flagged isSystem', async () => {
+    const payload = fakePayload({
+      spaces: [{ id: 30, name: 'AI Bus', slug: 'ai-bus', tenant: 1, isSystem: true }],
+      channels: [],
+    })
+    await expect(buildDeletePlan(payload, 30, undefined)).rejects.toThrow(/system space/i)
+  })
+
+  // Belt for any system space provisioned before the column existed that somehow
+  // missed the backfill — the flag is the guard, the slug is the fallback.
+  it('still refuses the AI Bus by slug when the flag is unset', async () => {
     const payload = fakePayload({
       spaces: [{ id: 30, name: 'AI Bus', slug: 'ai-bus', tenant: 1 }],
       channels: [],

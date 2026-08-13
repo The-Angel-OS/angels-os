@@ -88,14 +88,15 @@ export async function buildDeletePlan(
     depth: 0,
     overrideAccess: true,
     req,
-  })) as { id: number; name: string; slug?: string; tenant?: unknown } | null
+  })) as { id: number; name: string; slug?: string; isSystem?: boolean; tenant?: unknown } | null
   if (!space) throw new Error('Space not found.')
 
-  // The AI Bus is infrastructure — LEO's channels, the error log, the system
-  // log all live on it. The dialog hides the button for it; the endpoint has to
-  // refuse it, because the dialog is not the only caller.
-  if (space.slug === AI_BUS_SPACE_SLUG) {
-    throw new Error('The AI Bus is a system space and cannot be deleted.')
+  // Infrastructure is not deletable. `isSystem` is the flag; the slug check
+  // stays as a belt for any system space provisioned before the column existed
+  // and somehow missed the backfill. The dialog hides the button for these, but
+  // the dialog is not the only caller.
+  if (space.isSystem || space.slug === AI_BUS_SPACE_SLUG || space.slug === 'direct-messages') {
+    throw new Error('That is a system space and cannot be deleted.')
   }
 
   let destination: { id: number; name: string } | null = null

@@ -8,6 +8,7 @@ import { MessageInput } from './MessageInput'
 import { useChat, CATCH_ALL_SLUG } from './useChat'
 import { useChatContext } from './ChatProvider'
 import { parseSpacesDeepLink } from './deepLink'
+import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
 import { useSpaces } from './useSpaces'
 import { SpacesMenuHeader } from './SpacesMenuHeader'
 import { LiveKitButton } from './LiveKitButton'
@@ -69,8 +70,34 @@ export function MultiChannelChat({
   const chatCtx = useChatContext()
   const hasProvider = chatCtx !== null
 
-  // Space management — provider or local
+  // Space management — provider or local.
+  //
+  // The local branch used to be plain component state, so a sidebar rendered
+  // WITHOUT a ChatProvider changed space correctly and then forgot the moment it
+  // unmounted — the prop (a server-side default) won again on the next mount.
+  // The provider branch and the dashboard have always published to surfaceStore;
+  // this branch just never joined them. Same store, same precedence the provider
+  // uses: a stored choice beats the default prop, because it is what the person
+  // actually picked.
   const [localSpaceId, setLocalSpaceId] = useState(initialSpaceId || '1')
+
+  // Restore AFTER mount rather than in the initializer: surfaceStore reads
+  // localStorage, which is empty during SSR, and seeding from it directly would
+  // hydrate a different value than the server rendered.
+  useEffect(() => {
+    if (hasProvider) return
+    const stored = getSurface().spaceId
+    if (stored) setLocalSpaceId((cur) => (stored === cur ? cur : stored))
+  }, [hasProvider])
+
+  // Follow the other surfaces: the dashboard chooser, the side viewer, another
+  // tab. This is the "both choosers track each other" half of the same fact.
+  useEffect(() => {
+    if (hasProvider) return
+    return subscribeSurface((s) => {
+      if (s.spaceId) setLocalSpaceId((cur) => (s.spaceId === cur ? cur : s.spaceId!))
+    })
+  }, [hasProvider])
   const activeSpaceId = hasProvider ? (chatCtx!.activeSpaceId || localSpaceId) : localSpaceId
   const { spaces: fetchedSpaces, isLoading: isLoadingSpaces } = useSpaces(
     hasProvider ? chatCtx!.spaces : initialSpaces,
@@ -219,6 +246,8 @@ export function MultiChannelChat({
       chatCtx!.setActiveSpace(newSpaceId)
     } else {
       setLocalSpaceId(newSpaceId)
+      // Publish, so the choice survives unmount and the other surfaces follow.
+      setSurface({ spaceId: newSpaceId })
     }
     onSpaceChange?.(newSpaceId)
   }

@@ -59,6 +59,7 @@ import * as migration_20260715_010000_backfill_guardian_angel_flavor from './202
 import * as migration_20260719_000000_add_google_reviews_block from './20260719_000000_add_google_reviews_block';
 import * as migration_20260719_010000_add_booking_hold_expiry from './20260719_010000_add_booking_hold_expiry';
 
+import * as migration_20260813_030000_spaces_is_system from './20260813_030000_spaces_is_system';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
 
 export const migrations = [
@@ -366,5 +367,10 @@ export const migrations = [
     up: migration_20260812_220000_space_invite_phone.up,
     down: migration_20260812_220000_space_invite_phone.down,
     name: '20260812_220000_space_invite_phone',
+  },
+  {
+    up: migration_20260813_030000_spaces_is_system.up,
+    down: migration_20260813_030000_spaces_is_system.down,
+    name: '20260813_030000_spaces_is_system',
   },
 ];

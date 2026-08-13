@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { adminOnly } from '@/access/adminOnly'
+import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 
 /**
@@ -75,6 +76,27 @@ export const Spaces: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
+    },
+    {
+      // Infrastructure, not a room people chose to be in: the AI Bus (LEO's
+      // channels, the error log, the system log) and Direct Messages.
+      //
+      // Five call sites already read `space.isSystem` — the dashboard's
+      // default-space pick, SpacesChat, the settings guard — and the field had
+      // never existed, so every one of them read `undefined`. `find(s =>
+      // !s.isSystem)` therefore matched the AI Bus as happily as anything else.
+      // Some sites had grown a `slug === 'ai-bus'` fallback; this makes the flag
+      // they were all written against real, so the guess isn't the guard.
+      name: 'isSystem',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      access: { update: adminOnlyFieldAccess },
+      admin: {
+        position: 'sidebar',
+        description:
+          'System space — provisioned infrastructure (AI Bus, Direct Messages). Cannot be deleted and is skipped when picking a default space.',
+      },
     },
     {
       name: 'visibility',
