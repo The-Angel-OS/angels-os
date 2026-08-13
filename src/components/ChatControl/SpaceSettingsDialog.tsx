@@ -35,6 +35,22 @@ interface SpaceMember {
   status: 'active' | 'pending'
 }
 
+/** Mirrors the endpoint's plan — @see src/endpoints/space-delete.ts */
+interface DeletePlan {
+  space: { id: number; name: string }
+  destination: { id: number; name: string } | null
+  channels: Array<{
+    channelId: number
+    slug: string
+    name: string
+    messageCount: number
+    action: 'move' | 'merge'
+  }>
+  looseMessages: number
+  membersMoved: number
+  membersAlreadyThere: number
+}
+
 interface SpaceSettingsDialogProps {
   open: boolean
   onClose: () => void
@@ -95,6 +111,10 @@ export function SpaceSettingsDialog({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteMsg, setDeleteMsg] = useState('')
+  /** Sibling spaces this one's contents can be moved into. */
+  const [siblings, setSiblings] = useState<Array<{ id: number; name: string }>>([])
+  const [reassignTo, setReassignTo] = useState<number | ''>('')
+  const [plan, setPlan] = useState<DeletePlan | null>(null)
 
   // Sync from prop changes
   useEffect(() => {
@@ -103,6 +123,48 @@ export function SpaceSettingsDialog({
     setVisibility((space.visibility as Visibility) || 'invite_only')
     setEnabledApplets(space.enabledApplets || ['chat', 'files', 'tasks'])
   }, [space])
+
+  // Candidate destinations — every other space the caller can see. Loaded when
+  // the danger zone opens, not on mount: most sessions never delete anything.
+  useEffect(() => {
+    if (!confirmDelete) return
+    let cancelled = false
+    fetch('/api/spaces?limit=100&depth=0&sort=name', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { docs: [] }))
+      .then((d: { docs?: Array<{ id: number; name: string }> }) => {
+        if (cancelled) return
+        // ChatSpace.id is a string, the REST doc's is a number — compare as text.
+        setSiblings((d.docs || []).filter((s) => String(s.id) !== String(space.id)))
+      })
+      .catch(() => {
+        /* the chooser just stays empty — delete-contents is still available */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [confirmDelete, space.id])
+
+  // The preview comes from the SAME code that performs the delete, so what you
+  // read here is what happens. Re-fetched whenever the destination changes.
+  useEffect(() => {
+    if (!confirmDelete) {
+      setPlan(null)
+      return
+    }
+    let cancelled = false
+    const qs = `spaceId=${space.id}${reassignTo ? `&reassignTo=${reassignTo}` : ''}`
+    fetch(`/api/space-ops/delete?${qs}`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { plan?: DeletePlan } | null) => {
+        if (!cancelled) setPlan(d?.plan ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setPlan(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [confirmDelete, reassignTo, space.id])
 
   const fetchMembers = useCallback(async () => {
     if (!space.id) return
@@ -247,16 +309,24 @@ export function SpaceSettingsDialog({
     setIsDeleting(true)
     setDeleteMsg('')
     try {
-      const res = await fetch(`/api/spaces/${space.id}`, {
-        method: 'DELETE',
+      const res = await fetch('/api/space-ops/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({
+          spaceId: space.id,
+          ...(reassignTo ? { reassignTo } : {}),
+          // No destination chosen: say out loud that the contents go too. The
+          // endpoint refuses a populated space otherwise, on purpose.
+          ...(reassignTo ? {} : { deleteContents: true }),
+        }),
       })
       if (res.ok) {
         onClose()
         onSpaceDeleted()
       } else {
         const data = await res.json().catch(() => ({}))
-        setDeleteMsg(data.errors?.[0]?.message || 'Delete failed')
+        setDeleteMsg(data.error || data.errors?.[0]?.message || 'Delete failed')
       }
     } catch {
       setDeleteMsg('Network error')
@@ -366,8 +436,60 @@ export function SpaceSettingsDialog({
                 <p className="mb-2 text-xs font-semibold text-destructive">Danger Zone</p>
                 {confirmDelete ? (
                   <div className="space-y-2">
+                    <label className="block text-xs text-muted-foreground">
+                      Move this space&apos;s channels and members to:
+                      <select
+                        value={reassignTo}
+                        onChange={(e) => setReassignTo(e.target.value ? Number(e.target.value) : '')}
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+                      >
+                        <option value="">Nowhere — delete them too</option>
+                        {siblings.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {/* What will actually happen, straight from the endpoint. */}
+                    {plan && (
+                      <div className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                        {plan.channels.length === 0 && plan.looseMessages === 0 ? (
+                          <p>This space is empty — nothing to move.</p>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {plan.channels.map((c) => (
+                              <li key={c.channelId}>
+                                <strong>#{c.slug}</strong>
+                                {c.messageCount > 0 && ` (${c.messageCount} message${c.messageCount === 1 ? '' : 's'})`}
+                                {plan.destination
+                                  ? c.action === 'merge'
+                                    ? ` → merges into #${c.slug} in ${plan.destination.name}`
+                                    : ` → moves to ${plan.destination.name}`
+                                  : ' → deleted'}
+                              </li>
+                            ))}
+                            {plan.looseMessages > 0 && (
+                              <li>
+                                {plan.looseMessages} message{plan.looseMessages === 1 ? '' : 's'} outside any channel
+                                {plan.destination ? ` → ${plan.destination.name}` : ' → deleted'}
+                              </li>
+                            )}
+                            {plan.destination && plan.membersMoved > 0 && (
+                              <li>
+                                {plan.membersMoved} member{plan.membersMoved === 1 ? '' : 's'} carried over
+                                {plan.membersAlreadyThere > 0 &&
+                                  ` (${plan.membersAlreadyThere} already there)`}
+                              </li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-xs text-muted-foreground">
-                      This will permanently delete <strong>{space.name}</strong> and all its channels and messages.
+                      <strong>{space.name}</strong> will be deleted.
                     </p>
                     {deleteMsg && <p className="text-xs text-destructive">{deleteMsg}</p>}
                     <div className="flex gap-2">

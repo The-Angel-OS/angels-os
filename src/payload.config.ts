@@ -93,6 +93,7 @@ import { leoChatHandler } from '@/endpoints/leo-chat'
 import { leoStreamHandler } from '@/endpoints/leo-stream'
 import { aiBusPollHandler } from '@/endpoints/ai-bus-poll'
 import { aiBusStreamHandler } from '@/endpoints/ai-bus-stream'
+import { spaceDeleteHandler } from '@/endpoints/space-delete'
 import { spaceCreateHandler } from '@/endpoints/space-create'
 import { spaceProvisionChannelsHandler } from '@/endpoints/space-provision-channels'
 import { spaceInviteHandler } from '@/endpoints/space-invite'
@@ -858,6 +859,18 @@ export default buildConfig({
       path: '/space-ops/provision-channels',
       method: 'post',
       handler: spaceProvisionChannelsHandler,
+    },
+    // Delete WITH a destination for the contents. GET returns the plan for the
+    // dialog's preview; POST carries it out. @see endpoints/space-delete.ts
+    {
+      path: '/space-ops/delete',
+      method: 'get',
+      handler: spaceDeleteHandler,
+    },
+    {
+      path: '/space-ops/delete',
+      method: 'post',
+      handler: spaceDeleteHandler,
     },
     // ─── Invitation System Endpoints ────────────────────────────
     {
