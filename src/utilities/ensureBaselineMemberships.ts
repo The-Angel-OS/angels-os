@@ -73,6 +73,20 @@ export async function ensureBaselineMemberships(
   //    something you ask for (and eventually pay for), never a side effect of
   //    authenticating. `guardianProvisioned` stays false. @see ensureGuardianAngel,
   //    still exported for the explicit claim path.
+  //
+  //    Signing in IS accepting your invitations, though — and that call used to
+  //    live inside the portal-minting it sat next to, so retiring one silently
+  //    retired the other. It belongs here, on the door itself.
+  if (user.email) {
+    try {
+      const { activatePendingInvitesForUser } = await import('@/utilities/activatePendingInvites')
+      await activatePendingInvitesForUser(payload, user.id, user.email.trim().toLowerCase())
+    } catch (err) {
+      payload.logger?.warn?.(
+        `[baseline] pending invites failed for user ${user.id}: ${err instanceof Error ? err.message : err}`,
+      )
+    }
+  }
 
   // 3. The portal they're actually joining (skip if it IS the platform — step 1).
   if (opts.joiningTenantId != null) {

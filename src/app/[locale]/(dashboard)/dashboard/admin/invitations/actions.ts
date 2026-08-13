@@ -68,12 +68,15 @@ export async function sendQuickInvite(input: {
   }
 
   const role = input.role || 'tenant_member'
+  const invitedName =
+    [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined
 
   // ── Phone invite: no outbound SMS yet — create the pending membership keyed
   // to the E.164 number, hand back the link for the admin to text themselves.
-  // The invitee signs in with a texted code; verifyOtpSms matches the approved
-  // phone to this row, creates their account, and activates the membership.
-  if (input.phone?.trim()) {
+  // The invitee signs in with a texted code and lands on the account minted here.
+  // Falls through to the email branch when BOTH are given, so one account answers
+  // to both doors instead of a texted code and a Google sign-in minting two.
+  if (input.phone?.trim() && !input.email?.trim()) {
     const { normalizePhone } = await import('@/utilities/otpLogin')
     const phone = normalizePhone(input.phone)
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
@@ -106,15 +109,18 @@ export async function sendQuickInvite(input: {
     const token = generateInvitationToken()
     const inviteUrl = `${getServerSideURL()}/tenant-invite/${token}`
     try {
+      const { findOrCreateInvitedUser } = await import('@/utilities/findOrCreateInvitedUser')
+      const invited = await findOrCreateInvitedUser(payload, { phone, name: invitedName })
       await payload.create({
         collection: 'tenant-memberships',
         data: {
+          user: invited.userId,
           tenant: tenantId,
           role,
           status: 'pending',
           invitedBy: user.id,
           invitationDetails: {
-            invitationName: [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined,
+            invitationName: invitedName,
             invitationPhone: phone,
             invitationToken: token,
             invitationExpiresAt: calculateExpiration(7).toISOString(),
@@ -170,19 +176,29 @@ export async function sendQuickInvite(input: {
   const baseUrl = getServerSideURL()
   const inviteUrl = `${baseUrl}/tenant-invite/${token}`
 
-  // A pending email invitation intentionally has NO `user` (the invitee has no
-  // account yet — it's linked on accept). Guarded so a create failure returns a
-  // friendly message instead of a 500 from the server action.
+  // The invitation carries a real `user` from the moment it is sent. When the
+  // admin supplied a phone as well, it rides along on the same account, so a
+  // texted code and a Google sign-in both land on this person.
+  const invitePhone = input.phone?.trim()
   try {
+    const { findOrCreateInvitedUser } = await import('@/utilities/findOrCreateInvitedUser')
+    const invited = await findOrCreateInvitedUser(payload, {
+      email,
+      phone: invitePhone,
+      name: invitedName,
+    })
     await payload.create({
       collection: 'tenant-memberships',
       data: {
+        user: invited.userId,
         tenant: tenantId,
         role,
         status: 'pending',
         invitedBy: user.id,
         invitationDetails: {
           invitationEmail: email,
+          ...(invited.phone ? { invitationPhone: invited.phone } : {}),
+          ...(invitedName ? { invitationName: invitedName } : {}),
           invitationToken: token,
           invitationExpiresAt: expiresAt.toISOString(),
         },
@@ -220,7 +236,8 @@ export async function sendQuickInvite(input: {
 
   await upsertInvitedContact(payload, tenantId, {
     email,
-    name: [input.firstName?.trim(), input.lastName?.trim()].filter(Boolean).join(' ') || undefined,
+    phone: invitePhone || undefined,
+    name: invitedName,
   })
   return { success: true, inviteUrl, emailSent }
 }

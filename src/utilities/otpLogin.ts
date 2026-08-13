@@ -202,6 +202,10 @@ export async function verifyOtp(payload: Payload, emailRaw: string, codeRaw: str
     })
   }
 
+  // They answered at the address — an invite-created shell becomes an account.
+  const { markUserVerified } = await import('@/utilities/findOrCreateInvitedUser')
+  await markUserVerified(payload, user as { id: number; _verified?: boolean })
+
   const minted = await mintSessionToken(payload, user as { id: number; email: string; sessions?: unknown[] })
 
   // Onboarding floor: every person gets their guardian-angel portal (idempotent,
@@ -303,6 +307,62 @@ export async function requestOtpSms(
  * we never create an account from a bare phone (no email to anchor identity);
  * unknown phones get the same generic failure as a wrong code.
  */
+/** Pending tenant invitations addressed to a phone, expiry already applied. */
+async function findValidPhoneInvites(payload: Payload, phone: string) {
+  const invited = await payload.find({
+    collection: 'tenant-memberships',
+    where: {
+      and: [
+        { 'invitationDetails.invitationPhone': { equals: phone } },
+        { status: { equals: 'pending' } },
+      ],
+    },
+    limit: 5,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const now = new Date()
+  return invited.docs.filter((m) => {
+    const exp = (m as { invitationDetails?: { invitationExpiresAt?: string } }).invitationDetails
+      ?.invitationExpiresAt
+    return !exp || new Date(exp) > now
+  })
+}
+
+/**
+ * Light up every pending invitation addressed to this number. Runs on EVERY
+ * successful texted-code sign-in, not just the one that creates an account —
+ * an invite-created user arrives with the row already waiting for them.
+ * Fail-soft: a signed-in user with a stuck invite beats a failed sign-in.
+ */
+async function activatePendingPhoneInvites(
+  payload: Payload,
+  phone: string,
+  userId: number | string,
+): Promise<void> {
+  try {
+    const pending = await findValidPhoneInvites(payload, phone)
+    if (pending.length === 0) return
+    const { autoActivatePendingMembership } = await import(
+      '@/utilities/autoActivatePendingMembership'
+    )
+    for (const m of pending) {
+      const doc = m as { id: number | string; tenant?: number | { id: number } }
+      const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
+      if (tenantId == null) continue
+      try {
+        await autoActivatePendingMembership(doc.id, userId, tenantId)
+      } catch {
+        /* keep going — one bad row must not strand the others */
+      }
+    }
+  } catch (e) {
+    payload.logger?.warn?.(
+      `[verifyOtpSms] could not activate pending invites for ${phone}: ${e instanceof Error ? e.message : e}`,
+    )
+  }
+}
+
 export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: string): Promise<VerifyOtpResult> {
   const phone = normalizePhone(phoneRaw)
   const code = String(codeRaw || '').trim()
@@ -341,24 +401,7 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
   // Without an invite, unknown phones still get the generic failure — no
   // account creation from a bare number, no enumeration oracle.
   if (!user) {
-    const invited = await payload.find({
-      collection: 'tenant-memberships',
-      where: {
-        and: [
-          { 'invitationDetails.invitationPhone': { equals: phone } },
-          { status: { equals: 'pending' } },
-        ],
-      },
-      limit: 5,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const now = new Date()
-    const validInvites = invited.docs.filter((m) => {
-      const exp = (m as { invitationDetails?: { invitationExpiresAt?: string } }).invitationDetails
-        ?.invitationExpiresAt
-      return !exp || new Date(exp) > now
-    })
+    const validInvites = await findValidPhoneInvites(payload, phone)
     if (validInvites.length === 0) return { ok: false, error: GENERIC_FAIL }
 
     // The invite usually carries the email the admin typed. USE IT — it is the
@@ -430,20 +473,22 @@ export async function verifyOtpSms(payload: Payload, phoneRaw: string, codeRaw: 
       }
     }
 
-    // Activate every pending invite on this number (full side-effects: contact
-    // sync + auto-join tenant spaces). Sequential; one bad row doesn't block.
-    const { autoActivatePendingMembership } = await import('@/utilities/autoActivatePendingMembership')
-    for (const m of validInvites) {
-      const doc = m as { id: number | string; tenant?: number | { id: number } }
-      const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
-      if (tenantId == null) continue
-      try {
-        await autoActivatePendingMembership(doc.id, (user as { id: number }).id, tenantId)
-      } catch {
-        /* keep going */
-      }
-    }
   }
+
+  // Activate every pending invite on this number (full side-effects: contact sync
+  // + auto-join tenant spaces). Sequential; one bad row doesn't block.
+  //
+  // This sits OUTSIDE the account-creation branch on purpose. Invitations now mint
+  // the account when they are SENT, so by the time the invitee texts in, the
+  // lookup above finds them and the branch never runs — leaving them signed in
+  // with the invite still pending, which is the failure the invite was meant to
+  // prevent. Activation belongs to "this person proved the number", not to "this
+  // person was new".
+  await activatePendingPhoneInvites(payload, phone, (user as { id: number }).id)
+
+  // They answered at the number an admin vouched for — the shell is a person now.
+  const { markUserVerified } = await import('@/utilities/findOrCreateInvitedUser')
+  await markUserVerified(payload, user as { id: number; _verified?: boolean })
 
   const minted = await mintSessionToken(payload, user as { id: number; email: string; sessions?: unknown[] })
 

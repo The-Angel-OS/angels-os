@@ -118,7 +118,20 @@ export const SpaceMemberships: CollectionConfig = {
         {
           name: 'invitationEmail',
           type: 'email',
-          admin: { description: 'Email of invited user (may not exist yet)' },
+          admin: { description: 'Email the invitation was addressed to' },
+        },
+        {
+          // Phone and email are co-equal anchors, so a space invite can be
+          // addressed to a number alone — the invitee signs in by text.
+          name: 'invitationPhone',
+          type: 'text',
+          index: true,
+          admin: { description: 'E.164 mobile the invitation was addressed to' },
+        },
+        {
+          name: 'invitationName',
+          type: 'text',
+          admin: { description: 'Display name the inviting admin typed, if any' },
         },
       ],
     },

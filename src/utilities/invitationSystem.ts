@@ -7,7 +7,7 @@
  * @see src/collections/SpaceMemberships/index.ts — schema
  * @see tests/unit/utilities/invitationSystem.test.ts — tests
  */
-import type { Payload } from 'payload'
+import type { Payload, Where } from 'payload'
 import crypto from 'crypto'
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,12 @@ export function generateInviteUrl(token: string, baseUrl: string = ''): string {
 
 export interface CreateInvitationOptions {
   payload: Payload
-  email: string
+  /** Email anchor. Optional only when `phone` is supplied. */
+  email?: string
+  /** Mobile number (any format; normalized to E.164). Enables sign-in by text. */
+  phone?: string
+  /** Display name the admin typed, if any. */
+  name?: string
   spaceId: number | string
   invitedByUserId: number | string
   role?: InvitableRole
@@ -85,7 +90,9 @@ export interface CreateInvitationOptions {
 export async function createInvitation(opts: CreateInvitationOptions) {
   const {
     payload,
-    email,
+    email: rawEmail,
+    phone: rawPhone,
+    name,
     spaceId,
     invitedByUserId,
     role = 'member',
@@ -93,7 +100,15 @@ export async function createInvitation(opts: CreateInvitationOptions) {
     expiryDays = DEFAULT_EXPIRY_DAYS,
   } = opts
 
-  if (!isValidEmail(email)) {
+  const email = (rawEmail || '').trim().toLowerCase()
+  const phone = (rawPhone || '').trim()
+
+  // Email OR phone. Requiring email meant you could not invite someone you only
+  // know by number, which is most of the people an admin actually wants to add.
+  if (!email && !phone) {
+    throw new Error('An email address or a mobile number is required.')
+  }
+  if (email && !isValidEmail(email)) {
     throw new Error('A valid email address is required.')
   }
 
@@ -104,19 +119,16 @@ export async function createInvitation(opts: CreateInvitationOptions) {
   const token = generateInvitationToken()
   const expiresAt = calculateExpiration(expiryDays)
 
-  // Check for existing active membership by email
-  // Look up user by email first
-  const existingUsers = await payload.find({
-    collection: 'users',
-    where: { email: { equals: email.trim().toLowerCase() } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
+  // An invitation names a person, so the person exists from here on. This
+  // find-or-creates the shell account and returns a real user id — no more
+  // "park it on the inviter and sort it out at accept time".
+  const { findOrCreateInvitedUser } = await import('@/utilities/findOrCreateInvitedUser')
+  const invited = await findOrCreateInvitedUser(payload, { email, phone, name })
+  const existingUserId = invited.userId
 
-  const existingUserId = existingUsers.docs[0]?.id
-
-  if (existingUserId) {
+  // A freshly minted shell has no memberships to collide with; only re-check
+  // when we attached to somebody who was already here.
+  if (!invited.created) {
     // Check if already a member
     const existingMembership = await payload.find({
       collection: 'space-memberships',
@@ -164,10 +176,13 @@ export async function createInvitation(opts: CreateInvitationOptions) {
     }
   }
 
-  // Create the pending membership with invitation details
-  // If the user exists, link to their account; otherwise create with a placeholder
+  // The pending membership points at the INVITEE. It used to point at the
+  // inviter when the invitee had no account — a row asserting that you are a
+  // pending member of the space you just invited someone to, waiting for any
+  // query that forgets to filter on status.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const membershipData: Record<string, any> = {
+    user: existingUserId,
     space: spaceId,
     role,
     status: 'pending',
@@ -175,17 +190,11 @@ export async function createInvitation(opts: CreateInvitationOptions) {
     invitationDetails: {
       invitationToken: token,
       invitationExpiresAt: expiresAt.toISOString(),
-      invitationEmail: email.trim().toLowerCase(),
+      ...(email ? { invitationEmail: email } : {}),
+      ...(invited.phone ? { invitationPhone: invited.phone } : {}),
+      ...(name ? { invitationName: name } : {}),
       invitationMessage: message || undefined,
     },
-  }
-
-  if (existingUserId) {
-    membershipData.user = existingUserId
-  } else {
-    // User doesn't exist yet — set user to the inviter temporarily
-    // Will be re-assigned when the user registers and accepts
-    membershipData.user = invitedByUserId
   }
 
   // space-memberships are tenant-scoped. On a request path the multi-tenant
@@ -214,14 +223,15 @@ export async function createInvitation(opts: CreateInvitationOptions) {
   try {
     const tenantForContact = membershipData.tenant
     if (tenantForContact != null) {
+      // Match on whichever anchor the invite carried — a phone-only invite has
+      // no email to match on, and `{ email: { equals: '' } }` silently matches
+      // nothing, so the funnel never moved for those.
+      const anchors: Where[] = []
+      if (email) anchors.push({ email: { equals: email } })
+      if (invited.phone) anchors.push({ phone: { equals: invited.phone } })
       const contacts = await payload.find({
         collection: 'contacts',
-        where: {
-          and: [
-            { tenant: { equals: tenantForContact } },
-            { email: { equals: email.trim().toLowerCase() } },
-          ],
-        },
+        where: { and: [{ tenant: { equals: tenantForContact } }, { or: anchors }] },
         limit: 1,
         depth: 0,
         overrideAccess: true,

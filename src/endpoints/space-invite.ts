@@ -29,9 +29,16 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { email, spaceId, role, message } = body
+  const { email, phone, name, spaceId, role, message } = body
 
-  if (!email || !isValidEmail(String(email))) {
+  // Email OR phone — you can invite someone you only know by number.
+  if (!email && !phone) {
+    return Response.json(
+      { error: 'An email address or a mobile number is required.' },
+      { status: 400 },
+    )
+  }
+  if (email && !isValidEmail(String(email))) {
     return Response.json({ error: 'A valid email address is required.' }, { status: 400 })
   }
 
@@ -104,7 +111,9 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
   try {
     const result = await createInvitation({
       payload,
-      email: String(email),
+      email: email ? String(email) : undefined,
+      phone: phone ? String(phone) : undefined,
+      name: name ? String(name) : undefined,
       spaceId: Number(spaceId) || String(spaceId),
       invitedByUserId: user.id,
       role: (role as 'member' | 'moderator' | 'guest') || 'member',
@@ -142,17 +151,21 @@ export const spaceInviteHandler: PayloadHandler = async (req) => {
       // Non-fatal — use defaults
     }
 
-    const emailSent = await sendInvitationEmail({
-      payload,
-      tenantId: spaceTenantId,
-      recipientEmail: String(email),
-      inviterName,
-      spaceName,
-      inviteUrl: result.inviteUrl,
-      role: (role as string) || 'member',
-      message: message ? String(message) : undefined,
-      tenantName,
-    })
+    // Phone-only invite: there is nothing to email. The admin texts the link;
+    // the invitee signs in with a code and lands on the account created above.
+    const emailSent = email
+      ? await sendInvitationEmail({
+          payload,
+          tenantId: spaceTenantId,
+          recipientEmail: String(email),
+          inviterName,
+          spaceName,
+          inviteUrl: result.inviteUrl,
+          role: (role as string) || 'member',
+          message: message ? String(message) : undefined,
+          tenantName,
+        })
+      : false
 
     return Response.json({
       success: true,
