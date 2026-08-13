@@ -6,7 +6,20 @@
  * @see src/collections/Workflows/index.ts
  * @see src/collections/Messages/index.ts (attachments, messageType)
  */
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
+
+/**
+ * A relationship read off a document is an id at depth 0 and an OBJECT at any
+ * greater depth. Reading `doc.tenant` straight into a query worked in tests
+ * (depth 0) and produced `tenant_id = NaN` in production, where the afterChange
+ * hook sees a populated doc. The failure was swallowed by the hook's catch, so
+ * message workflows have simply never run for a tenant.
+ */
+const relId = (v: unknown): number | undefined => {
+  const raw = v && typeof v === 'object' ? (v as { id?: unknown }).id : v
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
 
 export interface WorkflowMessage {
   id: number | string
@@ -32,9 +45,12 @@ export interface WorkflowResult {
 export async function runWorkflowsForMessage(
   payload: Payload,
   message: WorkflowMessage,
-  tenantId?: number | string,
+  tenantId?: number | string | { id?: number | string } | null,
+  opts: { req?: PayloadRequest } = {},
 ): Promise<WorkflowResult[]> {
   const results: WorkflowResult[] = []
+  const { req } = opts
+  const tenant = relId(tenantId)
 
   // Find active workflows that match this message
   const workflows = await payload.find({
@@ -42,11 +58,13 @@ export async function runWorkflowsForMessage(
     where: {
       and: [
         { isActive: { equals: true } },
-        { tenant: tenantId ? { equals: tenantId } : { exists: false } },
+        { tenant: tenant ? { equals: tenant } : { exists: false } },
       ],
     },
     depth: 0,
+    limit: 0, // every matching workflow, not the default page of 10
     overrideAccess: true,
+    req,
   })
 
   for (const workflow of workflows.docs ?? []) {
@@ -59,7 +77,7 @@ export async function runWorkflowsForMessage(
 
     // Run workflow based on slug
     try {
-      const result = await runWorkflow(payload, w.slug, message, tenantId)
+      const result = await runWorkflow(payload, w.slug, message, tenant, req)
       results.push(result)
     } catch (err) {
       results.push({
@@ -77,11 +95,12 @@ async function runWorkflow(
   payload: Payload,
   slug: string,
   message: WorkflowMessage,
-  tenantId?: number | string,
+  tenantId?: number,
+  req?: PayloadRequest,
 ): Promise<WorkflowResult> {
   switch (slug) {
     case 'inventory_from_image':
-      return runInventoryFromImage(payload, message, tenantId)
+      return runInventoryFromImage(payload, message, tenantId, req)
     default:
       return {
         workflowSlug: slug,
@@ -99,7 +118,8 @@ async function runWorkflow(
 async function runInventoryFromImage(
   payload: Payload,
   message: WorkflowMessage,
-  tenantId?: number | string,
+  tenantId?: number,
+  req?: PayloadRequest,
 ): Promise<WorkflowResult> {
   const attachments = message.attachments ?? []
   if (attachments.length === 0) {
@@ -132,6 +152,7 @@ async function runInventoryFromImage(
       gallery: [{ image: firstMediaId }],
     } as any,
     overrideAccess: true,
+    req,
   })
 
   return {

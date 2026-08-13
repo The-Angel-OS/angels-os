@@ -39,6 +39,32 @@ describe('runWorkflowsForMessage', () => {
     )
   })
 
+  // The 260812 bug: an afterChange hook hands over the POPULATED tenant, and
+  // `{ equals: {…} }` reached Postgres as NaN. The hook's catch swallowed it, so
+  // message workflows had silently never run for a tenant.
+  it('accepts a populated tenant relationship, not just an id', async () => {
+    const payload = makePayload([])
+    await runWorkflowsForMessage(payload, BASE_MESSAGE, { id: 5, name: 'Clearwater' } as never)
+    const call = payload.find.mock.calls[0][0]
+    expect(call.where.and).toContainEqual({ tenant: { equals: 5 } })
+  })
+
+  it('treats an unusable tenant as untenanted rather than querying NaN', async () => {
+    for (const bad of [undefined, null, {}, 'not-a-number']) {
+      const payload = makePayload([])
+      await runWorkflowsForMessage(payload, BASE_MESSAGE, bad as never)
+      const call = payload.find.mock.calls[0][0]
+      expect(call.where.and).toContainEqual({ tenant: { exists: false } })
+    }
+  })
+
+  it('threads req into the workflow lookup so it joins the transaction', async () => {
+    const payload = makePayload([])
+    const req = { id: 'req-1' } as never
+    await runWorkflowsForMessage(payload, BASE_MESSAGE, 5, { req })
+    expect(payload.find.mock.calls[0][0].req).toBe(req)
+  })
+
   it('filters workflows by tenantId when provided', async () => {
     const payload = makePayload([])
     await runWorkflowsForMessage(payload, BASE_MESSAGE, 5)

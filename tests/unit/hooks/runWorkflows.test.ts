@@ -99,7 +99,8 @@ describe('runWorkflows', () => {
         space: 10,
         messageType: 'chat',
       }),
-      5, // tenantId
+      5, // tenantId — passed through raw; the runner normalizes it
+      { req: args.req }, // so a nested product-draft write joins the transaction
     )
   })
 
@@ -117,6 +118,7 @@ describe('runWorkflows', () => {
         content: expect.any(String),
       }),
       5,
+      { req: args.req },
     )
   })
 
