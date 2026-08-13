@@ -177,6 +177,17 @@ In this order. Stop at the first one that explains it; do not theorise past it.
 2. **Server logs:** `railway logs -s Core` (add `-d` for the deploy log). This is
    the real stack trace. `railway up -s Core` is how a deploy happens — pushing to
    GitHub does **not** deploy, so if your fix "isn't live", check that first.
+
+   The Railway CLI is installed and this repo is already linked (`railway status`
+   should print project `angels-os`). If it asks you to log in, don't run
+   `railway login` — it opens a browser and you can't complete it. `RAILWAY_TOKEN`
+   is in `.env.local`; export it and retry:
+   ```bash
+   export RAILWAY_TOKEN=$(grep '^RAILWAY_TOKEN=' .env.local | cut -d= -f2-)
+   railway status
+   ```
+   Still failing? Skip to step 3 and report that logs were unavailable — do not
+   re-link the project or create one.
 3. **Is the node even up?** `curl -s $NODE/api/health`.
 4. **Persisted errors:** the `application-logs` collection (`logError` writes there)
    and `client-error` for browser-side. Query it like any collection:
