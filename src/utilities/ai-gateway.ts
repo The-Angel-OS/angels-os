@@ -288,16 +288,19 @@ export interface CreditSnapshot {
 }
 
 let _creditCache: CreditSnapshot | null = null
+/** When the last check FAILED — negative results are cached too. */
+let _creditFailedAt = 0
 const CREDIT_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 /**
  * Checks the current AI Gateway credit balance.
- * Results are cached for 5 minutes to avoid excessive API calls.
+ * Results are cached for 5 minutes — successes and failures alike.
  */
 export async function checkCredits(): Promise<CreditSnapshot | null> {
   if (_creditCache && Date.now() - _creditCache.checkedAt < CREDIT_CACHE_TTL) {
     return _creditCache
   }
+  if (Date.now() - _creditFailedAt < CREDIT_CACHE_TTL) return _creditCache
 
   const apiKey = resolveGatewayKey()
   if (!apiKey) return null
@@ -312,6 +315,12 @@ export async function checkCredits(): Promise<CreditSnapshot | null> {
     }
     return _creditCache
   } catch (err) {
+    // Back off on failure exactly as we cache success. A revoked key fails every
+    // single turn, and the retry-plus-warn on each one printed the same six-line
+    // "create an API key" block into the logs forever (260812: the live key was
+    // 401ing and this was the loudest thing in there). One warning per TTL says
+    // the same thing and leaves the logs readable.
+    _creditFailedAt = Date.now()
     console.warn('[AI Gateway] Failed to check credits:', err instanceof Error ? err.message : err)
     return _creditCache
   }
@@ -320,6 +329,7 @@ export async function checkCredits(): Promise<CreditSnapshot | null> {
 /** Invalidates the credit cache (call after top-up or significant usage). */
 export function invalidateCreditCache(): void {
   _creditCache = null
+  _creditFailedAt = 0 // a rotated key deserves an immediate retry
 }
 
 // ---------------------------------------------------------------------------
