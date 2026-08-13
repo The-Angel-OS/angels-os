@@ -69,6 +69,11 @@ const readMessages: Access = async ({ req }) => {
 
 export const Messages: CollectionConfig = {
   slug: 'messages',
+  // form-builder's `message` block also generates a GraphQL type named "Message",
+  // which collided here and hard-failed the ENTIRE /api/graphql schema build
+  // ("Schema must contain uniquely named types"). Rename ours; nothing consumes
+  // the GraphQL API (REST + local API everywhere), and it was broken anyway.
+  graphQL: { singularName: 'ChatMessage', pluralName: 'ChatMessages' },
   // Document locking off (Answer 53) — see Pages/index.ts: the shared
   // payload_locked_documents lock query is the failure point on admin saves on the
   // angels node; locking guards concurrent-editor collisions we don't need here.

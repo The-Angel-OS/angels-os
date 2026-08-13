@@ -42,8 +42,9 @@ export const resolveTenantFromHeaders = cache(async (): Promise<{
     if (tenant) {
       return { tenant, tenantId: tenant.id, tenantFilter: buildTenantFilter(tenant.id) }
     }
-    // Slug lookup failed (DB error or cold start) — fall through to domain lookup
-    console.warn(`[resolveTenantFromHeaders] Slug "${tenantSlug}" lookup failed — falling back to domain`)
+    // Slug lookup failed — fall through to domain lookup. NOT an error: scanners
+    // probe hundreds of bogus subdomains a day (`n8n`, `studio`, `big-agi`), and
+    // warning on each buried the real errors. ponytail: silent by design.
   }
 
   // 2. No header — resolve by domain (handles platform domains like spacesangels.com)
