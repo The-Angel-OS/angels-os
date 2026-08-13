@@ -66,19 +66,13 @@ export async function ensureBaselineMemberships(
     )
   }
 
-  // 2. Their own Guardian Angel portal. Needs an email — a phone-only user gets
-  //    one on their first login that carries an email.
-  if (user.email) {
-    try {
-      const { ensureGuardianAngel } = await import('@/utilities/ensureGuardianAngel')
-      const ga = await ensureGuardianAngel(payload, user, { req: opts.req })
-      result.guardianProvisioned = Boolean(ga?.provisioned)
-    } catch (err) {
-      payload.logger?.warn?.(
-        `[baseline] guardian angel failed for user ${user.id}: ${err instanceof Error ? err.message : err}`,
-      )
-    }
-  }
+  // 2. (retired 260812) Every login used to mint the user a whole personal
+  //    portal — tenant, endeavor, nav, pages, contact form, four spaces. A person
+  //    is not a portal. They are a MEMBER, rooted in the root portal and in the
+  //    portal they signed into; that is steps 1 and 3. Minting a portal is now
+  //    something you ask for (and eventually pay for), never a side effect of
+  //    authenticating. `guardianProvisioned` stays false. @see ensureGuardianAngel,
+  //    still exported for the explicit claim path.
 
   // 3. The portal they're actually joining (skip if it IS the platform — step 1).
   if (opts.joiningTenantId != null) {
