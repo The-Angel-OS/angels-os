@@ -15,7 +15,7 @@ type Membership = { id: number; user: number; space: number }
 
 /** Payload stand-in over fixed channel/message/membership tables. */
 function fakePayload(opts: {
-  spaces: Array<{ id: number; name: string }>
+  spaces: Array<{ id: number; name: string; slug?: string; tenant?: number }>
   channels: Channel[]
   /** channelId → message count */
   messages?: Record<number, number>
@@ -126,6 +126,37 @@ describe('buildDeletePlan', () => {
     expect(plan.destination).toBeNull()
     expect(plan.channels).toHaveLength(2)
     expect(plan.channels.every((c) => c.action === 'move')).toBe(true) // no merge target exists
+  })
+
+  // Authorization is granted against the SOURCE space's tenant, so a
+  // cross-tenant destination would let an admin of one portal push channels,
+  // messages and members into a portal they have no rights to.
+  it('refuses a destination in another tenant', async () => {
+    const payload = fakePayload({
+      spaces: [
+        { id: 33, name: 'Community', tenant: 1 },
+        { id: 99, name: 'Someone Elses', tenant: 5 },
+      ],
+      channels: [],
+    })
+    await expect(buildDeletePlan(payload, 33, 99)).rejects.toThrow(/different portal/i)
+  })
+
+  it('refuses to delete the AI Bus', async () => {
+    const payload = fakePayload({
+      spaces: [{ id: 30, name: 'AI Bus', slug: 'ai-bus', tenant: 1 }],
+      channels: [],
+    })
+    await expect(buildDeletePlan(payload, 30, undefined)).rejects.toThrow(/system space/i)
+  })
+
+  it('carries the owning tenant on the plan, so the handler can authorize', async () => {
+    const payload = fakePayload({
+      spaces: [{ id: 33, name: 'Community', tenant: 7 }],
+      channels: [],
+    })
+    const plan = await buildDeletePlan(payload, 33, undefined)
+    expect(plan.space.tenantId).toBe(7)
   })
 
   it('refuses to move a space into itself', async () => {

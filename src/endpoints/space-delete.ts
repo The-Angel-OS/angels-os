@@ -2,11 +2,14 @@
  * Space Delete Endpoint — POST /api/space-ops/delete
  *
  * Deleting a space used to be `DELETE /api/spaces/:id` straight at Payload, and
- * the dialog told you it would "permanently delete the space and all its
- * channels and messages". It did neither. EVERY foreign key into `spaces` is
- * ON DELETE SET NULL, so the channels, the messages and the memberships all
- * survived with a null space — alive, unreachable, invisible to every UI. The
- * warning was the opposite of the truth, which is the worst kind of warning.
+ * it did exactly what the dialog warned: `Spaces.beforeDelete` cascades the
+ * memberships, messages and channels before the row goes. (The FKs are all
+ * ON DELETE SET NULL onto NOT NULL columns, so the cascade is not optional —
+ * without it the delete fails outright. It is a real cascade, not an orphaning.)
+ *
+ * The problem was that destruction was the ONLY option. Three "Community"
+ * spaces accumulate across separate provisionings and the way to end up with
+ * one is to throw two of them away, messages included.
  *
  * So a delete now says where the contents go. Pick a destination space and the
  * channels move there; same-slug channels MERGE into the destination's
@@ -20,11 +23,21 @@
  * The plan is the same code path as the execution, so the preview in the dialog
  * cannot drift from what actually happens.
  *
+ * AUTHORIZATION: every write here runs with overrideAccess, so this endpoint
+ * REPLACES Payload's `Spaces.delete` (adminOnly) rather than layering on it —
+ * the bar has to be set here deliberately, and it has to be no lower. It is
+ * `canManageSpaces` against the tenant that owns the space: super_admin, or
+ * tenant_admin / tenant_manager / an explicit manage_spaces grant on that
+ * tenant. A space_admin is NOT enough. The destination must belong to the same
+ * tenant, and the AI Bus cannot be deleted at all.
+ *
  * @see src/components/ChatControl/SpaceSettingsDialog.tsx — the chooser
+ * @see src/collections/Spaces/index.ts — delete: adminOnly, and the cascade hook
  */
 import type { PayloadHandler, PayloadRequest, Payload } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { logError } from '@/utilities/logError'
+import { AI_BUS_SPACE_SLUG } from '@/utilities/ensureSystemSpace'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +53,7 @@ export interface ChannelPlan {
 }
 
 export interface DeletePlan {
-  space: { id: number; name: string }
+  space: { id: number; name: string; tenantId?: number }
   destination: { id: number; name: string } | null
   channels: ChannelPlan[]
   /** Messages that hang off the space but no channel — they follow the space. */
@@ -75,20 +88,34 @@ export async function buildDeletePlan(
     depth: 0,
     overrideAccess: true,
     req,
-  })) as { id: number; name: string } | null
+  })) as { id: number; name: string; slug?: string; tenant?: unknown } | null
   if (!space) throw new Error('Space not found.')
+
+  // The AI Bus is infrastructure — LEO's channels, the error log, the system
+  // log all live on it. The dialog hides the button for it; the endpoint has to
+  // refuse it, because the dialog is not the only caller.
+  if (space.slug === AI_BUS_SPACE_SLUG) {
+    throw new Error('The AI Bus is a system space and cannot be deleted.')
+  }
 
   let destination: { id: number; name: string } | null = null
   if (destinationId) {
     if (destinationId === spaceId) throw new Error('A space cannot be moved into itself.')
-    destination = (await payload.findByID({
+    const dest = (await payload.findByID({
       collection: 'spaces',
       id: destinationId,
       depth: 0,
       overrideAccess: true,
       req,
-    })) as { id: number; name: string } | null
-    if (!destination) throw new Error('Destination space not found.')
+    })) as { id: number; name: string; tenant?: unknown } | null
+    if (!dest) throw new Error('Destination space not found.')
+    // Same tenant, always. Authorization is granted against the SOURCE space's
+    // tenant, so allowing a cross-tenant destination would let an admin of one
+    // portal push channels, messages and members into another portal's space.
+    if (num(dest.tenant) !== num(space.tenant)) {
+      throw new Error('The destination space belongs to a different portal.')
+    }
+    destination = { id: dest.id, name: dest.name }
   }
 
   const sourceChannels = await payload.find({
@@ -180,7 +207,7 @@ export async function buildDeletePlan(
   }
 
   return {
-    space: { id: space.id, name: space.name },
+    space: { id: space.id, name: space.name, tenantId: num(space.tenant) },
     destination,
     channels,
     looseMessages: loose.totalDocs,
@@ -191,28 +218,25 @@ export async function buildDeletePlan(
 
 // ── Authorization ───────────────────────────────────────────────────────────
 
+/**
+ * Deleting a space is a TENANT-admin act, not a space-admin one.
+ *
+ * The bar has to be `Spaces.delete` — `adminOnly` — because this endpoint runs
+ * every write with overrideAccess and therefore replaces Payload's own checks
+ * rather than layering on them. An earlier draft accepted any space_admin of
+ * the space, which would have handed a per-space role the power the collection
+ * reserves for tenant admins. `canManageSpaces` is the same gate `Spaces.create`
+ * uses, and it is scoped to the tenant that owns the space, so a tenant_admin
+ * of one portal cannot reach into another.
+ */
 async function canAdministerSpace(
   payload: Payload,
-  userId: number | string,
-  roles: string[],
-  spaceId: number,
+  user: { id: number | string; email?: string; roles?: unknown[] },
+  tenantId: number | string | undefined,
 ): Promise<boolean> {
-  if (roles.includes('super_admin')) return true
-  const membership = await payload.find({
-    collection: 'space-memberships',
-    where: {
-      and: [
-        { user: { equals: userId } },
-        { space: { equals: spaceId } },
-        { status: { equals: 'active' } },
-        { role: { equals: 'space_admin' } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  return membership.docs.length > 0
+  if (!tenantId) return false
+  const { canManageSpaces } = await import('@/access/canManageSpaces')
+  return canManageSpaces(user as never, tenantId)
 }
 
 // ── Handler ─────────────────────────────────────────────────────────────────
@@ -221,7 +245,6 @@ export const spaceDeleteHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
   if (!user) return Response.json({ error: 'Authentication required' }, { status: 401 })
 
-  const roles = ((user as { roles?: string[] }).roles || []) as string[]
   const isPreview = req.method === 'GET'
 
   let spaceId: number | undefined
@@ -246,18 +269,21 @@ export const spaceDeleteHandler: PayloadHandler = async (req) => {
 
   if (!spaceId) return Response.json({ error: 'spaceId is required.' }, { status: 400 })
 
-  if (!(await canAdministerSpace(payload, user.id, roles, spaceId))) {
-    return Response.json(
-      { error: 'You must be an admin of this space to delete it.' },
-      { status: 403 },
-    )
-  }
-
+  // The plan is read-only, and it is what tells us which tenant owns the space —
+  // so build it first, then authorize against that tenant before anything else
+  // is returned or written. A 403 leaks nothing: the plan is discarded.
   let plan: DeletePlan
   try {
     plan = await buildDeletePlan(payload, spaceId, destinationId, req)
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : 'Could not read the space.' }, { status: 400 })
+  }
+
+  if (!(await canAdministerSpace(payload, user as never, plan.space.tenantId))) {
+    return Response.json(
+      { error: 'Only an admin of this portal can delete a space.' },
+      { status: 403 },
+    )
   }
 
   if (isPreview) return Response.json({ plan })
