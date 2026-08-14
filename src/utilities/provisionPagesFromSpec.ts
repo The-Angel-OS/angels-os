@@ -183,8 +183,10 @@ export async function provisionPagesFromSpec(
   if (needsForm) {
     try {
       const { ensureTenantContactForm } = await import('./ensureTenantContactForm')
-      const form = await ensureTenantContactForm(payload, tenantId, {} as never)
-      contactFormId = (form as unknown as { id: number | string } | null)?.id ?? null
+      // The helper returns `formId`, not `id` — reading `.id` here silently
+      // resolved to null every time, so `contactForm: true` has never actually
+      // put a form on a page.
+      contactFormId = (await ensureTenantContactForm(payload, tenantId, {} as never)).formId ?? null
     } catch {
       // Non-fatal — page will render without the form block if this fails.
     }

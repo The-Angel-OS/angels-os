@@ -5,8 +5,14 @@
  * inversion (the spec reads left-to-right, the column stores which side the
  * MEDIA is on — easy to flip and impossible to notice in a diff).
  */
-import { describe, expect, it } from 'vitest'
-import { buildSection } from '@/utilities/provisionPagesFromSpec'
+import { describe, expect, it, vi } from 'vitest'
+import { buildSection, provisionPagesFromSpec } from '@/utilities/provisionPagesFromSpec'
+
+// The helper's result key is `formId`; reading `.id` used to silently yield null
+// and drop the form block off the page with no error anywhere.
+vi.mock('@/utilities/ensureTenantContactForm', () => ({
+  ensureTenantContactForm: async () => ({ formId: 42, formCreated: false, pageWired: true, note: 'stub' }),
+}))
 
 describe('buildSection', () => {
   it('emits a gallery with images as {image} rows', () => {
@@ -38,5 +44,22 @@ describe('buildSection', () => {
 
   it('returns null for a section naming nothing buildable', () => {
     expect(buildSection({}, 1)).toBeNull()
+  })
+})
+
+describe('provisionPagesFromSpec contact form', () => {
+  it('resolves the tenant form and writes a formBlock into the layout', async () => {
+    const created: Array<Record<string, any>> = []
+    const payload = {
+      find: async () => ({ docs: [] }),
+      create: async ({ data }: { data: Record<string, any> }) => created.push(data),
+      update: async () => undefined,
+    } as any
+
+    await provisionPagesFromSpec(payload, 32, [
+      { slug: 'contact', title: 'Contact', heroHeading: 'Get in touch', sections: [{ contactForm: true }] },
+    ])
+
+    expect(created[0].layout).toEqual([{ blockType: 'formBlock', form: 42, enableIntro: false }])
   })
 })
