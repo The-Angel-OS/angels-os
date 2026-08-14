@@ -49,20 +49,27 @@ export const FeaturedEndeavorsBlock: React.FC<
   const payload = await getPayload({ config: configPromise })
   let endeavors: Endeavor[] = []
 
-  if (source === 'manual' && manualEndeavors && manualEndeavors.length > 0) {
-    // Resolve relationship IDs to full docs
-    const ids = manualEndeavors.map((e: any) => (typeof e === 'object' ? e.id : e))
-    const result = await payload.find({
-      collection: 'endeavors',
-      where: { id: { in: ids } },
-      limit: ids.length,
-      depth: 1,
-      overrideAccess: true,
-    })
-    // Maintain the manual sort order
-    endeavors = ids
-      .map((id: number) => result.docs.find((d: any) => d.id === id))
-      .filter(Boolean) as Endeavor[]
+  // NOTE the condition is on `source` ALONE. It used to also require a non-empty
+  // list, so "Hand-Picked with nothing picked" fell through to the branch below
+  // and published EVERY active endeavor, newest first — which is how a
+  // tenant-less row named "Claim" reached the front page on 260809. Picking
+  // nothing must show nothing; the empty state below says so out loud.
+  if (source === 'manual') {
+    // Resolve relationship IDs to full docs. An empty list stays empty.
+    const ids = (manualEndeavors ?? []).map((e: any) => (typeof e === 'object' ? e.id : e))
+    if (ids.length > 0) {
+      const result = await payload.find({
+        collection: 'endeavors',
+        where: { id: { in: ids } },
+        limit: ids.length,
+        depth: 1,
+        overrideAccess: true,
+      })
+      // Maintain the manual sort order
+      endeavors = ids
+        .map((id: number) => result.docs.find((d: any) => d.id === id))
+        .filter(Boolean) as Endeavor[]
+    }
   } else {
     // Fetch most recent active endeavors
     const result = await payload.find({

@@ -42,6 +42,15 @@ export const FeaturedEndeavors: Block = {
       relationTo: 'endeavors',
       hasMany: true,
       maxRows: 12,
+      // ⚠️ Cross-tenant picks currently FAIL validation ("invalid selections").
+      // Endeavors are tenant-scoped (multiTenantPlugin, payload.config.ts), so a
+      // page may only reference endeavors of its OWN tenant — which makes the
+      // platform showcase impossible, since its entire purpose is to feature
+      // OTHER tenants. A field-level filterOptions here does NOT help: the
+      // plugin's tenant constraint is applied to relationship validation
+      // regardless (verified 260809). The only lever is `endeavors:
+      // { useTenantAccess: false }` in the plugin config, which is a
+      // collection-wide access change and needs a deliberate decision.
       admin: {
         isSortable: true,
         description: 'Select specific endeavors to feature (only used when source is "Hand-Picked")',
