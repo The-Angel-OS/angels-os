@@ -57,7 +57,13 @@ export function detectTenantFromHostname(hostname: string): string | null {
     'angels-os.kendev.co', 'angel-os.kendev.co', 'angels-os.vercel.app',
   ]
   if (mainPlatformDomains.includes(hostname)) {
-    return null
+    // …unless the apex is ITSELF an endeavor that sells. The page renderer already
+    // falls back to DEFAULT_TENANT_SLUG here (fetchTenantByDomain), but the header
+    // did not — so www.spacesangels.com rendered tenant content while every
+    // host-authoritative money endpoint (membership checkout, donations, readiness)
+    // 400'd with "tenant slug required". Setting the env makes the two agree; leave
+    // it unset and this is exactly the old behaviour.
+    return process.env.DEFAULT_TENANT_SLUG || null
   }
 
   // Extract subdomain from *.kendev.co pattern

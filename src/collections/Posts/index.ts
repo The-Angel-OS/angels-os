@@ -26,6 +26,7 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
+import { PAGE_ACCESS_OPTIONS } from '@/utilities/pageAccess'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -64,6 +65,20 @@ export const Posts: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
+    },
+    // Who may READ the body. Same ladder as Pages.access — one vocabulary, so a
+    // "members in good standing" post and page mean the same thing. The archive
+    // card (title/excerpt/image) stays public on purpose: that IS the teaser.
+    {
+      name: 'access',
+      type: 'select',
+      defaultValue: 'public',
+      options: PAGE_ACCESS_OPTIONS,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Who can read this post. Ineligible visitors still see it listed, but get a join prompt instead of the body. Admins always have access.',
+      },
     },
     {
       name: 'publishedOn',

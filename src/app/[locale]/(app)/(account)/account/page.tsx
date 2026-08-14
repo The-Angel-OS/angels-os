@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { headers as getHeaders } from 'next/headers.js'
 import configPromise from '@payload-config'
 import { AccountForm } from '@/components/forms/AccountForm'
+import { MembershipBlock } from '@/blocks/Membership/Component'
 import { SocialProvidersPanel } from '@/components/forms/SocialProvidersPanel'
 import { Order } from '@/payload-types'
 import { OrderItem } from '@/components/OrderItem'
@@ -52,6 +53,15 @@ export default async function AccountPage() {
       <div className="border p-8 rounded-lg bg-primary-foreground">
         <h1 className="text-3xl font-medium mb-8">Account settings</h1>
         <AccountForm />
+      </div>
+
+      {/* Membership. The block self-fetches the HOST endeavor's plans and the
+          viewer's own subscription, so this one line is both "join" and "manage
+          card / cancel" — and it's where MembersOnlyGate sends a locked-out
+          member. Renders nothing when the endeavor sells no plans. */}
+      <div className="border p-8 rounded-lg bg-primary-foreground">
+        <h2 className="text-3xl font-medium mb-8">Membership</h2>
+        <MembershipBlock ctaText="Become a member" />
       </div>
 
       <div className="border p-8 rounded-lg bg-primary-foreground">

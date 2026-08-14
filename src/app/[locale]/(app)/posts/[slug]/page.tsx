@@ -6,8 +6,10 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
+import { draftMode, headers } from 'next/headers'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { canViewPage } from '@/utilities/pageAccess'
+import { MembersOnlyGate } from '@/components/MembersOnlyGate'
 import React from 'react'
 
 import { notFound } from 'next/navigation'
@@ -27,6 +29,21 @@ export default async function PostPage({ params }: Args) {
   const post = await queryPostBySlug({ slug })
 
   if (!post) return notFound()
+
+  // Membership gate. Deliberately AFTER the lookup, so a gated post gives a join
+  // prompt rather than a 404 — a locked door you can see is what converts; a
+  // missing page just looks broken.
+  const access = (post as { access?: string }).access
+  if (access && access !== 'public') {
+    const { tenantId } = await resolveTenantFromHeaders()
+    const payload = await getPayload({ config: configPromise })
+    const { user } = await payload.auth({ headers: await headers() })
+    if (!(await canViewPage(payload, access, user, tenantId))) {
+      return (
+        <MembersOnlyGate access={access} isAuthenticated={Boolean(user)} path={`/posts/${slug}`} />
+      )
+    }
+  }
 
   const { hero, layout, id, relatedPosts, title, publishedOn, categories, sourceUrl, sourceType } = post
   // Frame an embedded video (YouTube/Vimeo) between the hero and the body when the
