@@ -57,7 +57,11 @@ const page = (await payload.findByID({
   depth: 0,
   draft: false,
   overrideAccess: true,
-})) as { title?: string; layout?: Record<string, unknown>[]; _status?: string }
+  // Page['layout'] is the generated block union, which has no index signature —
+  // a direct cast is a compile error (this broke `next build`, so main has been
+  // un-deployable since 83619a9). We only poke one block by blockType, so widen
+  // through unknown rather than importing 20 block types to touch one field.
+})) as unknown as { title?: string; layout?: Record<string, unknown>[]; _status?: string }
 
 const layout = Array.isArray(page.layout) ? page.layout : []
 const idx = layout.findIndex((b) => b?.blockType === 'featuredEndeavors')
@@ -92,7 +96,7 @@ const after = (await payload.findByID({
   depth: 1,
   draft: false,
   overrideAccess: true,
-})) as { _status?: string; layout?: Record<string, unknown>[] }
+})) as unknown as { _status?: string; layout?: Record<string, unknown>[] }
 const block = after.layout?.find((b) => b?.blockType === 'featuredEndeavors')
 
 console.log('after:', {
