@@ -42,9 +42,22 @@ if (!headerId) throw new Error('No kessela header.')
 await payload.update({
   collection: 'header',
   id: headerId,
+  // Home must be an EXPLICIT item, not left to the header's fallback.
+  // `injectPagesUnderHome` hangs the tenant's pages off whichever navItem points
+  // at '/', and when there isn't one it injects nothing — HeaderClient then
+  // unshifts a synthetic Home that has no children. That's why the Home dropdown
+  // went empty: not a showInNav regression (that filter works, and is what keeps
+  // /pelvic-floor and the policy pages out), just no Home item to hang them on.
+  //
   // "How to Use the Belt" is the longest label on the bar and the word "Belt" is
   // doing no work next to a logo that says KESSELA over a picture of one.
-  data: { navItems: [link('How to Use', '/how-to-use-belt'), link('Buy Kessela Now!', '/buy-kessela-now')] } as never,
+  data: {
+    navItems: [
+      link('Home', '/'),
+      link('How to Use', '/how-to-use-belt'),
+      link('Buy Kessela Now!', '/buy-kessela-now'),
+    ],
+  } as never,
   overrideAccess: true,
 })
 
@@ -55,5 +68,5 @@ const overrides = await setNavOverrides(payload, tenantId, {
   hideMore: true,
 })
 
-console.log('header navItems: How to Use · Buy Kessela Now! (Home is implicit)')
+console.log('header navItems: Home · How to Use · Buy Kessela Now!')
 console.log('nav overrides:', JSON.stringify(overrides))
