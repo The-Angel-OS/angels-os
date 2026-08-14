@@ -78,9 +78,22 @@ export const provisionPortalHandler: PayloadHandler = async (req) => {
         tagline: typeof body.tagline === 'string' ? body.tagline : undefined,
         primaryColor: typeof body.primaryColor === 'string' ? body.primaryColor : undefined,
         secondaryColor: typeof body.secondaryColor === 'string' ? body.secondaryColor : undefined,
+        defaultTheme:
+          body.defaultTheme === 'dark' || body.defaultTheme === 'light' || body.defaultTheme === 'auto'
+            ? body.defaultTheme
+            : undefined,
         description: typeof body.description === 'string' ? body.description : undefined,
         missionStatement: typeof body.missionStatement === 'string' ? body.missionStatement : undefined,
         endeavorType: typeof body.endeavorType === 'string' ? body.endeavorType : undefined,
+        // Tenant flavor was accepted by provisionPortal but never parsed here, so
+        // every portal stood up through the endpoint landed as legacy 'tenant'.
+        type:
+          body.type === 'business' ||
+          body.type === 'circle' ||
+          body.type === 'guardian_angel' ||
+          body.type === 'personal_portal'
+            ? body.type
+            : undefined,
       },
       { req, actingUserId },
     )

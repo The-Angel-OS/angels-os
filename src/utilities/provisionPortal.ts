@@ -34,6 +34,12 @@ export interface ProvisionPortalInput {
   tagline?: string
   primaryColor?: string
   secondaryColor?: string
+  /**
+   * Default colour theme for the public site. Omitted keeps 'auto' (follow the
+   * visitor's OS). A photography or venue portal wants 'dark' regardless of what
+   * the visitor's laptop prefers — the work is the page.
+   */
+  defaultTheme?: 'auto' | 'light' | 'dark'
   description?: string
   missionStatement?: string
   /** Endeavor type (drives the community space's channel set). */
@@ -107,9 +113,38 @@ export async function provisionPortal(
     slug,
     domain,
     type: tenantFlavor,
-    branding: { siteName: name, tagline, primaryColor, secondaryColor },
+    branding: {
+      siteName: name,
+      tagline,
+      primaryColor,
+      secondaryColor,
+      ...(input.defaultTheme ? { defaultTheme: input.defaultTheme } : {}),
+    },
   })
   log.push(`tenant #${tenant.id} (${tenant.slug})`)
+
+  // findOrCreateTenant only brands on CREATE, so a re-run (or a portal that
+  // already existed) would silently keep the old theme. Stamp it explicitly.
+  if (input.defaultTheme) {
+    try {
+      const cur = (await payload.findByID({
+        collection: 'tenants',
+        id: tenant.id as number,
+        depth: 0,
+        overrideAccess: true,
+      })) as { branding?: Record<string, unknown> | null }
+      await payload.update({
+        collection: 'tenants',
+        id: tenant.id as number,
+        data: { branding: { ...(cur?.branding || {}), defaultTheme: input.defaultTheme } } as never,
+        overrideAccess: true,
+        req,
+      })
+      log.push(`defaultTheme: ${input.defaultTheme}`)
+    } catch (e) {
+      log.push(`defaultTheme skipped: ${(e as Error).message}`)
+    }
+  }
 
   // Stamp the personal-angel marker (fail-soft: a node missing the column just
   // skips it rather than breaking provisioning).
