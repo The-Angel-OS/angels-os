@@ -1,4 +1,5 @@
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
+import { attachReferral } from './hooks/attachReferral'
 
 /**
  * Orders Collection Override — Sprint 4 + Angel Tokens
@@ -24,6 +25,11 @@ export const OrdersCollection: CollectionOverride = ({ defaultCollection }) => (
     ...defaultCollection?.admin,
     defaultColumns: ['id', 'customer', 'total', 'currency', 'status', 'createdAt'],
     listSearchableFields: ['id', 'currency'],
+  },
+  hooks: {
+    ...defaultCollection?.hooks,
+    // Spread first: the plugin's own beforeChange hooks must keep running.
+    beforeChange: [...(defaultCollection?.hooks?.beforeChange ?? []), attachReferral],
   },
   fields: [
     ...defaultCollection.fields,

@@ -61,6 +61,7 @@ import * as migration_20260719_010000_add_booking_hold_expiry from './20260719_0
 
 import * as migration_20260813_030000_spaces_is_system from './20260813_030000_spaces_is_system';
 import * as migration_20260813_223000_partners_referral from './20260813_223000_partners_referral';
+import * as migration_20260813_224500_mcp_tool_columns from './20260813_224500_mcp_tool_columns';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
 
 export const migrations = [
@@ -378,5 +379,10 @@ export const migrations = [
     up: migration_20260813_223000_partners_referral.up,
     down: migration_20260813_223000_partners_referral.down,
     name: '20260813_223000_partners_referral',
+  },
+  {
+    up: migration_20260813_224500_mcp_tool_columns.up,
+    down: migration_20260813_224500_mcp_tool_columns.down,
+    name: '20260813_224500_mcp_tool_columns',
   },
 ];

@@ -81,7 +81,37 @@ export default async function middleware(request: NextRequest) {
   }
 
   const modifiedRequest = new NextRequest(request.url, { headers: requestHeaders })
-  return handleI18nRouting(modifiedRequest)
+  const response = handleI18nRouting(modifiedRequest)
+
+  // ── Affiliate attribution ───────────────────────────────────────────────────
+  // ?ref=<partner code> sets a first-party cookie that the Orders beforeChange
+  // hook reads at checkout. Last click wins (the standard), 30 days.
+  //
+  // Set here rather than on the landing page because a partner's link may point
+  // at ANY page — the whole point of `showInNav: false` landing pages is that
+  // there will be more of them — and a page component can't set a cookie during
+  // render anyway.
+  const ref = request.nextUrl.searchParams.get('ref')
+  if (ref && response) {
+    const code = ref.trim().toLowerCase().slice(0, 64)
+    // Codes are ours: lowercase alphanumerics and dashes. Anything else is
+    // someone probing, and it never reaches the database.
+    if (/^[a-z0-9][a-z0-9-]*$/.test(code)) {
+      response.cookies.set(
+        'aos_ref',
+        JSON.stringify({ c: code, t: new Date().toISOString(), p: request.nextUrl.pathname }),
+        {
+          maxAge: 60 * 60 * 24 * 30,
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: request.nextUrl.protocol === 'https:',
+          path: '/',
+        },
+      )
+    }
+  }
+
+  return response
 }
 
 export const config = {
