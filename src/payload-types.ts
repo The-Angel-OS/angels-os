@@ -108,6 +108,7 @@ export interface Config {
     'federation-peers': FederationPeer;
     connectors: Connector;
     contacts: Contact;
+    partners: Partner;
     tickets: Ticket;
     sequences: Sequence;
     'sequence-enrollments': SequenceEnrollment;
@@ -197,6 +198,7 @@ export interface Config {
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
     connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
     contacts: ContactsSelect<false> | ContactsSelect<true>;
+    partners: PartnersSelect<false> | PartnersSelect<true>;
     tickets: TicketsSelect<false> | TicketsSelect<true>;
     sequences: SequencesSelect<false> | SequencesSelect<true>;
     'sequence-enrollments': SequenceEnrollmentsSelect<false> | SequenceEnrollmentsSelect<true>;
@@ -1159,6 +1161,39 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Affiliate attribution. Written once at checkout; do not edit to change a payout.
+   */
+  referral?: {
+    /**
+     * Resolved from the code at capture time. Null when the code matched nothing.
+     */
+    partner?: (number | null) | Partner;
+    /**
+     * The raw ?ref= value, kept even when it matches no partner — an unmatched code is a typo in someone’s link, and you only find those by looking.
+     */
+    code?: string | null;
+    /**
+     * Commission percent AS AGREED WHEN THE ORDER WAS PLACED. Snapshot.
+     */
+    rate?: number | null;
+    /**
+     * Computed at capture: subtotal × rate. Stored so a report never re-derives money.
+     */
+    commission?: number | null;
+    /**
+     * When the referral cookie was set — the click, not the purchase.
+     */
+    landedAt?: string | null;
+    /**
+     * The path they landed on, e.g. /pelvic-floor. This is what tells you which page sells.
+     */
+    landingPath?: string | null;
+    /**
+     * Settled by hand today. The column exists so automating it later is not a migration.
+     */
+    payoutStatus?: ('pending' | 'approved' | 'paid' | 'void') | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -3354,6 +3389,54 @@ export interface HolonCapability {
    * I agree to operate under the Angel OS constitution: the 95/5 split (you keep 95%), Answer 53 principles, and network governance.
    */
   constitutionalCompliance: boolean;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Affiliate partners and the commission rate they earn.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partners".
+ */
+export interface Partner {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Who this is — person or company.
+   */
+  name: string;
+  /**
+   * The value in ?ref=… . Short, lowercase, no spaces. Changing it orphans every link already in the wild, so treat it as permanent.
+   */
+  code: string;
+  /**
+   * Where statements go.
+   */
+  email?: string | null;
+  /**
+   * Commission percent of order subtotal. Copied onto the order at capture time, so changing it never rewrites what a partner already earned.
+   */
+  rate: number;
+  partnerStatus: 'active' | 'paused' | 'ended';
+  /**
+   * Optional page this partner sends traffic to. A bare ?ref= on any page still attributes; this is for "here is YOUR page".
+   */
+  landingPage?: (number | null) | Page;
+  /**
+   * How this partner gets paid. Manual today — no transfer is ever initiated from here.
+   */
+  payout?: {
+    method?: ('manual' | 'stripe' | 'credit') | null;
+    /**
+     * acct_… — recorded only. Nothing in this codebase moves money on it.
+     */
+    stripeAccountId?: string | null;
+    /**
+     * Terms, agreed rate changes, anything you’ll want in six months.
+     */
+    notes?: string | null;
+  };
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -8020,6 +8103,10 @@ export interface PayloadLockedDocument {
         value: number | Contact;
       } | null)
     | ({
+        relationTo: 'partners';
+        value: number | Partner;
+      } | null)
+    | ({
         relationTo: 'tickets';
         value: number | Ticket;
       } | null)
@@ -9998,6 +10085,29 @@ export interface ContactsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partners_select".
+ */
+export interface PartnersSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  code?: T;
+  email?: T;
+  rate?: T;
+  partnerStatus?: T;
+  landingPage?: T;
+  payout?:
+    | T
+    | {
+        method?: T;
+        stripeAccountId?: T;
+        notes?: T;
+      };
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tickets_select".
  */
 export interface TicketsSelect<T extends boolean = true> {
@@ -11043,6 +11153,17 @@ export interface OrdersSelect<T extends boolean = true> {
               id?: T;
             };
         id?: T;
+      };
+  referral?:
+    | T
+    | {
+        partner?: T;
+        code?: T;
+        rate?: T;
+        commission?: T;
+        landedAt?: T;
+        landingPath?: T;
+        payoutStatus?: T;
       };
   updatedAt?: T;
   createdAt?: T;

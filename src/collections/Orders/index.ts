@@ -196,5 +196,75 @@ export const OrdersCollection: CollectionOverride = ({ defaultCollection }) => (
         },
       ],
     },
+    // ─── Affiliate attribution ──────────────────────────────
+    /**
+     * Who sent this customer, captured at checkout from the `ref` cookie.
+     *
+     * Snapshot, not a join: `code` and `rate` are copied here rather than read
+     * through the relationship, so renaming a partner's code or renegotiating
+     * their rate can never rewrite what they already earned. The relationship is
+     * for reporting; these two columns are the record.
+     *
+     * An order that shipped without this on it can never be attributed
+     * afterwards, which is the whole reason it lands before any payout machinery.
+     */
+    {
+      name: 'referral',
+      type: 'group',
+      admin: {
+        description: 'Affiliate attribution. Written once at checkout; do not edit to change a payout.',
+      },
+      fields: [
+        {
+          name: 'partner',
+          type: 'relationship',
+          relationTo: 'partners',
+          index: true,
+          admin: { description: 'Resolved from the code at capture time. Null when the code matched nothing.' },
+        },
+        {
+          name: 'code',
+          type: 'text',
+          index: true,
+          admin: {
+            description:
+              'The raw ?ref= value, kept even when it matches no partner — an unmatched code is a typo in someone’s link, and you only find those by looking.',
+          },
+        },
+        {
+          name: 'rate',
+          type: 'number',
+          admin: { description: 'Commission percent AS AGREED WHEN THE ORDER WAS PLACED. Snapshot.' },
+        },
+        {
+          name: 'commission',
+          type: 'number',
+          admin: { description: 'Computed at capture: subtotal × rate. Stored so a report never re-derives money.' },
+        },
+        {
+          name: 'landedAt',
+          type: 'date',
+          admin: { description: 'When the referral cookie was set — the click, not the purchase.' },
+        },
+        {
+          name: 'landingPath',
+          type: 'text',
+          admin: { description: 'The path they landed on, e.g. /pelvic-floor. This is what tells you which page sells.' },
+        },
+        {
+          name: 'payoutStatus',
+          type: 'select',
+          defaultValue: 'pending',
+          options: [
+            { label: 'Pending', value: 'pending' },
+            { label: 'Approved — past the refund window', value: 'approved' },
+            { label: 'Paid', value: 'paid' },
+            { label: 'Void — refunded or cancelled', value: 'void' },
+          ],
+          index: true,
+          admin: { description: 'Settled by hand today. The column exists so automating it later is not a migration.' },
+        },
+      ],
+    },
   ],
 })

@@ -64,6 +64,7 @@ import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
 import { Connectors } from '@/collections/Connectors'
 import { Contacts } from '@/collections/Contacts'
+import { Partners } from '@/collections/Partners'
 import { Tickets } from '@/collections/Tickets'
 import { Sequences } from '@/collections/Sequences'
 import { SequenceEnrollments } from '@/collections/SequenceEnrollments'
@@ -389,6 +390,7 @@ export default buildConfig({
     FederationPeers,
     Connectors,
     Contacts,
+    Partners,
     Tickets,
     Sequences,
     SequenceEnrollments,
@@ -508,6 +510,7 @@ export default buildConfig({
         'holon-capabilities': {},
         'justice-fund-transactions': {},
         contacts: {},
+        partners: {},
         tickets: {},
         sequences: {},
         'sequence-enrollments': {},
