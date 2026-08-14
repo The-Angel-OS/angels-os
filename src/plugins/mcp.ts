@@ -5,10 +5,11 @@
  * @see https://github.com/payloadcms/payload/tree/main/packages/plugin-mcp
  */
 import { z } from 'zod'
+import type { Config } from 'payload'
 
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
-import { buildLeoMcpTools, leoMcpToolAccessMap, type LeoMcpTool } from '@/utilities/leoMcpTools'
+import { buildLeoMcpTools, leoMcpToolAccessMap, toMcpToolKey, type LeoMcpTool } from '@/utilities/leoMcpTools'
 
 /**
  * The conversational super-tool. Kept hand-written (it routes to the full
@@ -62,7 +63,7 @@ const leoRespondTool: LeoMcpTool = {
 let _mcpToolsMemo: LeoMcpTool[] | null = null
 const getMcpTools = (): LeoMcpTool[] => (_mcpToolsMemo ??= [leoRespondTool, ...buildLeoMcpTools()])
 
-export const mcpPluginConfig = mcpPlugin({
+const basePlugin = mcpPlugin({
   /**
    * Allow browser-based (cookie/session) auth in addition to Bearer token auth.
    * The default MCP endpoint ONLY accepts API key Bearer tokens and throws
@@ -98,11 +99,12 @@ export const mcpPluginConfig = mcpPlugin({
     const apiRoles = (settings.user as { roles?: string[] } | undefined)?.roles
     return {
       ...settings,
-      'payload-mcp-tool': {
-        ...((settings['payload-mcp-tool'] as Record<string, boolean> | undefined) || {}),
-        leoRespond: true,
-        ...leoMcpToolAccessMap(apiRoles),
-      },
+      // The key's own list narrows what its owner's roles allow — that is the
+      // whole remaining job of stored tool access. See mcpPluginConfig below.
+      'payload-mcp-tool': intersectAllowedTools(
+        { leoRespond: true, ...leoMcpToolAccessMap(apiRoles) },
+        (settings as Record<string, unknown>).allowedTools,
+      ),
     } as any
   },
   collections: {
@@ -162,3 +164,83 @@ export const mcpPluginConfig = mcpPlugin({
     },
   },
 })
+
+/**
+ * ── The durable fix for MCP schema drift ────────────────────────────────────
+ *
+ * The plugin renders ONE CHECKBOX PER TOOL on the API-key doc, and this project
+ * generates its tool list from LEO_TOOLS. On Postgres that is one BOOLEAN COLUMN
+ * per LEO tool: 170 of them by 260813, none of which existed in prod, which is
+ * what made `payload migrate:create` unanswerable. Every new LEO tool would have
+ * been another column — a schema migration for adding a function.
+ *
+ * So the generated group is replaced with a single `allowedTools` list: rows in
+ * one small table instead of columns in a wide one. Adding a LEO tool is now a
+ * code change and nothing else.
+ *
+ * Two things make this cheap rather than a fork:
+ *
+ *  1. The plugin reads tool access out of `mcpAccessSettings['payload-mcp-tool']`
+ *     at REQUEST time, and `overrideAuth` above already computes that map from
+ *     the caller's roles — for both the session and API-key paths. The stored
+ *     checkboxes were never the source of truth; they were a second, staler copy
+ *     of an answer the role map already gives.
+ *  2. Which leaves `allowedTools` doing the one job roles cannot: minting a key
+ *     that is narrower than its owner. Empty means "whatever your roles allow"
+ *     (the previous behaviour, since every checkbox defaulted to true). Non-empty
+ *     INTERSECTS with the role map — it can only ever take access away.
+ *
+ * Validation lives in code (`validate` below), not in a Postgres enum, precisely
+ * so that a new tool name never needs an ALTER TYPE.
+ */
+const TOOL_LIST_FIELD = 'allowedTools'
+
+export const mcpPluginConfig: typeof basePlugin = (incoming) => {
+  // basePlugin is typed as possibly-async; this one is synchronous in practice
+  // and the config must be mutated before it is returned either way.
+  const config = basePlugin(incoming) as Config
+  const keys = config.collections?.find((c) => c.slug === 'payload-mcp-api-keys')
+  if (!keys) return config
+
+  /** Drop the plugin's per-tool checkbox group wherever it nests it. */
+  const strip = (fields: unknown[]): unknown[] =>
+    fields
+      .filter((f) => (f as { name?: string })?.name !== 'payload-mcp-tool')
+      .map((f) => {
+        const field = f as { fields?: unknown[] }
+        return Array.isArray(field.fields) ? { ...field, fields: strip(field.fields) } : f
+      })
+
+  keys.fields = strip(keys.fields) as typeof keys.fields
+  keys.fields.push({
+    name: TOOL_LIST_FIELD,
+    type: 'text',
+    hasMany: true,
+    admin: {
+      position: 'sidebar',
+      description:
+        'Tool names this key may use, e.g. query_products. Leave EMPTY for everything the key owner’s roles already allow — a list can only narrow that, never widen it.',
+    },
+    validate: (value: unknown) => {
+      const names = new Set(getMcpTools().map((t) => t.name))
+      const bad = (Array.isArray(value) ? value : []).filter((v) => typeof v === 'string' && !names.has(v))
+      return bad.length ? `Not a tool: ${bad.join(', ')}. Check the name against LEO_TOOLS.` : true
+    },
+  } as never)
+
+  return config
+}
+
+/**
+ * Narrow a computed role map by a key's stored list. Empty list = no narrowing,
+ * which is what every existing key expects.
+ */
+export const intersectAllowedTools = (
+  roleMap: Record<string, true>,
+  allowed?: unknown,
+): Record<string, true> => {
+  const list = (Array.isArray(allowed) ? allowed : []).filter((v): v is string => typeof v === 'string')
+  if (list.length === 0) return roleMap
+  const keep = new Set(list.map(toMcpToolKey))
+  return Object.fromEntries(Object.entries(roleMap).filter(([k]) => keep.has(k))) as Record<string, true>
+}
