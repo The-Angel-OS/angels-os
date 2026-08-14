@@ -124,17 +124,34 @@ export function SpaceSettingsDialog({
     setEnabledApplets(space.enabledApplets || ['chat', 'files', 'tasks'])
   }, [space])
 
-  // Candidate destinations — every other space the caller can see. Loaded when
-  // the danger zone opens, not on mount: most sessions never delete anything.
+  // Candidate destinations — every other space IN THIS SPACE'S TENANT. Loaded
+  // when the danger zone opens, not on mount: most sessions never delete
+  // anything.
+  //
+  // Scoped by tenant because a super_admin reads every tenant's spaces, so the
+  // chooser listed the whole server: fourteen rows all named "Community", and
+  // picking the wrong one moves a portal's channels and messages into a
+  // DIFFERENT endeavor. Cross-tenant is never a legitimate destination here.
+  // One request: `tenant` comes back in the same list, and this space is in it.
   useEffect(() => {
     if (!confirmDelete) return
     let cancelled = false
-    fetch('/api/spaces?limit=100&depth=0&sort=name', { credentials: 'include' })
+    const qs = 'limit=500&depth=0&sort=name&select[name]=true&select[tenant]=true'
+    fetch(`/api/spaces?${qs}`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : { docs: [] }))
-      .then((d: { docs?: Array<{ id: number; name: string }> }) => {
+      .then((d: { docs?: Array<{ id: number; name: string; tenant?: number | null }> }) => {
         if (cancelled) return
+        const docs = d.docs || []
         // ChatSpace.id is a string, the REST doc's is a number — compare as text.
-        setSiblings((d.docs || []).filter((s) => String(s.id) !== String(space.id)))
+        const isSelf = (s: { id: number }) => String(s.id) === String(space.id)
+        const myTenant = docs.find(isSelf)?.tenant ?? null
+        setSiblings(
+          docs.filter(
+            // If this space somehow isn't in the page, don't silently fall back
+            // to "every tenant" — show nothing and let delete-contents handle it.
+            (s) => !isSelf(s) && myTenant != null && String(s.tenant) === String(myTenant),
+          ),
+        )
       })
       .catch(() => {
         /* the chooser just stays empty — delete-contents is still available */
