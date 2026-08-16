@@ -75,6 +75,16 @@ export const RenderBlocks: React.FC<{
   const hasBlocks = blocks && Array.isArray(blocks) && blocks.length > 0
 
   if (hasBlocks) {
+    // Media + Text's "alternate" side is a property of POSITION, which a block
+    // cannot know about itself. Counting only mediaText blocks (not every block)
+    // is what makes the zig-zag survive a Content block being dropped between
+    // two of them.
+    let mediaTextSeen = 0
+    const mediaTextIndex = new Map<number, number>()
+    blocks.forEach((b, i) => {
+      if (b?.blockType === 'mediaText') mediaTextIndex.set(i, mediaTextSeen++)
+    })
+
     return (
       <Fragment>
         {blocks.map((block, index) => {
@@ -92,7 +102,9 @@ export const RenderBlocks: React.FC<{
                   ? { ...block, docContext }
                   : blockType === 'merlinControl'
                     ? { ...block, endeavor: block.endeavor || tenantSlug }
-                    : block
+                    : blockType === 'mediaText'
+                      ? { ...block, blockIndex: mediaTextIndex.get(index) ?? 0 }
+                      : block
               return (
                 /* One place decides the rhythm between blocks. It used to be two:
                    this wrapper said my-16 and half the blocks said my-16 again

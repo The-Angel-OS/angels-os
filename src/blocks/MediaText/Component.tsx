@@ -17,6 +17,19 @@ type Props = {
   media?: MediaDoc | number | string | null
   videoUrl?: string
   caption?: string
+  /** 'split' = text beside media; 'full' = media across the page, text beneath. */
+  width?: 'split' | 'full' | null
+  /** Which side the media sits on. 'alternate' flips per preceding block. */
+  side?: 'right' | 'left' | 'alternate' | null
+  /** Uploaded video only — an embed brings its own player. */
+  playback?: 'player' | 'autoplay' | 'ambient' | null
+  /**
+   * How many Media + Text blocks precede this one in the layout. Supplied by
+   * RenderBlocks; 'alternate' is a property of POSITION, which a block cannot
+   * know about itself.
+   */
+  blockIndex?: number
+  /** Legacy placement, read only when `side` is empty. @deprecated use `side` */
   videoOnRight?: boolean
   /** Frame shape. Portrait exists because phone testimonials are 9:16. */
   aspect?: '16/9' | '9/16' | '1/1' | '4/3' | null
@@ -44,6 +57,10 @@ export function MediaTextBlock({
   media,
   videoUrl,
   caption,
+  width,
+  side,
+  playback,
+  blockIndex = 0,
   videoOnRight = true,
   aspect,
   ctaLabel,
@@ -51,6 +68,12 @@ export function MediaTextBlock({
 }: Props) {
   const mediaDoc = media && typeof media === 'object' ? (media as MediaDoc) : null
   const isVideo = Boolean(mediaDoc?.mimeType?.startsWith('video/'))
+
+  const full = width === 'full'
+  // Rows written before `side` existed encode placement in videoOnRight, so it
+  // is the fallback rather than a second source of truth: `side` always wins.
+  const mediaRight =
+    side === 'alternate' ? blockIndex % 2 === 0 : side ? side === 'right' : videoOnRight !== false
 
   const embed = !mediaDoc && videoUrl ? computeEmbedUrl(videoUrl) : null
 
@@ -84,7 +107,18 @@ export function MediaTextBlock({
   const portrait = aspect === '9/16'
   const frame =
     'relative w-full overflow-hidden rounded-xl bg-black' +
-    (portrait ? ' mx-auto max-w-[360px]' : '')
+    // A portrait clip is capped in a column; full-width gives it more room but
+    // still not the whole page, or a 9:16 becomes a two-storey skyscraper.
+    (portrait ? (full ? ' mx-auto max-w-[520px]' : ' mx-auto max-w-[360px]') : '')
+
+  // Ambient is the only mode that drops controls, and it is muted+looped so it
+  // can never trap a visitor with sound they cannot turn off.
+  const ambient = playback === 'ambient'
+  const videoProps = ambient
+    ? { autoPlay: true, loop: true, muted: true, preload: 'auto' as const }
+    : playback === 'autoplay'
+      ? { controls: true, autoPlay: true, muted: true, preload: 'auto' as const }
+      : { controls: true, preload: 'metadata' as const }
 
   let MediaSide: React.ReactNode = null
 
@@ -95,11 +129,10 @@ export function MediaTextBlock({
           <video
             className="absolute inset-0 h-full w-full object-cover"
             src={mediaDoc.url}
-            // A real player: the visitor decides when it plays.
-            controls
             playsInline
-            // metadata, not auto — the poster and duration load, the file doesn't.
-            preload="metadata"
+            // Default is a real player: the visitor decides when it plays, and
+            // preload=metadata fetches the poster and duration, not the file.
+            {...videoProps}
             poster={mediaDoc.thumbnailURL ?? undefined}
           />
         </div>
@@ -113,7 +146,7 @@ export function MediaTextBlock({
           <MediaComponent
             imgClassName="w-full h-auto object-cover"
             resource={media as never}
-            size="(max-width: 768px) 100vw, 50vw"
+            size={full ? '100vw' : '(max-width: 768px) 100vw, 50vw'}
           />
         </div>
         {caption && <p className="mt-3 text-sm italic text-muted-foreground">{caption}</p>}
@@ -137,10 +170,24 @@ export function MediaTextBlock({
     )
   }
 
+  // Full width: media across the page, copy beneath it and measure-capped —
+  // running text the full width of a 1400px container is unreadable, which is
+  // the trap "just make it full width" usually falls into.
+  if (full) {
+    return (
+      <section className="container">
+        {MediaSide}
+        {(heading || paragraphs.length > 0 || (ctaLabel && ctaUrl)) && (
+          <div className="mt-8 max-w-3xl">{Text}</div>
+        )}
+      </section>
+    )
+  }
+
   return (
     <section className="container">
       <div className="grid items-center gap-10 md:grid-cols-2">
-        {videoOnRight ? (
+        {mediaRight ? (
           <>
             {Text}
             {MediaSide}

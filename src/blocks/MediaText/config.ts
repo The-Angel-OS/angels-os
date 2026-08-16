@@ -49,12 +49,56 @@ export const MediaText: Block = {
     },
     { name: 'caption', type: 'text', admin: { description: 'Caption under the media (optional).' } },
     {
+      name: 'width',
+      type: 'select',
+      defaultValue: 'split',
+      options: [
+        { label: 'Split — text beside the media', value: 'split' },
+        { label: 'Full width — media across the page, text beneath', value: 'full' },
+      ],
+      admin: {
+        description:
+          'Full width is the one to use for a video you actually want watched: a 16:9 clip in a half-width column is small enough that people skip it.',
+      },
+    },
+    {
+      name: 'side',
+      type: 'select',
+      defaultValue: 'right',
+      options: [
+        { label: 'Media on the right', value: 'right' },
+        { label: 'Media on the left', value: 'left' },
+        { label: 'Alternate — flip from the Media + Text block above', value: 'alternate' },
+      ],
+      admin: {
+        condition: (_, siblingData) => siblingData?.width !== 'full',
+        description:
+          'Alternate zig-zags down the page automatically, so adding a section in the middle does not force you to re-flip every one below it.',
+      },
+    },
+    {
+      name: 'playback',
+      type: 'select',
+      defaultValue: 'player',
+      options: [
+        { label: 'Player — controls, visitor presses play (default)', value: 'player' },
+        { label: 'Autoplay muted, with controls', value: 'autoplay' },
+        { label: 'Ambient — muted loop, no controls', value: 'ambient' },
+      ],
+      admin: {
+        description:
+          'Applies to UPLOADED video only — an external YouTube/Vimeo embed brings its own player. Ambient has no pause button, so never use it for anything carrying a message.',
+      },
+    },
+    {
+      // Superseded by `side`. Kept and hidden because existing rows encode their
+      // placement here and rewriting them buys nothing — the resolver reads it
+      // only when `side` is empty.
       name: 'videoOnRight',
       type: 'checkbox',
       defaultValue: true,
-      // Column kept as `videoOnRight` — it's about which SIDE, not about video,
-      // but renaming the column costs a migration for zero user-visible gain.
-      label: 'Media on the right (uncheck to put it on the left)',
+      label: 'Media on the right (legacy — use Side instead)',
+      admin: { hidden: true },
     },
     { name: 'ctaLabel', type: 'text', admin: { description: 'Button text (optional), e.g. "Read More".' } },
     { name: 'ctaUrl', type: 'text', admin: { description: 'Button link (optional).' } },

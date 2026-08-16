@@ -50,7 +50,11 @@ export interface SpecSection {
     media?: number | string
     aspect?: '16/9' | '9/16' | '1/1' | '4/3'
     caption?: string
+    /** Ignored when width is 'full'. Superseded by `side` when both are given. */
     mediaOnLeft?: boolean
+    width?: 'split' | 'full'
+    side?: 'right' | 'left' | 'alternate'
+    playback?: 'player' | 'autoplay' | 'ambient'
     ctaLabel?: string
     ctaUrl?: string
   }
@@ -151,9 +155,14 @@ export function buildSection(s: SpecSection, contactFormId: number | string | nu
       ...(m.media != null ? { media: m.media } : {}),
       aspect: m.aspect || '4/3',
       ...(m.caption ? { caption: m.caption } : {}),
-      // Block stores which side the MEDIA sits on; the spec says it the way a
-      // person reads it ("image on the left"), so invert here, not at call sites.
-      videoOnRight: m.mediaOnLeft !== true,
+      width: m.width || 'split',
+      // `side` is authoritative; mediaOnLeft is the older, more readable spelling
+      // ("image on the left") and only decides placement when side is absent.
+      side: m.side || (m.mediaOnLeft === true ? 'left' : 'right'),
+      ...(m.playback ? { playback: m.playback } : {}),
+      // Legacy column kept consistent so a row written today still renders
+      // correctly if `side` is ever cleared by hand in the admin.
+      videoOnRight: (m.side || (m.mediaOnLeft === true ? 'left' : 'right')) !== 'left',
       ...(m.ctaLabel ? { ctaLabel: m.ctaLabel } : {}),
       ...(m.ctaUrl ? { ctaUrl: m.ctaUrl } : {}),
     }
