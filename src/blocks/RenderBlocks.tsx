@@ -15,6 +15,7 @@ import { GalleryBlock } from '@/blocks/Gallery/Component'
 import { MerlinControlBlock } from '@/blocks/MerlinControl/Component'
 import { GoogleReviewsBlock } from '@/blocks/GoogleReviews/Component'
 import { MediaTextBlock } from '@/blocks/MediaText/Component'
+import { buildAlternateIndex } from '@/blocks/MediaText/alternateIndex'
 import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
 import { TrustRowBlock } from '@/blocks/TrustRow/Component'
 import { FaqBlock } from '@/blocks/Faq/Component'
@@ -76,14 +77,8 @@ export const RenderBlocks: React.FC<{
 
   if (hasBlocks) {
     // Media + Text's "alternate" side is a property of POSITION, which a block
-    // cannot know about itself. Counting only mediaText blocks (not every block)
-    // is what makes the zig-zag survive a Content block being dropped between
-    // two of them.
-    let mediaTextSeen = 0
-    const mediaTextIndex = new Map<number, number>()
-    blocks.forEach((b, i) => {
-      if (b?.blockType === 'mediaText') mediaTextIndex.set(i, mediaTextSeen++)
-    })
+    // cannot know about itself.
+    const mediaTextIndex = buildAlternateIndex(blocks)
 
     return (
       <Fragment>

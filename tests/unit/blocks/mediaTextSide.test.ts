@@ -9,6 +9,7 @@
  * a module boundary.
  */
 import { describe, expect, it } from 'vitest'
+import { buildAlternateIndex } from '@/blocks/MediaText/alternateIndex'
 
 const mediaRight = (o: {
   side?: 'right' | 'left' | 'alternate' | null
@@ -41,6 +42,36 @@ describe('mediaText side resolution', () => {
 
   it('treats a null side as unset rather than as a value', () => {
     expect(mediaRight({ side: null, videoOnRight: false })).toBe(false)
+  })
+})
+
+describe('buildAlternateIndex', () => {
+  it('ignores non-mediaText blocks so a Content block between two does not flip them', () => {
+    const m = buildAlternateIndex([
+      { blockType: 'mediaText' },
+      { blockType: 'content' },
+      { blockType: 'mediaText' },
+    ])
+    expect([...m.entries()]).toEqual([
+      [0, 0],
+      [2, 1],
+    ])
+  })
+
+  it('skips full-width blocks — they have no side, so they must not consume a slot', () => {
+    const m = buildAlternateIndex([
+      { blockType: 'mediaText', width: 'full' },
+      { blockType: 'mediaText' },
+      { blockType: 'mediaText' },
+    ])
+    // The first split block still starts the zig-zag at 0 (media right).
+    expect(m.get(0)).toBeUndefined()
+    expect(m.get(1)).toBe(0)
+    expect(m.get(2)).toBe(1)
+  })
+
+  it('survives null entries in a layout', () => {
+    expect(buildAlternateIndex([null, { blockType: 'mediaText' }]).get(1)).toBe(0)
   })
 })
 
