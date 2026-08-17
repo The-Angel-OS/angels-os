@@ -56,6 +56,21 @@ export default async function DashboardSettingsPage({
         eventsEnabled: commerce.eventsEnabled ?? false,
         digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
       }}
+      addresses={(() => {
+        const aliases = (
+          (tenant?.domains as { domain?: string; isPrimary?: boolean }[] | undefined) || []
+        )
+          .filter((d) => Boolean(d?.domain))
+          .map((d) => ({ domain: d.domain as string, isPrimary: Boolean(d.isPrimary) }))
+        return {
+          slug: tenant?.slug || '',
+          domain: tenant?.domain || '',
+          aliases,
+          // Same precedence the outbound-URL builder uses: a primary alias wins,
+          // otherwise the tenant's own `domain` field.
+          canonical: aliases.find((a) => a.isPrimary)?.domain || tenant?.domain || '',
+        }
+      })()}
       storefront={{
         // Same depth-2 hydration as branding.logo above.
         coverImage:

@@ -79,21 +79,69 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     const billingMode = await getBillingMode(payload, tenant.id)
     const connect = tenant.stripeConnect as Record<string, unknown> | undefined
 
+    // Resolved BEFORE the Connect guard: a $0 plan collects nothing, so an
+    // endeavor that hasn't finished bank onboarding can still offer a free tier.
+    const plan = await getMembershipPlan(payload, tenant.id, planId)
+    if (!plan) return Response.json({ error: `No membership plan "${planId}"` }, { status: 404 })
+    if (plan.active === false) return Response.json({ error: 'That plan is not currently available.' }, { status: 409 })
+
     // Connect is REQUIRED only for the destination-charge (third-party) path.
-    if (billingMode === 'connect' && (!connect?.stripeAccountId || !connect?.stripeChargesEnabled)) {
+    if (plan.amountCents > 0 && billingMode === 'connect' && (!connect?.stripeAccountId || !connect?.stripeChargesEnabled)) {
       return Response.json(
         { error: `${tenant.name || slug} hasn't finished connecting their bank yet — memberships can't be collected until then.` },
         { status: 409 },
       )
     }
 
-    const plan = await getMembershipPlan(payload, tenant.id, planId)
-    if (!plan) return Response.json({ error: `No membership plan "${planId}"` }, { status: 404 })
-    if (plan.active === false) return Response.json({ error: 'That plan is not currently available.' }, { status: 409 })
-
     const memberEmail = typeof body.memberEmail === 'string' ? body.memberEmail.trim() : ((user as { email?: string } | null)?.email || '')
     const memberName = typeof body.memberName === 'string' ? body.memberName.trim() : ((user as { name?: string } | null)?.name || '')
     const baseUrl = getServerSideURL()
+
+    // FREE PLAN — a $0 plan never touches Stripe. Stripe can mint a zero-amount
+    // subscription, but it still wants a card and a webhook round-trip, which is
+    // exactly the friction a free tier exists to remove (and what makes gating
+    // impossible to test without a real card). So write the Membership directly
+    // and hand back the same success URL the paid path returns: one shape for
+    // the caller, no branch in the Join block.
+    //
+    // Idempotent by (tenant, member): joining twice re-activates rather than
+    // stacking rows. Sign-in required, because a free membership with no user to
+    // attach it to gates nothing.
+    if (plan.amountCents === 0) {
+      const memberId = (user as { id?: number | string } | null)?.id
+      if (memberId == null) {
+        return Response.json(
+          { error: 'Please sign in to join — a free membership is tied to your account.' },
+          { status: 401 },
+        )
+      }
+      const existing = await payload.find({
+        collection: 'memberships',
+        where: { and: [{ tenant: { equals: tenant.id } }, { member: { equals: memberId } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      // Relationship ids go in as numbers — filterOptions compares in JS.
+      const data = {
+        tenant: Number(tenant.id),
+        member: Number(memberId),
+        memberEmail: memberEmail || undefined,
+        memberName: memberName || undefined,
+        planId: plan.id,
+        planName: plan.name,
+        amountCents: 0,
+        interval: plan.interval,
+        status: 'active' as const,
+        startedAt: new Date().toISOString(),
+      }
+      if (existing.docs?.[0]) {
+        await payload.update({ collection: 'memberships', id: existing.docs[0].id, data, overrideAccess: true, req })
+      } else {
+        await payload.create({ collection: 'memberships', data, overrideAccess: true, req })
+      }
+      return Response.json({ url: `${baseUrl}/?membership=success`, free: true })
+    }
     // Subscriptions take a PERCENT, not an amount — so convert basis points
     // rather than keeping a second, differently-shaped fee number in the codebase.
     // Three rates for one node (5% products, 5% bookings, 2% dues) is how a

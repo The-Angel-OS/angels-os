@@ -44,6 +44,17 @@ interface StorefrontData {
   coverImage?: { id: number | string; url: string } | null
 }
 
+/** Every hostname this portal answers on. Read-only — binding is super_admin work. */
+export interface AddressesData {
+  slug: string
+  /** Primary domain from the Tenants record. */
+  domain: string
+  /** Bound aliases (Tenants.domains[]), each already resolving via fetchTenantByDomain. */
+  aliases: { domain: string; isPrimary: boolean }[]
+  /** The one used for outbound links (canonical): a primary alias, else `domain`. */
+  canonical: string
+}
+
 export interface SettingsHubProps {
   tenantId: number
   hasAnthropicKey: boolean
@@ -51,6 +62,7 @@ export interface SettingsHubProps {
   branding: BrandingData
   commerce: CommerceData
   storefront?: StorefrontData
+  addresses?: AddressesData
 }
 
 // ---------------------------------------------------------------------------
@@ -654,6 +666,7 @@ export function SettingsHub({
   branding,
   commerce,
   storefront,
+  addresses,
 }: SettingsHubProps) {
   // Deep-linkable: /dashboard/admin/settings?tab=endeavor lands on the Endeavor
   // tab. Legacy /dashboard/endeavor redirects here with that param, so LEO's
@@ -674,6 +687,48 @@ export function SettingsHub({
           Manage your site identity, AI configuration, and developer integrations.
         </p>
       </div>
+
+      {/* Addresses — first thing on the page, because "what is my URL" is the
+          question every portal owner asks first and nothing here answered it.
+          Read-only: binding a hostname is super_admin work, and a portal that
+          could rename its own address could take another's traffic. */}
+      {addresses && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-baseline justify-between gap-3 mb-3">
+            <h2 className="font-semibold">Addresses</h2>
+            <code className="text-xs text-muted-foreground">{addresses.slug}</code>
+          </div>
+          <ul className="space-y-1.5 text-sm">
+            {[
+              { domain: addresses.domain, isPrimary: false },
+              ...addresses.aliases,
+            ]
+              // A tenant may list its primary domain in domains[] as well.
+              .filter((a, i, all) => a.domain && all.findIndex((x) => x.domain === a.domain) === i)
+              .map((a) => (
+                <li key={a.domain} className="flex items-center gap-2">
+                  <a
+                    href={`https://${a.domain}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline break-all"
+                  >
+                    {a.domain}
+                  </a>
+                  {a.domain === addresses.canonical && (
+                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                      canonical
+                    </span>
+                  )}
+                </li>
+              ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            All of these reach this portal. The canonical one is used for outbound links,
+            sharing previews and SEO. Ask an administrator to bind another address.
+          </p>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="border-b border-border">
