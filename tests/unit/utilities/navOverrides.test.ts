@@ -22,6 +22,7 @@ describe('normalizeNavOverrides', () => {
   })
 
   it('drops a non-positive or non-numeric inline cap rather than rendering zero items', () => {
+    // Zero with nothing pinned would render an empty bar — still dropped.
     expect(normalizeNavOverrides({ maxInline: 0 }).maxInline).toBeUndefined()
     expect(normalizeNavOverrides({ maxInline: -3 }).maxInline).toBeUndefined()
     expect(normalizeNavOverrides({ maxInline: 'six' }).maxInline).toBeUndefined()
@@ -57,5 +58,15 @@ describe('applyNavOverrides', () => {
 
   it('is a no-op with empty overrides — the derived menu is the default', () => {
     expect(applyNavOverrides(MENU, EMPTY_NAV_OVERRIDES).items).toHaveLength(MENU.length)
+  })
+})
+
+describe('normalizeNavOverrides zero cap with pins', () => {
+  it('keeps a zero cap when pins guarantee the bar is not empty', () => {
+    // Pinned items bypass the cap, so this is the only way to say "my pages and
+    // nothing the platform derives" — a positive cap lets Discovery inline.
+    const o = normalizeNavOverrides({ maxInline: 0, pinned: ['/', '/services'] })
+    expect(o.maxInline).toBe(0)
+    expect(o.pinned).toEqual(['/', '/services'])
   })
 })

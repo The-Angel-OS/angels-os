@@ -47,11 +47,12 @@ describe('applyBrochureNav', () => {
     ])
   })
 
-  it('caps the bar at exactly the pinned pages so nothing platform-derived rides inline', async () => {
+  it('caps inline at zero so nothing platform-derived rides the bar', async () => {
     const { payload } = fakePayload(true)
     const res = await applyBrochureNav(payload, 1, PAGES)
-    // Any slack here is a slot Discovery or Spaces takes immediately.
-    expect(res.maxInline).toBe(res.pinned.length)
+    // Pinned items bypass the cap, so any positive number is a slot Discovery
+    // takes on its way past — this was 5 and Discovery still rendered inline.
+    expect(res.maxInline).toBe(0)
   })
 
   it('demotes platform routes to More rather than deleting them, by default', async () => {

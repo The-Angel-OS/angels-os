@@ -25,7 +25,7 @@ export interface NavOverrides {
   hidden: string[]
   /** URLs kept in the primary bar regardless of the inline cap. */
   pinned: string[]
-  /** Items inline before the rest collapse into "More". */
+  /** Items inline before the rest collapse into "More". 0 = pinned only. */
   maxInline?: number
   /** Drop the "More" overflow entirely — a single-product storefront has no
    *  Events to advertise, Book is empty, and Dashboard already lives in the
@@ -46,10 +46,19 @@ export function normalizeNavOverrides(raw: unknown): NavOverrides {
   const list = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && s.length > 0) : []
   const max = Number(o.maxInline)
+  const pinned = list(o.pinned)
   return {
     hidden: list(o.hidden),
-    pinned: list(o.pinned),
-    ...(Number.isFinite(max) && max > 0 ? { maxInline: Math.floor(max) } : {}),
+    pinned,
+    // ZERO IS MEANINGFUL, BUT ONLY ALONGSIDE PINS. Pinned items bypass the cap,
+    // so `maxInline: 0` is the only way to say "the bar holds exactly what I
+    // pinned and nothing the platform derives" — without it, a positive cap is
+    // just a slot Discovery takes on its way past. With NOTHING pinned the same
+    // zero renders an empty bar, which is why it was originally dropped, so the
+    // pins are the condition rather than the value being rejected outright.
+    ...(Number.isFinite(max) && (max > 0 || (max === 0 && pinned.length > 0))
+      ? { maxInline: Math.floor(max) }
+      : {}),
     ...(o.hideMore ? { hideMore: true } : {}),
   }
 }

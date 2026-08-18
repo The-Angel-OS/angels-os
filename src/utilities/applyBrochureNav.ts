@@ -74,11 +74,11 @@ export async function applyBrochureNav(
 
   const pinned = items.map((i) => i.link.url)
   const hidden = opts.hidePlatformRoutes ? PLATFORM_ROUTES : []
-  // EXACTLY the pinned count, deliberately. Any slack here is a slot Discovery
-  // or Spaces immediately takes, which is the whole problem being fixed — so
-  // the bar holds the business's pages and nothing else, and everything the
-  // platform derives collapses into "More".
-  const maxInline = pinned.length
+  // ZERO, not the pinned count: pinned items bypass the cap, so any positive
+  // number is simply a slot Discovery takes on its way past. 0 means the bar
+  // holds exactly the business's pages, and everything the platform derives —
+  // Discovery, Works, Learn, Spaces — collapses into "More".
+  const maxInline = 0
   await setNavOverrides(payload, tenantId, { pinned, hidden, maxInline })
 
   return { navItems: items.length, pinned, hidden, maxInline }
