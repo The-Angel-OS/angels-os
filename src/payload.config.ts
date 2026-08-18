@@ -119,6 +119,7 @@ import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
+import { demoSiteHandler } from '@/endpoints/demo-site'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
@@ -966,6 +967,13 @@ export default buildConfig({
       path: '/provision-ops/portal',
       method: 'post',
       handler: provisionPortalHandler,
+    },
+    // "I'll build your site for free" — portal + branding + a five-page starter
+    // site in one call, so the demo exists before the prospect is asked to pay.
+    {
+      path: '/provision-ops/demo-site',
+      method: 'post',
+      handler: demoSiteHandler,
     },
     // The deprovision half — dry-run by default, execute needs confirmSlug.
     {
