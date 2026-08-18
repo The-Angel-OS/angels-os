@@ -349,3 +349,20 @@ describe('isImageGenerationAvailable', () => {
     expect(Boolean(process.env.OPENROUTER_API_KEY)).toBe(false)
   })
 })
+
+/**
+ * Cloudflare rejects unevaluated properties, so a stale parameter name 400s the
+ * ENTIRE request rather than being ignored — image generation went silently dead
+ * platform-wide when `num_steps` was renamed to `steps`. A grep test is crude,
+ * but the alternative is discovering it again from a customer's blank hero.
+ */
+describe('cloudflare image request shape', () => {
+  it('does not send the rejected num_steps parameter', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const src = await readFile('src/utilities/imageGeneration.ts', 'utf8')
+    // The property form, not the bare word — the fix's own comment names the
+    // old parameter to explain why it went, and that is worth keeping.
+    expect(src).not.toContain('num_steps:')
+    expect(src).toContain('steps: 8')
+  })
+})

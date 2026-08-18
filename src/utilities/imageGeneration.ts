@@ -662,7 +662,11 @@ async function generateViaCloudflare(
       },
       body: JSON.stringify({
         prompt,
-        num_steps: 8,
+        // `steps`, NOT `num_steps` — Cloudflare tightened the schema to reject
+        // unevaluated properties, so the old name now 400s the whole request
+        // ("Additional or unevaluated properties '/num_steps'"). Verified
+        // against the live API: prompt-only and `steps` both return an image.
+        steps: 8,
       }),
       signal: AbortSignal.timeout(120_000),
     })
