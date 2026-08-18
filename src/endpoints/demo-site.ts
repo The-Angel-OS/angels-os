@@ -37,6 +37,7 @@ import { provisionPortal } from '@/utilities/provisionPortal'
 import { provisionPagesFromSpec } from '@/utilities/provisionPagesFromSpec'
 import { buildDemoSiteSpec, resolveTradePack } from '@/utilities/demoSiteTemplates'
 import { setMediaField } from '@/utilities/setMediaField'
+import { applyBrochureNav } from '@/utilities/applyBrochureNav'
 import { logError } from '@/utilities/logError'
 
 /** Business name → subdomain label. Lowercase, alphanumeric, no leading digit. */
@@ -140,6 +141,12 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
     const spec = buildDemoSiteSpec({ businessName, trade, city, phone, email, tagline, heroMedia })
     const pages = await provisionPagesFromSpec(payload, tenantId, spec, { overwrite: true })
     log.push(`pages created ${pages.created.length}, updated ${pages.updated.length}`)
+
+    // Without this the bar fills with Discovery/Works/Learn and the business's
+    // own pages collapse into "More" — the prospect opens their free site and
+    // sees our product instead of theirs.
+    const nav = await applyBrochureNav(payload, tenantId, spec)
+    log.push(`nav: ${nav.navItems} items pinned, ${nav.hidden.length} platform routes hidden`)
 
     return Response.json({
       ok: true,
