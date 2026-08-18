@@ -58,6 +58,12 @@ export interface SpecSection {
     ctaLabel?: string
     ctaUrl?: string
   }
+  featuredEndeavors?: {
+    heading?: string
+    subheading?: string
+    maxItems?: number
+    layout?: 'grid' | 'carousel' | 'featured'
+  }
   trustRow?: {
     heading?: string
     footnote?: string
@@ -165,6 +171,22 @@ export function buildSection(s: SpecSection, contactFormId: number | string | nu
       videoOnRight: (m.side || (m.mediaOnLeft === true ? 'left' : 'right')) !== 'left',
       ...(m.ctaLabel ? { ctaLabel: m.ctaLabel } : {}),
       ...(m.ctaUrl ? { ctaUrl: m.ctaUrl } : {}),
+    }
+  }
+  if (s.featuredEndeavors) {
+    const f = s.featuredEndeavors
+    return {
+      blockType: 'featuredEndeavors',
+      heading: f.heading || 'Featured Endeavors',
+      ...(f.subheading ? { subheading: f.subheading } : {}),
+      // 'recent' rather than hand-picked: the point of this block on a sales
+      // page is that it keeps proving itself as new businesses join, with
+      // nobody remembering to curate it.
+      source: 'recent',
+      maxItems: f.maxItems ?? 5,
+      layout: f.layout || 'grid',
+      showDescription: true,
+      showRegion: true,
     }
   }
   if (s.trustRow) {
