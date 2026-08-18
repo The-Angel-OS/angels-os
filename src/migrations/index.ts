@@ -63,7 +63,8 @@ import * as migration_20260813_030000_spaces_is_system from './20260813_030000_s
 import * as migration_20260813_223000_partners_referral from './20260813_223000_partners_referral';
 import * as migration_20260813_224500_mcp_tool_columns from './20260813_224500_mcp_tool_columns';
 import * as migration_20260814_030000_mcp_tool_list from './20260814_030000_mcp_tool_list';
-import * as migration_20260814_120000_posts_access from './20260814_120000_posts_access';
+import * as migration_20260814_120000_posts_access from './20260814_120000_posts_access'
+import * as migration_20260818_140000_forms_tenant from './20260818_140000_forms_tenant';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
 
 export const migrations = [
@@ -396,5 +397,10 @@ export const migrations = [
     up: migration_20260814_120000_posts_access.up,
     down: migration_20260814_120000_posts_access.down,
     name: '20260814_120000_posts_access',
+  },
+  {
+    up: migration_20260818_140000_forms_tenant.up,
+    down: migration_20260818_140000_forms_tenant.down,
+    name: '20260818_140000_forms_tenant',
   },
 ];

@@ -82,7 +82,28 @@ export const plugins: Plugin[] = [
         group: 'Content',
       },
       fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
+        // Forms had NO tenant field, so every portal shared one "Contact Form"
+        // doc — which meant nobody could design their own lead capture, and the
+        // single shared `emails` row decided where every business's leads went.
+        //
+        // Deliberately NOT required: form 1 predates this and is legitimately
+        // shared, and the form-builder plugin creates docs on paths we do not
+        // own. A null tenant means "platform-shared", which is the old
+        // behaviour, so nothing breaks on the way in.
+        const withTenant = [
+          {
+            name: 'tenant',
+            type: 'relationship' as const,
+            relationTo: 'tenants' as const,
+            index: true,
+            admin: {
+              description:
+                'The business this form belongs to. Leave empty for a platform-shared form.',
+            },
+          },
+          ...defaultFields,
+        ]
+        return withTenant.map((field) => {
           if ('name' in field && field.name === 'confirmationMessage') {
             return {
               ...field,

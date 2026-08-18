@@ -119,6 +119,30 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
     const tenantId = provisioned.tenant.id
     log.push(...(provisioned.log || []))
 
+    // Store the owner's contact details ON the tenant. Until 260818 these were
+    // only rendered into page copy, so nothing in the system knew where a
+    // business's leads should go — and ensureTenantContactForm had no address to
+    // notify. A demo site whose contact form reaches nobody is worse than no
+    // demo site, because we only find out when the prospect asks why we ignored
+    // them.
+    if (email || phone) {
+      await payload.update({
+        collection: 'tenants',
+        id: tenantId,
+        data: {
+          storefront: {
+            ...(((provisioned.tenant as { storefront?: object }).storefront as object) || {}),
+            ...(email ? { contactEmail: email } : {}),
+            ...(phone ? { contactPhone: phone } : {}),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        overrideAccess: true,
+        req,
+      })
+      log.push(`owner contact stored: ${email || phone}`)
+    }
+
     // Hero first: the page spec needs the media id, and a site whose hero is
     // wired in the same pass looks finished rather than half-built.
     let heroMedia: number | undefined
