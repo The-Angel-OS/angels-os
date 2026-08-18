@@ -105,6 +105,12 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
       secondaryColor: pack.secondaryColor,
       defaultTheme: pack.defaultTheme,
       type: 'business',
+      // A client's brochure site is not a federation node. This is also the
+      // switch behind the Discovery link, which is FORCE-PRIMARY in the header
+      // and therefore immune to the inline cap — the only way it stays out of
+      // their bar is for the endeavor not to be network-visible in the first
+      // place. Flip it on per endeavor if a portal should federate.
+      networkVisible: false,
       description: `${businessName} — ${pack.label}${city ? ` in ${city}` : ''}.`,
     },
     // Join the caller's transaction — provisioning writes across tenants,
