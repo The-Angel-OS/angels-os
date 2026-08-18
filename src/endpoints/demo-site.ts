@@ -38,6 +38,7 @@ import { provisionPagesFromSpec } from '@/utilities/provisionPagesFromSpec'
 import { buildDemoSiteSpec, resolveTradePack } from '@/utilities/demoSiteTemplates'
 import { setMediaField } from '@/utilities/setMediaField'
 import { applyBrochureNav } from '@/utilities/applyBrochureNav'
+import { seedDemoServices } from '@/utilities/seedDemoServices'
 import { logError } from '@/utilities/logError'
 
 /** Business name → subdomain label. Lowercase, alphanumeric, no leading digit. */
@@ -141,6 +142,17 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
         req,
       })
       log.push(`owner contact stored: ${email || phone}`)
+    }
+
+    // Real bookable rows, not just page copy. Without these `resolveServices`
+    // finds nothing for the tenant and falls back to the static seed catalog,
+    // so /book offered a DIFFERENT business's services on their site.
+    try {
+      const seeded = await seedDemoServices(payload, tenantId, pack, req)
+      log.push(`bookable services: ${seeded.created} created, ${seeded.skipped} already present`)
+    } catch (e) {
+      // A brochure site without a booking catalog still sells; a 500 sells nothing.
+      log.push(`bookable services failed: ${e instanceof Error ? e.message : String(e)}`)
     }
 
     // Hero first: the page spec needs the media id, and a site whose hero is
