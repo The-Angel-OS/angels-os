@@ -642,7 +642,7 @@ export const Tenants: CollectionConfig = {
           type: 'text',
           admin: {
             description:
-              'Optional: ElevenLabs voice ID override. Default: Alice (Xb7hH8MSUJpSbSDYk0k2)',
+              'Optional: ElevenLabs voice ID override. Default: Sarah (EXAVITQu4vr4xnSDxMaL) — neutral American English',
             condition: (_, siblingData) => siblingData?.enabled === true,
           },
         },

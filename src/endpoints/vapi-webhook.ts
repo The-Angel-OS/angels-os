@@ -40,6 +40,13 @@ import { createVoiceCallContent } from '@/utilities/messageContent'
 
 const VOICE_CHANNEL = 'voice'
 
+// ElevenLabs "Sarah" — neutral American English, professional, no regional
+// colour. The previous default was Alice, who is BRITISH: fine in a demo, wrong
+// on a phone line answering for a Florida trades business, where the accent is
+// the first thing a caller notices and the last thing we want them thinking
+// about. Tenants can still override per portal via `vapi.voiceId`.
+const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'
+
 // ─── In-Memory Tenant Cache (refreshed every 60s) ──────────────
 // Avoids querying tenants on every single Vapi event.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -402,7 +409,7 @@ async function buildAssistantConfig(
       },
       voice: {
         provider: '11labs',
-        voiceId: 'Xb7hH8MSUJpSbSDYk0k2', // Alice — warm, confident, professional female
+        voiceId: DEFAULT_VOICE_ID,
         stability: 0.6,
         similarityBoost: 0.8,
       },
@@ -538,7 +545,7 @@ async function buildTenantAssistantConfig(
   const tenantName =
     (tenant.branding as Record<string, unknown>)?.siteName || tenant.name || 'Angel OS'
 
-  const voiceId = (vapiConfig?.voiceId as string) || 'Xb7hH8MSUJpSbSDYk0k2'
+  const voiceId = (vapiConfig?.voiceId as string) || DEFAULT_VOICE_ID
   // Lead with what the line can actually DO. Callers who are told their options
   // self-sort into the customer / employment branches immediately, which is what
   // makes the lead capture work — and it sets expectations so the assistant is
