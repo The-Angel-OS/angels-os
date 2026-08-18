@@ -120,6 +120,7 @@ import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { demoSiteHandler } from '@/endpoints/demo-site'
+import { signupFormSetupHandler } from '@/endpoints/signup-form-setup'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
@@ -974,6 +975,13 @@ export default buildConfig({
       path: '/provision-ops/demo-site',
       method: 'post',
       handler: demoSiteHandler,
+    },
+    // The form that FEEDS demo-site. Both hubs were using the generic contact
+    // form for signup, which collects none of what a build actually needs.
+    {
+      path: '/provision-ops/signup-form',
+      method: 'post',
+      handler: signupFormSetupHandler,
     },
     // The deprovision half — dry-run by default, execute needs confirmSlug.
     {
