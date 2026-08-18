@@ -255,7 +255,29 @@ export async function provisionPortal(
     })
     log.push(`endeavor #${endeavor.id}`)
   } else {
-    log.push(`endeavor #${existingEndeavors.docs[0]!.id} (existing)`)
+    const existing = existingEndeavors.docs[0]!
+    // Create-only branding is how defaultTheme silently failed to apply on a
+    // re-run, and networkVisible has the same shape — it also drives the
+    // force-primary Discovery link, so a stale `true` puts Discovery in a
+    // client's nav no matter what the caller asked for. Stamp it whenever the
+    // caller was explicit; stay silent when they weren't.
+    if (input.networkVisible !== undefined) {
+      try {
+        const cur = (existing as { federation?: Record<string, unknown> | null }).federation || {}
+        await payload.update({
+          collection: 'endeavors',
+          id: existing.id,
+          data: { federation: { ...cur, networkVisible, domain } } as never,
+          overrideAccess: true,
+          req,
+        })
+        log.push(`endeavor #${existing.id} (existing, networkVisible: ${networkVisible})`)
+      } catch (e) {
+        log.push(`endeavor #${existing.id} (existing, networkVisible unchanged: ${(e as Error).message})`)
+      }
+    } else {
+      log.push(`endeavor #${existing.id} (existing)`)
+    }
   }
 
   // 4a2. Wire the real Form Builder contact form (submissions route to LEO via
