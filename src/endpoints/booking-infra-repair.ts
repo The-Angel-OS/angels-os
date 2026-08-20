@@ -13,7 +13,7 @@
  * @see src/utilities/ensureDefaultAvailability.ts  @see src/utilities/seedDemoServices.ts
  */
 import type { PayloadHandler } from 'payload'
-import { ensureDefaultAvailability } from '@/utilities/ensureDefaultAvailability'
+import { ensureTenantDefaultAvailability } from '@/utilities/ensureDefaultAvailability'
 import { logError } from '@/utilities/logError'
 
 export const bookingInfraRepairHandler: PayloadHandler = async (req) => {
@@ -66,7 +66,7 @@ export const bookingInfraRepairHandler: PayloadHandler = async (req) => {
           continue
         }
 
-        const avail = await ensureDefaultAvailability(payload, t.id, req)
+        const avail = await ensureTenantDefaultAvailability(payload, t.id)
         results.push({
           tenant: t.slug || t.id,
           services: services.totalDocs,

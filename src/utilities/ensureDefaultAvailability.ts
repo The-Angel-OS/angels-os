@@ -1,82 +1,118 @@
 /**
- * ensureDefaultAvailability — give a tenant bookable hours.
+ * ensureDefaultAvailability — give a personal guardian angel a working
+ * "book time with me" link OUT OF THE BOX.
  *
- * A service business needs THREE things for /book to work: services, a provider,
- * and hours. Services are seeded at provision and the provider resolves from the
- * tenant's admin — but nothing ever created hours, so `/book` correctly found a
- * provider, correctly found services, and then showed "no open times" forever.
- * A booking page that can never be booked is worse than none, because the owner
- * shows it to a customer before discovering it.
+ * The booking engine already resolves a tenant's `/book` page to its owner (the
+ * tenant_admin, via resolveBookingProvider) and serves slots from that provider's
+ * Availability rows. The one missing piece for a turnkey personal scheduler is
+ * that a freshly-provisioned angel has NO availability — so their link shows
+ * nothing. This seeds a sensible default (weekdays 9–5, 30-min slots) so the
+ * scheduling link works the moment the angel is born; the owner edits it later.
  *
- * Default is Mon–Fri 9–5, which is wrong for roughly every trade — and that is
- * fine. The point is a working calendar the owner EDITS, not a guess at their
- * week. Empty hours look broken; wrong hours look like a setting.
+ * Config-free for the 99%: no setup screen, they just have a working scheduler.
+ * Idempotent (skips if the provider already has availability for this tenant) and
+ * fail-soft (never breaks provisioning).
  *
- * Idempotent: does nothing if the tenant already has any availability row, so an
- * owner's edited schedule is never overwritten.
- *
- * @see src/utilities/resolveBookingProvider.ts  @see src/collections/Availability.ts
+ * @see src/utilities/resolveBookingProvider.ts — resolves /book to the owner
+ * @see src/endpoints/booking-public-slots.ts — serves the slots
+ * @see src/collections/Availability.ts — the schema
  */
-import type { Payload, PayloadRequest } from 'payload'
-import { resolveBookingProvider } from './resolveBookingProvider'
+import type { Payload } from 'payload'
 
-/** Mon–Fri. Weekend work is real for trades, but opting IN is the safer default. */
-const WEEKDAYS = ['1', '2', '3', '4', '5'] as const
-const DAY_NAMES: Record<string, string> = {
-  '1': 'Monday',
-  '2': 'Tuesday',
-  '3': 'Wednesday',
-  '4': 'Thursday',
-  '5': 'Friday',
-}
+const WEEKDAYS = ['1', '2', '3', '4', '5'] as const // Mon–Fri
+const DEFAULT_START = '09:00'
+const DEFAULT_END = '17:00'
+const DEFAULT_SLOT_MINUTES = 30
 
 export interface EnsureAvailabilityResult {
   created: number
-  providerId: number | null
-  note: string
+  skipped: boolean
 }
 
+/**
+ * Seed a default weekday 9–5 availability for `providerUserId` under `tenantId`,
+ * unless they already have availability there. Returns how many rows were created.
+ */
 export async function ensureDefaultAvailability(
   payload: Payload,
   tenantId: number | string,
-  req?: PayloadRequest,
+  providerUserId: number | string,
 ): Promise<EnsureAvailabilityResult> {
-  const existing = await payload.find({
-    collection: 'availability',
-    where: { tenant: { equals: tenantId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  if (existing.docs?.length) {
-    return { created: 0, providerId: null, note: 'availability already configured' }
-  }
+  try {
+    const existing = await payload.find({
+      collection: 'availability',
+      where: {
+        and: [
+          { provider: { equals: providerUserId } },
+          { tenant: { equals: tenantId } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.totalDocs > 0) return { created: 0, skipped: true }
 
+    let created = 0
+    // One weekly row per weekday (the schema keys weeklySchedule to a single day).
+    for (const dayOfWeek of WEEKDAYS) {
+      try {
+        await payload.create({
+          collection: 'availability',
+          data: {
+            provider: providerUserId,
+            tenant: tenantId,
+            availabilityType: 'weekly',
+            weeklySchedule: { dayOfWeek, startTime: DEFAULT_START, endTime: DEFAULT_END },
+            slotDuration: DEFAULT_SLOT_MINUTES,
+            bufferTime: 0,
+            maxAdvanceBooking: 30,
+            minAdvanceBooking: 1,
+            isActive: true,
+            serviceTypes: [{ serviceType: 'consultation', maxConcurrent: 1 }],
+          } as never,
+          overrideAccess: true,
+        })
+        created++
+      } catch {
+        /* one bad row shouldn't block the rest */
+      }
+    }
+    return { created, skipped: false }
+  } catch {
+    return { created: 0, skipped: true }
+  }
+}
+
+/**
+ * The same defaults, for a BUSINESS tenant whose provider we have to work out.
+ *
+ * The guardian-angel path above knows exactly whose calendar it is seeding (the
+ * claimant). A provisioned business does not — so this resolves the provider the
+ * booking page will actually use, which is the only calendar worth seeding: hours
+ * pinned to anyone else resolve to an empty grid and `/book` still says "no open
+ * times".
+ *
+ * Deliberately a separate entry point rather than an optional argument, so the
+ * angel path keeps passing its provider explicitly and cannot silently start
+ * resolving a different one.
+ */
+export async function ensureTenantDefaultAvailability(
+  payload: Payload,
+  tenantId: number | string,
+): Promise<EnsureAvailabilityResult & { providerId: number | null; note: string }> {
+  const { resolveBookingProvider } = await import('./resolveBookingProvider')
   const providerId = await resolveBookingProvider(payload, tenantId)
   if (providerId == null) {
-    // No admin on the tenant yet. Hours pinned to nobody would resolve to an
-    // empty calendar anyway, so say so rather than write rows that cannot work.
-    return { created: 0, providerId: null, note: 'no provider (tenant has no admin) — hours not created' }
+    // Rows pinned to nobody would only make a broken page look configured.
+    return { created: 0, skipped: true, providerId: null, note: 'no provider (tenant has no admin)' }
   }
-
-  let created = 0
-  for (const dayOfWeek of WEEKDAYS) {
-    await payload.create({
-      collection: 'availability',
-      data: {
-        title: `${DAY_NAMES[dayOfWeek]} — standard hours`,
-        provider: providerId,
-        tenant: tenantId,
-        availabilityType: 'weekly',
-        weeklySchedule: { dayOfWeek, startTime: '09:00', endTime: '17:00' },
-        isActive: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-      overrideAccess: true,
-      req,
-    })
-    created++
+  const res = await ensureDefaultAvailability(payload, tenantId, providerId)
+  return {
+    ...res,
+    providerId,
+    note: res.skipped
+      ? `already configured for provider ${providerId}`
+      : `Mon–Fri ${DEFAULT_START}–${DEFAULT_END} for provider ${providerId}`,
   }
-
-  return { created, providerId, note: `Mon–Fri 09:00–17:00 for provider ${providerId}` }
 }
