@@ -93,7 +93,10 @@ export function SidebarChat({
   }, [isMobile, isExpanded])
 
   const activeChannelData = channels.find((c) => c.slug === activeChannel)
-  const displayName = leoDM ? 'LEO DM' : activeChannelData?.name || activeChannel || 'general'
+  // The header follows the ACTIVE channel, not merely the existence of a LEO DM —
+  // otherwise switching channels changed the messages but left the label stuck on "LEO DM".
+  const isLeoDM = Boolean(leoDM && activeChannel === leoDM.slug)
+  const displayName = isLeoDM ? 'LEO DM' : activeChannelData?.name || activeChannel || 'general'
 
   return (
     <>
@@ -173,7 +176,7 @@ export function SidebarChat({
                   onClick={() => setShowChannelMenu(!showChannelMenu)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {leoDM ? (
+                  {isLeoDM ? (
                     <span className="truncate max-w-[180px]">LEO DM</span>
                   ) : (
                     <>
