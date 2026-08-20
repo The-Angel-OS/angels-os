@@ -39,6 +39,7 @@ import { buildDemoSiteSpec, resolveTradePack } from '@/utilities/demoSiteTemplat
 import { setMediaField } from '@/utilities/setMediaField'
 import { applyBrochureNav } from '@/utilities/applyBrochureNav'
 import { seedDemoServices } from '@/utilities/seedDemoServices'
+import { ensureDefaultAvailability } from '@/utilities/ensureDefaultAvailability'
 import { logError } from '@/utilities/logError'
 
 /** Business name → subdomain label. Lowercase, alphanumeric, no leading digit. */
@@ -153,6 +154,16 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
     } catch (e) {
       // A brochure site without a booking catalog still sells; a 500 sells nothing.
       log.push(`bookable services failed: ${e instanceof Error ? e.message : String(e)}`)
+    }
+
+    // Hours, or the booking page can never actually be booked. Services + a
+    // provider without availability yields "no open times" forever, which the
+    // owner discovers by showing a customer.
+    try {
+      const avail = await ensureDefaultAvailability(payload, tenantId, req)
+      log.push(`booking hours: ${avail.note}`)
+    } catch (e) {
+      log.push(`booking hours failed: ${e instanceof Error ? e.message : String(e)}`)
     }
 
     // Hero first: the page spec needs the media id, and a site whose hero is

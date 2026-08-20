@@ -189,6 +189,7 @@ import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-ta
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
 import { contactFormRepairHandler } from '@/endpoints/contact-form-repair'
+import { bookingInfraRepairHandler } from '@/endpoints/booking-infra-repair'
 import { endeavorListHandler } from '@/endpoints/endeavor-list'
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 import { bookingConfirmHandler } from '@/endpoints/booking-confirm'
@@ -1389,6 +1390,12 @@ export default buildConfig({
       path: '/provision-ops/contact-form-repair',
       method: 'get',
       handler: contactFormRepairHandler,
+    },
+    // Hours + services backfill for portals provisioned before /book had either.
+    {
+      path: '/provision-ops/booking-infra-repair',
+      method: 'get',
+      handler: bookingInfraRepairHandler,
     },
     // READ-ONLY: list endeavors + the fields that gate Discovery (networkVisible,
     // tenant, federationId) — diagnose "real portal missing from Discovery".
