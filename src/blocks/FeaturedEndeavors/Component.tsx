@@ -1,6 +1,7 @@
 import React from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import { tenantBaseUrlFrom } from '@/utilities/resolveTenantBaseUrl'
 
 // FeaturedEndeavorsBlock type will be auto-generated on next `payload generate:types`.
 // Until then, define the props manually to match config.ts fields.
@@ -29,6 +30,9 @@ type Endeavor = {
   operator?: { name?: string | null } | null
   region?: { city?: string | null; state?: string | null; country?: string | null } | null
   capabilities?: Array<{ skill?: string | null }> | null
+  tenant?: { id?: number; slug?: string | null; domain?: string | null } | number | null
+  /** Resolved public address of this endeavor's portal. */
+  href?: string | null
 }
 
 export const FeaturedEndeavorsBlock: React.FC<
@@ -83,6 +87,15 @@ export const FeaturedEndeavorsBlock: React.FC<
     endeavors = result.docs as unknown as Endeavor[]
   }
 
+  // Resolve each card's destination once, here, rather than in the card — a
+  // server component cannot look a tenant up mid-render, and `depth: 1` above
+  // already populated the tenant relationship, so this costs nothing.
+  endeavors = endeavors.map((e) => {
+    const t = e.tenant
+    const href = t && typeof t === 'object' ? tenantBaseUrlFrom(t) : null
+    return { ...e, href }
+  })
+
   if (endeavors.length === 0) {
     return (
       <section className="container py-12">
@@ -92,13 +105,14 @@ export const FeaturedEndeavorsBlock: React.FC<
     )
   }
 
-  const getImageUrl = (e: Endeavor) => {
-    const cover = e.coverImage
-    if (typeof cover === 'object' && cover?.url) return cover.url
-    const logo = e.logo
-    if (typeof logo === 'object' && logo?.url) return logo.url
-    return null
-  }
+  // A banner and a badge are different pictures with different jobs, and the old
+  // single accessor conflated them: with no cover set it stretched the LOGO across
+  // the card as a full-bleed banner, which is how "TART-S" came to fill a card
+  // edge to edge with its own middle cropped out.
+  const getCoverUrl = (e: Endeavor) =>
+    typeof e.coverImage === 'object' && e.coverImage?.url ? e.coverImage.url : null
+  const getLogoUrl = (e: Endeavor) =>
+    typeof e.logo === 'object' && e.logo?.url ? e.logo.url : null
 
   const getRegion = (e: Endeavor) => {
     const r = e.region
@@ -142,7 +156,8 @@ export const FeaturedEndeavorsBlock: React.FC<
             <EndeavorCard
               key={e.id}
               endeavor={e}
-              imageUrl={getImageUrl(e)}
+              coverUrl={getCoverUrl(e)}
+              logoUrl={getLogoUrl(e)}
               region={resolvedShowRegion ? getRegion(e) : null}
               showDescription={resolvedShowDescription}
               typeLabels={typeLabels}
@@ -166,7 +181,8 @@ export const FeaturedEndeavorsBlock: React.FC<
           <div className="lg:row-span-2">
             <EndeavorCard
               endeavor={hero!}
-              imageUrl={getImageUrl(hero!)}
+              coverUrl={getCoverUrl(hero!)}
+              logoUrl={getLogoUrl(hero!)}
               region={resolvedShowRegion ? getRegion(hero!) : null}
               showDescription={resolvedShowDescription}
               typeLabels={typeLabels}
@@ -181,7 +197,8 @@ export const FeaturedEndeavorsBlock: React.FC<
               <EndeavorCard
                 key={e.id}
                 endeavor={e}
-                imageUrl={getImageUrl(e)}
+                coverUrl={getCoverUrl(e)}
+              logoUrl={getLogoUrl(e)}
                 region={resolvedShowRegion ? getRegion(e) : null}
                 showDescription={resolvedShowDescription}
                 typeLabels={typeLabels}
@@ -204,7 +221,8 @@ export const FeaturedEndeavorsBlock: React.FC<
           <EndeavorCard
             key={e.id}
             endeavor={e}
-            imageUrl={getImageUrl(e)}
+            coverUrl={getCoverUrl(e)}
+              logoUrl={getLogoUrl(e)}
             region={resolvedShowRegion ? getRegion(e) : null}
             showDescription={resolvedShowDescription}
             typeLabels={typeLabels}
@@ -238,7 +256,8 @@ function SectionHeader({
 
 function EndeavorCard({
   endeavor,
-  imageUrl,
+  coverUrl,
+  logoUrl,
   region,
   showDescription,
   typeLabels,
@@ -248,7 +267,8 @@ function EndeavorCard({
   className,
 }: {
   endeavor: Endeavor
-  imageUrl: string | null
+  coverUrl: string | null
+  logoUrl: string | null
   region: string | null
   showDescription: boolean
   typeLabels: Record<string, string>
@@ -268,25 +288,49 @@ function EndeavorCard({
     ? statusColors[endeavor.status] || 'bg-muted text-muted-foreground'
     : ''
 
+  // The whole card is the link. The section above these cards tells the reader to
+  // "click any of them and look around" — before this they were inert <article>s,
+  // so the one instruction on the page did nothing.
+  const Card = endeavor.href ? 'a' : 'article'
+  const linkProps = endeavor.href
+    ? { href: endeavor.href, target: '_blank' as const, rel: 'noopener noreferrer' }
+    : {}
+
   return (
-    <article
-      className={`group overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-lg ${className || ''} ${isHero ? 'flex flex-col' : ''}`}
+    <Card
+      {...linkProps}
+      className={`group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-lg ${endeavor.href ? 'cursor-pointer hover:border-primary/40' : ''} ${className || ''}`}
     >
-      {/* Cover image */}
-      {imageUrl && (
-        <div
-          className={`overflow-hidden bg-muted ${isHero ? 'h-64 sm:h-80' : 'h-40 sm:h-48'}`}
-        >
+      {/* Cover BANNER — a wide picture, cropped to fill. Only a real cover image
+          belongs here; a logo cropped to a banner is the bug this replaced. */}
+      {coverUrl ? (
+        <div className={`overflow-hidden bg-muted ${isHero ? 'h-64 sm:h-80' : 'h-40 sm:h-48'}`}>
           <img
-            src={imageUrl}
-            alt={endeavor.name}
+            src={coverUrl}
+            alt=""
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
         </div>
+      ) : (
+        // No cover: a slim tinted strip, so cards in a row still line up instead
+        // of some starting with a picture and some with text.
+        <div className={`bg-gradient-to-br from-primary/10 to-muted ${isHero ? 'h-24' : 'h-12'}`} />
       )}
 
-      <div className={`p-4 ${isHero ? 'flex-1 p-6' : ''}`}>
+      <div className={`p-4 ${isHero ? 'flex-1 p-6' : 'flex-1'}`}>
+        {/* Logo BADGE — contained, never cropped, so a wordmark stays readable. */}
+        {logoUrl && (
+          <div className="mb-3 flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-background p-1">
+            <img
+              src={logoUrl}
+              alt={`${endeavor.name} logo`}
+              className="max-h-full max-w-full object-contain"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         {/* Badges */}
         <div className="mb-2 flex flex-wrap gap-1.5">
           {typeBadge && (
@@ -341,7 +385,13 @@ function EndeavorCard({
             </span>
           )}
         </div>
+
+        {endeavor.href && (
+          <p className="mt-3 text-sm font-medium text-primary">
+            Visit their site →
+          </p>
+        )}
       </div>
-    </article>
+    </Card>
   )
 }

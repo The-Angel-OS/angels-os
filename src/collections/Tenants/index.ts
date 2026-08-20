@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { checkRole } from '@/access/utilities'
 import { autoCreateOwnerMembership } from './hooks/autoCreateOwnerMembership'
+import { invalidateTenantCache } from './hooks/invalidateTenantCache'
 
 /**
  * Tenants collection for multi-domain routing (Finly pattern).
@@ -12,7 +13,7 @@ import { autoCreateOwnerMembership } from './hooks/autoCreateOwnerMembership'
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
   hooks: {
-    afterChange: [autoCreateOwnerMembership],
+    afterChange: [autoCreateOwnerMembership, invalidateTenantCache],
   },
   admin: {
     group: 'Core',

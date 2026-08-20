@@ -260,23 +260,26 @@ export default function EndeavorSetup() {
         </FormField>
       </Section>
 
-      {/* Discovery Card Section */}
-      <Section title="Discovery Card">
+      {/* Directory listing — the card other sites show when they link to you. */}
+      <Section title="Your directory listing">
         <p className="mb-4 text-sm text-muted-foreground">
-          The images shown on your card in the federation network catalog. The banner is
-          your cover image; the badge is your logo. (This is NOT your site&apos;s header
-          logo — that lives in Settings &rarr; General &rarr; Site Identity.)
+          <strong>How your business looks when another site lists it</strong> — a card with a
+          wide picture and a small logo on it, like a search result. Set both here; if you
+          leave them empty your card shows no picture at all.
+          <br />
+          These are separate from the logo and cover on your own website, which live in
+          Settings &rarr; General.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
           <ImageField
-            label="Cover Image (banner)"
+            label="Listing picture (wide)"
             value={endeavor.coverImage ?? null}
             onChange={(v) => updateField('coverImage', v)}
             aspect="banner"
             tenantId={tenantId}
           />
           <ImageField
-            label="Logo (badge)"
+            label="Listing logo (small, square)"
             value={endeavor.logo ?? null}
             onChange={(v) => updateField('logo', v)}
             aspect="square"

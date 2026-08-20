@@ -243,29 +243,31 @@ function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: nu
         </div>
         <div className="max-w-sm">
           <ImageField
-            label="Site Logo (shown in the site header)"
+            label="Your logo"
             value={logo}
             onChange={setLogo}
             aspect="square"
             tenantId={tenantId}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Different from the Discovery Card badge on the Endeavor tab — that one is your
-            federation catalog badge.
+            <strong>Shown in the header of your own website.</strong> This is not the same
+            picture as the one in your directory listing — that one is on the Endeavor tab,
+            and it is what other sites show when they link to you.
           </p>
         </div>
         <div className="max-w-sm">
           <ImageField
-            label="Cover Image (Shop, Posts and Events)"
+            label="Your cover picture"
             value={coverImage}
             onChange={setCoverImage}
             aspect="banner"
             tenantId={tenantId}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            The banner behind your listing pages. Leave empty for the brand gradient built from
-            your colours. To give one section its own image, set a per-section override in
-            Admin → Tenants → Storefront.
+            <strong>The wide banner across the top of your shop, posts and events pages.</strong>
+            Leave it empty and those pages use a gradient built from your colours instead. To
+            give one section its own picture, set a per-section override in Admin → Tenants →
+            Storefront.
           </p>
         </div>
       </div>
