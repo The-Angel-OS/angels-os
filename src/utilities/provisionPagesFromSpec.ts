@@ -69,6 +69,26 @@ export interface SpecSection {
     footnote?: string
     items?: Array<{ icon: string; label: string; detail?: string }>
   }
+  /**
+   * The recurring-subscription surface (the "Join" block). Lists whatever active
+   * plans the HOST tenant has and starts a Stripe subscription — plans are never
+   * configured here, so the same section works on every tenant's site.
+   *
+   * Until 260819 this block existed and worked but was unreachable from a spec,
+   * so it lived on exactly two hand-built pages and no provisioned site ever got
+   * a way to subscribe. That is the whole reason recurring revenue was manual.
+   */
+  membership?: {
+    heading?: string
+    blurb?: string
+    ctaText?: string
+  }
+  /** One-off giving. The non-recurring mirror of `membership`. */
+  donation?: {
+    heading?: string
+    blurb?: string
+    presetAmounts?: string
+  }
   contactForm?: boolean
 }
 
@@ -187,6 +207,27 @@ export function buildSection(s: SpecSection, contactFormId: number | string | nu
       layout: f.layout || 'grid',
       showDescription: true,
       showRegion: true,
+    }
+  }
+  if (s.membership) {
+    return {
+      blockType: 'membership',
+      richText: createLexicalContent([
+        createHeadingNode(s.membership.heading || 'Become a member', 'h2'),
+        ...(s.membership.blurb ? [createParagraphNode(s.membership.blurb)] : []),
+      ]),
+      ctaText: s.membership.ctaText || 'Become a member',
+    }
+  }
+  if (s.donation) {
+    return {
+      blockType: 'donation',
+      richText: createLexicalContent([
+        createHeadingNode(s.donation.heading || 'Support this cause', 'h2'),
+        ...(s.donation.blurb ? [createParagraphNode(s.donation.blurb)] : []),
+      ]),
+      presetAmounts: s.donation.presetAmounts || '25,50,100,250,500',
+      showDonorFields: true,
     }
   }
   if (s.trustRow) {
