@@ -8,6 +8,7 @@
  *   - Forget: ANYTHING older than `maxDays` (the hard retention ceiling).
  *   - Forget: resolved logs older than `resolvedDays` (they've been handled).
  *   - Forget: info/debug logs older than `noiseDays` (telemetry noise).
+ *   - Forget: site-visit rows older than `visitDays` (the Site Log's ceiling).
  *   - Before pruning, write ONE rollup summary log so the memory of *volume*
  *     survives even as the detail is forgotten.
  *
@@ -44,6 +45,9 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
   const resolvedDays = clampDays(url.searchParams.get('resolvedDays'), 14)
   const noiseDays = clampDays(url.searchParams.get('noiseDays'), 7)
   const maxDays = clampDays(url.searchParams.get('maxDays'), 14)
+  // Site Log rows keep longer than error logs — 90 days is enough to see a season
+  // of traffic, and still bounded.
+  const visitDays = clampDays(url.searchParams.get('visitDays'), 90)
   const now = Date.now()
   const resolvedCutoff = new Date(now - resolvedDays * DAY_MS).toISOString()
   const noiseCutoff = new Date(now - noiseDays * DAY_MS).toISOString()
@@ -100,7 +104,23 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
       await payload.delete({ collection: 'application-logs', where: forgetWhere, overrideAccess: true })
     }
 
-    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, policy: { maxDays, resolvedDays, noiseDays } })
+    // The Site Log lives under the same ceiling. DNN's Site Log module was
+    // eventually deprecated because it grew without bound; a visitor log is only
+    // worth keeping for as long as anyone would act on it.
+    let visitsForgotten = 0
+    try {
+      const visitCutoff = new Date(now - visitDays * DAY_MS).toISOString()
+      const stale = { createdAt: { less_than: visitCutoff } } as Where
+      const c = await payload.count({ collection: 'site-visits', where: stale, overrideAccess: true })
+      visitsForgotten = c.totalDocs
+      if (!dry && visitsForgotten > 0) {
+        await payload.delete({ collection: 'site-visits', where: stale, overrideAccess: true })
+      }
+    } catch {
+      // A node without the table yet — nothing to prune, nothing to report.
+    }
+
+    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, visitsForgotten, policy: { maxDays, resolvedDays, noiseDays, visitDays } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[log-consolidate] ${msg}`)

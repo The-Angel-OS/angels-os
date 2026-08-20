@@ -79,6 +79,7 @@ export default async function DashboardPage({
   let recentActivity: Array<{ action: string; detail?: string; createdAt: string; allowed?: boolean }> = []
   // Content drafts count
   let draftCount = 0
+  let visitCount7d = 0
   // Node-level "is this a fresh DB?" signal — independent of the CURRENT tenant.
   // A provisioned node (real tenants or spaces anywhere) must never be offered the
   // destructive global seed, even if the tenant you're viewing happens to be empty.
@@ -319,6 +320,27 @@ export default async function DashboardPage({
       allowed: d.allowed,
     }))
     draftCount = draftPagesResult.totalDocs + draftPostsResult.totalDocs
+
+    // Site Log headline: page views on this portal's public pages in the last 7
+    // days. Non-fatal — a node whose site-visits table predates this feature just
+    // shows nothing rather than breaking the whole command center.
+    if (currentTenant?.id) {
+      const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
+      const visits = await payload
+        .count({
+          collection: 'site-visits',
+          where: {
+            and: [
+              { tenant: { equals: currentTenant.id } },
+              { createdAt: { greater_than_equal: since } },
+              { isBot: { not_equals: true } },
+            ],
+          } as Where,
+          overrideAccess: true,
+        })
+        .catch(() => ({ totalDocs: 0 }))
+      visitCount7d = visits.totalDocs
+    }
   } catch {
     // Not authenticated or DB not ready — show defaults
   }
@@ -443,6 +465,14 @@ export default async function DashboardPage({
           accentColor="var(--lcars-orange)"
           href={`${prefix}/shop`}
           delay={300}
+        />
+        <LCARSStatCard
+          label="Site Visits (7d)"
+          value={visitCount7d}
+          icon={<ActivityIcon />}
+          accentColor="var(--lcars-blue)"
+          href={`${prefix}/dashboard/admin/site-log`}
+          delay={325}
         />
         {draftCount > 0 && (
           <LCARSStatCard
@@ -801,6 +831,19 @@ function PostsIcon() {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+      />
+    </svg>
+  )
+}
+
+function ActivityIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3 12h4l3-8 4 16 3-8h4"
       />
     </svg>
   )

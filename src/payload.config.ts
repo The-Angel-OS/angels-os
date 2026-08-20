@@ -59,6 +59,7 @@ import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { CostEvents } from '@/collections/CostEvents'
+import { SiteVisits } from '@/collections/SiteVisits'
 import { Reviews } from '@/collections/Reviews'
 import { Endeavors } from '@/collections/Endeavors'
 import { FederationPeers } from '@/collections/FederationPeers'
@@ -113,6 +114,7 @@ import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
 import { bookingSetHoursHandler } from '@/endpoints/booking-set-hours'
+import { siteLogReportHandler } from '@/endpoints/site-log-report'
 import { captureHandler, captureOptionsHandler } from '@/endpoints/capture'
 import { sequenceTickHandler } from '@/endpoints/sequence-tick'
 import { presencePingHandler } from '@/endpoints/presence-ping'
@@ -389,6 +391,7 @@ export default buildConfig({
     ProcessedStripeEvents,
     ApplicationLogs,
     CostEvents,
+    SiteVisits,
     Reviews,
     Endeavors,
     FederationPeers,
@@ -547,6 +550,8 @@ export default buildConfig({
         'work-units': {},
         // ─── Operating-Costs ledger (unified cost tracking) ───
         'cost-events': {},
+        // ─── Site Log (visitor analytics per portal) ──────────
+        'site-visits': {},
       } as any,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
@@ -963,6 +968,12 @@ export default buildConfig({
       path: '/booking-ops/set-hours',
       method: 'post',
       handler: bookingSetHoursHandler,
+    },
+    // Site Log — visitor reports for the current portal (dashboard).
+    {
+      path: '/site-log/report',
+      method: 'get',
+      handler: siteLogReportHandler,
     },
     // One-shot, super_admin-only, idempotent: provisions the WDEG portal tenant.
     // GET so an authenticated super_admin can trigger it from the browser.

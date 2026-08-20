@@ -503,6 +503,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
       },
       {
+        key: 'site-log',
+        label: 'Site Log',
+        icon: 'activity',
+        href: (p) => `${p}/dashboard/admin/site-log`,
+        isActive: active('/dashboard/admin/site-log'),
+        visible: always,
+      },
+      {
         key: 'error-logs',
         label: 'Error Logs',
         icon: 'alert',

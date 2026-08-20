@@ -98,6 +98,31 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     console.error('[AppLayout] Tenant resolution failed — rendering without tenant:', err)
   }
 
+  // ── Site Log ────────────────────────────────────────────────────────────────
+  // Deliberately NOT awaited: a visitor log must never add latency to, or take
+  // down, a customer's page. recordSiteVisit swallows everything.
+  if (tenant?.id) {
+    void (async () => {
+      try {
+        const { getPayload } = await import('payload')
+        const { default: cfg } = await import('@payload-config')
+        const { recordSiteVisit } = await import('@/utilities/recordSiteVisit')
+        const p = await getPayload({ config: cfg })
+        const { user } = await p.auth({ headers: headersList }).catch(() => ({ user: null }))
+        await recordSiteVisit(p, {
+          tenantId: tenant.id,
+          path: headersList.get('x-pathname') || '/',
+          referrer: headersList.get('referer'),
+          userAgent: headersList.get('user-agent'),
+          ip: headersList.get('x-real-ip') || headersList.get('x-forwarded-for'),
+          userId: (user as { id?: number | string } | null)?.id ?? null,
+        })
+      } catch {
+        /* never let the log affect the page */
+      }
+    })()
+  }
+
   // Resolve the default space for this tenant (for the floating chat bubble)
   let defaultSpaceId: string | undefined
   try {

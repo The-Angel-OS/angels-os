@@ -63,6 +63,10 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set(TENANT_HEADER, tenantId)
   }
 
+  // The rendered path, for the Site Log. A server component can read headers but
+  // not the URL it is rendering, so the one place that knows both has to say so.
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
   // Propagate real client IP from Cloudflare for downstream rate limiting
   const cfIp = request.headers.get('cf-connecting-ip')
   if (cfIp) {

@@ -103,6 +103,7 @@ export interface Config {
     'processed-stripe-events': ProcessedStripeEvent;
     'application-logs': ApplicationLog;
     'cost-events': CostEvent;
+    'site-visits': SiteVisit;
     reviews: Review;
     endeavors: Endeavor;
     'federation-peers': FederationPeer;
@@ -193,6 +194,7 @@ export interface Config {
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     'cost-events': CostEventsSelect<false> | CostEventsSelect<true>;
+    'site-visits': SiteVisitsSelect<false> | SiteVisitsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     endeavors: EndeavorsSelect<false> | EndeavorsSelect<true>;
     'federation-peers': FederationPeersSelect<false> | FederationPeersSelect<true>;
@@ -5057,6 +5059,47 @@ export interface CostEvent {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-visits".
+ */
+export interface SiteVisit {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The page that was viewed, without query string.
+   */
+  path: string;
+  /**
+   * Full referring URL, when the browser sent one.
+   */
+  referrer?: string | null;
+  /**
+   * Just the referring domain — what the Referrers report groups on.
+   */
+  referrerHost?: string | null;
+  /**
+   * Raw User-Agent string.
+   */
+  userAgent?: string | null;
+  browser?: string | null;
+  os?: string | null;
+  device?: ('desktop' | 'mobile' | 'tablet' | 'bot') | null;
+  /**
+   * Crawlers are recorded but flagged, so the reports can exclude them without losing the fact that they came.
+   */
+  isBot?: boolean | null;
+  /**
+   * Salted per-day digest of IP + user agent. Counts unique visitors; identifies nobody, and cannot be reversed to an IP.
+   */
+  visitorHash?: string | null;
+  /**
+   * Set when the visitor was signed in.
+   */
+  user?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Customer feedback and ratings — native, Google Places import, or manual entry.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7429,6 +7472,10 @@ export interface PayloadLockedDocument {
         value: number | CostEvent;
       } | null)
     | ({
+        relationTo: 'site-visits';
+        value: number | SiteVisit;
+      } | null)
+    | ({
         relationTo: 'reviews';
         value: number | Review;
       } | null)
@@ -9234,6 +9281,25 @@ export interface CostEventsSelect<T extends boolean = true> {
   userId?: T;
   occurredAt?: T;
   metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-visits_select".
+ */
+export interface SiteVisitsSelect<T extends boolean = true> {
+  tenant?: T;
+  path?: T;
+  referrer?: T;
+  referrerHost?: T;
+  userAgent?: T;
+  browser?: T;
+  os?: T;
+  device?: T;
+  isBot?: T;
+  visitorHash?: T;
+  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }
