@@ -13,8 +13,9 @@
  */
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ImageField, type MediaValue } from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'checkbox'
+export type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'image'
 
 export interface FieldDef {
   /** Field name; dot-paths (e.g. "payout.amount") map to nested objects on submit. */
@@ -88,6 +89,8 @@ export function OfferingConfigurator(props: OfferingConfiguratorProps) {
         let v = form[fd.name]
         if (fd.type === 'number') v = v === '' || v == null ? undefined : Number(v)
         if (fd.type === 'checkbox') v = Boolean(v)
+        // ImageField holds { id, url } for the preview; Payload wants the id.
+        if (fd.type === 'image') v = v && typeof v === 'object' ? (v as { id: unknown }).id : (v ?? null)
         if (v !== undefined) setPath(body, fd.name, v)
       }
       const isNew = !editing?.id
@@ -154,6 +157,17 @@ export function OfferingConfigurator(props: OfferingConfiguratorProps) {
                     <option value="">—</option>
                     {fd.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
+                ) : fd.type === 'image' ? (
+                  // The picture a service shows on the booking page and in link
+                  // previews. It existed on the collection but had no control here,
+                  // so the only way to set one was the Payload admin.
+                  <ImageField
+                    label=""
+                    aspect="banner"
+                    tenantId={tenantId}
+                    value={(form[fd.name] as MediaValue) ?? null}
+                    onChange={(v) => setForm((s) => ({ ...s, [fd.name]: v }))}
+                  />
                 ) : fd.type === 'checkbox' ? (
                   <input type="checkbox" className="h-4 w-4" checked={Boolean(form[fd.name])}
                     onChange={(e) => setForm((s) => ({ ...s, [fd.name]: e.target.checked }))} />

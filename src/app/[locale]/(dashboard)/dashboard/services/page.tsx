@@ -12,6 +12,7 @@ const SERVICE_FIELDS: FieldDef[] = [
   { name: 'serviceId', label: 'Service ID', type: 'text', required: true, placeholder: 'hourly-handyman', help: 'Stable id used in the booking flow.' },
   { name: 'label', label: 'Name', type: 'text', required: true },
   { name: 'description', label: 'Description', type: 'textarea' },
+  { name: 'image', label: 'Picture', type: 'image', help: 'Shown on the booking page and when someone shares a link to it.' },
   { name: 'bookingType', label: 'Type', type: 'select', options: [
     { label: 'Service', value: 'service' }, { label: 'Consultation', value: 'consultation' },
     { label: 'Rental', value: 'rental' }, { label: 'Class', value: 'class' },
@@ -33,6 +34,7 @@ const SERVICE_FIELDS: FieldDef[] = [
   { name: 'unitRateUsd', label: 'Price per unit (USD)', type: 'number', showWhen: { field: 'pricingModel', in: ['per_unit'] } },
   // Booking + costs
   { name: 'depositPercent', label: 'Deposit %', type: 'number', help: 'Charged up front to reserve; balance due on completion.' },
+  { name: 'depositFlatUsd', label: 'Deposit (flat $)', type: 'number', help: 'A fixed dollar deposit instead of a percentage — the only kind that works for an hourly or quoted job, where a percentage of an unknown total is zero.' },
   { name: 'durationMinutes', label: 'Scheduled time (min)', type: 'number', help: 'Time held on the calendar (hourly actual can differ).' },
   { name: 'allowsExtraCosts', label: 'Allow materials / extra costs on the bill', type: 'checkbox' },
   { name: 'enabled', label: 'Show on booking page', type: 'checkbox' },
@@ -61,14 +63,21 @@ export default async function DashboardServicesPage({ params }: { params: Promis
 
   let items: Record<string, unknown>[] = []
   try {
-    const res = await payload.find({ collection: 'services' as never, where: tenantFilter, limit: 200, depth: 0, sort: 'label', overrideAccess: true })
+    // depth 1 so the image relationship arrives as { id, url } — the picker
+    // needs the url to show a preview, not just the id.
+    const res = await payload.find({ collection: 'services' as never, where: tenantFilter, limit: 200, depth: 1, sort: 'label', overrideAccess: true })
     items = (res.docs as Record<string, unknown>[]).map((s) => ({
       id: s.id, serviceId: s.serviceId, label: s.label, description: s.description,
       bookingType: s.bookingType, pricingModel: s.pricingModel, priceUsd: s.priceUsd,
       hourlyRateUsd: s.hourlyRateUsd, billingIncrementMinutes: s.billingIncrementMinutes,
       minimumMinutes: s.minimumMinutes, unitLabel: s.unitLabel, unitRateUsd: s.unitRateUsd,
       allowsExtraCosts: s.allowsExtraCosts, depositPercent: s.depositPercent,
+      depositFlatUsd: s.depositFlatUsd,
       durationMinutes: s.durationMinutes, enabled: s.enabled,
+      image:
+        s.image && typeof s.image === 'object'
+          ? { id: (s.image as { id: number | string }).id, url: (s.image as { url?: string }).url ?? '' }
+          : null,
     }))
   } catch {
     // Table may not exist yet (pre-rollout) — render the empty configurator.

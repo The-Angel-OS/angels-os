@@ -15,6 +15,7 @@
  */
 import type { CollectionConfig } from 'payload'
 import { isTenantMember } from '@/access/isTenantMember'
+import { connectorScopedAccess } from '@/access/connectorAccess'
 
 export const Services: CollectionConfig = {
   slug: 'services',
@@ -26,8 +27,16 @@ export const Services: CollectionConfig = {
     description: 'Bookable services offered by this tenant (the /book catalog).',
   },
   access: {
-    // Public read of enabled services drives the booking page; writes are gated.
-    read: () => true,
+    // `read: () => true` leaked every portal's catalog: /admin/collections/services
+    // listed OTHER tenants' services to a tenant admin, and /api/services served
+    // the whole node's catalog — prices, deposits and all — to anyone.
+    //
+    // The public booking page never needed it. /book resolves through
+    // resolveServices, which queries with `overrideAccess: true` and an explicit
+    // tenant filter, so scoping this changes nothing a visitor sees.
+    //
+    // Same tenant-manager scope the Site Log and Connectors use.
+    read: connectorScopedAccess,
     create: isTenantMember,
     // NOT `Boolean(user)`: this collection is not multi-tenant-plugin wrapped,
     // so that let any signed-in customer rewrite ANOTHER endeavor's service —

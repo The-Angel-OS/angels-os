@@ -85,6 +85,9 @@ export default async function BookPage({
     depositPercent: s.depositPercent,
     depositFlatUsd: s.depositFlatUsd,
     durationMinutes: s.durationMinutes,
+    pricingModel: s.pricingModel,
+    hourlyRateUSD: s.hourlyRateUSD,
+    minimumMinutes: s.minimumMinutes,
     serviceAgreement: s.serviceAgreement,
     imageUrl: s.imageUrl,
   }))

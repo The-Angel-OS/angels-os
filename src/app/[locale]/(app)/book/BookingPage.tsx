@@ -30,6 +30,10 @@ interface ServiceOption {
   /** Fixed deposit in USD; wins over depositPercent. See depositUsd(). */
   depositFlatUsd?: number
   durationMinutes: number
+  /** 'hourly' bills only time on the clock — the card must show the RATE, not the minimum. */
+  pricingModel?: 'fixed' | 'hourly' | 'per_unit'
+  hourlyRateUSD?: number
+  minimumMinutes?: number
   /** Optional service image — shown on the selection card like a product. */
   imageUrl?: string
   /** Optional rental/service agreement terms; when set, must be e-signed before deposit. */
@@ -380,12 +384,23 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                       )}
                       <div className={`flex items-start justify-between gap-2 ${s.imageUrl ? 'px-4 pt-4' : 'px-4 pt-4'}`}>
                         <span className="font-semibold">{s.label}</span>
-                        {/* Quote-based services (price 0) read as "free" if shown as $0. */}
-                        <span className="shrink-0 font-bold">{s.priceUSD > 0 ? `$${s.priceUSD}` : 'Quote'}</span>
+                        {/* An hourly service showed only its minimum as a flat price
+                            ("$75"), which reads as the whole bill — then the invoice
+                            is for however long the job took. Show the rate. */}
+                        <span className="shrink-0 font-bold">
+                          {s.pricingModel === 'hourly' && s.hourlyRateUSD
+                            ? `$${s.hourlyRateUSD}/hr`
+                            : s.priceUSD > 0
+                              ? `$${s.priceUSD}`
+                              : 'Quote'}
+                        </span>
                       </div>
                       <p className="mt-1 px-4 text-xs text-muted-foreground">{s.description}</p>
                       <p className="mt-2 px-4 pb-4 text-xs text-muted-foreground">
-                        {s.durationMinutes} min · {dep > 0 ? `$${dep} deposit to reserve${s.priceUSD > 0 ? '' : ', credited to your invoice'}` : 'no deposit — request a visit'}
+                        {s.pricingModel === 'hourly' && s.minimumMinutes
+                          ? `${Math.round(s.minimumMinutes / 60)} hr minimum`
+                          : `${s.durationMinutes} min`}{' '}
+                        · {dep > 0 ? `$${dep} deposit to reserve${s.priceUSD > 0 ? '' : ', credited to your invoice'}` : 'no deposit — request a visit'}
                       </p>
                     </button>
                   )
