@@ -67,6 +67,7 @@ import * as migration_20260814_120000_posts_access from './20260814_120000_posts
 import * as migration_20260818_140000_forms_tenant from './20260818_140000_forms_tenant'
 import * as migration_20260820_150000_membership_fk_cascade from './20260820_150000_membership_fk_cascade';
 import * as migration_20260820_180000_site_visits from './20260820_180000_site_visits';
+import * as migration_20260820_210000_cart_items_cascade from './20260820_210000_cart_items_cascade';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
 
 export const migrations = [
@@ -414,5 +415,10 @@ export const migrations = [
     up: migration_20260820_180000_site_visits.up,
     down: migration_20260820_180000_site_visits.down,
     name: '20260820_180000_site_visits',
+  },
+  {
+    up: migration_20260820_210000_cart_items_cascade.up,
+    down: migration_20260820_210000_cart_items_cascade.down,
+    name: '20260820_210000_cart_items_cascade',
   },
 ];
