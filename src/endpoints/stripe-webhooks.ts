@@ -30,6 +30,7 @@ import Stripe from 'stripe'
 import { getPlatformFeeBps, feeCents, bpsToPercent } from '@/utilities/platformFee'
 import { sendOrderConfirmationEmail } from '@/utilities/sendOrderConfirmationEmail'
 import { logError } from '@/utilities/logError'
+import { findOrCreateInvitedUser } from '@/utilities/findOrCreateInvitedUser'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -166,6 +167,75 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
 // ─── Event Handlers ──────────────────────────────────────────────
 
 /**
+ * Make sure a paying subscriber is attached to a PERSON.
+ *
+ * Paid checkout does not require sign-in — a supporter giving $10/mo shouldn't be
+ * forced to make an account first — so `memberUserId` is often absent. But a
+ * Membership with no `member` gates nothing: `memberStanding` matches on
+ * `{ tenant, member }`, so someone could pay every month and stay locked out of
+ * exactly what they bought.
+ *
+ * Stripe knows who paid. Resolve that email to a person the same way an invitation
+ * does: find the existing account, or mint a SHELL one they claim by proving they
+ * hold the address. Safe because the email is Stripe's record of the payment, not
+ * something the caller typed — and a shell account grants no login on its own.
+ *
+ * Never throws: the Membership row still records the money either way, and the
+ * warning is what tells us a paying customer needs attaching by hand.
+ *
+ * @see src/utilities/findOrCreateInvitedUser.ts — the same shell-account primitive
+ */
+export async function resolveSubscriptionMember(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  input: {
+    subscriptionId: string
+    tenantId?: string
+    customerId?: string
+    memberUserId?: number
+    memberEmail?: string
+    memberName?: string
+  },
+): Promise<{ memberUserId?: number; memberEmail: string }> {
+  let memberUserId = input.memberUserId
+  let memberEmail = input.memberEmail || ''
+  const tenantId = input.tenantId ? Number(input.tenantId) : undefined
+
+  if (!memberUserId) {
+    try {
+      if (!memberEmail && input.customerId) {
+        const customer = await getStripe().customers.retrieve(input.customerId)
+        if (!('deleted' in customer && customer.deleted)) memberEmail = customer.email || ''
+      }
+      if (memberEmail) {
+        const resolved = await findOrCreateInvitedUser(payload, {
+          email: memberEmail,
+          name: input.memberName || null,
+        })
+        memberUserId = Number(resolved.userId)
+      }
+    } catch (err) {
+      void logError({
+        level: 'warning',
+        source: 'stripe-webhooks/attachMember',
+        message: `Could not attach subscription ${input.subscriptionId} to a user (${memberEmail || 'no email'}): ${err instanceof Error ? err.message : String(err)}`,
+        tenantId,
+      })
+    }
+  }
+
+  if (!memberUserId) {
+    void logError({
+      level: 'warning',
+      source: 'stripe-webhooks/attachMember',
+      message: `Subscription ${input.subscriptionId} has no member — this customer is paying but cannot access what they bought.`,
+      tenantId,
+    })
+  }
+
+  return { memberUserId, memberEmail }
+}
+
+/**
  * Sync a Stripe subscription → the Memberships collection (the authoritative
  * "who's a member / dues current" record). Idempotent upsert by subscription id;
  * the membership context (tenant, plan, member) rides on the subscription metadata
@@ -188,13 +258,20 @@ async function upsertMembershipFromSubscription(
   const cpe = (sub as any).current_period_end ?? (sub as any).items?.data?.[0]?.current_period_end
   const periodEnd = cpe ? new Date(cpe * 1000).toISOString() : undefined
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id
-  const memberUserId = meta.memberUserId ? Number(meta.memberUserId) : undefined
+  const { memberUserId, memberEmail } = await resolveSubscriptionMember(payload, {
+    subscriptionId: sub.id,
+    tenantId: meta.tenantId,
+    customerId,
+    memberUserId: meta.memberUserId ? Number(meta.memberUserId) : undefined,
+    memberEmail: meta.memberEmail,
+    memberName: meta.memberName,
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {
     tenant: Number(meta.tenantId),
     ...(memberUserId ? { member: memberUserId } : {}),
-    ...(meta.memberEmail ? { memberEmail: meta.memberEmail } : {}),
+    ...(memberEmail ? { memberEmail } : {}),
     ...(meta.memberName ? { memberName: meta.memberName } : {}),
     ...(meta.planId ? { planId: meta.planId } : {}),
     ...(meta.planName ? { planName: meta.planName } : {}),
