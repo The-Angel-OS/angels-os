@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="The Angel OS">
+  <title>The Angel OS</title>
+  <!--
+    The Angel OS mark — halo, winged head, smile.
+    Line art, not a filled badge: the old icon was a dense purple disc that
+    turned to mush below 32px. Amber (#f5a623) reads on a light or dark tab
+    strip without a background plate.
+    Stroke weights are deliberately heavy for a 16px render; do not thin them.
+  -->
+  <g fill="none" stroke="#f5a623" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <!-- halo -->
+    <ellipse cx="256" cy="108" rx="104" ry="34"/>
+    <!-- head -->
+    <circle cx="256" cy="300" r="130"/>
+    <!-- smile -->
+    <path d="M196 306 C 210 358, 302 358, 316 306"/>
+  </g>
+  <!-- wings: solid swept blades, upper-left and lower-right — tapered fills, not
+       stroked loops, which collapse into blobs at favicon sizes. -->
+  <g fill="#f5a623">
+    <path d="M168 214 C 126 176, 88 158, 74 172 C 60 186, 84 216, 138 240 Z"/>
+    <path d="M344 386 C 386 424, 424 442, 438 428 C 452 414, 428 384, 374 360 Z"/>
+  </g>
+</svg>
