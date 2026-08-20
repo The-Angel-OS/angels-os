@@ -68,6 +68,12 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'slotDuration must be 5–480 minutes' }, { status: 400 })
   }
 
+  // 1 = a one-to-one appointment; higher = a class, tour or group session.
+  const capacity = Number(body.capacity ?? 1)
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 500) {
+    return Response.json({ error: 'capacity must be 1–500 people' }, { status: 400 })
+  }
+
   const { tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) return Response.json({ error: 'No portal context' }, { status: 400 })
 
@@ -136,6 +142,7 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
       availabilityType: 'weekly',
       weeklySchedule: { dayOfWeek: String(d.day), startTime: d.start, endTime: d.end },
       slotDuration,
+      capacity,
       isActive: true,
     }
     if (row) {
@@ -170,5 +177,5 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
     deactivated++
   }
 
-  return Response.json({ ok: true, providerId, created, updated, deactivated, slotDuration })
+  return Response.json({ ok: true, providerId, created, updated, deactivated, slotDuration, capacity })
 }

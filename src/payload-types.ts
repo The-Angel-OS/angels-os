@@ -598,7 +598,7 @@ export interface Tenant {
      */
     assistantId?: string | null;
     /**
-     * Optional: ElevenLabs voice ID override. Default: Alice (Xb7hH8MSUJpSbSDYk0k2)
+     * Optional: ElevenLabs voice ID override. Default: Sarah (EXAVITQu4vr4xnSDxMaL) — neutral American English
      */
     voiceId?: string | null;
     /**
@@ -1599,6 +1599,10 @@ export interface Post {
   id: number;
   tenant?: (number | null) | Tenant;
   title: string;
+  /**
+   * Who can read this post. Ineligible visitors still see it listed, but get a join prompt instead of the body. Admins always have access.
+   */
+  access?: ('public' | 'authenticated' | 'members' | 'good_standing') | null;
   publishedOn?: string | null;
   hero: {
     type: 'none' | 'fullScreen' | 'splitPanel' | 'highImpact' | 'mediumImpact' | 'lowImpact';
@@ -2191,6 +2195,10 @@ export interface FormBlock {
  */
 export interface Form {
   id: number;
+  /**
+   * The business this form belongs to. Leave empty for a platform-shared form.
+   */
+  tenant?: (number | null) | Tenant;
   title: string;
   fields?:
     | (
@@ -2534,6 +2542,18 @@ export interface MediaTextBlock {
    * Caption under the media (optional).
    */
   caption?: string | null;
+  /**
+   * Full width is the one to use for a video you actually want watched: a 16:9 clip in a half-width column is small enough that people skip it.
+   */
+  width?: ('split' | 'full') | null;
+  /**
+   * Alternate zig-zags down the page automatically, so adding a section in the middle does not force you to re-flip every one below it.
+   */
+  side?: ('right' | 'left' | 'alternate') | null;
+  /**
+   * Applies to UPLOADED video only — an external YouTube/Vimeo embed brings its own player. Ambient has no pause button, so never use it for anything carrying a message.
+   */
+  playback?: ('player' | 'autoplay' | 'ambient') | null;
   videoOnRight?: boolean | null;
   /**
    * Button text (optional), e.g. "Read More".
@@ -4117,6 +4137,10 @@ export interface Availability {
    * Duration of each bookable slot in minutes
    */
   slotDuration: number;
+  /**
+   * How many people one slot can hold. 1 = a one-to-one appointment; higher = a class, tour, or group session.
+   */
+  capacity: number;
   /**
    * Buffer time between slots in minutes
    */
@@ -8226,6 +8250,7 @@ export interface AvailabilitySelect<T extends boolean = true> {
         endDateTime?: T;
       };
   slotDuration?: T;
+  capacity?: T;
   bufferTime?: T;
   maxAdvanceBooking?: T;
   minAdvanceBooking?: T;
@@ -8679,6 +8704,9 @@ export interface MediaTextBlockSelect<T extends boolean = true> {
   videoUrl?: T;
   aspect?: T;
   caption?: T;
+  width?: T;
+  side?: T;
+  playback?: T;
   videoOnRight?: T;
   ctaLabel?: T;
   ctaUrl?: T;
@@ -8793,6 +8821,7 @@ export interface ProductPanelBlockSelect<T extends boolean = true> {
 export interface PostsSelect<T extends boolean = true> {
   tenant?: T;
   title?: T;
+  access?: T;
   publishedOn?: T;
   hero?:
     | T
@@ -10090,6 +10119,7 @@ export interface CrewAssignmentsSelect<T extends boolean = true> {
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   fields?:
     | T

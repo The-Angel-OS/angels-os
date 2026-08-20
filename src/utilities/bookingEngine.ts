@@ -34,6 +34,12 @@ export interface BookingRequest {
   tenantId: string
   startDateTime: Date
   duration: number // minutes
+  /**
+   * How many people the slot holds. 1 (the default) = a one-to-one appointment.
+   * A class, tour or group session sets this from the Availability rule, and the
+   * slot only conflicts once it is genuinely full.
+   */
+  capacity?: number
   bookingType: string
   title: string
   description?: string
@@ -417,12 +423,23 @@ export class BookingEngine {
     })
 
     const nowMs = Date.now()
-    existingBookings.docs.forEach(booking => {
+    const live = existingBookings.docs.filter(booking => {
       // An abandoned deposit-hold (pending, past its holdExpiresAt) no longer
       // reserves the slot — don't let it block a fresh booking. Mirrors the same
       // rule in booking-public-slots so the calendar and commit-time check agree.
       const hold = (booking as { holdExpiresAt?: string }).holdExpiresAt
-      if (booking.status === 'pending' && hold && new Date(hold).getTime() < nowMs) return
+      return !(booking.status === 'pending' && hold && new Date(hold).getTime() < nowMs)
+    })
+
+    // Capacity, not presence, is what makes a slot unavailable. A one-to-one
+    // appointment (capacity 1) conflicts on the first overlapping booking, which
+    // is the original behaviour; a tour with six seats only conflicts on the
+    // seventh. Reporting no conflict below capacity keeps this the single guard
+    // the checkout relies on — the caller does not have to count seats itself.
+    const capacity = Math.max(1, request.capacity || 1)
+    if (live.length < capacity) return conflicts
+
+    live.forEach(booking => {
       conflicts.push({
         conflictId: String(booking.id),
         conflictType: 'booking',

@@ -49,6 +49,7 @@ export default async function DashboardBookingsPage({
     startTime: doc.weeklySchedule?.startTime || doc.dateRange?.startTime || undefined,
     endTime: doc.weeklySchedule?.endTime || doc.dateRange?.endTime || undefined,
     slotDuration: doc.slotDuration || 60,
+    capacity: doc.capacity || 1,
     isActive: doc.isActive ?? true,
   }))
 

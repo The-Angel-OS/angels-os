@@ -164,9 +164,11 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     }
 
     // ── Overbooking guard ──────────────────────────────────────────────
-    // Reject the slot if it overlaps an existing pending/confirmed booking on
-    // the provider's calendar. A pending booking already blocks the slot, so
-    // this prevents two clients (or two services) from claiming the same time.
+    // Reject the slot only once it is genuinely FULL. A one-to-one appointment
+    // (capacity 1) is full on the first overlapping booking; a class or tour is
+    // full at its seat count. The capacity comes from the provider's own
+    // availability rules, so the guard agrees with the calendar the customer saw.
+    const capacity = await resolveSlotCapacity(payload, providerId, tenant.id)
     const engine = new BookingEngine(payload)
     const conflicts = await engine.checkBookingConflicts({
       providerId: String(providerId),
@@ -174,6 +176,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       tenantId: String(tenant.id),
       startDateTime,
       duration: slotDuration,
+      capacity,
       bookingType: service.bookingType,
       title: service.label,
       pricing: { amount: service.priceUSD, currency },
@@ -181,7 +184,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     if (conflicts.length > 0) {
       return Response.json(
         {
-          error: 'That time was just taken. Please choose another slot.',
+          error: capacity > 1
+            ? 'That session just filled up. Please choose another time.'
+            : 'That time was just taken. Please choose another slot.',
           conflicts: conflicts.map((c) => c.message),
         },
         { status: 409 },
@@ -352,5 +357,46 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       { error: err instanceof Error ? err.message : 'Failed to create booking checkout' },
       { status: 500 },
     )
+  }
+}
+
+/**
+ * The largest capacity the provider offers on any active availability rule.
+ *
+ * The rules are per-weekday, so "how many seats does this slot have" is only
+ * unambiguous once you know which rule produced it — but the guard runs on a
+ * concrete instant and the customer already picked from a calendar built by
+ * those same rules. Taking the max keeps the guard from rejecting a seat the
+ * calendar just offered; genuine per-day capacity differences are enforced by
+ * the calendar, which is the surface that actually shows seats.
+ *
+ * ponytail: max-across-rules, not per-day lookup. Revisit if a provider wants
+ * different seat counts on different days AND is overselling because of it.
+ */
+async function resolveSlotCapacity(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  providerId: number | string,
+  tenantId: number | string,
+): Promise<number> {
+  try {
+    const rules = await payload.find({
+      collection: 'availability',
+      where: {
+        and: [
+          { provider: { equals: providerId } },
+          { tenant: { equals: tenantId } },
+          { isActive: { equals: true } },
+        ],
+      },
+      limit: 50,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const caps = (rules.docs as Array<{ capacity?: number }>).map((r) => Math.max(1, Number(r.capacity) || 1))
+    return caps.length ? Math.max(...caps) : 1
+  } catch {
+    // Fail CLOSED: capacity 1 is the strictest guard, so a lookup failure can
+    // only ever refuse a booking, never oversell one.
+    return 1
   }
 }

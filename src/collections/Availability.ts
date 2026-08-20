@@ -203,6 +203,17 @@ export const Availability: CollectionConfig = {
       },
     },
     {
+      name: 'capacity',
+      type: 'number',
+      required: true,
+      defaultValue: 1,
+      min: 1,
+      admin: {
+        description:
+          'How many people one slot can hold. 1 = a one-to-one appointment; higher = a class, tour, or group session.',
+      },
+    },
+    {
       name: 'bufferTime',
       type: 'number',
       defaultValue: 0,

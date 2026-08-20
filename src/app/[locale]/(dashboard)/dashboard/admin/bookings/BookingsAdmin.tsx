@@ -21,6 +21,7 @@ interface AvailabilitySlot {
   startTime?: string
   endTime?: string
   slotDuration: number
+  capacity: number
   isActive: boolean
 }
 
@@ -239,6 +240,7 @@ function WeeklyHoursEditor({
   const [slotDuration, setSlotDuration] = useState(
     () => slots.find((s) => s.isActive)?.slotDuration || 30,
   )
+  const [capacity, setCapacity] = useState(() => slots.find((s) => s.isActive)?.capacity || 1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -255,6 +257,7 @@ function WeeklyHoursEditor({
         credentials: 'include',
         body: JSON.stringify({
           slotDuration,
+          capacity,
           days: days
             .map((d, idx) => ({ day: idx, start: d.start, end: d.end, enabled: d.enabled }))
             .filter((d) => d.enabled)
@@ -322,6 +325,23 @@ function WeeklyHoursEditor({
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="mt-3 flex items-center gap-3 text-sm font-medium">
+        People per slot
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={capacity}
+          onChange={(e) => setCapacity(Math.max(1, Number(e.target.value) || 1))}
+          className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm"
+        />
+        <span className="font-normal text-muted-foreground">
+          {capacity > 1
+            ? 'A group session — the time stays open until every seat is taken.'
+            : 'One-to-one — the time closes as soon as someone books it.'}
+        </span>
       </label>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

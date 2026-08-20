@@ -103,7 +103,7 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     const isToday = dateStr === todayUTC
 
     const offered = new Set<string>()
-    const slots: Array<{ time: string }> = []
+    const slots: Array<{ time: string; seatsLeft: number }> = []
 
     for (const rule of rules.docs as unknown as Record<string, unknown>[]) {
       if (isPast) break
@@ -115,18 +115,25 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
       if (open == null || close == null) continue
 
       const granularity = Math.max(15, Number(rule.slotDuration) || 60)
+      // How many people this slot can hold. 1 = a one-to-one appointment; a tour,
+      // class or group session takes several, and the slot stays open until it is
+      // actually full instead of vanishing on the first booking.
+      const capacity = Math.max(1, Number(rule.capacity) || 1)
       const bufferMin = Number(rule.bufferTime) || 0
       const minAdvanceMin = (Number(rule.minAdvanceBooking) || 0) * 60 // hours → minutes
 
       for (let t = open; t + duration <= close; t += granularity) {
         if (isToday && t < nowMin + minAdvanceMin) continue // too soon
-        // Overlap (with buffer) against any existing booking?
-        const conflict = busy.some((b) => t < b.endMin + bufferMin && t + duration + bufferMin > b.startMin)
-        if (conflict) continue
+        // Overlap (with buffer) against existing bookings — COUNT them, because
+        // a slot with capacity 6 is only gone once six people have taken it.
+        const taken = busy.filter(
+          (b) => t < b.endMin + bufferMin && t + duration + bufferMin > b.startMin,
+        ).length
+        if (taken >= capacity) continue
         const time = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
         if (offered.has(time)) continue
         offered.add(time)
-        slots.push({ time })
+        slots.push({ time, seatsLeft: capacity - taken })
       }
     }
 

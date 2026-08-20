@@ -149,7 +149,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
 
   // Server-side smart slots: duration-aware AND conflict-aware (excludes times that
   // overlap existing bookings, so a 6-hour service only offers 6 contiguous free hours).
-  const [serverSlots, setServerSlots] = useState<Array<{ time: string; label: string }> | null>(null)
+  const [serverSlots, setServerSlots] = useState<Array<{ time: string; label: string; seatsLeft?: number }> | null>(null)
   const [slotsLoading, setSlotsLoading] = useState(false)
   React.useEffect(() => {
     if (!selectedDate || !serviceId) {
@@ -166,8 +166,18 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (cancelled) return
-        const arr = Array.isArray(d?.slots) ? (d.slots as Array<{ time: string }>) : null
-        setServerSlots(arr ? arr.map((s) => ({ time: s.time, label: labelForTime(s.time) })) : null)
+        const arr = Array.isArray(d?.slots)
+          ? (d.slots as Array<{ time: string; seatsLeft?: number }>)
+          : null
+        setServerSlots(
+          arr
+            ? arr.map((s) => ({
+                time: s.time,
+                label: labelForTime(s.time),
+                seatsLeft: typeof s.seatsLeft === 'number' ? s.seatsLeft : undefined,
+              }))
+            : null,
+        )
       })
       .catch(() => {
         if (!cancelled) setServerSlots(null)
@@ -181,7 +191,8 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
   }, [selectedDate, serviceId, serviceDuration, tenantSlug])
 
   // Authoritative: the server's conflict-aware list when we have it, else open-hours.
-  const timeSlots = serverSlots ?? openHourSlots
+  const timeSlots: Array<{ time: string; label: string; seatsLeft?: number }> =
+    serverSlots ?? openHourSlots
 
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
 
@@ -457,6 +468,13 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                       }`}
                     >
                       {t.label}
+                      {/* Only worth saying on a group session; a one-to-one slot
+                          always has exactly one seat and saying so is noise. */}
+                      {typeof t.seatsLeft === 'number' && t.seatsLeft > 1 && (
+                        <span className="mt-0.5 block text-[11px] font-normal opacity-70">
+                          {t.seatsLeft} seats left
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
