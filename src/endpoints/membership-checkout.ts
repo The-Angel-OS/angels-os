@@ -44,6 +44,37 @@ function getStripe(): Stripe {
  */
 const LEGACY_MEMBERSHIP_FEE_PERCENT = process.env.MEMBERSHIP_PLATFORM_FEE_PERCENT
 
+/**
+ * Metadata stamped onto the SUBSCRIPTION (not just the checkout session).
+ *
+ * `customer.subscription.*` is what syncs the Memberships row, and it only ever
+ * sees `subscription.metadata` — Stripe does not copy session metadata across.
+ * Leaving the member fields out still produced a Membership (tenantId + planId
+ * were present) but with `member` and `memberEmail` empty, so the row belonged
+ * to nobody; memberStanding matches on `{ tenant, member: userId }`, so a
+ * customer could pay every month and stay locked out of what they bought.
+ */
+export function buildSubscriptionMetadata(input: {
+  tenantId: number | string
+  tenantSlug: string
+  planId: string
+  planName: string
+  memberName?: string
+  memberEmail?: string
+  memberUserId?: number | string | null
+}): Record<string, string> {
+  return {
+    angelOs_type: 'membership',
+    tenantId: String(input.tenantId),
+    tenantSlug: input.tenantSlug,
+    planId: input.planId,
+    planName: input.planName,
+    ...(input.memberName ? { memberName: input.memberName } : {}),
+    ...(input.memberEmail ? { memberEmail: input.memberEmail } : {}),
+    ...(input.memberUserId != null ? { memberUserId: String(input.memberUserId) } : {}),
+  }
+}
+
 export const membershipCheckoutHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
 
@@ -151,13 +182,15 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
       ? Math.max(0, Math.min(Number(LEGACY_MEMBERSHIP_FEE_PERCENT), 100))
       : Math.max(0, Math.min(feeBps / 100, 100))
 
-    const subMetadata = {
-      angelOs_type: 'membership',
-      tenantId: String(tenant.id),
+    const subMetadata = buildSubscriptionMetadata({
+      tenantId: tenant.id as number | string,
       tenantSlug: slug,
       planId: plan.id,
       planName: plan.name,
-    }
+      memberName,
+      memberEmail,
+      memberUserId: (user as { id?: number | string } | null)?.id ?? null,
+    })
 
     // Connect (third-party): destination-transfer the dues to their account, keep
     // the platform fee. Platform-direct (first-party, default): no transfer, no
