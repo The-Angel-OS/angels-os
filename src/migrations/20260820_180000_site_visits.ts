@@ -56,10 +56,34 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       CREATE INDEX IF NOT EXISTS "site_visits_visitor_hash_idx" ON "site_visits" ("visitor_hash");
       CREATE INDEX IF NOT EXISTS "site_visits_user_idx" ON "site_visits" ("user_id");
       CREATE INDEX IF NOT EXISTS "site_visits_created_at_idx" ON "site_visits" ("created_at");
+
+      -- ⚠️ A NEW COLLECTION ALSO NEEDS ITS COLUMN ON THE LOCKED-DOCS RELS TABLE.
+      -- Payload generates the admin's document-lock query from the live config, so
+      -- the moment site-visits was registered that query selected a column that
+      -- did not exist — and EVERY admin save failed, media uploads included, with
+      -- "Failed query: select distinct payload_locked_documents...". Missing this
+      -- took the admin panel down on 260820. /api/provision-ops/db-repair-locks
+      -- is the live fix; this line is why a fresh node never needs it.
+      ALTER TABLE "payload_locked_documents_rels"
+        ADD COLUMN IF NOT EXISTS "site_visits_id" integer;
+
+      DO $$ BEGIN
+        ALTER TABLE "payload_locked_documents_rels"
+          ADD CONSTRAINT "payload_locked_documents_rels_site_visits_fk"
+          FOREIGN KEY ("site_visits_id") REFERENCES "site_visits"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+      CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_site_visits_id_idx"
+        ON "payload_locked_documents_rels" ("site_visits_id");
     `),
   )
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
-  await db.execute(sql.raw(`DROP TABLE IF EXISTS "site_visits";`))
+  await db.execute(
+    sql.raw(`
+      ALTER TABLE "payload_locked_documents_rels" DROP COLUMN IF EXISTS "site_visits_id";
+      DROP TABLE IF EXISTS "site_visits";
+    `),
+  )
 }

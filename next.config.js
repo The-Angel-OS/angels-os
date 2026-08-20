@@ -13,7 +13,16 @@ const nextConfig = {
   // uploads looked randomly broken. Self-host has no platform body wall (that
   // was Vercel's 4.5MB), so allow real video sizes; R2 presigned direct upload
   // remains the path for anything truly large.
-  middlewareClientMaxBodySize: '150mb',
+  //
+  // ⚠️ This lived at the TOP LEVEL as `middlewareClientMaxBodySize`, where Next 16
+  // does not accept it — every boot logged "Unrecognized key(s) in object" and the
+  // cap stayed at 10MB, so the fix described above was never actually in force. It
+  // belongs under `experimental`, and Next 16 renamed it: `middlewareClientMaxBodySize`
+  // is deprecated in favour of `proxyClientMaxBodySize`, and setting BOTH is a hard
+  // build error. One key, the current name.
+  experimental: {
+    proxyClientMaxBodySize: '150mb',
+  },
   images: {
     remotePatterns: [
       // ── Production: all *.spacesangels.com subdomains ──────────────────────
