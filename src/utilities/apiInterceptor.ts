@@ -113,9 +113,16 @@ export function createApiInterceptor() {
         'API',
         { error: detail, duration }
       )
+      // An aborted fetch is not a failure — it's the user navigating away, or a
+      // poll cancelling its own in-flight request. Logging those made
+      // `client/fetch` the loudest unresolved source in the error log.
+      const aborted =
+        (error instanceof Error && error.name === 'AbortError') ||
+        /abort/i.test(detail)
+
       // A thrown fetch = network/transport failure. Escalate (deduped, poll-skipped),
       // but never for the sink itself (would loop) or polls.
-      if (shouldEscalate(url) && escalateOnce(`${method} ${url} network`)) {
+      if (!aborted && shouldEscalate(url) && escalateOnce(`${method} ${url} network`)) {
         logClientError({
           source: 'client/fetch',
           message: `Network error ${method} ${url}`,

@@ -17,6 +17,8 @@ import { runProbe } from '@/utilities/connectorProbes'
 import { logCaughtError } from '@/utilities/logError'
 
 interface HealthResult {
+  /** Status BEFORE this probe — a connector already in error is not news. */
+  wasError: boolean
   id: string
   name: string
   type: string
@@ -91,6 +93,7 @@ export const connectorHealthCronHandler: PayloadHandler = async (req) => {
         }
 
         return {
+          wasError: String(conn.status || '') === 'error',
           id: connId,
           name: String(conn.name || ''),
           type,
@@ -113,18 +116,18 @@ export const connectorHealthCronHandler: PayloadHandler = async (req) => {
     }
   }
 
-  // ── Log summary if any failures ──────────────────────────────
-  if (failed > 0) {
-    const failedNames = results
-      .filter((r) => !r.ok)
-      .map((r) => `${r.name} (${r.type}): ${r.message}`)
-    logCaughtError('connector-health-cron/summary', new Error(`${failed} connector(s) unhealthy`), {
-      statusCode: 200, // not an HTTP error — informational
-    })
-    // Log individual failures for debugging
-    for (const name of failedNames.slice(0, 10)) {
-      logCaughtError('connector-health-cron/failure', new Error(name))
-    }
+  // ── Log only the TRANSITION into failure ─────────────────────
+  // This cron runs every 30 minutes. Logging every unhealthy connector on every
+  // run meant one dead Gotify host produced 1,191 error rows in 7 days — 93% of
+  // the whole error log, burying everything real. A connector already in `error`
+  // is not news; the row that matters is the one where it first broke, and the
+  // connector's own `status`/`errorMessage` carries the current state.
+  const newlyFailed = results.filter((r) => !r.ok && !r.wasError)
+  for (const r of newlyFailed.slice(0, 10)) {
+    logCaughtError(
+      'connector-health-cron/failure',
+      new Error(`${r.name} (${r.type}): ${r.message.slice(0, 200)}`),
+    )
   }
 
   return Response.json({
