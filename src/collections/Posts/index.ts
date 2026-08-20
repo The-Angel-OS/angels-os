@@ -26,6 +26,7 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
+import { fillMetaFromContent } from './hooks/fillMetaFromContent'
 import { PAGE_ACCESS_OPTIONS } from '@/utilities/pageAccess'
 
 export const Posts: CollectionConfig = {
@@ -209,6 +210,7 @@ export const Posts: CollectionConfig = {
     simpleSlugField,
   ],
   hooks: {
+    beforeChange: [fillMetaFromContent],
     afterChange: [revalidatePost],
     afterDelete: [revalidateDelete],
   },

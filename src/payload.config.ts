@@ -115,6 +115,7 @@ import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slot
 import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
 import { bookingSetHoursHandler } from '@/endpoints/booking-set-hours'
 import { siteLogReportHandler } from '@/endpoints/site-log-report'
+import { postMetaRepairHandler } from '@/endpoints/post-meta-repair'
 import { captureHandler, captureOptionsHandler } from '@/endpoints/capture'
 import { sequenceTickHandler } from '@/endpoints/sequence-tick'
 import { presencePingHandler } from '@/endpoints/presence-ping'
@@ -974,6 +975,12 @@ export default buildConfig({
       path: '/site-log/report',
       method: 'get',
       handler: siteLogReportHandler,
+    },
+    // Backfill share descriptions on posts written before the auto-fill hook.
+    {
+      path: '/post-ops/meta-repair',
+      method: 'get',
+      handler: postMetaRepairHandler,
     },
     // One-shot, super_admin-only, idempotent: provisions the WDEG portal tenant.
     // GET so an authenticated super_admin can trigger it from the browser.
