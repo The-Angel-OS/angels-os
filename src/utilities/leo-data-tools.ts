@@ -21,6 +21,7 @@
  */
 
 import type { Payload, Where } from 'payload'
+import { markdownToLexical } from '@/utilities/markdownToLexical'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
@@ -107,6 +108,35 @@ function navDirective(
     ...(label ? { label } : {}),
     ...(extra?.activateEndeavor != null ? { activateEndeavor: extra.activateEndeavor } : {}),
   })}-->`
+}
+
+/**
+ * Where the thing Leo just touched actually lives.
+ *
+ * "It's saved as a draft" is only half an answer — the user then has to go and
+ * find it. A draft has no public page (that URL 404s until it is published), so
+ * the honest destination is the editor, which is also where the Preview button
+ * is. Published docs get the public link too.
+ *
+ * Returns markdown lines to append to a tool result, plus a nav directive so a
+ * client that can navigate (Nimue, the web chat) gets a real button rather than
+ * a URL the user has to copy.
+ */
+function docLocationLines(
+  collection: 'posts' | 'pages' | 'products',
+  id: number | string,
+  slug: string | undefined,
+  status: string,
+): string[] {
+  const editUrl = `/admin/collections/${collection}/${id}`
+  const publicUrl = slug ? affectedPublicUrl(collection, slug) : null
+  const lines = [`- Open it: ${editUrl}`]
+  if (status === 'published' && publicUrl) lines.push(`- Live at: ${publicUrl}`)
+  // Point the button at the surface they can actually use right now.
+  const target = status === 'published' && publicUrl ? publicUrl : editUrl
+  const label = status === 'published' && publicUrl ? 'View it' : 'Open the draft'
+  lines[lines.length - 1] += navDirective(target, label)
+  return lines
 }
 
 // Visual-echo marker (producer side) — see src/utilities/affectedUrl.ts.
@@ -8259,50 +8289,19 @@ async function handleDraftReviewResponse(
 // Sprint 14: Content Management Handlers
 // ---------------------------------------------------------------------------
 
-/** Convert plain text (with \n\n paragraph breaks) to Lexical richText root */
+/**
+ * Convert what Leo wrote into Lexical richText.
+ *
+ * Leo writes Markdown, because that is what a language model writes. This used to
+ * dump each blank-line-separated block into ONE plain text node, so `## Heading`,
+ * `**bold**`, `- item` and bare `***` separators all arrived in the editor as
+ * literal characters — visible on every post Leo produced.
+ *
+ * @see src/utilities/markdownToLexical.ts
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function textToLexical(text: string): any {
-  const paragraphs = text
-    .split(/\n\n+/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-
-  const children = paragraphs.map((block) => ({
-    type: 'paragraph',
-    children: [
-      {
-        type: 'text',
-        text: block,
-        detail: 0,
-        format: 0,
-        mode: 'normal',
-        style: '',
-        version: 1,
-      },
-    ],
-    direction: 'ltr',
-    format: '',
-    indent: 0,
-    version: 1,
-  }))
-
-  return {
-    root: {
-      type: 'root',
-      children: children.length > 0 ? children : [{
-        type: 'paragraph',
-        children: [{ type: 'text', text: '', detail: 0, format: 0, mode: 'normal', style: '', version: 1 }],
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        version: 1,
-      }],
-      direction: 'ltr',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-  }
+  return markdownToLexical(text)
 }
 
 /** Wrap richText in a full-width Content block for the layout field */
@@ -8606,8 +8605,8 @@ async function createPost(
     `Post created successfully!`,
     `- **${title}** (${status})`,
     `- Post ID: ${result.id}`,
+    ...docLocationLines('posts', result.id as number, slug, status),
   ]
-  if (slug) lines.push(`- URL: /posts/${slug}`)
   if (postData.categories?.length) lines.push(`- Categories: ${categoryNames?.join(', ')}`)
 
   // Auto-generate hero image if requested
@@ -9050,7 +9049,7 @@ async function ingestYouTubeUrl(
     `- Channel: ${meta.channelName || 'Unknown'}`,
     `- Post ID: ${result.id} (${status})`,
   ]
-  if (slug) lines.push(`- URL: /posts/${slug}`)
+  lines.push(...docLocationLines('posts', result.id as number, slug, status))
   if (meta.thumbnailUrl) lines.push(`- Thumbnail: ${meta.thumbnailUrl}`)
   lines.push(`- Source: ${meta.sourceUrl}`)
 
@@ -9256,7 +9255,7 @@ async function updatePost(
   const lines = [`Post updated successfully!`, `- Post ID: ${postId}`]
   if (updateData.title) lines.push(`- New title: ${updateData.title}`)
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
-  if (slug) lines.push(`- URL: /posts/${slug}`)
+  lines.push(...docLocationLines('posts', postId, slug, str(result, '_status') || 'draft'))
 
   // Auto-generate hero image if requested
   if (input.generateHeroImage === true) {
@@ -9369,8 +9368,8 @@ async function createPage(
     `Page created successfully!`,
     `- **${title}** (${status})`,
     `- Page ID: ${result.id}`,
+    ...docLocationLines('pages', result.id as number, slug, status),
   ]
-  if (slug) lines.push(`- URL: /${slug}`)
 
   // Auto-generate hero image if requested
   if (input.generateHeroImage === true) {
@@ -9481,7 +9480,7 @@ async function updatePage(
   const lines = [`Page updated successfully!`, `- Page ID: ${pageId}`]
   if (updateData.title) lines.push(`- New title: ${updateData.title}`)
   if (updateData._status) lines.push(`- Status: ${updateData._status}`)
-  if (slug) lines.push(`- URL: /${slug}`)
+  lines.push(...docLocationLines('pages', pageId, slug, str(result, '_status') || 'draft'))
 
   // Auto-generate hero image if requested
   if (input.generateHeroImage === true) {
