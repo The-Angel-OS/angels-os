@@ -13,6 +13,10 @@
  *
  * Mirrors the proven pattern in canManageSpaces / canInviteUsers (tenant
  * membership roles), generalized to a Payload `Access` function.
+ *
+ * Now the shared "portal manager" scope rather than a connectors-only rule — the
+ * Site Log reuses it for the same reason (operations data, not customer data).
+ * The name is historical; the meaning is general.
  */
 import type { Access } from 'payload'
 import { getUserTenantRoles } from '@/access/getUserTenantRoles'

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { checkRole } from '@/access/utilities'
+import { connectorScopedAccess } from '@/access/connectorAccess'
 
 /**
  * SiteVisits — one row per public page view. The substrate for the Site Log.
@@ -34,7 +35,12 @@ export const SiteVisits: CollectionConfig = {
   },
   access: {
     create: () => false, // system only (overrideAccess)
-    read: ({ req: { user } }) => Boolean(user),
+    // A visitor log is portal-operations data — who came, from where, on what.
+    // `Boolean(user)` would hand it to every signed-in customer on the node, so
+    // this reuses the same tenant-manager scope the Connectors collection uses:
+    // platform admins unconstrained, tenant_admin/tenant_manager clamped to their
+    // own portals, everyone else denied.
+    read: connectorScopedAccess,
     update: () => false,
     delete: ({ req: { user } }) => Boolean(checkRole(['super_admin'], user)),
   },

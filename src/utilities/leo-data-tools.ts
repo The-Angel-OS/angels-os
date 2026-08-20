@@ -16021,11 +16021,15 @@ async function handleUpdateNavigation(
   const target = input.target as 'header' | 'footer'
   const action = input.action as string
 
+  // Without a tenant this used to fall through to an unfiltered find and edit the
+  // FIRST header row on the node — i.e. some other portal's menu. A menu edit has
+  // to know whose menu it is.
+  if (!ctx.tenantId) {
+    return "Error: I can't tell which portal's menu to edit. Open that portal's workspace and ask me again."
+  }
+
   // Find the current nav doc
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const conditions: any[] = []
-  if (ctx.tenantId) conditions.push({ tenant: { equals: ctx.tenantId } })
-  const where: Where = conditions.length > 0 ? { and: conditions } : {}
+  const where: Where = { and: [{ tenant: { equals: ctx.tenantId } }] }
 
   const result = await payload.find({
     collection: target as any,
