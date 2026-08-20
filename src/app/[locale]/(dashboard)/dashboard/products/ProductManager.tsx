@@ -48,7 +48,7 @@ export function ProductManager({ products, totalProducts, page, totalPages, hasF
           </p>
         </div>
         <Link
-          href="/admin/collections/products"
+          href="/admin/collections/products?returnTo=/dashboard/products&returnLabel=Products"
           className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           + New Product
@@ -77,7 +77,7 @@ export function ProductManager({ products, totalProducts, page, totalPages, hasF
           </p>
           <div className="flex flex-col items-center gap-3">
             <Link
-              href="/admin/collections/products"
+              href="/admin/collections/products?returnTo=/dashboard/products&returnLabel=Products"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Add Your First Product
@@ -113,7 +113,7 @@ function ProductCard({ product }: { product: SerializedProduct }) {
 
   return (
     <Link
-      href={`/admin/collections/products/${product.id}`}
+      href={`/admin/collections/products/${product.id}?returnTo=/dashboard/products&returnLabel=Products`}
       className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50"
     >
       {/* Image or placeholder */}

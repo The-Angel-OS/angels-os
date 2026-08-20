@@ -73,7 +73,7 @@ export default async function DashboardAvailabilityPage({
           </p>
         </div>
         <Link
-          href="/admin/collections/availability/create"
+          href="/admin/collections/availability/create?returnTo=/dashboard/availability&returnLabel=Availability"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Add Schedule
@@ -87,7 +87,7 @@ export default async function DashboardAvailabilityPage({
             Configure your weekly schedule so clients can book appointments.
           </p>
           <Link
-            href="/admin/collections/availability/create"
+            href="/admin/collections/availability/create?returnTo=/dashboard/availability&returnLabel=Availability"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Set Availability
@@ -104,7 +104,7 @@ export default async function DashboardAvailabilityPage({
                 {slots.map((slot: any) => (
                   <Link
                     key={slot.id}
-                    href={`/admin/collections/availability/${slot.id}`}
+                    href={`/admin/collections/availability/${slot.id}?returnTo=/dashboard/availability&returnLabel=Availability`}
                     className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50"
                   >
                     <div className="flex items-center justify-between">

@@ -480,7 +480,7 @@ export default async function DashboardPage({
             value={draftCount}
             icon={<DraftIcon />}
             accentColor="var(--lcars-peach, #ffab91)"
-            href="/admin/collections/pages"
+            href="/admin/collections/pages?returnTo=/dashboard&returnLabel=Dashboard"
             delay={350}
           />
         )}
@@ -694,7 +694,7 @@ export default async function DashboardPage({
           value={stats.bookings}
           icon={<CalendarIcon />}
           accentColor="var(--lcars-blue)"
-          href={`${prefix}/admin/collections/bookings`}
+          href={`${prefix}/admin/collections/bookings?returnTo=/dashboard&returnLabel=Dashboard`}
           delay={500}
         />
         <LCARSStatCard
@@ -702,7 +702,7 @@ export default async function DashboardPage({
           value={stats.projects}
           icon={<CubeIcon />}
           accentColor="var(--lcars-lavender)"
-          href={`${prefix}/admin/collections/projects`}
+          href={`${prefix}/admin/collections/projects?returnTo=/dashboard&returnLabel=Dashboard`}
           delay={600}
         />
       </div>

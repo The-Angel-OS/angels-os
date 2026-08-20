@@ -62,7 +62,7 @@ export default async function DashboardEventsPage({
           </p>
         </div>
         <Link
-          href="/admin/collections/events/create"
+          href="/admin/collections/events/create?returnTo=/dashboard/events&returnLabel=Events"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Create Event
@@ -80,7 +80,7 @@ export default async function DashboardEventsPage({
           </p>
           <div className="flex flex-col items-center gap-3">
             <Link
-              href="/admin/collections/events/create"
+              href="/admin/collections/events/create?returnTo=/dashboard/events&returnLabel=Events"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Create Your First Event
@@ -161,7 +161,7 @@ function EventGroup({
           return (
             <Link
               key={event.id}
-              href={`/admin/collections/events/${event.id}`}
+              href={`/admin/collections/events/${event.id}?returnTo=/dashboard/events&returnLabel=Events`}
               className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-lg">

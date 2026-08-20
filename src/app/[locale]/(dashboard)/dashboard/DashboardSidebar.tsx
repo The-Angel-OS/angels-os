@@ -85,8 +85,18 @@ export function DashboardSidebar({
       wizardComplete,
       permissions: dashboard.userRole?.tenantPermissions || [],
       tenantRole: dashboard.userRole?.tenantRole || null,
+      // Which portal is being administered — gates per-endeavor items (Works).
+      tenantSlug: userTenants?.find((t) => String(t.id) === String(currentTenantId))?.slug || null,
     }),
-    [isAuthenticated, isAdmin, isBusinessOwner, wizardComplete, dashboard.userRole],
+    [
+      isAuthenticated,
+      isAdmin,
+      isBusinessOwner,
+      wizardComplete,
+      dashboard.userRole,
+      userTenants,
+      currentTenantId,
+    ],
   )
 
   // ─── Collapsible section state ──────────────────────────────────

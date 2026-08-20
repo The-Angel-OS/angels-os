@@ -82,7 +82,7 @@ export default async function DashboardMediaPage({
           </p>
         </div>
         <Link
-          href="/admin/collections/media/create"
+          href="/admin/collections/media/create?returnTo=/dashboard/media&returnLabel=Media"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Upload
@@ -103,7 +103,7 @@ export default async function DashboardMediaPage({
           </p>
           {!(q || type !== 'all') && (
             <Link
-              href="/admin/collections/media/create"
+              href="/admin/collections/media/create?returnTo=/dashboard/media&returnLabel=Media"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Upload Your First File
@@ -116,7 +116,7 @@ export default async function DashboardMediaPage({
             {media.docs.map((item: any) => (
               <Link
                 key={item.id}
-                href={`/admin/collections/media/${item.id}`}
+                href={`/admin/collections/media/${item.id}?returnTo=/dashboard/media&returnLabel=Media`}
                 className="group overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50"
               >
                 {isImage(item) && item.url ? (

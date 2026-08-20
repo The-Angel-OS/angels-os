@@ -46,7 +46,7 @@ export default async function DashboardProjectsPage({
           </p>
         </div>
         <Link
-          href="/admin/collections/projects/create"
+          href="/admin/collections/projects/create?returnTo=/dashboard/projects&returnLabel=Projects"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           New Project
@@ -64,7 +64,7 @@ export default async function DashboardProjectsPage({
           </p>
           <div className="flex flex-col items-center gap-3">
             <Link
-              href="/admin/collections/projects/create"
+              href="/admin/collections/projects/create?returnTo=/dashboard/projects&returnLabel=Projects"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Create Your First Project
@@ -90,7 +90,7 @@ export default async function DashboardProjectsPage({
             return (
               <Link
                 key={project.id}
-                href={`/admin/collections/projects/${project.id}`}
+                href={`/admin/collections/projects/${project.id}?returnTo=/dashboard/projects&returnLabel=Projects`}
                 className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-lg">

@@ -39,6 +39,7 @@ import { AdminLogo as AdminLogo_aa0a2d19d38a4839dbd373417e210b89 } from '@/compo
 import { PayloadAdminLEO as PayloadAdminLEO_8da4c4f78bb4d235baa2fe877c5b917c } from '@/components/PayloadAdminLEO'
 import { BeforeDashboard as BeforeDashboard_1a7510af427896d367a49dbf838d2de6 } from '@/components/BeforeDashboard'
 import { BeforeLogin as BeforeLogin_8a7ab0eb7ab5c511aba12e68480bfe5e } from '@/components/BeforeLogin'
+import { AdminReturnBar as AdminReturnBar_9723ab9183e662ab3b36624f63354eb5 } from '@/components/AdminReturnBar'
 import { EnvBanner as EnvBanner_306f30141fd17f7cc9d8fffcc90894f9 } from '@/components/EnvBanner'
 import { TenantAutoSelector as TenantAutoSelector_da3309f7beccdec7f018edc849f5f5aa } from '@/components/TenantAutoSelector'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
@@ -89,6 +90,7 @@ export const importMap = {
   "@/components/PayloadAdminLEO#PayloadAdminLEO": PayloadAdminLEO_8da4c4f78bb4d235baa2fe877c5b917c,
   "@/components/BeforeDashboard#BeforeDashboard": BeforeDashboard_1a7510af427896d367a49dbf838d2de6,
   "@/components/BeforeLogin#BeforeLogin": BeforeLogin_8a7ab0eb7ab5c511aba12e68480bfe5e,
+  "@/components/AdminReturnBar#AdminReturnBar": AdminReturnBar_9723ab9183e662ab3b36624f63354eb5,
   "@/components/EnvBanner#EnvBanner": EnvBanner_306f30141fd17f7cc9d8fffcc90894f9,
   "@/components/TenantAutoSelector#TenantAutoSelector": TenantAutoSelector_da3309f7beccdec7f018edc849f5f5aa,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,

@@ -18,6 +18,8 @@ export interface NavVisibilityContext {
   wizardComplete: boolean
   permissions: string[]
   tenantRole: string | null
+  /** Slug of the portal currently being administered — gates per-endeavor items. */
+  tenantSlug?: string | null
 }
 
 // ─── Config Types ───────────────────────────────────────────────
@@ -49,6 +51,18 @@ const authenticated = (ctx: NavVisibilityContext) => ctx.isAuthenticated
 const adminOnly = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isAdmin
 const businessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isBusinessOwner
 const adminOrBusinessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && (ctx.isAdmin || ctx.isBusinessOwner)
+/**
+ * Works Studio is not a platform feature — it is a two-endeavor feature. Only
+ * Clearwater Cruisin' and Where Did Everyone Go publish Works; on every other
+ * portal the Studio was a door onto an empty room, and worse, it advertised a
+ * capability their customers would ask about. Ken's 260820 call.
+ * ponytail: a two-slug allow-list, not a per-tenant flag — add a flag when a
+ * third endeavor wants in.
+ */
+const WORKS_ENDEAVORS = ['clearwater-cruisin', 'wheredideveryonego']
+const worksEndeavorOnly = (ctx: NavVisibilityContext) =>
+  ctx.isAuthenticated && Boolean(ctx.tenantSlug && WORKS_ENDEAVORS.includes(ctx.tenantSlug))
+
 /** isActive shorthand — matches if pathname includes the given path segment */
 const active = (path: string) => (pathname: string, _prefix: string) => pathname.includes(path)
 
@@ -431,7 +445,7 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         icon: 'book-open',
         href: (p) => `${p}/dashboard/works`,
         isActive: active('/dashboard/works'),
-        visible: always,
+        visible: worksEndeavorOnly,
       },
     ],
   },
@@ -454,22 +468,11 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         visible: always,
         className: 'text-emerald-600 dark:text-emerald-400',
       },
-      {
-        key: 'provision',
-        label: 'Provision',
-        icon: 'plus',
-        href: (p) => `${p}/dashboard/admin/provision`,
-        isActive: () => false,
-        visible: always,
-      },
-      {
-        key: 'suitcase',
-        label: 'Suitcase',
-        icon: 'package',
-        href: (p) => `${p}/dashboard/admin/suitcase`,
-        isActive: () => false,
-        visible: always,
-      },
+      // Provision (the endeavor wizard) and Suitcase are OFF the sidebar as of
+      // 260820 — Ken's call. Both routes still resolve: /dashboard/setup,
+      // /dashboard/new-endeavor and /dashboard/endeavor are permanent redirects
+      // INTO /dashboard/admin/provision, and LEO links it. It just doesn't earn
+      // a standing slot in a nav this long. Re-add here if it needs one back.
       {
         key: 'payments',
         label: 'Payments',

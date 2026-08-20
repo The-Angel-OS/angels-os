@@ -355,6 +355,7 @@ export default buildConfig({
       beforeDashboard: ['@/components/BeforeDashboard#BeforeDashboard'],
       afterNavLinks: ['@/components/PayloadAdminLEO#PayloadAdminLEO'],
       beforeNav: [
+        '@/components/AdminReturnBar#AdminReturnBar',
         '@/components/EnvBanner#EnvBanner',
         '@/components/TenantAutoSelector#TenantAutoSelector',
       ],

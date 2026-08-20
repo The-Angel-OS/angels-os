@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { WorksGrid } from '@/components/Library/WorksGrid'
 import { OneMindThreeBodies } from '@/components/Learn/OneMindThreeBodies'
+import { OperatorGuide } from '@/components/Learn/OperatorGuide'
 import type { SoulManifest } from '@/souls'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
@@ -629,6 +630,12 @@ export default function LearnPage({
         style={{ scrollbarWidth: 'thin' }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          {/* ── Running your portal ─────────────────────────────────
+              The practical guide comes FIRST. Someone arriving at /learn
+              usually needs to confirm a booking, not read a constitution.
+              The philosophy below is worth their time — just not before this. */}
+          <OperatorGuide />
+
           {/* ── Hero Section ────────────────────────────────────── */}
           <motion.section
             className="text-center mb-16"

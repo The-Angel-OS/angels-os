@@ -379,10 +379,14 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                       className={`overflow-hidden rounded-xl border text-left transition-colors ${active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-primary/5'}`}
                     >
                       {s.imageUrl && (
+                        // 16/9 matches the admin picture preview (EndeavorSetup's
+                        // banner aspect) — a fixed h-32 band cropped a portrait to
+                        // a chin, and the card read as half the height of what the
+                        // owner saw when they chose the image.
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.imageUrl} alt={s.label} className="h-32 w-full object-cover" />
+                        <img src={s.imageUrl} alt={s.label} className="aspect-[16/9] w-full object-cover" />
                       )}
-                      <div className={`flex items-start justify-between gap-2 ${s.imageUrl ? 'px-4 pt-4' : 'px-4 pt-4'}`}>
+                      <div className="flex items-start justify-between gap-2 px-4 pt-4">
                         <span className="font-semibold">{s.label}</span>
                         {/* An hourly service showed only its minimum as a flat price
                             ("$75"), which reads as the whole bill — then the invoice
