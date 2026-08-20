@@ -34,6 +34,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { provisionPortal } from '@/utilities/provisionPortal'
+import { inviteOwner, type OwnerInvite } from '@/utilities/inviteOwner'
 import { provisionPagesFromSpec } from '@/utilities/provisionPagesFromSpec'
 import { buildDemoSiteSpec, resolveTradePack } from '@/utilities/demoSiteTemplates'
 import { setMediaField } from '@/utilities/setMediaField'
@@ -96,6 +97,7 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
 
   const { key: tradeKey, pack } = resolveTradePack(trade)
   const log: string[] = []
+  let ownerInvite: OwnerInvite | undefined
 
   try {
     const provisioned = await provisionPortal(payload, {
@@ -143,6 +145,29 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
         req,
       })
       log.push(`owner contact stored: ${email || phone}`)
+    }
+
+    // ...and give that owner a way IN. Until 260820 the funnel built a whole
+    // portal and stored the buyer's email, but minted no membership and no
+    // invite — so the customer we just sold a site to could not administer it,
+    // upload a photo, or see a metric. tenant_admin invite, same record the
+    // team page shows, accepted at /tenant-invite/<token>.
+    if (email) {
+      const invite = await inviteOwner(payload, {
+        email,
+        tenantId,
+        tenantDomain: `${slug}.spacesangels.com`,
+        tenantName: businessName,
+        invitedBy: user?.id,
+        message: `Your ${businessName} site is live — accept to manage it.`,
+        req,
+      })
+      ownerInvite = invite
+      log.push(
+        invite.error
+          ? `owner invite FAILED: ${invite.error}`
+          : `owner invite ${invite.alreadyInvited ? 'already present' : 'sent'} (${email}, emailSent=${invite.emailSent})`,
+      )
     }
 
     // Real bookable rows, not just page copy. Without these `resolveServices`
@@ -209,6 +234,7 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
       theme: pack.defaultTheme,
       heroMedia: heroMedia ?? null,
       pages,
+      ...(ownerInvite ? { invite: ownerInvite } : {}),
       log,
     })
   } catch (e) {
