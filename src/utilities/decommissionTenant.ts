@@ -126,6 +126,29 @@ export async function decommissionTenant(
     steps.push({ collection: 'works', count: 0, status: 'error', error: (err as Error).message })
   }
 
+  // Draft/version rows. Deleting a page or post leaves its `_pages_v` /
+  // `_posts_v` rows behind pointing at the tenant, and the FK is SET NULL — so
+  // they survive as untenanted orphans rather than going with the portal. 218 of
+  // them outlived tenant 32's 260818 takedown. Payload has no API for these
+  // tables; raw SQL is the only way in.
+  for (const table of ['_pages_v', '_posts_v']) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db: any = (payload as any).db
+      const pool = db.pool || db.drizzle?.session?.client
+      if (!pool) throw new Error('no pg pool available')
+      const sql = `${execute ? 'DELETE' : 'SELECT count(*)'} FROM "${table}" WHERE version_tenant_id = $1`
+      const res = await pool.query(sql, [tenantId])
+      const count = execute ? res.rowCount || 0 : Number(res.rows?.[0]?.count || 0)
+      if (count > 0) {
+        totalRows += count
+        steps.push({ collection: table, count, status: execute ? 'deleted' : 'counted' })
+      }
+    } catch (err) {
+      steps.push({ collection: table, count: 0, status: 'error', error: (err as Error).message })
+    }
+  }
+
   // Users — scrub this tenant from each user's tenants[] array. Never delete users.
   try {
     const users = await payload.find({ collection: 'users', where: { 'tenants.tenant': { equals: tenantId } }, limit: 500, depth: 0, overrideAccess: true })
@@ -156,7 +179,19 @@ export async function decommissionTenant(
   } else {
     totalRows += 1
     try {
-      await payload.delete({ collection: 'tenants', where: { id: { equals: tenantId } }, overrideAccess: true })
+      // payload.delete({ where }) does NOT throw when a document fails — it
+      // collects per-doc failures in `errors` and resolves. Decommissioning
+      // tenant 32 on 260820 reported "1 deleted" while the row was still there,
+      // because the afterDelete hook threw into that array and the catch below
+      // never fired. Treat an empty `docs` (or any error) as a failure.
+      const res = (await payload.delete({
+        collection: 'tenants',
+        where: { id: { equals: tenantId } },
+        overrideAccess: true,
+      })) as { docs?: unknown[]; errors?: { message?: string }[] }
+      if (!res?.docs?.length || res.errors?.length) {
+        throw new Error(res?.errors?.[0]?.message || 'bulk delete removed no rows')
+      }
       steps.push({ collection: 'tenants', count: 1, status: 'deleted' })
     } catch {
       try {
