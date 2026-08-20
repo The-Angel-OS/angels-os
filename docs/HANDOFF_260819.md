@@ -114,3 +114,59 @@ internal words. The goal is a functional platform that takes money.
   succeed. Real failures look identical from the deployment list, so **always
   confirm with `/api/health` uptime reset or by hitting a new endpoint** rather
   than trusting the label either way.
+
+---
+
+# Addendum — 260820
+
+## Shipped since the handoff
+
+- **Bookings hours editor.** `/dashboard/admin/bookings` "+ Add Availability" (which
+  opened a guide pointing at the Payload admin) is now **"Edit hours"**: day toggles,
+  start/end, appointment length → `POST /api/booking-ops/set-hours`. Writes the weekly
+  rows for the provider `/book` actually resolves to; days switched off are deactivated,
+  not deleted. Gated on platform admin or tenant_admin/tenant_manager. Item 1 is DONE.
+- **Error log is readable.** `connector-health-cron` re-logged every unhealthy connector
+  every 30 min — 1,191 rows in 7 days, 93% of the whole log. Now logs only the
+  TRANSITION into failure. `apiInterceptor` no longer escalates `AbortError`
+  (navigation / poll cancellation is not a network failure).
+- **Hard 14-day retention.** `log-consolidate` now forgets ANYTHING older than
+  `maxDays` (default 14) on top of resolved>14d / info+debug>7d. Ken's ruling: the
+  log's job is that every fault LANDS there to be found, not that faults accumulate.
+  Runs nightly 03:30. Live sweep: 5,960 → 2,736 rows, 135 unresolved.
+- **The four Gotify connectors are `enabled:false`** — Ken took that tunnel down
+  deliberately to cut load. Re-enable when it's back; nothing else depended on them.
+- **A paying subscriber is always attached to a person.** Handoff item 4 is DONE, and
+  not by requiring sign-in. The webhook now resolves the payer from Stripe's own record
+  of the payment (metadata email, else the Stripe customer's email) through
+  `findOrCreateInvitedUser` — existing account if there is one, else a shell account
+  they claim by proving they hold the address. Anonymous recurring support still works.
+
+## ⭐ Recurring billing is now PROVEN end to end on live
+
+It never had been — the Memberships table had **zero rows, ever**. Verified 260820 by
+posting a properly-signed `customer.subscription.created` to `/api/stripe/webhooks`
+against live: it created Membership id 1 on tenant 1 with `member_id` populated from a
+freshly-minted shell user. Probe artifacts deleted afterwards (table back to 0).
+
+**So the chain works: checkout → Stripe → webhook → Membership → gating.** What has still
+never happened is a real human paying with a real card. That is now a sales problem, not
+an engineering one — see item 6, warm-list sends, which is still untouched.
+
+## Next in value order
+
+1. **Warm-list sends** (was item 6). Four sites are built; nothing has been sent. The
+   billing path is proven, so revenue is now gated on outreach, not code.
+2. **Brochure funnel** (was item 2). `/dashboard/admin/provision` is the wrong tool for a
+   plumber — point the brochure path at the `demo-site` engine.
+3. **8 tenants whose contact forms notify nobody** — set `storefront.contactEmail`, then
+   `contact-form-repair?tenant=<slug>`. A lead that reaches no inbox is a lost sale.
+4. **Custom domains at $49** still need the Railway plan upgrade the pricing page promises.
+5. Per-tier entitlement (P3) — unchanged, still needs Ken's ranked-vs-independent answer.
+
+## New gotcha found
+
+**A user with a space membership cannot be deleted.** `space_memberships.user_id` is
+`ON DELETE SET NULL` but the column is `NOT NULL`, so `delete from users` fails with a
+not-null violation instead of cascading or orphaning. Delete the space_memberships rows
+first. Same family as the "deleting a space ORPHANS, never cascades" rule.
