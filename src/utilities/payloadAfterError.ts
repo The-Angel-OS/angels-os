@@ -23,6 +23,12 @@ export const afterErrorHook = async (args: any) => {
     // for anything — LEO or human — actually consuming the errors channel.)
     const status = typeof error?.status === 'number' ? error.status : 500
     if (status === 404) return
+
+    // An ANONYMOUS request being refused is the access control working, not a
+    // fault. `/api/settings` alone logged one of these most days — a probe or an
+    // unauthenticated client hitting a locked door. A SIGNED-IN user being
+    // refused still logs, because that usually means a real permission bug.
+    if ((status === 401 || status === 403) && !req?.user) return
     const level: 'error' | 'warning' = status >= 400 && status < 500 ? 'warning' : 'error'
 
     const source = collection?.slug

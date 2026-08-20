@@ -128,6 +128,13 @@ export const Posts: CollectionConfig = {
                 MediaText,
               ],
               required: true,
+              // `required` alone reports "The following field is invalid:
+              // Content > Layout" — a path, not a problem. An author who just
+              // deleted their last block has no idea what to do with that.
+              validate: (value: unknown) =>
+                Array.isArray(value) && value.length > 0
+                  ? true
+                  : 'A post needs at least one content block — add a Content block and write the body there.',
             },
           ],
           label: 'Content',
