@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -62,12 +61,12 @@ export function BookingsAdmin({
           onClick={() => setShowForm(!showForm)}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {showForm ? 'Close' : '+ Add Availability'}
+          {showForm ? 'Close' : 'Edit hours'}
         </button>
       </div>
 
       {/* Add Availability Form */}
-      {showForm && <NewAvailabilityGuide />}
+      {showForm && <WeeklyHoursEditor slots={availabilitySlots} onDone={() => setShowForm(false)} />}
 
       {/* Weekly Schedule Overview */}
       <div className="rounded-xl border border-border bg-card p-6">
@@ -81,11 +80,8 @@ export function BookingsAdmin({
             </div>
             <h3 className="mb-1 font-semibold">No Availability Set</h3>
             <p className="text-sm text-muted-foreground">
-              Set up your weekly availability to start accepting bookings.
-              Click &quot;+ Add Availability&quot; above or create slots in the{' '}
-              <Link href="/admin/collections/availability" className="text-primary underline">
-                admin panel
-              </Link>.
+              Set your weekly hours to start accepting bookings — click
+              &quot;Edit hours&quot; above.
             </p>
           </div>
         ) : (
@@ -170,13 +166,6 @@ export function BookingsAdmin({
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Edit slots in the{' '}
-            <Link href="/admin/collections/availability" className="text-primary underline">
-              admin panel
-            </Link>
-            .
-          </p>
         </div>
       )}
 
@@ -228,55 +217,130 @@ export function BookingsAdmin({
   )
 }
 
-function NewAvailabilityGuide() {
+function WeeklyHoursEditor({
+  slots,
+  onDone,
+}: {
+  slots: AvailabilitySlot[]
+  onDone: () => void
+}) {
+  const [days, setDays] = useState(() =>
+    DAY_NAMES.map((_, idx) => {
+      const existing = slots.find(
+        (s) => s.isActive && s.availabilityType === 'weekly' && s.dayOfWeek === String(idx),
+      )
+      return {
+        enabled: Boolean(existing),
+        start: existing?.startTime || '09:00',
+        end: existing?.endTime || '17:00',
+      }
+    }),
+  )
+  const [slotDuration, setSlotDuration] = useState(
+    () => slots.find((s) => s.isActive)?.slotDuration || 30,
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const set = (idx: number, patch: Partial<(typeof days)[number]>) =>
+    setDays((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)))
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/booking-ops/set-hours', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          slotDuration,
+          days: days
+            .map((d, idx) => ({ day: idx, start: d.start, end: d.end, enabled: d.enabled }))
+            .filter((d) => d.enabled)
+            .map(({ day, start, end }) => ({ day, start, end })),
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Could not save your hours.')
+      onDone()
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your hours.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-6">
-      <h3 className="mb-3 text-lg font-semibold">Setting Up Availability</h3>
+      <h3 className="mb-1 text-lg font-semibold">Your weekly hours</h3>
       <p className="mb-4 text-sm text-muted-foreground">
-        Create availability slots to define when you can accept bookings.
-        The easiest way is through the Payload admin panel:
+        Turn on the days you take appointments and set the times customers can book.
       </p>
-      <ol className="mb-4 space-y-2 text-sm text-muted-foreground">
-        <li className="flex gap-2">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            1
-          </span>
-          <span>
-            Go to{' '}
-            <Link href="/admin/collections/availability/create" className="text-primary underline">
-              Create Availability
-            </Link>{' '}
-            in the admin panel
-          </span>
-        </li>
-        <li className="flex gap-2">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            2
-          </span>
-          <span>Choose &quot;Recurring Weekly&quot; for regular hours (e.g., Mon-Fri 9am-5pm)</span>
-        </li>
-        <li className="flex gap-2">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            3
-          </span>
-          <span>Set your slot duration (30min, 60min, etc.) and buffer time between appointments</span>
-        </li>
-        <li className="flex gap-2">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            4
-          </span>
-          <span>Add exceptions for holidays or blackout dates</span>
-        </li>
-      </ol>
-      <Link
-        href="/admin/collections/availability/create"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-      >
-        Create Availability Slot
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-        </svg>
-      </Link>
+
+      <div className="space-y-2">
+        {DAY_NAMES.map((name, idx) => (
+          <div key={name} className="flex flex-wrap items-center gap-3">
+            <label className="flex w-32 items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={days[idx]!.enabled}
+                onChange={(e) => set(idx, { enabled: e.target.checked })}
+              />
+              {name}
+            </label>
+            <input
+              type="time"
+              value={days[idx]!.start}
+              disabled={!days[idx]!.enabled}
+              onChange={(e) => set(idx, { start: e.target.value })}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm disabled:opacity-40"
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <input
+              type="time"
+              value={days[idx]!.end}
+              disabled={!days[idx]!.enabled}
+              onChange={(e) => set(idx, { end: e.target.value })}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm disabled:opacity-40"
+            />
+          </div>
+        ))}
+      </div>
+
+      <label className="mt-5 flex items-center gap-3 text-sm font-medium">
+        Appointment length
+        <select
+          value={slotDuration}
+          onChange={(e) => setSlotDuration(Number(e.target.value))}
+          className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+        >
+          {[15, 30, 45, 60, 90, 120].map((m) => (
+            <option key={m} value={m}>
+              {m} minutes
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+      <div className="mt-5 flex gap-3">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save hours'}
+        </button>
+        <button
+          onClick={onDone}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }

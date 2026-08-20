@@ -112,6 +112,7 @@ import { ordersVendorHandler } from '@/endpoints/orders-vendor'
 import { ordersClaimableHandler } from '@/endpoints/orders-claimable'
 import { bookingAvailableSlotsHandler } from '@/endpoints/booking-available-slots'
 import { bookingPublicSlotsHandler } from '@/endpoints/booking-public-slots'
+import { bookingSetHoursHandler } from '@/endpoints/booking-set-hours'
 import { captureHandler, captureOptionsHandler } from '@/endpoints/capture'
 import { sequenceTickHandler } from '@/endpoints/sequence-tick'
 import { presencePingHandler } from '@/endpoints/presence-ping'
@@ -956,6 +957,12 @@ export default buildConfig({
       path: '/booking-ops/public-slots',
       method: 'post',
       handler: bookingPublicSlotsHandler,
+    },
+    // Owner-facing weekly hours editor (dashboard) — replaces hand-editing rows.
+    {
+      path: '/booking-ops/set-hours',
+      method: 'post',
+      handler: bookingSetHoursHandler,
     },
     // One-shot, super_admin-only, idempotent: provisions the WDEG portal tenant.
     // GET so an authenticated super_admin can trigger it from the browser.
