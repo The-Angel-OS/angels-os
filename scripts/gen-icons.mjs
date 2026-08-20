@@ -24,7 +24,9 @@ const render = (src, size) => sharp(src, { density: 900 }).resize(size, size).pn
 
 for (const [file, size, src] of [
   ['public/favicon-32x32.png', 32, small],
-  ['public/favicon.png', 64, small],
+  // 64 gets WINGS — Ken's call. It is the dashboard layout's declared icon and
+  // the largest size a tab ever renders, so it can carry the full mark.
+  ['public/favicon.png', 64, full],
   ['public/icon-512.png', 512, full],
 ]) {
   writeFileSync(file, await render(src, size))
