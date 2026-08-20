@@ -5,11 +5,16 @@
  * writes to `application-logs` on every fault; without pruning, an organism
  * "dies of its own logs." This is the nightly consolidation ("Dreams"):
  *
- *   - NEVER forget: unresolved error/warning logs. Unhealed pain persists.
+ *   - Forget: ANYTHING older than `maxDays` (the hard retention ceiling).
  *   - Forget: resolved logs older than `resolvedDays` (they've been handled).
  *   - Forget: info/debug logs older than `noiseDays` (telemetry noise).
  *   - Before pruning, write ONE rollup summary log so the memory of *volume*
  *     survives even as the detail is forgotten.
+ *
+ * The point of the log is that every fault eventually LANDS here so it can be
+ * found and fixed — not that faults accumulate forever. An unresolved error
+ * still sitting there after two weeks is one nobody is going to act on; if it
+ * matters, it recurs and comes back in. Ken's call, 260820.
  *
  * System-wide (all tenants) — it's the janitor, not a per-tenant tool. Gated by
  * super_admin OR `?key=<CRON_SECRET>` / `Authorization: Bearer <CRON_SECRET>`.
@@ -38,14 +43,18 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
   const dry = url.searchParams.get('dry') === 'true'
   const resolvedDays = clampDays(url.searchParams.get('resolvedDays'), 14)
   const noiseDays = clampDays(url.searchParams.get('noiseDays'), 7)
+  const maxDays = clampDays(url.searchParams.get('maxDays'), 14)
   const now = Date.now()
   const resolvedCutoff = new Date(now - resolvedDays * DAY_MS).toISOString()
   const noiseCutoff = new Date(now - noiseDays * DAY_MS).toISOString()
+  const maxCutoff = new Date(now - maxDays * DAY_MS).toISOString()
 
-  // What we forget — resolved-and-aged OR info/debug-and-aged. Unresolved
-  // error/warning logs match NEITHER clause, so they are never pruned.
+  // What we forget — anything past the hard ceiling, OR resolved-and-aged, OR
+  // info/debug-and-aged. The ceiling is what stops a stale backlog from burying
+  // the faults that are actually happening now.
   const forgetWhere: Where = {
     or: [
+      { createdAt: { less_than: maxCutoff } },
       { and: [{ resolved: { equals: true } }, { createdAt: { less_than: resolvedCutoff } }] },
       { and: [{ level: { in: ['info', 'debug'] } }, { createdAt: { less_than: noiseCutoff } }] },
     ],
@@ -56,7 +65,14 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
       payload.count({ collection: 'application-logs', where: forgetWhere, overrideAccess: true }),
       payload.count({
         collection: 'application-logs',
-        where: { and: [{ level: { in: ['error', 'warning'] } }, { resolved: { not_equals: true } }] },
+        // Only the ones that SURVIVE this run — the others are about to go.
+        where: {
+          and: [
+            { level: { in: ['error', 'warning'] } },
+            { resolved: { not_equals: true } },
+            { createdAt: { greater_than_equal: maxCutoff } },
+          ],
+        },
         overrideAccess: true,
       }),
     ])
@@ -65,7 +81,7 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
       return Response.json({
         ok: true, dryRun: true,
         wouldForget: toForget.totalDocs, unresolvedKept: unresolved.totalDocs,
-        policy: { resolvedDays, noiseDays },
+        policy: { maxDays, resolvedDays, noiseDays },
       })
     }
 
@@ -77,14 +93,14 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
         data: {
           level: 'info',
           source: 'log-consolidate',
-          message: `Consolidated ${toForget.totalDocs} logs (resolved >${resolvedDays}d + info/debug >${noiseDays}d). ${unresolved.totalDocs} unresolved kept.`,
+          message: `Consolidated ${toForget.totalDocs} logs (anything >${maxDays}d + resolved >${resolvedDays}d + info/debug >${noiseDays}d). ${unresolved.totalDocs} unresolved remain inside the window.`,
           resolved: true,
         },
       })
       await payload.delete({ collection: 'application-logs', where: forgetWhere, overrideAccess: true })
     }
 
-    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, policy: { resolvedDays, noiseDays } })
+    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, policy: { maxDays, resolvedDays, noiseDays } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[log-consolidate] ${msg}`)
