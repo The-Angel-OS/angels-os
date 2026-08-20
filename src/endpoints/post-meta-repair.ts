@@ -75,25 +75,40 @@ export const postMetaRepairHandler: PayloadHandler = async (req) => {
     }
 
     const filled: string[] = []
+    const noProse: string[] = []
     const failed: string[] = []
     for (const doc of needing) {
       try {
         // Write the layout back unchanged — the hook reads it and fills the
         // description. Draft posts keep their status because we do not touch it.
-        await payload.update({
+        const saved = (await payload.update({
           collection: 'posts',
           id: doc.id as number,
           data: { layout: doc.layout } as never,
           overrideAccess: true,
           req,
-        })
-        filled.push(String(doc.title))
+        })) as unknown as { meta?: { description?: string } }
+
+        // Report what ACTUALLY happened, not what was attempted. A video post
+        // whose body is an embed has no prose to summarise, so the save succeeds
+        // and the description stays empty — counting that as "filled" would tell
+        // the operator a job was done that wasn't.
+        if (saved?.meta?.description?.trim()) filled.push(String(doc.title))
+        else noProse.push(String(doc.title))
       } catch (e) {
         failed.push(`${doc.title}: ${e instanceof Error ? e.message : String(e)}`)
       }
     }
 
-    return Response.json({ ok: true, scanned: res.totalDocs, filled: filled.length, failed, titles: filled })
+    return Response.json({
+      ok: true,
+      scanned: res.totalDocs,
+      filled: filled.length,
+      titles: filled,
+      // These need a human sentence — there was no body text to summarise.
+      needsAuthor: noProse,
+      failed,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[post-meta-repair] ${msg}`)
