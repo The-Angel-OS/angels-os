@@ -39,6 +39,10 @@ describe('resolveTradePack', () => {
     // BRE Solutions' ad leads with mowing and also sells pressure washing —
     // 'pressure washing' must not fall through to maid service.
     ['lawn mowing and landscaping', 'landscaping'],
+    // 'probate'/'divorce' must not fall through to handyman on 'repair'.
+    ['noncontested divorces and probate services', 'legal'],
+    ['licensed attorney', 'legal'],
+    ['estate planning law firm', 'legal'],
     ['LAWN MOWING*PRESSURE WASHING*LANDSCAPING', 'landscaping'],
     ['yard cleanup and tree work', 'landscaping'],
     ['power washing', 'landscaping'],

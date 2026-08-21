@@ -25,6 +25,7 @@ import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import type { Metadata } from 'next'
 import type { Media } from '@/payload-types'
+import { isPortalClaimed } from '@/utilities/isPortalClaimed'
 import './globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,7 +47,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const faviconUrl = mediaUrl(branding?.favicon) ?? mediaUrl(branding?.logo) ?? '/favicon.png'
   const appleUrl = mediaUrl(branding?.favicon) ?? '/apple-touch-icon.png'
 
+  // A portal built FOR a prospect carries their business name before they have
+  // agreed to anything. robots.txt asks crawlers nicely; this tells the ones that
+  // don't read it. Flips itself when someone accepts their invite.
+  const claimed = tenant ? await isPortalClaimed((tenant as any).id) : true
+
   return {
+    ...(claimed ? {} : { robots: { index: false, follow: false } }),
     title: {
       default: siteName,
       template: `%s | ${siteName}`,

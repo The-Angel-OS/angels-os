@@ -168,6 +168,32 @@ Lot size and how long it has been since the last cut are what move the number. A
       { question: 'Are you licensed and insured?', answer: 'Yes. Certificates are available on request before any work begins.' },
     ],
   },
+  legal: {
+    label: 'Legal Services',
+    tagline: (city) => `Straightforward legal help at a fixed fee${city ? ` in ${city}` : ''}.`,
+    primaryColor: '#1D4ED8',
+    secondaryColor: '#1F2937',
+    defaultTheme: 'light',
+    heroPrompt:
+      'Calm photograph of a tidy desk with a closed folder and a fountain pen by a window, soft daylight, no people, no text, no logos, no signage',
+    // Deliberately narrow and non-committal. Lawyer advertising is regulated
+    // (Florida Rule 4-7): no outcome promises, no comparative or superlative
+    // claims, no testimonials, and nothing that reads as advice to a reader who
+    // is not yet a client. Prices belong here ONLY when the attorney published
+    // them; otherwise the FAQ says to ask.
+    services: [
+      { name: 'Uncontested Divorce', blurb: 'A dissolution both spouses agree to, prepared and filed at a flat fee agreed up front.' },
+      { name: 'Simple Probate', blurb: 'Small-estate probate — the paperwork needed to release a modest bank account to the right person.' },
+      { name: 'Virtual Consultations', blurb: 'Handled by video and email. No office visit unless you want one.' },
+      { name: 'Document Preparation', blurb: 'Forms completed correctly the first time, so the clerk does not send them back.' },
+    ],
+    faq: [
+      { question: 'What does it cost?', answer: 'Flat fees, quoted in writing before any work begins, so the number does not move. Court filing fees are separate and set by the clerk.' },
+      { question: 'Is my matter actually uncontested?', answer: 'Uncontested means both parties agree on everything and neither is asking a judge to decide. If that is not your situation, say so at the outset — it changes what is involved.' },
+      { question: 'Can this be done without coming to an office?', answer: 'Yes. Consultations are held by video and documents are handled electronically, apart from anything the court requires in person.' },
+      { question: 'How long does it take?', answer: 'It depends on the court\'s calendar rather than on us. You will be told what to expect for your county before you commit.' },
+    ],
+  },
   general: {
     label: 'Local Business',
     tagline: (city) => `Dependable local service${city ? ` in ${city}` : ''}.`,
@@ -207,6 +233,9 @@ export function resolveTradePack(input?: string): { key: string; pack: TradePack
   if (has('mov', 'haul', 'relocat')) return { key: 'moving', pack: TRADE_PACKS.moving! }
   if (has('photo', 'video', 'studio')) return { key: 'photography', pack: TRADE_PACKS.photography! }
   if (has('tax', 'account', 'bookkeep', 'payroll', 'cpa')) return { key: 'accounting', pack: TRADE_PACKS.accounting! }
+  // Before 'handy'/'repair': "probate" and "divorce" are not home maintenance.
+  if (has('legal', 'attorney', 'lawyer', 'law firm', 'divorce', 'probate', 'estate plan', 'paralegal'))
+    return { key: 'legal', pack: TRADE_PACKS.legal! }
   if (has('handy', 'repair', 'plumb', 'electric', 'hvac', 'contractor', 'remodel', 'maintenance'))
     return { key: 'handyman', pack: TRADE_PACKS.handyman! }
   return { key: 'general', pack: TRADE_PACKS.general! }
