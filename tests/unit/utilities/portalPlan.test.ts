@@ -47,10 +47,9 @@ describe('planRequiredFor', () => {
 })
 
 describe('the demo tier', () => {
-  it('grants everything Business does — the demo IS the pitch', () => {
+  it('grants the working features — the demo IS the pitch', () => {
     for (const cap of [
       'customDomain',
-      'hideFooterCredit',
       'onlineBooking',
       'crm',
       'customerAssistant',
@@ -58,6 +57,14 @@ describe('the demo tier', () => {
     ] as const) {
       expect(portalCan({ portalPlan: 'demo' }, cap)).toBe(true)
     }
+  })
+
+  it('keeps the footer credit — the demo is marketing, so it should say who built it', () => {
+    // The one capability Business has that demo must NOT: hiding the credit on
+    // the page a prospect shows their friends would throw away the only
+    // distribution the free work buys.
+    expect(portalCan({ portalPlan: 'demo' }, 'hideFooterCredit')).toBe(false)
+    expect(portalCan({ portalPlan: 'business' }, 'hideFooterCredit')).toBe(true)
   })
 
   it('is a plan, not a bypass — an unknown value still falls back to free', () => {

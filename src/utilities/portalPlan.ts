@@ -50,8 +50,13 @@ const CAPABILITIES: Record<PortalPlan, PortalCapabilityKey[]> = {
    * would drift; the gate would then be honest in one place and a lie in the
    * other. As a plan it stays one map, one question, and the day a demo
    * converts you change a single field.
+   *
+   * Everything EXCEPT hideFooterCredit. A demo site is marketing — the credit
+   * line is the point of building it, and hiding it on the one page a prospect
+   * shows their friends throws away the only distribution the free work buys.
+   * A paying customer buys the credit off; a demo never should.
    */
-  demo: BUSINESS,
+  demo: BUSINESS.filter((c) => c !== 'hideFooterCredit'),
 }
 
 /** Human labels for the upgrade prompt — the same words as /pricing. */

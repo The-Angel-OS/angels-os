@@ -196,7 +196,7 @@ Lot size and how long it has been since the last cut are what move the number. A
   },
   techsupport: {
     label: 'Computer Repair & IT Help',
-    tagline: (city) => `Onsite computer help\u2014 I come to you${city ? ` in ${city}` : ''}.`,
+    tagline: (city) => `Onsite computer help, and I come to you${city ? ` in ${city}` : ''}.`,
     primaryColor: '#0F766E',
     secondaryColor: '#1F2937',
     defaultTheme: 'light',
