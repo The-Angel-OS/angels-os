@@ -141,6 +141,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     })()
   }
 
+  // Does the person looking at this page manage it? Drives the admin bar, and
+  // is the same question the header asks for "Edit this page".
+  let canManagePortalView = false
+  try {
+    const { getPayload } = await import('payload')
+    const { default: cfg } = await import('@payload-config')
+    const { canManagePortal } = await import('@/utilities/canManagePortal')
+    const p = await getPayload({ config: cfg })
+    const { user } = await p.auth({ headers: headersList }).catch(() => ({ user: null }))
+    canManagePortalView = await canManagePortal(p, user, tenant?.id ?? null)
+  } catch {
+    /* anonymous — no admin bar, which is correct */
+  }
+
   // Resolve the default space for this tenant (for the floating chat bubble)
   let defaultSpaceId: string | undefined
   try {
@@ -187,7 +201,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </head>
       <body>
         <Providers>
-          <AdminBar />
+          <AdminBar canManage={canManagePortalView} />
           <LivePreviewListener />
 
           {/* Announcement Bar — from SiteSettings */}

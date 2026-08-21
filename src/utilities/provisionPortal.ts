@@ -65,6 +65,12 @@ export interface ProvisionPortalInput {
    * federated identity); "not listed" ≠ "not connected".
    */
   networkVisible?: boolean
+  /**
+   * What this portal pays us. Omitted leaves the field alone (existing portals
+   * keep theirs; new ones default to 'free' at the collection). Demo sites pass
+   * 'demo' — everything switched on, billed to nobody.
+   */
+  portalPlan?: 'free' | 'site' | 'business' | 'demo'
 }
 
 export interface ProvisionPortalResult {
@@ -143,6 +149,23 @@ export async function provisionPortal(
       log.push(`defaultTheme: ${input.defaultTheme}`)
     } catch (e) {
       log.push(`defaultTheme skipped: ${(e as Error).message}`)
+    }
+  }
+
+  // Stamp the plan. Fail-soft for the same reason as the marker below: a node
+  // that has not run the migration yet should still provision a working portal.
+  if (input.portalPlan) {
+    try {
+      await payload.update({
+        collection: 'tenants',
+        id: tenant.id as number,
+        data: { portalPlan: input.portalPlan } as never,
+        overrideAccess: true,
+        req,
+      })
+      log.push(`portalPlan: ${input.portalPlan}`)
+    } catch (e) {
+      log.push(`portalPlan skipped: ${(e as Error).message}`)
     }
   }
 

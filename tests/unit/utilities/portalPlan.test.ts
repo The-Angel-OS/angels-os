@@ -45,3 +45,33 @@ describe('planRequiredFor', () => {
     expect(planRequiredFor('onlineBooking')).toBe('business')
   })
 })
+
+describe('the demo tier', () => {
+  it('grants everything Business does — the demo IS the pitch', () => {
+    for (const cap of [
+      'customDomain',
+      'hideFooterCredit',
+      'onlineBooking',
+      'crm',
+      'customerAssistant',
+      'memberships',
+    ] as const) {
+      expect(portalCan({ portalPlan: 'demo' }, cap)).toBe(true)
+    }
+  })
+
+  it('is a plan, not a bypass — an unknown value still falls back to free', () => {
+    // The whole point of doing this as a tier: one map answers "what may this
+    // portal do", so a typo cannot silently unlock the paid features.
+    expect(portalCan({ portalPlan: 'demoo' }, 'onlineBooking')).toBe(false)
+    expect(portalCan({ portalPlan: 'DEMO' }, 'onlineBooking')).toBe(false)
+    expect(portalCan({}, 'onlineBooking')).toBe(false)
+  })
+
+  it('is distinguishable from a paying customer', async () => {
+    const { isDemoPortal } = await import('@/utilities/portalPlan')
+    expect(isDemoPortal({ portalPlan: 'demo' })).toBe(true)
+    expect(isDemoPortal({ portalPlan: 'business' })).toBe(false)
+    expect(isDemoPortal(null)).toBe(false)
+  })
+})

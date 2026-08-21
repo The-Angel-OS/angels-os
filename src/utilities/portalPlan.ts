@@ -9,7 +9,7 @@
  * @see /dashboard/plan — the upgrade surface
  */
 
-export type PortalPlan = 'free' | 'site' | 'business'
+export type PortalPlan = 'free' | 'site' | 'business' | 'demo'
 
 export type PortalCapabilityKey =
   /** Own domain instead of a spacesangels.com address. */
@@ -25,10 +25,33 @@ export type PortalCapabilityKey =
   /** Selling memberships / recurring billing to their own customers. */
   | 'memberships'
 
+const BUSINESS: PortalCapabilityKey[] = [
+  'customDomain',
+  'hideFooterCredit',
+  'onlineBooking',
+  'crm',
+  'customerAssistant',
+  'memberships',
+]
+
 const CAPABILITIES: Record<PortalPlan, PortalCapabilityKey[]> = {
   free: [],
   site: ['customDomain', 'hideFooterCredit'],
-  business: ['customDomain', 'hideFooterCredit', 'onlineBooking', 'crm', 'customerAssistant', 'memberships'],
+  business: BUSINESS,
+  /**
+   * Everything, billed to nobody.
+   *
+   * A prospect demo with booking switched off sells nothing — the whole pitch
+   * is the thing working before the ask. Our own portals are in the same
+   * position: we do not invoice ourselves.
+   *
+   * Deliberately a PLAN and not an `isDemo` flag that bypasses the gate. A
+   * bypass would be a second answer to "what may this portal do", and the two
+   * would drift; the gate would then be honest in one place and a lie in the
+   * other. As a plan it stays one map, one question, and the day a demo
+   * converts you change a single field.
+   */
+  demo: BUSINESS,
 }
 
 /** Human labels for the upgrade prompt — the same words as /pricing. */
@@ -36,6 +59,7 @@ export const PLAN_LABEL: Record<PortalPlan, string> = {
   free: 'Free',
   site: 'Site — $49/mo',
   business: 'Business — $149/mo',
+  demo: 'Demo — not billed',
 }
 
 /** The cheapest plan that includes a capability, for "move to X" prompts. */
@@ -46,7 +70,14 @@ export function planRequiredFor(cap: PortalCapabilityKey): PortalPlan {
 
 export function planOf(tenant: { portalPlan?: string | null } | null | undefined): PortalPlan {
   const p = tenant?.portalPlan
-  return p === 'site' || p === 'business' ? p : 'free'
+  return p === 'site' || p === 'business' || p === 'demo' ? p : 'free'
+}
+
+/** A demo is not a customer — no upgrade prompt, no footer credit, no invoice. */
+export function isDemoPortal(
+  tenant: { portalPlan?: string | null } | null | undefined,
+): boolean {
+  return planOf(tenant) === 'demo'
 }
 
 export function portalCan(

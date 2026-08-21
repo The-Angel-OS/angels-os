@@ -1,7 +1,7 @@
 import type { Tenant } from '@/payload-types'
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { canManagePortal } from '@/utilities/canManagePortal'
 
 import { headers } from 'next/headers'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
@@ -270,29 +270,16 @@ export async function Header({ tenant }: Props) {
   // the platform roles array alone, so a portal's own tenant_admin — the person
   // whose site it is — never saw "Edit this page", while any platform editor saw
   // it everywhere. The tenant membership role is the whole point of the field.
+  // Who may edit THIS portal's content — the viewer's membership role on this
+  // tenant, not their platform roles. See canManagePortal for why that
+  // distinction was getting the answer backwards in both directions.
   let canEditContent = false
   try {
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: await headers() })
-    if (user) {
-      if (checkRole(ADMIN_ROLES, user)) {
-        canEditContent = true
-      } else if (tenantId) {
-        const { getUserTenantRoles } = await import('@/access/getUserTenantRoles')
-        const roles = await getUserTenantRoles(user.id)
-        canEditContent = roles.some((m) => {
-          const t = m.tenant as unknown
-          const id = t && typeof t === 'object' ? (t as { id: number | string }).id : t
-          return (
-            String(id) === String(tenantId) &&
-            (m.role === 'tenant_admin' || m.role === 'tenant_manager') &&
-            (m as { status?: string }).status === 'active'
-          )
-        })
-      }
-    }
+    canEditContent = await canManagePortal(payload, user, tenantId)
   } catch {
-    /* anonymous, or roles unavailable — no edit affordance, which is the safe side */
+    /* anonymous, or roles unavailable — no edit affordance, the safe side */
   }
 
   return <HeaderClient canEditContent={canEditContent} header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />

@@ -6,9 +6,7 @@ import { cn } from '@/utilities/cn'
 import { useSelectedLayoutSegments, useParams, usePathname } from 'next/navigation'
 import { PayloadAdminBar } from '@payloadcms/admin-bar'
 import React, { useState, useMemo } from 'react'
-import { User } from '@/payload-types'
 import Link from 'next/link'
-import { ADMIN_ROLES } from '@/access/utilities'
 
 const collectionLabels: Record<string, { plural: string; singular: string }> = {
   pages: { plural: 'Pages', singular: 'Page' },
@@ -38,8 +36,10 @@ const Title: React.FC = () => (
  */
 export const AdminBar: React.FC<{
   adminBarProps?: PayloadAdminBarProps
+  /** Resolved on the server: does this viewer manage the portal being viewed? */
+  canManage?: boolean
 }> = (props) => {
-  const { adminBarProps } = props || {}
+  const { adminBarProps, canManage = false } = props || {}
   const segments = useSelectedLayoutSegments()
   const params = useParams()
   const pathname = usePathname()
@@ -53,14 +53,17 @@ export const AdminBar: React.FC<{
   // Detect if we're on the brochure vs dashboard
   const isDashboard = pathname?.includes('/dashboard')
 
-  const onAuthChange = React.useCallback((user: unknown) => {
-    const typedUser = user as User
-    const canSeeAdmin =
-      typedUser?.roles &&
-      Array.isArray(typedUser.roles) &&
-      typedUser.roles.some((r) => ADMIN_ROLES.includes(r))
-    setShow(Boolean(canSeeAdmin))
-  }, [])
+  // The server already worked out whether this viewer manages THIS portal —
+  // an answer the platform roles array cannot give, since a portal's own
+  // tenant_admin holds none of them and was shown no admin bar on their own
+  // site. Auth still drives appearance so the bar goes away on sign-out
+  // without needing a reload.
+  const onAuthChange = React.useCallback(
+    (user: unknown) => {
+      setShow(Boolean(user) && canManage)
+    },
+    [canManage],
+  )
 
   // Build page type label from segments
   const pageTypeLabel = useMemo(() => {

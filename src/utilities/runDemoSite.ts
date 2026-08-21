@@ -51,6 +51,10 @@ export async function runDemoSite(
       secondaryColor: pack.secondaryColor,
       defaultTheme: pack.defaultTheme,
       type: 'business',
+      // A prospect demo with the paid features switched off sells nothing —
+      // the pitch is the thing working before the ask. `demo` grants
+      // everything and bills nobody; converting one is a single field change.
+      portalPlan: 'demo',
       // A client's brochure site is not a federation node. This is also the
       // switch behind the Discovery link, which is FORCE-PRIMARY in the header
       // and therefore immune to the inline cap — the only way it stays out of

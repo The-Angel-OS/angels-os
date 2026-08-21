@@ -69,6 +69,7 @@ import * as migration_20260820_150000_membership_fk_cascade from './20260820_150
 import * as migration_20260820_180000_site_visits from './20260820_180000_site_visits';
 import * as migration_20260820_210000_cart_items_cascade from './20260820_210000_cart_items_cascade';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
+import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
 import * as migration_20260821_080000_tenant_features_page_comments from './20260821_080000_tenant_features_page_comments'
 import * as migration_20260821_070000_sync_user_tenants_backfill from './20260821_070000_sync_user_tenants_backfill'
@@ -456,5 +457,10 @@ export const migrations = [
     up: migration_20260821_090000_open_community_spaces.up,
     down: migration_20260821_090000_open_community_spaces.down,
     name: '20260821_090000_open_community_spaces',
+  },
+  {
+    up: migration_20260821_100000_portal_plan_demo.up,
+    down: migration_20260821_100000_portal_plan_demo.down,
+    name: '20260821_100000_portal_plan_demo',
   },
 ];

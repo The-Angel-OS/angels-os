@@ -814,6 +814,10 @@ export const Tenants: CollectionConfig = {
         { label: 'Free — site on a spacesangels.com address', value: 'free' },
         { label: 'Site ($49/mo) — own domain, no footer credit', value: 'site' },
         { label: 'Business ($149/mo) — booking, deposits, CRM, assistant', value: 'business' },
+        {
+          label: 'Demo — everything switched on, billed to nobody',
+          value: 'demo',
+        },
       ],
       admin: {
         description:

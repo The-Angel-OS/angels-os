@@ -693,7 +693,7 @@ export interface Tenant {
   /**
    * Which Angel OS plan this portal is on. Drives the Upgrade Plan surface. Free is the default and stays free.
    */
-  portalPlan?: ('free' | 'site' | 'business') | null;
+  portalPlan?: ('free' | 'site' | 'business' | 'demo') | null;
   /**
    * Optional surfaces for this portal. Off by default. Not a paywall — see Portal Plan for that.
    */
