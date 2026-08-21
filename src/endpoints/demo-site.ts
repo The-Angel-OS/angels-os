@@ -152,9 +152,13 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
     // invite — so the customer we just sold a site to could not administer it,
     // upload a photo, or see a metric. tenant_admin invite, same record the
     // team page shows, accepted at /tenant-invite/<token>.
-    if (email) {
+    // Email OR phone — a Craigslist ad usually gives a number and nothing else,
+    // and the invitee signs in with a texted OTP either way. Pass BOTH when we
+    // have them, or they end up with twin accounts.
+    if (email || phone) {
       const invite = await inviteOwner(payload, {
         email,
+        phone,
         tenantId,
         tenantDomain: `${slug}.spacesangels.com`,
         tenantName: businessName,
@@ -166,7 +170,8 @@ export const demoSiteHandler: PayloadHandler = async (req) => {
       log.push(
         invite.error
           ? `owner invite FAILED: ${invite.error}`
-          : `owner invite ${invite.alreadyInvited ? 'already present' : 'sent'} (${email}, emailSent=${invite.emailSent})`,
+          : `owner invite ${invite.alreadyInvited ? 'already present' : 'created'} for ${email || phone}` +
+            ` — emailSent=${invite.emailSent}${invite.emailSent ? '' : ', deliver the link yourself'}`,
       )
     }
 

@@ -2,7 +2,7 @@
  * inviteOwner mints tenant_admin access — the one thing that must not
  * double-issue on a re-run, and must not throw on a bad email send.
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/utilities/sendTenantInvitationEmail', () => ({
   sendTenantInvitationEmail: vi.fn(async () => true),
@@ -31,6 +31,9 @@ function fakePayload(existing: unknown[]) {
 }
 
 describe('inviteOwner', () => {
+  // The email spy is module-level; without this it carries calls between tests.
+  beforeEach(() => vi.clearAllMocks())
+
   it('mints one pending tenant_admin invite on a fresh tenant', async () => {
     const { payload, created } = fakePayload([])
     const res = await inviteOwner(payload, {
@@ -58,6 +61,32 @@ describe('inviteOwner', () => {
     expect(created).toHaveLength(0)
     expect(res.alreadyInvited).toBe(true)
     expect(res.inviteUrl).toBe('/tenant-invite/tok')
+  })
+
+  it('mints a phone-only invite and leaves delivery to the inviter', async () => {
+    const { payload, created } = fakePayload([])
+    const res = await inviteOwner(payload, {
+      phone: '+13525550142',
+      tenantId: 7,
+      tenantDomain: 'bre.spacesangels.com',
+    })
+
+    const data = (created[0] as { data: Record<string, unknown> }).data
+    const details = data.invitationDetails as Record<string, unknown>
+    expect(details.invitationPhone).toBe('+13525550142')
+    expect(details.invitationEmail).toBeUndefined()
+    expect(sendTenantInvitationEmail).not.toHaveBeenCalled()
+    // The URL is the whole deliverable when there is nowhere to mail it.
+    expect(res.emailSent).toBe(false)
+    expect(res.inviteUrl).toMatch(/^https:\/\/bre\.spacesangels\.com\/tenant-invite\/.+/)
+  })
+
+  it('refuses an invite addressed to nobody', async () => {
+    const { payload, created } = fakePayload([])
+    const res = await inviteOwner(payload, { tenantId: 7 })
+
+    expect(created).toHaveLength(0)
+    expect(res.error).toMatch(/email or a phone/)
   })
 
   it('reports a send failure instead of throwing — the portal still exists', async () => {
