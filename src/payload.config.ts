@@ -126,6 +126,7 @@ import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { demoSiteHandler } from '@/endpoints/demo-site'
 import { signupFormSetupHandler } from '@/endpoints/signup-form-setup'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
+import { portalInvitesHandler } from '@/endpoints/portal-invites'
 import { aiStatusHandler } from '@/endpoints/ai-status'
 import { claimGuardianAngelHandler } from '@/endpoints/claim-guardian-angel'
 import { guardianAngelStatusHandler } from '@/endpoints/guardian-angel-status'
@@ -1015,6 +1016,12 @@ export default buildConfig({
       path: '/provision-ops/decommission',
       method: 'post',
       handler: decommissionPortalHandler,
+    },
+    // Retrieve an existing accept link — minting returns the URL once.
+    {
+      path: '/provision-ops/invites',
+      method: 'get',
+      handler: portalInvitesHandler,
     },
     // AI switchboard probe — provider reachability + blob storage (LEO eval loop).
     {

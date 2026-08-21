@@ -53,6 +53,13 @@ function notificationBody() {
 }
 
 /**
+ * Where leads go when a portal has nobody attached yet. Overridable, but it has
+ * a working default on purpose — a feature that needs config isn't done.
+ */
+export const PLATFORM_LEADS_EMAIL =
+  process.env.PLATFORM_LEADS_EMAIL || 'clearwatercruisin@gmail.com'
+
+/**
  * Where a tenant's leads should go. The storefront contact email is the field an
  * owner can actually see and change; the admin user is the fallback so a portal
  * provisioned without one still reaches a human.
@@ -81,7 +88,15 @@ export async function resolveOwnerEmail(
   const human = users?.docs?.find(
     (u) => !(u as { isSystemUser?: boolean }).isSystemUser && (u as { email?: string }).email,
   )
-  return (human as { email?: string } | undefined)?.email ?? null
+  const humanEmail = (human as { email?: string } | undefined)?.email
+  if (humanEmail) return humanEmail
+
+  // Last resort: the platform's own inbox. A demo site we built FOR a prospect
+  // has no owner email and no admin until they claim it — so their contact form
+  // reached nobody, and a real customer's enquiry died in the database. Route
+  // those to us until the owner sets their own; the moment they do, the
+  // storefront value above wins. Ken's 260820 call.
+  return PLATFORM_LEADS_EMAIL
 }
 
 export async function ensureTenantContactForm(
@@ -214,6 +229,8 @@ export async function ensureTenantContactForm(
     formCreated,
     pageWired,
     notifies: ownerEmail,
-    note: `form ${formCreated ? 'created' : 'present'}, notifies ${ownerEmail || 'NOBODY (no owner email on tenant)'}, page ${pageWired ? 'wired' : page ? 'already-correct' : 'missing'}`,
+    note: `form ${formCreated ? 'created' : 'present'}, notifies ${
+      ownerEmail === PLATFORM_LEADS_EMAIL ? `${ownerEmail} (platform inbox — portal has no owner yet)` : ownerEmail
+    }, page ${pageWired ? 'wired' : page ? 'already-correct' : 'missing'}`,
   }
 }

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ensureTenantContactForm, resolveOwnerEmail } from '@/utilities/ensureTenantContactForm'
+import {
+  ensureTenantContactForm,
+  resolveOwnerEmail,
+  PLATFORM_LEADS_EMAIL,
+} from '@/utilities/ensureTenantContactForm'
 
 /**
  * The bug these cover: every portal shared one form whose only email row was the
@@ -59,9 +63,20 @@ describe('resolveOwnerEmail', () => {
     expect(await resolveOwnerEmail(payload, 1)).toBe('real@business.com')
   })
 
-  it('returns null rather than inventing a recipient', async () => {
+  it('falls back to the platform inbox rather than nobody', async () => {
+    // A demo site built FOR a prospect has no owner email and no admin until
+    // they claim it. Before 260820 that meant a real customer's enquiry died in
+    // the database with nobody notified.
     const { payload } = fakePayload({ tenant: { storefront: {} }, users: [] })
-    expect(await resolveOwnerEmail(payload, 1)).toBeNull()
+    expect(await resolveOwnerEmail(payload, 1)).toBe(PLATFORM_LEADS_EMAIL)
+  })
+
+  it('lets an owner who sets their own address win', async () => {
+    const { payload } = fakePayload({
+      tenant: { storefront: { contactEmail: 'bre@theirdomain.com' } },
+      users: [],
+    })
+    expect(await resolveOwnerEmail(payload, 1)).toBe('bre@theirdomain.com')
   })
 })
 
@@ -118,10 +133,11 @@ describe('ensureTenantContactForm', () => {
     expect(res.pageWired).toBe(true)
   })
 
-  it('reports loudly when there is no owner address to notify', async () => {
+  it('routes a nobody-attached portal to the platform inbox, and says so', async () => {
     const { payload } = fakePayload({ tenant: { storefront: {} }, users: [] })
     const res = await ensureTenantContactForm(payload, 7)
-    expect(res.notifies).toBeNull()
-    expect(res.note).toContain('NOBODY')
+    expect(res.notifies).toBe(PLATFORM_LEADS_EMAIL)
+    // The log has to be honest about WHY, or nobody notices the portal is unclaimed.
+    expect(res.note).toContain('platform inbox')
   })
 })

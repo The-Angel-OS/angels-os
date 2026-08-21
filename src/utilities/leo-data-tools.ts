@@ -1452,6 +1452,19 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'get_portal_invites',
+    description:
+      'Retrieve the tenant-invite accept link(s) that already exist for a portal — the answer to "what link do I send them?" after the invite was minted. Minting returns the URL once; this hands it back without creating a duplicate. Shows who each invite is addressed to (email or phone), whether it has expired, and who it is attributed to. super_admin only. Pass includeAccepted to also see memberships already claimed.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        slug: { type: 'string', description: 'Tenant slug, e.g. "bresolutions".' },
+        includeAccepted: { type: 'boolean', description: 'Also list already-active memberships (default false).' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
     name: 'set_holon_profile',
     description:
       'Write the federation classification of the current Endeavor. holonTypes = ROLE in the value chain (service-provider, fulfillment, marketing, retailer, manufacturer, creator, community, guardian-angel) — NOT the industry. Industry/trade (e.g. "HVAC repair", "long-distance moving") goes in capabilities. Idempotent; overwrites the fields you pass. Typically called after classify_endeavor.',
@@ -4498,6 +4511,8 @@ async function executeToolSwitch(
         return await classifyEndeavor(payload, toolInput, ctx)
       case 'decommission_tenant':
         return await decommissionTenantTool(payload, toolInput, ctx)
+      case 'get_portal_invites':
+        return await getPortalInvitesTool(payload, toolInput, ctx)
       case 'add_gallery_to_page':
         return await addGalleryToPage(payload, toolInput, ctx)
       case 'configure_payment_method':
@@ -18229,6 +18244,35 @@ async function addGalleryToPage(
   return [action, failures.length ? `⚠️ Skipped: ${failures.join('; ')}` : '']
     .filter(Boolean)
     .join('\n') + navDirective(`/${pageSlug}`, 'View page')
+}
+
+/**
+ * get_portal_invites — hand back an accept link that already exists.
+ * super_admin ONLY: an invite URL is a bearer credential for tenant_admin.
+ */
+async function getPortalInvitesTool(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.roles?.includes('super_admin')) {
+    return 'Error: get_portal_invites is restricted to super_admin — an invite link grants admin on the portal.'
+  }
+  const slug = (input.slug as string)?.trim()
+  if (!slug) return 'Error: slug is required (e.g. "bresolutions").'
+
+  const { listPortalInvites } = await import('@/utilities/inviteOwner')
+  const res = await listPortalInvites(payload, { slug, includeAccepted: input.includeAccepted === true })
+  if (!res.found) return `No tenant with slug "${slug}" on this node.`
+  if (res.invites.length === 0) return `${slug}: no outstanding invites. Mint one with the demo-site or provision-portal owner invite.`
+
+  const lines = res.invites.map((i) => {
+    const who = i.email || i.phone || 'unaddressed'
+    const state = i.expired ? 'EXPIRED' : i.status === 'active' ? 'accepted' : 'pending'
+    const by = i.invitedByName ? `, from ${i.invitedByName}` : ''
+    return `• ${who} — ${i.role || 'member'}, ${state}${by}\n  ${i.inviteUrl}`
+  })
+  return `${slug} — ${res.invites.length} invite(s):\n${lines.join('\n')}`
 }
 
 /**
