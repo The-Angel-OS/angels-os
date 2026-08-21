@@ -34,16 +34,46 @@ const TTL_MS = 6 * 60 * 60 * 1000 // 6h
 const cache = new Map<string, { at: number; data: PlaceReviewsResult }>()
 
 /**
- * Best-effort Place ID extraction. Accepts a raw Place ID (ChIJ…) as-is, or pulls
- * a `place_id=` query param out of a pasted Google Maps URL. Anything else is
- * returned trimmed and tried directly (the API rejects a bad id cleanly).
+ * Best-effort Place ID extraction, with the two things people actually paste.
+ *
+ * A merchant does not have a Place ID. They have whatever Google gave them:
+ * a share link, a `?cid=` URL from their own listing, or a pin they dropped —
+ * and until 260821 all three were stored verbatim and silently rendered
+ * nothing. Both live blocks on the node were broken this way for months.
+ *
+ * A CID (the long number in `maps.google.com/?cid=…`) is a REAL identifier for
+ * the right business, but Places API (New) rejects it outright — it is not
+ * convertible without a lookup, so say so instead of failing at the API.
  */
 export function extractPlaceId(input: string): string {
   const s = (input || '').trim()
   if (!s) return ''
-  if (/^[A-Za-z0-9_-]{20,}$/.test(s) && !s.includes('/')) return s // looks like a bare Place ID
-  const m = s.match(/[?&]place_id=([^&]+)/) || s.match(/!1s(0x[0-9a-fA-F]+:0x[0-9a-fA-F]+)/)
-  return m ? decodeURIComponent(m[1]) : s
+  if (/^[A-Za-z0-9_-]{20,}$/.test(s) && !s.includes('/') && !/^\d+$/.test(s)) return s
+  const m =
+    s.match(/[?&]place_id=([^&]+)/) ||
+    // ?q=place_id:ChIJ… — the form Google's own "share" gives, and the form
+    // find_google_place hands back. Missing it meant pasting our OWN link failed.
+    s.match(/place_id:([A-Za-z0-9_-]+)/) ||
+    s.match(/!1s(0x[0-9a-fA-F]+:0x[0-9a-fA-F]+)/)
+  if (m) return decodeURIComponent(m[1])
+  const cid = s.match(/[?&]cid=(\d+)/) || (/^\d{8,}$/.test(s) ? [null, s] : null)
+  if (cid) return `cid:${cid[1]}`
+  return s
+}
+
+/** Human-readable reason an id will never resolve, or null if it might. */
+export function placeIdProblem(id: string): string | null {
+  if (!id) return 'No Place ID set on this block.'
+  if (id.startsWith('cid:')) {
+    return (
+      'That is a Google CID, not a Place ID — Google will not accept it. ' +
+      'Ask LEO to "find the Google place for <business name, city>" and paste the Place ID it gives back.'
+    )
+  }
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(id)) {
+    return `"${id.slice(0, 40)}" is not a Place ID. It should look like ChIJ… — ask LEO to find it for you.`
+  }
+  return null
 }
 
 export async function fetchPlaceReviews(
@@ -52,6 +82,9 @@ export async function fetchPlaceReviews(
 ): Promise<PlaceReviewsResult> {
   const placeId = extractPlaceId(placeIdOrUrl)
   if (!placeId) return { rating: null, total: 0, reviews: [], error: 'no place id' }
+
+  const problem = placeIdProblem(placeId)
+  if (problem) return { rating: null, total: 0, reviews: [], error: problem }
 
   const cached = cache.get(placeId)
   if (cached && now - cached.at < TTL_MS) return cached.data

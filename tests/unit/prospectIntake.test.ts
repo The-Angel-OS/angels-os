@@ -129,3 +129,40 @@ describe('checkWebsite', () => {
     spy.mockRestore()
   })
 })
+
+describe('extractPlaceId / placeIdProblem', () => {
+  it('passes a real Place ID through', async () => {
+    const { extractPlaceId, placeIdProblem } = await import('@/utilities/googlePlacesReviews')
+    const id = extractPlaceId('ChIJGVrNKqjxwogRW1k749HD9cM')
+    expect(id).toBe('ChIJGVrNKqjxwogRW1k749HD9cM')
+    expect(placeIdProblem(id)).toBeNull()
+  })
+
+  it('pulls the id out of a pasted maps URL', async () => {
+    const { extractPlaceId } = await import('@/utilities/googlePlacesReviews')
+    expect(extractPlaceId('https://www.google.com/maps/place/?q=place_id:ChIJabc12345678901234567')).toBe(
+      'ChIJabc12345678901234567',
+    )
+  })
+
+  it('names a CID as a CID instead of failing at the API', async () => {
+    // The real broken row: a merchant pasted the number from their ?cid= URL.
+    const { extractPlaceId, placeIdProblem } = await import('@/utilities/googlePlacesReviews')
+    const bare = extractPlaceId('3045784746739549862')
+    expect(bare).toBe('cid:3045784746739549862')
+    expect(placeIdProblem(bare)).toContain('CID')
+
+    expect(extractPlaceId('https://maps.google.com/?cid=3045784746739549862')).toBe(
+      'cid:3045784746739549862',
+    )
+  })
+
+  it('refuses to spend an API call on something that cannot be a Place ID', async () => {
+    const { fetchPlaceReviews } = await import('@/utilities/googlePlacesReviews')
+    const spy = vi.spyOn(globalThis, 'fetch')
+    const r = await fetchPlaceReviews('3045784746739549862')
+    expect(r.error).toContain('CID')
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+})

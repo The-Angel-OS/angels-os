@@ -1,5 +1,23 @@
 import React from 'react'
 import { fetchPlaceReviews } from '@/utilities/googlePlacesReviews'
+import { headers } from 'next/headers'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+
+/** Can whoever is looking at this page fix it? Anonymous visitors: no. */
+async function viewerCanManage(): Promise<boolean> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const { user } = await payload.auth({ headers: await headers() })
+    if (!user) return false
+    if (checkRole(ADMIN_ROLES, user)) return true
+    const roles = (user as { tenantRoles?: string[] }).tenantRoles || []
+    return roles.includes('tenant_admin') || roles.includes('tenant_manager')
+  } catch {
+    return false
+  }
+}
 
 type Props = {
   placeId?: string
@@ -32,9 +50,18 @@ export async function GoogleReviewsBlock({
   if (!placeId) return null
   const { rating, total, reviews, error } = await fetchPlaceReviews(placeId)
   if (error) {
-    // Visible only to logged-in admins would be ideal; for now stay silent in prod.
-    if (process.env.NODE_ENV !== 'production') {
-      return <div className="container my-8 text-sm text-red-500">Google reviews unavailable: {error}</div>
+    // Shoppers must never see this; the OWNER must. Silent-in-production is why
+    // both blocks on the node sat broken for months — NeuroCare Pro had 85
+    // five-star reviews their homepage never showed, and nobody had a way to
+    // find out. Admins get the reason and the fix; everyone else gets nothing.
+    if ((await viewerCanManage()) || process.env.NODE_ENV !== 'production') {
+      return (
+        <div className="container my-8 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <p className="font-medium">Google reviews aren&apos;t showing on this page.</p>
+          <p className="mt-1 text-muted-foreground">{error}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Only you can see this notice.</p>
+        </div>
+      )
     }
     return null
   }
