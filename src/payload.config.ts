@@ -124,6 +124,7 @@ import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { demoSiteHandler } from '@/endpoints/demo-site'
+import { prospectIntakeHandler } from '@/endpoints/prospect-intake'
 import { signupFormSetupHandler } from '@/endpoints/signup-form-setup'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { portalInvitesHandler } from '@/endpoints/portal-invites'
@@ -1003,6 +1004,12 @@ export default buildConfig({
       path: '/provision-ops/demo-site',
       method: 'post',
       handler: demoSiteHandler,
+    },
+
+    {
+      path: '/provision-ops/prospect-intake',
+      method: 'post',
+      handler: prospectIntakeHandler,
     },
     // The form that FEEDS demo-site. Both hubs were using the generic contact
     // form for signup, which collects none of what a build actually needs.

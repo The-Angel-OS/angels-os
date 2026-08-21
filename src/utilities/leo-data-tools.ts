@@ -1465,6 +1465,27 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'intake_prospect',
+    description:
+      "The sales pipeline in one call: paste a business's ad and this builds them a live five-page website, mints an owner invite link, files a prospect record, and drafts the text message and email to send them. Use it whenever Kenneth pastes a Craigslist/Facebook/Nextdoor services ad or otherwise describes a business he wants to approach. YOU extract the fields from the ad — business name, trade, city, phone, email, the owner's name if it is given — and pass the ad verbatim as adText so the record keeps the context. Nothing is sent to the business: the drafts come back for Kenneth to send himself. Idempotent per slug; re-running updates the site and the record rather than creating a second one. super_admin only.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        businessName: { type: 'string', description: 'The business as it should appear on the site, e.g. "The Concrete Cowboy of North Florida".' },
+        trade: { type: 'string', description: 'What they do, in their own words — "tile installation", "pressure washing", "computer repair". Matched to a trade pack.' },
+        city: { type: 'string', description: 'City and state, e.g. "Gainesville, FL".' },
+        phone: { type: 'string', description: 'Contact number from the ad. An ad usually gives this and nothing else — it is enough to mint an invite they can accept by text.' },
+        email: { type: 'string', description: 'Contact email if the ad gives one. Pass BOTH email and phone when available or they end up with twin accounts.' },
+        contactName: { type: 'string', description: "The owner's name if the ad names one, e.g. \"AJ\". Used to address the drafts." },
+        adText: { type: 'string', description: 'The ad verbatim. Stored on the prospect record so the next touch has the context.' },
+        adUrl: { type: 'string', description: 'Link to the ad, if there is one.' },
+        slug: { type: 'string', description: 'Subdomain label. Derived from the business name when omitted.' },
+        generateHero: { type: 'boolean', description: 'Generate an AI hero image (slower). Default false.' },
+      },
+      required: ['businessName'],
+    },
+  },
+  {
     name: 'set_holon_profile',
     description:
       'Write the federation classification of the current Endeavor. holonTypes = ROLE in the value chain (service-provider, fulfillment, marketing, retailer, manufacturer, creator, community, guardian-angel) — NOT the industry. Industry/trade (e.g. "HVAC repair", "long-distance moving") goes in capabilities. Idempotent; overwrites the fields you pass. Typically called after classify_endeavor.',
@@ -4513,6 +4534,8 @@ async function executeToolSwitch(
         return await decommissionTenantTool(payload, toolInput, ctx)
       case 'get_portal_invites':
         return await getPortalInvitesTool(payload, toolInput, ctx)
+      case 'intake_prospect':
+        return await intakeProspectTool(payload, toolInput, ctx)
       case 'add_gallery_to_page':
         return await addGalleryToPage(payload, toolInput, ctx)
       case 'configure_payment_method':
@@ -18273,6 +18296,58 @@ async function getPortalInvitesTool(
     return `• ${who} — ${i.role || 'member'}, ${state}${by}\n  ${i.inviteUrl}`
   })
   return `${slug} — ${res.invites.length} invite(s):\n${lines.join('\n')}`
+}
+
+/**
+ * intake_prospect — the whole prospect pipeline as one tool.
+ *
+ * Every ops-curl is a missing LEO tool, and this one was four of them: build the
+ * site, fetch the invite link, file the record, write the message.
+ */
+async function intakeProspectTool(
+  payload: Payload,
+  input: Record<string, unknown>,
+  ctx: ToolExecutorContext,
+): Promise<string> {
+  if (!ctx.roles?.includes('super_admin')) {
+    return 'Error: intake_prospect is restricted to super_admin — it provisions a portal and mints an admin invite.'
+  }
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined)
+  const businessName = str(input.businessName)
+  if (!businessName) return 'Error: businessName is required — the name the site should carry.'
+
+  const { prospectIntake } = await import('@/utilities/prospectIntake')
+  const r = await prospectIntake(payload, {
+    businessName,
+    trade: str(input.trade),
+    city: str(input.city),
+    phone: str(input.phone),
+    email: str(input.email),
+    contactName: str(input.contactName),
+    adText: typeof input.adText === 'string' ? input.adText : undefined,
+    adUrl: str(input.adUrl),
+    slug: str(input.slug),
+    generateHero: input.generateHero === true,
+    invitedBy: ctx.userId,
+  })
+
+  if (!r.ok) return `Prospect intake failed: ${r.error}\n\n${(r.log || []).join('\n')}`
+
+  return [
+    `**${businessName}** — site is live.`,
+    ``,
+    `Site: ${r.url}`,
+    r.inviteUrl ? `Owner invite: ${r.inviteUrl}` : 'No invite minted — the ad gave no phone or email.',
+    r.contactId ? `Prospect record: #${r.contactId}` : 'Prospect record: not filed (see log).',
+    ``,
+    `**Text to send**`,
+    r.outreach.sms,
+    ``,
+    `**Email — subject:** ${r.outreach.subject}`,
+    r.outreach.email,
+    ``,
+    `<details>${r.log.join(' · ')}</details>`,
+  ].join('\n')
 }
 
 /**
