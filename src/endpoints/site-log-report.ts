@@ -57,9 +57,17 @@ export function clampDays(raw: string | null, fallback = 30): number {
 export function buildAggregateSql(
   type: Exclude<ReportType, 'detail'>,
   includeBots: boolean,
+  /**
+   * Platform scope drops the tenant filter — the whole node in one report.
+   * super_admin ONLY, checked by the handler before this is ever called. The
+   * tenant id is still bound as $1 and simply unused, so the parameter list
+   * never changes shape.
+   */
+  platformScope = false,
 ): string {
   const botClause = includeBots ? '' : 'AND (is_bot IS NOT TRUE)'
-  const base = `FROM site_visits WHERE tenant_id = $1 AND created_at >= $2 ${botClause}`
+  const tenantClause = platformScope ? 'tenant_id IS NOT NULL AND $1::int IS NOT NULL' : 'tenant_id = $1'
+  const base = `FROM site_visits WHERE ${tenantClause} AND created_at >= $2 ${botClause}`
 
   const queries: Record<Exclude<ReportType, 'detail'>, string> = {
     pages: `SELECT path AS label, COUNT(*)::int AS views,
@@ -110,11 +118,19 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
   const days = clampDays(url.searchParams.get('days'))
   const includeBots = url.searchParams.get('bots') === 'true'
   const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 50))
+  const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0)
+  // The whole node rather than one portal. Gated to platform admins below —
+  // a tenant manager asking for it gets their own portal, not an error, so a
+  // stale bookmark never reveals that the wider view exists.
+  const wantsPlatform = url.searchParams.get('scope') === 'platform'
 
   const { tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) return Response.json({ error: 'No portal context' }, { status: 400 })
 
-  if (!checkRole(ADMIN_ROLES, user)) {
+  const isPlatformAdmin = checkRole(ADMIN_ROLES, user)
+  const platformScope = wantsPlatform && Boolean(isPlatformAdmin)
+
+  if (!isPlatformAdmin) {
     const m = await payload.find({
       collection: 'tenant-memberships',
       where: {
@@ -142,7 +158,7 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
     if (type === 'detail') {
       const where = {
         and: [
-          { tenant: { equals: tenantId } },
+          ...(platformScope ? [] : [{ tenant: { equals: tenantId } }]),
           { createdAt: { greater_than_equal: since } },
           ...(includeBots ? [] : [{ isBot: { not_equals: true } }]),
         ],
@@ -151,18 +167,41 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
         collection: 'site-visits',
         where: where as never,
         limit,
+        // Payload pages from 1; the viewer thinks in offsets because the
+        // aggregate reports do too.
+        page: Math.floor(offset / limit) + 1,
         sort: '-createdAt',
-        depth: 0,
+        // Depth 1 so a platform-scoped log can name the portal each hit landed
+        // on — a node-wide list of bare paths says nothing about whose site it is.
+        depth: platformScope ? 1 : 0,
         overrideAccess: true,
         req,
       })
       return Response.json({
         type,
         days,
+        scope: platformScope ? 'platform' : 'tenant',
         totalDocs: res.totalDocs,
+        limit,
+        offset,
+        hasMore: offset + res.docs.length < res.totalDocs,
         rows: (res.docs as unknown as Array<Record<string, unknown>>).map((d) => ({
           at: d.createdAt,
           path: d.path,
+          // A stable label per visitor per day, derived from the existing
+          // salted hash. Distinguishes one visitor from another without
+          // storing — or being able to recover — an address.
+          visitor: typeof d.visitorHash === 'string' ? d.visitorHash.slice(0, 8) : null,
+          ...(platformScope
+            ? {
+                portal:
+                  d.tenant && typeof d.tenant === 'object'
+                    ? (d.tenant as { name?: string; slug?: string }).name ||
+                      (d.tenant as { slug?: string }).slug ||
+                      null
+                    : null,
+              }
+            : {}),
           referrerHost: d.referrerHost || null,
           browser: d.browser,
           os: d.os,
@@ -176,10 +215,15 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
     const pool = (payload.db as any)?.pool
     if (!pool) throw new Error('No database pool available for reporting.')
     const result = await pool.query(
-      buildAggregateSql(type as Exclude<ReportType, 'detail'>, includeBots),
+      buildAggregateSql(type as Exclude<ReportType, 'detail'>, includeBots, platformScope),
       [Number(tenantId), since, limit],
     )
-    return Response.json({ type, days, rows: result.rows ?? [] })
+    return Response.json({
+      type,
+      days,
+      scope: platformScope ? 'platform' : 'tenant',
+      rows: result.rows ?? [],
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[site-log-report] ${msg}`)

@@ -43,6 +43,10 @@ interface AggregateRow {
 interface DetailRow {
   at: string
   path: string
+  /** First 8 chars of the day's salted visitor hash — tells one visitor from another. */
+  visitor?: string | null
+  /** Only present on a platform-scoped log: whose portal the hit landed on. */
+  portal?: string | null
   referrerHost: string | null
   browser: string
   os: string
@@ -50,7 +54,14 @@ interface DetailRow {
   isBot: boolean
 }
 
-export function SiteLogViewer({ tenantName }: { tenantName: string }) {
+export function SiteLogViewer({
+  tenantName,
+  canSeeWholeNode = false,
+}: {
+  tenantName: string
+  /** Platform admins may widen the log past this portal. */
+  canSeeWholeNode?: boolean
+}) {
   const [report, setReport] = useState<ReportId>('detail')
   const [days, setDays] = useState(7)
   const [includeBots, setIncludeBots] = useState(false)
@@ -58,6 +69,11 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
   const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [offset, setOffset] = useState(0)
+  const [total, setTotal] = useState<number | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [wholeNode, setWholeNode] = useState(false)
+  const PAGE = 100
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,13 +82,17 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
       const qs = new URLSearchParams({
         type: report,
         days: String(days),
-        limit: '100',
+        limit: String(PAGE),
+        offset: String(offset),
         ...(includeBots ? { bots: 'true' } : {}),
+        ...(wholeNode && canSeeWholeNode ? { scope: 'platform' } : {}),
       })
       const res = await fetch(`/api/site-log/report?${qs}`, { credentials: 'include' })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Could not load that report.')
       setRows(json.rows || [])
+      setTotal(typeof json.totalDocs === 'number' ? json.totalDocs : null)
+      setHasMore(Boolean(json.hasMore))
       setPending(Boolean(json.pending))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load that report.')
@@ -80,7 +100,13 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
     } finally {
       setLoading(false)
     }
-  }, [report, days, includeBots])
+  }, [report, days, includeBots, offset, wholeNode, canSeeWholeNode])
+
+  // Any change to WHAT is being asked resets WHERE we are in it — otherwise
+  // switching report while on page 4 shows an empty page 4 of something else.
+  useEffect(() => {
+    setOffset(0)
+  }, [report, days, includeBots, wholeNode])
 
   useEffect(() => {
     void load()
@@ -97,7 +123,9 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
       <div>
         <h1 className="text-2xl font-bold">Site Log</h1>
         <p className="text-muted-foreground">
-          Who is visiting {tenantName}, and what they are reading.
+          {wholeNode
+            ? 'Who is visiting every portal on this node, and what they are reading.'
+            : `Who is visiting ${tenantName}, and what they are reading.`}
         </p>
       </div>
 
@@ -137,6 +165,19 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
           />
           Include crawlers
         </label>
+
+        {/* Platform admins only — the whole node instead of this one portal.
+            Every other viewer never sees this and cannot ask for it. */}
+        {canSeeWholeNode && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={wholeNode}
+              onChange={(e) => setWholeNode(e.target.checked)}
+            />
+            Every portal
+          </label>
+        )}
 
         <button
           onClick={() => void load()}
@@ -179,7 +220,18 @@ export function SiteLogViewer({ tenantName }: { tenantName: string }) {
             }
           />
         ) : report === 'detail' ? (
-          <DetailTable rows={rows as DetailRow[]} />
+          <>
+            <DetailTable rows={rows as DetailRow[]} />
+            <Pager
+              offset={offset}
+              count={rows.length}
+              total={total}
+              hasMore={hasMore}
+              page={PAGE}
+              onChange={setOffset}
+              busy={loading}
+            />
+          </>
         ) : (
           <AggregateTable rows={rows as AggregateRow[]} report={report} />
         )}
@@ -198,12 +250,16 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 }
 
 function DetailTable({ rows }: { rows: DetailRow[] }) {
+  // Only widen the table when there is something to put in the column.
+  const showPortal = rows.some((r) => r.portal)
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
             <th className="pb-2 pr-4">When</th>
+            {showPortal && <th className="pb-2 pr-4">Portal</th>}
+            <th className="pb-2 pr-4">Visitor</th>
             <th className="pb-2 pr-4">Page</th>
             <th className="pb-2 pr-4">Came from</th>
             <th className="pb-2">Browser</th>
@@ -214,6 +270,12 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             <tr key={i} className="border-b border-border/50">
               <td className="whitespace-nowrap py-2 pr-4 text-muted-foreground">
                 {new Date(r.at).toLocaleString()}
+              </td>
+              {showPortal && (
+                <td className="whitespace-nowrap py-2 pr-4 text-muted-foreground">{r.portal || '—'}</td>
+              )}
+              <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-muted-foreground">
+                {r.visitor || '—'}
               </td>
               <td className="py-2 pr-4 font-medium">{r.path}</td>
               <td className="py-2 pr-4 text-muted-foreground">{r.referrerHost || 'direct'}</td>
@@ -275,6 +337,60 @@ function AggregateTable({ rows, report }: { rows: AggregateRow[]; report: Report
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/**
+ * Pagination for the detailed log. It listed the newest 100 hits and stopped —
+ * on a portal with any traffic, the rest of the week simply was not reachable.
+ * Offsets rather than cursors: the aggregate reports already think in limits,
+ * and a visit log is append-only at the head, so a page never shifts under you.
+ */
+function Pager({
+  offset,
+  count,
+  total,
+  hasMore,
+  page,
+  onChange,
+  busy,
+}: {
+  offset: number
+  count: number
+  total: number | null
+  hasMore: boolean
+  page: number
+  onChange: (next: number) => void
+  busy: boolean
+}) {
+  if (offset === 0 && !hasMore) return null
+  const from = count ? offset + 1 : 0
+  const to = offset + count
+  return (
+    <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4 text-sm">
+      <span className="text-muted-foreground">
+        {from}&ndash;{to}
+        {total != null ? ` of ${total.toLocaleString()}` : ''}
+      </span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy || offset === 0}
+          onClick={() => onChange(Math.max(0, offset - page))}
+          className="rounded-md border border-border px-3 py-1.5 disabled:opacity-40"
+        >
+          Newer
+        </button>
+        <button
+          type="button"
+          disabled={busy || !hasMore}
+          onClick={() => onChange(offset + page)}
+          className="rounded-md border border-border px-3 py-1.5 disabled:opacity-40"
+        >
+          Older
+        </button>
+      </div>
     </div>
   )
 }

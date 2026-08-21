@@ -146,3 +146,29 @@ describe('clampDays', () => {
     expect(clampDays('7')).toBe(7)
   })
 })
+
+describe('platform scope', () => {
+  it('drops the tenant filter only when asked, keeping the parameter shape', () => {
+    const scoped = buildAggregateSql('pages', false, false)
+    const whole = buildAggregateSql('pages', false, true)
+
+    expect(scoped).toContain('tenant_id = $1')
+    expect(whole).not.toContain('tenant_id = $1')
+    // $1 must still be referenced or the bound parameter list breaks.
+    expect(whole).toContain('$1')
+    // $2 (since) and $3 (limit) keep their positions in both.
+    for (const sql of [scoped, whole]) {
+      expect(sql).toContain('created_at >= $2')
+      expect(sql).toContain('LIMIT $3')
+    }
+  })
+
+  it('defaults to portal scope — the wider view is never the accident', () => {
+    expect(buildAggregateSql('pages', false)).toContain('tenant_id = $1')
+  })
+
+  it('still excludes crawlers by default in both scopes', () => {
+    expect(buildAggregateSql('pages', false, true)).toContain('is_bot IS NOT TRUE')
+    expect(buildAggregateSql('pages', true, true)).not.toContain('is_bot IS NOT TRUE')
+  })
+})
