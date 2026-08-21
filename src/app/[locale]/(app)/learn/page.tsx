@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import LearnExperience from '@/components/Learn/LearnExperience'
 import { getAllSouls } from '@/souls'
+import { hasFeature } from '@/utilities/tenantFeatures'
 import { isWorkAvailable, isWorkPublished } from '@/souls/subscriptions'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
@@ -24,7 +25,9 @@ export default async function LearnPage({
   setRequestLocale(locale)
 
   const { tenant } = await resolveTenantFromHeaders()
-  const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
+  const souls = hasFeature(tenant, 'works')
+    ? getAllSouls().filter((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
+    : []
 
   // The Library section hides when empty for non-managers (admins manage it via
   // the dashboard control panel, so an empty public block is just noise).

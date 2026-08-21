@@ -52,6 +52,8 @@ interface DashboardSidebarProps {
   currentTenantId?: number | string
   /** Which Angel OS plan this portal pays for — drives the upgrade row. */
   portalPlan?: string
+  /** Optional surfaces this portal has switched on — see tenant.features. */
+  features?: { works?: boolean | null } | null
   wizardComplete?: boolean
 }
 
@@ -67,6 +69,7 @@ export function DashboardSidebar({
   userTenants,
   currentTenantId,
   portalPlan = 'free',
+  features,
   wizardComplete = true,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -88,8 +91,7 @@ export function DashboardSidebar({
       wizardComplete,
       permissions: dashboard.userRole?.tenantPermissions || [],
       tenantRole: dashboard.userRole?.tenantRole || null,
-      // Which portal is being administered — gates per-endeavor items (Works).
-      tenantSlug: userTenants?.find((t) => String(t.id) === String(currentTenantId))?.slug || null,
+      features,
     }),
     [
       isAuthenticated,
@@ -97,8 +99,7 @@ export function DashboardSidebar({
       isBusinessOwner,
       wizardComplete,
       dashboard.userRole,
-      userTenants,
-      currentTenantId,
+      features,
     ],
   )
 

@@ -63,6 +63,8 @@ export interface SettingsHubProps {
   commerce: CommerceData
   storefront?: StorefrontData
   addresses?: AddressesData
+  /** tenant.features — optional surfaces this portal has switched on. */
+  features?: { works?: boolean | null } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +137,7 @@ function Toast({ message }: { message: { type: 'success' | 'error'; text: string
 // GeneralTab
 // ---------------------------------------------------------------------------
 
-function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData }) {
+function GeneralTab({ tenantId, branding, commerce, storefront, features }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData; features?: { works?: boolean | null } | null }) {
   const [form, setForm] = useState({
     siteName: branding.siteName || '',
     tagline: branding.tagline || '',
@@ -153,6 +155,7 @@ function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: nu
     bookingsEnabled: commerce.bookingsEnabled ?? false,
     eventsEnabled: commerce.eventsEnabled ?? false,
     digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
+    worksEnabled: features?.works ?? false,
   })
   const [logo, setLogo] = useState<MediaValue>(branding.logo ?? null)
   const [coverImage, setCoverImage] = useState<MediaValue>(storefront?.coverImage ?? null)
@@ -198,6 +201,7 @@ function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: nu
             eventsEnabled: form.eventsEnabled,
             digitalProductsEnabled: form.digitalProductsEnabled,
           },
+          features: { works: form.worksEnabled },
         }),
       })
       if (res.ok) {
@@ -383,6 +387,23 @@ function GeneralTab({ tenantId, branding, commerce, storefront }: { tenantId: nu
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Optional surfaces — what this portal WANTS on, not what it pays for. */}
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Optional Surfaces</h2>
+        <p className="text-sm text-muted-foreground">
+          Off by default. Turn one on only if you will actually use it.
+        </p>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.worksEnabled}
+            onChange={(e) => updateField('worksEnabled', e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          Works — long-form publishing (adds Works to your menu and dashboard)
+        </label>
       </div>
 
       {/* Save button */}
@@ -669,6 +690,7 @@ export function SettingsHub({
   commerce,
   storefront,
   addresses,
+  features,
 }: SettingsHubProps) {
   // Deep-linkable: /dashboard/admin/settings?tab=endeavor lands on the Endeavor
   // tab. Legacy /dashboard/endeavor redirects here with that param, so LEO's
@@ -759,7 +781,7 @@ export function SettingsHub({
       {/* Tab content */}
       <div>
         {activeTab === 'general' && (
-          <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} storefront={storefront} />
+          <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} storefront={storefront} features={features} />
         )}
         {activeTab === 'endeavor' && <EndeavorSetup />}
         {activeTab === 'ai' && (

@@ -9,6 +9,7 @@ import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
+import { hasFeature } from '@/utilities/tenantFeatures'
 import { getAllSouls } from '@/souls'
 import { getBookableServices } from '@/config/bookableServices'
 import { getMembershipPlans } from '@/utilities/membershipPlans'
@@ -229,7 +230,9 @@ export async function Header({ tenant }: Props) {
 
   // Works (file-based souls, subscription-scoped by tenant slug) — first-class only
   // when this tenant actually has works available; else collapse into More.
-  const hasWorks = getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
+  const hasWorks =
+    hasFeature(tenant, 'works') &&
+    getAllSouls().some((s) => isWorkAvailable(s.id, tenant?.slug) && isWorkPublished(s.id))
 
   // Discovery link visibility — driven by the Endeavor's "Show in Discovery"
   // toggle (endeavors.federation.networkVisible). Left undefined when there's no

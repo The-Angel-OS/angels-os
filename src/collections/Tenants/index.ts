@@ -820,6 +820,31 @@ export const Tenants: CollectionConfig = {
           'Which Angel OS plan this portal is on. Drives the Upgrade Plan surface. Free is the default and stays free.',
       },
     },
+    /**
+     * What this portal WANTS switched on — distinct from portalPlan, which is
+     * what it has PAID for. Default off: a surface nobody asked for is a door
+     * onto an empty room. Replaces the two-slug Works allow-list in nav-config.
+     */
+    {
+      name: 'features',
+      type: 'group',
+      admin: {
+        description:
+          'Optional surfaces for this portal. Off by default. Not a paywall — see Portal Plan for that.',
+      },
+      fields: [
+        {
+          name: 'works',
+          type: 'checkbox',
+          defaultValue: false,
+          label: 'Works (long-form publishing)',
+          admin: {
+            description:
+              'Shows the Works Studio in the dashboard and the Works entry in the public menu.',
+          },
+        },
+      ],
+    },
     // tracked with a binding refund promise — when the bootstrap phase
     // ends, every cent is returned. Goal: cover expenses + maximize
     // startup capital while keeping the constitutional promise of fairness.

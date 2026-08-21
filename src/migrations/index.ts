@@ -69,6 +69,7 @@ import * as migration_20260820_150000_membership_fk_cascade from './20260820_150
 import * as migration_20260820_180000_site_visits from './20260820_180000_site_visits';
 import * as migration_20260820_210000_cart_items_cascade from './20260820_210000_cart_items_cascade';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
+import * as migration_20260821_050000_tenant_features from './20260821_050000_tenant_features'
 import * as migration_20260820_223000_tenant_portal_plan from './20260820_223000_tenant_portal_plan'
 
 export const migrations = [
@@ -426,5 +427,10 @@ export const migrations = [
     up: migration_20260820_223000_tenant_portal_plan.up,
     down: migration_20260820_223000_tenant_portal_plan.down,
     name: '20260820_223000_tenant_portal_plan',
+  },
+  {
+    up: migration_20260821_050000_tenant_features.up,
+    down: migration_20260821_050000_tenant_features.down,
+    name: '20260821_050000_tenant_features',
   },
 ];

@@ -695,6 +695,15 @@ export interface Tenant {
    */
   portalPlan?: ('free' | 'site' | 'business') | null;
   /**
+   * Optional surfaces for this portal. Off by default. Not a paywall — see Portal Plan for that.
+   */
+  features?: {
+    /**
+     * Shows the Works Studio in the dashboard and the Works entry in the public menu.
+     */
+    works?: boolean | null;
+  };
+  /**
    * Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.
    */
   bootstrapFees?: {
@@ -7834,6 +7843,11 @@ export interface TenantsSelect<T extends boolean = true> {
         commissionedAt?: T;
       };
   portalPlan?: T;
+  features?:
+    | T
+    | {
+        works?: T;
+      };
   bootstrapFees?:
     | T
     | {

@@ -18,8 +18,8 @@ export interface NavVisibilityContext {
   wizardComplete: boolean
   permissions: string[]
   tenantRole: string | null
-  /** Slug of the portal currently being administered — gates per-endeavor items. */
-  tenantSlug?: string | null
+  /** Optional surfaces this portal has switched on — see tenant.features. */
+  features?: { works?: boolean | null } | null
 }
 
 // ─── Config Types ───────────────────────────────────────────────
@@ -52,16 +52,13 @@ const adminOnly = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isAd
 const businessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && ctx.isBusinessOwner
 const adminOrBusinessOwner = (ctx: NavVisibilityContext) => ctx.isAuthenticated && (ctx.isAdmin || ctx.isBusinessOwner)
 /**
- * Works Studio is not a platform feature — it is a two-endeavor feature. Only
- * Clearwater Cruisin' and Where Did Everyone Go publish Works; on every other
- * portal the Studio was a door onto an empty room, and worse, it advertised a
- * capability their customers would ask about. Ken's 260820 call.
- * ponytail: a two-slug allow-list, not a per-tenant flag — add a flag when a
- * third endeavor wants in.
+ * Works Studio is not a platform feature — it is a per-portal one. On a portal
+ * that does not publish Works the Studio was a door onto an empty room, and
+ * worse, it advertised a capability their customers would ask about. Now driven
+ * by `tenant.features.works` (Endeavor Settings) instead of a slug allow-list.
  */
-const WORKS_ENDEAVORS = ['clearwater-cruisin', 'wheredideveryonego']
 const worksEndeavorOnly = (ctx: NavVisibilityContext) =>
-  ctx.isAuthenticated && Boolean(ctx.tenantSlug && WORKS_ENDEAVORS.includes(ctx.tenantSlug))
+  ctx.isAuthenticated && Boolean(ctx.features?.works)
 
 /** isActive shorthand — matches if pathname includes the given path segment */
 const active = (path: string) => (pathname: string, _prefix: string) => pathname.includes(path)
