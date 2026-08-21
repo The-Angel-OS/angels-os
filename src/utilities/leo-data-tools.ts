@@ -2089,7 +2089,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'verify_address',
     description:
-      "Check whether an address complies with residency-restriction proximity rules for reentry housing — flags nearby schools, preschools, playgrounds, child-care agencies, and community centers within the restriction distance (Google Places). Use when someone needs to know if an address is LEGAL housing for a registered person. Each check is logged as a message to a tracking channel. IMPORTANT: the result is ADVISORY — Google Places doesn't list every state-licensed child-care facility (Florida requires a manual DCF search); relay that caveat and never present a pass as a legal clearance.",
+      "Check whether an address complies with residency-restriction proximity rules for reentry housing — flags nearby schools, preschools, playgrounds, child-care agencies, and community centers within the restriction distance (Google Places). Use when someone needs to know if an address is LEGAL housing for a registered person. Each check is logged as a message in the channel you are talking in, so it stays with the rest of that search. IMPORTANT: the result is ADVISORY — Google Places doesn't list every state-licensed child-care facility (Florida requires a manual DCF search); relay that caveat and never present a pass as a legal clearance.",
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -2097,7 +2097,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         lat: { type: 'number', description: 'Latitude (if you already have coordinates).' },
         lng: { type: 'number', description: 'Longitude.' },
         restrictionFeet: { type: 'number', description: 'Restriction distance in feet. Default 1000 (Florida state statute); many localities use 2500.' },
-        channel: { type: 'string', description: 'Channel slug to log the verification to. Default "address-verifications".' },
+        channel: { type: 'string', description: 'Channel slug to log the verification to. Defaults to the channel you are talking in — only pass this to log somewhere else.' },
       },
       required: [],
     },
@@ -10029,7 +10029,13 @@ async function handleVerifyAddress(
   let lat = typeof input.lat === 'number' ? input.lat : undefined
   let lng = typeof input.lng === 'number' ? input.lng : undefined
   const restrictionFeet = typeof input.restrictionFeet === 'number' ? input.restrictionFeet : 1000
-  const channel = (typeof input.channel === 'string' && input.channel.trim()) || 'address-verifications'
+  // Log where the conversation is HAPPENING. This used to default to a fixed
+  // 'address-verifications' slug, which nothing creates — so the message landed
+  // in the space with a slug no channel row had, and was invisible everywhere
+  // while LEO cheerfully reported "logged to #address-verifications". Messages
+  // key on the slug AND channelRef; both are set below.
+  const channel =
+    (typeof input.channel === 'string' && input.channel.trim()) || ctx.channelSlug || ''
 
   if (!address && (lat == null || lng == null)) {
     return 'Error: provide an address, or lat + lng, to verify.'
@@ -10059,7 +10065,22 @@ async function handleVerifyAddress(
         const sid = await resolveAiBusSpaceId(payload as never, tenantId)
         if (sid) spaceId = Number(sid)
       }
-      if (spaceId) {
+      // A slug with no channel row behind it is a message nobody can ever read.
+      // Resolve it first; no channel means no log and — crucially — no claim of
+      // one in the reply.
+      let channelRefId: number | undefined
+      if (spaceId && channel) {
+        const found = await payload.find({
+          collection: 'channels',
+          where: { and: [{ space: { equals: spaceId } }, { slug: { equals: channel } }] },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        channelRefId = (found.docs[0] as { id?: number } | undefined)?.id
+      }
+
+      if (spaceId && channelRefId) {
         const verdict = result.compliantAdvisory ? '🟢 No restricted zones found' : `🔴 ${result.failing.length} restricted zone(s) within ${restrictionFeet} ft`
         const author = ctx.userId || (tenantId ? await findLeoUser(payload, tenantId) : undefined) || 1
         await payload.create({
@@ -10070,6 +10091,7 @@ async function handleVerifyAddress(
             ),
             space: spaceId,
             channel,
+            channelRef: channelRefId,
             messageType: 'system',
             author,
             ...(tenantId ? { tenant: tenantId } : {}),
