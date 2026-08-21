@@ -4112,9 +4112,9 @@ export interface Availability {
    */
   title: string;
   /**
-   * The person or resource this availability applies to
+   * Whose calendar these hours belong to. Leave empty for the business itself — the usual answer for a one-person operation.
    */
-  provider: number | User;
+  provider?: (number | null) | User;
   availabilityType: 'weekly' | 'date-range' | 'one-time';
   /**
    * Recurring weekly availability

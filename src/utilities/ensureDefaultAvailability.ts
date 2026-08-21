@@ -18,6 +18,7 @@
  * @see src/collections/Availability.ts — the schema
  */
 import type { Payload } from 'payload'
+import { providerWhere } from './resolveBookingProvider'
 
 const WEEKDAYS = ['1', '2', '3', '4', '5'] as const // Mon–Fri
 const DEFAULT_START = '09:00'
@@ -36,14 +37,15 @@ export interface EnsureAvailabilityResult {
 export async function ensureDefaultAvailability(
   payload: Payload,
   tenantId: number | string,
-  providerUserId: number | string,
+  /** null seeds HOUSE hours — the business's own calendar. */
+  providerUserId: number | string | null,
 ): Promise<EnsureAvailabilityResult> {
   try {
     const existing = await payload.find({
       collection: 'availability',
       where: {
         and: [
-          { provider: { equals: providerUserId } },
+          providerWhere(typeof providerUserId === 'string' ? Number(providerUserId) : providerUserId),
           { tenant: { equals: tenantId } },
         ],
       },
@@ -60,7 +62,9 @@ export async function ensureDefaultAvailability(
         await payload.create({
           collection: 'availability',
           data: {
-            provider: providerUserId,
+            // Omitted entirely for house hours — an explicit null is a
+            // different thing to Payload than an absent relationship.
+            ...(providerUserId == null ? {} : { provider: providerUserId }),
             tenant: tenantId,
             availabilityType: 'weekly',
             weeklySchedule: { dayOfWeek, startTime: DEFAULT_START, endTime: DEFAULT_END },
@@ -103,16 +107,16 @@ export async function ensureTenantDefaultAvailability(
 ): Promise<EnsureAvailabilityResult & { providerId: number | null; note: string }> {
   const { resolveBookingProvider } = await import('./resolveBookingProvider')
   const providerId = await resolveBookingProvider(payload, tenantId)
-  if (providerId == null) {
-    // Rows pinned to nobody would only make a broken page look configured.
-    return { created: 0, skipped: true, providerId: null, note: 'no provider (tenant has no admin)' }
-  }
+  // No human on the portal yet? Seed HOUSE hours against the business itself.
+  // This used to bail with "no provider", which is why every prospect demo had
+  // a /book page that offered nothing while booking was the pitch. When an
+  // owner later sets their own hours, resolveBookingProvider prefers the
+  // calendar that actually has rows, so their schedule takes over.
   const res = await ensureDefaultAvailability(payload, tenantId, providerId)
+  const whose = providerId == null ? 'the business (house hours)' : `provider ${providerId}`
   return {
     ...res,
     providerId,
-    note: res.skipped
-      ? `already configured for provider ${providerId}`
-      : `Mon–Fri ${DEFAULT_START}–${DEFAULT_END} for provider ${providerId}`,
+    note: res.skipped ? `already configured for ${whose}` : `Mon–Fri ${DEFAULT_START}–${DEFAULT_END} for ${whose}`,
   }
 }

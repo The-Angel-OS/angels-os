@@ -1,5 +1,20 @@
 import type { Payload } from 'payload'
 
+import type { Where } from 'payload'
+
+/**
+ * Where-clause for a tenant's availability and bookings.
+ *
+ * `null` means HOUSE hours — rows that belong to the business rather than to a
+ * person. A sole proprietor IS the business, and a portal that nobody has
+ * claimed yet has no person at all, so binding booking to a user meant every
+ * prospect demo shipped with a dead /book page while we pitched booking as the
+ * feature. One helper so the four call sites cannot drift.
+ */
+export function providerWhere(providerId: number | null): Where {
+  return providerId == null ? { provider: { exists: false } } : { provider: { equals: providerId } }
+}
+
 /**
  * Resolve the provider (a user) a tenant's bookings are scheduled against.
  *

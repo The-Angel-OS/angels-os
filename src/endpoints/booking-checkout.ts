@@ -30,7 +30,7 @@ import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { depositCents, totalCents } from '@/config/bookableServices'
 import { resolveServices } from '@/utilities/resolveServices'
 import { getBookingPaymentMode } from '@/utilities/bookingSettings'
-import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
 import { BookingEngine } from '@/utilities/bookingEngine'
 import { logError } from '@/utilities/logError'
 
@@ -121,13 +121,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const endeavor = endeavors.docs?.[0] as any
     const endeavorName = endeavor?.name || tenant.name || 'Enterprise'
 
+    // null means the HOUSE calendar — the business itself. Refusing it turned
+    // away real money on any portal run by one person with no named provider.
     const providerId = await resolveBookingProvider(payload, tenant.id)
-    if (providerId == null) {
-      return Response.json(
-        { error: 'This enterprise has not configured a booking provider yet.' },
-        { status: 400 },
-      )
-    }
 
     // Calculate booking times
     const startDateTime = new Date(`${date}T${time}:00`)
@@ -145,7 +141,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
         where: {
           and: [
             { client: { equals: user.id } },
-            { provider: { equals: providerId } },
+            providerWhere(providerId),
             { status: { equals: 'pending' } },
             { startDateTime: { equals: startDateTime.toISOString() } },
           ],
@@ -171,7 +167,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const capacity = await resolveSlotCapacity(payload, providerId, tenant.id)
     const engine = new BookingEngine(payload)
     const conflicts = await engine.checkBookingConflicts({
-      providerId: String(providerId),
+      providerId: providerId == null ? `house:${tenant.id}` : String(providerId),
       clientId: String(user.id),
       tenantId: String(tenant.id),
       startDateTime,
@@ -198,7 +194,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       collection: 'bookings' as any,
       data: {
         tenant: tenant.id,
-        provider: providerId,
+        ...(providerId == null ? {} : { provider: providerId }),
         client: user.id,
         title: `${service.label} — ${endeavorName}`,
         bookingType: service.bookingType,
@@ -375,7 +371,8 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
  */
 async function resolveSlotCapacity(
   payload: Parameters<PayloadHandler>[0]['payload'],
-  providerId: number | string,
+  /** null = house hours (the business's own calendar). */
+  providerId: number | string | null,
   tenantId: number | string,
 ): Promise<number> {
   try {
@@ -383,7 +380,7 @@ async function resolveSlotCapacity(
       collection: 'availability',
       where: {
         and: [
-          { provider: { equals: providerId } },
+          providerWhere(typeof providerId === 'string' ? Number(providerId) : providerId),
           { tenant: { equals: tenantId } },
           { isActive: { equals: true } },
         ],

@@ -35,9 +35,16 @@ export const Availability: CollectionConfig = {
       index: true,
       type: 'relationship',
       relationTo: 'users',
-      required: true,
+      /**
+       * OPTIONAL on purpose. Empty means HOUSE hours — the business's own
+       * calendar rather than a named person's. A sole proprietor IS the
+       * business, and a portal nobody has claimed yet has no person at all, so
+       * requiring a provider meant every prospect demo shipped with a dead
+       * /book page while booking was the thing being pitched.
+       */
       admin: {
-        description: 'The person or resource this availability applies to',
+        description:
+          'Whose calendar these hours belong to. Leave empty for the business itself — the usual answer for a one-person operation.',
       },
     },
     {

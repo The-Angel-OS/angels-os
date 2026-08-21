@@ -7,6 +7,10 @@ import {
 const mockResolve = vi.hoisted(() => vi.fn())
 vi.mock('@/utilities/resolveBookingProvider', () => ({
   resolveBookingProvider: mockResolve,
+  // The real one. Stubbing the module wholesale meant this came back undefined
+  // and every seed threw into the fail-soft catch, reporting "0 created".
+  providerWhere: (id: number | null) =>
+    id == null ? { provider: { exists: false } } : { provider: { equals: id } },
 }))
 
 function fakePayload(existingCount = 0) {
@@ -69,13 +73,44 @@ describe('ensureTenantDefaultAvailability (resolved provider — the business pa
     expect(created.every((c) => c.provider === 7)).toBe(true)
   })
 
-  it('writes nothing when no provider resolves', async () => {
+  it('does not re-seed a calendar that already has hours', async () => {
+    // The old assertion here was "writes nothing when no provider resolves",
+    // which encoded the bug: an unclaimed portal got no hours at all. That case
+    // now seeds house hours — see the house-hours block below. Idempotency is
+    // the property actually worth pinning down.
     mockResolve.mockResolvedValue(null)
-    const { payload, created } = fakePayload()
+    const { payload, created } = fakePayload(5)
     const res = await ensureTenantDefaultAvailability(payload, 33)
 
     expect(res.created).toBe(0)
+    expect(res.skipped).toBe(true)
     expect(created).toHaveLength(0)
-    expect(res.note).toContain('no provider')
+  })
+})
+
+describe('house hours — a portal with no human on it yet', () => {
+  it('seeds the business its own week instead of bailing', async () => {
+    const { payload, created } = fakePayload()
+    mockResolve.mockResolvedValue(null)
+
+    const res = await ensureTenantDefaultAvailability(payload, 40)
+
+    // Used to return { skipped: true, note: 'no provider' } and leave /book
+    // empty on exactly the sites built to demonstrate booking.
+    expect(res.created).toBe(5)
+    expect(res.providerId).toBeNull()
+    expect(res.note).toContain('house hours')
+    // An absent relationship, not an explicit null — Payload treats them apart.
+    for (const row of created) expect('provider' in row).toBe(false)
+  })
+
+  it('still prefers a named provider when the portal has one', async () => {
+    const { payload, created } = fakePayload()
+    mockResolve.mockResolvedValue(12)
+
+    const res = await ensureTenantDefaultAvailability(payload, 40)
+
+    expect(res.providerId).toBe(12)
+    for (const row of created) expect(row.provider).toBe(12)
   })
 })

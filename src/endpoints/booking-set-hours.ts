@@ -17,7 +17,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 const HHMM = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
@@ -98,19 +98,14 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
     }
   }
 
+  // null = house hours, which is the normal shape for a one-person business.
   const providerId = await resolveBookingProvider(payload, tenantId)
-  if (providerId == null) {
-    return Response.json(
-      { error: 'This portal has no booking provider yet — add an admin to the portal first.' },
-      { status: 409 },
-    )
-  }
 
   const existing = await payload.find({
     collection: 'availability',
     where: {
       and: [
-        { provider: { equals: providerId } },
+        providerWhere(providerId),
         { tenant: { equals: tenantId } },
         { availabilityType: { equals: 'weekly' } },
       ],
@@ -137,7 +132,7 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
     const row = byDay.get(d.day)
     const data = {
       title: `${DAY_NAMES[d.day]} ${d.start}-${d.end}`,
-      provider: providerId,
+      ...(providerId == null ? {} : { provider: providerId }),
       tenant: tenantId,
       availabilityType: 'weekly',
       weeklySchedule: { dayOfWeek: String(d.day), startTime: d.start, endTime: d.end },

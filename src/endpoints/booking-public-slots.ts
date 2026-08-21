@@ -16,7 +16,7 @@
  * @see src/endpoints/booking-checkout.ts (conflict-checks again at commit time)
  */
 import type { PayloadHandler } from 'payload'
-import { resolveBookingProvider } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
 
 const toMin = (hhmm: string): number | null => {
   const [h, m] = (hhmm || '').split(':').map(Number)
@@ -46,8 +46,9 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     const tenant = tenants.docs?.[0] as { id: number | string } | undefined
     if (!tenant) return Response.json({ slots: [], date: dateStr })
 
+    // null is not "no booking" any more — it means the HOUSE calendar, which
+    // is what an unclaimed portal and a one-person business both use.
     const providerId = await resolveBookingProvider(payload, tenant.id)
-    if (providerId == null) return Response.json({ slots: [], date: dateStr })
 
     const dayStart = new Date(`${dateStr}T00:00:00`)
     const dayEnd = new Date(`${dateStr}T23:59:59`)
@@ -56,7 +57,7 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     // Weekly availability rules that apply to this day
     const rules = await payload.find({
       collection: 'availability',
-      where: { and: [{ provider: { equals: providerId } }, { tenant: { equals: tenant.id } }, { isActive: { equals: true } }] },
+      where: { and: [providerWhere(providerId), { tenant: { equals: tenant.id } }, { isActive: { equals: true } }] },
       limit: 50,
       depth: 0,
       overrideAccess: true,
@@ -67,7 +68,7 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
       collection: 'bookings',
       where: {
         and: [
-          { provider: { equals: providerId } },
+          providerWhere(providerId),
           { tenant: { equals: tenant.id } },
           { startDateTime: { greater_than_equal: dayStart.toISOString() } },
           { startDateTime: { less_than_equal: dayEnd.toISOString() } },

@@ -35,3 +35,24 @@ describe('parseDays — the weekly hours editor payload', () => {
     expect(parseDays({ day: 1 })).toBe('days must be an array')
   })
 })
+
+describe('house hours', () => {
+  it('asks for rows with no provider when there is no named one', async () => {
+    const { providerWhere } = await import('@/utilities/resolveBookingProvider')
+    // A one-person business, and every unclaimed prospect demo, live here.
+    expect(providerWhere(null)).toEqual({ provider: { exists: false } })
+  })
+
+  it('still scopes to the named provider when there is one', async () => {
+    const { providerWhere } = await import('@/utilities/resolveBookingProvider')
+    expect(providerWhere(7)).toEqual({ provider: { equals: 7 } })
+  })
+
+  it('never matches everyone — the two forms are mutually exclusive', async () => {
+    const { providerWhere } = await import('@/utilities/resolveBookingProvider')
+    // A clause that matched every row would let one portal's hours leak into
+    // another's booking page, which is worse than an empty calendar.
+    expect(JSON.stringify(providerWhere(null))).not.toEqual(JSON.stringify(providerWhere(7)))
+    expect(providerWhere(0)).toEqual({ provider: { equals: 0 } })
+  })
+})
