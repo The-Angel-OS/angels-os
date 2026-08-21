@@ -11,16 +11,20 @@ vi.mock('@/utilities/sendTenantInvitationEmail', () => ({
 import { inviteOwner } from '@/utilities/inviteOwner'
 import { sendTenantInvitationEmail } from '@/utilities/sendTenantInvitationEmail'
 
-function fakePayload(existing: unknown[]) {
+function fakePayload(existing: unknown[], opts: { noSuperAdmin?: boolean } = {}) {
   const created: unknown[] = []
   return {
     created,
     payload: {
-      find: vi.fn(async ({ collection }: { collection: string }) =>
-        collection === 'users'
-          ? { docs: [{ id: 1 }], totalDocs: 1 }
-          : { docs: existing, totalDocs: existing.length },
-      ),
+      find: vi.fn(async ({ collection, where }: { collection: string; where?: Record<string, unknown> }) => {
+        if (collection !== 'users') return { docs: existing, totalDocs: existing.length }
+        // The super_admin lookup is the filtered one; the bare find is the fallback.
+        const isAdminLookup = Boolean((where as { roles?: unknown })?.roles)
+        if (isAdminLookup) {
+          return opts.noSuperAdmin ? { docs: [], totalDocs: 0 } : { docs: [{ id: 3 }], totalDocs: 1 }
+        }
+        return { docs: [{ id: 162 }], totalDocs: 1 }
+      }),
       create: vi.fn(async (args: unknown) => {
         created.push(args)
         return { id: 99 }
@@ -79,6 +83,22 @@ describe('inviteOwner', () => {
     // The URL is the whole deliverable when there is nowhere to mail it.
     expect(res.emailSent).toBe(false)
     expect(res.inviteUrl).toMatch(/^https:\/\/bre\.spacesangels\.com\/tenant-invite\/.+/)
+  })
+
+  it('attributes the invite to a super_admin, not whoever the users table returns first', async () => {
+    // The invite page renders this user's name to the prospect. Taking the bare
+    // first row put a random member's name on a portal we were pitching.
+    const { payload, created } = fakePayload([])
+    await inviteOwner(payload, { phone: '+13522085428', tenantId: 38 })
+
+    expect((created[0] as { data: { invitedBy: number } }).data.invitedBy).toBe(3)
+  })
+
+  it('still satisfies the FK when the node has no super_admin', async () => {
+    const { payload, created } = fakePayload([], { noSuperAdmin: true })
+    await inviteOwner(payload, { phone: '+13522085428', tenantId: 38 })
+
+    expect((created[0] as { data: { invitedBy: number } }).data.invitedBy).toBe(162)
   })
 
   it('refuses an invite addressed to nobody', async () => {

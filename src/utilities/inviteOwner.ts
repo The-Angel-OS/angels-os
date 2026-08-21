@@ -58,9 +58,22 @@ export async function inviteOwner(
   try {
     if (!email && !phone) throw new Error('an owner invite needs an email or a phone')
 
-    // invitedBy is a real FK. Fall back to any user on the node when a scripted
-    // path (cron/funnel, no session) couldn't resolve a super_admin.
+    // invitedBy is a real FK, and the invite page renders that user's NAME to the
+    // prospect: "<name> invited you to join <portal>". The funnel runs with no
+    // session, and taking "the first user on the node" put a random member's name
+    // in front of a stranger we were pitching (caught on BRE Solutions, 260820).
+    // Prefer a super_admin; only fall back to any user to satisfy the FK.
     let inviterId = opts.invitedBy
+    if (inviterId == null) {
+      const admin = await payload.find({
+        collection: 'users',
+        where: { roles: { contains: 'super_admin' } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      inviterId = admin.docs?.[0]?.id
+    }
     if (inviterId == null) {
       const anyUser = await payload.find({ collection: 'users', limit: 1, depth: 0, overrideAccess: true })
       inviterId = anyUser.docs?.[0]?.id
