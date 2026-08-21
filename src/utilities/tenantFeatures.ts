@@ -6,10 +6,10 @@
  * portal may not. Default is off everywhere: an empty room advertised in the nav
  * is worse than no nav item at all.
  */
-export type TenantFeature = 'works'
+export type TenantFeature = 'works' | 'pageComments'
 
 export interface TenantWithFeatures {
-  features?: { works?: boolean | null } | null
+  features?: { works?: boolean | null; pageComments?: boolean | null } | null
 }
 
 export function hasFeature(

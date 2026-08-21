@@ -26,6 +26,12 @@ describe('tenant features', () => {
 
   it('reads the flag when set', () => {
     expect(hasFeature({ features: { works: true } }, 'works')).toBe(true)
+    expect(hasFeature({ features: { pageComments: true } }, 'pageComments')).toBe(true)
+  })
+
+  it('keeps the flags independent — one on does not turn the other on', () => {
+    expect(hasFeature({ features: { works: true } }, 'pageComments')).toBe(false)
+    expect(hasFeature({ features: { pageComments: true } }, 'works')).toBe(false)
   })
 
   it('drives the Works nav item instead of a slug allow-list', () => {

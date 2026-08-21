@@ -143,7 +143,7 @@ export default async function ProductPage({ params }: Args) {
             </Link>
           </Button>
         )}
-        <div className="flex flex-col gap-12 rounded-lg border p-8 md:py-12 lg:flex-row lg:gap-8 bg-primary-foreground">
+        <div className="flex flex-col gap-12 rounded-lg border p-8 md:py-12 lg:flex-row lg:gap-8 bg-card text-card-foreground">
           {/* The gallery column STRETCHES to the description beside it (flex rows
               stretch by default), and the gallery fills that height — so the
               page geometry is set by the copy, which doesn't change, instead of

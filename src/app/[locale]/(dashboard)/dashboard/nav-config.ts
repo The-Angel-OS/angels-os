@@ -19,7 +19,7 @@ export interface NavVisibilityContext {
   permissions: string[]
   tenantRole: string | null
   /** Optional surfaces this portal has switched on — see tenant.features. */
-  features?: { works?: boolean | null } | null
+  features?: { works?: boolean | null; pageComments?: boolean | null } | null
 }
 
 // ─── Config Types ───────────────────────────────────────────────

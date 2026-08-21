@@ -1,4 +1,5 @@
 import type { CollectionAfterChangeHook } from 'payload'
+import { AI_BUS_SPACE_SLUG } from '@/utilities/ensureSystemSpace'
 
 /**
  * autoJoinSpaces — When a TenantMembership becomes active, auto-join
@@ -18,7 +19,7 @@ import type { CollectionAfterChangeHook } from 'payload'
  * dedicated special-case in fetchUserSpaces, and its channel/message read access
  * stays governed by the canonical resolver. Auto-join everything BUT the AI Bus.
  */
-const AI_BUS_SLUG = 'ai-bus'
+
 
 export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   // Only proceed when membership is active
@@ -35,7 +36,7 @@ export const autoJoinSpaces: CollectionAfterChangeHook = async ({ doc, operation
     // Find all spaces in this tenant EXCEPT the AI Bus system space.
     const spaces = await payload.find({
       collection: 'spaces',
-      where: { and: [{ tenant: { equals: tenantId } }, { slug: { not_equals: AI_BUS_SLUG } }] },
+      where: { and: [{ tenant: { equals: tenantId } }, { slug: { not_equals: AI_BUS_SPACE_SLUG } }] },
       sort: 'createdAt',
       limit: 100,
       depth: 0,

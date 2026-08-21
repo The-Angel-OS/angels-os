@@ -188,7 +188,9 @@ describe('autoJoinTenantSpaces', () => {
           })
         }
         if (collection === 'spaces') {
-          const tenantId = where?.tenant?.equals
+          // The hook queries { and: [{ tenant }, { slug: { not_equals: 'ai-bus' } }] }
+          const clauses = where?.and || [where]
+          const tenantId = clauses.find((c: any) => c?.tenant)?.tenant?.equals
           if (tenantId === 10) {
             return Promise.resolve({
               docs: [{ id: 50, name: 'Main', tenant: 10 }, { id: 51, name: 'Support', tenant: 10 }],
@@ -212,6 +214,28 @@ describe('autoJoinTenantSpaces', () => {
     await autoJoinTenantSpaces(args as any)
     // 2 spaces for tenant 10 + 1 space for tenant 20 = 3 memberships
     expect(p.create).toHaveBeenCalledTimes(3)
+  })
+
+  it('never joins the AI Bus — it is system plumbing, not a room', async () => {
+    let spacesWhere: any
+    const p = {
+      ...makePayload(),
+      find: vi.fn().mockImplementation(({ collection, where }: any) => {
+        if (collection === 'tenant-memberships') {
+          return Promise.resolve({ docs: [{ id: 1, tenant: 10, status: 'active' }], totalDocs: 1 })
+        }
+        if (collection === 'spaces') {
+          spacesWhere = where
+          return Promise.resolve({ docs: [{ id: 50, name: 'Main', tenant: 10 }], totalDocs: 1 })
+        }
+        return Promise.resolve({ docs: [], totalDocs: 0 })
+      }),
+      create: vi.fn().mockResolvedValue({ id: 100 }),
+      logger: { info: vi.fn(), warn: vi.fn() },
+    }
+    await autoJoinTenantSpaces(makeArgs({}, p) as any)
+    const clauses = spacesWhere?.and || []
+    expect(clauses.some((c: any) => c?.slug?.not_equals === 'ai-bus')).toBe(true)
   })
 
   // ── error resilience ──────────────────────────────────────────────────────

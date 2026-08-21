@@ -20,7 +20,7 @@ export default function DashboardAddressesPage() {
         <CreateAddressModal />
       </div>
 
-      <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-6 md:p-8 rounded-lg bg-card text-card-foreground">
         <AddressListing />
       </div>
     </div>

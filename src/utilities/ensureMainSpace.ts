@@ -133,6 +133,11 @@ export async function ensureMainSpace(
         name: 'Community',
         slug: 'community',
         description: `The community space for ${tenantName}. All members are automatically added here.`,
+        // Deliberately NOT `community`. That tier is visible to every
+        // authenticated user on the node, node-wide — one town square, on the
+        // platform tenant. A customer's own Community is theirs: tenant
+        // members reach it through the non-private rule in
+        // buildSpaceVisibilityFilter, and nobody else does.
         visibility: 'invite_only',
         isMain: true,
         tenant: Number(tenantId),

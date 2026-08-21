@@ -843,6 +843,16 @@ export const Tenants: CollectionConfig = {
               'Shows the Works Studio in the dashboard and the Works entry in the public menu.',
           },
         },
+        {
+          name: 'pageComments',
+          type: 'checkbox',
+          defaultValue: false,
+          label: 'Per-page comments',
+          admin: {
+            description:
+              'Lets visitors comment on any public page. Comments are moderated. Off means no comment rail at all — the Comments block still works where you place it.',
+          },
+        },
       ],
     },
     // tracked with a binding refund promise — when the bootstrap phase

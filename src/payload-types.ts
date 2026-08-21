@@ -702,6 +702,10 @@ export interface Tenant {
      * Shows the Works Studio in the dashboard and the Works entry in the public menu.
      */
     works?: boolean | null;
+    /**
+     * Lets visitors comment on any public page. Comments are moderated. Off means no comment rail at all — the Comments block still works where you place it.
+     */
+    pageComments?: boolean | null;
   };
   /**
    * Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.
@@ -7847,6 +7851,7 @@ export interface TenantsSelect<T extends boolean = true> {
     | T
     | {
         works?: T;
+        pageComments?: T;
       };
   bootstrapFees?:
     | T

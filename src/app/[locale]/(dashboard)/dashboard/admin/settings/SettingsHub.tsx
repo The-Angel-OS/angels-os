@@ -64,7 +64,7 @@ export interface SettingsHubProps {
   storefront?: StorefrontData
   addresses?: AddressesData
   /** tenant.features — optional surfaces this portal has switched on. */
-  features?: { works?: boolean | null } | null
+  features?: { works?: boolean | null; pageComments?: boolean | null } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ function Toast({ message }: { message: { type: 'success' | 'error'; text: string
 // GeneralTab
 // ---------------------------------------------------------------------------
 
-function GeneralTab({ tenantId, branding, commerce, storefront, features }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData; features?: { works?: boolean | null } | null }) {
+function GeneralTab({ tenantId, branding, commerce, storefront, features }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData; features?: { works?: boolean | null; pageComments?: boolean | null } | null }) {
   const [form, setForm] = useState({
     siteName: branding.siteName || '',
     tagline: branding.tagline || '',
@@ -156,6 +156,7 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
     eventsEnabled: commerce.eventsEnabled ?? false,
     digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
     worksEnabled: features?.works ?? false,
+    pageCommentsEnabled: features?.pageComments ?? false,
   })
   const [logo, setLogo] = useState<MediaValue>(branding.logo ?? null)
   const [coverImage, setCoverImage] = useState<MediaValue>(storefront?.coverImage ?? null)
@@ -201,7 +202,7 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
             eventsEnabled: form.eventsEnabled,
             digitalProductsEnabled: form.digitalProductsEnabled,
           },
-          features: { works: form.worksEnabled },
+          features: { works: form.worksEnabled, pageComments: form.pageCommentsEnabled },
         }),
       })
       if (res.ok) {
@@ -403,6 +404,15 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
             className="h-4 w-4 rounded border-border"
           />
           Works — long-form publishing (adds Works to your menu and dashboard)
+        </label>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.pageCommentsEnabled}
+            onChange={(e) => updateField('pageCommentsEnabled', e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          Comments — let visitors comment on any page (moderated)
         </label>
       </div>
 

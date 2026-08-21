@@ -16,12 +16,12 @@ export default function DashboardAccountPage() {
         <p className="text-sm text-muted-foreground">Manage your profile, password, and connected accounts.</p>
       </div>
 
-      <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-6 md:p-8 rounded-lg bg-card text-card-foreground">
         <h2 className="text-lg font-medium mb-6">Profile</h2>
         <AccountForm />
       </div>
 
-      <div className="border p-6 md:p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-6 md:p-8 rounded-lg bg-card text-card-foreground">
         <h2 className="text-lg font-medium mb-6">Connected Accounts</h2>
         <SocialProvidersPanel />
         {/* Contacts import rides with the Google connection that authorizes it —

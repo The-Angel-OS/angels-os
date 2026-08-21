@@ -42,7 +42,7 @@ export default async function Orders() {
 
   return (
     <>
-      <div className="border p-8 rounded-lg bg-primary-foreground w-full">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground w-full">
         <h1 className="text-3xl font-medium mb-8">Orders</h1>
         {(!orders || !Array.isArray(orders) || orders?.length === 0) && (
           <div className="flex flex-col items-center justify-center py-12 text-center">

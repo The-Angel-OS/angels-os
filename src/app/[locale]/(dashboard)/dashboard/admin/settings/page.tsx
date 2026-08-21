@@ -48,7 +48,7 @@ export default async function DashboardSettingsPage({
         headingFont: branding.headingFont || 'inter',
         bodyFont: branding.bodyFont || 'inter',
       }}
-      features={tenant?.features as { works?: boolean | null } | null | undefined}
+      features={tenant?.features as { works?: boolean | null; pageComments?: boolean | null } | null | undefined}
       commerce={{
         currency: commerce.currency || 'usd',
         taxRate: commerce.taxRate ?? 0,

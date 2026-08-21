@@ -41,7 +41,7 @@ export const ProductGridItem: React.FC<Props> = ({ product }) => {
       {image ? (
         <Media
           className={clsx(
-            'relative aspect-square object-cover bg-primary-foreground',
+            'relative aspect-square object-cover bg-muted',
           )}
           imgClassName={clsx('h-full w-full object-cover', {
             'transition duration-300 ease-in-out group-hover:scale-102': true,

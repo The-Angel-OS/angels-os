@@ -15,6 +15,7 @@ import { TenantFonts } from '@/components/TenantFonts'
 import { TenantStyles } from '@/components/TenantStyles'
 import { FloatingBubble } from '@/components/ChatControl/FloatingBubble'
 import { PageComments } from '@/components/ChatControl/PageComments'
+import { hasFeature } from '@/utilities/tenantFeatures'
 import { TenantCookieSync } from '@/components/TenantCookieSync'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -199,7 +200,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <main>{children}</main>
           <Footer tenant={tenant} />
           <FloatingBubble spaceId={defaultSpaceId} />
-          <PageComments spaceId={defaultSpaceId} />
+          {hasFeature(tenant, 'pageComments') && <PageComments spaceId={defaultSpaceId} />}
           {tenant?.id && <TenantCookieSync tenantId={String(tenant.id)} />}
           {/* Vercel analytics beacons only work on Vercel — off-Vercel (self-host)
               they 404 /_vercel/insights/* and spam the console. Gate to Vercel. */}

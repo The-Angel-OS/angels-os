@@ -1,4 +1,5 @@
 import type { CollectionAfterChangeHook } from 'payload'
+import { AI_BUS_SPACE_SLUG } from '@/utilities/ensureSystemSpace'
 import type { User } from '@/payload-types'
 
 /**
@@ -52,10 +53,13 @@ export const autoJoinTenantSpaces: CollectionAfterChangeHook<User> = async ({
       if (!tenantId) continue
 
       try {
-        // Find ALL spaces for this tenant (not just the oldest)
+        // Find ALL spaces for this tenant EXCEPT the AI Bus — it is system
+        // plumbing, seeded `private`, and a membership row here is what put
+        // "AI Bus" at the top of an ordinary member's Spaces picker. The
+        // tenant-membership hook already excludes it; this one did not.
         const spaces = await payload.find({
           collection: 'spaces',
-          where: { tenant: { equals: tenantId } },
+          where: { and: [{ tenant: { equals: tenantId } }, { slug: { not_equals: AI_BUS_SPACE_SLUG } }] },
           sort: 'createdAt',
           limit: 100,
           depth: 0,

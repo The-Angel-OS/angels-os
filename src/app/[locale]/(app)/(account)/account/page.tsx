@@ -50,7 +50,7 @@ export default async function AccountPage() {
 
   return (
     <>
-      <div className="border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
         <h1 className="text-3xl font-medium mb-8">Account settings</h1>
         <AccountForm />
       </div>
@@ -59,17 +59,17 @@ export default async function AccountPage() {
           viewer's own subscription, so this one line is both "join" and "manage
           card / cancel" — and it's where MembersOnlyGate sends a locked-out
           member. Renders nothing when the endeavor sells no plans. */}
-      <div className="border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
         <h2 className="text-3xl font-medium mb-8">Membership</h2>
         <MembershipBlock ctaText="Become a member" />
       </div>
 
-      <div className="border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
         <h2 className="text-3xl font-medium mb-8">Connected Accounts</h2>
         <SocialProvidersPanel />
       </div>
 
-      <div className="border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
         <h2 className="text-3xl font-medium mb-8">Recent Orders</h2>
 
         <div className="prose dark:prose-invert mb-8">

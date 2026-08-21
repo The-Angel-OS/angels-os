@@ -53,7 +53,7 @@ interface DashboardSidebarProps {
   /** Which Angel OS plan this portal pays for — drives the upgrade row. */
   portalPlan?: string
   /** Optional surfaces this portal has switched on — see tenant.features. */
-  features?: { works?: boolean | null } | null
+  features?: { works?: boolean | null; pageComments?: boolean | null } | null
   wizardComplete?: boolean
 }
 

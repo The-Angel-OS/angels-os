@@ -11,14 +11,23 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
     ALTER TABLE "tenants"
-      ADD COLUMN IF NOT EXISTS "features_works" boolean DEFAULT false;
+      ADD COLUMN IF NOT EXISTS "features_works" boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS "features_page_comments" boolean DEFAULT false;
   `)
   await db.execute(sql`
     UPDATE "tenants" SET "features_works" = true
     WHERE "slug" IN ('clearwater-cruisin', 'wheredideveryonego');
   `)
+  // Page comments were mounted unconditionally on every portal. Default off is
+  // the point of the toggle, but switching it off under the three portals that
+  // actually use it would be a silent removal, so they keep what they had.
+  await db.execute(sql`
+    UPDATE "tenants" SET "features_page_comments" = true
+    WHERE "slug" IN ('clearwater-cruisin', 'wheredideveryonego', 'platform');
+  `)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`ALTER TABLE "tenants" DROP COLUMN IF EXISTS "features_works";`)
+  await db.execute(sql`ALTER TABLE "tenants" DROP COLUMN IF EXISTS "features_page_comments";`)
 }

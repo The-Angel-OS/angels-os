@@ -69,6 +69,8 @@ import * as migration_20260820_150000_membership_fk_cascade from './20260820_150
 import * as migration_20260820_180000_site_visits from './20260820_180000_site_visits';
 import * as migration_20260820_210000_cart_items_cascade from './20260820_210000_cart_items_cascade';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
+import * as migration_20260821_070000_sync_user_tenants_backfill from './20260821_070000_sync_user_tenants_backfill'
+import * as migration_20260821_060000_town_square_and_ai_bus from './20260821_060000_town_square_and_ai_bus'
 import * as migration_20260821_050000_tenant_features from './20260821_050000_tenant_features'
 import * as migration_20260820_223000_tenant_portal_plan from './20260820_223000_tenant_portal_plan'
 
@@ -432,5 +434,15 @@ export const migrations = [
     up: migration_20260821_050000_tenant_features.up,
     down: migration_20260821_050000_tenant_features.down,
     name: '20260821_050000_tenant_features',
+  },
+  {
+    up: migration_20260821_060000_town_square_and_ai_bus.up,
+    down: migration_20260821_060000_town_square_and_ai_bus.down,
+    name: '20260821_060000_town_square_and_ai_bus',
+  },
+  {
+    up: migration_20260821_070000_sync_user_tenants_backfill.up,
+    down: migration_20260821_070000_sync_user_tenants_backfill.down,
+    name: '20260821_070000_sync_user_tenants_backfill',
   },
 ];

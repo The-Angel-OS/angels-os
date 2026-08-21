@@ -46,7 +46,7 @@ export default async function AddressesPage() {
 
   return (
     <>
-      <div className="border p-8 rounded-lg bg-primary-foreground">
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
         <h1 className="text-3xl font-medium mb-8">Addresses</h1>
 
         <div className="mb-8">
