@@ -25,13 +25,31 @@ describe('connectorAccess', () => {
     expect(getUserTenantRoles).not.toHaveBeenCalled()
   })
 
-  it('any non-customer global role (admin, producer, …) is allowed — plugin scopes tenants', async () => {
-    for (const roles of [['admin'], ['producer'], ['customer', 'producer']]) {
+  it('a non-admin global role does NOT get unconstrained access', async () => {
+    // This test used to assert the opposite, on the grounds that "the plugin
+    // scopes tenants". Services is not plugin-wrapped, so for that collection
+    // nothing did — a 'producer' could read every portal's catalogue. A role
+    // that is merely not-'customer' now falls through to the membership scope.
+    ;(getUserTenantRoles as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { tenant: { id: 4 }, role: 'tenant_admin', status: 'active' },
+    ])
+    for (const roles of [['producer'], ['customer', 'producer'], ['business_owner']]) {
       const u = { id: 2, roles }
-      expect(await call(connectorScopedAccess, u)).toBe(true)
-      expect(await call(connectorCreateAccess, u)).toBe(true)
+      expect(await call(connectorScopedAccess, u)).toEqual({ tenant: { in: [4] } })
     }
-    expect(getUserTenantRoles).not.toHaveBeenCalled() // short-circuits before membership lookup
+  })
+
+  it('a global admin still gets unconstrained access', async () => {
+    const u = { id: 9, roles: ['admin'] }
+    expect(await call(connectorScopedAccess, u)).toBe(true)
+    expect(await call(connectorCreateAccess, u)).toBe(true)
+  })
+
+  it('a non-admin with no manager membership anywhere is denied outright', async () => {
+    ;(getUserTenantRoles as ReturnType<typeof vi.fn>).mockResolvedValue([])
+    const u = { id: 5, roles: ['producer'] }
+    expect(await call(connectorScopedAccess, u)).toBe(false)
+    expect(await call(connectorCreateAccess, u)).toBe(false)
   })
 
   it('tenant_admin membership → tenant-scoped Where + create allowed', async () => {

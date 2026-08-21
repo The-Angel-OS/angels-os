@@ -20,20 +20,27 @@
  */
 import type { Access } from 'payload'
 import { getUserTenantRoles } from '@/access/getUserTenantRoles'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 const MANAGER_ROLES = ['tenant_admin', 'tenant_manager']
 
 /**
- * "Owner / staff" = any authenticated user whose global role set is more than
- * just 'customer'. This matches how the rest of the app defines a business owner
- * (dashboard layout + the Integrations nav item's `adminOrBusinessOwner`
- * visibility), so the nav and the access check never disagree. The multi-tenant
- * plugin still clamps non-super_admins to the tenants they belong to, so this
- * grants management of THEIR tenant's connectors only — not everyone's.
+ * Global admins — the only users who legitimately see every tenant's rows.
+ *
+ * This used to be `isOwnerOrStaff`: any user whose roles were more than
+ * ['customer'], returning unconstrained `true` on the stated grounds that "the
+ * multi-tenant plugin still clamps non-super_admins". That is true for
+ * Connectors and site-visits, which ARE registered with the plugin — and false
+ * for Services, which is not, and says so in its own access comment. So a
+ * business owner on one portal could read every portal's service catalogue,
+ * prices and deposits included, straight off /api/services.
+ *
+ * Access that is only safe because something else clamps it is not access
+ * control. This now returns the tenant Where for everyone except real platform
+ * admins, so it is correct whether or not the plugin is in front of it.
  */
-function isOwnerOrStaff(user: unknown): boolean {
-  const roles = (user as { roles?: unknown } | null | undefined)?.roles
-  return Array.isArray(roles) && roles.some((r) => r !== 'customer')
+function isPlatformAdmin(user: unknown): boolean {
+  return Boolean(checkRole(ADMIN_ROLES, user as Parameters<typeof checkRole>[1]))
 }
 
 /** Tenant IDs this user may manage connectors for (via active membership role). */
@@ -62,7 +69,7 @@ export async function managerTenantIds(
  */
 export const connectorScopedAccess: Access = async ({ req: { user } }) => {
   if (!user) return false
-  if (isOwnerOrStaff(user)) return true // plugin clamps to the user's tenant(s)
+  if (isPlatformAdmin(user)) return true
   const ids = await managerTenantIds(user as { id?: number | string })
   return ids.length ? { tenant: { in: ids } } : false
 }
@@ -74,7 +81,7 @@ export const connectorScopedAccess: Access = async ({ req: { user } }) => {
  */
 export const connectorCreateAccess: Access = async ({ req: { user } }) => {
   if (!user) return false
-  if (isOwnerOrStaff(user)) return true
+  if (isPlatformAdmin(user)) return true
   const ids = await managerTenantIds(user as { id?: number | string })
   return ids.length > 0
 }

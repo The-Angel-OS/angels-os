@@ -39,6 +39,7 @@ type Props = {
   hasPosts?: boolean
   /** Works/Library is first-class only when the tenant has works; else it collapses to More. */
   hasWorks?: boolean
+  canEditContent?: boolean
   /** Book is first-class only when the tenant has an enabled bookable service. */
   hasBook?: boolean
   /**
@@ -171,16 +172,16 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
-export function HeaderClient({ header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
+export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
   const { user } = useAuth()
 
-  // Editors get an "Edit this page" link in the Portal Switcher. Gated on an
-  // admin-ish global role; the resolver endpoint + Payload admin are the final
-  // access gate, so this only decides whether to offer the affordance.
-  const canEditContent = useMemo(() => {
-    const roles = (user as { roles?: string[] } | null)?.roles
-    return Array.isArray(roles) && roles.some((r) => /super_admin|admin|editor|owner/i.test(r))
-  }, [user])
+  // "Edit this page" is now decided on the SERVER, because the answer depends on
+  // the viewer's membership role on THIS portal — not on their platform roles.
+  // Reading the roles array alone meant a portal's own tenant_admin never got
+  // the affordance on their own site, while a platform editor got it on
+  // everyone's. The resolver endpoint and Payload admin remain the real gate;
+  // this only decides whether to offer the link.
+  const canEditContent = canEditContentProp
 
   // Presence — marks this user online + counts who else is, site-wide.
   const { count: onlineCount, isOnline } = usePresence({ enabled: Boolean(user) })
