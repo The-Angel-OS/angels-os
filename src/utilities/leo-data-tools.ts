@@ -1465,6 +1465,20 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'find_google_place',
+    description:
+      "Look up a business on Google Maps and return its Place ID, address, phone, rating, review count and website — and whether that website actually loads. Finding a Place ID by hand is minutes of digging through Maps share URLs, and it is what the Google Reviews block needs. Also the fastest read on a prospect: a business with 40 reviews at 4.8 has proof already, and one whose listed website is dead is losing every customer who types it. ALWAYS include the city in the query — a bare trade name matches the wrong town. Read-only; costs one Places API call.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Business name plus city, e.g. "Southern Computer Solutions Gainesville FL".' },
+        phone: { type: 'string', description: 'Their number, if known — used to pick the right listing when several match the name.' },
+        maxResults: { type: 'number', description: 'How many candidates to return (1-10, default 5).' },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'intake_prospect',
     description:
       "The sales pipeline in one call: paste a business's ad and this builds them a live five-page website, mints an owner invite link, files a prospect record, and drafts the text message and email to send them. Use it whenever Kenneth pastes a Craigslist/Facebook/Nextdoor services ad or otherwise describes a business he wants to approach. YOU extract the fields from the ad — business name, trade, city, phone, email, the owner's name if it is given — and pass the ad verbatim as adText so the record keeps the context. Nothing is sent to the business: the drafts come back for Kenneth to send himself. Idempotent per slug; re-running updates the site and the record rather than creating a second one. super_admin only.",
@@ -4534,6 +4548,8 @@ async function executeToolSwitch(
         return await decommissionTenantTool(payload, toolInput, ctx)
       case 'get_portal_invites':
         return await getPortalInvitesTool(payload, toolInput, ctx)
+      case 'find_google_place':
+        return await findGooglePlaceTool(toolInput)
       case 'intake_prospect':
         return await intakeProspectTool(payload, toolInput, ctx)
       case 'add_gallery_to_page':
@@ -18299,6 +18315,46 @@ async function getPortalInvitesTool(
 }
 
 /**
+ * find_google_place — the Place ID, and whether their site is actually alive.
+ */
+async function findGooglePlaceTool(input: Record<string, unknown>): Promise<string> {
+  const query = typeof input.query === 'string' ? input.query.trim() : ''
+  if (!query) return 'Error: query is required — business name plus city.'
+
+  const { findPlace, samePhone, checkWebsite } = await import('@/utilities/googlePlaceLookup')
+  const phone = typeof input.phone === 'string' ? input.phone : undefined
+  const max = typeof input.maxResults === 'number' ? input.maxResults : 5
+  const r = await findPlace(query, { maxResults: max })
+  if (!r.ok) return `Google Places lookup failed: ${r.error}`
+  if (!r.matches.length) return `No Google listing found for "${query}". Try the exact name from their signage, or add the street.`
+
+  const best = r.matches.find((m) => samePhone(m.phone, phone)) || r.matches[0]
+  const site = best.website ? await checkWebsite(best.website) : undefined
+
+  const lines = [
+    `**${best.name}**`,
+    `Place ID: \`${best.placeId}\``,
+    best.address ? `Address: ${best.address}` : '',
+    best.phone ? `Phone: ${best.phone}` : '',
+    best.rating != null ? `Rating: ${best.rating} from ${best.reviewCount ?? 0} reviews` : 'No rating yet',
+    best.website ? `Website: ${best.website} — **${site?.note || 'not checked'}**` : 'No website on the listing',
+    `Maps: ${best.mapsUrl}`,
+  ].filter(Boolean)
+
+  if (site?.dead) {
+    lines.push(
+      '',
+      `⚠️ Their listed website does not load. Every customer who finds them on Google and clicks through hits that. Worth telling them regardless of whether they buy anything.`,
+    )
+  }
+
+  if (r.matches.length > 1) {
+    lines.push('', `Other matches: ${r.matches.filter((m) => m.placeId !== best.placeId).map((m) => `${m.name} (${m.address || 'no address'})`).join('; ')}`)
+  }
+  return lines.join('\n')
+}
+
+/**
  * intake_prospect — the whole prospect pipeline as one tool.
  *
  * Every ops-curl is a missing LEO tool, and this one was four of them: build the
@@ -18339,6 +18395,16 @@ async function intakeProspectTool(
     `Site: ${r.url}`,
     r.inviteUrl ? `Owner invite: ${r.inviteUrl}` : 'No invite minted — the ad gave no phone or email.',
     r.contactId ? `Prospect record: #${r.contactId}` : 'Prospect record: not filed (see log).',
+    ...(r.place
+      ? [
+          ``,
+          `**On Google:** ${r.place.name}${r.place.rating != null ? ` — ${r.place.rating} from ${r.place.reviewCount ?? 0} reviews` : ' — no rating yet'}`,
+          `Place ID: \`${r.place.placeId}\``,
+          r.website
+            ? `Their website: ${r.website.url} — **${r.website.note}**`
+            : 'No website on their listing.',
+        ]
+      : []),
     ``,
     `**Text to send**`,
     r.outreach.sms,

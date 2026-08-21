@@ -15,6 +15,7 @@
  * Requires GOOGLE_API_KEY (or GOOGLE_MAPS_API_KEY) with Places API (New) +
  * Geocoding API enabled.
  */
+import { googleMapsKey } from '@/utilities/googlePlaceLookup'
 
 export interface RestrictedZone {
   name: string
@@ -56,9 +57,10 @@ const DCF_ADVISORY =
   'In Florida a manual DCF child-care search (myflfamilies.com / the DCF facility locator) is REQUIRED ' +
   'to confirm compliance. A "no zones found" result is NOT a legal clearance.'
 
-function mapsKey(): string | undefined {
-  return process.env.GOOGLE_API_KEY || process.env.GOOGLE_MAPS_API_KEY
-}
+// One resolver for every Google Maps surface — this used to read API||MAPS
+// while the reviews client read MAPS||PLACES, so a key set under one name
+// silently worked for one caller and not the other.
+const mapsKey = googleMapsKey
 
 /** Haversine distance between two points, in feet. */
 function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): number {

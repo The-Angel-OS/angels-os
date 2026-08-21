@@ -74,3 +74,58 @@ describe('prospectIntake', () => {
     expect(r.outreach.sms).toContain('https://x.spacesangels.com')
   })
 })
+
+describe('samePhone', () => {
+  it('matches the same number written differently', async () => {
+    const { samePhone } = await import('@/utilities/googlePlaceLookup')
+    expect(samePhone('(352) 278-4770', '352-278-4770')).toBe(true)
+    expect(samePhone('+1 352 278 4770', '3522784770')).toBe(true)
+  })
+
+  it('does not match a different number, or a partial one', async () => {
+    const { samePhone } = await import('@/utilities/googlePlaceLookup')
+    expect(samePhone('352-278-4770', '352-681-3341')).toBe(false)
+    // Too few digits to be a real match — never guess from a fragment.
+    expect(samePhone('4770', '352-278-4770')).toBe(false)
+    expect(samePhone(undefined, '352-278-4770')).toBe(false)
+  })
+})
+
+describe('checkWebsite', () => {
+  it('calls a 4xx dead, and names where the domain actually points', async () => {
+    // The real case: a prospect's domain 301s to an expired Craigslist post.
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      status: 410,
+      url: 'https://www.craigslist.org/view/d/expired',
+    } as Response)
+    const { checkWebsite } = await import('@/utilities/googlePlaceLookup')
+    const r = await checkWebsite('southerncomputersolutions.com')
+    expect(r.dead).toBe(true)
+    expect(r.redirectsOffDomain).toBe(true)
+    expect(r.note).toContain('410')
+    expect(r.note).toContain('craigslist.org')
+    spy.mockRestore()
+  })
+
+  it('treats unreachable as dead — to a customer it is the same thing', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ENOTFOUND'))
+    const { checkWebsite } = await import('@/utilities/googlePlaceLookup')
+    const r = await checkWebsite('nope.example')
+    expect(r.dead).toBe(true)
+    expect(r.note).toContain('unreachable')
+    spy.mockRestore()
+  })
+
+  it('a working site on its own domain is just fine', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      status: 200,
+      url: 'https://www.example.com/',
+    } as Response)
+    const { checkWebsite } = await import('@/utilities/googlePlaceLookup')
+    const r = await checkWebsite('https://example.com')
+    expect(r.dead).toBe(false)
+    expect(r.redirectsOffDomain).toBe(false)
+    expect(r.note).toBe('loads')
+    spy.mockRestore()
+  })
+})

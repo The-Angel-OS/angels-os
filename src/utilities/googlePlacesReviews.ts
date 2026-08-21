@@ -13,6 +13,7 @@
  *
  * @see https://developers.google.com/maps/documentation/places/web-service/place-details
  */
+import { googleMapsKey } from '@/utilities/googlePlaceLookup'
 
 export interface PlaceReview {
   author: string
@@ -55,7 +56,7 @@ export async function fetchPlaceReviews(
   const cached = cache.get(placeId)
   if (cached && now - cached.at < TTL_MS) return cached.data
 
-  const key = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY || ''
+  const key = googleMapsKey() || ''
   if (!key) return { rating: null, total: 0, reviews: [], error: 'no api key' }
 
   try {

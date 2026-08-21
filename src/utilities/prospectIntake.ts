@@ -17,6 +17,7 @@
 import type { Payload, PayloadRequest, Where } from 'payload'
 import { runDemoSite } from '@/utilities/runDemoSite'
 import { slugifyBusinessName } from '@/endpoints/demo-site'
+import { findPlace, samePhone, checkWebsite, type PlaceMatch, type WebsiteCheck } from '@/utilities/googlePlaceLookup'
 
 export interface ProspectInput {
   businessName: string
@@ -101,6 +102,37 @@ export async function prospectIntake(
   const url = site.url
   const inviteUrl = site.invite?.inviteUrl
 
+  // What Google already knows about them. Finding a Place ID by hand is the
+  // most annoying minute of standing a prospect up, and the rating/review count
+  // is the thing that decides the pitch: a business with proof already does not
+  // need a website, it needs whatever it is actually short of.
+  let place: PlaceMatch | undefined
+  try {
+    const q = [input.businessName, input.city].filter(Boolean).join(' ')
+    const found = await findPlace(q, { maxResults: 5 })
+    // Prefer the listing whose phone matches the ad — a trade name alone
+    // matches the wrong business in the right town often enough to matter.
+    place =
+      found.matches.find((m) => samePhone(m.phone, input.phone)) || found.matches[0]
+    log.push(
+      found.ok
+        ? place
+          ? `google listing: ${place.name} (${place.placeId})` +
+            (place.rating ? `, ${place.rating}★ from ${place.reviewCount ?? 0}` : ', no rating')
+          : 'google listing: no match'
+        : `google listing lookup failed: ${found.error}`,
+    )
+  } catch (e) {
+    log.push(`google listing lookup failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  // "They have a website" and "their website works" are different facts.
+  let website: WebsiteCheck | undefined
+  if (place?.website) {
+    website = await checkWebsite(place.website)
+    log.push(`their website: ${website.note}`)
+  }
+
   // The CRM record. Idempotent on (tenant, phone|email) so re-running an ad
   // updates the prospect instead of growing a second one.
   let contactId: number | string | undefined
@@ -128,6 +160,10 @@ export async function prospectIntake(
       `Site built: ${url}`,
       inviteUrl ? `Owner invite: ${inviteUrl}` : 'No invite — no email or phone in the ad.',
       input.adUrl ? `Ad: ${input.adUrl}` : '',
+      place ? `Google: ${place.name} — ${place.placeId}` : '',
+      place?.rating != null ? `Google rating: ${place.rating} from ${place.reviewCount ?? 0} reviews` : '',
+      place?.website ? `Existing website: ${place.website} — ${website?.note || 'not checked'}` : '',
+      place?.address ? `Address: ${place.address}` : '',
       input.adText ? `\n--- ad as posted ---\n${input.adText.slice(0, 4000)}` : '',
     ]
       .filter(Boolean)
@@ -180,6 +216,8 @@ export async function prospectIntake(
     tenant: site.tenant,
     trade: site.trade,
     contactId,
+    place,
+    website,
     outreach: draftOutreach({
       businessName: input.businessName,
       contactName: input.contactName,
