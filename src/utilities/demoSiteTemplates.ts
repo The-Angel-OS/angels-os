@@ -128,7 +128,7 @@ export const TRADE_PACKS: Record<string, TradePack> = {
     secondaryColor: '#1F2937',
     defaultTheme: 'light',
     heroPrompt:
-      'Calm photograph of an organised desk with ledgers and a calculator, soft daylight, no people, no text, no logos',
+      'Calm photograph of an organized desk with ledgers and a calculator, soft daylight, no people, no text, no logos',
     services: [
       { name: 'Monthly Bookkeeping', blurb: 'Books kept current so nothing becomes a scramble in April.' },
       { name: 'Tax Preparation', blurb: 'Personal, sole proprietor and corporate returns.' },
@@ -155,7 +155,7 @@ export const TRADE_PACKS: Record<string, TradePack> = {
       { name: 'Lawn Mowing', blurb: 'Cut, trimmed and blown clean. Weekly, biweekly or one-off.' },
       { name: 'Weed Eating & Edging', blurb: 'Clean lines along drives, walks and beds — the part that makes a yard look finished.' },
       { name: 'Landscape Design', blurb: 'Beds, plantings and mulch laid out to suit the house and the light it gets.' },
-      { name: 'Pressure Washing', blurb: 'Driveways, walkways, siding and fences brought back to their original colour.' },
+      { name: 'Pressure Washing', blurb: 'Driveways, walkways, siding and fences brought back to their original color.' },
       { name: 'Junk Removal', blurb: 'Yard debris, storm damage and the pile behind the shed, hauled away.' },
       { name: 'Fencing & Repairs', blurb: 'Fence lines, painting and the small outdoor repairs that keep getting put off.' },
     ],
@@ -261,7 +261,7 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
           content: [
             { h2: `Welcome to ${name}` },
             { p: `${tagline} We are a local business, and the people who answer the phone are the people who do the work.` },
-            { p: 'Get in touch and you will hear back the same day — no call centre, no runaround.' },
+            { p: 'Get in touch and you will hear back the same day — no call center, no runaround.' },
           ],
         },
         {
