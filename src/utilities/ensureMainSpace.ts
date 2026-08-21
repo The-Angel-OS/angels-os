@@ -133,12 +133,13 @@ export async function ensureMainSpace(
         name: 'Community',
         slug: 'community',
         description: `The community space for ${tenantName}. All members are automatically added here.`,
-        // Deliberately NOT `community`. That tier is visible to every
-        // authenticated user on the node, node-wide — one town square, on the
-        // platform tenant. A customer's own Community is theirs: tenant
-        // members reach it through the non-private rule in
-        // buildSpaceVisibilityFilter, and nobody else does.
-        visibility: 'invite_only',
+        // A portal's Community is OPEN — Ken's 260821 call. `community` is the
+        // one tier buildSpaceVisibilityFilter grants to any authenticated user,
+        // so walking into a portal means you can read its town square; the
+        // membership that lets you PARTICIPATE is minted on arrival by
+        // ensureTenantMembership. Anything genuinely private is a `private`
+        // space, which this tier never touches.
+        visibility: 'community',
         isMain: true,
         tenant: Number(tenantId),
       },

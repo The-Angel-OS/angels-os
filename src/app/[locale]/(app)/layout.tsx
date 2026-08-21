@@ -125,6 +125,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           ip: headersList.get('x-real-ip') || headersList.get('x-forwarded-for'),
           userId: (user as { id?: number | string } | null)?.id ?? null,
         })
+        // Reaching a portal is what enrolls you in it. The dashboard layout has
+        // always done this; the brochure site never did, so a signed-in visitor
+        // who browsed straight to (say) Grace Chapel got no membership and no
+        // base permissions until they happened to open the dashboard. Ken's
+        // 260821 call. Idempotent, fire-and-forget, never blocks the page.
+        const visitorId = (user as { id?: number | string } | null)?.id
+        if (visitorId) {
+          const { ensureTenantMembership } = await import('@/utilities/ensureTenantMembership')
+          await ensureTenantMembership(visitorId, tenant.id)
+        }
       } catch {
         /* never let the log affect the page */
       }

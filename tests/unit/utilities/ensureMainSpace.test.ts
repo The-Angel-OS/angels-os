@@ -68,7 +68,7 @@ describe('ensureMainSpace', () => {
         data: expect.objectContaining({
           name: 'Community',
           slug: 'community',
-          visibility: 'invite_only',
+          visibility: 'community',
           isMain: true,
           tenant: 1,
         }),
