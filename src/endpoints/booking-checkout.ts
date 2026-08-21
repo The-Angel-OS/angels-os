@@ -167,7 +167,9 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const capacity = await resolveSlotCapacity(payload, providerId, tenant.id)
     const engine = new BookingEngine(payload)
     const conflicts = await engine.checkBookingConflicts({
-      providerId: providerId == null ? `house:${tenant.id}` : String(providerId),
+      // Empty string = house calendar. NOT a 'house:<id>' sentinel: that is a
+      // string Payload happily coerced to NaN, and every checkout 500'd on it.
+      providerId: providerId == null ? '' : String(providerId),
       clientId: String(user.id),
       tenantId: String(tenant.id),
       startDateTime,

@@ -8,6 +8,11 @@ function engineWith(n: number, extra: Record<string, unknown>[] = []) {
       id: i + 1,
       title: `Booking ${i + 1}`,
       status: 'confirmed',
+      // The provider these belong to. The engine narrows by provider in JS
+      // now, because "provider is empty" is not expressible as a Payload Where
+      // against a nullable relationship column — so a doc with no provider is
+      // a HOUSE booking and must not count against a named calendar.
+      provider: 1,
       startDateTime: '2026-09-02T09:00:00.000Z',
       endDateTime: '2026-09-02T10:00:00.000Z',
     })),
@@ -62,5 +67,48 @@ describe('checkBookingConflicts — capacity, not presence, closes a slot', () =
     }
     // Two seats: one real booking + one abandoned hold — still room for one more.
     expect(await engineWith(1, [expired]).checkBookingConflicts(request(2))).toHaveLength(0)
+  })
+})
+
+describe('house bookings and named calendars stay apart', () => {
+  it("a named provider's booking never blocks the house calendar", async () => {
+    const payload = {
+      find: vi.fn().mockResolvedValue({
+        docs: [
+          {
+            id: 1,
+            title: 'Someone else',
+            status: 'confirmed',
+            provider: 9,
+            startDateTime: '2026-09-02T09:00:00.000Z',
+            endDateTime: '2026-09-02T10:00:00.000Z',
+          },
+        ],
+      }),
+    }
+    const engine = new BookingEngine(payload as never)
+    // '' = the house calendar. Provider 9's appointment is not the shop's.
+    const conflicts = await engine.checkBookingConflicts({ ...request(), providerId: '' })
+    expect(conflicts).toHaveLength(0)
+  })
+
+  it('a house booking blocks the house calendar', async () => {
+    const payload = {
+      find: vi.fn().mockResolvedValue({
+        docs: [
+          {
+            id: 1,
+            title: 'Shop job',
+            status: 'confirmed',
+            startDateTime: '2026-09-02T09:00:00.000Z',
+            endDateTime: '2026-09-02T10:00:00.000Z',
+          },
+        ],
+      }),
+    }
+    const engine = new BookingEngine(payload as never)
+    expect(
+      await engine.checkBookingConflicts({ ...request(), providerId: '' }),
+    ).toHaveLength(1)
   })
 })

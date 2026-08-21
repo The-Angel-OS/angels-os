@@ -685,8 +685,13 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                           : 'Request Booking'}
                   </button>
                   <p className="mt-3 text-center text-xs text-muted-foreground">
+                    {/* Plain words. A customer at a checkout is deciding whether
+                        to hand over $25, and "Constitutional commerce" and
+                        "Justice Fund" ask them to learn our vocabulary first —
+                        which reads as evasive at exactly the wrong moment. Say
+                        what happens to their money. Ken's 260821 call. */}
                     {depositCents > 0
-                      ? 'Constitutional commerce — balance due on completion · 5% to the Justice Fund'
+                      ? 'The balance is due when the work is done. No hidden charges.'
                       : totalCents > 0
                         ? 'No deposit required — payment is collected on completion (cash, check, or Zelle).'
                         : 'No payment required to request this booking.'}

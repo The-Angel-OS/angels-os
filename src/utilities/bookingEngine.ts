@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { providerWhere, matchesProvider } from '@/utilities/resolveBookingProvider'
 import type { User } from '@/payload-types'
 import { sendBookingConfirmation } from '@/utilities/bookingNotifications'
 import { fetchBusyBlocks } from '@/utilities/googleCalendar'
@@ -385,6 +386,11 @@ export class BookingEngine {
   async checkBookingConflicts(request: BookingRequest): Promise<BookingConflict[]> {
     const conflicts: BookingConflict[] = []
     const { providerId, tenantId, startDateTime, duration } = request
+    // '' (or a non-numeric id) means HOUSE hours — the business's own calendar,
+    // which is what a one-person operation and an unclaimed portal both use.
+    // This arrived as the string `house:<tenant>` for one deploy, which Payload
+    // coerced to NaN, and every checkout died on `provider_id = NaN`.
+    const provNum = providerId && !Number.isNaN(Number(providerId)) ? Number(providerId) : null
     
     const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000)
 
@@ -393,7 +399,7 @@ export class BookingEngine {
       collection: 'bookings',
       where: {
         and: [
-          { provider: { equals: providerId } },
+          providerWhere(provNum),
           { tenant: { equals: tenantId } },
           { status: { in: ['pending', 'confirmed', 'in-progress'] } },
           {
@@ -423,7 +429,11 @@ export class BookingEngine {
     })
 
     const nowMs = Date.now()
-    const live = existingBookings.docs.filter(booking => {
+    // providerWhere(null) adds no SQL constraint (see resolveBookingProvider),
+    // so the house case narrows here instead. Without this a named provider's
+    // bookings would block the house calendar and vice versa.
+    const matchesProviderRow = (b: unknown) => matchesProvider(b, provNum)
+    const live = existingBookings.docs.filter(matchesProviderRow).filter(booking => {
       // An abandoned deposit-hold (pending, past its holdExpiresAt) no longer
       // reserves the slot — don't let it block a fresh booking. Mirrors the same
       // rule in booking-public-slots so the calendar and commit-time check agree.
@@ -482,7 +492,7 @@ export class BookingEngine {
             : { root: { type: 'root', children: [{ type: 'paragraph', children: [{ type: 'text', text: String(request.description) }] }], direction: null, format: '', indent: 0, version: 1 } }
         }),
         bookingType: request.bookingType,
-        provider: request.providerId,
+        ...(request.providerId ? { provider: request.providerId } : {}),
         client: request.clientId,
         startDateTime: request.startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),

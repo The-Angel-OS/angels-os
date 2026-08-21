@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return generateTenantRouteMeta({
     title: 'Donate',
     description:
-      'Support this mission — donations go directly to the endeavor, with a share to the Angel OS Justice Fund.',
+      'Support this mission — your gift goes to the endeavor, less a small platform fee that keeps the site running.',
     path: '/donate',
   })
 }
@@ -100,11 +100,13 @@ export default async function DonatePageRoute({
       <div className="container mb-10 max-w-2xl">
         <h1 className="mb-3 text-4xl font-bold">Support {tenantName}</h1>
         <p className="text-lg opacity-80">
+          {/* A donor should be able to tell where their money goes without
+              learning a house vocabulary first. "Platform fee" is what it is. */}
           {isEndeavorDonation
-            ? `Your gift goes directly to ${tenantName} (95%), with 5% to the Angel OS Justice Fund. Secure giving via Stripe, all on the record.`
+            ? `95% of your gift goes straight to ${tenantName}. The remaining 5% is the platform fee that keeps the site running. Handled securely by Stripe, and every gift is on the record.`
             : isPlatform
-              ? '100% of your gift goes to the Angel OS Justice Fund — keeping the lights on, the servers running, and the community fed.'
-              : `Your gift supports ${tenantName}, stewarded through the Angel OS Justice Fund until this endeavor connects its own account.`}
+              ? 'Your gift keeps the lights on and the servers running for every endeavor on this platform.'
+              : `Your gift supports ${tenantName}. It is held by the platform until this endeavor connects its own payment account, then passed straight on.`}
         </p>
       </div>
       <DonationBlock presetAmounts="10,25,50,100,500" showDonorFields />
