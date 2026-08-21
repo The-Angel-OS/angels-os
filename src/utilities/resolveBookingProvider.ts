@@ -12,7 +12,11 @@ import type { Where } from 'payload'
  * feature. One helper so the four call sites cannot drift.
  */
 export function providerWhere(providerId: number | null): Where {
-  return providerId == null ? { provider: { exists: false } } : { provider: { equals: providerId } }
+  // `equals: null`, not `exists: false`. The latter matched nothing against a
+  // nullable relationship COLUMN (verified live on 260821: the rows were there,
+  // resolveBookingProvider found them, and the slots query still came back
+  // empty). `equals: null` compiles to the IS NULL this actually needs.
+  return providerId == null ? { provider: { equals: null } } : { provider: { equals: providerId } }
 }
 
 /**

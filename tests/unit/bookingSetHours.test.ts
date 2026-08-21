@@ -40,7 +40,7 @@ describe('house hours', () => {
   it('asks for rows with no provider when there is no named one', async () => {
     const { providerWhere } = await import('@/utilities/resolveBookingProvider')
     // A one-person business, and every unclaimed prospect demo, live here.
-    expect(providerWhere(null)).toEqual({ provider: { exists: false } })
+    expect(providerWhere(null)).toEqual({ provider: { equals: null } })
   })
 
   it('still scopes to the named provider when there is one', async () => {

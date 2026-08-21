@@ -10,7 +10,7 @@ vi.mock('@/utilities/resolveBookingProvider', () => ({
   // The real one. Stubbing the module wholesale meant this came back undefined
   // and every seed threw into the fail-soft catch, reporting "0 created".
   providerWhere: (id: number | null) =>
-    id == null ? { provider: { exists: false } } : { provider: { equals: id } },
+    id == null ? { provider: { equals: null } } : { provider: { equals: id } },
 }))
 
 function fakePayload(existingCount = 0) {
