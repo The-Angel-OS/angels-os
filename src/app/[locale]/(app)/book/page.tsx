@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { portalCan } from '@/utilities/portalPlan'
+import { BookingUpgradeNotice } from './BookingUpgradeNotice'
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
@@ -29,6 +31,14 @@ export default async function BookPage({
 
   // Resolve tenant (cached, React.cache deduped)
   const { tenant, tenantFilter } = await resolveTenantFromHeaders()
+
+  // Online booking is the $149 Business line. A Free portal still HAS its
+  // services and its availability — nothing is deleted and nothing needs
+  // rebuilding when they upgrade — but the page that takes a stranger's deposit
+  // is switched off, and says what switches it back on.
+  if (!portalCan(tenant as { portalPlan?: string | null } | null, 'onlineBooking')) {
+    return <BookingUpgradeNotice tenantName={tenant?.name || 'This portal'} />
+  }
 
   // Run both independent queries in parallel
   const [avResult, endeavorResult] = await Promise.all([
