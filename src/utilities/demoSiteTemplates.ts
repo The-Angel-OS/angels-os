@@ -143,6 +143,31 @@ export const TRADE_PACKS: Record<string, TradePack> = {
       { question: 'How do I send my documents?', answer: 'We will agree a secure method before anything sensitive changes hands.' },
     ],
   },
+  landscaping: {
+    label: 'Lawn Care & Landscaping',
+    tagline: (city) => `Lawns cut, yards cleared, driveways washed${city ? ` in ${city}` : ''}.`,
+    primaryColor: '#15803D',
+    secondaryColor: '#1F2937',
+    defaultTheme: 'light',
+    heroPrompt:
+      'Clean photograph of a freshly cut suburban lawn with crisp mower stripes and a tidy edged border, warm morning light, no people, no text, no logos',
+    services: [
+      { name: 'Lawn Mowing', blurb: 'Cut, trimmed and blown clean. Weekly, biweekly or one-off.' },
+      { name: 'Weed Eating & Edging', blurb: 'Clean lines along drives, walks and beds — the part that makes a yard look finished.' },
+      { name: 'Landscape Design', blurb: 'Beds, plantings and mulch laid out to suit the house and the light it gets.' },
+      { name: 'Pressure Washing', blurb: 'Driveways, walkways, siding and fences brought back to their original colour.' },
+      { name: 'Junk Removal', blurb: 'Yard debris, storm damage and the pile behind the shed, hauled away.' },
+      { name: 'Fencing & Repairs', blurb: 'Fence lines, painting and the small outdoor repairs that keep getting put off.' },
+    ],
+    faq: [
+      { question: 'How do you price a yard?', answer: `${MONEY}
+
+Lot size and how long it has been since the last cut are what move the number. A free estimate settles it before anyone starts.` },
+      { question: 'Do you cut on a schedule?', answer: 'Yes — weekly and biweekly routes are the usual arrangement, and one-off cleanups are welcome too.' },
+      { question: 'What if it rains on my day?', answer: 'The route shifts to the next dry day. You will hear about it rather than wonder.' },
+      { question: 'Are you licensed and insured?', answer: 'Yes. Certificates are available on request before any work begins.' },
+    ],
+  },
   general: {
     label: 'Local Business',
     tagline: (city) => `Dependable local service${city ? ` in ${city}` : ''}.`,
@@ -175,6 +200,9 @@ export function resolveTradePack(input?: string): { key: string; pack: TradePack
   const t = (input || '').toLowerCase().trim()
   if (t && TRADE_PACKS[t]) return { key: t, pack: TRADE_PACKS[t]! }
   const has = (...needles: string[]) => needles.some((n) => t.includes(n))
+  // Before 'clean': "lawn care and pressure washing" must not land on maid service.
+  if (has('lawn', 'landscap', 'mow', 'yard', 'garden', 'pressure wash', 'power wash', 'tree'))
+    return { key: 'landscaping', pack: TRADE_PACKS.landscaping! }
   if (has('clean', 'maid', 'janitor')) return { key: 'cleaning', pack: TRADE_PACKS.cleaning! }
   if (has('mov', 'haul', 'relocat')) return { key: 'moving', pack: TRADE_PACKS.moving! }
   if (has('photo', 'video', 'studio')) return { key: 'photography', pack: TRADE_PACKS.photography! }

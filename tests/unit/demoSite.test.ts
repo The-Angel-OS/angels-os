@@ -36,6 +36,12 @@ describe('resolveTradePack', () => {
     ['All American Local Movers', 'moving'],
     ['hauling and relocation', 'moving'],
     ['photography studio', 'photography'],
+    // BRE Solutions' ad leads with mowing and also sells pressure washing —
+    // 'pressure washing' must not fall through to maid service.
+    ['lawn mowing and landscaping', 'landscaping'],
+    ['LAWN MOWING*PRESSURE WASHING*LANDSCAPING', 'landscaping'],
+    ['yard cleanup and tree work', 'landscaping'],
+    ['power washing', 'landscaping'],
     ['bookkeeping and tax', 'accounting'],
     ['CPA', 'accounting'],
     ['HVAC contractor', 'handyman'],
