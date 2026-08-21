@@ -114,3 +114,45 @@ describe('buildDemoSiteSpec', () => {
     expect(JSON.stringify(spec)).toContain('352-555-0100')
   })
 })
+
+describe('the computer-repair pack', () => {
+  it('matches the words a computer tech actually uses', () => {
+    for (const t of [
+      'computer repair',
+      'onsite computer service',
+      'PC troubleshooting',
+      'laptop repair',
+      'tech support',
+      'virus removal',
+      'home networking',
+      'wifi setup',
+    ]) {
+      expect(resolveTradePack(t).key).toBe('techsupport')
+    }
+  })
+
+  it('does not steal the trades that share its words', () => {
+    // 'repair' and 'electric' are in the handyman matcher; the tech matcher
+    // runs first, so these are the cases that would break if it over-reached.
+    expect(resolveTradePack('appliance repair').key).toBe('handyman')
+    expect(resolveTradePack('electrician').key).toBe('handyman')
+    expect(resolveTradePack('pressure washing').key).toBe('landscaping')
+    expect(resolveTradePack('probate').key).toBe('legal')
+  })
+})
+
+describe('“removal” is not “moving”', () => {
+  it('does not route removals to a moving company', () => {
+    // 'removal'.includes('mov') is true — the old needle was three letters and
+    // quietly swallowed every trade that removes something.
+    expect(resolveTradePack('virus removal').key).toBe('techsupport')
+    expect(resolveTradePack('junk removal and hauling').key).toBe('moving') // hauling, legitimately
+    expect(resolveTradePack('tree removal').key).toBe('landscaping')
+  })
+
+  it('still matches an actual mover', () => {
+    for (const t of ['moving company', 'local movers', 'we move apartments', 'relocation services']) {
+      expect(resolveTradePack(t).key).toBe('moving')
+    }
+  })
+})

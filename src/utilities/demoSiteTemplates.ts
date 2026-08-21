@@ -194,6 +194,33 @@ Lot size and how long it has been since the last cut are what move the number. A
       { question: 'How long does it take?', answer: 'It depends on the court\'s calendar rather than on us. You will be told what to expect for your county before you commit.' },
     ],
   },
+  techsupport: {
+    label: 'Computer Repair & IT Help',
+    tagline: (city) => `Onsite computer help\u2014 I come to you${city ? ` in ${city}` : ''}.`,
+    primaryColor: '#0F766E',
+    secondaryColor: '#1F2937',
+    defaultTheme: 'light',
+    heroPrompt:
+      'Clean photograph of a laptop open on a kitchen table beside a notepad and a mug, warm domestic daylight, no people, no text, no logos',
+    services: [
+      { name: 'PC Troubleshooting & Repair', blurb: 'The machine that will not start, will not print, or has slowed to a crawl \u2014 diagnosed at your table.' },
+      { name: 'Virus & Malware Removal', blurb: 'Pop-ups, hijacked browsers and the messages telling you to call a number. Cleaned out and made safe again.' },
+      { name: 'SSD Upgrade & Cloning', blurb: 'Your drive copied to a solid-state one, everything where you left it, on a computer that boots in seconds.' },
+      { name: 'Home & Small Business Networking', blurb: 'Wi-Fi that reaches the far room, printers everyone can see, and a network that stays up.' },
+      { name: 'New Computer & Printer Setup', blurb: 'Out of the box to actually working, with your files, mail and bookmarks carried across.' },
+      { name: 'Data Transfer & Recovery', blurb: 'Photos and documents off an old or failing machine before they are lost for good.' },
+      { name: 'Smart TV & Streaming Setup', blurb: 'Roku, Fire Stick, Apple TV, Netflix and the rest, set up and explained once.' },
+      { name: 'One-on-One Training', blurb: 'Patient, unhurried help at your own pace \u2014 in plain English, never tech-talk.' },
+    ],
+    faq: [
+      { question: 'Do I have to bring my computer anywhere?', answer: 'No. This is mobile service \u2014 the work happens at your home or office, on your own desk, with your own printer and network in front of us.' },
+      { question: 'What does it cost?', answer: `${MONEY}
+
+Most jobs are straightforward and quoted before any work starts. You will know the number before anyone touches the machine.` },
+      { question: 'Can you explain it without the jargon?', answer: 'That is the point. Everything gets explained in plain English as it happens, and you are welcome to watch and ask questions.' },
+      { question: 'What if it cannot be fixed?', answer: 'Then you get told that plainly, along with what your options are and what they would cost \u2014 including doing nothing.' },
+    ],
+  },
   general: {
     label: 'Local Business',
     tagline: (city) => `Dependable local service${city ? ` in ${city}` : ''}.`,
@@ -230,12 +257,36 @@ export function resolveTradePack(input?: string): { key: string; pack: TradePack
   if (has('lawn', 'landscap', 'mow', 'yard', 'garden', 'pressure wash', 'power wash', 'tree'))
     return { key: 'landscaping', pack: TRADE_PACKS.landscaping! }
   if (has('clean', 'maid', 'janitor')) return { key: 'cleaning', pack: TRADE_PACKS.cleaning! }
-  if (has('mov', 'haul', 'relocat')) return { key: 'moving', pack: TRADE_PACKS.moving! }
+  // NOT 'mov': "removal" contains it, so "virus removal" and "junk removal"
+  // both landed on a moving company. Caught by the techsupport pack's tests.
+  if (has('moving', 'mover', 'move ', 'haul', 'relocat'))
+    return { key: 'moving', pack: TRADE_PACKS.moving! }
   if (has('photo', 'video', 'studio')) return { key: 'photography', pack: TRADE_PACKS.photography! }
   if (has('tax', 'account', 'bookkeep', 'payroll', 'cpa')) return { key: 'accounting', pack: TRADE_PACKS.accounting! }
   // Before 'handy'/'repair': "probate" and "divorce" are not home maintenance.
   if (has('legal', 'attorney', 'lawyer', 'law firm', 'divorce', 'probate', 'estate plan', 'paralegal'))
     return { key: 'legal', pack: TRADE_PACKS.legal! }
+  // Before 'repair'/'electric': "computer repair" is not home maintenance, and
+  // "electronics" is not an electrician.
+  if (
+    has(
+      'computer',
+      'pc ',
+      'laptop',
+      ' it ',
+      'it support',
+      'tech support',
+      'techsupport',
+      'network',
+      'wifi',
+      'wi-fi',
+      'virus',
+      'malware',
+      'smart tv',
+      'geek',
+    )
+  )
+    return { key: 'techsupport', pack: TRADE_PACKS.techsupport! }
   if (has('handy', 'repair', 'plumb', 'electric', 'hvac', 'contractor', 'remodel', 'maintenance'))
     return { key: 'handyman', pack: TRADE_PACKS.handyman! }
   return { key: 'general', pack: TRADE_PACKS.general! }
