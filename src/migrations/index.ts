@@ -69,6 +69,7 @@ import * as migration_20260820_150000_membership_fk_cascade from './20260820_150
 import * as migration_20260820_180000_site_visits from './20260820_180000_site_visits';
 import * as migration_20260820_210000_cart_items_cascade from './20260820_210000_cart_items_cascade';
 import * as migration_20260812_220000_space_invite_phone from './20260812_220000_space_invite_phone';
+import * as migration_20260821_120000_hero_scrim from './20260821_120000_hero_scrim'
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -468,5 +469,10 @@ export const migrations = [
     up: migration_20260821_110000_availability_house_hours.up,
     down: migration_20260821_110000_availability_house_hours.down,
     name: '20260821_110000_availability_house_hours',
+  },
+  {
+    up: migration_20260821_120000_hero_scrim.up,
+    down: migration_20260821_120000_hero_scrim.down,
+    name: '20260821_120000_hero_scrim',
   },
 ];
