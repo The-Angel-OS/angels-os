@@ -1,6 +1,4 @@
-import type { Payload } from 'payload'
-
-import type { Where } from 'payload'
+import type { Payload, Where } from 'payload'
 
 /**
  * Where-clause for a tenant's availability and bookings.
@@ -36,8 +34,10 @@ export function matchesProvider(row: unknown, providerId: number | null): boolea
  * for any service blocks that time for every other — which is exactly the
  * overbooking guarantee we want for a small team that can't be two places at once.
  *
- * Resolution: the first active `tenant_admin` membership, falling back to any
- * active membership. Returns null if none exists.
+ * Resolution: whoever already has a calendar, else an active tenant_admin, else
+ * an active tenant_manager. Returns null for HOUSE hours — the business's own
+ * calendar, which is the right answer for a one-person operation and for a
+ * portal nobody has claimed yet.
  */
 export async function resolveBookingProvider(
   payload: Payload,
@@ -101,22 +101,34 @@ export async function resolveBookingProvider(
     // fall through
   }
 
-  // 2. Any active membership
+  // 2. A tenant_manager — the other role that legitimately runs the business.
+  //
+  // This used to be "any active membership", which stopped meaning anything the
+  // moment portal arrival started enrolling signed-in visitors as members
+  // (260821). On this node it resolved Tap Gray's booking page to the calendar
+  // of a person who had merely LOOKED at his site — so his customers would have
+  // been booking against a stranger's availability. A plain member is a
+  // visitor; only a manager is the business.
   try {
-    const any = await payload.find({
+    const managers = await payload.find({
       collection: 'tenant-memberships' as any,
       where: {
-        and: [{ tenant: { equals: tenantIdNum } }, { status: { equals: 'active' } }],
+        and: [
+          { tenant: { equals: tenantIdNum } },
+          { role: { equals: 'tenant_manager' } },
+          { status: { equals: 'active' } },
+        ],
       },
       depth: 0,
       limit: 1,
       overrideAccess: true,
     })
-    const id = userIdOf(any.docs?.[0])
+    const id = userIdOf(managers.docs?.[0])
     if (id != null) return id
   } catch {
-    // no provider resolvable
+    // fall through to house hours
   }
 
+  // 3. Nobody runs it yet → HOUSE hours, the business's own calendar.
   return null
 }

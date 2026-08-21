@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { parseDays } from '@/endpoints/booking-set-hours'
 
 describe('parseDays — the weekly hours editor payload', () => {
@@ -75,5 +75,42 @@ describe('matchesProvider — the narrowing the query cannot do', () => {
     expect(matchesProvider({ provider: '7' }, 7)).toBe(true)
     expect(matchesProvider({ provider: 8 }, 7)).toBe(false)
     expect(matchesProvider({}, 7)).toBe(false)
+  })
+})
+
+describe('who may be the booking provider', () => {
+  it('a plain member is never the provider', async () => {
+    vi.resetModules()
+    const { resolveBookingProvider } = await import('@/utilities/resolveBookingProvider')
+    const payload = {
+      find: vi.fn(async ({ collection, where }: never) => {
+        const c = collection as unknown as string
+        if (c === 'availability') return { docs: [{ provider: null }], totalDocs: 1 }
+        // Only plain members on this portal — the shape enrol-on-arrival creates
+        // for every signed-in visitor. Resolving one of them as the provider
+        // would book a stranger's calendar for the business's customers.
+        const clauses = (where as unknown as { and?: { role?: { equals?: string } }[] })?.and || []
+        const role = clauses.find((x) => x?.role)?.role?.equals
+        if (role === 'tenant_admin' || role === 'tenant_manager') return { docs: [], totalDocs: 0 }
+        return { docs: [{ user: 3, role: 'tenant_member' }], totalDocs: 1 }
+      }),
+    }
+    expect(await resolveBookingProvider(payload as never, 40)).toBeNull()
+  })
+
+  it('a tenant_manager is', async () => {
+    vi.resetModules()
+    const { resolveBookingProvider } = await import('@/utilities/resolveBookingProvider')
+    const payload = {
+      find: vi.fn(async ({ collection, where }: never) => {
+        const c = collection as unknown as string
+        if (c === 'availability') return { docs: [{ provider: null }], totalDocs: 1 }
+        const clauses = (where as unknown as { and?: { role?: { equals?: string } }[] })?.and || []
+        const role = clauses.find((x) => x?.role)?.role?.equals
+        if (role === 'tenant_manager') return { docs: [{ user: 21 }], totalDocs: 1 }
+        return { docs: [], totalDocs: 0 }
+      }),
+    }
+    expect(await resolveBookingProvider(payload as never, 40)).toBe(21)
   })
 })
