@@ -152,7 +152,17 @@ export async function Footer({ tenant }: Props) {
           {!hidePoweredBy && (
           <p className="md:ml-auto flex items-center gap-2">
             <span>Powered by</span>
-            <a className="text-black dark:text-white hover:underline" href="https://github.com/The-Angel-OS" target="_blank" rel="noopener noreferrer">
+            {/* The credit line is the free tier's consideration — it sits on every
+                free site we build. It pointed at a GitHub repo, which sells
+                nothing to the person reading a lawn-care site. Send it to the
+                page that explains what this is and what it costs. */}
+            <a
+              className="text-black dark:text-white hover:underline"
+              href="https://spacesangels.com/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Get a website like this one"
+            >
               The Angel OS
             </a>
             <span className="text-neutral-300 dark:text-neutral-600" aria-hidden="true">&middot;</span>
