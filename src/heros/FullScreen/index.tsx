@@ -3,6 +3,7 @@ import { useHeaderTheme } from '@/providers/HeaderTheme'
 import React, { useEffect } from 'react'
 
 import type { Page } from '@/payload-types'
+import { scaleScrim } from '@/heros/scrim'
 
 import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
@@ -14,7 +15,11 @@ import { RichText } from '@/components/RichText'
  * the page's blocks flowing underneath. Modeled on HighImpact but edge-to-edge and
  * tall (no container, no rounded box, ~90vh). Reusable by any portal.
  */
-export const FullScreenHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
+export const FullScreenHero: React.FC<Page['hero']> = ({ links, media, richText, scrim }) => {
+  const scrimBg = scaleScrim(
+    'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 45%, rgba(0,0,0,0.65) 100%)',
+    scrim,
+  )
   const { setHeaderTheme } = useHeaderTheme()
 
   useEffect(() => {
@@ -54,14 +59,11 @@ export const FullScreenHero: React.FC<Page['hero']> = ({ links, media, richText 
           <Media fill imgClassName="object-cover" priority resource={media} size="100vw" />
         )
       )}
-      {/* Legibility overlay — keeps the headline readable over any image */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 45%, rgba(0,0,0,0.65) 100%)',
-        }}
-      />
+      {/* Legibility overlay — keeps the headline readable over any image.
+          Dialable per hero; see heros/scrim.ts for why. */}
+      {scrimBg && (
+        <div className="pointer-events-none absolute inset-0" style={{ background: scrimBg }} />
+      )}
       {/* Overlaid content */}
       <div className="relative z-10 flex items-center justify-center px-6 py-24 md:py-32">
         <div className="max-w-3xl text-center">

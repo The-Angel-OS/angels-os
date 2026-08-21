@@ -1563,6 +1563,10 @@ export interface Page {
       | null;
     media?: (number | null) | Media;
     /**
+     * How much the image is darkened so the heading stays readable. Turn it off for an image that carries its own words — a poster or an infographic reads as muddy under a gradient.
+     */
+    scrim?: ('strong' | 'medium' | 'light' | 'none') | null;
+    /**
      * How the hero image fills its frame. Fill is best for pre-cropped banners.
      */
     mediaFit?: ('cover' | 'contain' | 'fill') | null;
@@ -1673,6 +1677,10 @@ export interface Post {
         }[]
       | null;
     media?: (number | null) | Media;
+    /**
+     * How much the image is darkened so the heading stays readable. Turn it off for an image that carries its own words — a poster or an infographic reads as muddy under a gradient.
+     */
+    scrim?: ('strong' | 'medium' | 'light' | 'none') | null;
     /**
      * How the hero image fills its frame. Fill is best for pre-cropped banners.
      */
@@ -8497,6 +8505,7 @@ export interface PagesSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        scrim?: T;
         mediaFit?: T;
       };
   layout?:
@@ -8915,6 +8924,7 @@ export interface PostsSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        scrim?: T;
         mediaFit?: T;
       };
   layout?:

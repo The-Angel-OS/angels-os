@@ -3,6 +3,7 @@ import { useHeaderTheme } from '@/providers/HeaderTheme'
 import React, { useEffect } from 'react'
 
 import type { Page } from '@/payload-types'
+import { scaleScrim } from '@/heros/scrim'
 
 import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
@@ -15,7 +16,11 @@ const FIT_CLASS: Record<string, string> = {
   fill: 'object-fill',
 }
 
-export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText, mediaFit }) => {
+export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText, mediaFit, scrim }) => {
+  const scrimBg = scaleScrim(
+    'linear-gradient(180deg, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)',
+    scrim,
+  )
   const { setHeaderTheme } = useHeaderTheme()
   // Default to 'cover' so a null/absent value renders exactly as before.
   const fitClass = FIT_CLASS[mediaFit ?? 'cover'] ?? 'object-cover'
@@ -34,14 +39,11 @@ export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText,
         {media && typeof media === 'object' && (
           <Media fill imgClassName={fitClass} priority resource={media} size="100vw" />
         )}
-        {/* Legibility overlay — keeps the headline readable over any image */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.20) 45%, rgba(0,0,0,0.55) 100%)',
-          }}
-        />
+        {/* Legibility overlay — keeps the headline readable over any image.
+            Dialable per hero; see heros/scrim.ts for why. */}
+        {scrimBg && (
+          <div className="pointer-events-none absolute inset-0" style={{ background: scrimBg }} />
+        )}
         {/* Content */}
         <div className="relative z-10 flex items-center justify-center px-6 py-20 md:py-28">
           <div className="max-w-146 md:text-center">

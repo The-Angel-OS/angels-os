@@ -20,7 +20,26 @@ import { RichText } from '@/components/RichText'
  * On mobile the gradient goes vertical so the text has a dark bed underneath it
  * rather than competing with whatever happens to be on the left of the photo.
  */
-export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
+
+/**
+ * Mobile gradient (dark bed under the text) paired with the md+ horizontal one
+ * (dark left third). Same shape at every level; only the alphas move.
+ */
+const SCRIMS: Record<string, string> = {
+  strong:
+    'bg-[linear-gradient(180deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_60%,rgba(10,11,13,0.85)_100%)] md:bg-[linear-gradient(90deg,rgba(10,11,13,0.96)_0%,rgba(10,11,13,0.85)_38%,rgba(10,11,13,0.25)_65%,rgba(10,11,13,0.05)_100%)]',
+  medium:
+    'bg-[linear-gradient(180deg,rgba(10,11,13,0.72)_0%,rgba(10,11,13,0.35)_60%,rgba(10,11,13,0.6)_100%)] md:bg-[linear-gradient(90deg,rgba(10,11,13,0.78)_0%,rgba(10,11,13,0.55)_38%,rgba(10,11,13,0.12)_65%,rgba(10,11,13,0)_100%)]',
+  light:
+    'bg-[linear-gradient(180deg,rgba(10,11,13,0.45)_0%,rgba(10,11,13,0.18)_60%,rgba(10,11,13,0.35)_100%)] md:bg-[linear-gradient(90deg,rgba(10,11,13,0.5)_0%,rgba(10,11,13,0.28)_38%,rgba(10,11,13,0.05)_65%,rgba(10,11,13,0)_100%)]',
+  // No element at all, rather than a transparent one: nothing to composite.
+  none: '',
+}
+
+export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText, scrim }) => {
+  // Unset means 'strong' — the only value that existed before the dial, so
+  // every hero built before today renders exactly as it did.
+  const scrimClass = SCRIMS[scrim || 'strong'] ?? SCRIMS.strong // see heros/scrim.ts for the levels
   const mediaObj =
     media && typeof media === 'object'
       ? (media as { mimeType?: string | null; url?: string | null })
@@ -55,10 +74,14 @@ export const SplitPanelHero: React.FC<Page['hero']> = ({ links, media, richText 
       </div>
 
       {/* Fade to near-black where the copy sits. Vertical on mobile (dark bed
-          under the text), horizontal from md up (dark left third). */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_60%,rgba(10,11,13,0.85)_100%)] md:bg-[linear-gradient(90deg,rgba(10,11,13,0.96)_0%,rgba(10,11,13,0.85)_38%,rgba(10,11,13,0.25)_65%,rgba(10,11,13,0.05)_100%)]"
-      />
+          under the text), horizontal from md up (dark left third).
+
+          Dialable, because the right amount depends on the image: a photograph
+          needs a real bed under the heading, while an image that carries its
+          own words — a poster, an infographic — just goes muddy under one.
+          'strong' is the original, so every hero built before this is
+          unchanged. */}
+      {scrimClass && <div className={`pointer-events-none absolute inset-0 ${scrimClass}`} />}
 
       <div className="relative grid min-h-[70vh] grid-cols-1 md:grid-cols-2">
         {/* ── Content ──────────────────────────────────────────────────── */}

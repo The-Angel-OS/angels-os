@@ -79,6 +79,25 @@ export const hero: Field = {
       required: true,
     },
     {
+      name: 'scrim',
+      type: 'select',
+      // 'strong' is what every existing split hero already renders, so leaving
+      // the default alone keeps them pixel-identical.
+      defaultValue: 'strong',
+      label: 'Image Darkening',
+      options: [
+        { label: 'Strong — dark bed behind the text (default)', value: 'strong' },
+        { label: 'Medium — softer, still readable over a busy photo', value: 'medium' },
+        { label: 'Light — a hint, for an image that is already dark', value: 'light' },
+        { label: 'None — show the image exactly as it is', value: 'none' },
+      ],
+      admin: {
+        condition: (_, { type } = {}) => ['splitPanel', 'fullScreen', 'highImpact'].includes(type),
+        description:
+          'How much the image is darkened so the heading stays readable. Turn it off for an image that carries its own words — a poster or an infographic reads as muddy under a gradient.',
+      },
+    },
+    {
       name: 'mediaFit',
       type: 'select',
       // Defaults to current behavior (cover) so existing heroes are unchanged.
