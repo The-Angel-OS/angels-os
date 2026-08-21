@@ -9,14 +9,22 @@ vi.mock('@/utilities/resolveBookingProvider', () => ({
   resolveBookingProvider: mockResolve,
   // The real one. Stubbing the module wholesale meant this came back undefined
   // and every seed threw into the fail-soft catch, reporting "0 created".
-  providerWhere: (id: number | null) =>
-    id == null ? { provider: { equals: null } } : { provider: { equals: id } },
+  providerWhere: (id: number | null) => (id == null ? {} : { provider: { equals: id } }),
+  matchesProvider: (row: { provider?: unknown }, id: number | null) =>
+    id == null ? row?.provider == null : String(row?.provider) === String(id),
 }))
 
-function fakePayload(existingCount = 0) {
+function fakePayload(existingCount = 0, existingProvider: number | null = null) {
   const created: Array<Record<string, unknown>> = []
+  // Existing rows must come back as DOCS, not just a count: the idempotency
+  // check narrows by provider in JS, because "provider is empty" is not
+  // expressible as a Payload Where against a nullable relationship column.
+  const docs = Array.from({ length: existingCount }, (_, i) => ({
+    id: i + 1,
+    ...(existingProvider == null ? {} : { provider: existingProvider }),
+  }))
   const payload = {
-    find: vi.fn(async () => ({ totalDocs: existingCount, docs: [] })),
+    find: vi.fn(async () => ({ totalDocs: existingCount, docs })),
     create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
       created.push(data)
       return { id: created.length }
@@ -53,7 +61,7 @@ describe('ensureDefaultAvailability (explicit provider — the guardian angel pa
   })
 
   it('never overwrites an owner who already set their hours', async () => {
-    const { payload, created } = fakePayload(1)
+    const { payload, created } = fakePayload(1, 7)
     const res = await ensureDefaultAvailability(payload, 33, 7)
     expect(res).toEqual({ created: 0, skipped: true })
     expect(created).toHaveLength(0)

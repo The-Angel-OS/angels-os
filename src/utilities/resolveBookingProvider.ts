@@ -12,11 +12,21 @@ import type { Where } from 'payload'
  * feature. One helper so the four call sites cannot drift.
  */
 export function providerWhere(providerId: number | null): Where {
-  // `equals: null`, not `exists: false`. The latter matched nothing against a
-  // nullable relationship COLUMN (verified live on 260821: the rows were there,
-  // resolveBookingProvider found them, and the slots query still came back
-  // empty). `equals: null` compiles to the IS NULL this actually needs.
-  return providerId == null ? { provider: { equals: null } } : { provider: { equals: providerId } }
+  // When there IS a named provider, constrain in SQL. When there is not, do
+  // NOT try to express "provider is empty" as a Where: neither
+  // `exists: false` nor `equals: null` matched the nullable relationship
+  // column on Payload 3.77 — verified live on 260821 with the rows present and
+  // resolveBookingProvider finding them. The tenant clause still scopes the
+  // read, so the remaining narrowing is one JS filter. See matchesProvider.
+  return providerId == null ? {} : { provider: { equals: providerId } }
+}
+
+/** Does this availability/booking row belong to the resolved calendar? */
+export function matchesProvider(row: unknown, providerId: number | null): boolean {
+  const raw = (row as { provider?: unknown })?.provider
+  const id = raw && typeof raw === 'object' ? (raw as { id?: unknown }).id : raw
+  if (providerId == null) return id == null
+  return String(id) === String(providerId)
 }
 
 /**

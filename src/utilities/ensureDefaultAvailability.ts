@@ -18,7 +18,7 @@
  * @see src/collections/Availability.ts — the schema
  */
 import type { Payload } from 'payload'
-import { providerWhere } from './resolveBookingProvider'
+import { providerWhere, matchesProvider } from './resolveBookingProvider'
 
 const WEEKDAYS = ['1', '2', '3', '4', '5'] as const // Mon–Fri
 const DEFAULT_START = '09:00'
@@ -49,11 +49,14 @@ export async function ensureDefaultAvailability(
           { tenant: { equals: tenantId } },
         ],
       },
-      limit: 1,
+      limit: 100,
       depth: 0,
       overrideAccess: true,
     })
-    if (existing.totalDocs > 0) return { created: 0, skipped: true }
+    const mine = (existing.docs || []).filter((d) =>
+      matchesProvider(d, typeof providerUserId === 'string' ? Number(providerUserId) : providerUserId),
+    )
+    if (mine.length > 0) return { created: 0, skipped: true }
 
     let created = 0
     // One weekly row per weekday (the schema keys weeklySchedule to a single day).

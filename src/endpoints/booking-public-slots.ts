@@ -16,7 +16,7 @@
  * @see src/endpoints/booking-checkout.ts (conflict-checks again at commit time)
  */
 import type { PayloadHandler } from 'payload'
-import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere, matchesProvider } from '@/utilities/resolveBookingProvider'
 
 const toMin = (hhmm: string): number | null => {
   const [h, m] = (hhmm || '').split(':').map(Number)
@@ -90,6 +90,7 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     const nowMs = Date.now()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const busy = (bookings.docs as any[])
+      .filter((b) => matchesProvider(b, providerId))
       .filter((b) => !(b.status === 'pending' && b.holdExpiresAt && new Date(b.holdExpiresAt).getTime() < nowMs))
       .map((b) => {
         const s = new Date(b.startDateTime)
@@ -106,7 +107,10 @@ export const bookingPublicSlotsHandler: PayloadHandler = async (req) => {
     const offered = new Set<string>()
     const slots: Array<{ time: string; seatsLeft: number }> = []
 
-    for (const rule of rules.docs as unknown as Record<string, unknown>[]) {
+    const ruleDocs = (rules.docs as unknown as Record<string, unknown>[]).filter((r) =>
+      matchesProvider(r, providerId),
+    )
+    for (const rule of ruleDocs) {
       if (isPast) break
       if ((rule.availabilityType ?? 'weekly') !== 'weekly') continue
       const ws = rule.weeklySchedule as { dayOfWeek?: number; startTime?: string; endTime?: string } | undefined

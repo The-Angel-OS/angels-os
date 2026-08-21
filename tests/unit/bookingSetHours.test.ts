@@ -40,7 +40,7 @@ describe('house hours', () => {
   it('asks for rows with no provider when there is no named one', async () => {
     const { providerWhere } = await import('@/utilities/resolveBookingProvider')
     // A one-person business, and every unclaimed prospect demo, live here.
-    expect(providerWhere(null)).toEqual({ provider: { equals: null } })
+    expect(providerWhere(null)).toEqual({})
   })
 
   it('still scopes to the named provider when there is one', async () => {
@@ -54,5 +54,26 @@ describe('house hours', () => {
     // another's booking page, which is worse than an empty calendar.
     expect(JSON.stringify(providerWhere(null))).not.toEqual(JSON.stringify(providerWhere(7)))
     expect(providerWhere(0)).toEqual({ provider: { equals: 0 } })
+  })
+})
+
+describe('matchesProvider — the narrowing the query cannot do', () => {
+  it('house rows belong to the house, and only to the house', async () => {
+    const { matchesProvider } = await import('@/utilities/resolveBookingProvider')
+    expect(matchesProvider({}, null)).toBe(true)
+    expect(matchesProvider({ provider: null }, null)).toBe(true)
+    // The leak this guards: a named provider's hours must never be served as
+    // the house calendar, because providerWhere(null) no longer constrains SQL.
+    expect(matchesProvider({ provider: 7 }, null)).toBe(false)
+    expect(matchesProvider({ provider: { id: 7 } }, null)).toBe(false)
+  })
+
+  it('a named provider gets their own rows, depth 0 or depth 1', async () => {
+    const { matchesProvider } = await import('@/utilities/resolveBookingProvider')
+    expect(matchesProvider({ provider: 7 }, 7)).toBe(true)
+    expect(matchesProvider({ provider: { id: 7 } }, 7)).toBe(true)
+    expect(matchesProvider({ provider: '7' }, 7)).toBe(true)
+    expect(matchesProvider({ provider: 8 }, 7)).toBe(false)
+    expect(matchesProvider({}, 7)).toBe(false)
   })
 })

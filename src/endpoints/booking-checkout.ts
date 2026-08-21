@@ -30,7 +30,7 @@ import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { depositCents, totalCents } from '@/config/bookableServices'
 import { resolveServices } from '@/utilities/resolveServices'
 import { getBookingPaymentMode } from '@/utilities/bookingSettings'
-import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere, matchesProvider } from '@/utilities/resolveBookingProvider'
 import { BookingEngine } from '@/utilities/bookingEngine'
 import { logError } from '@/utilities/logError'
 
@@ -389,7 +389,9 @@ async function resolveSlotCapacity(
       depth: 0,
       overrideAccess: true,
     })
-    const caps = (rules.docs as Array<{ capacity?: number }>).map((r) => Math.max(1, Number(r.capacity) || 1))
+    const caps = (rules.docs as Array<{ capacity?: number }>)
+      .filter((r) => matchesProvider(r, typeof providerId === 'string' ? Number(providerId) : providerId))
+      .map((r) => Math.max(1, Number(r.capacity) || 1))
     return caps.length ? Math.max(...caps) : 1
   } catch {
     // Fail CLOSED: capacity 1 is the strictest guard, so a lookup failure can

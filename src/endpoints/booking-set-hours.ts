@@ -17,7 +17,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { resolveBookingProvider, providerWhere } from '@/utilities/resolveBookingProvider'
+import { resolveBookingProvider, providerWhere, matchesProvider } from '@/utilities/resolveBookingProvider'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 const HHMM = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
@@ -118,7 +118,9 @@ export const bookingSetHoursHandler: PayloadHandler = async (req) => {
 
   // ponytail: first row per day wins; the UI only ever writes one block per day.
   const byDay = new Map<number, { id: number | string }>()
-  for (const doc of existing.docs as Array<Record<string, any>>) {
+  for (const doc of (existing.docs as Array<Record<string, any>>).filter((d) =>
+    matchesProvider(d, providerId),
+  )) {
     const day = Number(doc?.weeklySchedule?.dayOfWeek)
     if (Number.isInteger(day) && !byDay.has(day)) byDay.set(day, { id: doc.id })
   }
