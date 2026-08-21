@@ -139,3 +139,40 @@ mode); site log pagination + "Every portal" for platform admins + a Visitor colu
   a stale response mid-provision. All five pages are clean; the only hit is the intended
   footer credit.
 - I said the live node had no PgBouncer. **It has one** — see (5).
+
+
+## 260821 ~17:00 — addendum
+
+**The admin create view rendered blank (Ken, high priority) — fixed.** Not a client crash and
+not an access problem: `20260821_120000_hero_scrim` added `hero_scrim` to `pages` and `posts`
+but NOT to `_pages_v` / `_posts_v`, on the mistaken note that hero_media_fit "does not carry"
+to the versions tables (it does — both `_v` tables have `version_hero_media_fit`). The create
+view autosaves a draft the moment it opens, that insert died on the missing column, and the
+page rendered nothing at all: no form, no nav, no error. **Every page and post draft save on
+the node was failing this way from 13:32 to 16:37.** Live ALTERed by hand and verified by
+re-querying `information_schema`; the same DDL then landed as a NEW migration
+(`20260821_170000_hero_scrim_versions`), since 120000 had already applied.
+
+`tests/unit/migrations/versionedColumnParity.test.ts` now fails when a column is added to a
+versioned collection without its `version_` counterpart — this is the "adding a field without
+a migration has no lint yet" gap, in its versions-table form. Every historical column already
+satisfied it; hero_scrim was the first break. Gate green at 6,552.
+
+**Core now runs through PgBouncer (item 5, done).** Ken's call: the pooler belongs with the
+stack, not off in another region. Moved US East -> US West (`railway scale -s PgBouncer
+us-west=1 us-east=0` -- `scale` ADDS a region, so the old one must be passed `=0` or you end
+up with a replica in each, half your queries crossing the country). Then `DATABASE_URI` ->
+`pgbouncer.railway.internal:5432`.
+
+**`DATABASE_SSL` had to go `require` -> `disable`.** PgBouncer has no TLS; the first deploy
+died on "The server does not support SSL connections". Plaintext is correct here -- it is
+Railway's private network. The failed deploy did NOT take live down; Railway kept the previous
+one serving.
+
+Verified after: all four portals 200, `/api/health` latency 6ms, zero errors in the log, and
+Postgres now holds ~5 backends instead of Core's whole pool. `max_connections=100` is no
+longer the ceiling on how many portals this node holds. Rollback is the direct
+`postgres.railway.internal` URI plus `DATABASE_SSL=require`.
+
+**Open items 1-4, 6, 7 are unchanged and still in that order** -- auto base membership plans
+is still the top untouched one.
