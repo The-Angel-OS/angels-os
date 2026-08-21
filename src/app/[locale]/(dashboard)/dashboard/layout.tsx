@@ -326,6 +326,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             tenantBranding={tenantBranding}
             userTenants={userTenants}
             currentTenantId={tenant?.id}
+            portalPlan={(tenant as { portalPlan?: string } | null)?.portalPlan || 'free'}
             wizardComplete={wizardComplete}
           />
 

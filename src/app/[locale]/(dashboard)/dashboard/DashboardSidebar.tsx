@@ -50,6 +50,8 @@ interface DashboardSidebarProps {
   tenantBranding?: TenantBranding | null
   userTenants?: TenantInfo[]
   currentTenantId?: number | string
+  /** Which Angel OS plan this portal pays for — drives the upgrade row. */
+  portalPlan?: string
   wizardComplete?: boolean
 }
 
@@ -64,6 +66,7 @@ export function DashboardSidebar({
   tenantBranding,
   userTenants,
   currentTenantId,
+  portalPlan = 'free',
   wizardComplete = true,
 }: DashboardSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -315,6 +318,32 @@ export function DashboardSidebar({
       <div className={`shrink-0 border-t border-border px-2 py-2 ${isCollapsed ? 'flex justify-center' : ''}`}>
         <ThemeToggle compact={isCollapsed} />
       </div>
+
+      {/* Upgrade — bottom-left, directly above the account row, the same place
+          every tool people already use puts it. Only on Free, and only for
+          someone who could actually authorise it: a staff member who cannot buy
+          anything does not need to be asked to. */}
+      {userName && portalPlan === 'free' && (isAdmin || isBusinessOwner) && (
+        <Link
+          href={`${prefix}/dashboard/plan`}
+          className="block shrink-0 border-t border-border px-2 py-2 transition-colors hover:bg-muted/50"
+          title="See what the paid plans add"
+        >
+          <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">Upgrade plan</p>
+                <p className="truncate text-xs text-muted-foreground">You&rsquo;re on Free</p>
+              </div>
+            )}
+          </div>
+        </Link>
+      )}
 
       {/* User footer */}
       {userName && (

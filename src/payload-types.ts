@@ -691,6 +691,10 @@ export interface Tenant {
     commissionedAt?: string | null;
   };
   /**
+   * Which Angel OS plan this portal is on. Drives the Upgrade Plan surface. Free is the default and stays free.
+   */
+  portalPlan?: ('free' | 'site' | 'business') | null;
+  /**
    * Bootstrap-phase platform fee tracking. Fees collected during bootstrap are promised for full refund when the phase ends.
    */
   bootstrapFees?: {
@@ -7829,6 +7833,7 @@ export interface TenantsSelect<T extends boolean = true> {
         isFlagship?: T;
         commissionedAt?: T;
       };
+  portalPlan?: T;
   bootstrapFees?:
     | T
     | {

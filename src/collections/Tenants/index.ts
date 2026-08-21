@@ -802,6 +802,24 @@ export const Tenants: CollectionConfig = {
     // ─── Bootstrap-Phase Platform Fees ────────────────────────────
     // All tenants start with free access. After the free tier threshold,
     // a platform fee kicks in. ALL fees collected during bootstrap are
+    // What THIS portal pays US. Distinct from `memberships`/membership plans,
+    // which are what a tenant sells to ITS OWN customers, and from
+    // bootstrapFees.tier, which is transaction-fee banding. Three concepts, three
+    // fields — collapsing them is how a gym's $30 membership ends up billing us.
+    {
+      name: 'portalPlan',
+      type: 'select',
+      defaultValue: 'free',
+      options: [
+        { label: 'Free — site on a spacesangels.com address', value: 'free' },
+        { label: 'Site ($49/mo) — own domain, no footer credit', value: 'site' },
+        { label: 'Business ($149/mo) — booking, deposits, CRM, assistant', value: 'business' },
+      ],
+      admin: {
+        description:
+          'Which Angel OS plan this portal is on. Drives the Upgrade Plan surface. Free is the default and stays free.',
+      },
+    },
     // tracked with a binding refund promise — when the bootstrap phase
     // ends, every cent is returned. Goal: cover expenses + maximize
     // startup capital while keeping the constitutional promise of fairness.
