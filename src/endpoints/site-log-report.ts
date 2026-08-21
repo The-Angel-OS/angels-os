@@ -188,10 +188,14 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
         rows: (res.docs as unknown as Array<Record<string, unknown>>).map((d) => ({
           at: d.createdAt,
           path: d.path,
-          // A stable label per visitor per day, derived from the existing
-          // salted hash. Distinguishes one visitor from another without
-          // storing — or being able to recover — an address.
-          visitor: typeof d.visitorHash === 'string' ? d.visitorHash.slice(0, 8) : null,
+          // Who they came in as, in words. The salted hash still does the
+          // unique-visitor COUNTING in the aggregate reports, but as a column
+          // it was eight characters of noise: "Chrome on Windows" tells an
+          // owner something, "a3f91c04" tells them nothing. Ken's 260821 call.
+          visitor:
+            d.browser || d.os
+              ? [d.browser, d.os].filter(Boolean).join(' on ')
+              : null,
           ...(platformScope
             ? {
                 portal:

@@ -43,7 +43,7 @@ interface AggregateRow {
 interface DetailRow {
   at: string
   path: string
-  /** First 8 chars of the day's salted visitor hash — tells one visitor from another. */
+  /** Who they came in as, in plain terms: "Chrome on Windows", "Safari on iOS". */
   visitor?: string | null
   /** Only present on a platform-scoped log: whose portal the hit landed on. */
   portal?: string | null
@@ -262,7 +262,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             <th className="pb-2 pr-4">Visitor</th>
             <th className="pb-2 pr-4">Page</th>
             <th className="pb-2 pr-4">Came from</th>
-            <th className="pb-2">Browser</th>
+            <th className="pb-2">Device</th>
           </tr>
         </thead>
         <tbody>
@@ -274,13 +274,13 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
               {showPortal && (
                 <td className="whitespace-nowrap py-2 pr-4 text-muted-foreground">{r.portal || '—'}</td>
               )}
-              <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-muted-foreground">
-                {r.visitor || '—'}
+              <td className="whitespace-nowrap py-2 pr-4 text-muted-foreground">
+                {r.visitor || 'unknown'}
               </td>
               <td className="py-2 pr-4 font-medium">{r.path}</td>
               <td className="py-2 pr-4 text-muted-foreground">{r.referrerHost || 'direct'}</td>
               <td className="py-2 text-muted-foreground">
-                {r.browser} · {r.os}
+                {r.device || '—'}
                 {r.isBot && <span className="ml-2 text-xs opacity-70">crawler</span>}
               </td>
             </tr>

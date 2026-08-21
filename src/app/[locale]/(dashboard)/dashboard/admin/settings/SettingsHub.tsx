@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import EndeavorSetup, { ImageField, type MediaValue } from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
 import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
@@ -9,7 +9,7 @@ import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
 // Types
 // ---------------------------------------------------------------------------
 
-type TabId = 'general' | 'endeavor' | 'ai' | 'developer'
+type TabId = 'general' | 'navigation' | 'endeavor' | 'ai' | 'developer'
 
 interface BrandingData {
   siteName?: string
@@ -83,6 +83,7 @@ const CURRENCIES = [
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'general', label: 'General' },
+  { id: 'navigation', label: 'Navigation' },
   { id: 'endeavor', label: 'Endeavor' },
   { id: 'ai', label: 'AI' },
   { id: 'developer', label: 'Developer' },
@@ -793,11 +794,203 @@ export function SettingsHub({
         {activeTab === 'general' && (
           <GeneralTab tenantId={tenantId} branding={branding} commerce={commerce} storefront={storefront} features={features} />
         )}
+        {activeTab === 'navigation' && <NavigationTab />}
         {activeTab === 'endeavor' && <EndeavorSetup />}
         {activeTab === 'ai' && (
           <AITab tenantId={tenantId} hasAnthropicKey={hasAnthropicKey} hasOpenRouterKey={hasOpenRouterKey} />
         )}
         {activeTab === 'developer' && <DeveloperTab />}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// NavigationTab
+// ---------------------------------------------------------------------------
+
+interface NavCandidate {
+  url: string
+  label: string
+}
+
+/**
+ * The owner's intent layer over a menu that otherwise configures itself.
+ *
+ * The menu derives what it can: Shop appears when there are products, Posts
+ * when there are posts. Those signals are deliberately NOT mirrored here — a
+ * settings screen repeating them would be a second source of truth for the same
+ * fact, and the menu would then be wrong in two places instead of one. These
+ * three are what derivation cannot know, and until now only LEO could set them.
+ */
+function NavigationTab() {
+  const [candidates, setCandidates] = useState<NavCandidate[]>([])
+  const [hidden, setHidden] = useState<string[]>([])
+  const [pinned, setPinned] = useState<string[]>([])
+  const [maxInline, setMaxInline] = useState<string>('')
+  const [hideMore, setHideMore] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const res = await fetch('/api/nav-ops/overrides', { credentials: 'include' })
+        const json = await res.json()
+        if (cancelled) return
+        if (!res.ok) throw new Error(json?.error || 'Could not load the menu settings.')
+        setCandidates(json.candidates || [])
+        setHidden(json.overrides?.hidden || [])
+        setPinned(json.overrides?.pinned || [])
+        setMaxInline(
+          typeof json.overrides?.maxInline === 'number' ? String(json.overrides.maxInline) : '',
+        )
+        setHideMore(Boolean(json.overrides?.hideMore))
+      } catch (err) {
+        if (!cancelled) {
+          setMessage({
+            type: 'error',
+            text: err instanceof Error ? err.message : 'Could not load the menu settings.',
+          })
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const toggle = (list: string[], setList: (v: string[]) => void, url: string) =>
+    setList(list.includes(url) ? list.filter((u) => u !== url) : [...list, url])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/nav-ops/overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          hidden,
+          pinned,
+          // Empty means "no cap". Send nothing rather than a zero — zero is a
+          // real and different instruction (the bar holds exactly the pins).
+          ...(maxInline.trim() === '' ? {} : { maxInline: Number(maxInline) }),
+          hideMore,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Could not save.')
+      setMessage({ type: 'success', text: 'Menu saved. Reload your site to see it.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Could not save.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="text-sm text-muted-foreground">Loading your menu...</p>
+
+  return (
+    <div className="space-y-6">
+      {message && <Toast message={message} />}
+
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4 text-card-foreground">
+        <div>
+          <h2 className="text-lg font-semibold">Top menu</h2>
+          <p className="text-sm text-muted-foreground">
+            Your menu builds itself from what you have &mdash; a shop appears once you publish a
+            product. These are the choices it cannot make for you.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="pb-2 pr-4">Menu item</th>
+                <th className="pb-2 pr-4">Hide</th>
+                <th className="pb-2">Keep up front</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((c) => (
+                <tr key={c.url} className="border-b border-border/50">
+                  <td className="py-2 pr-4">
+                    <span className="font-medium">{c.label}</span>{' '}
+                    <span className="text-xs text-muted-foreground">{c.url}</span>
+                  </td>
+                  <td className="py-2 pr-4">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border"
+                      checked={hidden.includes(c.url)}
+                      onChange={() => toggle(hidden, setHidden, c.url)}
+                    />
+                  </td>
+                  <td className="py-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border"
+                      // Hiding wins over pinning, so disable rather than let
+                      // someone set two instructions that contradict.
+                      disabled={hidden.includes(c.url)}
+                      checked={pinned.includes(c.url)}
+                      onChange={() => toggle(pinned, setPinned, c.url)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4 text-card-foreground">
+        <h2 className="text-lg font-semibold">How much fits</h2>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Items in the bar before &ldquo;More&rdquo;
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="12"
+            placeholder="Leave empty to fit as many as will fit"
+            value={maxInline}
+            onChange={(e) => setMaxInline(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Anything you kept up front ignores this limit. Set it to 0 to show only those.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-border"
+            checked={hideMore}
+            onChange={(e) => setHideMore(e.target.checked)}
+          />
+          Drop the &ldquo;More&rdquo; menu entirely (desktop only &mdash; phones still list
+          everything)
+        </label>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Menu'}
+        </button>
       </div>
     </div>
   )
