@@ -89,6 +89,24 @@ export interface SpecSection {
     blurb?: string
     presetAmounts?: string
   }
+  /**
+   * A grid of the tenant's own posts or products — the "featured posts" surface.
+   * Defaults to the three most recent published posts, three across.
+   *
+   * Deliberately NOT hand-picked by default: a provisioned site should keep
+   * looking current as the owner writes, with nobody remembering to curate it.
+   * Same reasoning as featuredEndeavors' `source: 'recent'`. Pass `selected` to
+   * pin specific documents instead.
+   */
+  featuredPosts?: {
+    heading?: string
+    /** 'posts' (default) or 'products'. */
+    of?: 'posts' | 'products'
+    limit?: number
+    columns?: 3 | 4
+    /** Pin exact documents instead of taking the most recent. */
+    selected?: Array<number | string>
+  }
   contactForm?: boolean
 }
 
@@ -237,6 +255,29 @@ export function buildSection(s: SpecSection, contactFormId: number | string | nu
       ...(s.trustRow.footnote ? { footnote: s.trustRow.footnote } : {}),
       // Empty items is meaningful: the block falls back to the tenant-wide badges.
       items: (s.trustRow.items || []).map((i) => ({ icon: i.icon, label: i.label, ...(i.detail ? { detail: i.detail } : {}) })),
+    }
+  }
+  if (s.featuredPosts) {
+    const f = s.featuredPosts
+    const relationTo = f.of === 'products' ? 'products' : 'posts'
+    const columns = f.columns === 4 ? '4' : '3'
+    const heading = f.heading || (relationTo === 'products' ? 'From the shop' : 'Latest posts')
+    if (f.selected?.length) {
+      return {
+        blockType: 'archive',
+        introContent: createLexicalContent([createHeadingNode(heading, 'h2')]),
+        populateBy: 'selection',
+        columns,
+        selectedDocs: f.selected.map((id) => ({ relationTo, value: id })),
+      }
+    }
+    return {
+      blockType: 'archive',
+      introContent: createLexicalContent([createHeadingNode(heading, 'h2')]),
+      populateBy: 'collection',
+      relationTo,
+      limit: f.limit ?? 3,
+      columns,
     }
   }
   if (s.contactForm && contactFormId) return { blockType: 'formBlock', form: contactFormId, enableIntro: false }

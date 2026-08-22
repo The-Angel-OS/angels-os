@@ -1,4 +1,5 @@
 import type { CollectionAfterChangeHook } from 'payload'
+import { revalidateAfterMutation } from '@/utilities/revalidateContent'
 import { tenantBySlugCache, tenantByDomainCache } from '@/utilities/tenantCache'
 
 /**
@@ -31,6 +32,16 @@ export const invalidateTenantCache: CollectionAfterChangeHook = ({ doc, previous
       if (t.domain) domains.add(t.domain)
       for (const alias of t.domains || []) if (alias?.domain) domains.add(alias.domain)
     }
+
+    // The header/footer docs are fetched at depth 1, so each one carries a
+    // POPULATED COPY of this tenant — logo, siteName, colours, fonts. Their
+    // unstable_cache is tagged per document and busted when the header changes,
+    // never when the tenant does, so an owner who saved a new logo kept seeing
+    // the old one in their own header for up to the 5-minute TTL. Same
+    // complaint as the settings form showing a stale image, one layer out.
+    const id = Number((doc as { id?: number | string } | undefined)?.id)
+    // Already fire-and-forget, and already busts exactly the three tags.
+    if (Number.isFinite(id)) revalidateAfterMutation({ collection: 'tenants', tenantId: id })
 
     for (const s of slugs) tenantBySlugCache.invalidate(s)
     for (const d of domains) {

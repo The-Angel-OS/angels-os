@@ -2091,6 +2091,10 @@ export interface ArchiveBlock {
   relationTo?: ('products' | 'posts') | null;
   categories?: (number | Category)[] | null;
   limit?: number | null;
+  /**
+   * Three reads as a featured row; four as a listing. Narrow screens always stack.
+   */
+  columns?: ('3' | '4') | null;
   selectedDocs?:
     | (
         | {
@@ -8616,6 +8620,7 @@ export interface ArchiveBlockSelect<T extends boolean = true> {
   relationTo?: T;
   categories?: T;
   limit?: T;
+  columns?: T;
   selectedDocs?: T;
   id?: T;
   blockName?: T;

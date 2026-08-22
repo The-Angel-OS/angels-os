@@ -81,6 +81,20 @@ export const Archive: Block = {
       label: 'Limit',
     },
     {
+      name: 'columns',
+      type: 'select',
+      defaultValue: '4',
+      label: 'Cards per row',
+      options: [
+        { label: 'Three across', value: '3' },
+        { label: 'Four across', value: '4' },
+      ],
+      admin: {
+        description:
+          'Three reads as a featured row; four as a listing. Narrow screens always stack.',
+      },
+    },
+    {
       name: 'selectedDocs',
       type: 'relationship',
       admin: {
@@ -92,7 +106,7 @@ export const Archive: Block = {
     },
   ],
   labels: {
-    plural: 'Archives',
-    singular: 'Archive',
+    plural: 'Featured Posts & Products',
+    singular: 'Featured Posts & Products',
   },
 }

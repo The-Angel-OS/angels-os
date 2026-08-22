@@ -13,7 +13,7 @@ export const ArchiveBlock: React.FC<
     className?: string
   }
 > = async (props) => {
-  const { id, categories, introContent, limit: limitFromProps, populateBy, relationTo, selectedDocs } =
+  const { id, categories, columns, introContent, limit: limitFromProps, populateBy, relationTo, selectedDocs } =
     props
 
   const limit = limitFromProps || 3
@@ -69,7 +69,7 @@ export const ArchiveBlock: React.FC<
           <RichText className="ml-0 max-w-3xl" data={introContent} enableGutter={false} />
         </div>
       )}
-      <CollectionArchive posts={posts as never} basePath={basePath} />
+      <CollectionArchive posts={posts as never} basePath={basePath} columns={columns === '3' ? 3 : 4} />
     </div>
   )
 }
