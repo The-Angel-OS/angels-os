@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import EndeavorSetup, { ImageField, type MediaValue } from '@/app/[locale]/(dashboard)/dashboard/endeavor/EndeavorSetup'
 import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
 
@@ -139,6 +139,13 @@ function Toast({ message }: { message: { type: 'success' | 'error'; text: string
 // ---------------------------------------------------------------------------
 
 function GeneralTab({ tenantId, branding, commerce, storefront, features }: { tenantId: number; branding: BrandingData; commerce: CommerceData; storefront?: StorefrontData; features?: { works?: boolean | null; pageComments?: boolean | null } | null }) {
+  // Switching tabs UNMOUNTS this form (the tab bar renders `activeTab === 'x' &&`),
+  // so coming back re-runs every useState initialiser against the props from the
+  // ORIGINAL server render. Without this refresh those props predate the save, and
+  // an owner who uploaded a logo, saved, and clicked away and back was shown the
+  // old value — identical to the save having failed, which is what it looked like.
+  // The tenant afterChange hook busts the 120s tenant cache, so this re-read is fresh.
+  const router = useRouter()
   const [form, setForm] = useState({
     siteName: branding.siteName || '',
     tagline: branding.tagline || '',
@@ -208,6 +215,7 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
       })
       if (res.ok) {
         setMessage({ type: 'success', text: 'Settings saved.' })
+        router.refresh()
       } else {
         setMessage({ type: 'error', text: 'Failed to save. Check your permissions.' })
       }
