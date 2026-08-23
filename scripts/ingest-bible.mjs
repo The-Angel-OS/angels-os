@@ -4,6 +4,7 @@
  * The factory, not the prototype: fetches public-domain scripture (WEB + KJV) from
  * bible-api.com and writes, per book:
  *   src/souls/holy-bible/data/<CODE>.json   — verse-addressed, BOTH translations
+ *     (intermediate only — not committed; re-fetched by running this script)
  *                                              (the durable source of record)
  *   docs/vision/holy-bible/<code>-<ch>.md    — one markdown doc PER CHAPTER (= a
  *                                              reader page; WEB rendered, verse-

@@ -7,7 +7,9 @@
  * honors the "release = 0 filesystem artifacts" rule. When the Bible content
  * migrates into Payload storage, only `loadBook()` changes.
  *
- * @see src/souls/holy-bible/data/<CODE>.json  (shape: { chapters:[{chapter,verses:[{v,web,kjv}]}] })
+ * @see public/library/holy-bible/ (manifest.json + text/<lang>.json), built by
+ * scripts/ingest-bible.mjs. The verses of record are DB rows: the messages of the
+ * `work-holy-bible` channel.
  */
 
 export type Translation = 'web' | 'kjv'
