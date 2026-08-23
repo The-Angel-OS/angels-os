@@ -345,10 +345,77 @@ export async function acceptInvitation(
     /* fail-soft */
   }
 
+  // ── Arrival ───────────────────────────────────────────────────────────────
+  // Accepting used to return JSON and drop the person on the generic Spaces
+  // list: they were in, and nothing showed them where. Resolve the actual room
+  // and announce them in it, so arriving is not silence for either side.
+  const tenantId = typeof membership.tenant === 'object' ? membership.tenant?.id : membership.tenant
+  let channelId: number | string | null = null
+  let destination = spaceId ? `/dashboard/spaces/${spaceId}` : '/dashboard/spaces'
+
+  try {
+    const channels = await payload.find({
+      collection: 'channels',
+      where: { space: { equals: spaceId } },
+      sort: 'createdAt',
+      limit: 50,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const docs = channels.docs as unknown as Array<{ id: number | string; isDefault?: boolean }>
+    const target = docs.find((c) => c.isDefault) ?? docs[0]
+    if (target) {
+      channelId = target.id
+      destination = `/dashboard/spaces/${spaceId}/${channelId}`
+    }
+  } catch {
+    /* fail-soft — the space itself is still a real destination */
+  }
+
+  try {
+    const user = await payload.findByID({ collection: 'users', id: userId, depth: 0, overrideAccess: true })
+    const who = (user as unknown as { name?: string; email?: string })
+    const name = who.name || who.email?.split('@')[0] || 'Someone'
+    // Messages key on the channel SLUG, and channels carry no slug — so reuse
+    // the slug this space is already talking in rather than inventing one that
+    // nobody is reading.
+    const recent = await payload.find({
+      collection: 'messages',
+      where: { space: { equals: spaceId } },
+      sort: '-createdAt',
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const channelSlug =
+      (recent.docs as unknown as Array<{ channel?: string }>)[0]?.channel || 'general'
+    const invitedBy = typeof membership.invitedBy === 'object' ? membership.invitedBy : null
+    const inviterName = invitedBy?.name || invitedBy?.email || null
+
+    await payload.create({
+      collection: 'messages',
+      data: {
+        space: spaceId,
+        channel: channelSlug,
+        messageType: 'system',
+        visibility: 'tenant',
+        content: { type: 'text', text: inviterName ? `${name} joined, invited by ${inviterName}.` : `${name} joined.` },
+        ...(tenantId != null ? { tenant: tenantId } : {}),
+        metadata: { kind: 'member_joined', userId, membershipId: membership.id },
+      } as never,
+      overrideAccess: true,
+    })
+  } catch {
+    /* fail-soft — a missed hello must never fail the acceptance */
+  }
+
   return {
     membershipId: membership.id,
     spaceId,
     spaceName: space?.name || 'Unknown Space',
     role: membership.role,
+    channelId,
+    /** Where the client should actually take them. */
+    destination,
   }
 }

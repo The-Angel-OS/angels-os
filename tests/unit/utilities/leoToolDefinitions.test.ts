@@ -342,6 +342,9 @@ describe('executeToolCall', () => {
   it('returns "Unknown tool" for non-existent tool', async () => {
     const ctx: ToolExecutorContext = {
       payload: {} as any,
+      // Operator tools require manager standing; a platform role short-circuits
+      // the membership lookup (see leoToolStanding.resolveStanding).
+      roles: ['super_admin'],
       tenantId: 1,
     }
     const result = await executeToolCall('nonexistent_tool', {}, ctx)
@@ -356,6 +359,9 @@ describe('executeToolCall', () => {
     }
     const ctx: ToolExecutorContext = {
       payload: fakePayload as any,
+      // Operator tools require manager standing; a platform role short-circuits
+      // the membership lookup (see leoToolStanding.resolveStanding).
+      roles: ['super_admin'],
       tenantId: 1,
     }
     const result = await executeToolCall('query_products', { search: 'test' }, ctx)
@@ -554,6 +560,9 @@ describe('Generic Payload CRUD handlers', () => {
 
   const ctx: ToolExecutorContext = {
     payload: mockPayload as any,
+    // Operator tools require manager standing; a platform role short-circuits
+    // the membership lookup (see leoToolStanding.resolveStanding).
+    roles: ['super_admin'],
     tenantId: 1,
   }
 
@@ -684,6 +693,9 @@ describe('Navigation convenience tools', () => {
 
   const ctx: ToolExecutorContext = {
     payload: mockPayload as any,
+    // Operator tools require manager standing; a platform role short-circuits
+    // the membership lookup (see leoToolStanding.resolveStanding).
+    roles: ['super_admin'],
     tenantId: 1,
   }
 
@@ -816,6 +828,9 @@ describe('CRUD hardening', () => {
 
   const ctx: ToolExecutorContext = {
     payload: mockPayload as any,
+    // Operator tools require manager standing; a platform role short-circuits
+    // the membership lookup (see leoToolStanding.resolveStanding).
+    roles: ['super_admin'],
     tenantId: 1,
   }
 

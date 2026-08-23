@@ -23,6 +23,20 @@
 import type { Payload, Where } from 'payload'
 import { markdownToLexical } from '@/utilities/markdownToLexical'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
+import {
+  MEMBER_TOOLS,
+  handleWhatsOn,
+  handleRegisterForEvent,
+  handleMyThreads,
+  handleAskTheRoom,
+} from '@/utilities/leoMemberTools'
+import {
+  standingFor,
+  standingMeets,
+  standingRefusal,
+  resolveStanding,
+  type Standing,
+} from '@/utilities/leoToolStanding'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getBootstrapFeeStatus } from './bootstrapFees'
 import { getMembershipPlans, upsertMembershipPlan, removeMembershipPlan, type MembershipPlan } from './membershipPlans'
@@ -4195,6 +4209,9 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       required: ['reference'],
     },
   },
+  // The member-facing four — what a PERSON asks, rather than what the business
+  // needs doing. Kept in their own module; see leoMemberTools.ts.
+  ...MEMBER_TOOLS,
 ]
 
 // ---------------------------------------------------------------------------
@@ -4219,6 +4236,12 @@ export type ToolExecutorContext = {
    * chokepoint. Absent/empty = treat as non-privileged.
    */
   roles?: string[]
+  /**
+   * Resolved by executeToolCall before dispatch — what the caller may actually
+   * do here. Tools read it to narrow a result to the caller's OWN records
+   * (see query_orders); they never have to resolve it themselves.
+   */
+  standing?: Standing
   /** Sprint 44: Per-tenant AI provider config for multi-provider routing */
   tenantAiConfig?: Record<string, unknown>
   /**
@@ -4323,6 +4346,18 @@ export async function executeToolCall(
   ctx: ToolExecutorContext,
 ): Promise<string> {
   const { payload, tenantId } = ctx
+
+  // ── Authorization, before anything else runs ──────────────────────────────
+  // Every tool declares the standing it needs; the caller's standing is resolved
+  // from their platform roles and their membership on THIS portal. This is the
+  // gate the system prompt used to ask for — see leoToolStanding.ts.
+  const required = standingFor(toolName)
+  const held = await resolveStanding({ payload, userId: ctx.userId, tenantId: ctx.tenantId, roles: ctx.roles })
+  ctx.standing = held
+  if (!standingMeets(held, required)) {
+    ctx.trace?.skip(toolName, 'insufficient standing', { required, held })
+    return standingRefusal(toolName, required)
+  }
 
   // Validate mutation/outbound tool inputs before execution
   const validationError = validateToolInput(toolName, toolInput)
@@ -4636,6 +4671,15 @@ async function executeToolSwitch(
         return await handleGetDailyBread(toolInput)
       case 'get_agenda':
         return await handleGetAgenda(payload, toolInput, ctx)
+      // ─── LEO for members ────────────────────────────────────────────
+      case 'whats_on':
+        return await handleWhatsOn(payload, toolInput, ctx)
+      case 'register_for_event':
+        return await handleRegisterForEvent(payload, toolInput, ctx)
+      case 'my_threads':
+        return await handleMyThreads(payload, toolInput, ctx)
+      case 'ask_the_room':
+        return await handleAskTheRoom(payload, toolInput, ctx)
       case 'web_search':
         return await handleWebSearch(payload, toolInput, ctx)
       case 'set_availability':
@@ -6864,10 +6908,16 @@ async function handleQueryOrders(
   try {
     const where: any = {}
 
-    if (viewAs === 'customer') {
-      if (ctx.userId) {
-        where.customer = { equals: ctx.userId }
-      }
+    // `viewAs` is a MODEL-chosen argument, so it can never decide whose orders
+    // these are: passing 'vendor' used to drop the customer filter and return
+    // every order on the portal, names and addresses included. Standing decides.
+    // Below manager, the caller sees their own orders whatever the model asked for.
+    const seesAllOrders = ctx.standing === 'manager' || ctx.standing === 'platform'
+    if (!seesAllOrders) {
+      if (!ctx.userId) return 'Error: sign in to see your orders.'
+      where.customer = { equals: ctx.userId }
+    } else if (viewAs === 'customer' && ctx.userId) {
+      where.customer = { equals: ctx.userId }
     }
 
     if (statusFilter) {

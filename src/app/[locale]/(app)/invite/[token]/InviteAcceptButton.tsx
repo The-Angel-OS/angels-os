@@ -36,8 +36,12 @@ export function InviteAcceptButton({ token, locale }: { token: string; locale: s
         return
       }
 
-      // Success — redirect to dashboard spaces
-      router.push(`/${locale}/dashboard/spaces`)
+      // Success — go to the room they were invited to, not the list of rooms.
+      const dest =
+        typeof data?.destination === 'string' && data.destination.startsWith('/')
+          ? data.destination
+          : '/dashboard/spaces'
+      router.push(`/${locale}${dest}`)
     } catch {
       setError('Unable to reach the server. Please check your connection and try again.')
     } finally {

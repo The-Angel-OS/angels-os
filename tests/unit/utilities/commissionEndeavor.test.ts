@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('commission_endeavor', () => {
   it('refuses when the caller is not signed in — and provisions nothing', async () => {
     const out = await executeToolCall('commission_endeavor', { name: 'Bob Plumbing' }, ctx(mockPayload(), undefined))
-    expect(out).toMatch(/signed in/i)
+    expect(out).toMatch(/signed[ -]in/i)
     expect(provisionPortalMock).not.toHaveBeenCalled()
   })
 

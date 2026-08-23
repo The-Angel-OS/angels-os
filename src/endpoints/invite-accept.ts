@@ -34,10 +34,14 @@ export const inviteAcceptHandler: PayloadHandler = async (req) => {
 
     return Response.json({
       success: true,
+      // Where to take them. Accepting an invitation and being handed a space id
+      // is not arriving anywhere — the client follows this.
+      destination: result.destination,
       membership: {
         id: result.membershipId,
         spaceId: result.spaceId,
         spaceName: result.spaceName,
+        channelId: result.channelId,
         role: result.role,
       },
     })
