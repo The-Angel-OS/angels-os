@@ -1,6 +1,8 @@
 import type { Access, CollectionConfig, Where } from 'payload'
 
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { adminOrPortalManager, adminOrPortalManagerCreate } from '@/access/portalManager'
+import { enforceManagedTenant, enforceManagedTenantOnChange } from '@/hooks/enforceManagedTenant'
 import { syncUserTenants } from './hooks/syncUserTenants'
 import { autoJoinSpaces } from './hooks/autoJoinSpaces'
 
@@ -56,6 +58,8 @@ const membershipReadAccess: Access = async ({ req }) => {
 export const TenantMemberships: CollectionConfig = {
   slug: 'tenant-memberships',
   hooks: {
+    beforeValidate: [enforceManagedTenant],
+    beforeChange: [enforceManagedTenantOnChange],
     afterChange: [syncUserTenants, autoJoinSpaces],
   },
   admin: {
@@ -67,11 +71,14 @@ export const TenantMemberships: CollectionConfig = {
     hidden: ({ user }) => !(user && 'roles' in user && Array.isArray(user.roles) && user.roles.includes('super_admin')),
   },
   access: {
-    // Writes are admin-only over the API. Server flows use overrideAccess.
-    create: isPlatformAdmin,
-    update: isPlatformAdmin,
-    delete: ({ req: { user } }) =>
-      Boolean(user && checkRole(['super_admin', 'admin'], user)),
+    // A portal owner manages their OWN people — the roster of a tenant they
+    // hold tenant_admin/tenant_manager on, and no other. enforceManagedTenant
+    // is what stops a manager writing a membership onto somebody else's tenant,
+    // which would otherwise be self-service escalation onto their site.
+    // Server flows still use overrideAccess.
+    create: adminOrPortalManagerCreate,
+    update: adminOrPortalManager,
+    delete: adminOrPortalManager,
     // Reads are scoped to what you can legitimately see: your own memberships,
     // plus the roster of any tenant you actually belong to (the dashboard's
     // member list depends on this). Not the whole node's membership graph.

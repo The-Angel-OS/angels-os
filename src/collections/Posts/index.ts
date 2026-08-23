@@ -5,6 +5,8 @@ import { Carousel } from '@/blocks/Carousel/config'
 import { ThreeItemGrid } from '@/blocks/ThreeItemGrid/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { adminOnly } from '@/access/adminOnly'
+import { adminOrPortalManager, adminOrPortalManagerCreate } from '@/access/portalManager'
+import { enforceManagedTenant, enforceManagedTenantOnChange } from '@/hooks/enforceManagedTenant'
 import { Archive } from '@/blocks/ArchiveBlock/config'
 import { CallToAction } from '@/blocks/CallToAction/config'
 import { Content } from '@/blocks/Content/config'
@@ -35,10 +37,13 @@ export const Posts: CollectionConfig = {
   // payload_locked_documents lock query that breaks admin saves on the angels node.
   lockDocuments: false,
   access: {
-    create: adminOnly,
-    delete: adminOnly,
+    // A portal's own tenant_admin may run their own blog. Scoped by ROLE, not by
+    // tenant membership — see access/portalManager.ts for why that distinction
+    // is the whole ballgame. Read is unchanged: it is already public/published.
+    create: adminOrPortalManagerCreate,
+    delete: adminOrPortalManager,
     read: adminOrPublishedWithTenantScope,
-    update: adminOnly,
+    update: adminOrPortalManager,
   },
   admin: {
     group: 'Content',
@@ -210,7 +215,8 @@ export const Posts: CollectionConfig = {
     simpleSlugField,
   ],
   hooks: {
-    beforeChange: [fillMetaFromContent],
+    beforeValidate: [enforceManagedTenant],
+    beforeChange: [enforceManagedTenantOnChange, fillMetaFromContent],
     afterChange: [revalidatePost],
     afterDelete: [revalidateDelete],
   },

@@ -5,6 +5,8 @@ import { Carousel } from '@/blocks/Carousel/config'
 import { ThreeItemGrid } from '@/blocks/ThreeItemGrid/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { adminOnly } from '@/access/adminOnly'
+import { adminOrPortalManager, adminOrPortalManagerCreate } from '@/access/portalManager'
+import { enforceManagedTenant, enforceManagedTenantOnChange } from '@/hooks/enforceManagedTenant'
 import { Archive } from '@/blocks/ArchiveBlock/config'
 import { CallToAction } from '@/blocks/CallToAction/config'
 import { Content } from '@/blocks/Content/config'
@@ -54,10 +56,11 @@ export const Pages: CollectionConfig = {
   // guards concurrent-editor collisions (not needed here). See ensure-locked-docs-rels.ts.
   lockDocuments: false,
   access: {
-    create: adminOnly,
-    delete: adminOnly,
+    // See Posts — a portal owner may edit their own pages.
+    create: adminOrPortalManagerCreate,
+    delete: adminOrPortalManager,
     read: adminOrPublishedWithTenantScope,
-    update: adminOnly,
+    update: adminOrPortalManager,
   },
   admin: {
     group: 'Content',
@@ -228,6 +231,8 @@ export const Pages: CollectionConfig = {
     simpleSlugField,
   ],
   hooks: {
+    beforeValidate: [enforceManagedTenant],
+    beforeChange: [enforceManagedTenantOnChange],
     afterChange: [revalidatePage, pagePublishedDirective],
     afterDelete: [revalidateDelete],
   },

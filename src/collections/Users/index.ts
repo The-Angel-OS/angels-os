@@ -5,6 +5,7 @@ import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { publicAccess } from '@/access/publicAccess'
 import { adminOrSelf } from '@/access/adminOrSelf'
 import { checkRole } from '@/access/utilities'
+import { managedTenantIds } from '@/access/portalManager'
 
 import { computeFederatedIdentityId } from '@/utilities/federatedIdentity'
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
@@ -23,7 +24,15 @@ export const Users: CollectionConfig = {
     // super_admin: full platform access
     // admin: tenant admin, can access Payload panel and manage tenant data
     // archangel: elevated user role, can access Payload panel
-    admin: ({ req: { user } }) => checkRole(['super_admin', 'admin', 'archangel'], user),
+    // Platform roles, OR anyone who manages a portal. A tenant_admin holds no
+    // platform role at all, so this refused the owner of a site entry to the
+    // panel that every dashboard "Edit" link points at — the error Tyler hit on
+    // her own portal. What they can SEE inside is unchanged and still decided
+    // per collection; this is only the door.
+    admin: async ({ req }) => {
+      if (checkRole(['super_admin', 'admin', 'archangel'], req.user)) return true
+      return (await managedTenantIds(req)).length > 0
+    },
     create: publicAccess,
     delete: adminOnly,
     read: adminOrSelf,
