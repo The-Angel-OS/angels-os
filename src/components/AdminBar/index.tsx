@@ -26,6 +26,18 @@ const collectionLabels: Record<string, { plural: string; singular: string }> = {
 const CREATABLE_AT_ROOT = ['posts', 'products', 'events'] as const
 
 /**
+ * Route segment → collection, where the URL does not match the collection name.
+ *
+ * The product LISTING lives at /shop while a product DOCUMENT lives at
+ * /products/<slug>, so keying off the segment alone missed the shop entirely —
+ * which is the listing an owner adds to most.
+ */
+const ROUTE_ALIASES: Record<string, string> = { shop: 'products' }
+
+const collectionForSegment = (seg: string): string | undefined =>
+  collectionLabels[seg] ? seg : ROUTE_ALIASES[seg]
+
+/**
  * Where the "+ New" button points, or null when it should not appear.
  *
  * Exported so the routing rule can be tested without rendering the bar: the
@@ -33,13 +45,13 @@ const CREATABLE_AT_ROOT = ['posts', 'products', 'events'] as const
  * (a document page is not a listing root, /posts/page/2 is not either).
  */
 export function newDocHrefFor(segments: string[], pathname: string): string | null {
-  const index = segments.findIndex((seg) => Boolean(collectionLabels[seg]))
+  const index = segments.findIndex((seg) => Boolean(collectionForSegment(seg)))
   if (index < 0) return null
   // A listing ROOT — the collection segment is the last one. On a document
   // (/posts/my-post) or a pagination page (/posts/page/2) the edit link already
   // has somewhere to go.
   if (index !== segments.length - 1) return null
-  const collection = segments[index]!
+  const collection = collectionForSegment(segments[index]!)!
   if (!(CREATABLE_AT_ROOT as readonly string[]).includes(collection)) return null
   const label = collectionLabels[collection]!.plural
   return `/admin/collections/${collection}/create?returnTo=${encodeURIComponent(
@@ -84,8 +96,8 @@ export const AdminBar: React.FC<{
   // null/undefined — so on /posts/my-post it picked "my-post", which is not a
   // collection, and the bar quietly labelled a post as a Page with no badge.
   // Take the first segment that IS a known collection instead.
-  const collectionIndex = (segments || []).findIndex((seg) => Boolean(collectionLabels[seg]))
-  const segmentKey = collectionIndex >= 0 ? segments[collectionIndex] : undefined
+  const collectionIndex = (segments || []).findIndex((seg) => Boolean(collectionForSegment(seg)))
+  const segmentKey = collectionIndex >= 0 ? collectionForSegment(segments[collectionIndex]!) : undefined
   const collection = segmentKey || 'pages'
 
   const newDocHref = newDocHrefFor(segments || [], pathname || '')

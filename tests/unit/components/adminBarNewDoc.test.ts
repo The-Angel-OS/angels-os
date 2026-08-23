@@ -25,6 +25,14 @@ describe('AdminBar "+ New" button', () => {
     expect(newDocHrefFor(['pages'], '/en/pages')).toBeNull()
   })
 
+  it('treats /shop as the products listing', () => {
+    // The listing is /shop but a document is /products/<slug> — keying off the
+    // segment name alone missed the shop, the listing owners add to most.
+    const href = newDocHrefFor(['shop'], '/en/shop')
+    expect(href).toContain('/admin/collections/products/create')
+    expect(href).toContain(`returnTo=${encodeURIComponent('/en/shop')}`)
+  })
+
   it('ignores routes that are not collections', () => {
     expect(newDocHrefFor(['about'], '/en/about')).toBeNull()
     expect(newDocHrefFor([], '/en')).toBeNull()
