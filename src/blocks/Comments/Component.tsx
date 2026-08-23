@@ -11,7 +11,7 @@ import type { CommentsBlock as CommentsBlockProps } from '@/payload-types'
 type CommentsBlockComponentProps = CommentsBlockProps & {
   id?: string
   className?: string
-  docContext?: { id: number; collection: 'posts' | 'products' }
+  docContext?: { id: number; collection: 'posts' | 'products' | 'pages' }
 }
 
 export const CommentsBlock: React.FC<CommentsBlockComponentProps> = async ({
@@ -22,7 +22,7 @@ export const CommentsBlock: React.FC<CommentsBlockComponentProps> = async ({
     return (
       <div className="container py-8">
         <p className="text-sm text-muted-foreground">
-          Comments block requires document context. Add this block to a Post or Product page.
+          Comments block requires document context. Add this block to a Page, Post or Product.
         </p>
       </div>
     )

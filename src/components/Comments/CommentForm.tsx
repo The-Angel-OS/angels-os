@@ -9,7 +9,7 @@ import { Star } from 'lucide-react'
 
 type CommentFormProps = {
   parentId: number
-  parentCollection: 'posts' | 'products'
+  parentCollection: 'posts' | 'products' | 'pages'
   showRating?: boolean
   /** Pre-fill from logged-in user — hides name/email fields when provided */
   user?: { name?: string; email?: string } | null

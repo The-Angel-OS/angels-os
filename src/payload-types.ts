@@ -1572,6 +1572,7 @@ export interface Page {
     mediaFit?: ('cover' | 'contain' | 'fill') | null;
   };
   layout: (
+    | CommentsBlock
     | CallToActionBlock
     | ContentBlock
     | MediaBlock
@@ -4735,7 +4736,7 @@ export interface Comment {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The Post or Product this comment is attached to
+   * The Page, Post or Product this comment is attached to
    */
   parent:
     | {
@@ -4745,6 +4746,10 @@ export interface Comment {
     | {
         relationTo: 'products';
         value: number | Product;
+      }
+    | {
+        relationTo: 'pages';
+        value: number | Page;
       };
   /**
    * Display name for the comment author
@@ -8515,6 +8520,7 @@ export interface PagesSelect<T extends boolean = true> {
   layout?:
     | T
     | {
+        comments?: T | CommentsBlockSelect<T>;
         cta?: T | CallToActionBlockSelect<T>;
         content?: T | ContentBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
@@ -8550,6 +8556,15 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CommentsBlock_select".
+ */
+export interface CommentsBlockSelect<T extends boolean = true> {
+  blockName?: T;
+  heading?: T;
+  id?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8965,15 +8980,6 @@ export interface PostsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "CommentsBlock_select".
- */
-export interface CommentsBlockSelect<T extends boolean = true> {
-  blockName?: T;
-  heading?: T;
-  id?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

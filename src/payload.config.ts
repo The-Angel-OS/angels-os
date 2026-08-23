@@ -783,7 +783,7 @@ export default buildConfig({
           !author ||
           !email ||
           !content ||
-          !['posts', 'products'].includes(parentCollection as string)
+          !['posts', 'products', 'pages'].includes(parentCollection as string)
         ) {
           return Response.json(
             { message: 'Missing or invalid: parentId, parentCollection, author, email, content' },

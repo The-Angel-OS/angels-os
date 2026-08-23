@@ -60,7 +60,7 @@ export default async function Page({ params }: Args) {
     return notFound()
   }
 
-  const { hero, layout } = page
+  const { hero, layout, id: pageId } = page
 
   // Consistent home-page hero across every endeavor: use the page's own hero
   // image when set; otherwise fall back to the branded CollectionHero (tenant
@@ -119,7 +119,7 @@ export default async function Page({ params }: Args) {
       {/* Above the pitch, not below it — a customer should not have to read
           the sales page to find the door back into their own portal. */}
       <AlreadyOnboardedBanner tenantSlug={tenantSlug} />
-      <RenderBlocks blocks={layout} tenantSlug={tenantSlug} />
+      <RenderBlocks blocks={layout} tenantSlug={tenantSlug} docContext={{ id: pageId, collection: 'pages' }} />
     </article>
   )
 }

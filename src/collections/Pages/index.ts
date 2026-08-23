@@ -8,6 +8,7 @@ import { adminOnly } from '@/access/adminOnly'
 import { adminOrPortalManager, adminOrPortalManagerCreate } from '@/access/portalManager'
 import { enforceManagedTenant, enforceManagedTenantOnChange } from '@/hooks/enforceManagedTenant'
 import { Archive } from '@/blocks/ArchiveBlock/config'
+import { Comments } from '@/blocks/Comments/config'
 import { CallToAction } from '@/blocks/CallToAction/config'
 import { Content } from '@/blocks/Content/config'
 import { FormBlock } from '@/blocks/Form/config'
@@ -171,6 +172,7 @@ export const Pages: CollectionConfig = {
               name: 'layout',
               type: 'blocks',
               blocks: [
+                Comments,
                 CallToAction,
                 Content,
                 MediaBlock,

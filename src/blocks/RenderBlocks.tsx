@@ -27,7 +27,7 @@ import React, { Fragment } from 'react'
 
 import type { Page } from '../payload-types'
 
-export type DocContext = { id: number; collection: 'posts' | 'products' }
+export type DocContext = { id: number; collection: 'posts' | 'products' | 'pages' }
 
 const blockComponents = {
   archive: ArchiveBlock,
