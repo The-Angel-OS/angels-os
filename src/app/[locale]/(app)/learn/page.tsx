@@ -8,9 +8,9 @@ import { getAvailableWorks } from '@/works/registry'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 export const metadata = {
-  title: 'Learn — Angel OS',
+  title: 'Learn',
   description:
-    'Understand Angel OS: a federated cooperative operating system with a constitutional AI guardian. Start here.',
+    'Guides, books and living documents — start here.',
 }
 
 export const dynamic = 'force-dynamic'

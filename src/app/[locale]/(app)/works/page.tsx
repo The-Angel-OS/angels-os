@@ -4,9 +4,9 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { WorksGrid } from '@/components/Library/WorksGrid'
 
 export const metadata = {
-  title: 'The Library — Angel OS',
+  title: 'The Library',
   description:
-    'Books, case files, manifestos, and living documents — read freely on Angel OS.',
+    'Books, case files, manifestos, and living documents — read freely, no account required.',
 }
 
 export const dynamic = 'force-dynamic'
