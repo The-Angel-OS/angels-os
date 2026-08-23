@@ -29,6 +29,7 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 import { DefaultDocumentIDType, Where } from 'payload'
+import { managedTenantIds } from '@/access/portalManager'
 
 export const ProductsCollection: CollectionOverride = ({ defaultCollection }) => ({
   ...defaultCollection,
@@ -42,13 +43,16 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   // WHERE constraint would still return 403 because Payload can't find the doc).
   access: {
     ...defaultCollection?.access,
-    delete: async ({ req: { user, payload }, id }) => {
+    delete: async ({ req, id }) => {
+      const { user, payload } = req
       if (!user) return false
       if ((user as any).isSystemUser) return true
 
-      const tenantIds = ((user as any).tenants || []).map((t: any) =>
-        t?.tenant && typeof t.tenant === 'object' ? t.tenant.id : t?.tenant,
-      ).filter(Boolean)
+      // Tenants this user MANAGES. `user.tenants` records membership with no
+      // role, and enrol-on-arrival makes every signed-in visitor a tenant_member
+      // of any portal whose page they load — so this used to let anyone who had
+      // merely looked at a shop delete its products. See access/portalManager.
+      const tenantIds = await managedTenantIds(req)
       if (tenantIds.length === 0) return false
 
       // Single-doc delete: verify ownership via overrideAccess lookup so draft

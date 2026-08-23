@@ -60,7 +60,28 @@ function makeReq(
     return Promise.resolve({ docs: [], totalDocs: 0 })
   })
 
-  const payload = { find: findMock, ...payloadOverrides }
+  // Authorization resolves the ROLE from tenant-memberships now, not from
+  // user.tenants (membership with no role — see access/portalManager). Wrapped
+  // rather than branched inside findMock because several tests replace `find`
+  // wholesale, and every one of them still needs this answered.
+  const inner = (payloadOverrides.find as typeof findMock | undefined) ?? findMock
+  const find = vi.fn().mockImplementation((args: { collection?: string } = {}) => {
+    if (args?.collection === 'tenant-memberships') {
+      const docs = ((user as { tenants?: Array<{ tenant?: unknown }> } | null)?.tenants ?? []).map(
+        // A fixture may say `role` to describe a non-manager (a plain visitor
+        // enrolled on arrival); manager is the default the old fixtures meant.
+        (t) => ({
+          tenant: t?.tenant,
+          role: (user as { role?: string } | null)?.role ?? 'tenant_admin',
+          status: 'active',
+        }),
+      )
+      return Promise.resolve({ docs, totalDocs: docs.length })
+    }
+    return inner(args as never)
+  })
+
+  const payload = { ...payloadOverrides, find }
   const nativeReq = new Request('http://localhost/api/orders/vendor', {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -82,6 +103,17 @@ describe('ordersVendorHandler', () => {
     expect(res.status).toBe(401)
     const body = await res.json()
     expect(body.error).toMatch(/authentication required/i)
+  })
+
+  it('refuses a visitor who merely BELONGS to the tenant', async () => {
+    // enrol-on-arrival makes every signed-in visitor an active tenant_member of
+    // any portal whose page they load. Before 260822 that was enough to read
+    // this endpoint — another portal's orders, customer names and addresses
+    // included. Only a manager may.
+    const visitor = { id: 77, tenants: [{ tenant: { id: 1 } }], role: 'tenant_member' }
+    const req = makeReq(visitor)
+    const res = await ordersVendorHandler(req)
+    expect(res.status).toBe(400)
   })
 
   it('returns 400 when user has no tenants', async () => {

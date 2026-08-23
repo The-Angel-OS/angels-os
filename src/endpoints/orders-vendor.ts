@@ -8,6 +8,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { managedTenantIds, isPlatformAdmin } from '@/access/portalManager'
 
 export const ordersVendorHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -19,10 +20,11 @@ export const ordersVendorHandler: PayloadHandler = async (req) => {
   const rateLimited = applyRateLimit(req, 'orders')
   if (rateLimited) return rateLimited
 
-  // Find holons owned by user's tenants
-  const userTenants = ((user as any).tenants || []).map((t: any) =>
-    typeof t.tenant === 'object' ? t.tenant?.id : t.tenant,
-  )
+  // Tenants this user MANAGES. `user.tenants` is membership with no role, and
+  // enrol-on-arrival makes every signed-in visitor a tenant_member of any portal
+  // whose page they load — so keying off it handed a visitor another portal's
+  // order list, customer names and addresses included. See access/portalManager.
+  const userTenants = await managedTenantIds(req)
 
   if (userTenants.length === 0) {
     return Response.json({ error: 'No tenant found. Register a holon first.' }, { status: 400 })

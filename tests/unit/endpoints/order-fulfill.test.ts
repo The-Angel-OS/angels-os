@@ -6,6 +6,7 @@
  * Validates state machine transitions.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { membershipFindFor } from './_managerMemberships'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ const DEFAULT_ORDER = {
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
-function makePayload(overrides: Record<string, unknown> = {}) {
+function makePayload(overrides: Record<string, unknown> = {}, user: unknown = null) {
   const findByIDMock = vi.fn().mockImplementation(({ collection }: { collection: string }) => {
     if (collection === 'orders') return Promise.resolve(DEFAULT_ORDER)
     if (collection === 'holon-capabilities') return Promise.resolve(DEFAULT_HOLON)
@@ -53,6 +54,7 @@ function makePayload(overrides: Record<string, unknown> = {}) {
   })
 
   return {
+    find: membershipFindFor(user),
     findByID: findByIDMock,
     update: vi.fn().mockResolvedValue({}),
     ...overrides,
@@ -64,7 +66,7 @@ function makeReq(
   body: Record<string, unknown> | null = { orderId: 42, itemIndex: 0, status: 'accepted' },
   payloadOverrides: Record<string, unknown> = {},
 ) {
-  const payload = makePayload(payloadOverrides)
+  const payload = makePayload(payloadOverrides, user)
   const nativeReq = new Request('http://localhost/api/orders/fulfill', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

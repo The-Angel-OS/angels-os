@@ -39,14 +39,13 @@ export default async function DashboardConnectorsPage({
   const isPlatformAdmin = checkRole(ADMIN_ROLES, user)
   if (!isPlatformAdmin) {
     if (tenantId == null) redirect(`${prefix}/dashboard`)
-    const userTenantIds = (Array.isArray((user as { tenants?: unknown[] }).tenants) ? (user as { tenants: unknown[] }).tenants : []).map((t) => {
-      const tt = (t as { tenant?: unknown }).tenant
-      return tt && typeof tt === 'object' ? (tt as { id: number | string }).id : (tt as number | string)
-    })
+    // MANAGED only. This used to also accept plain membership, which since
+    // enrol-on-arrival means "has loaded this portal's home page once" — any
+    // signed-in visitor became a tenant_member and could then read that
+    // portal's integration secrets here. Belonging is not entitlement to
+    // credentials. See access/portalManager.
     const managed = await managerTenantIds(user as { id?: number | string })
-    const entitled =
-      userTenantIds.some((id) => String(id) === String(tenantId)) ||
-      managed.some((id) => String(id) === String(tenantId))
+    const entitled = managed.some((id) => String(id) === String(tenantId))
     if (!entitled) redirect(`${prefix}/dashboard`)
   }
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { membershipFindFor } from './_managerMemberships'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ function makeReq(
   })
 
   const payload = {
+    find: membershipFindFor(user),
     findByID,
     update: vi.fn().mockResolvedValue({}),
     ...payloadOverrides,

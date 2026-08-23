@@ -12,6 +12,7 @@ import type { PayloadHandler } from 'payload'
 import { validateFulfillmentTransition, validateFulfillmentUpdate } from '@/utilities/orderRoutingEngine'
 import type { FulfillmentUpdate } from '@/utilities/orderRoutingEngine'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
+import { managedTenantIds, isPlatformAdmin } from '@/access/portalManager'
 
 export const orderFulfillHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
@@ -90,11 +91,11 @@ export const orderFulfillHandler: PayloadHandler = async (req) => {
       }) as any
 
       const holonTenant = typeof holon.tenant === 'object' ? holon.tenant?.id : holon.tenant
-      const userTenants = ((user as any).tenants || []).map((t: any) =>
-        typeof t.tenant === 'object' ? t.tenant?.id : t.tenant,
-      )
+      // Managed tenants, not merely joined ones — enrol-on-arrival makes any
+      // signed-in visitor a tenant_member of a portal they simply looked at.
+      const userTenants = await managedTenantIds(req)
 
-      const isAdmin = Array.isArray((user as any).roles) && (user as any).roles.includes('admin')
+      const isAdmin = isPlatformAdmin(user)
       if (!isAdmin && !userTenants.includes(holonTenant)) {
         return Response.json(
           { error: 'Only the assigned vendor can update fulfillment status.' },
