@@ -97,6 +97,28 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[P0] No subscription has EVER completed on live** — `memberships` is 0 rows platform-wide; 14 portals
+  on `free`, 8 on `demo`, nothing paid. Every money bug this week was invisible until someone tried it
+  (comments, `/book`, `orders-vendor`, the webhook event list). *Next:* one $1 Founding Dollar checkout on
+  Clearwater's host, confirm the webhook writes the row, refund. Twenty minutes; derisks the whole
+  contributions story. [[project_portal_coequality_billing]] `260823`
+- **[P1] Imported Google contacts land in the wrong portal** — `resolveUserHomeTenant` scopes them to the
+  importer's PERSONAL guardian-angel portal, so a pastor importing the congregation gets them in his own
+  address book rather than the church's, where staff could act on them. *Where:*
+  `src/utilities/googleContactsImport.ts`. `260823`
+- **[P1] No bulk invite** — you can import 400 contacts and invite one person; nothing walks the list.
+  That is the missing verb for "invite all our members". **Needs a per-tenant daily cap first:** mass
+  invites from one portal burn the shared Resend sending reputation for every other portal on the node.
+  A shareable join link is the better primitive for congregations anyway. `260823`
+- **[P1] An invited person lands nowhere** — `invite-accept` returns `{ spaceId }` as JSON; nobody is taken
+  into the channel they were invited to. Arrival is silence. *Next:* carry the destination through accept
+  and drop them in the channel with the inviter's message pinned. `260823`
+- **[P2] Three files still read `user.tenants` unreviewed** — `ai-bus-poll`, `ai-bus-stream`, `x-post` pick
+  WHICH tenant to act in rather than whether you may. Listed in `noRoleBlindTenantAuth.test.ts`'s
+  allowlist so they are tracked, not blessed. `260822`
+- **[P2] `/learn/works` still resolves on portals with Works off** — the feature toggle removes the nav
+  entry, not the route. Ken's call whether it should 404. `260823`
+
 - **[P2] Intent pre-classifier in front of `brain.ts` (defer the learned tier)** — leo-brain already IS
   the "put the LLM last" cascade: `triage.ts` = pure deterministic perception gate, provider-order in
   `brain.ts` = cheap-model-first. The one unbuilt rung is **intent/tool** classification of a typed
@@ -330,6 +352,44 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[SEC 260822] Visiting a portal stopped granting rights over it** — enrol-on-arrival made every
+  signed-in visitor an active `tenant_member` of any portal whose page they loaded, and
+  `syncUserTenants` copied that into `users.tenants` regardless of role. Five places authorized off
+  that array: a stranger could delete a shop's products and list/accept/fulfil/ship its orders
+  (`orders-vendor` runs `overrideAccess` and returns customer names and addresses), and the
+  integrations page handed over another portal's connector secrets. All now resolve the role from
+  `tenant-memberships` via `managedTenantIds()`. `noRoleBlindTenantAuth.test.ts` fails on any new
+  file reading `user.tenants`. [[project_portal_manager_access]] `260822`
+- **[P0 260822] A portal owner can edit their own portal** — content writes were `adminOnly`, a
+  PLATFORM role no tenant_admin holds, and nine dashboard screens link into `/admin/collections/...`.
+  Every invited owner hit "You are not allowed to access this page" on their first Edit click.
+  Posts, Pages and TenantMemberships now accept a portal manager, scoped by role;
+  `enforceManagedTenant` runs at beforeValidate AND beforeChange. `260822`
+- **[P0 260822] Comments were impossible platform-wide** — `/api/comments/add` was shadowed by
+  Payload's own REST routes for the `comments` collection, so the handler was never reached. Moved to
+  `/api/comment-ops/add`; `/media/analyze` was dead the same way. `endpointCollectionCollision.test.ts`
+  now enforces the rule that was written down and unenforced. `260822`
+- **[P0 260822] The admin create view rendered blank** — `hero_scrim` landed on `pages`/`posts` but not
+  `_pages_v`/`_posts_v`; the create view autosaves on open and that insert died, so the page showed
+  nothing at all. Every page and post draft save failed 13:32–16:37. `versionedColumnParity.test.ts`
+  now catches the class. [[project_frozen_migration_rule]] `260822`
+- **[P1 260822] PMs between people work** — the whole path existed (pair slug, endpoint,
+  membership-grained read filter, `openDM`); nothing ever called it with two humans and the roster had
+  no button. Added the button; `openDM` no longer requires a preloaded `dmSpaceId`, which was breaking
+  every FIRST message. Seven empty DM artifacts deleted. `260823`
+- **[P1 260822] Core runs through PgBouncer** — moved US East -> US West to sit with Core and Postgres,
+  `DATABASE_URI` switched, `DATABASE_SSL` -> `disable` (the bouncer has no TLS). Postgres holds ~5
+  backends instead of Core's whole pool, so `max_connections=100` is no longer the portal ceiling. `260822`
+- **[P1 260823] Settings stopped losing your logo** — the tab bar unmounts the form, so returning
+  re-initialised every field from the pre-save server props. `router.refresh()` after save. A tenant
+  save now also busts the header/footer cache tags, which held a populated COPY of the tenant. `260823`
+- **[P1 260823] Archive block is findable and fits the row** — relabelled "Featured Posts & Products"
+  (it was called "Archive", so nobody looking for featured posts found it), added the `columns`
+  control, and added `featuredPosts` to `pages-from-spec` so provisioning and LEO can place one. `260823`
+- **[P1 260823] Booking fee capped at $9.99** — `feeCents` applies `MAX_PLATFORM_FEE_CENTS` inside the
+  one function that defines the platform's cut, so no future caller can take an uncapped percentage.
+  Rate stays 5% and runtime-configurable. `260823`
 
 - **Image-only channel messages** — parse attachments before the empty-message guard; image with no text now analyzes — `32a3a89`. `260723`
 - **Vapi end-of-call → cost ledger + Contact call log** — telephony cost-events row + call metrics/transcript/recording-URL on the matching Contact — `5382358`. `260723`

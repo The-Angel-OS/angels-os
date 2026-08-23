@@ -6,6 +6,7 @@ import {
   normalizeFeeBps,
   DEFAULT_PLATFORM_FEE_BPS,
   MAX_PLATFORM_FEE_BPS,
+  MAX_PLATFORM_FEE_CENTS,
 } from '@/utilities/platformFee'
 
 /**
@@ -81,17 +82,28 @@ describe('getPlatformFeeBps — per-tenant override', () => {
 })
 
 describe('feeCents — the invariant that would have caught the 40% fee', () => {
-  it('is exactly the basis-point share of the gross, rounded to a cent', () => {
+  it('is exactly the basis-point share of the gross, rounded to a cent, up to the cap', () => {
     for (const gross of [1, 99, 7500, 59900, 123_456]) {
       for (const bps of [0, 250, 500, 1000, 2000]) {
-        expect(feeCents(gross, bps)).toBe(Math.round((gross * bps) / 10000))
+        const uncapped = Math.round((gross * bps) / 10000)
+        expect(feeCents(gross, bps)).toBe(Math.min(uncapped, MAX_PLATFORM_FEE_CENTS))
       }
     }
   })
 
-  it('takes 10% of a $599 belt, not 40%', () => {
-    // The real case. $59.90 to Kenneth, not $239.60.
-    expect(feeCents(59_900, 1000)).toBe(5_990)
+  it('never takes more than $9.99 from one booking', () => {
+    // A mover's $600 job at 5% is $30 — the number a one-van operation notices
+    // every time and does arithmetic on before deciding whether to keep us.
+    expect(feeCents(60_000, 500)).toBe(MAX_PLATFORM_FEE_CENTS)
+    // The $599 belt: $59.90 uncapped, $9.99 with the ceiling.
+    expect(feeCents(59_900, 1000)).toBe(MAX_PLATFORM_FEE_CENTS)
+  })
+
+  it('still charges the honest percentage below the cap', () => {
+    expect(feeCents(10_000, 500)).toBe(500) // $100 job -> $5.00
+    expect(feeCents(4_000, 500)).toBe(200) // $40 job  -> $2.00
+    // The cap binds from roughly $200 of charge upward.
+    expect(feeCents(19_980, 500)).toBe(999)
   })
 
   it('is zero for a non-positive gross rather than NaN', () => {

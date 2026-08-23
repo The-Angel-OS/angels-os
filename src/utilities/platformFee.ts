@@ -32,6 +32,21 @@ export const DEFAULT_PLATFORM_FEE_BPS = 500
 /** Refuse anything above this without a code change: a guard against a fat finger. */
 export const MAX_PLATFORM_FEE_BPS = 2000
 
+/**
+ * The most the platform takes from ONE booking, in cents. Ken's call, 260823.
+ *
+ * A percentage with no ceiling stops being a fee and becomes a stake. 5% of a
+ * mover's $600 job is $30 — a number a one-van operation notices every single
+ * time, and the one they do arithmetic on before deciding to keep using us. The
+ * cap makes the answer to "what does this cost me" a sentence instead of a
+ * calculation: never more than ten dollars, whatever the job.
+ *
+ * It binds above ~$200 of charge, so ordinary small jobs pay the honest 5% and
+ * only the big ones get the discount — which is the right way round, because the
+ * big ones are the relationship worth keeping.
+ */
+export const MAX_PLATFORM_FEE_CENTS = 999
+
 async function platformTenantId(payload: Payload): Promise<number | undefined> {
   const r = await payload.find({
     collection: 'tenants',
@@ -129,10 +144,17 @@ export async function setPlatformFeeBps(payload: Payload, bps: number): Promise<
   return value
 }
 
-/** Fee on a gross charge, in whole cents. Integer math throughout. */
+/**
+ * Fee on a gross charge, in whole cents. Integer math throughout, then capped.
+ *
+ * The cap is applied HERE rather than at the call site so no future caller can
+ * take an uncapped percentage by forgetting about it — there is one definition
+ * of what the platform charges, and it is this function.
+ */
 export function feeCents(grossCents: number, bps: number): number {
   if (!Number.isFinite(grossCents) || grossCents <= 0) return 0
-  return Math.round((grossCents * normalizeFeeBps(bps)) / 10000)
+  const raw = Math.round((grossCents * normalizeFeeBps(bps)) / 10000)
+  return Math.min(raw, MAX_PLATFORM_FEE_CENTS)
 }
 
 export const bpsToPercent = (bps: number): string => (normalizeFeeBps(bps) / 100).toFixed(2)
