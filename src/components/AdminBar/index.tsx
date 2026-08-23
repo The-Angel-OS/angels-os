@@ -13,6 +13,38 @@ const collectionLabels: Record<string, { plural: string; singular: string }> = {
   posts: { plural: 'Posts', singular: 'Post' },
   projects: { plural: 'Projects', singular: 'Project' },
   products: { plural: 'Products', singular: 'Product' },
+  events: { plural: 'Events', singular: 'Event' },
+}
+
+/**
+ * Collections whose LISTING root offers a "New …" button.
+ *
+ * Only the ones an owner adds to regularly. Pages are created rarely, and
+ * `/` is the home page rather than a listing anyway, so there is no root to
+ * put the button on.
+ */
+const CREATABLE_AT_ROOT = ['posts', 'products', 'events'] as const
+
+/**
+ * Where the "+ New" button points, or null when it should not appear.
+ *
+ * Exported so the routing rule can be tested without rendering the bar: the
+ * whole point is which URL you land on, and that is easy to get subtly wrong
+ * (a document page is not a listing root, /posts/page/2 is not either).
+ */
+export function newDocHrefFor(segments: string[], pathname: string): string | null {
+  const index = segments.findIndex((seg) => Boolean(collectionLabels[seg]))
+  if (index < 0) return null
+  // A listing ROOT — the collection segment is the last one. On a document
+  // (/posts/my-post) or a pagination page (/posts/page/2) the edit link already
+  // has somewhere to go.
+  if (index !== segments.length - 1) return null
+  const collection = segments[index]!
+  if (!(CREATABLE_AT_ROOT as readonly string[]).includes(collection)) return null
+  const label = collectionLabels[collection]!.plural
+  return `/admin/collections/${collection}/create?returnTo=${encodeURIComponent(
+    pathname || `/${collection}`,
+  )}&returnLabel=${encodeURIComponent(label)}`
 }
 
 const Title: React.FC = () => (
@@ -46,9 +78,17 @@ export const AdminBar: React.FC<{
   const locale = (params?.locale as string) || 'en'
   const [show, setShow] = useState(false)
 
-  // Detect current collection from route segments
-  const segmentKey = segments?.[1] ?? segments?.[0]
-  const collection = segmentKey && collectionLabels[segmentKey] ? segmentKey : 'pages'
+  // Detect current collection from route segments.
+  //
+  // This used to read `segments[1] ?? segments[0]`, but ?? only falls back on
+  // null/undefined — so on /posts/my-post it picked "my-post", which is not a
+  // collection, and the bar quietly labelled a post as a Page with no badge.
+  // Take the first segment that IS a known collection instead.
+  const collectionIndex = (segments || []).findIndex((seg) => Boolean(collectionLabels[seg]))
+  const segmentKey = collectionIndex >= 0 ? segments[collectionIndex] : undefined
+  const collection = segmentKey || 'pages'
+
+  const newDocHref = newDocHrefFor(segments || [], pathname || '')
 
   // Detect if we're on the brochure vs dashboard
   const isDashboard = pathname?.includes('/dashboard')
@@ -113,6 +153,18 @@ export const AdminBar: React.FC<{
               style={{ background: 'rgba(245, 166, 35, 0.15)', color: '#f5a623' }}>
               {pageTypeLabel}
             </span>
+          )}
+
+          {/* On a listing root there is no document to edit — offer to add one.
+              returnTo hands AdminReturnBar the way back out of the editor. */}
+          {newDocHref && (
+            <Link
+              href={newDocHref}
+              className="rounded px-2 py-1 font-semibold transition-opacity hover:opacity-90"
+              style={{ background: '#f5a623', color: '#1a1a1a' }}
+            >
+              + New {collectionLabels[collection]!.singular}
+            </Link>
           )}
 
           {/* Toggle: show Dashboard link when on brochure, show Site link when on dashboard */}
