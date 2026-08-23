@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { SoulManifest } from '@/souls'
+import type { WorkRecord } from '@/works/registry'
 
 /* ─── Answer53 LCARS palette (muted) ─────────────────────────────────── */
 const LCARS = {
@@ -52,7 +52,7 @@ const BADGE_COLOR: Record<string, string> = {
 }
 
 interface Props {
-  soul: SoulManifest
+  soul: WorkRecord
   activeDocId: string
   allContents: Record<string, string>
   /**
@@ -91,7 +91,7 @@ export function SoulViewer({ soul, activeDocId, allContents, basePath }: Props) 
 
   const docIdByFilename = useMemo(() => {
     const map: Record<string, string> = {}
-    for (const d of soul.docs) map[d.filename.toLowerCase()] = d.id
+    for (const d of soul.docs) if (d.filename) map[d.filename.toLowerCase()] = d.id
     return map
   }, [soul.docs])
 

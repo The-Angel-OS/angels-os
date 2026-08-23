@@ -2,12 +2,9 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
-import path from 'path'
-import fs from 'fs'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { getSoul } from '@/souls'
-import { isWorkAvailable } from '@/souls/subscriptions'
+import { getWork, isWorkAvailable, type WorkDoc } from '@/works/registry'
 import { getWorkJson } from '@/utilities/getWorkJson'
 import { BookReader } from '@/components/Library/BookReader'
 import { SoulViewer } from '../SoulViewer'
@@ -31,7 +28,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; soul: string; page: string }>
 }): Promise<Metadata> {
   const { soul: soulId, page } = await params
-  const soul = getSoul(soulId)
+  const soul = await getWork(soulId)
   if (!soul) return {}
 
   const origin = await originFromHeaders()
@@ -87,12 +84,20 @@ export async function generateMetadata({
   // ── Document souls (Answer53, Rainmaker): per-section deep link + OG ──────────
   // Same fallback chain: this section's image → the work's first illustrated
   // section → the tenant home hero. So every chapter unfurls with a banner.
-  const doc = soul.docs.find((d) => d.id === page)
+  const { tenant: metaTenant } = await resolveTenantFromHeaders()
+  const metaWork = await getWorkJson({
+    payload: await getPayload({ config: configPromise }),
+    soulId,
+    tenantSlug: metaTenant?.slug,
+    origin,
+  })
+  const metaDocs = (metaWork?.docs ?? []) as WorkDoc[]
+  const doc = metaDocs.find((d) => d.id === page)
   if (!doc) return {}
 
   const canonical = buildWorkCanonicalUrl(soul.canonical, soulId, doc.id, origin)
   let image = toAbs(doc.image)
-  if (!image) image = toAbs(soul.docs.find((d) => d.image)?.image)
+  if (!image) image = toAbs(metaDocs.find((d) => d.image)?.image)
   if (!image) {
     const { tenant } = await resolveTenantFromHeaders()
     image = toAbs(tenantHeroImage(tenant))
@@ -129,14 +134,15 @@ export default async function DeepLinkPage({
   const { locale, soul: soulId, page } = await params
   setRequestLocale(locale)
 
-  const soul = getSoul(soulId)
+  const soul = await getWork(soulId)
   if (!soul) notFound()
 
   // Lockdown: this Work must be subscribed to the current endeavor.
   const { tenant } = await resolveTenantFromHeaders()
-  if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
+  if (!isWorkAvailable(soul, tenant?.slug)) notFound()
 
-  // DB-first assembly (Blob media + inline translations); file-fallback retained.
+  // Chapters are rows: assembled from message-backed storage (Blob media +
+  // inline translations).
   const payload = await getPayload({ config: configPromise })
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || ''
@@ -185,26 +191,16 @@ export default async function DeepLinkPage({
   }
 
   // ── Document souls → the chapter, deep-linked at /learn/<soul>/<docId> ───────
-  const doc = soul.docs.find((d) => d.id === page)
+  const docs = (work?.docs ?? []) as Array<WorkDoc & { body: string }>
+  const doc = docs.find((d) => d.id === page)
   if (!doc) redirect(`/learn/${soulId}`)
 
   const allContents: Record<string, string> = {}
-  if (work?.docs?.length) {
-    for (const d of work.docs as Array<{ id: string; body: string }>) allContents[d.id] = d.body
-  } else {
-    const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
-    for (const d of soul.docs) {
-      try {
-        allContents[d.id] = fs.readFileSync(path.join(docsBase, d.filename), 'utf-8')
-      } catch {
-        allContents[d.id] = `# ${d.title}\n\n*Document not found.*`
-      }
-    }
-  }
+  for (const d of docs) allContents[d.id] = d.body
 
   return (
     <SoulViewer
-      soul={soul}
+      soul={{ ...soul, docs }}
       activeDocId={doc.id}
       allContents={allContents}
       basePath={`/learn/${soulId}`}

@@ -10,7 +10,7 @@
  * Single source of truth for both GET /api/works-ops/daily and LEO's
  * get_daily_bread tool.
  */
-import { getSoul } from '@/souls'
+import { getWork } from '@/works/registry'
 import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/bookManifestServer'
 
 /** Day 1 of the plan. Fixed forever — changing it changes everyone's bread. */
@@ -70,7 +70,7 @@ export async function getDailyBread(opts: {
   const countRaw = Number(opts.count ?? 3)
   const count = Number.isFinite(countRaw) ? Math.min(12, Math.max(1, Math.floor(countRaw))) : 3
 
-  const soul = getSoul(soulId) as { bookSlug?: string } | null
+  const soul = await getWork(soulId)
   if (!soul?.bookSlug) throw new DailyBreadError(`'${soulId}' is not a book work`, 404)
 
   const loaded = loadBookFromPublic(soul.bookSlug) ?? (await loadBookFromOrigin(soul.bookSlug, opts.origin))

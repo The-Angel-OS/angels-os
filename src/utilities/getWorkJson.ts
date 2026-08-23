@@ -12,8 +12,7 @@
  */
 import crypto from 'crypto'
 import type { Payload } from 'payload'
-import { getSoul } from '@/souls'
-import { isWorkAvailable, homeForWork } from '@/souls/subscriptions'
+import { getWork, isWorkAvailable } from '@/works/registry'
 
 export const WORK_JSON_VERSION = 'work.v1'
 
@@ -39,6 +38,7 @@ function renderVerses(val: unknown): string {
 
 interface SoulLike {
   id: string
+  owner: string
   title: string
   subtitle: string
   description: string
@@ -63,7 +63,7 @@ function summarize(soul: SoulLike, origin: string, cover: string | null) {
     type: soul.bookSlug ? 'book' : 'document',
     cover: absMedia(cover, origin),
     canonicalOrigin: soul.canonical?.origin ?? null,
-    home: homeForWork(soul.id),
+    home: soul.owner,
   }
 }
 
@@ -83,18 +83,12 @@ export async function getWorkJson(opts: {
   origin: string
 }): Promise<WorkJsonResult | null> {
   const { payload, soulId, tenantSlug, origin } = opts
-  const soul = getSoul(soulId) as SoulLike | null
-  if (!soul) return null
-  if (!isWorkAvailable(soulId, tenantSlug)) return null
+  const work = await getWork(soulId)
+  if (!work) return null
+  if (!isWorkAvailable(work, tenantSlug)) return null
+  const soul = work as unknown as SoulLike
 
-  let rec: Record<string, unknown> | undefined
-  try {
-    const wr = await payload.find({ collection: 'works', where: { slug: { equals: soulId } }, limit: 1, depth: 0, overrideAccess: true })
-    rec = (wr.docs as unknown as Array<Record<string, unknown>>)[0]
-  } catch {
-    return null // works table absent
-  }
-  const sr = rec?.storageRef as { kind?: string; space?: number; channel?: string; baseLanguage?: string; languages?: unknown } | undefined
+  const sr = work.storageRef
   if (!(sr?.kind === 'messages' && sr.space && sr.channel)) return null
 
   // limit covers large books (e.g. the 1189-chapter Bible) — a too-low limit

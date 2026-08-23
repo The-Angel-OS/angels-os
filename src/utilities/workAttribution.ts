@@ -12,7 +12,7 @@
  */
 import type { Payload } from 'payload'
 import { getSettings, setSetting } from '@/services/SettingService'
-import { getSoul } from '@/souls'
+import { getWork } from '@/works/registry'
 
 /** Setting-bag entity name under which per-Work attribution overrides live. */
 export const WORK_ENTITY = 'work'
@@ -55,7 +55,7 @@ export async function resolveWorkAttribution(
   workId: string,
   opts: { tenantId?: string | number } = {},
 ): Promise<WorkAttribution | null> {
-  const soul = getSoul(workId)
+  const soul = await getWork(workId)
   if (!soul) return null
 
   const manifest: { endeavor?: string; creditedTo?: string; contributors?: string[] } = soul.canonical || {}

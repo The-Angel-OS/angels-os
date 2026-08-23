@@ -18,7 +18,7 @@ import 'dotenv/config'
 import { getPayload } from 'payload'
 import config from '../src/payload.config'
 import { getSoul } from '../src/souls'
-import { homeForWork, subscribersForWork } from '../src/souls/subscriptions'
+
 import { loadBookFromPublic, loadBookFromOrigin } from '../src/components/Library/bookManifestServer'
 import { checksumOf, WORK_JSON_VERSION } from '../src/utilities/getWorkJson'
 
@@ -30,7 +30,7 @@ function arg(name: string, fallback = ''): string {
 async function main() {
   process.env.PAYLOAD_MIGRATING = 'true'
   const soulId = arg('soul', 'holy-bible')
-  const hostSlug = arg('tenant') || homeForWork(soulId)
+  const hostSlug = arg('tenant') || 'platform'
   const origin = arg('origin', 'https://spacesangels.com')
 
   const soul = getSoul(soulId)
@@ -112,7 +112,7 @@ async function main() {
     slug: soulId, title: soul.title, subtitle: soul.subtitle, description: soul.description,
     type: 'book' as const, status: soul.status, statusColor: soul.statusColor,
     tags: soul.tags ?? [], canonical: soul.canonical ?? null,
-    owner: homeForWork(soulId), subscribers: subscribersForWork(soulId),
+    // Availability (owner/subscribers/optOuts) is DB-held — never clobbered by a re-import.
     storageRef: { kind: 'messages', space: space.id, channel, baseLanguage: baseLang, languages: loaded.manifest.languages ?? [] },
     checksum, jsonVersion: WORK_JSON_VERSION,
   }

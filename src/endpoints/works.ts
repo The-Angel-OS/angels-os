@@ -24,15 +24,14 @@
 import type { PayloadHandler } from 'payload'
 import fs from 'fs'
 import path from 'path'
-import { getAllSouls, getSoul } from '@/souls'
-import { isWorkAvailable, isWorkPublished, homeForWork, subscribersForWork } from '@/souls/subscriptions'
+import { getSoul } from '@/souls'
+import { getWork, getAvailableWorks, isWorkAvailable, type WorkRecord } from '@/works/registry'
 import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
 import { getWorkJson, absMedia, checksumOf, WORK_JSON_VERSION } from '@/utilities/getWorkJson'
 import { getDailyBread, DailyBreadError } from '@/utilities/dailyBread'
 
-type SoulManifest = ReturnType<typeof getAllSouls>[number]
 
 /** Serving origin from request headers, e.g. https://platform.spacesangels.com. */
 function originFromReq(req: Parameters<PayloadHandler>[0]): string {
@@ -76,7 +75,16 @@ async function resolveTenantSlug(req: Parameters<PayloadHandler>[0]): Promise<st
  * cover + unitCount from the message-backed DB (NOT the filesystem — the files
  * are gone). `dbInfo` is precomputed once per request by the list handler.
  */
-function listSummary(soul: SoulManifest, origin: string, dbInfo?: { cover: string | null; unitCount: number }) {
+/**
+ * The owner of record for a Work. The DB row is authoritative (a portal owner can
+ * change it); the manifest's canonical.endeavor is only the seed for a Work that
+ * has never been imported on this node.
+ */
+async function ownerFor(soulId: string, manifestEndeavor?: string | null): Promise<string> {
+  return (await getWork(soulId))?.owner || manifestEndeavor || 'platform'
+}
+
+function listSummary(soul: WorkRecord, origin: string, dbInfo?: { cover: string | null; unitCount: number }) {
   return {
     id: soul.id,
     title: soul.title,
@@ -89,7 +97,7 @@ function listSummary(soul: SoulManifest, origin: string, dbInfo?: { cover: strin
     cover: absMedia(dbInfo?.cover ?? null, origin),
     unitCount: dbInfo?.unitCount ?? 0,
     canonicalOrigin: soul.canonical?.origin ?? null,
-    home: homeForWork(soul.id),
+    home: soul.owner,
   }
 }
 
@@ -99,7 +107,7 @@ export const worksListHandler: PayloadHandler = async (req) => {
   try {
     const tenantSlug = await resolveTenantSlug(req)
     const origin = originFromReq(req)
-    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug) && isWorkPublished(s.id))
+    const souls = await getAvailableWorks(tenantSlug)
 
     // Cover + unitCount come from the message-backed content (the filesystem is
     // gone). One scan of the `work-*` channels, grouped by work, gives both.
@@ -146,12 +154,12 @@ export const worksGetHandler: PayloadHandler = async (req) => {
   const url = new URL(req.url || '', 'http://localhost')
   const soulId = url.searchParams.get('soul') || ''
 
-  const soul = getSoul(soulId)
+  const soul = await getWork(soulId)
   if (!soul) return Response.json({ error: 'work not found' }, { status: 404 })
 
   // Lockdown: a Work not subscribed to this tenant is not readable here.
   const tenantSlug = await resolveTenantSlug(req)
-  if (!isWorkAvailable(soulId, tenantSlug)) {
+  if (!isWorkAvailable(soul, tenantSlug)) {
     return Response.json({ error: 'work not available on this endeavor' }, { status: 404 })
   }
 
@@ -187,7 +195,7 @@ export const worksChecksumsHandler: PayloadHandler = async (req) => {
   try {
     const tenantSlug = await resolveTenantSlug(req)
     const origin = originFromReq(req)
-    const souls = getAllSouls().filter((s) => isWorkAvailable(s.id, tenantSlug) && isWorkPublished(s.id))
+    const souls = await getAvailableWorks(tenantSlug)
 
     const works: Array<{ id: string; checksum: string; version: string; type: string; unitCount: number; title: string }> = []
     for (const s of souls) {
@@ -253,7 +261,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
   const chunkCount = Number.isFinite(countParam) && countParam > 0 ? Math.floor(countParam) : 0 // 0 ⇒ all
 
   try {
-    const ownerSlug = homeForWork(soulId)
+    const ownerSlug = await ownerFor(soulId, soul.canonical?.endeavor)
     // Host tenant = where the content messages live. Defaults to the canonical
     // owner; a subscriber node passes ?tenant=<localSlug> to host a local copy
     // (the owner of record stays `ownerSlug`).
@@ -342,7 +350,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       // One message per page IN THIS CHUNK. Carries the book hierarchy
       // (book/bookName/chapter/ref) when the manifest page has it, so a
       // "collection of books" work (the Bible) can drive a Book → Chapter reader.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const pageWithHierarchy = (p: (typeof pages)[number]) => p as typeof p & { book?: string; bookName?: string; chapter?: number; ref?: string }
       for (let i = chunkFrom; i < end; i++) {
         const p = pages[i]
@@ -422,7 +430,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
       type, status: soul.status, statusColor: soul.statusColor,
       tags: soul.tags ?? [], canonical: soul.canonical ?? null,
-      owner: ownerSlug, subscribers: subscribersForWork(soulId),
+      owner: ownerSlug,
       storageRef, checksum, jsonVersion: WORK_JSON_VERSION,
     }
     const existing = await payload.find({ collection: 'works', where: { slug: { equals: soul.id } }, limit: 1, depth: 0, overrideAccess: true })
@@ -483,7 +491,7 @@ export const worksPullHandler: PayloadHandler = async (req) => {
   if (!from || !/^https?:\/\//.test(from)) return Response.json({ error: 'from (peer origin, https://…) required' }, { status: 400 })
 
   try {
-    const ownerSlug = homeForWork(soulId)
+    const ownerSlug = await ownerFor(soulId)
     const hostSlug = url.searchParams.get('tenant') || ownerSlug
     const fromTenant = url.searchParams.get('fromTenant') || ownerSlug
 
@@ -553,7 +561,6 @@ export const worksPullHandler: PayloadHandler = async (req) => {
       // canonical home stays the source (SEO authority percolates UP, not to us).
       canonical: (work.canonicalOrigin ? { origin: work.canonicalOrigin } : null) as unknown,
       owner: ownerSlug,
-      subscribers: subscribersForWork(soulId),
       storageRef: { kind: 'messages', space: space.id, channel },
       checksum: work.checksum ?? '',
       jsonVersion: WORK_JSON_VERSION,

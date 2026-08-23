@@ -5,8 +5,9 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
-import { listWorks } from './actions'
+import { listWorks, listShelf } from './actions'
 import { WorkStudio } from './WorkStudio'
+import { LibraryShelf } from './LibraryShelf'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,10 +49,12 @@ export default async function WorksPage({ params }: { params: Promise<{ locale: 
     if (!ok) redirect(`${prefix}/dashboard`)
   }
 
-  const works = await listWorks()
+  const [works, shelf] = await Promise.all([listWorks(), listShelf()])
+  const portalName = (tenant as any)?.name || 'this portal'
 
   return (
     <div className="mx-auto max-w-5xl">
+      <LibraryShelf initial={shelf} portalName={portalName} />
       <WorkStudio initialWorks={works} tenantName={(tenant as any)?.name || 'Library'} />
     </div>
   )

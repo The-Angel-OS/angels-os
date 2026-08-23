@@ -33,7 +33,7 @@ import {
 import { WorksGrid } from '@/components/Library/WorksGrid'
 import { OneMindThreeBodies } from '@/components/Learn/OneMindThreeBodies'
 import { OperatorGuide } from '@/components/Learn/OperatorGuide'
-import type { SoulManifest } from '@/souls'
+import type { WorkRecord } from '@/works/registry'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
 
@@ -588,7 +588,7 @@ function LearningStep({
 export default function LearnPage({
   souls,
   canManageWorks = false,
-}: { souls?: SoulManifest[]; canManageWorks?: boolean } = {}) {
+}: { souls?: WorkRecord[]; canManageWorks?: boolean } = {}) {
   // Hide the Library section when there's nothing to show, unless the viewer can
   // manage Works (admins curate via the dashboard control panel).
   const showLibrary = (souls?.length ?? 0) > 0 || canManageWorks

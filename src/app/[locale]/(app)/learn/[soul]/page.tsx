@@ -2,12 +2,9 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
-import path from 'path'
-import fs from 'fs'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { getSoul, getAllSouls } from '@/souls'
-import { isWorkAvailable } from '@/souls/subscriptions'
+import { getWork, isWorkAvailable, type WorkDoc } from '@/works/registry'
 import { getWorkJson } from '@/utilities/getWorkJson'
 import { SoulViewer } from './SoulViewer'
 import { BookReader } from '@/components/Library/BookReader'
@@ -18,8 +15,10 @@ import { resolveCanonicalOrigin } from '@/utilities/worksCanonical'
 
 export const dynamic = 'force-dynamic'
 
+// ponytail: the catalog is a DB read now, so there is nothing to enumerate at
+// build time — the route is force-dynamic anyway.
 export async function generateStaticParams() {
-  return getAllSouls().map((soul) => ({ soul: soul.id }))
+  return []
 }
 
 export async function generateMetadata({
@@ -28,7 +27,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; soul: string }>
 }): Promise<Metadata> {
   const { soul: soulId } = await params
-  const soul = getSoul(soulId)
+  const soul = await getWork(soulId)
   if (!soul) return {}
 
   const h = await headers()
@@ -95,15 +94,15 @@ export default async function SoulPage({
   const { doc: activeDocId } = await searchParams
   setRequestLocale(locale)
 
-  const soul = getSoul(soulId)
+  const soul = await getWork(soulId)
   if (!soul) notFound()
 
   // Lockdown: this Work must be subscribed to the current endeavor.
   const { tenant } = await resolveTenantFromHeaders()
-  if (!isWorkAvailable(soulId, tenant?.slug)) notFound()
+  if (!isWorkAvailable(soul, tenant?.slug)) notFound()
 
-  // DB-first: assemble the Work from message-backed storage (Blob media + inline
-  // translations). File-fallback retained during the transition.
+  // The Work is assembled from message-backed storage (Blob media + inline
+  // translations) — the chapters are rows, not files.
   const payload = await getPayload({ config: configPromise })
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || ''
@@ -153,25 +152,17 @@ export default async function SoulPage({
   }
 
   // ── Document works → SoulViewer ──
+  const docs = (work?.docs ?? []) as Array<WorkDoc & { body: string }>
+  if (!docs.length) notFound()
   const allContents: Record<string, string> = {}
-  if (work?.docs?.length) {
-    for (const d of work.docs as Array<{ id: string; body: string }>) allContents[d.id] = d.body
-  } else {
-    const docsBase = path.join(process.cwd(), 'docs', 'vision', soulId)
-    for (const doc of soul.docs) {
-      try {
-        allContents[doc.id] = fs.readFileSync(path.join(docsBase, doc.filename), 'utf-8')
-      } catch {
-        allContents[doc.id] = `# ${doc.title}\n\n*Document not found.*`
-      }
-    }
-  }
+  for (const d of docs) allContents[d.id] = d.body
+
   const targetId = activeDocId || soul.defaultDoc
-  const activeDoc = soul.docs.find((d) => d.id === targetId) ?? soul.docs[0]
+  const activeDoc = docs.find((d) => d.id === targetId) ?? docs[0]!
 
   return (
     <SoulViewer
-      soul={soul}
+      soul={{ ...soul, docs }}
       activeDocId={activeDoc.id}
       allContents={allContents}
       basePath={`/learn/${soulId}`}

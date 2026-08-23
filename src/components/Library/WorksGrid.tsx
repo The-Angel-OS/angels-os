@@ -1,16 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { getAllSouls, type SoulManifest } from '@/souls'
+import type { WorkRecord } from '@/works/registry'
 
 /**
  * WorksGrid — the list of Library works (books, case files, manifestos), rendered
  * as a grid of cards that link straight into each work's reader.
  *
  * Shared between the /learn hub (quick-access, near the top) and the dedicated
- * /learn/works Library page, so both stay in sync from one source: the soul
- * registry. getAllSouls() returns static manifest objects (no server-only deps),
- * so this is safe to render inside client components like LearnExperience.
+ * /learn/works Library page, so both stay in sync from one source: the caller's
+ * tenant-scoped list from the DB-backed Works registry (a server read — the list
+ * is always passed in as a prop, never fetched here).
  */
 
 const STATUS_COLORS: Record<string, string> = {
@@ -25,10 +25,10 @@ export function WorksGrid({
   souls,
 }: {
   className?: string
-  /** Tenant-scoped list to render. Defaults to ALL souls (unscoped). */
-  souls?: SoulManifest[]
+  /** Tenant-scoped list to render. */
+  souls?: WorkRecord[]
 }) {
-  const works = souls ?? getAllSouls()
+  const works = souls ?? []
 
   return (
     <div className={`grid gap-4 sm:grid-cols-2 ${className}`}>
@@ -67,7 +67,9 @@ export function WorksGrid({
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                {docCount} document{docCount !== 1 ? 's' : ''}
+                {/* ponytail: chapters live as messages — counting every Work's
+                    would be a query per card. The kind is what the card needs. */}
+                {docCount > 0 ? `${docCount} document${docCount !== 1 ? 's' : ''}` : soul.bookSlug ? 'Book' : 'Document'}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {soul.tags.slice(0, 3).map((tag) => (

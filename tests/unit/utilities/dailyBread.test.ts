@@ -1,10 +1,16 @@
 /**
  * dailyBread — deterministic 3-verses-a-day plan over the real committed canon
- * (public/library/holy-bible). No mocks: getSoul + loadBookFromPublic read the
- * repo's actual manifest/text files, so these assertions pin the plan itself —
- * if they ever fail, someone's daily bread changed.
+ * (public/library/holy-bible). loadBookFromPublic reads the repo's actual text
+ * files, so these assertions pin the plan itself — if they ever fail, someone's
+ * daily bread changed. Only the catalog lookup is stubbed: it is a DB read now,
+ * and what it contributes here is just "holy-bible is a book".
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('@/works/registry', () => ({
+  getWork: vi.fn(async (id: string) => (id === 'holy-bible' ? { id, bookSlug: 'holy-bible' } : null)),
+}))
+
 import { getDailyBread, DailyBreadError } from '@/utilities/dailyBread'
 
 describe('getDailyBread', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 
 /**
  * `user.tenants` is MEMBERSHIP with no role - it must never authorize anything.
@@ -71,6 +71,8 @@ describe('user.tenants never authorizes', () => {
       if (!/[.](ts|tsx)$/.test(f)) continue
       if (f.endsWith('payload-types.ts')) continue
       if (ALLOWED.has(f.split(BACKSLASH).join('/'))) continue
+      // git still lists a file deleted-but-unstaged; nothing to scan there.
+      if (!existsSync(f)) continue
 
       const src = stripComments(readFileSync(f, 'utf8'))
       // "user" then ".tenants" close together - the shape of an access decision.

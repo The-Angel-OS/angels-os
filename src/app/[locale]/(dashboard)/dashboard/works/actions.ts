@@ -16,6 +16,7 @@ import { headers } from 'next/headers'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { fetchDefaultSpaceId } from '@/utilities/fetchDefaultSpaceId'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { getWorks, isWorkAvailable } from '@/works/registry'
 
 export interface WorksActionResult {
   success: boolean
@@ -239,5 +240,95 @@ export async function createWork(title: string): Promise<WorksActionResult> {
     return { success: true, id: String(created.id) }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Failed to create work' }
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * The shelf — which Works from the catalog THIS portal carries.
+ *
+ * This used to be a `subscribers` array in a TypeScript manifest, so choosing
+ * was an edit-and-deploy only the platform operator could do. It is a `works`
+ * row now, which is what makes this screen possible at all.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export interface ShelfWork {
+  slug: string
+  title: string
+  subtitle: string
+  type: 'document' | 'book'
+  /** Owning endeavor's slug. */
+  owner: string
+  /** Showing on this portal right now. */
+  carried: boolean
+  /** False for a Work this portal OWNS — an owner always carries its own. */
+  canToggle: boolean
+}
+
+/** Every catalog Work, with whether this portal currently carries it. */
+export async function listShelf(): Promise<ShelfWork[]> {
+  const { error } = await getAuthorizedTenant()
+  if (error) return []
+  const { tenant } = await resolveTenantFromHeaders()
+  const slug = (tenant as { slug?: string } | null)?.slug ?? null
+  if (!slug) return []
+
+  const works = await getWorks()
+  return works
+    .filter((w) => w.published)
+    .map((w) => ({
+      slug: w.id,
+      title: w.title,
+      subtitle: w.subtitle,
+      type: w.bookSlug ? ('book' as const) : ('document' as const),
+      owner: w.owner,
+      carried: isWorkAvailable(w, slug),
+      canToggle: w.owner !== slug,
+    }))
+}
+
+/** Switch a Work on or off for THIS portal. */
+export async function setWorkCarried(workSlug: string, carried: boolean): Promise<WorksActionResult> {
+  const { payload, error } = await getAuthorizedTenant()
+  if (error) return { success: false, error }
+  const { tenant } = await resolveTenantFromHeaders()
+  const slug = (tenant as { slug?: string } | null)?.slug ?? null
+  if (!slug) return { success: false, error: 'No portal context' }
+
+  const found = await payload.find({
+    collection: 'works',
+    where: { slug: { equals: workSlug } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const row = found.docs?.[0] as
+    | { id: number | string; owner?: string; subscribers?: unknown; optOuts?: unknown; availableGlobally?: boolean }
+    | undefined
+  if (!row) return { success: false, error: 'Work not found' }
+  if (row.owner === slug) return { success: false, error: 'This portal owns this work — it always carries it.' }
+
+  const arr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]).filter((s) => typeof s === 'string') : [])
+  let subscribers = arr(row.subscribers)
+  let optOuts = arr(row.optOuts)
+
+  if (carried) {
+    optOuts = optOuts.filter((s) => s !== slug)
+    // A globally-offered Work needs no subscription — dropping the opt-out is enough.
+    if (!row.availableGlobally && !subscribers.includes(slug)) subscribers = [...subscribers, slug]
+  } else {
+    subscribers = subscribers.filter((s) => s !== slug)
+    if (!optOuts.includes(slug)) optOuts = [...optOuts, slug]
+  }
+
+  try {
+    await payload.update({
+      collection: 'works',
+      id: row.id,
+      data: { subscribers, optOuts } as never,
+      overrideAccess: true, // authorization is getAuthorizedTenant + the owner check above
+    })
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Failed to update' }
   }
 }

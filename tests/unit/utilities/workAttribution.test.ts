@@ -2,15 +2,15 @@
  * workAttribution — Unit Tests
  *
  * Resolves a Work's attribution (endeavor + creditedTo author) as:
- *   runtime Setting-bag override  ??  manifest canonical default.
- * Manifest stays the version-controlled source of truth; the bag lets an admin
- * reconfigure attribution at runtime via the Works control panel (no redeploy).
+ *   runtime Setting-bag override  ??  the Work row's canonical default.
+ * The catalog row is the source of truth; the bag lets an admin reconfigure
+ * attribution at runtime via the Works control panel (no redeploy).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/services/SettingService', () => ({ getSettings: vi.fn(), setSetting: vi.fn() }))
-vi.mock('@/souls', () => ({
-  getSoul: vi.fn((id: string) =>
+vi.mock('@/works/registry', () => ({
+  getWork: vi.fn(async (id: string) =>
     id === 'wdeg'
       ? { id: 'wdeg', title: 'WDEG', canonical: { endeavor: 'wheredideveryonego', creditedTo: 'billthecat1022@gmail.com' } }
       : id === 'coauthored'
