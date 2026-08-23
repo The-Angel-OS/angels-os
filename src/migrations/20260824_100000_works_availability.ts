@@ -20,6 +20,14 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       ADD COLUMN IF NOT EXISTS "links" jsonb,
       ADD COLUMN IF NOT EXISTS "opt_outs" jsonb;
   `))
+  // Every Work in the catalog at this point was published and offered to every
+  // portal (that is what the manifests said). Defaulting them to false instead
+  // would empty the Library on every portal between this migration and the
+  // backfill — so carry the existing behavior over in the same statement.
+  await db.execute(sql.raw(`
+    UPDATE "works" SET "published" = true, "available_globally" = true
+    WHERE "published" IS NOT DISTINCT FROM false AND "available_globally" IS NOT DISTINCT FROM false;
+  `))
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
