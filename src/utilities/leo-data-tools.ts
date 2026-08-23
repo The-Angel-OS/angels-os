@@ -10130,6 +10130,19 @@ async function handleVerifyAddress(
       lines.push(`(Nearest zone: ${result.nearby[0].name} at ${result.nearby[0].distanceFeet} ft — outside the ${restrictionFeet} ft rule.)`)
     }
     lines.push('', `⚠️ ${result.advisory}`)
+    // The step Places cannot cover, as a link and an exact search term rather
+    // than "go check DCF" — which is homework, and the half that actually
+    // catches the in-home daycares.
+    if (result.manualCheck) {
+      const m = result.manualCheck
+      lines.push(
+        '',
+        `Still to check by hand — ${m.name}:`,
+        `  ${m.url}`,
+        m.searchFor ? `  Search for: ${m.searchFor}` : '  Search for the city.',
+        `  ${m.why}`,
+      )
+    }
     if (loggedTo) lines.push('', `Logged to #${loggedTo}.`)
     return lines.join('\n')
   } catch (err) {
