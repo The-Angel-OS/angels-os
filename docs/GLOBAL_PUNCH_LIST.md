@@ -118,6 +118,18 @@
   allowlist so they are tracked, not blessed. `260822`
 - **[P2] `/learn/works` still resolves on portals with Works off** — the feature toggle removes the nav
   entry, not the route. Ken's call whether it should 404. `260823`
+- **[P1→SHIPPED 260824] Works availability is a portal setting, not a source edit** — `subscribers[]` lived
+  in a TypeScript manifest, so only the platform operator could choose what a portal carried, and only via a
+  deploy. Now `works` rows (`owner`/`subscribers`/`optOuts`/`availableGlobally`/`published`), read through
+  `src/works/registry.ts`; Dashboard → Works opens on "The Library on <portal>" with a checkbox per Work.
+  Verified live: opting Grace Chapel out of the Bible dropped its catalog 6→5 and 404'd the reader, with
+  Clearwater untouched. `e78697c` `260824`
+- **[P2→SHIPPED 260824] The 11MB Bible ingest JSON is gone** — `src/souls/holy-bible/data` was the ingest
+  intermediate, read by nothing at runtime. Verified 1189 = 1189 = 1189 (DB chapters / built manifest / raw)
+  before deleting. `src/souls` is 52K now and holds only what the importer reads. `c1ab544` `260824`
+- **[P2] `src/souls` manifests still feed `works-ops/import`** — the last filesystem tie. Harmless (52K, an
+  admin tool, nothing at runtime reads it), but the importer is what keeps them. *Next:* import from an
+  uploaded Work JSON instead, then the directory goes. `260824`
 
 - **[P2] Intent pre-classifier in front of `brain.ts` (defer the learned tier)** — leo-brain already IS
   the "put the LLM last" cascade: `triage.ts` = pure deterministic perception gate, provider-order in
