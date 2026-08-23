@@ -758,7 +758,7 @@ export default buildConfig({
       handler: leoStreamHandler,
     },
     {
-      path: '/comments/add',
+      path: '/comment-ops/add',
       method: 'post',
       handler: async (req) => {
         const { payload, headers } = req
@@ -1704,7 +1704,7 @@ export default buildConfig({
     },
     // ─── Media Analysis Endpoints (Sprint 18B) ─────────────────────
     {
-      path: '/media/analyze',
+      path: '/media-ops/analyze',
       method: 'post',
       handler: mediaAnalyzeHandler,
     },

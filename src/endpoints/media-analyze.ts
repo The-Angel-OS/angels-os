@@ -1,5 +1,5 @@
 /**
- * Media Analyze Endpoint — POST /api/media/analyze
+ * Media Analyze Endpoint — POST /api/media-ops/analyze
  *
  * Triggers analysis of a specific media item. Can be called from:
  *   - Chat UI (user clicks "Analyze" on an image)

@@ -30,7 +30,7 @@ export function CommentForm({ parentId, parentCollection, showRating, user }: Co
     setErrorMessage('')
 
     try {
-      const res = await fetch('/api/comments/add', {
+      const res = await fetch('/api/comment-ops/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -9,7 +9,7 @@
  * Architecture:
  *   1. Media is uploaded via the Media collection (image, PDF, etc.)
  *   2. An afterChange hook on Messages queues analysis for each attachment.
- *   3. Leo's `analyze_image` tool (or the `/api/media/analyze` endpoint)
+ *   3. Leo's `analyze_image` tool (or the `/api/media-ops/analyze` endpoint)
  *      processes the media with Anthropic Vision and writes results here.
  *   4. For PDFs, `extract_pdf_pages` splits the document into page images,
  *      creating one MediaMeta per page (linked by documentGroup).
