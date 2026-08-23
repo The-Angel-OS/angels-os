@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Users, X, UserPlus, Shield, Crown, Eye, MoreVertical } from 'lucide-react'
+import { Users, X, UserPlus, Shield, Crown, Eye, MoreVertical, MessageSquare } from 'lucide-react'
 import { Backdrop } from '@/components/Backdrop'
 import { usePresence } from '@/hooks/usePresence'
+import { useAuth } from '@/providers/Auth'
+import { useChatContext } from './ChatProvider'
 
 /**
  * MemberPanel — Slide-out member list for Space chat views.
@@ -40,6 +42,13 @@ const ROLE_CONFIG = {
 export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: MemberPanelProps) {
   // Presence (read-only — the global pinger owns writes): who's online right now.
   const { online } = usePresence({ enabled: isOpen, ping: false })
+  // Everything a DM needs already existed — the deterministic pair slug in
+  // dmChannels.findOrCreateDM, POST /api/dm/find-or-create, the membership-grained
+  // read filter in PermissionService, and openDM here. Nothing ever CALLED any of
+  // it with two humans, and the roster had no button, so "you cannot PM anyone"
+  // was a missing affordance rather than a missing feature.
+  const { user } = useAuth()
+  const chat = useChatContext()
   const onlineIds = new Set(online.map((o) => String(o.userId)))
   const [members, setMembers] = useState<SpaceMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -382,6 +391,23 @@ export function MemberPanel({ spaceId, isOpen, onClose, currentUserRole }: Membe
                         {config.label}
                       </span>
                     </div>
+
+                    {/* Message — hidden for yourself; a DM with yourself is the
+                        `LEO <-> LEO` row that already exists in the data. */}
+                    {chat?.openDM && String(member.userId) !== String(user?.id ?? '') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          chat.openDM(String(member.userId))
+                          onClose()
+                        }}
+                        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus:opacity-100 group-hover:opacity-100"
+                        title={`Message ${member.userName}`}
+                        aria-label={`Message ${member.userName}`}
+                      >
+                        <MessageSquare size={14} />
+                      </button>
+                    )}
                   </div>
                 )
               })}

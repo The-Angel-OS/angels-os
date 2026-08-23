@@ -345,7 +345,12 @@ export function ChatProvider({
 
   const openDM = useCallback(
     (targetUserId: string) => {
-      if (!dmSpaceId || !tenantId) return
+      // NOT gated on dmSpaceId. The endpoint calls ensureDMSpace and returns the
+      // authoritative id, which is why the LEO path below already works without
+      // it — but openDM required it, so the one case that always lacks it (a
+      // user with no DMs yet, i.e. everyone's FIRST message to a person) did
+      // nothing at all when clicked.
+      if (!tenantId) return
 
       fetch(`${SERVER_URL}/api/dm/find-or-create`, {
         method: 'POST',
@@ -361,7 +366,8 @@ export function ChatProvider({
               name: data.channel.name,
               slug: data.channel.slug,
               type: 'dm',
-              spaceId: dmSpaceId,
+              // The server's answer wins: it just provisioned or resolved the space.
+              spaceId: data.dmSpaceId || dmSpaceId,
               source: data.channel.source || 'native',
               members: data.channel.members,
             }
