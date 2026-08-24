@@ -490,6 +490,15 @@
 
 ## ✅ Recently closed (last 7 days)
 
+- **[P1 260824] No DM had ever loaded its history** — `loadMessages` gates on the active channel
+  being RESOLVED (a deep-link URL carries a channel ID, `Messages.channel` stores a slug), but it
+  tested `channels`, which only holds the ACTIVE SPACE's channels. A DM lives in the AI Bus, so
+  every DM slug failed the gate and returned before fetching. It read as "messages vanish when I
+  navigate back" only because sending still worked — that path appends locally and LEO answers over
+  the stream, so the moments after a send were the only time a DM looked healthy. `useChat` now
+  takes `dmSlugs`; the predicate is extracted as `canQueryMessages` and tested directly, including
+  the unresolved-numeric-id case the gate exists for. `canQueryMessages.test.ts` `260824`
+
 - **[P1 260824] A DM opened from one portal was invisible from another** — `ChatProvider` loaded
   the DM list with `where[tenant][equals]` under a comment claiming the query was global. A DM
   carries the tenant it was MINTED in, so a thread started from Clearwater stamped tenant 5 and the
