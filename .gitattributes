@@ -1,0 +1,8 @@
+# The autoinstall payload and the bootstrap script are read by Linux, not
+# Windows. `user-data` embeds a shell heredoc whose terminator will NOT match
+# if it carries a trailing \r — which silently drops the logind config, which
+# is the line that stops the laptop from suspending when you close the lid.
+# Keep these LF no matter what platform checks them out.
+docs/selfhost/thinkpad/user-data text eol=lf
+docs/selfhost/thinkpad/meta-data text eol=lf
+*.sh text eol=lf
