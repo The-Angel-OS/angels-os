@@ -25,6 +25,8 @@ export interface ChatContextValue {
   spaces: ChatSpace[]
   channels: ChatChannel[]
   dmChannels: ChatChannel[]
+  /** The signed-in user — a DM is labelled by whoever ISN'T this. */
+  userId: string
   isLoadingChannels: boolean
 
   // Messages
@@ -163,14 +165,27 @@ export function ChatProvider({
     // find-or-create endpoint internally calls ensureDMSpace.
     const loadDMs = async () => {
       try {
-        // Step 1: Load MY DM channels — GLOBAL by membership + tenant, NOT scoped to
-        // a DM space (channel-model fold: DMs are the user's, wherever they live —
-        // the AI Bus post-fold, the legacy DM space pre-fold). Each row carries its
-        // own spaceId for message routing.
+        // Step 1: Load MY DM channels — GLOBAL by membership, and genuinely global
+        // this time. This query used to AND `where[tenant][equals]`, which is the
+        // whole reason a DM opened from one portal was invisible from another: the
+        // channel carries the tenant it was MINTED in, so Ken starting a thread
+        // from Clearwater put tenant 5 on it, and Tyler — sitting in WDEG — asked
+        // for tenant 11 and got nothing. She still saw LEO only because the LEO DM
+        // is resolved separately by find-or-create, which already looks up globally
+        // by slug.
+        //
+        // The rest of the stack had already made this decision and the client
+        // never caught up: findOrCreateDM looks up globally ("a DM is the user's,
+        // not a tenant's"), channels OPT OUT of the multi-tenant plugin's access
+        // AND (`useTenantAccess: false`), and buildChannelReadFilter's DM branch is
+        // `{ type: 'dm', members: { in: [user.id] } }` with no tenant clause at all.
+        // Membership is the gate, and it is enforced server-side.
+        //
+        // Each row carries its own spaceId for message routing.
         let deduped: ChatChannel[] = []
         {
           const res = await fetch(
-            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[tenant][equals]=${tenantId}&where[members][in]=${userId}&sort=-updatedAt&limit=50`,
+            `${SERVER_URL}/api/channels?where[type][equals]=dm&where[members][in]=${userId}&depth=1&sort=-updatedAt&limit=50`,
             { credentials: 'include' },
           )
           const data = res.ok ? await res.json() : null
@@ -396,6 +411,7 @@ export function ChatProvider({
       setActiveSpace,
 
       spaces,
+      userId,
       channels: chat.channels,
       dmChannels,
       isLoadingChannels: chat.isLoadingChannels,
@@ -422,6 +438,7 @@ export function ChatProvider({
       chat.activeChannel,
       setActiveSpace,
       spaces,
+      userId,
       chat.channels,
       dmChannels,
       chat.isLoadingChannels,

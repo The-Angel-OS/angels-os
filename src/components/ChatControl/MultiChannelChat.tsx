@@ -8,6 +8,8 @@ import { MessageInput } from './MessageInput'
 import { useChat, CATCH_ALL_SLUG } from './useChat'
 import { useChatContext } from './ChatProvider'
 import { parseSpacesDeepLink } from './deepLink'
+import { dmLabel, dmPartner } from './dmLabel'
+import { usePresence } from '@/hooks/usePresence'
 import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
 import { useSpaces } from './useSpaces'
 import { SpacesMenuHeader } from './SpacesMenuHeader'
@@ -122,6 +124,11 @@ export function MultiChannelChat({
 
   // DM channels from provider
   const dmChannels = hasProvider ? chatCtx!.dmChannels : []
+  const selfUserId = hasProvider ? chatCtx!.userId : ''
+  // Presence for the DM list. `ping: false` — the sidebar reads presence, it does
+  // not announce it; something else already owns the heartbeat.
+  const { online } = usePresence({ enabled: true, ping: false })
+  const onlineIds = useMemo(() => new Set(online.map((u) => String(u.userId))), [online])
   const leoDMChannel = hasProvider ? chatCtx!.leoDMChannel : null
 
   const isMobile = useIsMobile()
@@ -352,6 +359,12 @@ export function MultiChannelChat({
     const isLeo = ch.slug.endsWith('-leo')
     const sourceIcon = ch.source && ch.source !== 'native' ? SOURCE_ICONS[ch.source] : null
     const icon = isLeo ? <Bot size={14} className="shrink-0 opacity-70" /> : <User size={14} className="shrink-0 opacity-50" />
+    // A DM is named after the OTHER person — the stored name is symmetric
+    // ("A ↔ B") because one row serves both sides, so rendering it showed
+    // everyone their own name back.
+    const label = dmLabel(ch, selfUserId)
+    const partner = isLeo ? undefined : dmPartner(ch, selfUserId)
+    const isOnline = partner ? onlineIds.has(String(partner.id)) : false
 
     return (
       <div
@@ -366,10 +379,23 @@ export function MultiChannelChat({
           onClick={() => handleSwitchChannel(ch.slug)}
           className="flex flex-1 items-center gap-2 text-left min-w-0"
         >
-          {sourceIcon ? <span className="shrink-0 text-xs">{sourceIcon}</span> : icon}
+          <span className="relative shrink-0">
+            {sourceIcon ? <span className="text-xs">{sourceIcon}</span> : icon}
+            {/* Presence rides on the icon so it is legible with the panel
+                collapsed, when the icon is all there is. */}
+            {partner && (
+              <span
+                aria-hidden
+                className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-1 ring-background ${
+                  isOnline ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+                }`}
+              />
+            )}
+          </span>
           {channelsPanelOpen && (
             <span className="truncate">
-              {isLeo ? 'LEO' : ch.name}
+              {label}
+              {partner && <span className="sr-only">{isOnline ? ' (online)' : ' (offline)'}</span>}
             </span>
           )}
         </button>
@@ -665,8 +691,8 @@ export function MultiChannelChat({
             )}
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold text-foreground">
-                {activeChannelData?.type === 'dm' && activeChannelData.slug.endsWith('-leo')
-                  ? 'LEO'
+                {activeChannelData?.type === 'dm'
+                  ? dmLabel(activeChannelData as never, selfUserId)
                   : activeChannelData?.name || activeChannel}
               </h2>
               {activeChannelData?.description && (
