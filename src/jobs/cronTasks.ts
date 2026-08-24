@@ -22,6 +22,7 @@ import type { PayloadRequest, TaskConfig } from 'payload'
 import type { PayloadHandler } from 'payload'
 
 import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
+import { eventsCompleteCronHandler } from '@/endpoints/events-complete-cron'
 import { federationHeartbeatCronHandler } from '@/endpoints/federation-heartbeat-cron'
 import { healStalledMessagesHandler } from '@/endpoints/heal-stalled-messages'
 import { logConsolidateHandler } from '@/endpoints/log-consolidate'
@@ -115,6 +116,13 @@ const SPECS: CronSpec[] = [
     path: '/api/connector-ops/health',
     retries: 2,
     slug: 'connector-health',
+  },
+  {
+    cron: '0 22 * * * *',
+    handler: eventsCompleteCronHandler,
+    path: '/api/event-ops/complete',
+    retries: 2,
+    slug: 'events-complete',
   },
   {
     cron: '0 7 * * * *',

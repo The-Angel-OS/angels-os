@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 import { RegisterForm } from './RegisterForm'
+import { RichText } from '@/components/RichText'
+import { EventGallery } from './EventGallery'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -87,6 +89,13 @@ export default async function EventDetailPage({
     typeof event.host === 'object'
       ? event.host.name || event.host.email
       : 'Unknown Host'
+
+  // "Past" is the temporal weight of the page, and it is NOT just status:
+  // status is a manual dropdown nobody remembers to flip, so an event whose end
+  // time has gone by reads as past whatever the dropdown says.
+  const isPast =
+    event.status === 'completed' ||
+    (endDate ? endDate.getTime() < Date.now() : startDate.getTime() < Date.now())
 
   const locationType = event.location?.type
   const isVirtual = locationType === 'virtual' || locationType === 'hybrid'
@@ -240,15 +249,38 @@ export default async function EventDetailPage({
             )}
           </div>
 
-          {/* Description */}
+          {/* Description — this rendered the literal string "Event description
+              available in admin." on the public page for every event that had
+              one. The field was always richText; nothing was ever rendering it. */}
           {event.description && (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="text-muted-foreground">
-                {/* Rich text would need a RichText renderer; for now show a placeholder */}
-                Event description available in admin.
-              </p>
+            <RichText data={event.description} enableGutter={false} className="max-w-none" />
+          )}
+
+          {/* Video — before the event this is the trailer, after it is the
+              recording. Same field, and which one it is depends only on when
+              you arrive. */}
+          {event.videoEmbed?.embedUrl && (
+            <div className="mt-8">
+              <h2 className="mb-3 text-lg font-semibold">
+                {isPast ? 'Watch it back' : 'Preview'}
+              </h2>
+              <div className="relative aspect-video overflow-hidden rounded-lg border border-border">
+                <iframe
+                  src={event.videoEmbed.embedUrl}
+                  title={event.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              </div>
             </div>
           )}
+
+          {/* Gallery — the categories (venue/speaker/promo/recap/sponsor) were
+              on the collection from the start and never rendered. They are what
+              lets ONE page be the pitch beforehand and the record afterwards:
+              promo shots sell it, recap shots are why you come back. */}
+          <EventGallery images={event.gallery} isPast={isPast} />
 
           {/* Tags */}
           {event.tags?.length > 0 && (
@@ -273,8 +305,12 @@ export default async function EventDetailPage({
                 {registrationCount.totalDocs}
               </p>
               <p className="text-sm text-muted-foreground">
-                {registrationCount.totalDocs === 1 ? 'Attendee' : 'Attendees'}
-                {capacity > 0 && ` / ${capacity}`}
+                {isPast
+                  ? 'Attended'
+                  : registrationCount.totalDocs === 1
+                    ? 'Attendee'
+                    : 'Attendees'}
+                {!isPast && capacity > 0 && ` / ${capacity}`}
               </p>
             </div>
 
@@ -294,6 +330,10 @@ export default async function EventDetailPage({
             ) : isAtCapacity && !event.capacity?.waitlistEnabled ? (
               <div className="rounded-md bg-yellow-500/10 p-4 text-center text-sm text-yellow-600 dark:text-yellow-400">
                 This event is at full capacity.
+              </div>
+            ) : isPast ? (
+              <div className="rounded-md bg-muted p-4 text-center text-sm text-muted-foreground">
+                This event has finished.
               </div>
             ) : !reg.isOpen ? (
               <div className="rounded-md bg-muted p-4 text-center text-sm text-muted-foreground">

@@ -222,6 +222,7 @@ import { dmFindOrCreateHandler } from '@/endpoints/dm-find-or-create'
 import { bridgeInboundHandler } from '@/endpoints/bridge-inbound'
 import { connectorTestHandler } from '@/endpoints/connector-test'
 import { connectorHealthCronHandler } from '@/endpoints/connector-health-cron'
+import { eventsCompleteCronHandler } from '@/endpoints/events-complete-cron'
 import { emailPollHandler } from '@/endpoints/email-poll'
 import { youtubePollHandler } from '@/endpoints/youtube-poll'
 import { notificationsPollHandler } from '@/endpoints/notifications-poll'
@@ -1611,6 +1612,12 @@ export default buildConfig({
       path: '/connector-ops/health',
       method: 'get',
       handler: connectorHealthCronHandler,
+    },
+    // ─── Close out events whose time has passed (jobs queue, hourly) ───
+    {
+      path: '/event-ops/complete',
+      method: 'get',
+      handler: eventsCompleteCronHandler,
     },
     // ─── Email Poll Endpoint (Vercel Cron: */2 * * * *) ─────────
     // Fetches unseen emails from SYSTEM_EMAIL_ADDRESS via IMAP,
