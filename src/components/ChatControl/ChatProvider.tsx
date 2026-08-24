@@ -146,10 +146,14 @@ export function ChatProvider({
   // The core useChat hook drives messages/channels for the effective space+channel.
   // channelSpaceId is always the visually-active space so the sidebar channel list
   // stays stable when effectiveSpaceId switches to dmSpaceId for DM routing.
+  // dmSlugs: a DM's slug is never in the active space's channel list (it lives in
+  // the AI Bus), so useChat's resolved-channel gate has to be told about them or
+  // it refuses to load any DM's history.
+  const dmSlugs = useMemo(() => dmChannels.map((c) => c.slug), [dmChannels])
   const chat = useChat(
     effectiveSpaceId || undefined,
     undefined,
-    { tenantId, channelSpaceId: activeSpaceId || undefined },
+    { tenantId, channelSpaceId: activeSpaceId || undefined, dmSlugs },
   )
 
   // ─── Load DM channels + resolve LEO DM (sequential to prevent race) ───

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { ChatMessage, ChatChannel } from './types'
 import { logClientError } from '@/utilities/logClientError'
 
@@ -120,6 +120,36 @@ function extractText(content: unknown): string {
 }
 
 /**
+ * Is `activeChannel` resolved enough to query messages for?
+ *
+ * The gate exists because a deep-link URL carries a channel ID
+ * (/dashboard/spaces/{spaceId}/{channelId}) while `Messages.channel` stores a
+ * SLUG — querying before the id is mapped returns nothing and produces the
+ * "loads default then switches" double-load.
+ *
+ * ⚠️ It has to consider DMs SEPARATELY. `channels` only ever holds the active
+ * space's channels, and a DM lives in the AI Bus, so checking `channels` alone
+ * rejected every DM slug and no DM ever loaded its history. Sending still
+ * worked — that path appends locally and LEO answers over the stream — which is
+ * what made it look like messages vanished on navigation rather than never
+ * arriving.
+ *
+ * Exported for its own test: this predicate is the whole bug.
+ */
+export function canQueryMessages(
+  activeChannel: string,
+  channelSlugs: readonly string[],
+  dmSlugs: ReadonlySet<string> | readonly string[],
+  catchAllSlug: string,
+): boolean {
+  if (!activeChannel) return false
+  if (activeChannel === catchAllSlug) return true // pseudo-channel, never in the list
+  if (channelSlugs.includes(activeChannel)) return true
+  const dm = dmSlugs instanceof Set ? dmSlugs : new Set(dmSlugs)
+  return dm.has(activeChannel)
+}
+
+/**
  * Extended options for DM-aware channel loading.
  * All fields optional — existing callers pass (spaceId, channelSlug) unchanged.
  */
@@ -135,6 +165,18 @@ export interface UseChatOpts {
    * Prevents the sidebar channel list from clearing when switching to DM channels.
    */
   channelSpaceId?: string
+  /**
+   * Slugs of the caller's DM channels.
+   *
+   * `channels` only ever holds the ACTIVE SPACE's channels, and a DM lives in a
+   * different space entirely (the AI Bus). So the resolved-channel gate in
+   * loadMessages — which exists to stop us querying with an unresolved deep-link
+   * id — rejected every DM slug and returned before fetching. Sending still
+   * worked, because that path appends locally and LEO's reply arrives on the
+   * stream, which is exactly why this read as "messages disappear when you
+   * navigate back" rather than "messages never load".
+   */
+  dmSlugs?: string[]
 }
 
 /**
@@ -149,6 +191,10 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
   // Separate space IDs: channels always load from channelSpaceId (stable),
   // messages use spaceId which may flip to dmSpaceId for DM routing.
   const channelSpaceId = opts?.channelSpaceId ?? spaceId
+  // Joined so the memo is stable across renders that rebuild the array identity.
+  const dmSlugKey = (opts?.dmSlugs ?? []).join(',')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dmSlugSet = useMemo(() => new Set(dmSlugKey ? dmSlugKey.split(',') : []), [dmSlugKey])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [channels, setChannels] = useState<ChatChannel[]>([])
   const [activeChannel, setActiveChannel] = useState<string>(channelSlug || 'general')
@@ -394,7 +440,8 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     // both produce the "loads default then switches" double/triple load. Wait until
     // the slug exists in the loaded channels. Catch-All is a pseudo-channel (not in
     // the list) so it bypasses the gate.
-    if (!isCatchAll && !channels.some((c) => c.slug === activeChannel)) return
+    if (!canQueryMessages(activeChannel, channels.map((c) => c.slug), dmSlugSet, CATCH_ALL_SLUG))
+      return
     try {
       const res = await fetch(
         isCatchAll
@@ -435,7 +482,7 @@ export function useChat(spaceId?: string, channelSlug?: string, opts?: UseChatOp
     } catch (err) {
       console.error('Failed to load messages:', err)
     }
-  }, [spaceId, activeChannel, channels, mapMessage, catchAllFilter])
+  }, [spaceId, activeChannel, channels, dmSlugSet, mapMessage, catchAllFilter])
 
   // Load more (older) messages for infinite scroll — cursor-based.
   // Uses oldestTimestampRef instead of messages array to keep this callback
