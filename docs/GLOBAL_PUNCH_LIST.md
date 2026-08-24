@@ -113,6 +113,40 @@
 - **[P1] An invited person lands nowhere** — `invite-accept` returns `{ spaceId }` as JSON; nobody is taken
   into the channel they were invited to. Arrival is silence. *Next:* carry the destination through accept
   and drop them in the channel with the inviter's message pinned. `260823`
+- **[P0] No subscription has EVER completed, and there are no Stripe PRICES on the node** —
+  `memberships` is 0 rows, 22 portals are `free`/`demo`, and a settings-bag search for `price_`
+  returns zero, so the $29/$79 tiers are not buyable at all. Separately, Ken's $5 donation on 260823
+  recorded NOTHING (no transaction row, `justice_fund_transactions` empty, no Stripe event since
+  260820) while the endpoint answers 400 to an unsigned probe and the signing secret is set — so it
+  is DELIVERY, not handling. *Next:* Ken checks the Stripe dashboard delivery log, then create the
+  two prices. `260824`
+- **[P1] Commission revenue is unreachable on 20 of 22 portals** — `application_fee_amount` only
+  works on a connected account and only `clearwater-cruisin` has charges enabled (the platform's own
+  account has them OFF). Subscription revenue is reachable now; commission is not. *Next:* Ken's
+  call on whether Connect onboarding belongs on the free tier at all. `260824`
+- **[P1] The bootstrap refund promise has never been re-read against the new pricing** —
+  `bootstrapFees.ts` states in source that every bootstrap fee is "committed for FULL REFUND", with
+  no expiry and nobody tracking the liability. *Next:* explicit ruling from Ken. `260824`
+- **[P1] LEO answers every message in every channel, unconditionally** — `useChat.ts` calls LEO on
+  every send with no channel-type or mention check, so two humans talking in #general each get a
+  reply per line. The rule already exists and is tested on Discord (`shouldRespond`: DM, mention, or
+  the LEO channel). *Next:* port it to the web chat — fixes intrusion AND most of the token cost.
+  `260824`
+- **[P1] The per-space `leo` channel is shared, not private** — 25+ of them across portals holding
+  **11 messages total**, while the per-user `dm-{userId}-leo` that already exists holds 171 in Ken's
+  alone. The private primitive works and is used; the shared one is the default and is dead. *Next:*
+  default swap, after Ken rules on whether an owner may read a member's thread. `260824`
+- **[P1] WDEG has no way to join** — tenant 11 has NO membership plan at all, 5 members of whom 3
+  are us, 0 events, and two overlapping community spaces. *Next:* one FREE plan + join link; then
+  merge the spaces. This is the agreed next build. `260824`
+- **[P1→SHIPPED 260824] LEO tool authorization is in code, not the prompt** — 11 of 174 tools
+  checked the caller; `query_orders`'s model-chosen `viewAs: 'vendor'` dropped the customer filter
+  and returned every order on the portal. `leoToolStanding.ts` declares a standing per tool
+  (anonymous/member/manager/platform), enforced at `executeToolCall`, with a test that fails on any
+  undeclared tool. `c60c3f7` `260824`
+- **[P1→SHIPPED 260824] An invited person lands somewhere** — accept now resolves the space's
+  default channel, returns a destination the client follows, and says hello in the channel the space
+  is actually talking in (fail-soft). ⚠️ Untested with a real invitee. `c60c3f7` `260824`
 - **[P2] Three files still read `user.tenants` unreviewed** — `ai-bus-poll`, `ai-bus-stream`, `x-post` pick
   WHICH tenant to act in rather than whether you may. Listed in `noRoleBlindTenantAuth.test.ts`'s
   allowlist so they are tracked, not blessed. `260822`
