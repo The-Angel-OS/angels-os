@@ -517,4 +517,9 @@ export const migrations = [
     down: migration_20260824_180000_events_rels_events_id.down,
     name: '20260824_180000_events_rels_events_id',
   },
+  {
+    up: migration_20260824_200000_users_avatar.up,
+    down: migration_20260824_200000_users_avatar.down,
+    name: '20260824_200000_users_avatar',
+  },
 ];

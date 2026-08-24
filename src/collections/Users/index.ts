@@ -4,6 +4,8 @@ import { adminOnly } from '@/access/adminOnly'
 import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { publicAccess } from '@/access/publicAccess'
 import { adminOrSelf } from '@/access/adminOrSelf'
+import { adminOrSelfFieldAccess } from '@/access/adminOrSelfFieldAccess'
+import { signedInDirectoryRead } from '@/access/signedInDirectoryRead'
 import { checkRole } from '@/access/utilities'
 import { managedTenantIds } from '@/access/portalManager'
 
@@ -35,7 +37,10 @@ export const Users: CollectionConfig = {
     },
     create: publicAccess,
     delete: adminOnly,
-    read: adminOrSelf,
+    // Widened 260824 so chat can show WHO SAID SOMETHING — see
+    // signedInDirectoryRead. Only name + avatar survive the field gates;
+    // usersFieldExposure.test.ts is what keeps it that way.
+    read: signedInDirectoryRead,
     update: adminOrSelf,
   },
   admin: {
@@ -60,10 +65,73 @@ export const Users: CollectionConfig = {
       type: 'text',
     },
     {
+      // The auth email field, re-declared ONLY to hang a read gate on it —
+      // Payload merges this with the one `auth: true` adds. Login, invitations
+      // and every server-side lookup run with overrideAccess, so they are
+      // unaffected; this is about what a peer sees when chat populates an
+      // author. Without it, widening users.read hands every signed-in person
+      // the whole portal's mailing list.
+      name: 'email',
+      type: 'email',
+      access: { read: adminOrSelfFieldAccess },
+    },
+    {
+      // Uploadable override avatar. `avatarUrl` below falls back to the linked
+      // social account, then to Gravatar, so a user who never uploads anything
+      // still gets a face — config-free.
+      name: 'avatar',
+      type: 'upload',
+      relationTo: 'media',
+      admin: { description: 'Profile picture. Leave empty to use your Gravatar.' },
+    },
+    {
+      // Gravatar's md5-of-email, maintained on save. It exists as a COLUMN
+      // rather than being computed at read time because `email` is redacted for
+      // peers by the field gate above — and a fallback avatar that only the
+      // account's owner can see is not a fallback. Public by design: a Gravatar
+      // hash is what every Gravatar-using site puts in an <img src>.
+      name: 'gravatarHash',
+      type: 'text',
+      admin: { readOnly: true, hidden: true },
+      hooks: {
+        beforeChange: [
+          async ({ data }) => {
+            const email = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : ''
+            if (!email) return null
+            const { createHash } = await import('crypto')
+            // ponytail: Gravatar's documented scheme — md5 here is an address, not a security hash.
+            return createHash('md5').update(email).digest('hex')
+          },
+        ],
+      },
+    },
+    {
+      // Virtual: resolved on read, no column. This is the ONE field a chat
+      // surface should read — uploaded picture first, Gravatar otherwise.
+      // The uploaded branch needs depth >= 1; at depth 0 you get the Gravatar,
+      // which is the right thing to show while you wait.
+      name: 'avatarUrl',
+      type: 'text',
+      virtual: true,
+      admin: { readOnly: true, hidden: true },
+      hooks: {
+        afterRead: [
+          ({ data }) => {
+            const d = (data || {}) as Record<string, unknown>
+            const up = d.avatar as { url?: string } | null | undefined
+            if (up && typeof up === 'object' && typeof up.url === 'string' && up.url) return up.url
+            const hash = typeof d.gravatarHash === 'string' ? d.gravatarHash : ''
+            return hash ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=200` : null
+          },
+        ],
+      },
+    },
+    {
       // Mobile number (E.164) — the identity anchor for SMS sign-in (Twilio
       // Verify texts a code; verifyOtpSms matches the approved phone to this
       // field). Phone + email are co-equal anchors in the identity graph.
       name: 'phone',
+      access: { read: adminOrSelfFieldAccess },
       type: 'text',
       index: true,
       admin: { description: 'Mobile number — any format; normalized to E.164 on save. Enables sign-in by text.' },
@@ -85,6 +153,7 @@ export const Users: CollectionConfig = {
       // every federation node. Virtual: computed on read, never stored, so it adds
       // no column and cannot drift across the two databases. See federatedIdentity.ts.
       name: 'federatedIdentityId',
+      access: { read: adminOrSelfFieldAccess },
       type: 'text',
       virtual: true,
       admin: {
@@ -116,6 +185,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'agentConfig',
+      access: { read: adminOrSelfFieldAccess },
       type: 'group',
       admin: {
         condition: (_, siblingData) => siblingData?.isSystemUser === true,
@@ -383,6 +453,7 @@ export const Users: CollectionConfig = {
     // /api/auth/google?calendar=1 (its own consent, never part of sign-in).
     {
       name: 'googleCalendar',
+      access: { read: adminOrSelfFieldAccess },
       type: 'group',
       admin: { description: 'Connected Google Calendar — read busy times, write confirmed bookings.' },
       fields: [
@@ -416,6 +487,7 @@ export const Users: CollectionConfig = {
     // ─── Social Auth Providers (multi-provider linking) ──────
     {
       name: 'socialProviders',
+      access: { read: adminOrSelfFieldAccess },
       type: 'array',
       admin: {
         description: 'Linked social login providers (Google, GitHub, etc.). Affects suitcase portability.',
@@ -461,6 +533,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'orders',
+      access: { read: adminOrSelfFieldAccess },
       type: 'join',
       collection: 'orders',
       on: 'customer',
@@ -471,6 +544,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'cart',
+      access: { read: adminOrSelfFieldAccess },
       type: 'join',
       collection: 'carts',
       on: 'customer',
@@ -481,6 +555,7 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'addresses',
+      access: { read: adminOrSelfFieldAccess },
       type: 'join',
       collection: 'addresses',
       on: 'customer',
@@ -493,6 +568,7 @@ export const Users: CollectionConfig = {
       // Per-user dashboard widget preferences — collapsed/dismissed/order. Saved
       // server-side so they follow the user across devices + the Nimue client.
       name: 'dashboardPrefs',
+      access: { read: adminOrSelfFieldAccess },
       type: 'json',
       admin: {
         description: 'Dashboard widget preferences: { collapsed: string[], dismissed: string[], order: string[] }',

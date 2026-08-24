@@ -29,6 +29,7 @@ import {
 import { buildConfig } from 'payload'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
+import { adminOrSelfFieldAccess } from '@/access/adminOrSelfFieldAccess'
 import { Availability } from '@/collections/Availability'
 import { Bookings } from '@/collections/Bookings'
 import { Categories } from '@/collections/Categories'
@@ -562,6 +563,10 @@ export default buildConfig({
       userHasAccessToAllTenants: (user) => isSuperAdmin(user as Config['collections']['users'] | null),
       tenantsArrayField: {
         includeDefaultField: true,
+        // users.read is open to any signed-in person (see signedInDirectoryRead)
+        // so chat can resolve names. Which portals someone belongs to is not
+        // part of that: it maps the whole membership graph for anyone who asks.
+        arrayFieldAccess: { read: adminOrSelfFieldAccess },
       },
       // Allow users with no tenant (e.g. first user before seed) to appear in the Users list
       useUsersTenantFilter: false,
