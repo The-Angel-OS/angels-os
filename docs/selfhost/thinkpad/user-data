@@ -1,0 +1,87 @@
+#cloud-config
+# ─────────────────────────────────────────────────────────────────────────────
+# Ubuntu Server autoinstall — Angel OS node on a ThinkPad.
+#
+# ⚠️ THIS ERASES THE ENTIRE DISK, unattended, with no prompt. That is the point
+#    of an autoinstall, and it is also the whole risk. Do not boot this stick in
+#    a machine you care about. Check twice which laptop is in front of you.
+#
+# Two placeholders MUST be filled in before this works — the install will
+# otherwise complete and lock you out of your own machine:
+#   1. identity.password  — a hashed password (see README step 3)
+#   2. ssh_authorized_keys — your public key (see README step 3)
+#
+# Ubuntu searches every attached volume for one labelled CIDATA and reads this
+# file from it. No ISO remastering, no kernel command line editing.
+# ─────────────────────────────────────────────────────────────────────────────
+autoinstall:
+  version: 1
+
+  # Fully unattended. An empty list means "prompt for nothing".
+  interactive-sections: []
+
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+
+  identity:
+    hostname: angel-node-01
+    realname: Angel OS Node
+    username: angel
+    # REPLACE ME — output of:  openssl passwd -6
+    password: "$6$REPLACE$THIS$WITH$A$REAL$HASH"
+
+  ssh:
+    install-server: true
+    # Keys only. A server on a residential connection behind a tunnel still gets
+    # scanned; password SSH is the one door you do not want left on the latch.
+    allow-pw: false
+    authorized-keys:
+      # REPLACE ME — the contents of ~/.ssh/angel_node.pub (see README step 3)
+      - ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY you@example.com
+
+  # Whole disk, one ext4 root, no LVM. This box does one job and will never need
+  # to grow a volume group; LVM here would be complexity with no consumer.
+  storage:
+    layout:
+      name: direct
+
+  # Deliberately minimal. Docker installs from Docker's own apt repo in
+  # bootstrap.sh — Ubuntu's `docker.io` package lags and ships without the
+  # compose v2 plugin, which is the thing the stack actually uses.
+  packages:
+    - curl
+    - ca-certificates
+    - gnupg
+    - git
+    - htop
+    - postgresql-client
+    - unattended-upgrades
+
+  # Security updates during install, and unattended-upgrades keeps applying them
+  # afterwards. A node nobody logs into for three months is a node running
+  # three-month-old OpenSSH.
+  # (`updates:` is autoinstall's key — cloud-init's package_update/package_upgrade
+  #  are silently ignored inside an autoinstall block.)
+  updates: security
+
+  late-commands:
+    # ── The single most important line in this file ──────────────────────────
+    # A laptop suspends when you close the lid. Close the lid on your server and
+    # 22 portals go dark, with no error anywhere to explain it. Ignore the lid,
+    # ignore the power button, never idle-suspend.
+    - |
+      cat >> /target/etc/systemd/logind.conf <<'EOF'
+
+      # Angel OS node: this laptop is a server. The lid is not a power switch.
+      HandleLidSwitch=ignore
+      HandleLidSwitchExternalPower=ignore
+      HandleLidSwitchDocked=ignore
+      HandleSuspendKey=ignore
+      IdleAction=ignore
+      EOF
+    - curtin in-target --target=/target -- systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+    # Passwordless sudo for the deploy user — every step after this is scripted.
+    - |
+      echo 'angel ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/90-angel
+      chmod 440 /target/etc/sudoers.d/90-angel
