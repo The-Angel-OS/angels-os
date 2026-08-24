@@ -9,6 +9,7 @@ import { RichText } from '@/components/RichText'
 import { EventGallery } from './EventGallery'
 import { EventProducts } from './EventProducts'
 import { CommentsBlock } from '@/blocks/Comments/Component'
+import { RenderBlocks } from '@/blocks/RenderBlocks'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -285,6 +286,17 @@ export default async function EventDetailPage({
           <EventGallery images={event.gallery} isPast={isPast} />
 
           <EventProducts rows={event.products} isPast={isPast} />
+
+          {/* Whatever else this particular event needs — an agenda, a synopsis,
+              a poster. Optional: most events will never use it. */}
+          {Array.isArray(event.layout) && event.layout.length > 0 && (
+            <div className="mt-8">
+              <RenderBlocks
+                blocks={event.layout}
+                docContext={{ id: event.id, collection: 'events' }}
+              />
+            </div>
+          )}
 
           {/* Tags */}
           {event.tags?.length > 0 && (

@@ -1,4 +1,7 @@
 import type { CollectionConfig } from 'payload'
+import { Content } from '@/blocks/Content/config'
+import { MediaBlock } from '@/blocks/MediaBlock/config'
+import { Gallery } from '@/blocks/Gallery/config'
 import { adminOnly } from '@/access/adminOnly'
 import { authenticated } from '@/access/authenticated'
 import { buildTenantWhere, mergeWithTenantScope } from '@/access/tenantScope'
@@ -484,6 +487,24 @@ export const Events: CollectionConfig = {
       index: true,
       admin: {
         description: 'Associated space for AI Bus announcements',
+      },
+    },
+    {
+      /**
+       * Free-form page body, the same primitive Pages and Products carry.
+       *
+       * Three blocks, not the twenty-five Pages offers: each one is a hand-written
+       * table, and this repo grows them one at a time. Content covers rich text
+       * with inline uploads and links, which is most of what an event page wants.
+       *
+       * Comments is deliberately absent — every event renders the thread natively,
+       * and offering the block too would put two threads on one page.
+       */
+      name: 'layout',
+      type: 'blocks',
+      blocks: [Content, MediaBlock, Gallery],
+      admin: {
+        description: 'Optional extra content for this event — an agenda, a synopsis, a poster.',
       },
     },
     {
