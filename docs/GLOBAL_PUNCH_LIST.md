@@ -16,16 +16,27 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
-- **[P1] Everyone who is not an admin sees "Unknown" instead of names** — `Users.read` is
-  `adminOrSelf`, so a non-admin can read exactly ONE user row: their own. Every `depth: 1` author
-  population therefore returns a bare id for anybody else, and the message list renders "Unknown".
-  Ken is super_admin so he never sees it; Tyler is not, so on her screen the whole portal is
-  anonymous. This is the second half of the 260824 DM report — the first half (the tenant filter)
-  is fixed, this is not. ⚠️ **Do NOT just widen `read`** — the row carries email, phone, roles.
-  *Recommended:* keep `read` tight and let peers resolve names through the projection endpoints
-  that already exist and already run `overrideAccess` (`dm-roster`, `space-members`), or add
-  field-level access so a co-member sees `id`/`name`/avatar and nothing else.
-  *Where:* `src/collections/Users/index.ts:38`. `260824`
+- **[P1→FIXED 260824] Everyone who is not an admin saw "Unknown" instead of names** — `Users.read`
+  was `adminOrSelf`, so a non-admin could read exactly ONE user row: their own, and every `depth: 1`
+  author population returned a bare id. Ken is super_admin so he never saw it; on Tyler's screen the
+  whole portal was anonymous.
+  Payload decides ROW visibility before FIELD visibility, so field-level access alone could not fix
+  this — the row has to be let through first. `read` is now `signedInDirectoryRead` (any signed-in
+  person; Ken's call, global name visibility yes) and ALL the protection is field-level: `email`,
+  `phone`, `socialProviders`, `googleCalendar`, `agentConfig`, `dashboardPrefs`, the order/cart/
+  address joins, `federatedIdentityId` and the plugin's `tenants` array are `adminOrSelfFieldAccess`.
+  `roles` already was. Verified live with a throwaway non-admin account: peer read returns
+  `name` + `avatarUrl` and nothing else; a super_admin with 22 tenant rows and 1 social provider
+  comes back with both arrays empty.
+  ⚠️ **Payload gives you a blacklist, not a whitelist** — a field added to Users tomorrow is public
+  by default. `usersFieldExposure.test.ts` fails unless every field is approved-public or gated.
+  Co-membership scoping was rejected: it cannot be a `where` (access has no join), so it costs a peer
+  lookup on every read of every user row — to protect names, where DMs are already global by design.
+  Shipped with it: an uploadable `avatar`, falling back to Gravatar via a stored `gravatar_hash`
+  (stored, not derived, because `email` is now redacted for peers — a fallback only its owner can see
+  is not a fallback). Read `avatarUrl`, which encodes the fallback order.
+  *Where:* `src/access/signedInDirectoryRead.ts`, `src/access/adminOrSelfFieldAccess.ts`,
+  `src/collections/Users/index.ts`, `20260824_200000_users_avatar`. `260824`
 
 - **[P0→FIXED 260824] Every portal's sitemap pointed search engines at `http://localhost:3000`** —
   `src/app/sitemap.ts` built its URLs from `NEXT_PUBLIC_SERVER_URL`, which **bakes at build time**
