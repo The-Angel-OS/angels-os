@@ -34,19 +34,23 @@ fi
 # 8 GB is enough to RUN this stack but leaves no cushion for a bad moment.
 # Swap does not make the box fast; it makes the difference between a stall and
 # the OOM killer taking Postgres out mid-write.
-if ! sudo swapon --show | grep -q '/swapfile'; then
+# Match ANY existing swap, not just a file we happened to name /swapfile.
+# Ubuntu 26.04 ships its own 4G /swap.img, so checking for our own name gave the
+# box 8G of swap on an 8G machine — 4G of SSD spent on a cushion never used twice.
+if [ -z "$(swapon --show --noheadings)" ]; then
   say "Creating 4G swapfile"
   sudo fallocate -l 4G /swapfile
   sudo chmod 600 /swapfile
   sudo mkswap /swapfile
   sudo swapon /swapfile
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
-  # Prefer RAM heavily — swap is the safety net, not the working set.
-  echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-angel-swappiness.conf >/dev/null
-  sudo sysctl -q -p /etc/sysctl.d/99-angel-swappiness.conf
 else
-  say "Swap already configured — skipping"
+  say "Swap already present — skipping"
 fi
+# Prefer RAM heavily — swap is the safety net, not the working set. Set this
+# regardless of who created the swap.
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-angel-swappiness.conf >/dev/null
+sudo sysctl -q -p /etc/sysctl.d/99-angel-swappiness.conf
 
 # ── Is this thing a spinning disk? ───────────────────────────────────────────
 # The one spec that can disqualify the machine. Postgres on 5400 rpm is misery
@@ -78,9 +82,14 @@ find backups -name 'angels-*.sql.gz' -mtime +14 -delete
 echo "$(date -Is) backup ok $OUT $(du -h "$OUT" | cut -f1)"
 BACKUP
 chmod +x /opt/angelos/backup.sh
-( crontab -l 2>/dev/null | grep -v '/opt/angelos/backup.sh'
+# `crontab -l` exits non-zero for a user with no crontab yet, and under `set -e`
+# that killed the whole subshell pipeline SILENTLY — the script reported success
+# and installed nothing. Build it in a group with an explicit `|| true`, then
+# verify the result rather than trusting it.
+{ crontab -l 2>/dev/null | grep -v '/opt/angelos/backup.sh' || true
   echo '17 3 * * * /opt/angelos/backup.sh >> /opt/angelos/backups/backup.log 2>&1'
-) | crontab -
+} | crontab -
+crontab -l | grep -q backup.sh || { echo "cron install FAILED" >&2; exit 1; }
 
 say "Done. What is NOT done:"
 cat <<'NEXT'
