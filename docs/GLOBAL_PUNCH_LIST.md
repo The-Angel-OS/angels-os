@@ -16,6 +16,19 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→FIXED 260824] Every portal's sitemap pointed search engines at `http://localhost:3000`** —
+  `src/app/sitemap.ts` built its URLs from `NEXT_PUBLIC_SERVER_URL`, which **bakes at build time**
+  and is unset in the container build, so the fallback shipped. Worse than having no sitemap. The
+  route is `force-dynamic` and per-tenant, so the origin must come from the REQUEST — which the
+  reader already did (`originFromHeaders` in `learn/[soul]/[page]`). `sitemapOrigin.test.ts`.
+  [[project_nextpublic_selfhost_buildtime]] `260824`
+- **[P1] The sitemap indexes pages/posts/products and NOTHING else** — no Works, no chapters, no
+  events. The whole Library is invisible to search: 1189 Bible chapters plus WDEG, none of it
+  submitted. This is the single biggest SEO win available and it needs no translation work at all.
+  *Where:* `src/app/sitemap.ts`. *Next:* add `events` (cheap) and Works chapters (needs care — the
+  chapter list lives in the Work JSON, so enumerating it per request wants a sitemap INDEX, not one
+  giant file). `260824`
+
 - **[P0→FIXED 260731] Scheduled work is running again** — the Payload jobs queue replaced the retired crond
   container (`cf35d34`), `JOBS_AUTORUN=true` set on Railway Core, deployed and verified: nine tasks scheduled,
   the first runs completed and cleaned themselves up, `connector-health` re-scheduling itself every 30 min,
@@ -96,6 +109,26 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[P1] Translations of a Work are not indexable, and the model does not exist yet** — Ken's
+  260824 ask: let the sitemap point at every language of the book. Three things are in the way and
+  only the third is the interesting one. (a) The sitemap said `localhost` — fixed 260824. (b) Works
+  are not in the sitemap at all. (c) **There is no language concept on Works.** `works` has slug /
+  title / canonical / owner and no `language`; `wdeg` is ONE Work, and the Spanish edition exists
+  only as a *product* listing, never as something the reader can open. Note `routing.locales` is
+  `['en','de']` — next-intl chrome translation, a DIFFERENT axis from content translation, and
+  conflating them (a `/es/` prefix that translates the UI while the book stays English) actively
+  hurts: Google sees near-duplicates.
+  *Recommended shape:* a `language` field plus a shared translation family on Works, ONE Work per
+  language with its own slug (`wdeg`, `wdeg-es`). **Not** an optional path segment in the reader —
+  for SEO, ambiguity is the enemy, and two URLs that both serve a chapter is duplicate content with
+  a computed canonical. Each URL then emits `rel=alternate hreflang` for every sibling *including
+  itself* plus `x-default`; Next's `MetadataRoute.Sitemap` supports `alternates.languages` natively
+  and emits the `xhtml:link` entries, so the sitemap side is a supported feature, not a build.
+  ⚠️ Chapter slugs must MATCH across translations (`chapter-1`, not `capitulo-1`) or hreflang can
+  only ever be book-level instead of per-page. Translate the title, keep the slug.
+  Reuses `worksCanonical.ts` (publish-once-canonical) rather than adding a second authority model.
+  [[project_works_canonical_syndication]] [[project_reader_reference_layer]] `260824`
 
 - **[P1] A free tier is a lie on 20 of 22 portals** — the free-plan path writes the Membership directly
   and needs no Stripe, so ANY portal can offer one today. But the moment a plan costs money,
@@ -411,6 +444,28 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[P0 260824] The event page threw away content already in the database** — `description` is
+  richText and the page rendered the literal string "Event description available in admin." on the
+  public site; `gallery` and `videoEmbed` rendered nowhere. The gallery's categories
+  (venue/speaker/promo/recap/sponsor) were designed for the come-back-later archive and had no
+  renderer. Now ordered by category and flipped on `isPast`. `9ddf7bc` `260824`
+- **[P1 260824] Past events never became past** — `status` was a manual dropdown nothing ever
+  moved, so "Past Events" only filled if someone remembered. Hourly sweep, two-hour grace so an
+  event running over is not closed under it. `events-complete-cron.ts`, 5 tests. `9ddf7bc` `260824`
+- **[P1 260824] Events ↔ products, a thread, and a QR that can point at the event** — no
+  association existed at all, so "what did we sell at that market?" was unanswerable. A
+  relationship, not a block (a block buries the link where nothing can query it). `eventPrice` in
+  DOLLARS matching `priceInUSD`, and NOT a discount engine — coupons are a checkout concern and stay
+  there (Ken's 260824 call). Comments gained `events` as a polymorphic parent; every event renders
+  the thread natively rather than depending on a block being placed. `/kiosk/qr?event=…&target=page`
+  now points at the event page instead of only the shop. `cf79d76` `260824`
+- **[P1 260824] Events got a `layout` blocks field** — Content, Media, Gallery; three, not the
+  twenty-five Pages offers, because each block is a hand-written table and this repo grows them one
+  at a time. ⚠️ `events_rels` was written by analogy with Pages and missed `events_id`, which
+  `fields/link.ts` requires — that made the whole collection unreadable, caught by round-tripping
+  against live BEFORE the config shipped. Fixed in a second migration file, never an edit to the
+  applied one. `260824`
 
 - **[P0 260823] Joining a portal put you in no room** — `membership-ops/checkout` wrote a `memberships`
   row and stopped. Membership was a billing fact with nothing attached: a new member landed on an empty

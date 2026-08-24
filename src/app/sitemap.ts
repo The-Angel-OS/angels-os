@@ -15,6 +15,7 @@
 import type { MetadataRoute } from 'next'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { headers } from 'next/headers'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 
 // Per-request, per-tenant (resolved from the Host header) — must NOT be prerendered
@@ -22,10 +23,27 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 // container build). force-dynamic makes it correct AND decouples the build from the DB.
 export const dynamic = 'force-dynamic'
 
-const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+/**
+ * The origin comes from the REQUEST, not from an env var.
+ *
+ * `NEXT_PUBLIC_SERVER_URL` bakes at build time, and it is unset in the container
+ * build — so every portal on this node was serving a sitemap full of
+ * `http://localhost:3000`, which is worse than having no sitemap at all. It is
+ * also wrong in principle here: this route is force-dynamic and per-tenant, so
+ * the whole point is that each portal's sitemap carries ITS OWN host. The reader
+ * already resolves origin this way (`originFromHeaders` in learn/[soul]/[page]).
+ */
+async function originFromHeaders(): Promise<string> {
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || ''
+  const proto = h.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https')
+  if (host) return `${proto}://${host}`
+  return process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const payload = await getPayload({ config: configPromise })
+  const baseUrl = await originFromHeaders()
 
   // Resolve tenant from request headers — ensures we only index THIS tenant's content
   const { tenantFilter } = await resolveTenantFromHeaders()
