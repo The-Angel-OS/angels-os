@@ -432,6 +432,52 @@ export const Events: CollectionConfig = {
       ],
     },
     {
+      name: 'products',
+      type: 'array',
+      admin: {
+        description:
+          'What is for sale at this event. Stays on the page afterwards as the record of what was there.',
+      },
+      fields: [
+        {
+          name: 'product',
+          type: 'relationship',
+          relationTo: 'products',
+          required: true,
+          index: true,
+        },
+        {
+          /**
+           * The event price, and deliberately NOT a discount system.
+           *
+           * A coupon is a checkout concern — a code, stacking rules, expiry,
+           * abuse — and it belongs to the store, not to an event. This is the
+           * other thing people mean by "event pricing": what this costs at this
+           * event. Leave it blank and the product's own price stands.
+           *
+           * Keeping the two separate is what lets a store-wide coupon and an
+           * event price coexist later without either knowing about the other.
+           *
+           * In DOLLARS, matching `Products.priceInUSD`, which is the number it
+           * stands in for. Two units for one price is how a display ends up off
+           * by a factor of a hundred.
+           */
+          name: 'eventPrice',
+          type: 'number',
+          min: 0,
+          admin: {
+            description:
+              'Price at this event, in dollars. Leave blank and the normal price stands.',
+          },
+        },
+        {
+          name: 'note',
+          type: 'text',
+          admin: { description: 'Optional line under the product, e.g. "signed copies only".' },
+        },
+      ],
+    },
+    {
       name: 'space',
       type: 'relationship',
       relationTo: 'spaces',

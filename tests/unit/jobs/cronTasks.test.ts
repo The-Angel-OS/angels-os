@@ -14,7 +14,7 @@ describe('cron tasks', () => {
   it('schedules every job exactly once, on a six-field cron', () => {
     const slugs = cronTasks.map((t) => t.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
-    expect(slugs).toHaveLength(9)
+    expect(slugs).toHaveLength(10)
     for (const task of cronTasks) {
       const schedule = task.schedule || []
       expect(schedule).toHaveLength(1)

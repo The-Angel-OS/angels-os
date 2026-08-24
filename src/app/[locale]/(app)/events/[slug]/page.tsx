@@ -7,6 +7,8 @@ import React from 'react'
 import { RegisterForm } from './RegisterForm'
 import { RichText } from '@/components/RichText'
 import { EventGallery } from './EventGallery'
+import { EventProducts } from './EventProducts'
+import { CommentsBlock } from '@/blocks/Comments/Component'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -282,6 +284,8 @@ export default async function EventDetailPage({
               promo shots sell it, recap shots are why you come back. */}
           <EventGallery images={event.gallery} isPast={isPast} />
 
+          <EventProducts rows={event.products} isPast={isPast} />
+
           {/* Tags */}
           {event.tags?.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
@@ -295,6 +299,18 @@ export default async function EventDetailPage({
               ))}
             </div>
           )}
+
+          {/* The thread — every event has one, rather than it depending on
+              somebody remembering to place a block. This is the whole reason a
+              past event page is worth returning to: the registration closes,
+              the photos go up, and what people said stays. */}
+          <div className="mt-10 border-t border-border pt-6">
+            <CommentsBlock
+              blockType="comments"
+              heading={isPast ? 'How was it?' : 'Questions about this event'}
+              docContext={{ id: event.id, collection: 'events' }}
+            />
+          </div>
         </div>
 
         {/* Sidebar — Registration */}

@@ -263,6 +263,7 @@ export interface Config {
       'federation-heartbeat': TaskFederationHeartbeat;
       'notifications-poll': TaskNotificationsPoll;
       'connector-health': TaskConnectorHealth;
+      'events-complete': TaskEventsComplete;
       'youtube-poll': TaskYoutubePoll;
       'verify-onboarding': TaskVerifyOnboarding;
       'log-consolidate': TaskLogConsolidate;
@@ -1912,6 +1913,23 @@ export interface Event {
   tags?:
     | {
         tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * What is for sale at this event. Stays on the page afterwards as the record of what was there.
+   */
+  products?:
+    | {
+        product: number | Product;
+        /**
+         * Price at this event, in dollars. Leave blank and the normal price stands.
+         */
+        eventPrice?: number | null;
+        /**
+         * Optional line under the product, e.g. "signed copies only".
+         */
+        note?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -4736,7 +4754,7 @@ export interface Comment {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The Page, Post or Product this comment is attached to
+   * The Page, Post, Product or Event this comment is attached to
    */
   parent:
     | {
@@ -4750,6 +4768,10 @@ export interface Comment {
     | {
         relationTo: 'pages';
         value: number | Page;
+      }
+    | {
+        relationTo: 'events';
+        value: number | Event;
       };
   /**
    * Display name for the comment author
@@ -7361,6 +7383,7 @@ export interface PayloadJob {
           | 'federation-heartbeat'
           | 'notifications-poll'
           | 'connector-health'
+          | 'events-complete'
           | 'youtube-poll'
           | 'verify-onboarding'
           | 'log-consolidate'
@@ -7405,6 +7428,7 @@ export interface PayloadJob {
         | 'federation-heartbeat'
         | 'notifications-poll'
         | 'connector-health'
+        | 'events-complete'
         | 'youtube-poll'
         | 'verify-onboarding'
         | 'log-consolidate'
@@ -8317,6 +8341,14 @@ export interface EventsSelect<T extends boolean = true> {
     | T
     | {
         tag?: T;
+        id?: T;
+      };
+  products?:
+    | T
+    | {
+        product?: T;
+        eventPrice?: T;
+        note?: T;
         id?: T;
       };
   space?: T;
@@ -10957,6 +10989,14 @@ export interface TaskNotificationsPoll {
  * via the `definition` "TaskConnector-health".
  */
 export interface TaskConnectorHealth {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEvents-complete".
+ */
+export interface TaskEventsComplete {
   input?: unknown;
   output?: unknown;
 }

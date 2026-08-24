@@ -74,6 +74,7 @@ import * as migration_20260821_170000_hero_scrim_versions from './20260821_17000
 import * as migration_20260822_120000_archive_columns from './20260822_120000_archive_columns'
 import * as migration_20260823_120000_pages_comments_block from './20260823_120000_pages_comments_block'
 import * as migration_20260824_100000_works_availability from './20260824_100000_works_availability'
+import * as migration_20260824_140000_event_products from './20260824_140000_event_products'
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -498,5 +499,10 @@ export const migrations = [
     up: migration_20260824_100000_works_availability.up,
     down: migration_20260824_100000_works_availability.down,
     name: '20260824_100000_works_availability',
+  },
+  {
+    up: migration_20260824_140000_event_products.up,
+    down: migration_20260824_140000_event_products.down,
+    name: '20260824_140000_event_products',
   },
 ];

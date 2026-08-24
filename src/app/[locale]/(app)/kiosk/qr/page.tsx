@@ -9,10 +9,17 @@ export const metadata: Metadata = { title: 'Kiosk QR Code' }
 /**
  * /kiosk/qr — printable QR code for the market stand.
  *
- *   /kiosk/qr               → QR links to /kiosk (the quick-shop)
- *   /kiosk/qr?event=<slug>  → QR links to /kiosk?event=<slug> and shows the
- *                             event name on the poster (for this stand/date)
- *   /kiosk/qr?product=<id>  → QR links directly to /products/<slug> (per-plant)
+ *   /kiosk/qr                            → QR links to /kiosk (the quick-shop)
+ *   /kiosk/qr?event=<slug>               → QR links to /kiosk?event=<slug> and shows
+ *                                          the event name on the poster (stand/date)
+ *   /kiosk/qr?event=<slug>&target=page   → QR links to the EVENT PAGE instead
+ *   /kiosk/qr?product=<id>               → QR links directly to /products/<slug>
+ *
+ * `target` exists because the two kinds of event want opposite things from a
+ * scan. A market stand wants the shop — someone is standing at the table with
+ * their phone out. A talk or a screening wants the event page, which is where
+ * the thread, the recap photos and the recording end up. Same poster, one
+ * parameter, and the second case was previously unreachable.
  *
  * Print this page from the browser (Ctrl+P / mobile Share → Print).
  * No QR library needed — uses qrserver.com (free, no API key).
@@ -20,9 +27,9 @@ export const metadata: Metadata = { title: 'Kiosk QR Code' }
 export default async function KioskQRPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; product?: string }>
+  searchParams: Promise<{ event?: string; product?: string; target?: string }>
 }) {
-  const { event: eventSlug, product: productId } = await searchParams
+  const { event: eventSlug, product: productId, target } = await searchParams
   const { tenant } = await resolveTenantFromHeaders()
   const siteName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Shop'
 
@@ -53,10 +60,15 @@ export default async function KioskQRPage({
     })
     const ev = events.docs?.[0] as any
     if (ev) {
-      qrUrl = `${baseUrl}/kiosk?event=${eventSlug}`
+      const toEventPage = target === 'page' || target === 'event'
+      qrUrl = toEventPage
+        ? `${baseUrl}/events/${eventSlug}`
+        : `${baseUrl}/kiosk?event=${eventSlug}`
       const d = new Date(ev.startDateTime)
       eventLabel = `${ev.title} · ${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
-      subtitle = ev.location?.address || ev.location?.venueName || 'Scan to browse & buy'
+      subtitle = toEventPage
+        ? 'Scan for details, photos and the discussion'
+        : ev.location?.address || ev.location?.venueName || 'Scan to browse & buy'
     }
   }
 

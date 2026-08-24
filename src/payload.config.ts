@@ -784,7 +784,7 @@ export default buildConfig({
           !author ||
           !email ||
           !content ||
-          !['posts', 'products', 'pages'].includes(parentCollection as string)
+          !['posts', 'products', 'pages', 'events'].includes(parentCollection as string)
         ) {
           return Response.json(
             { message: 'Missing or invalid: parentId, parentCollection, author, email, content' },
@@ -809,7 +809,7 @@ export default buildConfig({
 
         // Verify the parent post/product belongs to this tenant (prevents cross-tenant injection)
         const parentDoc = await payload.findByID({
-          collection: parentCollection as 'posts' | 'products',
+          collection: parentCollection as 'posts' | 'products' | 'pages' | 'events',
           id: String(parentId),
           depth: 0,
           overrideAccess: true,

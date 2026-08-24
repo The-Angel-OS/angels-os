@@ -52,10 +52,10 @@ export const Comments: CollectionConfig = {
     {
       name: 'parent',
       type: 'relationship',
-      relationTo: ['posts', 'products', 'pages'],
+      relationTo: ['posts', 'products', 'pages', 'events'],
       required: true,
       admin: {
-        description: 'The Page, Post or Product this comment is attached to',
+        description: 'The Page, Post, Product or Event this comment is attached to',
       },
     },
     {
