@@ -38,6 +38,31 @@ be on ethernet permanently anyway.
 
 ---
 
+## Steps 1-4, as one script
+
+[`make-stick.ps1`](make-stick.ps1) does the whole build. Run it **elevated**:
+
+```powershell
+Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-File','C:\Dev\datacenter\cidata\make-stick.ps1'
+```
+
+It expects the verified ISO and your filled-in `user-data`/`meta-data` in
+`C:\Dev\datacenter\cidata\`. Everything below is what it does, and what to do
+by hand if it fails.
+
+**One partition, not two.** It formats the whole stick FAT32 labelled `CIDATA`
+and extracts the ISO contents onto it, rather than DD-writing the image and
+carving out a second partition. UEFI boots straight from
+`\EFI\BOOT\BOOTX64.EFI` on a FAT32 volume, and cloud-init only cares about a
+volume *label* — so one partition is both the boot media and the datasource. No
+Rufus, no raw disk write, and it sidesteps the snag where Windows refuses to add
+a partition after a DD write.
+
+If the ThinkPad won't boot it: Rufus in DD mode, plus a second stick labelled
+`CIDATA` holding just the two config files. Ubuntu scans every attached volume.
+
+---
+
 ## Step 1 — Download the ISO
 
 Get the current **Ubuntu Server LTS** (24.04 or newer) from
@@ -46,7 +71,7 @@ Get the current **Ubuntu Server LTS** (24.04 or newer) from
 The autoinstall format below is stable across LTS releases, so a newer one is
 fine.
 
-## Step 2 — Write it with Rufus
+## Step 2 — Write it (what the script automates)
 
 [Rufus](https://rufus.ie) → select the stick → select the ISO → **Write in DD
 Image mode** when it asks. Partition scheme GPT, target UEFI.

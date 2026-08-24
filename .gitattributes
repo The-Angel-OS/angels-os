@@ -6,3 +6,8 @@
 docs/selfhost/thinkpad/user-data text eol=lf
 docs/selfhost/thinkpad/meta-data text eol=lf
 *.sh text eol=lf
+
+# PowerShell 5.1 reads a UTF-8 file WITHOUT a BOM as Windows-1252, so an em
+# dash becomes three chars ending in a double quote and every string after it
+# breaks. These stay CRLF and the scripts themselves stay pure ASCII.
+*.ps1 text eol=crlf
