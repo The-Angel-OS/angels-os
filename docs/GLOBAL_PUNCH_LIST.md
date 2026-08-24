@@ -16,6 +16,17 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P1] Everyone who is not an admin sees "Unknown" instead of names** — `Users.read` is
+  `adminOrSelf`, so a non-admin can read exactly ONE user row: their own. Every `depth: 1` author
+  population therefore returns a bare id for anybody else, and the message list renders "Unknown".
+  Ken is super_admin so he never sees it; Tyler is not, so on her screen the whole portal is
+  anonymous. This is the second half of the 260824 DM report — the first half (the tenant filter)
+  is fixed, this is not. ⚠️ **Do NOT just widen `read`** — the row carries email, phone, roles.
+  *Recommended:* keep `read` tight and let peers resolve names through the projection endpoints
+  that already exist and already run `overrideAccess` (`dm-roster`, `space-members`), or add
+  field-level access so a co-member sees `id`/`name`/avatar and nothing else.
+  *Where:* `src/collections/Users/index.ts:38`. `260824`
+
 - **[P0→FIXED 260824] Every portal's sitemap pointed search engines at `http://localhost:3000`** —
   `src/app/sitemap.ts` built its URLs from `NEXT_PUBLIC_SERVER_URL`, which **bakes at build time**
   and is unset in the container build, so the fallback shipped. Worse than having no sitemap. The
@@ -109,6 +120,34 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[P1] There is no read state anywhere, so there can be no notifications** — `ChatChannel` has an
+  optional `unreadCount` and nothing populates it; no `lastReadAt` exists on any collection.
+  `/api/notifications/poll` is NOT this — it is Gotify mirroring, inbound alerts from an external
+  server onto the AI Bus. Ken's 260824 ask (a per-user catch-all for PMs, order updates, system
+  messages) needs read state FIRST; without it a notification can be delivered but never dismissed.
+  *Recommended shape:* one `lastReadAt` per (user, channel) is the whole of the chat half and gives
+  unread badges for free. A `notifications` collection on top of that only earns its place for the
+  things that are NOT messages — an order shipped, a membership lapsed — with a `read` flag and a
+  deep link. Do not build a second delivery system for chat: the bus already delivers, it just
+  cannot remember what you have seen. `260824`
+- **[P1] i18n is scaffolded in ONE of three layers and used in none** — Ken's 260824 question.
+  (1) **UI chrome / next-intl**: routing configured (`['en','de']`, `localePrefix: 'as-needed'`),
+  `[locale]` in the route tree — but `messages/en.json` is **140 bytes** (three strings) and
+  **zero components call `useTranslations`/`getTranslations`**. Real plumbing, empty content.
+  (2) **CMS content / Payload `localization`**: **not configured at all** in `payload.config.ts`.
+  This is the piece that would let one Page carry `en` and `es` values. The multi-tenant plugin
+  does work with it — it simply has never been turned on. ⚠️ Enabling it is a schema-wide change
+  (every localized field moves to a `_locales` table), so on a 22-portal live node it is a project,
+  not a config flip. (3) **Book content**: chapters live in Work JSON (`storageRef`), NOT in Payload
+  fields, so **Payload localization would not translate the reader at all** — it would localize
+  titles and descriptions only. That is why the Works recommendation stays one Work per language.
+  Also: `de` is in the locale list with no German content and no German audience, while **Spanish**
+  is the language actually in hand (the Spanish WDEG edition). Make the list match reality.
+  `260824`
+- **[P2] A DM has no way to get to the person** — Ken's 260824 ask: a context menu on a DM entry
+  giving the user's properties/profile. `identity_profile_friends` is the adjacent work.
+  `260824`
 
 - **[P1] Translations of a Work are not indexable, and the model does not exist yet** — Ken's
   260824 ask: let the sitemap point at every language of the book. Three things are in the way and
@@ -269,6 +308,12 @@
   [[project_nested_docs_incident]]) + a SubNav block listing siblings/children; gives breadcrumbs free and preserves imported WP site structure (WP API exposes `parent` + `menu_order`). *Next:* field + migration + block. `260720`
 
 ## 🔧 Debt & hardening (P2)
+
+- **[P2] `dm-roster` is dead code** — `GET /api/messages-ops/dm-roster` builds the "every portal
+  member appears as a virtual DM whether or not a channel exists" roster, with a deterministic slug
+  and a `hasChannel` flag. **No client calls it.** The sidebar lists real channels instead, which is
+  why you can only DM someone you have already DMed. Either wire it into the DM section or delete
+  it. `src/endpoints/dm-roster.ts`, `src/utilities/dmRoster.ts` `260824`
 
 - **[✅ SHIPPED 260722-pm2] Van post + LEO media-id fix + Start-S branding** — (1) van diagnostic post got its
   4-photo gallery (media 411-414); (2) **LEO media-tool root cause CLOSED** — "couldn't read that image" was
@@ -444,6 +489,18 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[P1 260824] A DM opened from one portal was invisible from another** — `ChatProvider` loaded
+  the DM list with `where[tenant][equals]` under a comment claiming the query was global. A DM
+  carries the tenant it was MINTED in, so a thread started from Clearwater stamped tenant 5 and the
+  other person, sitting in WDEG, asked for tenant 11 and got nothing. LEO still appeared, which is
+  what made it look like permissions — the LEO thread resolves via find-or-create, which was already
+  global. The server had made this call three times over (`findOrCreateDM` global lookup, channels
+  `useTenantAccess: false`, `buildChannelReadFilter`'s DM branch has no tenant clause); only the
+  client hadn't. Also: DM rows are stored with a symmetric name, so everyone read their own name
+  back — `dmLabel` names a thread after whoever ISN'T you, and its fallback ladder splits the stored
+  name, which means it works even where `Users.read` hides the peer. Presence moved onto the icon so
+  it survives a collapsed panel. `dmLabel.test.ts` `260824`
 
 - **[P0 260824] The event page threw away content already in the database** — `description` is
   richText and the page rendered the literal string "Event description available in admin." on the
