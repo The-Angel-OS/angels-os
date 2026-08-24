@@ -97,6 +97,19 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[P1] A free tier is a lie on 20 of 22 portals** — the free-plan path writes the Membership directly
+  and needs no Stripe, so ANY portal can offer one today. But the moment a plan costs money,
+  `billingMode === 'connect'` demands a connected account and only clearwater-cruisin has one. *Next:*
+  Ken's open decision on Connect onboarding at the free tier (handoff 260824) gates whether this is a
+  bug or the design. `src/endpoints/membership-checkout.ts` `260823`
+- **[P1] Events have no `layout` field, so an event page can carry no blocks** — no Comments, no RSVP
+  thread, nothing to come back for. WDEG has zero events and Grace Chapel needs the same thing.
+  *Where:* `src/collections/Events.ts`. *Next:* add `layout` (blocks) + its block tables in a NEW
+  migration — a new field is TABLES, not config. `260823`
+- **[P2] `/spaces` is the community's front door and is named after the primitive** — WDEG's nav now
+  points "Community" at `/spaces`. Fine for now; a portal-facing alias would read better and the
+  no-jargon rule points that way. `260823`
+
 - **[P0] No subscription has EVER completed on live** — `memberships` is 0 rows platform-wide; 14 portals
   on `free`, 8 on `demo`, nothing paid. Every money bug this week was invisible until someone tried it
   (comments, `/book`, `orders-vendor`, the webhook event list). *Next:* one $1 Founding Dollar checkout on
@@ -398,6 +411,22 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[P0 260823] Joining a portal put you in no room** — `membership-ops/checkout` wrote a `memberships`
+  row and stopped. Membership was a billing fact with nothing attached: a new member landed on an empty
+  Spaces list. A `Memberships` afterChange hook now calls `ensureTenantMembership`, whose active
+  tenant-membership fires `autoJoinSpaces` — one wire, no second enrollment path, idempotent so the
+  Stripe renewal write is harmless. Covers the free path AND the webhook path. `joinTenantOnMembership.test.ts`.
+  `260823`
+- **[P0 260823] The only tool that creates plans refused a free one** — `create_membership_plan` rejected
+  `amountUsd <= 0` while `membership-checkout` carries a complete free-plan path (no Stripe, no card,
+  writes the Membership directly). So the free tier existed in the engine and was unreachable from
+  anywhere but hand-editing the settings bag. Now `< 0`. `src/utilities/leo-data-tools.ts` `260823`
+- **[P1 260823] WDEG has one community, one room, and a free door** — spaces 40 "Community Hub" folded
+  into 34 "Community" (the `is_main` town square) via `space-ops/delete`; `general` folded into `main`;
+  24 messages, all with `channelRef`. Free "Reader" plan created, `/join` page published, nav rebuilt to
+  Home · Read · Community · Join · Shop · Donate. `src/scripts/_local/wdeg-community.ts`,
+  `wdeg-join-page.ts` `260823`
 
 - **[SEC 260822] Visiting a portal stopped granting rights over it** — enrol-on-arrival made every
   signed-in visitor an active `tenant_member` of any portal whose page they loaded, and

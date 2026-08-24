@@ -24,8 +24,13 @@ type MyMembership = {
   canManage: boolean
 }
 
+// A free tier reads as "Free", never "$0/mo" — a price of zero written as a
+// price still asks the reader to think about money at the exact moment the
+// point is that there isn't any.
 const fmt = (cents: number, interval: 'month' | 'year') =>
-  `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}/${interval === 'month' ? 'mo' : 'yr'}`
+  cents === 0
+    ? 'Free'
+    : `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}/${interval === 'month' ? 'mo' : 'yr'}`
 
 const ACTIVE = new Set(['active', 'trialing', 'past_due'])
 
@@ -294,6 +299,22 @@ export const MembershipBlock: React.FC<{
                 <span className="font-medium text-foreground">{viewer.name || viewer.email}</span>
                 {viewer.name && viewer.email ? ` · ${viewer.email}` : ''}.
               </p>
+            ) : selectedPlan.amountCents === 0 ? (
+              // A free membership is written against a user account (that is what
+              // gets you into the rooms), so there is nothing for name/email to do
+              // here — collecting them and then 401ing is a dead end. Send them to
+              // sign in and come straight back to this page.
+              <p className="text-sm text-muted-foreground">
+                <a
+                  href={`/login?redirect=${encodeURIComponent(
+                    typeof window === 'undefined' ? '/' : window.location.pathname,
+                  )}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Sign in
+                </a>{' '}
+                to join — it takes a moment and it is what your membership is attached to.
+              </p>
             ) : (
               <>
                 <div className="space-y-2">
@@ -321,12 +342,16 @@ export const MembershipBlock: React.FC<{
               <Button variant="outline" onClick={() => setStep('plans')} className="flex-1" disabled={submitting}>
                 Back
               </Button>
-              <Button onClick={startCheckout} className="flex-1" size="lg" disabled={submitting}>
-                {submitting ? 'Starting…' : ctaText}
-              </Button>
+              {(viewer || selectedPlan.amountCents > 0) && (
+                <Button onClick={startCheckout} className="flex-1" size="lg" disabled={submitting}>
+                  {submitting ? 'Starting…' : ctaText}
+                </Button>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Secure recurring payment via Stripe. Cancel anytime.
+              {selectedPlan.amountCents === 0
+                ? 'No payment, no card. Leave whenever you like.'
+                : 'Secure recurring payment via Stripe. Cancel anytime.'}
             </p>
           </div>
         )}

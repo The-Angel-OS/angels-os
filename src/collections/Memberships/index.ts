@@ -17,6 +17,7 @@
  * @see docs/strategy/COMMUNITY_OS_VERTICALS.md
  */
 import type { CollectionConfig } from 'payload'
+import { joinTenantOnMembership } from './hooks/joinTenantOnMembership'
 
 export const Memberships: CollectionConfig = {
   slug: 'memberships',
@@ -65,5 +66,6 @@ export const Memberships: CollectionConfig = {
     { name: 'startedAt', type: 'date', admin: { readOnly: true } },
     { name: 'metadata', type: 'json' },
   ],
+  hooks: { afterChange: [joinTenantOnMembership] },
   timestamps: true,
 }

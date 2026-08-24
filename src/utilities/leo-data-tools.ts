@@ -1286,7 +1286,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       type: 'object' as const,
       properties: {
         name: { type: 'string', description: 'Plan name shown to members, e.g. "Unlimited", "Drop-in", "Family". (required)' },
-        amountUsd: { type: 'number', description: 'Recurring price in US dollars (e.g. 149 for $149). (required)' },
+        amountUsd: { type: 'number', description: 'Recurring price in US dollars (e.g. 149 for $149). Use 0 for a free membership tier — it joins the member instantly with no payment. (required)' },
         interval: {
           type: 'string',
           enum: ['month', 'year'],
@@ -8746,9 +8746,13 @@ async function createMembershipPlan(
   const name = (input.name as string)?.trim()
   if (!name) return 'Error: A plan name is required (e.g. "Unlimited", "Drop-in").'
 
+  // Zero is allowed and is not an edge case: membership-checkout has a whole
+  // free-plan path (no Stripe, no card, writes the Membership directly), and a
+  // free tier is how a portal gets its first member. Rejecting 0 here meant the
+  // only way to create one was to hand-edit the settings bag.
   const amountUsd = typeof input.amountUsd === 'number' ? input.amountUsd : Number(input.amountUsd)
-  if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
-    return 'Error: amountUsd must be a positive dollar amount (e.g. 149 for $149).'
+  if (!Number.isFinite(amountUsd) || amountUsd < 0) {
+    return 'Error: amountUsd must be a dollar amount — 0 for a free plan, or e.g. 149 for $149.'
   }
 
   const interval = input.interval === 'year' ? 'year' : 'month'

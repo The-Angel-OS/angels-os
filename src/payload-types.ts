@@ -6497,6 +6497,42 @@ export interface Work {
     | number
     | boolean
     | null;
+  /**
+   * Shown on public Library indexes. Unpublished Works stay editable working copies, reachable by direct link.
+   */
+  published?: boolean | null;
+  /**
+   * Offered to EVERY portal, on top of subscribers (e.g. the Handbook). A portal can still opt out.
+   */
+  availableGlobally?: boolean | null;
+  /**
+   * string[] of tenant slugs that have switched this Work OFF for their portal. Beats availableGlobally and subscribers; the owner's own portal always carries it.
+   */
+  optOuts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Chapter slug opened first in the document viewer.
+   */
+  defaultDoc?: string | null;
+  /**
+   * { label, url }[] shown alongside the Work.
+   */
+  links?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   cover?: (number | null) | Media;
   /**
    * Storage-of-record pointer: { kind: 'file'|'messages', channel?, space? }.
@@ -9976,6 +10012,11 @@ export interface WorksSelect<T extends boolean = true> {
   canonical?: T;
   owner?: T;
   subscribers?: T;
+  published?: T;
+  availableGlobally?: T;
+  optOuts?: T;
+  defaultDoc?: T;
+  links?: T;
   cover?: T;
   storageRef?: T;
   checksum?: T;
