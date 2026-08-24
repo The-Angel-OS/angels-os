@@ -94,6 +94,14 @@ CIDATA:\meta-data
 No extension, no `.txt`. Windows Explorer likes to add one — check with
 `dir /a` if the installer later claims it found nothing.
 
+> ⚠️ **Copy them out of the git checkout, not out of a Notepad round-trip.**
+> `user-data` embeds a shell heredoc, and a trailing `` on its terminator
+> means `EOF` never matches `EOF` — the logind block is silently dropped and
+> you get a server that suspends when you close the lid, with nothing in any log
+> to explain it. `.gitattributes` pins these two files to LF; if you edit them,
+> use an editor that keeps it that way (VS Code: the `CRLF`/`LF` toggle is in
+> the status bar, bottom right).
+
 ## Step 5 — Install
 
 Plug in ethernet and the stick, power on, tap `F12`, pick the USB.
