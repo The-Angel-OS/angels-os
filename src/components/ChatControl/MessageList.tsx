@@ -7,6 +7,7 @@ import type { ChatMessage } from './types'
 import { TOOL_LABELS } from '@/constants/toolLabels'
 import { ImageLightbox } from './ImageLightbox'
 import { InlineChatForm } from './InlineChatForm'
+import { useChatContext } from './ChatProvider'
 
 // ---------------------------------------------------------------------------
 // Message action buttons (copy, speak, vote, share, dispute).
@@ -372,6 +373,46 @@ function isSameDay(a: Date, b: Date): boolean {
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
+  )
+}
+
+/**
+ * Where the "new since" line goes: the first message that arrived after your
+ * last read mark and was not written by you.
+ *
+ * Returns null when there is nothing new, which is the common case — no line is
+ * better than a line pinned to the bottom of every channel you have caught up
+ * on. Your own messages never open the unread run: sending something and coming
+ * back to a "new messages" banner over your own words reads as a bug.
+ */
+export function firstUnreadId(
+  messages: ChatMessage[],
+  lastReadAt: string | null | undefined,
+  viewerId?: string,
+): string | null {
+  if (!lastReadAt) return null
+  const mark = Date.parse(lastReadAt)
+  if (Number.isNaN(mark)) return null
+
+  for (const msg of messages) {
+    const t = msg.timestamp instanceof Date ? msg.timestamp.getTime() : Date.parse(String(msg.timestamp))
+    if (Number.isNaN(t) || t <= mark) continue
+    if (viewerId && msg.authorId && String(msg.authorId) === String(viewerId)) continue
+    return String(msg.id)
+  }
+  return null
+}
+
+/** The divider itself. */
+function NewSinceDivider() {
+  return (
+    <div className="relative my-2 flex items-center gap-2 px-4" role="separator" aria-label="New messages">
+      <div className="h-px flex-1 bg-primary/40" />
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-primary">
+        New
+      </span>
+      <div className="h-px flex-1 bg-primary/40" />
+    </div>
   )
 }
 
@@ -908,6 +949,11 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
   const [showNewBadge, setShowNewBadge] = useState(false)
   const [disputeMsg, setDisputeMsg] = useState<ChatMessage | null>(null)
   const viewer = useCurrentViewer()
+  // Read state comes from the provider when there is one. Pulled from context
+  // rather than threaded through props: every caller of MessageList would have
+  // had to learn about read state to pass it down, and none of them care.
+  const chatCtx = useChatContext()
+  const unreadAnchorId = firstUnreadId(messages, chatCtx?.lastReadAt, viewer?.id ? String(viewer.id) : undefined)
   // Optimistic content overrides after an edit — reconciled by the next poll.
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const onSaved = useCallback((id: string, content: string) => {
@@ -1001,8 +1047,9 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
       {/* Spacer pushes messages toward the bottom when few messages exist */}
       <div className="flex-1" />
       {messages.map((msg, index) => (
+        <React.Fragment key={msg.id}>
+        {String(msg.id) === unreadAnchorId && <NewSinceDivider />}
         <CompactMessageRow
-          key={msg.id}
           msg={msg}
           isNewest={index === messages.length - 1}
           viewer={viewer}
@@ -1011,6 +1058,7 @@ function CompactMessageList({ messages, isLoading, isLoadingMore, hasMore, onLoa
           onDispute={setDisputeMsg}
           showChannelTag={showChannelTags}
         />
+        </React.Fragment>
       ))}
 
       {/* Dispute dialog */}
@@ -1081,6 +1129,13 @@ function FullPageMessageList({
   const sentinelRef = useRef<HTMLDivElement>(null)
   const prevScrollHeight = useRef<number>(0)
   const [disputeMsg, setDisputeMsg] = useState<ChatMessage | null>(null)
+  const fullPageViewer = useCurrentViewer()
+  const chatCtx = useChatContext()
+  const unreadAnchorId = firstUnreadId(
+    messages,
+    chatCtx?.lastReadAt,
+    fullPageViewer?.id ? String(fullPageViewer.id) : undefined,
+  )
 
   // Auto-scroll to bottom on new messages (unless user scrolled up)
   useEffect(() => {
@@ -1237,8 +1292,9 @@ function FullPageMessageList({
                   const isLast = msgIdx === group.messages.length - 1
 
                   return (
+                    <React.Fragment key={msg.id}>
+                    {String(msg.id) === unreadAnchorId && <NewSinceDivider />}
                     <div
-                      key={msg.id}
                       id={`msg-${msg.id}`}
                       className={`group/msg max-w-[85%] scroll-mt-24 rounded-xl transition-colors duration-700 ${isSystem ? 'mx-auto text-center' : ''}`}
                     >
@@ -1313,6 +1369,7 @@ function FullPageMessageList({
                         </div>
                       )}
                     </div>
+                    </React.Fragment>
                   )
                 })}
               </div>

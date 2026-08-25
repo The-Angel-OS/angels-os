@@ -132,16 +132,33 @@
 
 ## 🟡 Gaps — features to build (P1)
 
-- **[P1] There is no read state anywhere, so there can be no notifications** — `ChatChannel` has an
-  optional `unreadCount` and nothing populates it; no `lastReadAt` exists on any collection.
-  `/api/notifications/poll` is NOT this — it is Gotify mirroring, inbound alerts from an external
-  server onto the AI Bus. Ken's 260824 ask (a per-user catch-all for PMs, order updates, system
-  messages) needs read state FIRST; without it a notification can be delivered but never dismissed.
-  *Recommended shape:* one `lastReadAt` per (user, channel) is the whole of the chat half and gives
-  unread badges for free. A `notifications` collection on top of that only earns its place for the
-  things that are NOT messages — an order shipped, a membership lapsed — with a `read` flag and a
-  deep link. Do not build a second delivery system for chat: the bus already delivers, it just
-  cannot remember what you have seen. `260824`
+- **[P1→SHIPPED 260824] Read state** — `ChatChannel.unreadCount` was declared and populated by
+  nobody; no `lastReadAt` existed anywhere. Now: `users.readState`, a `{ channelSlug: isoTimestamp }`
+  map, written only through `POST /api/chat/mark-read` and read by `GET /api/chat/unread`.
+  *Why a map on the user and not a `channel-reads` collection:* it rides along with
+  `/api/users/me`, so read state costs no extra request on page load, and it sits beside
+  `dashboardPrefs` under the same field gate. ⚠️ It cannot answer "who has read this message";
+  when that becomes real the upgrade is a collection behind the same two endpoints and no caller
+  changes (`utilities/readState.ts`).
+  **The merge is monotonic** — `max(existing, incoming)` server-side — which is what makes a
+  read-modify-write safe with no lock: two tabs cannot lose each other's progress and a stale tab
+  cannot drag the marker backwards and resurrect read messages. A mark that would not move forward
+  does not write at all, so the client's debounce costs one row update per channel VISIT, not per
+  tick.
+  **Counts, not dots, everywhere**, capped at 99+. The dot/count question was framed as
+  performance and that was wrong: with `messages (channel, created_at)` the count is a single
+  query with each channel's own floor in a `VALUES` join, barely heavier than a `max()`. A channel
+  with no mark has NO floor — all of it is unread — because a synthetic "since now" floor silently
+  swallows messages that arrive between polls. Your own messages never count.
+  Divider anchor is `firstUnreadId`, which never opens the unread run on your own message.
+  Verified against live: `EXPLAIN` confirms `messages_channel_created_at_idx` is used, and the real
+  query returned 1909 of 1911 on `gotify` (the 2 excluded were the caller's own).
+  *Where:* `utilities/readState.ts`, `endpoints/chat-read-state.ts`,
+  `components/ChatControl/{useReadState,UnreadBadge}.tsx`, `20260824_210000_read_state`. `260824`
+- **[P1] Notifications for the things that are NOT messages** — now unblocked by read state. An
+  order shipped, a membership lapsed, an event tomorrow: a row with a `read` flag and a deep link.
+  ⚠️ Do NOT build a second delivery system for chat — the bus already delivers, and it can now
+  remember what you have seen. `/api/notifications/poll` is Gotify mirroring, not this. `260824`
 - **[P1] i18n is scaffolded in ONE of three layers and used in none** — Ken's 260824 question.
   (1) **UI chrome / next-intl**: routing configured (`['en','de']`, `localePrefix: 'as-needed'`),
   `[locale]` in the route tree — but `messages/en.json` is **140 bytes** (three strings) and

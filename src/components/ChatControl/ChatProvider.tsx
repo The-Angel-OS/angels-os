@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useChat } from './useChat'
+import { useReadState, type ReadStateApi } from './useReadState'
 import { usePathname } from 'next/navigation'
 import { getSurface, setSurface, subscribeSurface } from './surfaceStore'
 import { parseSpacesDeepLink } from './deepLink'
@@ -53,6 +54,15 @@ export interface ChatContextValue {
   createChannel: (name: string, type?: string, description?: string) => Promise<ChatChannel | null>
   deleteChannel: (channelId: string) => Promise<boolean>
   switchChannel: (slug: string) => void
+
+  // Read state — `channels` and `dmChannels` already carry `unreadCount`; these
+  // are for the pieces a badge cannot express.
+  /** Server's cap, so a badge can say "99+" instead of a bare 99. */
+  unreadCap: number
+  /** Where the active channel's "new since" divider goes. Null = nothing new. */
+  lastReadAt: string | null
+  /** Mark a channel read up to now. Monotonic server-side, so spam is harmless. */
+  markRead: (channel: string) => void
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -291,6 +301,11 @@ export function ChatProvider({
     [],
   )
 
+  // Read state is set up further down — it needs the channel lists, which are
+  // built after this. A ref bridges the gap so switchChannel can clear a badge
+  // without moving the hook above its own inputs.
+  const readStateRef = useRef<ReadStateApi | null>(null)
+
   // switchChannel is the single API for changing channels.
   // Updates local slug (for effectiveSpaceId) and delegates to chat.switchChannel
   // which aborts in-flight streams and resets messages/poll state.
@@ -300,6 +315,10 @@ export function ChatProvider({
       setActiveChannelSlugLocal(slug)
       chat.switchChannel(slug)
       setSurface({ channelSlug: slug }) // publish to the shared store
+      // Drop the badge now. The server mark follows on a delay (see
+      // useReadState) but a badge that lingers after you click is the single
+      // most annoying thing an unread system can do.
+      readStateRef.current?.clearLocal(slug)
     },
     [chat.switchChannel],
   )
@@ -406,6 +425,28 @@ export function ChatProvider({
     [dmSpaceId, tenantId, chat.switchChannel],
   )
 
+  // ─── Read state ─────────────────────────────────────────────
+  // Every channel the user can see, DMs included. `useChat`'s poll only covers
+  // the channel in front of you, which is precisely where unread ISN'T.
+  const readState = useReadState(
+    useMemo(
+      () => [...chat.channels.map((c) => c.slug), ...dmChannels.map((c) => c.slug)].filter(Boolean),
+      [chat.channels, dmChannels],
+    ),
+    chat.activeChannel,
+  )
+
+  readStateRef.current = readState
+
+  const channelsWithUnread = useMemo(
+    () => chat.channels.map((c) => ({ ...c, unreadCount: readState.unread[c.slug] || 0 })),
+    [chat.channels, readState.unread],
+  )
+  const dmChannelsWithUnread = useMemo(
+    () => dmChannels.map((c) => ({ ...c, unreadCount: readState.unread[c.slug] || 0 })),
+    [dmChannels, readState.unread],
+  )
+
   // ─── Context Value ──────────────────────────────────────────
   // Memoized to prevent cascading re-renders across all consumers.
   const value: ChatContextValue = useMemo(
@@ -416,8 +457,8 @@ export function ChatProvider({
 
       spaces,
       userId,
-      channels: chat.channels,
-      dmChannels,
+      channels: channelsWithUnread,
+      dmChannels: dmChannelsWithUnread,
       isLoadingChannels: chat.isLoadingChannels,
 
       messages: chat.messages,
@@ -436,6 +477,10 @@ export function ChatProvider({
       createChannel: chat.createChannel,
       deleteChannel: chat.deleteChannel,
       switchChannel,
+
+      unreadCap: readState.cap,
+      lastReadAt: readState.lastReadAt,
+      markRead: readState.markRead,
     }),
     [
       activeSpaceId,
@@ -443,8 +488,8 @@ export function ChatProvider({
       setActiveSpace,
       spaces,
       userId,
-      chat.channels,
-      dmChannels,
+      channelsWithUnread,
+      dmChannelsWithUnread,
       chat.isLoadingChannels,
       chat.messages,
       chat.isLoading,
@@ -459,6 +504,9 @@ export function ChatProvider({
       chat.createChannel,
       chat.deleteChannel,
       switchChannel,
+      readState.cap,
+      readState.lastReadAt,
+      readState.markRead,
     ],
   )
 

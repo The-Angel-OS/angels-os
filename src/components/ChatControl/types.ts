@@ -67,6 +67,11 @@ export interface ChatChannel {
   type: string
   spaceId: string
   isDefault?: boolean
+  /**
+   * Unread messages in this channel, already capped by the server (99 = "99+").
+   * Populated by ChatProvider from /api/chat/unread; absent without a provider.
+   * Was declared here and populated by nobody until 260824.
+   */
   unreadCount?: number
   /** Explicit channel members (required for DMs, optional for regular channels) */
   members?: Array<{ id: string; name?: string; email?: string }>

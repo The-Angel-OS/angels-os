@@ -167,6 +167,7 @@ import { setMediaHandler } from '@/endpoints/set-media'
 import { resolveEditHandler } from '@/endpoints/resolve-edit'
 import { ensurePagesNavColumnsHandler } from '@/endpoints/ensure-pages-nav-columns'
 import { dmRosterHandler } from '@/endpoints/dm-roster'
+import { markReadHandler, unreadHandler } from '@/endpoints/chat-read-state'
 import { navRepairHandler } from '@/endpoints/nav-repair'
 import { signConstitutionAllHandler } from '@/endpoints/sign-constitution-all'
 import { signCaptureHandler } from '@/endpoints/sign-capture'
@@ -1272,6 +1273,19 @@ export default buildConfig({
       path: '/messages-ops/dm-roster',
       method: 'get',
       handler: dmRosterHandler,
+    },
+    // Read state: what you have already seen, per channel. mark-read merges one
+    // channel's timestamp monotonically; unread counts what arrived after it.
+    // Authenticated. See utilities/readState.ts.
+    {
+      path: '/chat/mark-read',
+      method: 'post',
+      handler: markReadHandler,
+    },
+    {
+      path: '/chat/unread',
+      method: 'get',
+      handler: unreadHandler,
     },
     // Backfill missing default nav links onto existing tenants. GET; super_admin or ?key=.
     {

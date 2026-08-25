@@ -7,6 +7,7 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { useChat, CATCH_ALL_SLUG } from './useChat'
 import { useChatContext } from './ChatProvider'
+import { UnreadBadge } from './UnreadBadge'
 import { parseSpacesDeepLink } from './deepLink'
 import { dmLabel, dmPartner } from './dmLabel'
 import { usePresence } from '@/hooks/usePresence'
@@ -71,6 +72,10 @@ export function MultiChannelChat({
   // Try ChatProvider context
   const chatCtx = useChatContext()
   const hasProvider = chatCtx !== null
+
+  // Unread badges come from the provider. Without one there is no read state to
+  // show, and `unreadCount` is simply absent — the badge renders nothing.
+  const unreadCap = chatCtx?.unreadCap ?? 99
 
   // Space management — provider or local.
   //
@@ -398,7 +403,9 @@ export function MultiChannelChat({
               {partner && <span className="sr-only">{isOnline ? ' (online)' : ' (offline)'}</span>}
             </span>
           )}
+          {!channelsPanelOpen && <UnreadBadge count={ch.unreadCount} cap={unreadCap} compact />}
         </button>
+        {channelsPanelOpen && <UnreadBadge count={ch.unreadCount} cap={unreadCap} />}
       </div>
     )
   }
@@ -441,6 +448,7 @@ export function MultiChannelChat({
                   >
                     <Hash size={12} className="shrink-0" />
                     <span>{ch.name}</span>
+                    <UnreadBadge count={ch.unreadCount} cap={unreadCap} className="ml-1" />
                   </button>
                 ))}
                 {/* DM channels on mobile */}
@@ -452,6 +460,7 @@ export function MultiChannelChat({
                   >
                     {ch.slug.endsWith('-leo') ? <Bot size={12} /> : <User size={12} />}
                     <span>{ch.slug.endsWith('-leo') ? 'LEO' : ch.name}</span>
+                    <UnreadBadge count={ch.unreadCount} cap={unreadCap} className="ml-1" />
                   </button>
                 ))}
               </>
@@ -636,8 +645,12 @@ export function MultiChannelChat({
                       onClick={() => handleSwitchChannel(ch.slug)}
                       className="flex flex-1 items-center gap-2 text-left min-w-0"
                     >
-                      <Hash size={14} className="shrink-0 opacity-50" />
+                      <span className="relative shrink-0">
+                        <Hash size={14} className="opacity-50" />
+                        {!channelsPanelOpen && <UnreadBadge count={ch.unreadCount} cap={unreadCap} compact />}
+                      </span>
                       {channelsPanelOpen && <span className="truncate">{ch.name}</span>}
+                      {channelsPanelOpen && <UnreadBadge count={ch.unreadCount} cap={unreadCap} />}
                     </button>
                     {!ch.isDefault && channelsPanelOpen && (
                       <button

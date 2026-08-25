@@ -565,6 +565,21 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      // What you have already seen, per channel: { channelSlug: isoTimestamp }.
+      // Drives unread badges and the "new since" divider. A map on the user
+      // rather than a channel-reads collection — it rides along with
+      // /api/users/me, so read state costs no extra request on page load.
+      // Written only through POST /api/chat/mark-read, which merges
+      // monotonically so two tabs cannot lose each other's progress.
+      name: 'readState',
+      access: { read: adminOrSelfFieldAccess },
+      type: 'json',
+      admin: {
+        hidden: true,
+        description: 'Per-channel last-read timestamps. Managed by /api/chat/mark-read.',
+      },
+    },
+    {
       // Per-user dashboard widget preferences — collapsed/dismissed/order. Saved
       // server-side so they follow the user across devices + the Nimue client.
       name: 'dashboardPrefs',

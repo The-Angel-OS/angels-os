@@ -20,6 +20,7 @@ export type ApiEndpoint =
   | 'stripe'
   | 'comments'
   | 'chat_send'
+  | 'chat_mark_read'
   | 'invitations'
   | 'orders'
   | 'bookings'
@@ -50,6 +51,7 @@ const LIMITS: Record<ApiEndpoint, number> = {
   stripe: 10,        // Payment abuse prevention
   comments: 10,      // Comment spam
   chat_send: 20,     // Message spam — generous for active chat, still bounded
+  chat_mark_read: 60, // One write per channel visit, client-debounced — bound the pathological case only
   invitations: 5,    // Invitation email spam prevention
   orders: 10,        // Order lifecycle abuse prevention
   bookings: 20,      // Availability queries — generous for scheduling UX
