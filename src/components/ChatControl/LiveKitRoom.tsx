@@ -12,7 +12,7 @@ import {
 } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Track } from 'livekit-client'
-import { X, Maximize2, Minimize2, Settings2 } from 'lucide-react'
+import { X, Maximize2, Minimize2, Settings2, FlipHorizontal } from 'lucide-react'
 
 interface LiveKitRoomProps {
   /** LiveKit server URL (wss://) */
@@ -51,6 +51,83 @@ function ParticipantGrid() {
 }
 
 /**
+ * Device pickers + mirror toggle.
+ *
+ * These existed already and were unreachable: the panel was a block child of a
+ * container whose next sibling carried `height: 100%`, so the grid covered it
+ * and the menus were rendered off-screen. Hence "no option to select vid or mic
+ * device" on a build that shipped both. The room body is a flex column now, and
+ * this row sizes to content.
+ */
+function DevicePanel({ mirrored, onToggleMirror }: { mirrored: boolean; onToggleMirror: () => void }) {
+  return (
+    <div className="shrink-0 border-b border-border bg-muted/30 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Mic</span>
+          <MediaDeviceMenu kind="audioinput" />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Speaker</span>
+          <MediaDeviceMenu kind="audiooutput" />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Camera</span>
+          <MediaDeviceMenu kind="videoinput" />
+        </label>
+        <button
+          type="button"
+          onClick={onToggleMirror}
+          className={`flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs transition-colors ${
+            mirrored ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
+          }`}
+          title="Flip your own preview horizontally"
+        >
+          <FlipHorizontal size={13} />
+          Mirror my video
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Everything inside <LKRoom>, in one place.
+ *
+ * Was copy-pasted three times (embedded, full-screen, panel), which is how the
+ * device panel came to exist in exactly one of them.
+ */
+function RoomBody({
+  showDeviceSettings,
+  mirrored,
+  onToggleMirror,
+  showGrid = true,
+}: {
+  showDeviceSettings: boolean
+  mirrored: boolean
+  onToggleMirror: () => void
+  showGrid?: boolean
+}) {
+  return (
+    <div className={`flex h-full min-h-0 flex-col ${mirrored ? '' : 'angel-lk-unmirrored'}`}>
+      <RoomAudioRenderer />
+      {showDeviceSettings && <DevicePanel mirrored={mirrored} onToggleMirror={onToggleMirror} />}
+      {showGrid && (
+        <div className="min-h-0 flex-1">
+          <ParticipantGrid />
+        </div>
+      )}
+      <div className="shrink-0">
+        <ControlBar
+          variation="minimal"
+          controls={{ camera: true, microphone: true, screenShare: true, leave: true, settings: false }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/**
  * LiveKitRoom — Wraps the LiveKit React components for voice/video in a channel.
  *
  * Three modes:
@@ -70,6 +147,29 @@ export function LiveKitRoom({
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen)
   const [isConnected, setIsConnected] = useState(false)
   const [showDeviceSettings, setShowDeviceSettings] = useState(false)
+  // Mirroring your own preview is the right default for a webcam and wrong for
+  // anything pointed at the world — a phone camera over DroidCam renders every
+  // word backwards. Remembered, because whichever you are, you are it every time.
+  const [mirrored, setMirrored] = useState(true)
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('angel.livekit.mirror')
+      if (saved !== null) setMirrored(saved === '1')
+    } catch {
+      // Private mode; the default stands.
+    }
+  }, [])
+  const toggleMirror = useCallback(() => {
+    setMirrored((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem('angel.livekit.mirror', next ? '1' : '0')
+      } catch {
+        // Not worth failing a call over.
+      }
+      return next
+    })
+  }, [])
 
   const handleDisconnect = useCallback(() => {
     setIsConnected(false)
@@ -142,37 +242,7 @@ export function LiveKitRoom({
           className="flex-1 overflow-hidden"
           style={{ height: '100%' }}
         >
-          <RoomAudioRenderer />
-          {/* Device selector panel */}
-          {showDeviceSettings && (
-            <div className="border-b border-border bg-muted/30 px-4 py-3">
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Mic:</span>
-                  <MediaDeviceMenu kind="audioinput" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Speaker:</span>
-                  <MediaDeviceMenu kind="audiooutput" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Camera:</span>
-                  <MediaDeviceMenu kind="videoinput" />
-                </div>
-              </div>
-            </div>
-          )}
-          <ParticipantGrid />
-          <ControlBar
-            variation="minimal"
-            controls={{
-              camera: true,
-              microphone: true,
-              screenShare: true,
-              leave: true,
-              settings: false,
-            }}
-          />
+          <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} />
         </LKRoom>
 
         {/* Full-screen overlay when toggled */}
@@ -198,17 +268,7 @@ export function LiveKitRoom({
               className="flex-1 overflow-hidden"
               style={{ height: '100%' }}
             >
-              <RoomAudioRenderer />
-              <ParticipantGrid />
-              <ControlBar
-                variation="minimal"
-                controls={{
-                  camera: true,
-                  microphone: true,
-                  screenShare: true,
-                  leave: true,
-                }}
-              />
+              <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} />
             </LKRoom>
           </div>
         )}
@@ -262,17 +322,7 @@ export function LiveKitRoom({
         className="flex-1 overflow-hidden"
         style={{ height: '100%' }}
       >
-        <RoomAudioRenderer />
-        {isFullScreen && <ParticipantGrid />}
-        <ControlBar
-          variation="minimal"
-          controls={{
-            camera: true,
-            microphone: true,
-            screenShare: isFullScreen,
-            leave: true,
-          }}
-        />
+        <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} showGrid={isFullScreen} />
       </LKRoom>
     </div>
   )

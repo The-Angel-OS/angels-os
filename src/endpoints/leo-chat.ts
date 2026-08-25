@@ -22,6 +22,47 @@ import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { wrapTextContent } from '@/utilities/messageContent'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { logError } from '@/utilities/logError'
+import {
+  newVisitorId,
+  readVisitorId,
+  sanitizeBackfill,
+  visitorChannelSlug,
+  visitorCookieHeader,
+} from '@/utilities/visitorSession'
+import {
+  backfillVisitorTurns,
+  ensureVisitorChannel,
+  persistVisitorMessage,
+} from '@/utilities/visitorChannels'
+
+/**
+ * The tenant's LEO system user — the author on every LEO reply. Falls back to
+ * the legacy email pattern, which some older tenants still carry. Two callers
+ * now (visitor replies and signed-in replies), which is why it left the inline
+ * branch it used to live in.
+ */
+async function resolveLeoUserId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any,
+  tenantSlug: string | null | undefined,
+): Promise<number | undefined> {
+  if (!tenantSlug) return undefined
+  for (const email of [leoSystemUserEmail(tenantSlug), leoLegacyEmail(tenantSlug)]) {
+    try {
+      const found = await payload.find({
+        collection: 'users',
+        where: { and: [{ email: { equals: email } }, { isSystemUser: { equals: true } }] },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (found.docs?.[0]?.id) return found.docs[0].id as number
+    } catch {
+      // Try the next pattern.
+    }
+  }
+  return undefined
+}
 
 export const leoChatHandler: PayloadHandler = async (req) => {
   const isGuest = !req.user
@@ -45,6 +86,9 @@ export const leoChatHandler: PayloadHandler = async (req) => {
   }
 
   const { message, conversationId, channelSlug, spaceId, pageContext } = body
+  // The client replays its transcript so the turns from before the channel
+  // existed are not lost — see visitorSession.sanitizeBackfill.
+  const backfill = sanitizeBackfill(body.history)
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return Response.json({ message: 'Missing or empty: message' }, { status: 400 })
@@ -90,49 +134,86 @@ export const leoChatHandler: PayloadHandler = async (req) => {
           roles: [] as string[],
         }
 
+    // ─── Anonymous visitor session ──────────────────────────────────────────
+    // LEO's memory comes from READING the Messages table. Guest turns were never
+    // persisted, so every message was message one and "how much?" got a
+    // non-sequitur. Persisting the conversation and giving LEO its memory back
+    // are therefore the same change.
+    let visitorId: string | null = null
+    let setCookie: string | null = null
+    let visitorChannel: Awaited<ReturnType<typeof ensureVisitorChannel>> = null
+    let effectiveChannel = resolvedChannel
+    let effectiveSpaceId = resolvedSpaceId
+
+    if (isGuest) {
+      visitorId = readVisitorId(req.headers) || newVisitorId()
+      // Re-sent every turn so an active visitor's cookie slides forward rather
+      // than expiring mid-conversation.
+      setCookie = visitorCookieHeader(visitorId)
+
+      // The channel is not created until the SECOND message: most first messages
+      // are a bounce or a test, and this filters them almost perfectly. A
+      // replayed transcript is what tells us this is not the first.
+      if (tenantId && backfill.length > 0) {
+        visitorChannel = await ensureVisitorChannel(req.payload, tenantId, visitorId)
+        if (visitorChannel) {
+          effectiveChannel = visitorChannel.channelSlug
+          effectiveSpaceId = Number(visitorChannel.spaceId)
+          if (visitorChannel.isNew) {
+            await backfillVisitorTurns(req.payload, {
+              channel: visitorChannel,
+              tenantId,
+              visitorId,
+              turns: backfill,
+              leoUserId: await resolveLeoUserId(req.payload, tenantSlug),
+            })
+          }
+          // Persist the incoming turn BEFORE LEO answers, so the reply is
+          // generated with it already in context.
+          try {
+            await persistVisitorMessage(req.payload, {
+              channel: visitorChannel,
+              tenantId,
+              visitorId,
+              text: message.trim(),
+              role: 'user',
+            })
+          } catch {
+            // A lost turn costs context, not the conversation.
+          }
+        }
+      }
+    }
+
     const result = await leoProcessMessage({
       message: message.trim(),
       conversationId: typeof conversationId === 'string' ? conversationId : undefined,
       tenantId,
-      channelSlug: resolvedChannel,
-      spaceId: resolvedSpaceId,
+      channelSlug: effectiveChannel,
+      spaceId: effectiveSpaceId,
       payload: req.payload,
       userContext,
       pageContext: typeof pageContext === 'string' ? pageContext : undefined,
     })
 
-    // Persist LEO's response to the Messages collection so it survives polling
-    // Skip persistence for guest users — no message history for anonymous
+    // A visitor's reply lands in their own channel; everyone else's in theirs.
     let savedMessageId: number | undefined
-    if (resolvedSpaceId && result.text && !isGuest) {
+    if (visitorChannel && result.text && visitorId && tenantId) {
       try {
-        // Find the LEO system user for this tenant to use as author
-        let leoUserId: number | undefined
-        if (tenantSlug) {
-          const leoEmail = leoSystemUserEmail(tenantSlug)
-          const leoUsers = await req.payload.find({
-            collection: 'users',
-            where: {
-              and: [
-                { email: { equals: leoEmail } },
-                { isSystemUser: { equals: true } },
-              ],
-            },
-            limit: 1,
-            depth: 0,
-            overrideAccess: true,
-          })
-          leoUserId = leoUsers.docs?.[0]?.id
-          // Fallback: try legacy email pattern during migration
-          if (!leoUserId) {
-            const legacyUsers = await req.payload.find({
-              collection: 'users',
-              where: { and: [{ email: { equals: leoLegacyEmail(tenantSlug) } }, { isSystemUser: { equals: true } }] },
-              limit: 1, depth: 0, overrideAccess: true,
-            })
-            leoUserId = legacyUsers.docs?.[0]?.id
-          }
-        }
+        await persistVisitorMessage(req.payload, {
+          channel: visitorChannel,
+          tenantId,
+          visitorId,
+          text: result.text,
+          role: 'assistant',
+          leoUserId: await resolveLeoUserId(req.payload, tenantSlug),
+        })
+      } catch (saveErr) {
+        console.warn('[LEO Chat] Failed to persist visitor reply:', saveErr)
+      }
+    } else if (resolvedSpaceId && result.text && !isGuest) {
+      try {
+        const leoUserId = await resolveLeoUserId(req.payload, tenantSlug)
 
         const saved = await req.payload.create({
           collection: 'messages',
@@ -174,7 +255,10 @@ export const leoChatHandler: PayloadHandler = async (req) => {
       messageId: savedMessageId,
       isGuest,
       ...(isGuest ? { guestCta: 'Sign up for the full LEO experience — message history, personalized recommendations, and more.' } : {}),
-    })
+      // So the widget can show the visitor which conversation is theirs, and so
+      // sign-up can claim it.
+      ...(visitorChannel ? { visitorChannelSlug: visitorChannel.channelSlug } : {}),
+    }, setCookie ? { headers: { 'Set-Cookie': setCookie } } : undefined)
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error'
     console.error('[LEO Chat] Error processing message:', errMsg)

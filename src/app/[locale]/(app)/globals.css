@@ -509,3 +509,72 @@ button {
 .auth-card a:not([class*='inline-flex']):not([class*='items-center']):hover {
   color: oklch(94% 0.06 85deg);
 }
+
+/* ─── LiveKit ─────────────────────────────────────────────────────────────────
+   `@livekit/components-styles` ships its own fixed palette, so the call UI
+   arrived as a dark grey slab regardless of the portal's branding — and on a
+   dark theme its device menus were near-invisible, which is why the camera and
+   mic pickers read as "missing" when they were in fact rendered.
+
+   Map its variables onto our tokens instead of restyling its markup: LiveKit
+   owns the classnames and will change them, it does not own our colours. */
+[data-lk-theme] {
+  --lk-bg: var(--background);
+  --lk-bg2: var(--muted);
+  --lk-bg3: var(--card);
+  --lk-bg4: var(--muted);
+  --lk-bg5: var(--muted);
+  --lk-fg: var(--foreground);
+  --lk-fg2: var(--muted-foreground);
+  --lk-fg3: var(--muted-foreground);
+  --lk-fg4: var(--muted-foreground);
+  --lk-fg5: var(--muted-foreground);
+  --lk-border-color: var(--border);
+  --lk-accent-bg: var(--primary);
+  --lk-accent-fg: var(--primary-foreground);
+  --lk-accent2: var(--primary);
+  --lk-accent3: var(--primary);
+  --lk-accent4: var(--primary);
+  --lk-control-bg: var(--muted);
+  --lk-control-hover-bg: var(--accent);
+  --lk-control-fg: var(--foreground);
+  --lk-danger: var(--destructive);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* The device menus are a plain <button> LiveKit styles very little; without
+   this they are foreground-on-foreground and effectively invisible. */
+[data-lk-theme] .lk-button,
+[data-lk-theme] .lk-device-menu button,
+[data-lk-theme] .lk-media-device-select button {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+[data-lk-theme] .lk-device-menu,
+[data-lk-theme] .lk-media-device-select {
+  background: var(--popover, var(--card));
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+/* Self-view mirroring.
+
+   LiveKit ships:
+     [data-lk-facing-mode=user] .lk-participant-media-video[data-lk-local-participant=true][data-lk-source=camera]
+       { transform: rotateY(180deg) }
+
+   Mirroring is right for a webcam — you expect to move like a reflection — and
+   wrong for a camera pointed at the world. A phone over DroidCam reports
+   facing-mode "user" and so renders every word backwards. The toggle in the
+   device panel puts .angel-lk-unmirrored on an ancestor to undo it.
+
+   Matched against the shipped rule rather than guessed, because a near-miss
+   selector here fails silently and looks exactly like a broken toggle. */
+.angel-lk-unmirrored .lk-participant-media-video[data-lk-local-participant='true'][data-lk-source='camera'] {
+  transform: none !important;
+}
