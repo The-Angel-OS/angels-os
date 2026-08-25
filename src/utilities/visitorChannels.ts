@@ -175,8 +175,12 @@ export async function backfillVisitorTurns(
 export async function claimVisitorChannel(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any,
-  args: { visitorId: string; userId: number | string; targetSlug: string; targetChannelId: number | string },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: { visitorId: string; userId: number | string; targetSlug: string; targetChannelId: number | string; req?: any },
 ): Promise<{ moved: number } | null> {
+  // Threaded when this runs inside the sign-up transaction; a write without it
+  // goes out on a connection that cannot see the uncommitted user row.
+  const tx = args.req ? { req: args.req } : {}
   const sourceSlug = visitorChannelSlug(args.visitorId)
 
   const source = await payload.find({
@@ -211,6 +215,7 @@ export async function claimVisitorChannel(
           ...(isVisitorTurn ? { author: args.userId } : {}),
         },
         overrideAccess: true,
+        ...tx,
       })
       moved++
     } catch {
@@ -223,7 +228,7 @@ export async function claimVisitorChannel(
   // `errors` array, and a channel reported deleted while still live is how
   // tenant 32 kept serving after its takedown (260820).
   try {
-    await payload.delete({ collection: 'channels', id: source.docs[0].id, overrideAccess: true })
+    await payload.delete({ collection: 'channels', id: source.docs[0].id, overrideAccess: true, ...tx })
     const check = await payload.find({
       collection: 'channels',
       where: { slug: { equals: sourceSlug } },

@@ -49,13 +49,16 @@ export const claimVisitorConversation: CollectionAfterChangeHook<User> = async (
     if (!dmSpaceId) return doc
 
     const { findOrCreateDM } = await import('@/utilities/dmChannels')
-    const dm = await findOrCreateDM(tenantId, dmSpaceId, doc.id, 'leo')
+    // `req` threaded: this runs inside the user-create transaction, and a DM
+    // created on another connection cannot see the user row it must reference.
+    const dm = await findOrCreateDM(tenantId, dmSpaceId, doc.id, 'leo', req)
 
     await claimVisitorChannel(payload, {
       visitorId,
       userId: doc.id,
       targetSlug: dm.channelSlug,
       targetChannelId: dm.channelId,
+      req,
     })
   } catch (err) {
     // A failed claim costs them their pre-signup transcript. It must never cost

@@ -164,8 +164,18 @@ export async function findOrCreateDM(
   dmSpaceId: number | string,
   userA: number | string,
   userB: number | string,
+  /**
+   * Pass the caller's `req` when this runs inside someone else's transaction —
+   * a hook, most of all. Without it the create goes out on a second connection
+   * that cannot see the uncommitted row, and the members FK fails: signing up
+   * threw `insert into channels_rels ... users_id` because user 166 did not
+   * exist yet as far as that connection was concerned.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req?: any,
 ): Promise<{ channelId: string; channelSlug: string; isNew: boolean }> {
-  const payload = await getLocalPayload()
+  const payload = req?.payload ?? (await getLocalPayload())
+  const tx = req ? { req } : {}
 
   const agent = typeof userB === 'string' && AGENTS.has(userB) ? userB : null
 
@@ -269,6 +279,7 @@ export async function findOrCreateDM(
         tenant: Number(tenantId),
       } as any,
       overrideAccess: true,
+      ...tx,
     })
   } catch (createErr) {
     // If creation failed (likely due to race condition), re-query for the
