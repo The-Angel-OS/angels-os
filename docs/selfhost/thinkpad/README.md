@@ -181,3 +181,67 @@ excuse, and now there's a cron line.
 It has a built-in UPS. The battery is the cheapest clean-shutdown insurance you
 can buy, and it's already in the box — assuming it still holds a charge, which
 is worth checking before you count on it.
+
+---
+
+## Day two: making it a workstation as well as a node
+
+Proven on a T440s, 260824. None of this is required for the node to serve; it's
+here because a Linux laptop you can actually use is worth more than a headless
+one, and because each of these cost an hour to find out.
+
+**Desktop.** `kubuntu-desktop` gives KDE Plasma 6.6. Two traps:
+
+- **Plasma 6.6 on 26.04 is Wayland-only, and LightDM does not list Wayland
+  sessions** — so Plasma can never appear at the login screen until SDDM replaces
+  it. There is no `plasma-workspace-x11` package to fall back to.
+- **`sddm.service` guards itself** with
+  `ExecStartPre=[ "$(cat /etc/X11/default-display-manager)" = "/usr/bin/sddm" ]`.
+  Write `/usr/sbin/sddm` — the path LightDM genuinely uses — and it fails five
+  times, hits the restart limiter, and leaves a blinking cursor. Run
+  `command -v sddm`; do not reason by analogy about paths.
+
+Set the default session in **both** `~/.dmrc` and
+`/var/lib/AccountsService/users/<user>`; they disagree about who decides and you
+get whichever wins that boot. Don't swap display managers while someone is logged
+in — configure it and let the next reboot apply it.
+
+**⚠️ NetworkManager.** `kubuntu-desktop` pulls it, and NM's default is to manage
+every interface it finds. On a Wi-Fi-only node that interface is the uplink *and*
+the SSH session you are configuring through. Fence it off BEFORE installing:
+
+```
+# /etc/NetworkManager/conf.d/99-angel-unmanaged.conf
+[keyfile]
+unmanaged-devices=interface-name:wlp3s0
+```
+
+The cost is a Plasma network applet that manages nothing. Migrating to NM
+properly is fine — just do it sitting at the laptop, where losing the link costs
+a retry instead of a drive.
+
+**Snap browsers don't register as browsers.** XFCE's "Web Browser" button runs
+`exo-open --launch WebBrowser`, which reads `helpers.rc` — unset, so a perfectly
+working Firefox gives "Failed to execute child process". Fix `helpers.rc`,
+`~/.config/mimeapps.list`, and the `x-www-browser` alternative.
+
+**Preseed the display-manager question** before any unattended install that pulls
+one, or apt blocks forever on a prompt nobody can see:
+
+```
+echo "sddm shared/default-x-display-manager select sddm" | sudo debconf-set-selections
+```
+
+**The snap store fails transiently.** One `api.snapcraft.io` DNS error, then the
+identical command worked. Retry before believing it.
+
+### What it cost
+
+| | |
+|---|---|
+| Bare server, idle | 578 MB |
+| With KDE Plasma | ~1.3 GB of 7.1 GB |
+| Disk, everything installed | 20 GB of 163 GB |
+
+RAM was never the constraint. The build is, which is why the node pulls images
+instead of making them.
