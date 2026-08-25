@@ -59,6 +59,35 @@ function sessions(dir) {
 
 const textOf = (block) => (typeof block === 'string' ? block : block?.text ?? '')
 
+/**
+ * A heading Google Docs can navigate by.
+ *
+ * Docs builds its outline pane from heading levels, so a `## Claude` on every
+ * turn produces an outline reading "Ken / Claude / Ken / Claude" that navigates
+ * nowhere. ONE heading per exchange, named after what was actually asked, turns
+ * that outline into a contents page.
+ */
+function topicOf(text, n) {
+  const stamp = /^\d{6}\s+\d{3,4}\s*-?\s*/ // "260826 1833 - "
+  const furniture = /^[#>*`|-]/ // markdown decoration, not a sentence
+  const line =
+    text
+      .split('\n')
+      .map((l) => l.replace(stamp, '').trim())
+      .find((l) => l && !furniture.test(l)) ?? ''
+  const cleaned = line.replace(/^\d{6}\s*~?\d{0,4}\s*/, '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return `Exchange ${n}`
+  const short = cleaned.length > 72 ? cleaned.slice(0, 69).replace(/\s+\S*$/, '') + '…' : cleaned
+  return `${n}. ${short}`
+}
+
+/**
+ * Push headings inside a message two levels down, so a `##` in a reply nests
+ * UNDER its exchange heading instead of competing with it in the outline.
+ */
+const demoteHeadings = (md) =>
+  md.replace(/^(#{1,6})(\s)/gm, (_m, hashes, sp) => '#'.repeat(Math.min(6, hashes.length + 2)) + sp)
+
 /** One-line summary of a tool call — enough to follow the thread, not to drown in it. */
 function summarizeTool(block) {
   const input = block.input ?? {}
@@ -113,8 +142,9 @@ function render(file) {
       const text = spoken.map(textOf).join('\n').trim()
       if (!text) continue
       turns++
-      out.push(`\n---\n\n## Ken — ${e.timestamp ? new Date(e.timestamp).toISOString().replace('T', ' ').slice(0, 16) : ''}\n`)
-      out.push(text + '\n')
+      out.push(`\n## ${topicOf(text, turns)}\n`)
+      out.push(`\n**Ken** · ${e.timestamp ? new Date(e.timestamp).toISOString().replace('T', ' ').slice(0, 16) : ''}\n\n`)
+      out.push(demoteHeadings(text) + '\n')
       continue
     }
 
@@ -123,7 +153,7 @@ function render(file) {
         out.push(`> *(reasoning)* ${textOf(b).replace(/\n/g, '\n> ').slice(0, 4000)}\n`)
       } else if (b.type === 'text') {
         const t = textOf(b).trim()
-        if (t) out.push(`\n### Claude\n\n${t}\n`)
+        if (t) out.push(`\n**Claude**\n\n${demoteHeadings(t)}\n`)
       } else if (b.type === 'tool_use' && TOOLS !== 'none') {
         out.push(`- ⚙ ${summarizeTool(b)}\n`)
       }
