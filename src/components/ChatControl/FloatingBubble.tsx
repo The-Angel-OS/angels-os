@@ -5,6 +5,7 @@ import { ChatControl } from './index'
 import { useAuth } from '@/providers/Auth'
 import { useChatContext } from './ChatProvider'
 import Link from 'next/link'
+import { VISITOR_DISCLOSURE } from '@/constants/visitorDisclosure'
 
 /**
  * Global floating chat bubble - appears on every page.
@@ -86,7 +87,8 @@ export function FloatingBubble({ spaceId }: { spaceId?: string }) {
   // Don't show anything until auth check completes
   if (status === undefined) return null
 
-  // Guest chat bubble — interactive with LEO (rate-limited, no persistence)
+  // Guest chat bubble — interactive with LEO (rate-limited). Persisted from
+  // the second message on, as a visitor channel the portal's own people can read.
   return <GuestChatBubble />
 }
 
@@ -112,7 +114,15 @@ function GuestChatBubble() {
           'Content-Type': 'application/json',
           'x-leo-guest': 'true',
         },
-        body: JSON.stringify({ message: userMsg, pageContext: window.location.pathname }),
+        // The transcript so far, minus the canned greeting: the server has no
+        // channel until the SECOND message, so turn one lives only here — and
+        // turn one is exactly the context turn two needs ("how much?").
+        body: JSON.stringify({
+          message: userMsg,
+          pageContext: window.location.pathname,
+          history: messages.slice(1),
+        }),
+        credentials: 'include',
       })
 
       if (res.status === 429) {
@@ -186,6 +196,11 @@ function GuestChatBubble() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Ken's wording, verbatim. The widget used to be genuinely ephemeral. */}
+      <div className="px-4 py-1.5 text-center text-[11px] leading-tight text-muted-foreground">
+        {VISITOR_DISCLOSURE}
       </div>
 
       {/* Sign up CTA */}

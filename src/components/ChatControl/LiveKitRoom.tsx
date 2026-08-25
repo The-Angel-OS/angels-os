@@ -43,8 +43,13 @@ function ParticipantGrid() {
     { onlySubscribed: false },
   )
 
+  // The grid sizes itself from the box it is handed, so the box has to be a box:
+  // every ancestor is `min-h-0 flex-1` and nothing carries `height: 100%`. A
+  // `height: 100%` child of a flex-1 column resolves against the WHOLE parent and
+  // then sits below the header — which is why two participants overflowed the
+  // frame and you had to scroll to see the second one.
   return (
-    <GridLayout tracks={tracks} style={{ height: '100%' }}>
+    <GridLayout tracks={tracks} className="h-full w-full">
       <ParticipantTile />
     </GridLayout>
   )
@@ -190,7 +195,7 @@ export function LiveKitRoom({
   // ─── Embedded mode: fills parent container (applet content area) ──
   if (embedded) {
     return (
-      <div className="flex flex-1 flex-col bg-background">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         {/* Header bar */}
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="flex items-center gap-2">
@@ -239,8 +244,7 @@ export function LiveKitRoom({
           onConnected={() => setIsConnected(true)}
           onDisconnected={handleDisconnect}
           data-lk-theme="default"
-          className="flex-1 overflow-hidden"
-          style={{ height: '100%' }}
+          className="min-h-0 flex-1 overflow-hidden"
         >
           <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} />
         </LKRoom>
@@ -265,8 +269,7 @@ export function LiveKitRoom({
               serverUrl={url}
               token={token}
               data-lk-theme="default"
-              className="flex-1 overflow-hidden"
-              style={{ height: '100%' }}
+              className="min-h-0 flex-1 overflow-hidden"
             >
               <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} />
             </LKRoom>
@@ -319,8 +322,7 @@ export function LiveKitRoom({
         onConnected={() => setIsConnected(true)}
         onDisconnected={handleDisconnect}
         data-lk-theme="default"
-        className="flex-1 overflow-hidden"
-        style={{ height: '100%' }}
+        className="min-h-0 flex-1 overflow-hidden"
       >
         <RoomBody showDeviceSettings={showDeviceSettings} mirrored={mirrored} onToggleMirror={toggleMirror} showGrid={isFullScreen} />
       </LKRoom>

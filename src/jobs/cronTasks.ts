@@ -166,10 +166,29 @@ const SPECS: CronSpec[] = [
   // and add it here when the first run is boring.
 ]
 
-export const cronTasks: TaskConfig<any>[] = SPECS.map((spec) => ({
+/**
+ * The one scheduled job that is not an endpoint.
+ *
+ * Anonymous chat that persists is anonymous chat that accumulates — every bot,
+ * every bored passer-by. Claimed conversations have already left (they moved
+ * into a real DM on sign-up), so anything still carrying a `visitor-` slug after
+ * 30 days is by definition nobody's. There is no HTTP surface for this because
+ * nothing but the schedule should ever fire it.
+ */
+const visitorSweepTask: TaskConfig<any> = {
+  slug: 'visitor-sweep',
+  label: 'visitor-sweep',
+  handler: async ({ req }) => {
+    const { sweepExpiredVisitorChannels } = await import('@/utilities/visitorChannels')
+    return { output: await sweepExpiredVisitorChannels(req.payload) }
+  },
+  schedule: [{ cron: '0 45 4 * * *', queue: CRON_QUEUE }],
+} as TaskConfig<any>
+
+export const cronTasks: TaskConfig<any>[] = (SPECS.map((spec) => ({
   slug: spec.slug,
   handler: async ({ req }) => callHandler(spec.handler, req, spec.path),
   label: spec.slug,
   retries: spec.retries,
   schedule: [{ cron: spec.cron, queue: CRON_QUEUE }],
-})) as TaskConfig<any>[]
+})) as TaskConfig<any>[]).concat(visitorSweepTask)
