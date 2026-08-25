@@ -156,7 +156,6 @@ import { ensurePresenceTableHandler } from '@/endpoints/ensure-presence-table'
 import { reportMessageHandler } from '@/endpoints/report-message'
 import { healStalledMessagesHandler } from '@/endpoints/heal-stalled-messages'
 import { accountDeletionRequestHandler } from '@/endpoints/account-deletion-request'
-import { ensureWorksTableHandler } from '@/endpoints/ensure-works-table'
 import { toolMetricsHandler } from '@/endpoints/tool-metrics'
 import { fundFloatHandler } from '@/endpoints/fund-float'
 import { walletBalanceHandler } from '@/endpoints/wallet-balance'
@@ -196,6 +195,7 @@ import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
 import { workProgressHandler } from '@/endpoints/work-progress'
 import { workQuizAttemptHandler } from '@/endpoints/work-quiz-attempt'
 import { workContentHandler } from '@/endpoints/work-content'
+import { workTextHandler } from '@/endpoints/work-text'
 import { ensureMembershipsTableHandler } from '@/endpoints/ensure-memberships-table'
 import { ensureSettingsTableHandler } from '@/endpoints/ensure-settings-table'
 import { accountAuditHandler } from '@/endpoints/account-audit'
@@ -1229,11 +1229,6 @@ export default buildConfig({
       method: 'get',
       handler: ensurePresenceTableHandler,
     },
-    {
-      path: '/provision-ops/ensure-works-table',
-      method: 'get',
-      handler: ensureWorksTableHandler,
-    },
     // Controlled AT issuance: a super_admin funds a Diocese float (backed).
     {
       path: '/provision-ops/fund-float',
@@ -1410,6 +1405,7 @@ export default buildConfig({
     { path: '/works-ops/progress', method: 'get', handler: workProgressHandler },
     { path: '/works-ops/progress', method: 'post', handler: workProgressHandler },
     { path: '/works-ops/quiz-attempt', method: 'post', handler: workQuizAttemptHandler },
+    { path: '/works-ops/text', method: 'get', handler: workTextHandler },
     { path: '/works-ops/content', method: 'get', handler: workContentHandler },
     { path: '/works-ops/content', method: 'post', handler: workContentHandler },
     { path: '/membership-ops/checkout', method: 'post', handler: membershipCheckoutHandler },

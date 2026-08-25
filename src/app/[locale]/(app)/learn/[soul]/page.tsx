@@ -6,6 +6,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getWork, isWorkAvailable, type WorkDoc } from '@/works/registry'
 import { getWorkJson } from '@/utilities/getWorkJson'
+import { buildTextWindow } from '@/utilities/workTextWindow'
 import { SoulViewer } from './SoulViewer'
 import { BookReader } from '@/components/Library/BookReader'
 import { loadBookFromPublic } from '@/components/Library/bookManifestServer'
@@ -112,14 +113,10 @@ export default async function SoulPage({
   // ── Book works → the illustrated-primer reader ──
   if (soul.bookSlug) {
     if (work?.pages?.length) {
-      const langs: Array<{ code: string }> = work.languages ?? []
-      const inlineTexts: Record<string, Record<string, string>> = {}
-      for (const l of langs) {
-        inlineTexts[l.code] = {}
-        work.pages.forEach((p: { translations?: Record<string, string> }, i: number) => {
-          inlineTexts[l.code][String(i)] = p.translations?.[l.code] ?? ''
-        })
-      }
+      // A WINDOW of one language, not every page in every language: the whole
+      // Bible in the HTML made this a 9.65 MB response. BookReader fetches the
+      // rest from /api/works-ops/text as the reader moves.
+      const inlineTexts = buildTextWindow(work.pages, 0, work.baseLanguage ?? 'en')
       const manifest = {
         slug: soulId,
         title: soul.title,
@@ -134,6 +131,7 @@ export default async function SoulPage({
         <BookReader
           manifest={manifest}
           inlineTexts={inlineTexts}
+          textSlug={soulId}
           initialIndex={0}
           basePath={`/learn/${soulId}`}
           pageSlugs={pageSlugs}

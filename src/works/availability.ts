@@ -46,6 +46,32 @@ export interface WorkRecord {
   bookSlug?: string
 }
 
+/**
+ * Payload array fields arrive as `[{ tag: 'book' }]`; the reader contract has
+ * always been `['book']`. These absorb the storage change so nothing downstream
+ * of the registry had to learn about it. Tolerant of the old flat JSON shape too,
+ * so a rolled-back deploy still reads its own data.
+ */
+export function tagList(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v
+    .map((x) => (typeof x === 'string' ? x : (x as { tag?: unknown })?.tag))
+    .filter((x): x is string => typeof x === 'string' && x.length > 0)
+}
+
+export function linkList(v: unknown): { label: string; url: string }[] {
+  if (!Array.isArray(v)) return []
+  return v
+    .map((x) => x as { label?: unknown; url?: unknown })
+    .filter((x) => typeof x?.label === 'string' && typeof x?.url === 'string')
+    .map((x) => ({ label: x.label as string, url: x.url as string }))
+}
+
+/** The write direction: `['book']` → `[{ tag: 'book' }]` for the array field. */
+export function tagRows(v: unknown): { tag: string }[] {
+  return tagList(v).map((tag) => ({ tag }))
+}
+
 /** The canonical, editable home/OWNER endeavor for a Work. */
 export function homeForWork(work: WorkRecord | null): string {
   return work?.owner || DEFAULT_WORK_HOME

@@ -6538,46 +6538,74 @@ export interface Service {
  */
 export interface Work {
   id: number;
-  /**
-   * Stable Work id, e.g. "answer53" — matches the file-based soul id during migration.
-   */
-  slug: string;
   title: string;
   subtitle?: string | null;
   description?: string | null;
-  type?: ('document' | 'book' | 'course') | null;
-  status?: string | null;
-  statusColor?: string | null;
   /**
-   * string[] of tags.
+   * Library facets — "book", "scripture", "primer".
    */
   tags?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        tag: string;
+        id?: string | null;
+      }[]
     | null;
   /**
-   * Publish-once-canonical: { origin, creditedTo?, contributors?[] }.
+   * Shown alongside the Work — the original site, a companion portal.
    */
-  canonical?:
+  links?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
     | null;
   /**
-   * Owning/editable endeavor — tenant SLUG (federation-stable, not an id).
+   * Publish-once-canonical: where this Work is the original, and who gets the byline.
+   */
+  canonical?: {
+    /**
+     * Publisher root, e.g. https://wheredideveryonego.spacesangels.com. A subscriber portal credits THIS origin.
+     */
+    origin?: string | null;
+    /**
+     * Publishing endeavor slug.
+     */
+    endeavor?: string | null;
+    /**
+     * Author of record — the byline's email.
+     */
+    creditedTo?: string | null;
+  };
+  /**
+   * Chapter slug opened first in the document viewer.
+   */
+  defaultDoc?: string | null;
+  cover?: (number | null) | Media;
+  /**
+   * Stable Work id — the /learn/<slug> address. Changing it breaks every link already sent.
+   */
+  slug: string;
+  type?: ('document' | 'book' | 'course') | null;
+  /**
+   * Listed on public Library indexes. Unpublished stays an editable working copy, reachable by direct link.
+   */
+  published?: boolean | null;
+  /**
+   * Owning endeavor — a tenant SLUG (federation-stable, not an id).
    */
   owner?: string | null;
   /**
-   * string[] of subscriber tenant slugs (additional endeavors that carry a copy).
+   * Offered to EVERY portal on top of subscribers (e.g. the Handbook). A portal can still opt out.
+   */
+  availableGlobally?: boolean | null;
+  /**
+   * Badge text on the Library card.
+   */
+  status?: string | null;
+  statusColor?: string | null;
+  /**
+   * string[] of subscriber tenant slugs. Set this from /dashboard/works — one checkbox per portal — not here.
    */
   subscribers?:
     | {
@@ -6589,15 +6617,7 @@ export interface Work {
     | boolean
     | null;
   /**
-   * Shown on public Library indexes. Unpublished Works stay editable working copies, reachable by direct link.
-   */
-  published?: boolean | null;
-  /**
-   * Offered to EVERY portal, on top of subscribers (e.g. the Handbook). A portal can still opt out.
-   */
-  availableGlobally?: boolean | null;
-  /**
-   * string[] of tenant slugs that have switched this Work OFF for their portal. Beats availableGlobally and subscribers; the owner's own portal always carries it.
+   * string[] of tenant slugs that switched this Work OFF. Beats availableGlobally and subscribers; the owner's own portal always carries it.
    */
   optOuts?:
     | {
@@ -6609,13 +6629,9 @@ export interface Work {
     | boolean
     | null;
   /**
-   * Chapter slug opened first in the document viewer.
+   * Storage-of-record pointer: { kind: 'file'|'messages', channel?, space?, languages?, baseLanguage? }.
    */
-  defaultDoc?: string | null;
-  /**
-   * { label, url }[] shown alongside the Work.
-   */
-  links?:
+  storageRef?:
     | {
         [k: string]: unknown;
       }
@@ -6624,11 +6640,10 @@ export interface Work {
     | number
     | boolean
     | null;
-  cover?: (number | null) | Media;
   /**
-   * Storage-of-record pointer: { kind: 'file'|'messages', channel?, space? }.
+   * Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio.
    */
-  storageRef?:
+  content?:
     | {
         [k: string]: unknown;
       }
@@ -6641,18 +6656,6 @@ export interface Work {
    * Content address (sha256, url-independent) — the catalog-gossip handle.
    */
   checksum?: string | null;
-  /**
-   * Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio, not here. Only `type: course` uses it — documents and books keep their chapters as messages.
-   */
-  content?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   /**
    * Work JSON interchange version.
    */
@@ -10158,26 +10161,43 @@ export interface ServicesSelect<T extends boolean = true> {
  * via the `definition` "works_select".
  */
 export interface WorksSelect<T extends boolean = true> {
-  slug?: T;
   title?: T;
   subtitle?: T;
   description?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  links?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  canonical?:
+    | T
+    | {
+        origin?: T;
+        endeavor?: T;
+        creditedTo?: T;
+      };
+  defaultDoc?: T;
+  cover?: T;
+  slug?: T;
   type?: T;
+  published?: T;
+  owner?: T;
+  availableGlobally?: T;
   status?: T;
   statusColor?: T;
-  tags?: T;
-  canonical?: T;
-  owner?: T;
   subscribers?: T;
-  published?: T;
-  availableGlobally?: T;
   optOuts?: T;
-  defaultDoc?: T;
-  links?: T;
-  cover?: T;
   storageRef?: T;
-  checksum?: T;
   content?: T;
+  checksum?: T;
   jsonVersion?: T;
   updatedAt?: T;
   createdAt?: T;

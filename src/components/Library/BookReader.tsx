@@ -37,7 +37,10 @@ export interface VerseLine {
   v: number
   t: string
 }
-type PageText = string | VerseLine[]
+type PageText = string | VerseLine[]  // = WorkPageText, kept local so this file has no server import
+
+/** Pages fetched per on-demand request (see the windowed-text effect below). */
+const TEXT_CHUNK = 24
 
 export interface BookLanguage {
   code: string
@@ -89,6 +92,7 @@ export function BookReader({
   basePath,
   pageSlugs,
   inlineTexts,
+  textSlug,
 }: {
   manifest?: BookManifest
   /** Static URL to a manifest.json (CDN-served, Vercel-safe). */
@@ -104,8 +108,15 @@ export function BookReader({
   /**
    * DB-backed per-language text: { lang: { "<pageIndex>": text } }. When given,
    * text comes from here (no file fetch) — the portable, filesystem-free path.
+   *
+   * This is a WINDOW, not the whole book: the server sends the pages around the
+   * opening one in the opening language, and `textSlug` fetches the rest as the
+   * reader flips or switches language. Sending everything made /learn/holy-bible
+   * a 9.65 MB page. @see src/utilities/workTextWindow.ts
    */
-  inlineTexts?: Record<string, Record<string, string>>
+  inlineTexts?: Record<string, Record<string, PageText>>
+  /** Work slug — enables on-demand fetching of pages outside the window. */
+  textSlug?: string
 }) {
   const [manifest, setManifest] = useState<BookManifest | null>(initialManifest ?? null)
   const [loading, setLoading] = useState(!initialManifest && !!manifestUrl)
@@ -115,6 +126,9 @@ export function BookReader({
   const [dir, setDir] = useState(1)
   const [lang, setLang] = useState<string>('en')
   const [texts, setTexts] = useState<Record<string, PageText>>({})
+  // Chunks already requested, so a page with genuinely empty text is not asked
+  // for again on every render. Keyed `${lang}:${from}`.
+  const requestedChunks = useRef<Set<string>>(new Set())
   const [reading, setReading] = useState(false)
   // Verse deep-link target (from ?verse= on entry, e.g. LEO's open_passage nav).
   // Scrolled to once the target chapter's verses render, highlighted, then cleared.
@@ -222,6 +236,34 @@ export function BookReader({
       cancelled = true
     }
   }, [manifest, lang, inlineTexts])
+
+  // Pages outside the served window, fetched in chunks as the reader moves. A
+  // reader flips far slower than this fetches, so a book of any length opens at
+  // the same speed as a pamphlet.
+  useEffect(() => {
+    if (!textSlug || !lang) return
+    if (texts[String(index)] !== undefined) return
+    const from = Math.max(0, index - TEXT_CHUNK / 2)
+    const key = `${lang}:${from}`
+    if (requestedChunks.current.has(key)) return
+    requestedChunks.current.add(key)
+
+    let cancelled = false
+    fetch(
+      `/api/works-ops/text?slug=${encodeURIComponent(textSlug)}&lang=${encodeURIComponent(lang)}&from=${from}&to=${from + TEXT_CHUNK}`,
+    )
+      .then((r) => (r.ok ? r.json() : { texts: {} }))
+      .then((j: { texts?: Record<string, PageText> }) => {
+        if (!cancelled) setTexts((prev) => ({ ...prev, ...(j.texts ?? {}) }))
+      })
+      .catch(() => {
+        // A page without text still shows its image — never a blank reader.
+        requestedChunks.current.delete(key)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [textSlug, lang, index, texts])
 
   const go = useCallback(
     (delta: number) => {

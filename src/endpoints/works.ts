@@ -26,6 +26,7 @@ import fs from 'fs'
 import path from 'path'
 import { getSoul } from '@/souls'
 import { getWork, getAvailableWorks, isWorkAvailable, type WorkRecord } from '@/works/registry'
+import { tagRows } from '@/works/availability'
 import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
@@ -429,7 +430,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     const recData = {
       slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
       type, status: soul.status, statusColor: soul.statusColor,
-      tags: soul.tags ?? [], canonical: soul.canonical ?? null,
+      tags: tagRows(soul.tags), canonical: soul.canonical ?? null,
       owner: ownerSlug,
       storageRef, checksum, jsonVersion: WORK_JSON_VERSION,
     }
@@ -557,7 +558,7 @@ export const worksPullHandler: PayloadHandler = async (req) => {
       type: 'document' as const,
       status: work.status ?? null,
       statusColor: work.statusColor ?? null,
-      tags: (work.tags as unknown[]) ?? [],
+      tags: tagRows(work.tags),
       // canonical home stays the source (SEO authority percolates UP, not to us).
       canonical: (work.canonicalOrigin ? { origin: work.canonicalOrigin } : null) as unknown,
       owner: ownerSlug,

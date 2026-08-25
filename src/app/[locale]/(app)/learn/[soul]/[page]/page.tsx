@@ -6,6 +6,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getWork, isWorkAvailable, type WorkDoc } from '@/works/registry'
 import { getWorkJson } from '@/utilities/getWorkJson'
+import { buildTextWindow } from '@/utilities/workTextWindow'
 import { BookReader } from '@/components/Library/BookReader'
 import { SoulViewer } from '../SoulViewer'
 import { loadBookFromPublic, resolvePageIndex, pageExcerpt } from '@/components/Library/bookManifestServer'
@@ -154,14 +155,10 @@ export default async function DeepLinkPage({
     if (work?.pages?.length) {
       const n = parseInt(page, 10)
       const idx = Number.isFinite(n) && n >= 1 && n <= work.pages.length ? n - 1 : 0
-      const langs: Array<{ code: string }> = work.languages ?? []
-      const inlineTexts: Record<string, Record<string, string>> = {}
-      for (const l of langs) {
-        inlineTexts[l.code] = {}
-        work.pages.forEach((p: { translations?: Record<string, string> }, i: number) => {
-          inlineTexts[l.code][String(i)] = p.translations?.[l.code] ?? ''
-        })
-      }
+      // A WINDOW of one language, not every page in every language: the whole
+      // Bible in the HTML made this a 9.65 MB response. BookReader fetches the
+      // rest from /api/works-ops/text as the reader moves.
+      const inlineTexts = buildTextWindow(work.pages, idx, work.baseLanguage ?? 'en')
       const manifest = {
         slug: soulId,
         title: soul.title,
@@ -173,7 +170,8 @@ export default async function DeepLinkPage({
       }
       const pageSlugs = work.pages.map((p: { slug: string }) => p.slug)
       return (
-        <BookReader manifest={manifest} inlineTexts={inlineTexts} initialIndex={idx} basePath={`/learn/${soulId}`} pageSlugs={pageSlugs} title={soul.title} />
+        <BookReader manifest={manifest} inlineTexts={inlineTexts}
+          textSlug={soulId} initialIndex={idx} basePath={`/learn/${soulId}`} pageSlugs={pageSlugs} title={soul.title} />
       )
     }
     const loaded = loadBookFromPublic(soul.bookSlug)

@@ -17,7 +17,7 @@ import { cache } from 'react'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 
-import { DEFAULT_WORK_HOME, isWorkAvailable, type WorkRecord } from './availability'
+import { DEFAULT_WORK_HOME, isWorkAvailable, linkList, tagList, type WorkRecord } from './availability'
 
 export * from './availability'
 
@@ -30,11 +30,11 @@ function toRecord(row: Record<string, unknown>): WorkRecord {
     description: String(row.description ?? ''),
     status: String(row.status ?? ''),
     statusColor: String(row.statusColor ?? ''),
-    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    tags: tagList(row.tags),
     defaultDoc: String(row.defaultDoc ?? ''),
     // Chapters live as messages; getWorkJson assembles them at read time.
     docs: [],
-    links: Array.isArray(row.links) ? (row.links as { label: string; url: string }[]) : [],
+    links: linkList(row.links),
     canonical: (row.canonical as WorkRecord['canonical']) ?? undefined,
     owner: String(row.owner || DEFAULT_WORK_HOME),
     subscribers: Array.isArray(row.subscribers) ? (row.subscribers as string[]) : [],

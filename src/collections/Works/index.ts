@@ -1,19 +1,20 @@
 /**
- * Works — the Library catalog (manifest handle), Phase 1 of Works-as-JSON.
+ * Works — the Library catalog: one record per Work.
  *
- * A slim catalog record per Work: the manifest + canonical/owner/subscribers +
- * a pointer to its storage-of-record. The CONTENT (chapters) does NOT live here
- * yet — it stays in the file-based souls (the reader's fallback) until Phase 2
- * materializes chapters as messages. So this collection is additive and inert:
- * nothing reads or writes it yet, the file reader is untouched.
+ * The fields a person EDITS are real Payload fields (arrays and groups), so the
+ * admin gives you a proper editor instead of six raw-JSON textareas. The fields
+ * that are PLUMBING — `storageRef`, `checksum`, `subscribers`, `optOuts`,
+ * `content` — stay JSON and sit in a collapsed section: availability already has
+ * a far better surface at /dashboard/works (a checkbox per portal), and nobody
+ * should be hand-editing a checksum.
  *
- * Federation-portable by design: owner/subscribers are tenant SLUGS (stable
- * across nodes) not relationship ids (which differ per node). Array/group-ish
- * fields (tags, canonical, subscribers, storageRef) are `json` so there are NO
- * sub-tables to hand-roll on prod — see ensure-works-table + the rule in
- * docs/architecture/* about never hand-rolling Payload array tables.
+ * Federation-portable by design: `owner` and the subscriber lists are tenant
+ * SLUGS (stable across nodes), never relationship ids (which differ per node).
  *
- * @see docs/planning/WORKS_AS_JSON.md  @see src/endpoints/ensure-works-table.ts
+ * ⚠️ Chapters do NOT live here — they are still rows in `messages`, which is why
+ * there is no chapter editor yet. See the punch list: `work-chapters`.
+ *
+ * @see docs/planning/WORKS_AS_JSON.md
  */
 import type { CollectionConfig } from 'payload'
 
@@ -22,7 +23,7 @@ export const Works: CollectionConfig = {
   admin: {
     group: 'Content',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'type', 'owner', 'checksum', 'updatedAt'],
+    defaultColumns: ['title', 'slug', 'type', 'published', 'owner', 'updatedAt'],
     listSearchableFields: ['title', 'slug', 'subtitle', 'description', 'owner', 'checksum'],
     description: 'The Library catalog — one record per Work (the manifest handle).',
   },
@@ -43,44 +44,68 @@ export const Works: CollectionConfig = {
     },
   },
   fields: [
-    { name: 'slug', type: 'text', required: true, index: true,
-      admin: { description: 'Stable Work id, e.g. "answer53" — matches the file-based soul id during migration.' } },
     { name: 'title', type: 'text', required: true },
     { name: 'subtitle', type: 'text' },
     { name: 'description', type: 'textarea' },
+
+    { name: 'tags', type: 'array', labels: { singular: 'Tag', plural: 'Tags' },
+      admin: { description: 'Library facets — "book", "scripture", "primer".' },
+      fields: [{ name: 'tag', type: 'text', required: true }] },
+
+    { name: 'links', type: 'array', labels: { singular: 'Link', plural: 'Links' },
+      admin: { description: 'Shown alongside the Work — the original site, a companion portal.' },
+      fields: [
+        { name: 'label', type: 'text', required: true },
+        { name: 'url', type: 'text', required: true },
+      ] },
+
+    { name: 'canonical', type: 'group',
+      admin: { description: 'Publish-once-canonical: where this Work is the original, and who gets the byline.' },
+      fields: [
+        { name: 'origin', type: 'text', admin: { description: 'Publisher root, e.g. https://wheredideveryonego.spacesangels.com. A subscriber portal credits THIS origin.' } },
+        { name: 'endeavor', type: 'text', admin: { description: 'Publishing endeavor slug.' } },
+        { name: 'creditedTo', type: 'text', admin: { description: "Author of record — the byline's email." } },
+      ] },
+
+    { name: 'defaultDoc', type: 'text',
+      admin: { description: 'Chapter slug opened first in the document viewer.' } },
+    { name: 'cover', type: 'upload', relationTo: 'media' },
+
+    // ── Sidebar: what this Work IS and who can see it ────────────────────────
+    { name: 'slug', type: 'text', required: true, index: true, unique: true,
+      admin: { position: 'sidebar', description: 'Stable Work id — the /learn/<slug> address. Changing it breaks every link already sent.' } },
     { name: 'type', type: 'select', defaultValue: 'document', index: true,
+      admin: { position: 'sidebar' },
       options: [
         { label: 'Document (case file / manifesto)', value: 'document' },
         { label: 'Book (illustrated, paged)', value: 'book' },
         { label: 'Course (modules and lessons)', value: 'course' },
       ] },
-    { name: 'status', type: 'text' },
-    { name: 'statusColor', type: 'text' },
-    { name: 'tags', type: 'json', admin: { description: 'string[] of tags.' } },
-    { name: 'canonical', type: 'json',
-      admin: { description: 'Publish-once-canonical: { origin, creditedTo?, contributors?[] }.' } },
-    { name: 'owner', type: 'text', index: true,
-      admin: { description: 'Owning/editable endeavor — tenant SLUG (federation-stable, not an id).' } },
-    { name: 'subscribers', type: 'json',
-      admin: { description: 'string[] of subscriber tenant slugs (additional endeavors that carry a copy).' } },
     { name: 'published', type: 'checkbox', defaultValue: false, index: true,
-      admin: { description: 'Shown on public Library indexes. Unpublished Works stay editable working copies, reachable by direct link.' } },
+      admin: { position: 'sidebar', description: 'Listed on public Library indexes. Unpublished stays an editable working copy, reachable by direct link.' } },
+    { name: 'owner', type: 'text', index: true,
+      admin: { position: 'sidebar', description: 'Owning endeavor — a tenant SLUG (federation-stable, not an id).' } },
     { name: 'availableGlobally', type: 'checkbox', defaultValue: false,
-      admin: { description: 'Offered to EVERY portal, on top of subscribers (e.g. the Handbook). A portal can still opt out.' } },
-    { name: 'optOuts', type: 'json',
-      admin: { description: "string[] of tenant slugs that have switched this Work OFF for their portal. Beats availableGlobally and subscribers; the owner's own portal always carries it." } },
-    { name: 'defaultDoc', type: 'text',
-      admin: { description: 'Chapter slug opened first in the document viewer.' } },
-    { name: 'links', type: 'json',
-      admin: { description: '{ label, url }[] shown alongside the Work.' } },
-    { name: 'cover', type: 'upload', relationTo: 'media' },
-    { name: 'storageRef', type: 'json',
-      admin: { description: "Storage-of-record pointer: { kind: 'file'|'messages', channel?, space? }." } },
-    { name: 'checksum', type: 'text', index: true,
-      admin: { description: 'Content address (sha256, url-independent) — the catalog-gossip handle.' } },
-    { name: 'content', type: 'json',
-      admin: { description: "Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio, not here. Only `type: course` uses it — documents and books keep their chapters as messages." } },
-    { name: 'jsonVersion', type: 'text', defaultValue: 'work.v1',
-      admin: { description: 'Work JSON interchange version.' } },
+      admin: { position: 'sidebar', description: 'Offered to EVERY portal on top of subscribers (e.g. the Handbook). A portal can still opt out.' } },
+    { name: 'status', type: 'text', admin: { position: 'sidebar', description: 'Badge text on the Library card.' } },
+    { name: 'statusColor', type: 'text', admin: { position: 'sidebar' } },
+
+    // ── Plumbing. Collapsed, because editing any of it by hand is a mistake ──
+    { type: 'collapsible', label: 'Storage & federation (advanced)',
+      admin: { initCollapsed: true, description: 'Written by the importer, the sync, and /dashboard/works. Hand-edit at your peril.' },
+      fields: [
+        { name: 'subscribers', type: 'json',
+          admin: { description: 'string[] of subscriber tenant slugs. Set this from /dashboard/works — one checkbox per portal — not here.' } },
+        { name: 'optOuts', type: 'json',
+          admin: { description: "string[] of tenant slugs that switched this Work OFF. Beats availableGlobally and subscribers; the owner's own portal always carries it." } },
+        { name: 'storageRef', type: 'json',
+          admin: { description: "Storage-of-record pointer: { kind: 'file'|'messages', channel?, space?, languages?, baseLanguage? }." } },
+        { name: 'content', type: 'json',
+          admin: { description: 'Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio.' } },
+        { name: 'checksum', type: 'text', index: true,
+          admin: { description: 'Content address (sha256, url-independent) — the catalog-gossip handle.' } },
+        { name: 'jsonVersion', type: 'text', defaultValue: 'work.v1',
+          admin: { description: 'Work JSON interchange version.' } },
+      ] },
   ],
 }
