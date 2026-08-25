@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { WorkRecord } from '@/works/registry'
+import { WorkQuiz } from '@/components/WorkQuiz'
 
 /* ─── Answer53 LCARS palette (muted) ─────────────────────────────────── */
 const LCARS = {
@@ -218,6 +219,16 @@ export function SoulViewer({ soul, activeDocId, allContents, basePath }: Props) 
       td: ({ children }: MdProps) => <td className="px-3 py-2 align-top" style={{ borderBottom: `1px solid ${LCARS.amber}1a` }}>{children}</td>,
       hr: () => <hr className="my-7" style={{ borderTop: `1px solid ${LCARS.amber}33` }} />,
       code: ({ children, className }: MdProps) => {
+        // A ```quiz fence is a quiz SEGMENT, not code — see utilities/workQuiz.
+        if (className?.includes('language-quiz')) {
+          return (
+            <WorkQuiz
+              source={String(children ?? '')}
+              soulId={soul.id}
+              chapter={currentDocId}
+            />
+          )
+        }
         const isBlock = className?.includes('language-')
         if (isBlock) {
           return (
@@ -260,7 +271,7 @@ export function SoulViewer({ soul, activeDocId, allContents, basePath }: Props) 
         return <a href={href} style={{ color: LCARS.teal }}>{children}</a>
       },
     }),
-    [docIdByFilename, goToDoc],
+    [docIdByFilename, goToDoc, soul.id, currentDocId],
   )
 
   return (

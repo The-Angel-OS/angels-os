@@ -19,6 +19,7 @@ import { buildAlternateIndex } from '@/blocks/MediaText/alternateIndex'
 import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
 import { TrustRowBlock } from '@/blocks/TrustRow/Component'
 import { FaqBlock } from '@/blocks/Faq/Component'
+import { WorkQuizBlockComponent } from '@/blocks/WorkQuiz/Component'
 import { VideoBlockComponent } from '@/blocks/Video/Component'
 import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
@@ -50,6 +51,7 @@ const blockComponents = {
   ticketForm: TicketFormBlockComponent,
   trustRow: TrustRowBlock,
   faq: FaqBlock,
+  workQuiz: WorkQuizBlockComponent,
   video: VideoBlockComponent,
   showcase: ShowcaseBlock,
   productPanel: ProductPanelBlock,

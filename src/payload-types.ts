@@ -268,6 +268,7 @@ export interface Config {
       'verify-onboarding': TaskVerifyOnboarding;
       'log-consolidate': TaskLogConsolidate;
       'solvency-briefing': TaskSolvencyBriefing;
+      'visitor-sweep': TaskVisitorSweep;
       inline: {
         input: unknown;
         output: unknown;
@@ -832,6 +833,12 @@ export interface User {
   id: number;
   name?: string | null;
   /**
+   * Profile picture. Leave empty to use your Gravatar.
+   */
+  avatar?: (number | null) | Media;
+  gravatarHash?: string | null;
+  avatarUrl?: string | null;
+  /**
    * Mobile number — any format; normalized to E.164 on save. Enables sign-in by text.
    */
   phone?: string | null;
@@ -1021,6 +1028,18 @@ export interface User {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  /**
+   * Per-channel last-read timestamps. Managed by /api/chat/mark-read.
+   */
+  readState?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Dashboard widget preferences: { collapsed: string[], dismissed: string[], order: string[] }
    */
@@ -1596,6 +1615,7 @@ export interface Page {
     | VideoBlock
     | ShowcaseBlock
     | ProductPanelBlock
+    | WorkQuizBlock
   )[];
   meta?: {
     title?: string | null;
@@ -3296,6 +3316,23 @@ export interface ProductPanelBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'productPanel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkQuizBlock".
+ */
+export interface WorkQuizBlock {
+  /**
+   * Work slug, e.g. "wdeg". Same slug as /learn/<work>.
+   */
+  work: string;
+  /**
+   * Chapter slug. Leave blank to show every quiz in the work. The quiz itself is authored in the chapter as a ```quiz code block.
+   */
+  chapter?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'workQuiz';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7391,7 +7428,8 @@ export interface PayloadJob {
           | 'youtube-poll'
           | 'verify-onboarding'
           | 'log-consolidate'
-          | 'solvency-briefing';
+          | 'solvency-briefing'
+          | 'visitor-sweep';
         taskID: string;
         input?:
           | {
@@ -7437,6 +7475,7 @@ export interface PayloadJob {
         | 'verify-onboarding'
         | 'log-consolidate'
         | 'solvency-briefing'
+        | 'visitor-sweep'
       )
     | null;
   queue?: string | null;
@@ -7958,6 +7997,9 @@ export interface TenantsSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  avatar?: T;
+  gravatarHash?: T;
+  avatarUrl?: T;
   phone?: T;
   federatedIdentityId?: T;
   isSystemUser?: T;
@@ -8028,6 +8070,7 @@ export interface UsersSelect<T extends boolean = true> {
   orders?: T;
   cart?: T;
   addresses?: T;
+  readState?: T;
   dashboardPrefs?: T;
   tenants?:
     | T
@@ -8673,6 +8716,7 @@ export interface PagesSelect<T extends boolean = true> {
         video?: T | VideoBlockSelect<T>;
         showcase?: T | ShowcaseBlockSelect<T>;
         productPanel?: T | ProductPanelBlockSelect<T>;
+        workQuiz?: T | WorkQuizBlockSelect<T>;
       };
   meta?:
     | T
@@ -8990,6 +9034,16 @@ export interface ProductPanelBlockSelect<T extends boolean = true> {
   ctaLabel?: T;
   ctaUrl?: T;
   footnote?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkQuizBlock_select".
+ */
+export interface WorkQuizBlockSelect<T extends boolean = true> {
+  work?: T;
+  chapter?: T;
   id?: T;
   blockName?: T;
 }
@@ -11040,6 +11094,14 @@ export interface TaskLogConsolidate {
  * via the `definition` "TaskSolvency-briefing".
  */
 export interface TaskSolvencyBriefing {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskVisitor-sweep".
+ */
+export interface TaskVisitorSweep {
   input?: unknown;
   output?: unknown;
 }

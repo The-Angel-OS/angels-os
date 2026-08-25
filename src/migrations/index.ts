@@ -79,6 +79,7 @@ import * as migration_20260824_170000_events_layout from './20260824_170000_even
 import * as migration_20260824_180000_events_rels_events_id from './20260824_180000_events_rels_events_id'
 import * as migration_20260824_200000_users_avatar from './20260824_200000_users_avatar'
 import * as migration_20260824_210000_read_state from './20260824_210000_read_state'
+import * as migration_20260825_140000_work_quiz_block from './20260825_140000_work_quiz_block'
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -528,5 +529,10 @@ export const migrations = [
     up: migration_20260824_210000_read_state.up,
     down: migration_20260824_210000_read_state.down,
     name: '20260824_210000_read_state',
+  },
+  {
+    up: migration_20260825_140000_work_quiz_block.up,
+    down: migration_20260825_140000_work_quiz_block.down,
+    name: '20260825_140000_work_quiz_block',
   },
 ];

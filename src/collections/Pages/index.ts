@@ -20,6 +20,7 @@ import { MediaText } from '@/blocks/MediaText/config'
 import { TicketForm } from '@/blocks/TicketForm/config'
 import { TrustRow } from '@/blocks/TrustRow/config'
 import { Faq } from '@/blocks/Faq/config'
+import { WorkQuizBlock } from '@/blocks/WorkQuiz/config'
 import { Video } from '@/blocks/Video/config'
 import { Showcase } from '@/blocks/Showcase/config'
 import { ProductPanel } from '@/blocks/ProductPanel/config'
@@ -195,6 +196,7 @@ export const Pages: CollectionConfig = {
                 Video,
                 Showcase,
                 ProductPanel,
+                WorkQuizBlock,
               ],
               required: true,
             },
