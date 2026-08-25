@@ -518,6 +518,34 @@
 
 ## ✅ Recently closed (last 7 days)
 
+- **[P1 260824] Anonymous visitor sessions are finished and verified live** — the server half had
+  shipped inert: it would persist a visitor conversation IF a client sent a transcript, and no
+  client did. `GuestChatBubble` now POSTs its prior turns as `history` (minus the canned greeting,
+  so the channel still waits for message TWO) and shows `VISITOR_DISCLOSURE` above the input.
+  The real prize is memory: LEO's context comes from READING the Messages table, so guest turns
+  going unpersisted meant every message was message one. Proven live on WDEG — "Do you rent the
+  hall on weekends?" then "How much?" answered *$150/hr, 3-hour minimum* instead of a non-sequitur.
+  Claim-on-signup is a Users `afterChange` hook (six doors lead to a new user; a per-endpoint call
+  would skip four): reads the cookie off `req.headers`, moves the whole pre-signup thread into the
+  new LEO DM. Verified: four turns landed in `dm-167-leo` with both `channel` AND `channelRef`
+  rewritten and the visitor turns attributed. TTL sweep is a Payload job (`visitor-sweep`, 04:45),
+  the one scheduled task that is not an endpoint.
+  ⚠️ **Two transaction bugs, both found by re-querying rather than by reading a return value.**
+  (a) The claim failed on EVERY sign-up — `findOrCreateDM` used `getLocalPayload()`, a second
+  connection that cannot see the uncommitted user row, so the members insert died on
+  `channels_rels.users_id`. It takes an optional `req` now. (b) The post-delete verification read
+  outside the transaction, saw the pre-commit row, and warned about a delete that worked. Verify by
+  re-querying — *on the same connection*.
+  *Where:* `src/utilities/visitorSession.ts`, `visitorChannels.ts`,
+  `src/collections/Users/hooks/claimVisitorConversation.ts`, `src/jobs/cronTasks.ts`,
+  `tests/unit/visitorSessions.test.ts`. `260824`
+
+- **[P1 260824] Two people on a video call overflowed the frame** — every `LiveKitRoom` carried
+  `style={{ height: '100%' }}` on a `flex-1` child, which resolves against the WHOLE parent and
+  then sits below the header, so the grid was taller than its box and you scrolled to see the
+  second participant. `min-h-0` the whole way down, no `height: 100%` anywhere; the grid tiles to
+  fit the box it is actually given. *Where:* `src/components/ChatControl/LiveKitRoom.tsx`. `260824`
+
 - **[P1 260824] No DM had ever loaded its history** — `loadMessages` gates on the active channel
   being RESOLVED (a deep-link URL carries a channel ID, `Messages.channel` stores a slug), but it
   tested `channels`, which only holds the ACTIVE SPACE's channels. A DM lives in the AI Bus, so
