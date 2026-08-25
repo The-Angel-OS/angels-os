@@ -27,13 +27,28 @@ export interface ReadStateApi {
   cap: number
   /** The mark the active channel had when you opened it — the divider anchor. */
   lastReadAt: string | null
-  /** Force a channel to "read up to now". Safe to call often; monotonic server-side. */
+  /** Mark a channel read up to the newest message seen. Monotonic server-side. */
   markRead: (channel: string) => void
   /** Drop a channel's badge immediately, before the next poll confirms it. */
   clearLocal: (channel: string) => void
 }
 
-export function useReadState(channelSlugs: string[], activeChannel: string, enabled = true): ReadStateApi {
+export function useReadState(
+  channelSlugs: string[],
+  activeChannel: string,
+  /**
+   * Timestamp of the newest message currently loaded in the active channel.
+   *
+   * This is what gets marked, NOT "now" — and the distinction is the whole of
+   * the write-amplification story. `now` always moves forward, so the server's
+   * "did the mark actually move?" check can never fire and every heartbeat
+   * writes a row. Marking the newest message you have actually seen makes a
+   * re-mark of an idle channel a genuine no-op, which is what the server is
+   * built to skip. Caught on live probing, 260824.
+   */
+  newestAt?: string | null,
+  enabled = true,
+): ReadStateApi {
   const [unread, setUnread] = useState<Record<string, number>>({})
   const [cap, setCap] = useState(99)
   const [lastReadAt, setLastReadAt] = useState<string | null>(null)
@@ -72,6 +87,10 @@ export function useReadState(channelSlugs: string[], activeChannel: string, enab
     setUnread((prev) => (prev[channel] ? { ...prev, [channel]: 0 } : prev))
   }, [])
 
+  // Ref so the heartbeat below does not restart every time a message lands.
+  const newestRef = useRef<string | null>(newestAt ?? null)
+  newestRef.current = newestAt ?? null
+
   const markRead = useCallback(
     (channel: string) => {
       if (!channel) return
@@ -80,7 +99,9 @@ export function useReadState(channelSlugs: string[], activeChannel: string, enab
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ channel, at: new Date().toISOString() }),
+        // Fall back to now only when the channel has no messages loaded — there
+        // is nothing to point at, and marking an empty channel read is correct.
+        body: JSON.stringify({ channel, at: newestRef.current || new Date().toISOString() }),
       }).catch(() => {
         // The server merges monotonically, so a dropped mark costs one stale
         // badge until the next visit — not a wrong read state.
@@ -114,6 +135,8 @@ export function useReadState(channelSlugs: string[], activeChannel: string, enab
 
   // While you are sitting in a channel, keep the mark current so messages that
   // arrive under your nose do not come back as unread the moment you leave.
+  // Cheap: with nothing new arriving the timestamp does not move, the server
+  // sees a mark that would not advance, and nothing is written.
   useEffect(() => {
     if (!enabled || !activeChannel) return
     const id = setInterval(() => markRead(activeChannel), UNREAD_POLL_MS)

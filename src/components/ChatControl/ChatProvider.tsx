@@ -434,6 +434,14 @@ export function ChatProvider({
       [chat.channels, dmChannels],
     ),
     chat.activeChannel,
+    // The newest message actually on screen — see useReadState for why this is
+    // not `now`.
+    useMemo(() => {
+      const last = chat.messages[chat.messages.length - 1]
+      if (!last?.timestamp) return null
+      const t = last.timestamp instanceof Date ? last.timestamp : new Date(last.timestamp)
+      return Number.isNaN(t.getTime()) ? null : t.toISOString()
+    }, [chat.messages]),
   )
 
   readStateRef.current = readState
