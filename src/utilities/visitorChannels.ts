@@ -229,12 +229,16 @@ export async function claimVisitorChannel(
   // tenant 32 kept serving after its takedown (260820).
   try {
     await payload.delete({ collection: 'channels', id: source.docs[0].id, overrideAccess: true, ...tx })
+    // ...on the SAME connection. Without `tx` this re-query reads outside the
+    // caller's open transaction, still sees the pre-delete row, and warns about
+    // a delete that worked perfectly.
     const check = await payload.find({
       collection: 'channels',
       where: { slug: { equals: sourceSlug } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
+      ...tx,
     })
     if (check.docs?.[0]) {
       console.warn(`[claimVisitorChannel] ${sourceSlug} survived its delete — left in place`)
