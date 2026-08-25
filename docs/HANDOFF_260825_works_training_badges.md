@@ -1,19 +1,38 @@
-# Handoff — 260825 evening
+# Handoff — 260826
 
 Paste the block below as the opening message of the next session.
 
 ---
 
-260825 ~1520 Handoff from the previous session.
+260826 ~1915 Handoff from the previous session.
 
-Continuing Angel OS. Read `docs/GLOBAL_PUNCH_LIST.md` first — the living issue board.
-Memory files worth loading: `project_course_is_a_work`, `project_works_canonical_syndication`,
-`project_reader_reference_layer`, `project_membership_gating`, `project_users_directory_read`,
-`project_identity_profile_friends`, `project_works_wip_status`.
+Continuing Angel OS. Read `docs/GLOBAL_PUNCH_LIST.md` first — the living issue board —
+then `docs/HANDOFF_260825_works_training_badges.md`, which carries the full plan for this
+job including the collection shape, the backfill SQL, and the gotchas in the order they
+bite. Memory files worth loading: `project_course_is_a_work`,
+`project_training_entitlement_badges`, `project_works_canonical_syndication`,
+`project_reader_reference_layer`, `project_membership_gating`,
+`project_users_directory_read`, `project_works_wip_status`.
 
 Ken is CEO, you are CIO. Temporal-stamp replies `YYMMDD ~HHMM Name —` top and bottom.
 Ponytail mode. CTO mode — decide and act, don't ask on the obvious. No Angel OS jargon
 in customer-facing copy.
+
+## Priority note, read before choosing what to do
+
+Ken's direction on 260825 was explicit: *"regardless — we need to resolve the Works issues
+and make a path for purchasing and/or signing up for training and badges on profile, and
+profiles."* That is the job below and it stands.
+
+⚠️ But the real risk to this platform is **runway, not technology**. Ken funds it on
+$1,808/month plus plasma donations. Two revenue holes are already on the punch list and
+both are older than this work: the demo-site funnel has **no Stripe prices**, and the apex
+storefront **sells nothing** ([[project_demo_site_funnel]],
+[[project_portal_coequality_billing]]). Slice 3 below — binding a Product to a course so
+someone can actually buy a training — is the money-adjacent part of this job.
+
+**If the session has to choose, money-adjacent wins.** Slice 1 unblocks everything, so do
+it first regardless; but do not let slices 2 and 4 push slice 3 past the end of a session.
 
 ## The job
 
@@ -286,6 +305,12 @@ shape as `guardianSlug.ts` already does for portal slugs. Reuse it.
 - **Training series outline** — `C:\Dev\angels-os-training\TRAINING_OUTLINE.md`, 12
   episodes with click paths; EP01 scripted. **EP10–EP12 are blocked on this handoff's
   work** and say so in the file.
+- **`scripts/archive-chat.mjs`** — Claude Code sessions → Markdown with a heading per
+  exchange, so Google Docs builds a real outline. 63 sessions in 1.7s; `chat-archive/` is
+  gitignored. Ken archives these to Drive independently. **Run `node
+  scripts/archive-chat.mjs` at the END of a session** so the thread is captured.
+  `d5ab7ff`, `9e356ec`. No unit test — it is a local dev tool outside `src/`, and it was
+  verified by running it against all 63 real transcripts and reading the output.
 
 ## Ground rules
 
