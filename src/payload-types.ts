@@ -1616,6 +1616,8 @@ export interface Page {
     | ShowcaseBlock
     | ProductPanelBlock
     | WorkQuizBlock
+    | CoursePlayerBlock
+    | CourseStudioBlock
   )[];
   meta?: {
     title?: string | null;
@@ -3333,6 +3335,32 @@ export interface WorkQuizBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'workQuiz';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CoursePlayerBlock".
+ */
+export interface CoursePlayerBlock {
+  /**
+   * Course slug — a Work of type "course". To sell it, put this block on a page the membership gating already covers.
+   */
+  work: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'coursePlayer';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CourseStudioBlock".
+ */
+export interface CourseStudioBlock {
+  /**
+   * Course slug to author. Only the owning endeavor’s managers can save.
+   */
+  work: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'courseStudio';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6517,7 +6545,7 @@ export interface Work {
   title: string;
   subtitle?: string | null;
   description?: string | null;
-  type?: ('document' | 'book') | null;
+  type?: ('document' | 'book' | 'course') | null;
   status?: string | null;
   statusColor?: string | null;
   /**
@@ -6613,6 +6641,18 @@ export interface Work {
    * Content address (sha256, url-independent) — the catalog-gossip handle.
    */
   checksum?: string | null;
+  /**
+   * Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio, not here. Only `type: course` uses it — documents and books keep their chapters as messages.
+   */
+  content?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Work JSON interchange version.
    */
@@ -8717,6 +8757,8 @@ export interface PagesSelect<T extends boolean = true> {
         showcase?: T | ShowcaseBlockSelect<T>;
         productPanel?: T | ProductPanelBlockSelect<T>;
         workQuiz?: T | WorkQuizBlockSelect<T>;
+        coursePlayer?: T | CoursePlayerBlockSelect<T>;
+        courseStudio?: T | CourseStudioBlockSelect<T>;
       };
   meta?:
     | T
@@ -9044,6 +9086,24 @@ export interface ProductPanelBlockSelect<T extends boolean = true> {
 export interface WorkQuizBlockSelect<T extends boolean = true> {
   work?: T;
   chapter?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CoursePlayerBlock_select".
+ */
+export interface CoursePlayerBlockSelect<T extends boolean = true> {
+  work?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CourseStudioBlock_select".
+ */
+export interface CourseStudioBlockSelect<T extends boolean = true> {
+  work?: T;
   id?: T;
   blockName?: T;
 }
@@ -10117,6 +10177,7 @@ export interface WorksSelect<T extends boolean = true> {
   cover?: T;
   storageRef?: T;
   checksum?: T;
+  content?: T;
   jsonVersion?: T;
   updatedAt?: T;
   createdAt?: T;

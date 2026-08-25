@@ -52,6 +52,7 @@ export const Works: CollectionConfig = {
       options: [
         { label: 'Document (case file / manifesto)', value: 'document' },
         { label: 'Book (illustrated, paged)', value: 'book' },
+        { label: 'Course (modules and lessons)', value: 'course' },
       ] },
     { name: 'status', type: 'text' },
     { name: 'statusColor', type: 'text' },
@@ -77,6 +78,8 @@ export const Works: CollectionConfig = {
       admin: { description: "Storage-of-record pointer: { kind: 'file'|'messages', channel?, space? }." } },
     { name: 'checksum', type: 'text', index: true,
       admin: { description: 'Content address (sha256, url-independent) — the catalog-gossip handle.' } },
+    { name: 'content', type: 'json',
+      admin: { description: "Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio, not here. Only `type: course` uses it — documents and books keep their chapters as messages." } },
     { name: 'jsonVersion', type: 'text', defaultValue: 'work.v1',
       admin: { description: 'Work JSON interchange version.' } },
   ],

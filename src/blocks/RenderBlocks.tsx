@@ -20,6 +20,8 @@ import { TicketFormBlockComponent } from '@/blocks/TicketForm/Component'
 import { TrustRowBlock } from '@/blocks/TrustRow/Component'
 import { FaqBlock } from '@/blocks/Faq/Component'
 import { WorkQuizBlockComponent } from '@/blocks/WorkQuiz/Component'
+import { CoursePlayerBlockComponent } from '@/blocks/CoursePlayer/Component'
+import { CourseStudioBlockComponent } from '@/blocks/CourseStudio/Component'
 import { VideoBlockComponent } from '@/blocks/Video/Component'
 import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
@@ -52,6 +54,8 @@ const blockComponents = {
   trustRow: TrustRowBlock,
   faq: FaqBlock,
   workQuiz: WorkQuizBlockComponent,
+  coursePlayer: CoursePlayerBlockComponent,
+  courseStudio: CourseStudioBlockComponent,
   video: VideoBlockComponent,
   showcase: ShowcaseBlock,
   productPanel: ProductPanelBlock,

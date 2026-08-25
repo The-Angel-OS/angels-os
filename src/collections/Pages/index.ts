@@ -21,6 +21,8 @@ import { TicketForm } from '@/blocks/TicketForm/config'
 import { TrustRow } from '@/blocks/TrustRow/config'
 import { Faq } from '@/blocks/Faq/config'
 import { WorkQuizBlock } from '@/blocks/WorkQuiz/config'
+import { CoursePlayerBlock } from '@/blocks/CoursePlayer/config'
+import { CourseStudioBlock } from '@/blocks/CourseStudio/config'
 import { Video } from '@/blocks/Video/config'
 import { Showcase } from '@/blocks/Showcase/config'
 import { ProductPanel } from '@/blocks/ProductPanel/config'
@@ -197,6 +199,8 @@ export const Pages: CollectionConfig = {
                 Showcase,
                 ProductPanel,
                 WorkQuizBlock,
+                CoursePlayerBlock,
+                CourseStudioBlock,
               ],
               required: true,
             },
