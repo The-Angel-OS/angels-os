@@ -518,6 +518,38 @@
 
 ## ✅ Recently closed (last 7 days)
 
+- **[P1 260825] The LMS layer — a course is a Work, a quiz is a segment** — shipped in two slices,
+  live on Railway, zero new collections. `works.type` gained `course` and `works.content` (one jsonb
+  column) holds `{ modules: [{ title, lessons: [{ title, video?, body? }] }] }`. A quiz is a
+  ```quiz fence in markdown carrying `{ question, options, answerIndex, explanation? }` — so the same
+  quiz renders in the reader (`SoulViewer`'s markdown `code` renderer), inside a course lesson, and
+  through the `<WorkQuiz work chapter>` page block, which reads the SAME fence out of the chapter so a
+  quiz can never have two versions. A submitted attempt is a **Message in the learner's LEO DM**,
+  score in `metadata` — no gradebook table, and LEO can raise it unprompted.
+  `<CoursePlayer>` (rail + video + body + progress) and `<CourseStudio>` (reorder, upload, write)
+  are page blocks; progress is the EXISTING `workProgress` map (`chapterIdx` = module, `segIdx` =
+  lesson), and entitlement is the EXISTING page-level membership gating. Deliberately skipped:
+  gradebook, certificates, pass/fail gating, server-side scoring, Mux.
+  *Where:* `utilities/workQuiz.ts`, `utilities/courseContent.ts`, `endpoints/work-quiz-attempt.ts`,
+  `endpoints/work-content.ts`, `blocks/{WorkQuiz,CoursePlayer,CourseStudio}`,
+  `20260825_140000_work_quiz_block`, `_150000_works_course_content`, `_160000_course_blocks`.
+  `8556db0` + `7d7939e`. `260825`
+- **[P1 260825] Portal quota by plan** — any signed-in account could provision unlimited portals
+  (Ken has 17 and nothing stopped an eighteenth, or a script's ten-thousandth). Enforced in ONE
+  place — `provisionPortal`, which the claim flow, demo-site and the LEO create-portal tool all
+  funnel through — and SKIPPED when the target slug already exists, so idempotent re-provisioning
+  of a portal you already hold is still a repair, not a new portal. Allowance is a map in
+  `portalPlan.ts` (free 1, site 3, business 10, demo 100), and a person's quota is the best plan
+  among the portals they already admin; `super_admin` bypasses, which is exactly why it ships with
+  a test rather than a manual check. The `/get-started` banner now says "3 of 10 on your plan".
+  *Where:* `utilities/portalQuota.ts`, `utilities/portalPlan.ts`, `tests/unit/portalQuota.test.ts`.
+  `260825`
+- **[P2 260825] LEO's reply in a visitor channel had no author** — `resolveLeoUserId` looked up
+  `leo-{slug}@…` only, and the widget sends no `x-tenant-id`, so the slug it resolved was often a
+  portal that never minted a LEO — the reply persisted with `author_id NULL` and read as authorless
+  in the portal owner's view. Falls back to any system LEO now. *Where:* `endpoints/leo-chat.ts`.
+  `260825`
+
 - **[P1 260824] Anonymous visitor sessions are finished and verified live** — the server half had
   shipped inert: it would persist a visitor conversation IF a client sent a transcript, and no
   client did. `GuestChatBubble` now POSTs its prior turns as `history` (minus the canned greeting,

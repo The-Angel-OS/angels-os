@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
+import { getPortalQuota } from '@/utilities/portalQuota'
 
 /**
  * "You already have one of these."
@@ -23,6 +24,7 @@ export async function AlreadyOnboardedBanner({ tenantSlug }: { tenantSlug?: stri
   if (tenantSlug !== 'platform') return null
 
   let portals: { name: string; href: string }[] = []
+  let quota: { used: number; quota: number } | null = null
   try {
     const payload = await getPayload({ config: configPromise })
     const { user } = await payload.auth({ headers: await headers() })
@@ -50,6 +52,7 @@ export async function AlreadyOnboardedBanner({ tenantSlug }: { tenantSlug?: stri
         name: t.branding?.siteName || t.name || t.slug || 'your site',
         href: `https://${t.domain || `${t.slug}.spacesangels.com`}/dashboard`,
       }))
+    quota = await getPortalQuota(payload, user.id)
   } catch {
     // A banner is never worth a 500 on a marketing page.
     return null
@@ -65,6 +68,7 @@ export async function AlreadyOnboardedBanner({ tenantSlug }: { tenantSlug?: stri
           {portals.length === 1
             ? 'Pick up where you left off:'
             : 'Pick up where you left off on any of these:'}
+          {quota ? ` (${quota.used} of ${quota.quota} on your plan)` : ''}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {portals.map((p) => (

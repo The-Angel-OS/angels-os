@@ -59,6 +59,31 @@ const CAPABILITIES: Record<PortalPlan, PortalCapabilityKey[]> = {
   demo: BUSINESS.filter((c) => c !== 'hideFooterCredit'),
 }
 
+/**
+ * How many portals a person on this plan may hold.
+ *
+ * Until now anyone signed in could provision unlimited portals — Ken has 17 and
+ * nothing stopped an eighteenth, or a script's ten thousandth. A person's
+ * allowance is the BEST plan among the portals they already run: paying for one
+ * Business portal buys room for the next few, which is the shape every hosting
+ * product has and the shape nobody has to explain.
+ *
+ * ponytail: a map, not a field. A number per plan is the whole rule; a
+ * `portalQuota` column would be a second answer to a question this already
+ * answers, and the two would drift.
+ */
+export const PORTAL_QUOTA: Record<PortalPlan, number> = {
+  free: 1,
+  site: 3,
+  business: 10,
+  demo: 100,
+}
+
+/** A person's allowance: the most generous plan they hold. No portals yet = free. */
+export function portalQuotaFor(plans: PortalPlan[]): number {
+  return plans.reduce((max, p) => Math.max(max, PORTAL_QUOTA[p]), PORTAL_QUOTA.free)
+}
+
 /** Human labels for the upgrade prompt — the same words as /pricing. */
 export const PLAN_LABEL: Record<PortalPlan, string> = {
   free: 'Free',

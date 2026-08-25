@@ -61,6 +61,25 @@ async function resolveLeoUserId(
       // Try the next pattern.
     }
   }
+
+  // ponytail: any system LEO rather than none. A visitor's widget sends no
+  // x-tenant-id, so the slug we resolve is often a portal that never minted its
+  // own LEO — and the reply then persisted with author_id NULL, leaving it
+  // authorless in the portal owner's view. Every LEO renders as LEO; an author
+  // row that exists beats a null. Drop this when every tenant mints one.
+  try {
+    const any = await payload.find({
+      collection: 'users',
+      where: { and: [{ isSystemUser: { equals: true } }, { email: { like: 'leo-%' } }] },
+      limit: 1,
+      sort: 'id',
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (any.docs?.[0]?.id) return any.docs[0].id as number
+  } catch {
+    /* an authorless reply is still a reply */
+  }
   return undefined
 }
 

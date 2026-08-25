@@ -21,6 +21,7 @@ import { ensureTenantDefaults } from '@/utilities/ensureTenantDefaults'
 import { verifyEndeavorOnboarding } from '@/utilities/verifyEndeavorOnboarding'
 import { ensureTenantContactForm } from '@/utilities/ensureTenantContactForm'
 import type { EndeavorType } from '@/utilities/spaceProvisioning'
+import { assertPortalQuota } from '@/utilities/portalQuota'
 
 export interface ProvisionPortalInput {
   /** Display name, e.g. "KenDev". */
@@ -98,6 +99,27 @@ export async function provisionPortal(
   const slug = (input.slug?.trim() ? slugify(input.slug) : slugify(name)) || 'portal'
   const domain = input.domain?.trim() || ''
   if (!domain) throw new Error('domain is required')
+
+  // Quota — ONE place, before anything is written. Skipped when the slug already
+  // exists: provisioning is idempotent, and re-running it on a portal you already
+  // hold is a repair, not a new portal.
+  const existing = await payload.find({
+    collection: 'tenants',
+    where: { slug: { equals: slug } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!existing.docs?.length) {
+    const actor =
+      (req?.user as { id: number | string; roles?: unknown } | undefined) ??
+      (actingUserId
+        ? ((await payload
+            .findByID({ collection: 'users', id: actingUserId as number, depth: 0, overrideAccess: true })
+            .catch(() => null)) as { id: number | string; roles?: unknown } | null)
+        : null)
+    await assertPortalQuota(payload, actor)
+  }
 
   const tagline = input.tagline || 'A sovereign node in the Angel OS network'
   const primaryColor = input.primaryColor || '#7AB5B0'
