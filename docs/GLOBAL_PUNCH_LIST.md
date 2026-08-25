@@ -132,6 +132,47 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[P1] Works chapters are rows in `messages` — this is why there is no chapter editor.** A chapter
+  is `metadata.kind = 'work_chapter'` on a Messages row, filed under a `channel` STRING. There are
+  **zero `work-*` rows in `channels`**, so every chapter's `channelRef` is null and the channel it
+  claims to live in does not exist. Consequences, all live: no editor (Payload gives you an editor
+  per COLLECTION, and chapters have none); **27% of the Messages table is book content** (1,245 of
+  4,687 rows, 5.5 MB); every read is `overrideAccess: true` because chapters borrow space-visibility
+  RBAC and then have to defeat it; and `getWorkJson` must read **all 1,189 Bible chapters** to serve
+  one page, because `order` is a JSON key rather than a column.
+  *Next (step B, designed 260825):* a `work-chapters` collection — `work` (relationship), `order`,
+  `slug`, `title`, `body`, `image`, plus the per-type extras; backfill the 1,245 rows; rewrite
+  `getWorkJson` (the single reader, 7 importers) and the three write paths in `endpoints/works.ts`.
+  Keep the message rows until the reader has run on rows for a week.
+  ⚠️ NOT a redesign — `WORKS_AS_JSON.md` already says storage-of-record is swappable behind the JSON
+  contract ("files (today), DB rows, or messages"). Verses stay JSON on the chapter; a verse is not
+  a document. `260825`
+- **[P1] `works.content` should fold into chapters once step B lands** — it exists only because
+  chapters had no editable home when the course player shipped. A lesson is a chapter with a video.
+  **Free to do right now** (all six works have `content = null`, so there are zero courses to
+  migrate); expensive the day someone builds one. `260825`
+- **[P1] Quizzes should be AI-generated** — a `generate_quiz` LEO tool that reads a chapter and emits
+  a ```quiz fence is the natural shape: the author reviews and edits markdown rather than writing
+  multiple choice by hand. Fits the LEO-factory principle (tool first, UI second) and needs nothing
+  new — the fence format and renderer shipped 260825. *Where:* `leo-data-tools.ts`,
+  `utilities/workQuiz.ts`. `260825`
+- **[P1] Badges / completion** — a quiz attempt already lands as a Message with a score; a badge is
+  what you award off the back of it. Decide where a badge LIVES before building it (a Work-scoped
+  achievement vs the existing karma/token rails) — this is the one open modelling question in the
+  LMS layer. `260825`
+- **[P1] Bind a Product to a course (buy a Training)** — Ken: "not an edge case, pretty much
+  Antonio's NextLMS". Three of the four pieces shipped: Products, Memberships, and page-level
+  gating (260814). What is missing is the BINDING — a course Work naming the product that unlocks
+  it, so `<CoursePlayer>` can send a non-purchaser to checkout instead of relying on whoever placed
+  the block having gated the page correctly. *Next:* one relationship field, then reuse the
+  existing checkout. `260825`
+- **[P2] The Handbook is duplicated** — 7 chapters in space 6 AND 7 in space 30, identical text.
+  `storageRef` points at space 6, so the space-30 copy (newer, 260713) is dead weight nobody can
+  see because there is no list view. *Next:* confirm identical, delete one. `260825`
+- **[P2] Attribution has two sources** — `works.canonical` (the manifest default) and a per-Work
+  SettingService override bag written by LEO's `set_work_attribution`. Two answers to "who wrote
+  this". *Where:* `utilities/workAttribution.ts`. `260825`
+
 - **[P1→SHIPPED 260824] Read state** — `ChatChannel.unreadCount` was declared and populated by
   nobody; no `lastReadAt` existed anywhere. Now: `users.readState`, a `{ channelSlug: isoTimestamp }`
   map, written only through `POST /api/chat/mark-read` and read by `GET /api/chat/unread`.
@@ -517,6 +558,29 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[P1 260825] `/learn/holy-bible` was a 9.65 MB page — now 205 KB** — the book reader flips pages
+  client-side, so the server serialized EVERY page in EVERY language into the HTML: 1,189 chapters ×
+  2 translations, to display chapter one. It now sends a window of ONE language around the opening
+  page and fetches the rest in 24-page chunks from `GET /api/works-ops/text` as the reader moves.
+  A book of any length opens at the speed of a pamphlet. ⚠️ The DATABASE still reads every chapter
+  row per request — that is the messages-as-storage tax, and `work-chapters` is what removes it.
+  *Where:* `utilities/workTextWindow.ts`, `endpoints/work-text.ts`, `components/Library/BookReader.tsx`.
+  `260825`
+- **[P1 260825] The Works catalog is editable in the admin** — `tags`, `links` and `canonical` were
+  `json`, so Payload rendered them as raw JSON textareas; that is most of why there was no usable
+  Works editor. They are now array fields and a group. The plumbing (`subscribers`, `optOuts`,
+  `storageRef`, `content`, `checksum`) stays JSON in a collapsed *Storage & federation* section —
+  availability already has a better surface at `/dashboard/works`, one checkbox per portal.
+  Array table shape was copied from a Payload-GENERATED table (`products_gallery`) rather than
+  invented, per the never-hand-roll-array-tables rule, and the migration was **dry-run against the
+  live database inside a rolled-back transaction** before shipping: 29 tags, 2 links, 4 canonical
+  records land exactly as the JSON held them. `slug` is now UNIQUE. The registry absorbs the shape
+  change (`tagList`/`linkList`), so `/api/works-ops/get` returns byte-identical JSON and no consumer
+  changed. **Deleted `ensure-works-table`** — it predates migrations-on-boot and would now create a
+  table shape the config no longer matches, which is worse than not existing.
+  *Where:* `collections/Works/index.ts`, `works/availability.ts`, `20260825_170000_works_editable_fields`.
+  `260825`
 
 - **[P1 260825] The LMS layer — a course is a Work, a quiz is a segment** — shipped in two slices,
   live on Railway, zero new collections. `works.type` gained `course` and `works.content` (one jsonb
