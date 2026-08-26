@@ -25,7 +25,7 @@ type Props = {
 
 export async function Footer({ tenant }: Props) {
   const tenantId = tenant?.id ?? null
-  // Removing the credit is what the $49 Site plan sells. The manual branding
+  // Removing the credit is what the $29 Site plan sells. The manual branding
   // toggle still wins where it has been set deliberately (the platform's own
   // sites, sponsored portals), but a Free portal cannot switch it off by itself.
   const hidePoweredBy =

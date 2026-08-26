@@ -18,6 +18,11 @@ import config from '@payload-config'
 import { headers as nextHeaders } from 'next/headers'
 import Link from 'next/link'
 import { resolveActiveTenant } from '@/utilities/resolveActiveTenant'
+import { planOf, PLAN_PRICE_CENTS, PLAN_FEE_BPS } from '@/utilities/portalPlan'
+
+/** One price, one place — the map decides, this page renders it. */
+const priceOf = (id: Tier['id']) =>
+  PLAN_PRICE_CENTS[id] === 0 ? '$0' : `$${PLAN_PRICE_CENTS[id] / 100}/mo`
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +30,8 @@ type Tier = {
   id: 'free' | 'site' | 'business'
   name: string
   price: string
+  /** The booking fee this plan pays. The monthly buys the rate down — that IS the pitch. */
+  fee: string
   summary: string
   adds: string[]
 }
@@ -33,7 +40,8 @@ const TIERS: Tier[] = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
+    price: priceOf('free'),
+    fee: `${PLAN_FEE_BPS.free / 100}% of each deposit, never more than $9.99`,
     summary: 'Your website, live, on a spacesangels.com address. Keep it as long as you like.',
     adds: [
       'Five-page website, built for you',
@@ -46,7 +54,8 @@ const TIERS: Tier[] = [
   {
     id: 'site',
     name: 'Site',
-    price: '$49/mo',
+    price: priceOf('site'),
+    fee: `${PLAN_FEE_BPS.site / 100}% of each deposit — half the free rate`,
     summary: 'Your own domain instead of ours, and the footer credit gone.',
     adds: [
       'Your own domain name, pointed and secured',
@@ -59,7 +68,8 @@ const TIERS: Tier[] = [
   {
     id: 'business',
     name: 'Business',
-    price: '$149/mo',
+    price: priceOf('business'),
+    fee: 'No booking fee at all',
     summary: 'Everything above, plus the part that actually earns.',
     adds: [
       'Customers book online and leave a deposit that holds the slot',
@@ -80,21 +90,37 @@ export default async function PlanPage() {
   const authUser = user && (user as { collection?: string }).collection === 'users' ? (user as Parameters<typeof resolveActiveTenant>[0]) : null
   const { tenant } = await resolveActiveTenant(authUser)
 
-  const current = ((tenant as { portalPlan?: string } | null)?.portalPlan || 'free') as Tier['id']
+  // `demo` is a real plan and it is NOT one of the three tiers — a demo portal
+  // has everything, billed to nobody. Casting it to a Tier id made findIndex
+  // return -1, so all eight demo portals were told they were on Free and shown
+  // an upgrade button for a plan that would take features AWAY from them.
+  const plan = planOf(tenant as { portalPlan?: string | null } | null)
+  const isDemo = plan === 'demo'
+  const current = (isDemo ? 'business' : plan) as Tier['id']
   const currentIndex = TIERS.findIndex((t) => t.id === current)
 
   return (
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="text-2xl font-bold">Your plan</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {tenant?.name ? `${tenant.name} is on ` : 'This portal is on '}
-        <strong className="text-foreground">{TIERS[currentIndex >= 0 ? currentIndex : 0]!.name}</strong>. Nothing gets
-        rebuilt when you move up — a paid plan unlocks what is already sitting behind your site.
-      </p>
+      {isDemo ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {tenant?.name ? `${tenant.name} is a ` : 'This is a '}
+          <strong className="text-foreground">demonstration portal</strong> — everything below is
+          switched on and nothing is being billed. When you are ready to make it yours, the plans
+          are here so you know what it costs; nothing gets rebuilt when you pick one.
+        </p>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {tenant?.name ? `${tenant.name} is on ` : 'This portal is on '}
+          <strong className="text-foreground">{TIERS[currentIndex >= 0 ? currentIndex : 0]!.name}</strong>. Nothing
+          gets rebuilt when you move up — a paid plan unlocks what is already sitting behind your
+          site.
+        </p>
+      )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         {TIERS.map((tier, i) => {
-          const isCurrent = tier.id === current
+          const isCurrent = !isDemo && tier.id === current
           const isUpgrade = i > currentIndex
           return (
             <div
@@ -113,6 +139,7 @@ export default async function PlanPage() {
                 </span>
               )}
               <p className="mt-2 text-sm text-muted-foreground">{tier.summary}</p>
+              <p className="mt-2 text-xs font-medium text-foreground/80">{tier.fee}</p>
               <ul className="mt-3 flex-1 space-y-1.5 text-sm text-muted-foreground">
                 {tier.adds.map((a) => (
                   <li key={a} className="flex gap-2">
@@ -123,7 +150,7 @@ export default async function PlanPage() {
                   </li>
                 ))}
               </ul>
-              {isUpgrade && (
+              {isUpgrade && !isDemo && (
                 <a
                   href={`https://spacesangels.com/plans?portal=${tenant?.slug || ''}&plan=${tier.id}`}
                   className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"

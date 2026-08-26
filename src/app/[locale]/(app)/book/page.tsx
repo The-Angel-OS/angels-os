@@ -32,7 +32,7 @@ export default async function BookPage({
   // Resolve tenant (cached, React.cache deduped)
   const { tenant, tenantFilter } = await resolveTenantFromHeaders()
 
-  // Online booking is the $149 Business line. A Free portal still HAS its
+  // Online booking is the $79 Business line. A Free portal still HAS its
   // services and its availability — nothing is deleted and nothing needs
   // rebuilding when they upgrade — but the page that takes a stranger's deposit
   // is switched off, and says what switches it back on.

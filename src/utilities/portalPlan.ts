@@ -84,11 +84,48 @@ export function portalQuotaFor(plans: PortalPlan[]): number {
   return plans.reduce((max, p) => Math.max(max, PORTAL_QUOTA[p]), PORTAL_QUOTA.free)
 }
 
+/**
+ * What each plan costs, in cents per month. Ken's 260823 ruling.
+ *
+ * These moved DOWN from $49/$149 to $29/$79 to sit at parity with
+ * Wix/Squarespace. Open source, community-based and prayerful is the reason to
+ * choose us AT parity — never a discount justification.
+ */
+export const PLAN_PRICE_CENTS: Record<PortalPlan, number> = {
+  free: 0,
+  site: 2900,
+  business: 7900,
+  demo: 0,
+}
+
+/**
+ * The booking fee each plan pays, in basis points — the monthly buys down the rate.
+ *
+ * This is the actual pitch, and it was living only in a handoff document: a free
+ * portal pays 5% of each deposit (capped at $9.99), $29 halves it to 2%, $79
+ * removes it. For anyone taking deposits, the subscription pays for itself,
+ * which is a sentence a tradesman can check with arithmetic.
+ *
+ * ⚠️ The fee is charged on the DEPOSIT, not the job — `feeCents(deposit, …)` in
+ * booking-checkout.ts. 5% of a $50 deposit is $2.50, not 5% of a $600 move, and
+ * the $9.99 cap only binds above a ~$200 deposit.
+ *
+ * A demo pays nothing because a demo is billed to nobody.
+ * @see src/utilities/platformFee.ts — where this is resolved, and how a
+ *      per-tenant override still wins for special cases.
+ */
+export const PLAN_FEE_BPS: Record<PortalPlan, number> = {
+  free: 500,
+  site: 200,
+  business: 0,
+  demo: 0,
+}
+
 /** Human labels for the upgrade prompt — the same words as /pricing. */
 export const PLAN_LABEL: Record<PortalPlan, string> = {
   free: 'Free',
-  site: 'Site — $49/mo',
-  business: 'Business — $149/mo',
+  site: 'Site — $29/mo',
+  business: 'Business — $79/mo',
   demo: 'Demo — not billed',
 }
 

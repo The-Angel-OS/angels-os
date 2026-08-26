@@ -22,6 +22,7 @@
  */
 import type { Payload } from 'payload'
 import { getJsonSetting, setJsonSetting } from '@/services/SettingService'
+import { PLAN_FEE_BPS, planOf } from '@/utilities/portalPlan'
 
 const ENTITY = 'platform-fee'
 const ENTITY_ID = 'fee'
@@ -101,6 +102,15 @@ export async function getPlatformFeeBps(
       // Only an explicitly stored value counts. Absent means "no opinion, use the
       // node rate" — NOT zero, or a tenant with no row would ride free.
       if (own != null) return normalizeFeeBps(own)
+      // No explicit override → the PLAN decides. This is the pitch: $29 halves
+      // the rate to 2%, $79 removes it. It lived only in the pricing copy, so a
+      // paying portal was still being charged the free rate on every deposit —
+      // we were selling something we did not deliver.
+      const t = await payload
+        .findByID({ collection: 'tenants', id: forTenantId, depth: 0, overrideAccess: true })
+        .catch(() => null)
+      const plan = planOf(t as { portalPlan?: string | null } | null)
+      if (plan !== 'free') return normalizeFeeBps(PLAN_FEE_BPS[plan])
     }
 
     const tenantId = await platformTenantId(payload)
