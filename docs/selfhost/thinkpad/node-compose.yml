@@ -94,8 +94,12 @@ services:
       # apart. Do not point the production wildcard here until cutover.
       ENV_LABEL: "angel-node-01 — second node, restore of production"
       ENV_LABEL_COLOR: "#0ea5e9"
-      NEXT_PUBLIC_SERVER_URL: "https://node01.payloadnuke.com"
-      COOKIE_DOMAIN: ".payloadnuke.com"
+      NEXT_PUBLIC_SERVER_URL: "https://node01.spacesangels.com"
+      # ⚠️ Scoped to THIS HOST, not ".spacesangels.com". An apex-scoped cookie
+      # would be sent to Railway too — and this node serves a RESTORE, so the
+      # same session id means a different user row on each side. A parallel node
+      # must not share a session with the node it is shadowing.
+      COOKIE_DOMAIN: "node01.spacesangels.com"
       DEFAULT_TENANT_SLUG: "platform"
       # Free lanes first — this node exists to cost less than Railway.
       AI_PROVIDER_ORDER: "ollama,google,groq,nvidia,openrouter"

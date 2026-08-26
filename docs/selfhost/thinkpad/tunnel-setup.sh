@@ -9,12 +9,12 @@
 #
 # Run AFTER `cloudflared tunnel login` has written ~/.cloudflared/cert.pem.
 #
-#   bash tunnel-setup.sh node01.payloadnuke.com
+#   bash tunnel-setup.sh node01.spacesangels.com
 #
 # Idempotent: re-running with the same name reuses the existing tunnel.
 set -euo pipefail
 
-HOSTNAME_ARG="${1:-node01.payloadnuke.com}"
+HOSTNAME_ARG="${1:-node01.spacesangels.com}"
 TUNNEL_NAME="${TUNNEL_NAME:-angel-node-01}"
 LOCAL_PORT="${LOCAL_PORT:-3001}"
 
