@@ -126,6 +126,7 @@ export interface Config {
     memberships: Membership;
     services: Service;
     works: Work;
+    'work-chapters': WorkChapter;
     'board-members': BoardMember;
     'logistics-nodes': LogisticsNode;
     transports: Transport;
@@ -217,6 +218,7 @@ export interface Config {
     memberships: MembershipsSelect<false> | MembershipsSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
     works: WorksSelect<false> | WorksSelect<true>;
+    'work-chapters': WorkChaptersSelect<false> | WorkChaptersSelect<true>;
     'board-members': BoardMembersSelect<false> | BoardMembersSelect<true>;
     'logistics-nodes': LogisticsNodesSelect<false> | LogisticsNodesSelect<true>;
     transports: TransportsSelect<false> | TransportsSelect<true>;
@@ -6664,6 +6666,64 @@ export interface Work {
   createdAt: string;
 }
 /**
+ * Chapters, pages and lessons — the body of a Work.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-chapters".
+ */
+export interface WorkChapter {
+  id: number;
+  work: number | Work;
+  /**
+   * 0-based position within the Work.
+   */
+  order: number;
+  /**
+   * Chapter address — the /learn/<work>/<slug> segment.
+   */
+  slug?: string | null;
+  title?: string | null;
+  /**
+   * Markdown. A ```quiz fence becomes a quiz.
+   */
+  body?: string | null;
+  /**
+   * Illustration URL (absolute, or /api/media/… on this node).
+   */
+  image?: string | null;
+  /**
+   * Course grouping. Chapters sharing a module render under one heading.
+   */
+  module?: string | null;
+  /**
+   * Lesson video URL.
+   */
+  video?: string | null;
+  tier?: string | null;
+  badge?: string | null;
+  badgeColor?: string | null;
+  date?: string | null;
+  description?: string | null;
+  book?: string | null;
+  bookName?: string | null;
+  chapter?: number | null;
+  ref?: string | null;
+  /**
+   * Per-language body: a markdown string, or a verse array [{ v, t }].
+   */
+  translations?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Federation governance board members
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7742,6 +7802,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'works';
         value: number | Work;
+      } | null)
+    | ({
+        relationTo: 'work-chapters';
+        value: number | WorkChapter;
       } | null)
     | ({
         relationTo: 'board-members';
@@ -10199,6 +10263,32 @@ export interface WorksSelect<T extends boolean = true> {
   content?: T;
   checksum?: T;
   jsonVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-chapters_select".
+ */
+export interface WorkChaptersSelect<T extends boolean = true> {
+  work?: T;
+  order?: T;
+  slug?: T;
+  title?: T;
+  body?: T;
+  image?: T;
+  module?: T;
+  video?: T;
+  tier?: T;
+  badge?: T;
+  badgeColor?: T;
+  date?: T;
+  description?: T;
+  book?: T;
+  bookName?: T;
+  chapter?: T;
+  ref?: T;
+  translations?: T;
   updatedAt?: T;
   createdAt?: T;
 }

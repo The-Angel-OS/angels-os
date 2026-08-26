@@ -31,15 +31,20 @@ export const workTextHandler: PayloadHandler = async (req) => {
     // to the Work's own global/subscriber rules.
   }
 
-  const work = await getWorkJson({ payload: req.payload, soulId: slug, tenantSlug, origin })
-  const pages = (work?.pages ?? []) as Array<{ translations?: Record<string, unknown> }>
+  // Ranged: `order` is a column on work-chapters, so this reads the WINDOW, not
+  // the whole book. Keyed by each page's own `order` (its absolute position),
+  // never by its index in the window.
+  const work = await getWorkJson({ payload: req.payload, soulId: slug, tenantSlug, origin, range: { from, to } })
+  const pages = (work?.pages ?? []) as Array<{ order?: number; translations?: Record<string, unknown> }>
   if (!pages.length) return Response.json({ texts: {} })
 
   const texts: Record<string, unknown> = {}
-  for (let i = from; i < Math.min(to, pages.length); i++) {
-    const t = pages[i]?.translations?.[lang]
-    if (t !== undefined) texts[String(i)] = t
-  }
+  pages.forEach((p, i) => {
+    const order = typeof p.order === 'number' ? p.order : from + i
+    if (order < from || order >= to) return
+    const t = p.translations?.[lang]
+    if (t !== undefined) texts[String(order)] = t
+  })
 
   return Response.json({ slug, lang, from, to, texts })
 }

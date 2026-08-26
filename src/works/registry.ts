@@ -25,6 +25,7 @@ function toRecord(row: Record<string, unknown>): WorkRecord {
   const slug = String(row.slug)
   return {
     id: slug,
+    rowId: typeof row.id === 'number' ? row.id : Number(row.id) || undefined,
     title: String(row.title ?? slug),
     subtitle: String(row.subtitle ?? ''),
     description: String(row.description ?? ''),

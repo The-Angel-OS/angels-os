@@ -24,6 +24,8 @@ export interface WorkDoc {
 /** A Work as the reader surfaces consume it (the old SoulManifest shape). */
 export interface WorkRecord {
   id: string
+  /** Numeric row id in `works` — the key `work-chapters` rows hang off. */
+  rowId?: number
   title: string
   subtitle: string
   description: string

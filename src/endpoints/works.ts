@@ -85,6 +85,22 @@ async function ownerFor(soulId: string, manifestEndeavor?: string | null): Promi
   return (await getWork(soulId))?.owner || manifestEndeavor || 'platform'
 }
 
+/**
+ * Create-or-update the `works` catalog row for a slug, returning its id. Chapters
+ * are rows hanging off that id, so the import needs the id BEFORE it writes any.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function upsertWork(payload: any, recData: Record<string, unknown>): Promise<number> {
+  const existing = await payload.find({ collection: 'works', where: { slug: { equals: recData.slug } }, limit: 1, depth: 0, overrideAccess: true })
+  const ex = existing.docs?.[0]
+  // json fields (subscribers/storageRef) are loosely typed -> cast.
+  const data = recData as never
+  const row = ex
+    ? await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
+    : await payload.create({ collection: 'works', data, overrideAccess: true })
+  return Number(row.id)
+}
+
 function listSummary(soul: WorkRecord, origin: string, dbInfo?: { cover: string | null; unitCount: number }) {
   return {
     id: soul.id,
@@ -110,34 +126,33 @@ export const worksListHandler: PayloadHandler = async (req) => {
     const origin = originFromReq(req)
     const souls = await getAvailableWorks(tenantSlug)
 
-    // Cover + unitCount come from the message-backed content (the filesystem is
-    // gone). One scan of the `work-*` channels, grouped by work, gives both.
+    // Cover + unitCount come from the chapters. One scan, grouped by work id.
     // ⚠️ SCALE: at thousands of works, denormalize cover/unitCount onto the works
-    // record (write-time) and read those instead of scanning chapter messages.
+    // record (write-time) and read those instead of scanning chapters.
+    const slugById = new Map<number, string>()
+    for (const s of souls) if (s.rowId) slugById.set(s.rowId, s.id)
     const dbInfo = new Map<string, { cover: string | null; unitCount: number; coverOrder: number }>()
     try {
       const res = await payload.find({
-        collection: 'messages',
-        where: { channel: { like: 'work-' } },
-        limit: 5000,
+        collection: 'work-chapters',
+        where: { work: { in: [...slugById.keys()] } },
+        limit: 0,
+        pagination: false,
         depth: 0,
         overrideAccess: true,
-        select: { channel: true, metadata: true },
+        select: { work: true, order: true, image: true },
       })
-      for (const m of res.docs as Array<Record<string, unknown>>) {
-        const channel = String(m.channel ?? '')
-        if (!channel.startsWith('work-')) continue
-        const md = (m.metadata as Record<string, unknown>) || {}
-        if (md.kind !== 'work_chapter') continue
-        const slug = channel.slice('work-'.length)
+      for (const c of res.docs as Array<Record<string, unknown>>) {
+        const slug = slugById.get(Number(c.work))
+        if (!slug) continue
         const e = dbInfo.get(slug) ?? { cover: null, unitCount: 0, coverOrder: Number.POSITIVE_INFINITY }
         e.unitCount++
-        const ord = (md.order as number) ?? 0
-        if (md.image && ord < e.coverOrder) { e.cover = md.image as string; e.coverOrder = ord }
+        const ord = Number(c.order) || 0
+        if (c.image && ord < e.coverOrder) { e.cover = c.image as string; e.coverOrder = ord }
         dbInfo.set(slug, e)
       }
     } catch {
-      /* messages hiccup → summaries degrade to cover:null/unitCount:0 */
+      /* chapters hiccup → summaries degrade to cover:null/unitCount:0 */
     }
 
     const works = souls.map((s) => listSummary(s, origin, dbInfo.get(s.id)))
@@ -278,19 +293,28 @@ export const worksImportHandler: PayloadHandler = async (req) => {
     if (!space) return Response.json({ error: `no space on '${hostSlug}' to host the work channel` }, { status: 409 })
     const channel = `work-${soulId}`
     const origin = originFromReq(req)
+    const type: 'document' | 'book' = soul.bookSlug ? 'book' : 'document'
 
-    // Idempotent: clear this Work's channel on the FIRST chunk only. A resumable
+    // Chapters are ROWS hanging off the works record, so the record has to exist
+    // before them. The catalog fields are re-written at the end with the checksum;
+    // this early upsert only claims the id.
+    const workRowId = await upsertWork(payload, {
+      slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
+      type, status: soul.status, statusColor: soul.statusColor,
+      tags: tagRows(soul.tags), canonical: soul.canonical ?? null, owner: ownerSlug,
+    })
+
+    // Idempotent: clear this Work's chapters on the FIRST chunk only. A resumable
     // book import (from>0) must NOT clear — that would wipe earlier chunks.
     if (chunkFrom === 0) {
-      await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
+      await payload.delete({ collection: 'work-chapters', where: { work: { equals: workRowId } }, overrideAccess: true })
     }
 
     let chapters = 0
     let checksum = ''
     let imagesUploaded = 0
     const imageErrors: string[] = []
-    let storageRef: Record<string, unknown> = { kind: 'messages', space: space.id, channel }
-    const type: 'document' | 'book' = soul.bookSlug ? 'book' : 'document'
+    let storageRef: Record<string, unknown> = { kind: 'rows', space: space.id, channel }
 
     if (soul.bookSlug) {
       // ── BOOK → messages (fully portable, no filesystem at read time) ─────────
@@ -361,21 +385,18 @@ export const worksImportHandler: PayloadHandler = async (req) => {
         for (const code of langs) translations[code] = langText[code]?.[ord] ?? ''
         const baseVal = translations[baseLang]
         await payload.create({
-          collection: 'messages',
+          collection: 'work-chapters',
           overrideAccess: true,
           data: {
-            space: space.id, channel, messageType: 'system', visibility: 'tenant',
-            content: { type: 'text', text: typeof baseVal === 'string' ? baseVal : '' },
-            metadata: {
-              kind: 'work_chapter', workSlug: soul.id, order: i,
-              slug: loaded.pageSlugs[i], title: loaded.pageTitles[i] || ph.title || null,
-              image: p.image ? (urlByImage[p.image] ?? null) : null,
-              book: ph.book ?? null, bookName: ph.bookName ?? null,
-              chapter: typeof ph.chapter === 'number' ? ph.chapter : null,
-              ref: ph.ref ?? null,
-              translations,
-            },
-          },
+            work: workRowId, order: i,
+            slug: loaded.pageSlugs[i], title: loaded.pageTitles[i] || ph.title || null,
+            body: typeof baseVal === 'string' ? baseVal : '',
+            image: p.image ? (urlByImage[p.image] ?? null) : null,
+            book: ph.book ?? null, bookName: ph.bookName ?? null,
+            chapter: typeof ph.chapter === 'number' ? ph.chapter : null,
+            ref: ph.ref ?? null,
+            translations,
+          } as never,
         })
         chapters++
       }
@@ -389,7 +410,7 @@ export const worksImportHandler: PayloadHandler = async (req) => {
           chapters, nextFrom: end, done: false, imagesUploaded, imageErrors: imageErrors.slice(0, 5),
         })
       }
-      storageRef = { kind: 'messages', space: space.id, channel, baseLanguage: baseLang, languages }
+      storageRef = { kind: 'rows', space: space.id, channel, baseLanguage: baseLang, languages }
       checksum = checksumOf({
         slug: soul.id, type: 'book',
         chapters: pages.map((p, i) => {
@@ -407,17 +428,13 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       for (let i = 0; i < soulDocs.length; i++) {
         const d = soulDocs[i]
         await payload.create({
-          collection: 'messages',
+          collection: 'work-chapters',
           overrideAccess: true,
           data: {
-            space: space.id, channel, messageType: 'system', visibility: 'tenant',
-            content: { type: 'text', text: bodies[i] },
-            metadata: {
-              kind: 'work_chapter', workSlug: soulId, order: i,
-              chapterSlug: d.id, title: d.title, date: d.date, description: d.description,
-              tier: d.tier, badge: d.badge ?? null, badgeColor: d.badgeColor ?? null, image: d.image ?? null,
-            },
-          },
+            work: workRowId, order: i, slug: d.id, title: d.title, body: bodies[i],
+            date: d.date, description: d.description, tier: d.tier,
+            badge: d.badge ?? null, badgeColor: d.badgeColor ?? null, image: d.image ?? null,
+          } as never,
         })
         chapters++
       }
@@ -427,21 +444,13 @@ export const worksImportHandler: PayloadHandler = async (req) => {
       })
     }
 
-    const recData = {
+    await upsertWork(payload, {
       slug: soul.id, title: soul.title, subtitle: soul.subtitle, description: soul.description,
       type, status: soul.status, statusColor: soul.statusColor,
       tags: tagRows(soul.tags), canonical: soul.canonical ?? null,
       owner: ownerSlug,
       storageRef, checksum, jsonVersion: WORK_JSON_VERSION,
-    }
-    const existing = await payload.find({ collection: 'works', where: { slug: { equals: soul.id } }, limit: 1, depth: 0, overrideAccess: true })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ex = (existing.docs as any[])[0]
-    // json fields (tags/canonical/subscribers/storageRef) are loosely typed → cast.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = recData as any
-    if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
-    else await payload.create({ collection: 'works', data, overrideAccess: true })
+    })
 
     return Response.json({ ok: true, soul: soulId, type, owner: ownerSlug, space: space.id, channel, chapters, checksum, done: true, imagesUploaded, imageErrors: imageErrors.slice(0, 5) })
   } catch (e) {
@@ -523,34 +532,8 @@ export const worksPullHandler: PayloadHandler = async (req) => {
     if (!space) return Response.json({ error: `no space on '${hostSlug}' to host the work channel` }, { status: 409 })
     const channel = `work-${soulId}`
 
-    // ── Idempotent: clear this Work's channel, then recreate from fetched docs ──
-    await payload.delete({ collection: 'messages', where: { and: [{ space: { equals: space.id } }, { channel: { equals: channel } }] }, overrideAccess: true })
-
-    let chapters = 0
-    for (let i = 0; i < docs.length; i++) {
-      const d = docs[i]
-      const order = typeof d.order === 'number' ? (d.order as number) : i
-      await payload.create({
-        collection: 'messages',
-        overrideAccess: true,
-        data: {
-          space: space.id, channel, messageType: 'system', visibility: 'tenant',
-          content: { type: 'text', text: String(d.body ?? '') },
-          metadata: {
-            kind: 'work_chapter', workSlug: soulId, order,
-            chapterSlug: d.id ?? null, title: d.title ?? null, date: d.date ?? null,
-            description: d.description ?? null, tier: d.tier ?? null,
-            badge: d.badge ?? null, badgeColor: d.badgeColor ?? null,
-            // Reference media by ABSOLUTE url from the source (subscriber copy).
-            image: d.image ?? null,
-          },
-        },
-      })
-      chapters++
-    }
-
     // ── Upsert the local works catalog record (preserve source checksum) ──
-    const recData = {
+    const workRowId = await upsertWork(payload, {
       slug: soulId,
       title: work.title ?? soulId,
       subtitle: work.subtitle ?? null,
@@ -562,17 +545,32 @@ export const worksPullHandler: PayloadHandler = async (req) => {
       // canonical home stays the source (SEO authority percolates UP, not to us).
       canonical: (work.canonicalOrigin ? { origin: work.canonicalOrigin } : null) as unknown,
       owner: ownerSlug,
-      storageRef: { kind: 'messages', space: space.id, channel },
+      storageRef: { kind: 'rows', space: space.id, channel },
       checksum: work.checksum ?? '',
       jsonVersion: WORK_JSON_VERSION,
+    })
+
+    // ── Idempotent: clear this Work's chapters, then recreate from fetched docs ──
+    await payload.delete({ collection: 'work-chapters', where: { work: { equals: workRowId } }, overrideAccess: true })
+
+    let chapters = 0
+    for (let i = 0; i < docs.length; i++) {
+      const d = docs[i]
+      const order = typeof d.order === 'number' ? (d.order as number) : i
+      await payload.create({
+        collection: 'work-chapters',
+        overrideAccess: true,
+        data: {
+          work: workRowId, order,
+          slug: d.id ?? null, title: d.title ?? null, body: String(d.body ?? ''),
+          date: d.date ?? null, description: d.description ?? null, tier: d.tier ?? null,
+          badge: d.badge ?? null, badgeColor: d.badgeColor ?? null,
+          // Reference media by ABSOLUTE url from the source (subscriber copy).
+          image: d.image ?? null,
+        } as never,
+      })
+      chapters++
     }
-    const existing = await payload.find({ collection: 'works', where: { slug: { equals: soulId } }, limit: 1, depth: 0, overrideAccess: true })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ex = (existing.docs as any[])[0]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = recData as any
-    if (ex) await payload.update({ collection: 'works', id: ex.id, data, overrideAccess: true })
-    else await payload.create({ collection: 'works', data, overrideAccess: true })
 
     return Response.json({
       ok: true, soul: soulId, from, fromTenant, host: hostSlug,

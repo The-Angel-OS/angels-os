@@ -83,6 +83,7 @@ import { Signatures } from '@/collections/Signatures'
 import { Memberships } from '@/collections/Memberships'
 import { Services } from '@/collections/Services'
 import { Works } from '@/collections/Works'
+import { WorkChapters } from '@/collections/WorkChapters'
 import { BoardMembers } from '@/collections/BoardMembers'
 import { LogisticsNodes, Transports, Shipments } from '@/collections/Logistics'
 import { Pheromones, WorkUnits } from '@/collections/Intelligence'
@@ -424,6 +425,7 @@ export default buildConfig({
     Memberships,
     Services,
     Works,
+    WorkChapters,
     BoardMembers,
     LogisticsNodes,
     Transports,

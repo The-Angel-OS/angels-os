@@ -11,8 +11,7 @@
  * Federation-portable by design: `owner` and the subscriber lists are tenant
  * SLUGS (stable across nodes), never relationship ids (which differ per node).
  *
- * ⚠️ Chapters do NOT live here — they are still rows in `messages`, which is why
- * there is no chapter editor yet. See the punch list: `work-chapters`.
+ * Chapters live in `work-chapters`, one row each, with their own editor.
  *
  * @see docs/planning/WORKS_AS_JSON.md
  */
