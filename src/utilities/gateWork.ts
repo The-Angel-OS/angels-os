@@ -34,6 +34,13 @@ export async function gateWorkBySlug(payload: Payload, slug: string): Promise<Ga
   const work = res.docs?.[0] as unknown as GatedWork['work'] | undefined
   if (!work) return null
 
+  // A public Work is the common case — the whole Library — and answering it costs
+  // nothing. Resolving the session first would put an auth round-trip on every
+  // Bible chapter view to learn something we already know.
+  if ((work.access || 'public') === 'public') {
+    return { user: null, work, gate: { allowed: true, reason: 'open' }, product: null }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let user: any = null
   let tenantId: number | string | null = null
