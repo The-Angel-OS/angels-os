@@ -176,6 +176,17 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      name: 'isTestAccount',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      access: { read: adminOrSelfFieldAccess },
+      admin: {
+        description:
+          'A real person on OUR side of the table — Ken signs in as this account to check a portal. Holding a membership does not mean the portal has been claimed by its business owner.',
+      },
+    },
+    {
       name: 'servesTenant',
       type: 'relationship',
       relationTo: 'tenants',

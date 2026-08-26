@@ -8,8 +8,8 @@
  * business's name; the moment someone accepts their invite, it should.
  *
  * Derived, not configured — no flag to set and none to forget. A portal is
- * claimed when it has an ACTIVE membership held by a non-system human who is not
- * PLATFORM STAFF.
+ * claimed when it has an ACTIVE membership held by a non-system human who is
+ * neither PLATFORM STAFF nor a TEST ACCOUNT.
  *
  * ⚠️ That last clause is the whole thing. Ken holds a membership on all 22
  * portals because he builds them, so the original rule answered "claimed" for
@@ -51,6 +51,9 @@ async function computeClaimed(tenantId: number | string): Promise<boolean> {
       if (typeof u !== 'object') return false
       // A system account holding a membership is plumbing, not an owner.
       if (u.isSystemUser) return false
+      // Neither is a test account. Ken signs in as one to check a portal — that
+      // is us looking at our own work, not a business owner arriving.
+      if ((u as { isTestAccount?: boolean }).isTestAccount) return false
       // Neither is the person who BUILT it. @see the warning above.
       return !isPlatformStaff(u.roles)
     })

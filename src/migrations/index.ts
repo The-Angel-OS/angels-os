@@ -87,6 +87,7 @@ import * as migration_20260826_100000_work_chapters from './20260826_100000_work
 import * as migration_20260826_110000_works_access_product from './20260826_110000_works_access_product';
 import * as migration_20260826_120000_drop_works_content from './20260826_120000_drop_works_content';
 import * as migration_20260826_130000_badges_profiles from './20260826_130000_badges_profiles';
+import * as migration_20260826_140000_users_test_account from './20260826_140000_users_test_account';
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -576,5 +577,10 @@ export const migrations = [
     up: migration_20260826_130000_badges_profiles.up,
     down: migration_20260826_130000_badges_profiles.down,
     name: '20260826_130000_badges_profiles',
+  },
+  {
+    up: migration_20260826_140000_users_test_account.up,
+    down: migration_20260826_140000_users_test_account.down,
+    name: '20260826_140000_users_test_account',
   },
 ];

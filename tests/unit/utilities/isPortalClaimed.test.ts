@@ -32,6 +32,11 @@ describe('a portal is claimed when someone outside the platform holds it', () =>
     expect(await isPortalClaimed(17)).toBe(true)
   })
 
+  it('a test account does not claim it either — that is us checking our own work', async () => {
+    set({ id: 15, roles: ['customer'], isTestAccount: true })
+    expect(await isPortalClaimed(35)).toBe(false)
+  })
+
   it('a system account is plumbing, not an owner', async () => {
     set({ id: 2, isSystemUser: true, roles: ['customer'] })
     expect(await isPortalClaimed(1)).toBe(false)

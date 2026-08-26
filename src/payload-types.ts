@@ -853,6 +853,10 @@ export interface User {
    */
   isSystemUser?: boolean | null;
   /**
+   * A real person on OUR side of the table — Ken signs in as this account to check a portal. Holding a membership does not mean the portal has been claimed by its business owner.
+   */
+  isTestAccount?: boolean | null;
+  /**
    * Tenant this agent serves (system users only)
    */
   servesTenant?: (number | null) | Tenant;
@@ -8151,6 +8155,7 @@ export interface UsersSelect<T extends boolean = true> {
   phone?: T;
   federatedIdentityId?: T;
   isSystemUser?: T;
+  isTestAccount?: T;
   servesTenant?: T;
   agentConfig?:
     | T
