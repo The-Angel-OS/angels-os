@@ -220,6 +220,40 @@ The cost is a Plasma network applet that manages nothing. Migrating to NM
 properly is fine — just do it sitting at the laptop, where losing the link costs
 a retry instead of a drive.
 
+> ✅ **MIGRATED 260826 — this fence is GONE on angel-node-01, deliberately.**
+> Ken wanted the Plasma applet to actually manage the Wi-Fi. The clean way is
+> **netplan's renderer**, not a hand-written NM profile: add
+> `renderer: NetworkManager` to `/etc/netplan/99-wifi.yaml`, delete
+> `99-angel-unmanaged.conf`, `netplan apply`, restart NetworkManager. Netplan
+> writes the NM connection itself, so the PSK is never retyped and cannot be
+> mistyped.
+>
+> Two things that bit, both worth knowing before repeating this:
+>
+> 1. **The link drops for ~20 seconds and the DHCP lease CHANGES** (.170 → .171
+>    here). Anything addressing the box by IP breaks at exactly the moment you
+>    are watching it. This is the argument for the tunnel in one sentence.
+> 2. **A rollback guard must be cancelled by the VERIFICATION, not by you.** The
+>    first attempt worked, then the guard restored it four minutes later while
+>    the SSH session was still reconnecting to the new address — so it looked
+>    like a failure and was a success that got undone. Have the script confirm
+>    connectivity and cancel its own timer, and remember an `ssh host 'bash -s'`
+>    heredoc dies with the connection: put the verification INSIDE what runs on
+>    the box.
+>
+> Do not re-add the unmanaged conf without asking — it is a decision now, not a
+> default.
+
+**GitHub auth in VS Code.** The OAuth handoff needs a browser that can hand a
+`vscode://` URI back, which a snap-installed Code on a fresh Plasma session
+generally cannot. Skip it: `gh auth login` (installed 260826) does device-code
+auth — it prints a code, you type it on any machine, and Code's GitHub extension
+picks up the credential from `gh` afterwards. Git pushes work immediately either
+way once `gh auth setup-git` has run.
+
+**Claude Code runs natively.** `/usr/local/bin/claude`, 2.1.241 as of 260826 —
+the Linux build, not a wrapper. `claude` in any terminal on the box.
+
 **Snap browsers don't register as browsers.** XFCE's "Web Browser" button runs
 `exo-open --launch WebBrowser`, which reads `helpers.rc` — unset, so a perfectly
 working Firefox gives "Failed to execute child process". Fix `helpers.rc`,

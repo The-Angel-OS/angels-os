@@ -1,0 +1,117 @@
+# Angel OS — the whole stack on angel-node-01 (ThinkPad T440s, 7.1 GB).
+#
+# Deliberately SMALLER than the desktop stack in C:/Dev/datacenter/stack: no
+# gotify, no uptime-kuma, no build context. This box has 7.1 GB with a desktop
+# session already holding 3.5 of it, and `next build` needs more headroom than
+# the whole machine has — which is why `core` PULLS a tagged image and never
+# builds one. See docs/selfhost/thinkpad/README.md.
+#
+# Paths are Linux and relative to /opt/angelos/stack.
+name: angelos
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: angelos-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASS}
+      POSTGRES_DB: angels
+    # Bound to localhost ONLY. This box sits on a residential network behind a
+    # tunnel; a 0.0.0.0 Postgres is the one port that turns a LAN guest into a
+    # database admin.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # postgres:18+ wants the mount ONE LEVEL UP from the old
+      # /var/lib/postgresql/data — it stores data in a major-version
+      # subdirectory so `pg_upgrade --link` has no mount-point boundary to cross.
+      # Mounting the old path makes 18 refuse to start, citing data it cannot use.
+      - angelos_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # Transaction-mode pooler. Same reason as the desktop stack: a crashed-mid-tx
+  # script or a login stampede must not exhaust Postgres (the 260722 login jam).
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: angelos-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${PGUSER}
+      DB_PASSWORD: ${PGPASS}
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: "1000"
+      # Smaller than the desktop's 25 — this box has a quarter of the RAM and
+      # every real Postgres connection costs some of it.
+      DEFAULT_POOL_SIZE: "10"
+      MIN_POOL_SIZE: "3"
+      RESERVE_POOL_SIZE: "3"
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits,search_path"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:6432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${PGUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  core:
+    # NO build: context. Load a tagged image built elsewhere:
+    #   desktop:  docker build -t angelos-core:local C:/Dev/angels-os
+    #             docker save angelos-core:local | gzip | ssh angel@<node> 'gunzip | docker load'
+    image: angelos-core:local
+    container_name: angelos-core
+    restart: unless-stopped
+    env_file:
+      # `format: raw` is NOT decoration. Without it Compose INTERPOLATES the env
+      # file, so any secret containing a `$` is silently truncated at that point
+      # — SYSTEM_EMAIL_PASSWORD arrives as an EMPTY STRING, with no warning that
+      # names the variable and nothing in any log to explain the auth failure.
+      # Probed on this node 260826: 17 chars raw, 0 chars interpolated.
+      - path: /opt/angelos/.env.local
+        format: raw
+    environment:
+      DATABASE_URI: "postgresql://${PGUSER}:${PGPASS}@pgbouncer:5432/angels"
+      DATABASE_SSL: "false"
+      NODE_ENV: "production"
+      PORT: "3000"
+      # ⚠️ SECOND NODE, NOT PRODUCTION. Railway is live. This box serves a
+      # RESTORE of the same data on its own hostname — same tenants, same
+      # content, two admin panels. The banner is the only thing telling them
+      # apart, and the tunnel hostname is the only thing keeping the traffic
+      # apart. Do not point the production wildcard here until cutover.
+      ENV_LABEL: "angel-node-01 — second node, restore of production"
+      ENV_LABEL_COLOR: "#0ea5e9"
+      NEXT_PUBLIC_SERVER_URL: "https://node01.payloadnuke.com"
+      COOKIE_DOMAIN: ".payloadnuke.com"
+      DEFAULT_TENANT_SLUG: "platform"
+      # Free lanes first — this node exists to cost less than Railway.
+      AI_PROVIDER_ORDER: "ollama,google,groq,nvidia,openrouter"
+      GOOGLE_MODEL: "gemini-flash-lite-latest"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    ports:
+      # Host 3001 mirrors the desktop convention (Merlin owns 3000 there). The
+      # tunnel config points at 127.0.0.1:3001.
+      - "127.0.0.1:3001:3000"
+
+volumes:
+  angelos_pgdata:
