@@ -16,6 +16,17 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→FIXED 260825] A paywall with a second door is not a paywall** — the first Work ever
+  put up for sale served its entire 146 KB to a signed-out visitor at its own canonical URL.
+  `works.access` was enforced by exactly ONE surface (the CoursePlayer block) while
+  `/learn/<slug>`, `/learn/<slug>/<page>`, `/api/works-ops/text` and `/api/works-ops/get`
+  all read straight from storage. `gateWorkBySlug` is now the single gate and all five doors
+  call it; `workGateDoors.test.ts` fails if a sixth is added without one. Verified live after
+  deploy: page returns the AccessPanel with no body text, both endpoints 403 with
+  `{reason, productId}`, and a public Work (holy-bible) still 200s.
+  *Where:* `src/utilities/gateWork.ts`.  `260825`
+
+
 - **[P0→FIXED 260825] Nothing on this platform could be bought — three separate defects,
   zero orders ever created.** (1) There is no `paid` order status and there never was:
   `enum_orders_status` is the ecommerce plugin's four values (processing · completed ·
@@ -156,6 +167,16 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[SHIPPED 260825] The Library is in the sitemap** — ~1,250 Work + chapter URLs, PUBLIC
+  works only (submitting a paywalled URL earns a soft-404), scoped to what the portal
+  carries. One file, not an index: the cap is 50,000 URLs. *Where:* `src/app/sitemap.ts`,
+  `sitemapLibrary.test.ts`.  `260825`
+- **[SHIPPED 260825] A published Work can be edited** — `/dashboard/works/<slug>/edit`,
+  reached from an Edit link on every work the portal owns. The CourseStudio existed only as
+  a block someone had to place on a page; the route just resolves the Work and answers
+  `canManageWork`. This was the blocker for the employee-training story.  `260825`
+
 
 - **[SHIPPED 260825] LEO writes the quiz** — `generate_quiz` reads a chapter and appends a
   ```quiz fence to it: same format a human authors, same reader, same attempt endpoint, no
