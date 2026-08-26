@@ -96,7 +96,7 @@ const MANAGER: string[] = [
   'create_space', 'create_work_from_url', 'delegate_task', 'delete_membership_plan',
   'disconnect_stripe_account', 'dispatch_to_channel', 'document_incident',
   'draft_review_response', 'edit_image_text', 'extract_pdf_pages', 'fetch_reviews',
-  'generate_cad_instructions', 'generate_image', 'generate_invoice',
+  'generate_cad_instructions', 'generate_image', 'generate_invoice', 'generate_quiz',
   'generate_theme_aware_image', 'import_google_contacts', 'improve_image',
   'ingest_youtube_channel', 'ingest_youtube_url', 'invite_member', 'issue_refund',
   'list_channel_media', 'log_interaction', 'log_maintenance_note', 'manage_categories',

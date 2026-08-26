@@ -21,6 +21,7 @@
  */
 
 import type { Payload, Where } from 'payload'
+import { GENERATE_QUIZ_TOOL, generateQuizTool } from '@/utilities/leoQuizTool'
 import { markdownToLexical } from '@/utilities/markdownToLexical'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
 import {
@@ -1621,6 +1622,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
       },
     },
   },
+  GENERATE_QUIZ_TOOL,
   {
     name: 'create_quest',
     description:
@@ -4601,6 +4603,8 @@ async function executeToolSwitch(
         return await applySiteTemplate(payload, toolInput, ctx)
       case 'create_work_from_url':
         return await createWorkFromContent(payload, toolInput, ctx)
+      case 'generate_quiz':
+        return await generateQuizTool(payload, toolInput, { userId: ctx?.userId, roles: ctx?.roles })
       case 'create_quest':
         return await createQuest(payload, toolInput, ctx)
       case 'ingest_youtube_url':
