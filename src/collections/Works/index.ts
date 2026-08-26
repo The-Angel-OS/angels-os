@@ -3,8 +3,8 @@
  *
  * The fields a person EDITS are real Payload fields (arrays and groups), so the
  * admin gives you a proper editor instead of six raw-JSON textareas. The fields
- * that are PLUMBING — `storageRef`, `checksum`, `subscribers`, `optOuts`,
- * `content` — stay JSON and sit in a collapsed section: availability already has
+ * that are PLUMBING — `storageRef`, `checksum`, `subscribers`, `optOuts` —
+ * stay JSON and sit in a collapsed section: availability already has
  * a far better surface at /dashboard/works (a checkbox per portal), and nobody
  * should be hand-editing a checksum.
  *
@@ -67,6 +67,14 @@ export const Works: CollectionConfig = {
         { name: 'creditedTo', type: 'text', admin: { description: "Author of record — the byline's email." } },
       ] },
 
+    { name: 'badge', type: 'group',
+      admin: { description: 'Awarded when someone finishes this Work. Leave the name empty for no badge.' },
+      fields: [
+        { name: 'name', type: 'text', admin: { description: 'What the badge is called, e.g. "Handbook Graduate".' } },
+        { name: 'image', type: 'upload', relationTo: 'media' },
+        { name: 'criteria', type: 'text', admin: { description: 'One line: what earning it means.' } },
+      ] },
+
     { name: 'defaultDoc', type: 'text',
       admin: { description: 'Chapter slug opened first in the document viewer.' } },
     { name: 'cover', type: 'upload', relationTo: 'media' },
@@ -108,8 +116,6 @@ export const Works: CollectionConfig = {
           admin: { description: "string[] of tenant slugs that switched this Work OFF. Beats availableGlobally and subscribers; the owner's own portal always carries it." } },
         { name: 'storageRef', type: 'json',
           admin: { description: "Storage-of-record pointer: { kind: 'file'|'messages', channel?, space?, languages?, baseLanguage? }." } },
-        { name: 'content', type: 'json',
-          admin: { description: 'Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio.' } },
         { name: 'checksum', type: 'text', index: true,
           admin: { description: 'Content address (sha256, url-independent) — the catalog-gossip handle.' } },
         { name: 'jsonVersion', type: 'text', defaultValue: 'work.v1',

@@ -1,7 +1,7 @@
 import React from 'react'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { normalizeCourse } from '@/utilities/courseContent'
+import { loadCourse } from '@/utilities/courseChapters'
 import { CourseStudio } from '@/components/CourseStudio'
 
 export type CourseStudioProps = { work?: string | null }
@@ -21,8 +21,8 @@ export const CourseStudioBlockComponent: React.FC<CourseStudioProps> = async ({ 
     depth: 0,
     overrideAccess: true,
   })
-  const doc = res.docs?.[0] as { title?: string; content?: unknown } | undefined
+  const doc = res.docs?.[0] as { id: number; title?: string } | undefined
   if (!doc) return null
 
-  return <CourseStudio soulId={work} title={doc.title} initial={normalizeCourse(doc.content)} />
+  return <CourseStudio soulId={work} title={doc.title} initial={await loadCourse(payload, doc.id)} />
 }

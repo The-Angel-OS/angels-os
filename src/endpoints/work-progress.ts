@@ -12,6 +12,7 @@
  */
 import type { PayloadHandler } from 'payload'
 import { getWorkProgress, setWorkProgress } from '@/utilities/workProgress'
+import { awardBadgeForWork } from '@/utilities/awardBadge'
 
 export const workProgressHandler: PayloadHandler = async (req) => {
   const user = req.user as { id?: number | string } | null
@@ -52,5 +53,11 @@ export const workProgressHandler: PayloadHandler = async (req) => {
     ...(percent != null ? { percent } : {}),
   })
 
-  return Response.json({ ok: true, soulId, position: map[soulId] })
+  // Finishing a Work is what earns its badge. There is no completion event and
+  // no completions table — a course ends at 100%, and that number is right here.
+  const badge = percent != null && percent >= 100
+    ? await awardBadgeForWork(req.payload, user.id, soulId, typeof body.score === 'number' ? body.score : null)
+    : null
+
+  return Response.json({ ok: true, soulId, position: map[soulId], ...(badge ? { badge } : {}) })
 }

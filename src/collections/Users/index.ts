@@ -566,6 +566,51 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      // The /u/<handle> address. Backfilled from the name with numeric suffixing
+      // on collision; editable, because a handle is how a person is addressed.
+      name: 'handle',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: { description: 'Profile address - angelos.example/u/<handle>.' },
+    },
+    {
+      name: 'bio',
+      type: 'textarea',
+      admin: { description: 'A few lines about you, shown on your profile.' },
+    },
+    {
+      // DEFAULT 'members'. Nobody becomes world-visible because of a deploy -
+      // going public is a choice a person makes for themselves.
+      name: 'profileVisibility',
+      type: 'select',
+      defaultValue: 'members',
+      options: [
+        { label: 'Private - only me', value: 'private' },
+        { label: 'Members - anyone signed in', value: 'members' },
+        { label: 'Public - anyone', value: 'public' },
+      ],
+      admin: { description: 'Who can see your profile page.' },
+    },
+    {
+      // Badges earned. An ARRAY on the user, not a collection: it rides along
+      // with /api/users/me exactly like readState, and a badge is MEANT to be
+      // seen - that is the point of it. Append-only, and awardBadge checks
+      // before inserting so nobody earns the same badge twice.
+      //
+      // Deliberately in APPROVED_PUBLIC in usersFieldExposure.test.ts.
+      name: 'badges',
+      type: 'array',
+      admin: { description: 'Earned badges. Written by awardBadge when a Work reaches 100%.' },
+      fields: [
+        { name: 'work', type: 'text', required: true, admin: { description: 'Work slug.' } },
+        { name: 'name', type: 'text' },
+        { name: 'image', type: 'text' },
+        { name: 'awardedAt', type: 'date' },
+        { name: 'score', type: 'number', admin: { description: 'Last quiz score, if there was one.' } },
+      ],
+    },
+    {
       // What you have already seen, per channel: { channelSlug: isoTimestamp }.
       // Drives unread badges and the "new since" divider. A map on the user
       // rather than a channel-reads collection — it rides along with

@@ -28,6 +28,15 @@ const APPROVED_PUBLIC = new Set([
   'gravatarHash',
   'isSystemUser',
   'servesTenant',
+  // A badge is MEANT to be seen - that is the entire point of one. So are the
+  // profile fields a person fills in KNOWING they are a profile. `handle` is
+  // the public address, `bio` is what they wrote for it, and hiding the
+  // `profileVisibility` switch would not hide the profile - the /u/ route
+  // honours it server-side.
+  'badges',
+  'handle',
+  'bio',
+  'profileVisibility',
 ])
 
 type AnyField = { name?: string; access?: { read?: unknown } }

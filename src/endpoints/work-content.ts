@@ -10,6 +10,7 @@
 import type { PayloadHandler } from 'payload'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { normalizeCourse } from '@/utilities/courseContent'
+import { loadCourse, saveCourse } from '@/utilities/courseChapters'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function findWork(payload: any, slug: string) {
@@ -20,7 +21,7 @@ async function findWork(payload: any, slug: string) {
     depth: 0,
     overrideAccess: true,
   })
-  return res.docs?.[0] as { id: number | string; owner?: string; content?: unknown } | undefined
+  return res.docs?.[0] as { id: number | string; owner?: string } | undefined
 }
 
 export const workContentHandler: PayloadHandler = async (req) => {
@@ -32,7 +33,7 @@ export const workContentHandler: PayloadHandler = async (req) => {
     if (!slug) return Response.json({ error: 'slug is required' }, { status: 400 })
     const work = await findWork(req.payload, slug)
     if (!work) return Response.json({ error: 'not found' }, { status: 404 })
-    return Response.json({ ok: true, slug, content: normalizeCourse(work.content) })
+    return Response.json({ ok: true, slug, content: await loadCourse(req.payload, work.id) })
   }
 
   if (method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 })
@@ -87,13 +88,7 @@ export const workContentHandler: PayloadHandler = async (req) => {
   // that half-parses is worse than one that saves a clean empty module.
   const content = normalizeCourse(body.content)
 
-  await req.payload.update({
-    collection: 'works',
-    id: work.id,
-    data: { content } as never,
-    overrideAccess: true,
-    req,
-  })
+  await saveCourse(req.payload, work.id, content)
 
   return Response.json({ ok: true, slug, content })
 }

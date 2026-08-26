@@ -1031,6 +1031,37 @@ export interface User {
     totalDocs?: number;
   };
   /**
+   * Profile address - angelos.example/u/<handle>.
+   */
+  handle?: string | null;
+  /**
+   * A few lines about you, shown on your profile.
+   */
+  bio?: string | null;
+  /**
+   * Who can see your profile page.
+   */
+  profileVisibility?: ('private' | 'members' | 'public') | null;
+  /**
+   * Earned badges. Written by awardBadge when a Work reaches 100%.
+   */
+  badges?:
+    | {
+        /**
+         * Work slug.
+         */
+        work: string;
+        name?: string | null;
+        image?: string | null;
+        awardedAt?: string | null;
+        /**
+         * Last quiz score, if there was one.
+         */
+        score?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Per-channel last-read timestamps. Managed by /api/chat/mark-read.
    */
   readState?:
@@ -6580,6 +6611,20 @@ export interface Work {
     creditedTo?: string | null;
   };
   /**
+   * Awarded when someone finishes this Work. Leave the name empty for no badge.
+   */
+  badge?: {
+    /**
+     * What the badge is called, e.g. "Handbook Graduate".
+     */
+    name?: string | null;
+    image?: (number | null) | Media;
+    /**
+     * One line: what earning it means.
+     */
+    criteria?: string | null;
+  };
+  /**
    * Chapter slug opened first in the document viewer.
    */
   defaultDoc?: string | null;
@@ -6642,18 +6687,6 @@ export interface Work {
    * Storage-of-record pointer: { kind: 'file'|'messages', channel?, space?, languages?, baseLanguage? }.
    */
   storageRef?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Course body: { modules: [{ title, lessons: [{ title, video?, body? }] }] }. Edited in the Course Studio.
-   */
-  content?:
     | {
         [k: string]: unknown;
       }
@@ -8185,6 +8218,19 @@ export interface UsersSelect<T extends boolean = true> {
   orders?: T;
   cart?: T;
   addresses?: T;
+  handle?: T;
+  bio?: T;
+  profileVisibility?: T;
+  badges?:
+    | T
+    | {
+        work?: T;
+        name?: T;
+        image?: T;
+        awardedAt?: T;
+        score?: T;
+        id?: T;
+      };
   readState?: T;
   dashboardPrefs?: T;
   tenants?:
@@ -10256,6 +10302,13 @@ export interface WorksSelect<T extends boolean = true> {
         endeavor?: T;
         creditedTo?: T;
       };
+  badge?:
+    | T
+    | {
+        name?: T;
+        image?: T;
+        criteria?: T;
+      };
   defaultDoc?: T;
   cover?: T;
   slug?: T;
@@ -10270,7 +10323,6 @@ export interface WorksSelect<T extends boolean = true> {
   subscribers?: T;
   optOuts?: T;
   storageRef?: T;
-  content?: T;
   checksum?: T;
   jsonVersion?: T;
   updatedAt?: T;

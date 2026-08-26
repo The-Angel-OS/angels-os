@@ -1,7 +1,8 @@
 /**
- * courseContent — a course is a Work (`type: 'course'`) whose lessons live in
- * the `content` JSON column. No courses / modules / lessons collections: that is
- * four tables and a second progress tracker to keep in sync with the first one.
+ * courseContent — the in-memory shape of a course: a Work (`type: 'course'`)
+ * whose lessons are `work-chapters` rows. No courses / modules / lessons
+ * collections: that is four tables and a second progress tracker to keep in sync
+ * with the first one. @see courseChapters.ts for the storage.
  *
  *   { modules: [ { title, lessons: [ { title, video?, body? } ] } ] }
  *

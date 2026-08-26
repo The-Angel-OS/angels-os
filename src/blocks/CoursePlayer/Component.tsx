@@ -2,7 +2,7 @@ import React from 'react'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { normalizeCourse } from '@/utilities/courseContent'
+import { loadCourse } from '@/utilities/courseChapters'
 import { getWorkProgress } from '@/utilities/workProgress'
 import { CoursePlayer } from '@/components/CoursePlayer'
 import { AccessPanel } from '@/components/CoursePlayer/AccessPanel'
@@ -29,7 +29,7 @@ export const CoursePlayerBlockComponent: React.FC<CoursePlayerProps> = async ({ 
     overrideAccess: true,
   })
   const doc = res.docs?.[0] as
-    | { id: number; title?: string; content?: unknown; access?: string | null; product?: number | null; owner?: string | null }
+    | { id: number; title?: string; access?: string | null; product?: number | null; owner?: string | null }
     | undefined
   if (!doc) return null
 
@@ -63,7 +63,7 @@ export const CoursePlayerBlockComponent: React.FC<CoursePlayerProps> = async ({ 
     return <AccessPanel title={doc.title} reason={gate.reason} product={product} />
   }
 
-  const course = normalizeCourse(doc.content)
+  const course = await loadCourse(payload, doc.id)
 
   // Resume where they left off. Signed-out readers simply start at lesson one.
   let startAt: { chapterIdx: number; segIdx: number } | undefined
