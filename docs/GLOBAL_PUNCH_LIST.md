@@ -191,6 +191,52 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[P1] Works has TWO renderers and THREE content conventions, and the writer can't tell which**
+  one they are authoring for. Ken hit this editing WDEG: the formatting is applied **by POSITION,
+  not by markup**, and nothing says so.
+  - `works.type = 'book'` → `BookReader.tsx`. Splits the body on blank lines, renders **paragraph 1
+    as an `<h2>` title**, **drop-caps paragraph 2** (`first-letter:` classes, amber `#C4956A`),
+    Georgia serif, 34rem measure. **Markdown is not parsed at all** — `{p}` goes into a `<p>` as a
+    raw string, so `# heading` and `**bold**` render as literal characters.
+  - `works.type = 'book'` + Bible → the same file's VERSE path: `<sup>` verse numbers, one flowing
+    paragraph. Chosen by content shape, not by a field.
+  - `works.type = 'document'` → `SoulViewer.tsx`. Full `ReactMarkdown` + `remarkGfm` with LCARS
+    styling (Orbitron headings, amber/lavender/teal by level, Rajdhani body). No drop caps.
+  Both editors write **markdown** regardless of which renderer the Work will use.
+  *Next (Ken's call, it changes how every book looks):* `BookReader` should render markdown like
+  the document path, and take the chapter's `title` from the `title` COLUMN — which has existed
+  since chapters became rows — instead of guessing it from paragraph 1.
+  *Where:* `src/components/Library/BookReader.tsx:410-450`,
+  `src/app/[locale]/(app)/learn/[soul]/SoulViewer.tsx:174+`.  `260826`
+- **[P1] WDEG: 12 of 26 chapters have a whole PARAGRAPH as their title** — and all 26 repeat their
+  title as the first line of the body. Because `BookReader` eats paragraph 1 as the heading, those
+  twelve render a full paragraph at `1.55rem` as an `<h2>`, and the drop cap lands on what should
+  have been paragraph two. This is the "clunky" Ken saw. The importer derived `title` from the
+  first line whether or not the chapter had one. Counted live:
+  `select count(*) filter (where length(title) > 120) from work_chapters where work_id = 5`.
+  *Next:* fix the renderer first (above), then repair the 12 titles — in that order, or the repair
+  has to be re-done against whatever the renderer ends up doing.  `260826`
+- **[P1] The quoting agent — the highest-value capability Angel OS does not have.** From the 260826
+  Zack Kirk transcript, and the claim that survives stripping the funnel is checkable: a
+  service business spends **2–3 hours a day** writing free quotes, and his named best niche is
+  "mobile mechanic" — Ken owns `mobilmech1` (14 services, 2 with real hourly rates) and `start-s`.
+  `Services` is already most of a rate card (`pricingModel`, `hourlyRateUsd`,
+  `billingIncrementMinutes`, `minimumMinutes`, `unitRateUsd`, `depositPercent`). **Three things
+  short:** (1) a markup % on parts/materials, (2) a trip/travel charge — it matters for a MOBILE
+  trade and there is no field, (3) a quote as an artifact: `generate_invoice` exists, a quote
+  (pre-job, saved, valid N days, later compared against what the job actually cost) does not.
+  The internal/external split he sells as two products is ONE tool here — `leoToolStanding`
+  MANAGER sees labor, cost, markup and margin; the public caller sees one number.
+  *Next:* two fields on `Services` + a `quote_job` LEO tool, proved on `mobilmech1`.  `260826`
+- **[P2] Speed-to-lead: we have the hard half.** Same transcript's second agent calls a lead within
+  20 seconds of a form submit. `/api/capture` + `embed.js` + heartbeat drip shipped 260726, so the
+  capture rail exists; the outbound call does not. [[project_comms_layer]]  `260826`
+- **[P2] `/dashboard/plan` sells features, not pain.** It currently leads with "your own domain
+  name, pointed and secured". For a tradesman the converting line is "you spend two hours a day
+  writing quotes". Copy change, no build — do it when the quoting agent lands so it is true.
+  `260826`
+
+
 - **[SHIPPED 260825] Who has finished which training** — `/dashboard/works/completions`:
   every active member against every training the portal carries. Three queries, no join
   table — progress already lives as ONE `settings` row per user holding
