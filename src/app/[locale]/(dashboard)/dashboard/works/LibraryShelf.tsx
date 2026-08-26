@@ -45,6 +45,13 @@ export function LibraryShelf({ initial, portalName }: { initial: ShelfWork[]; po
 
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
+      <a
+        href="/dashboard/works/completions"
+        className="mt-3 inline-block text-sm text-primary underline-offset-2 hover:underline"
+      >
+        See who has completed which training →
+      </a>
+
       <ul className="mt-4 divide-y divide-border">
         {works.map((w) => (
           <li key={w.slug} className="flex items-center gap-3 py-3">
