@@ -30,6 +30,7 @@ import { tagRows } from '@/works/availability'
 import { loadBookFromPublic, loadBookFromOrigin } from '@/components/Library/bookManifestServer'
 // Single source of truth for assembly + the portable-JSON helpers (shared with
 // the web readers) — so the content checksum can never drift between surfaces.
+import { gateWorkBySlug } from '@/utilities/gateWork'
 import { getWorkJson, absMedia, checksumOf, WORK_JSON_VERSION } from '@/utilities/getWorkJson'
 import { getDailyBread, DailyBreadError } from '@/utilities/dailyBread'
 
@@ -179,6 +180,15 @@ export const worksGetHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'work not available on this endeavor' }, { status: 404 })
   }
 
+  // Same gate as the web readers — this endpoint is Nimue's door into the same
+  // text, so a Work for sale must not come through it either. @see gateWork.ts
+  const gated = await gateWorkBySlug(payload, soulId)
+  if (gated && !gated.gate.allowed) {
+    return Response.json(
+      { error: 'work not available', reason: gated.gate.reason, productId: gated.gate.productId ?? null },
+      { status: 403 },
+    )
+  }
   try {
     // Single source of truth (shared with the web readers) — DB only, no files.
     const work = await getWorkJson({ payload, soulId, tenantSlug, origin: originFromReq(req) })

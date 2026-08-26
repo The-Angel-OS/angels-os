@@ -5,6 +5,8 @@ import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getWork, isWorkAvailable, type WorkDoc } from '@/works/registry'
+import { gateWorkBySlug } from '@/utilities/gateWork'
+import { AccessPanel } from '@/components/CoursePlayer/AccessPanel'
 import { getWorkJson } from '@/utilities/getWorkJson'
 import { buildTextWindow } from '@/utilities/workTextWindow'
 import { SoulViewer } from './SoulViewer'
@@ -105,6 +107,18 @@ export default async function SoulPage({
   // The Work is assembled from message-backed storage (Blob media + inline
   // translations) — the chapters are rows, not files.
   const payload = await getPayload({ config: configPromise })
+
+  // The paywall's other door. `works.access` was enforced only by the CoursePlayer
+  // block, so a Work put up for sale still served its whole text at its own
+  // canonical URL. @see gateWork.ts
+  const gated = await gateWorkBySlug(payload, soulId)
+  if (gated && !gated.gate.allowed) {
+    return (
+      <div className="container py-16">
+        <AccessPanel title={gated.work.title ?? soul.title} reason={gated.gate.reason} product={gated.product} />
+      </div>
+    )
+  }
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || ''
   const origin = host ? `${h.get('x-forwarded-proto') || 'https'}://${host}` : ''

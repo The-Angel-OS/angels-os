@@ -2,13 +2,15 @@
  * Book text window — GET /api/works-ops/text?slug=&lang=&from=&to=
  *
  * The reader opens with a window of pages (see workTextWindow) and asks for more
- * as the reader flips or switches language. Public, like the Work it serves:
- * getWorkJson already refuses a Work this portal does not carry.
+ * as the reader flips or switches language. getWorkJson refuses a Work this portal
+ * does not carry — and `works.access` is checked here too, because this endpoint is
+ * a door into the same text the page renders. @see gateWork.ts
  */
 import type { PayloadHandler } from 'payload'
 import { getWorkJson } from '@/utilities/getWorkJson'
 import { TEXT_WINDOW_MAX } from '@/utilities/workTextWindow'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { gateWorkBySlug } from '@/utilities/gateWork'
 
 export const workTextHandler: PayloadHandler = async (req) => {
   const url = new URL(req.url || '', 'http://localhost')
@@ -19,6 +21,11 @@ export const workTextHandler: PayloadHandler = async (req) => {
   const from = Math.max(0, Number(url.searchParams.get('from')) || 0)
   const rawTo = Number(url.searchParams.get('to'))
   const to = Math.min(Number.isFinite(rawTo) ? rawTo : from + TEXT_WINDOW_MAX, from + TEXT_WINDOW_MAX)
+
+  const gated = await gateWorkBySlug(req.payload, slug)
+  if (gated && !gated.gate.allowed) {
+    return Response.json({ error: 'Not available', reason: gated.gate.reason, productId: gated.gate.productId ?? null }, { status: 403 })
+  }
 
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || ''
   const origin = host ? `${req.headers.get('x-forwarded-proto') || 'https'}://${host}` : ''
