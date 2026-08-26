@@ -72,7 +72,12 @@ export function LibraryShelf({ initial, portalName }: { initial: ShelfWork[]; po
                 <span className="w-16 text-muted-foreground">{w.carried ? 'Showing' : 'Hidden'}</span>
               </label>
             ) : (
-              <span className="w-24 text-right text-xs text-muted-foreground">Yours</span>
+              <a
+                href={`/dashboard/works/${w.slug}/edit`}
+                className="w-24 text-right text-xs text-primary underline-offset-2 hover:underline"
+              >
+                Edit
+              </a>
             )}
           </li>
         ))}
