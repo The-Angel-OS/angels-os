@@ -16,6 +16,29 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0 — KEN, BLOCKING] Railway's trial has EXPIRED — nothing can deploy.** `railway up` now
+  answers *"Your trial has expired. Please select a plan to continue using Railway."* The node is
+  still **Online** and serving (deployment `a0844b4e`), and DB writes still land, so the platform
+  is up — but every code change since `d91d05c` is on main and NOT live. *Next:* Ken picks a
+  Railway plan, then `railway up -s Core --detach`.  `260826`
+- **[P0→FIXED 260826] Every prospect portal was being indexed under a real business's name** —
+  `isPortalClaimed` answered "claimed" for all 22 portals because Ken holds a membership on every
+  one: he BUILDS them. The builder is not the owner, so robots.txt was letting Google index
+  sites carrying a real business's name, prices and services before anyone had agreed to any of
+  it — precisely the 260818 consent takedown the flag was written to prevent. A portal is now
+  claimed only when a non-system human who is NOT platform staff holds it, and an unpopulated
+  member fails closed. ⚠️ Needs the deploy above to take effect.
+  *Where:* `src/utilities/isPortalClaimed.ts`, `isPortalClaimed.test.ts`.  `260826`
+- **[P1→FIXED 260826] Pricing had FOUR copies and three of them were stale** — the 260823 decision
+  ($29 / $79, fee bought down 5% → 2% → 0%) lived only in a handoff doc. Fixed: `portalPlan.ts`
+  now carries `PLAN_PRICE_CENTS` + `PLAN_FEE_BPS` and `/dashboard/plan` renders the map;
+  `getPlatformFeeBps` consults the plan (a $29 portal was still being charged the free 5% — we
+  were selling a discount we did not apply); the public /plans + /pricing copy and the platform's
+  `membership-plans` settings row (the one the BUY page reads, still at 4900/14900) were updated
+  on live and re-queried. `demo` also stopped being mis-rendered as Free-with-an-upgrade-button.
+  `260826`
+
+
 - **[P0→FIXED 260825] A paywall with a second door is not a paywall** — the first Work ever
   put up for sale served its entire 146 KB to a signed-out visitor at its own canonical URL.
   `works.access` was enforced by exactly ONE surface (the CoursePlayer block) while
